@@ -1,30 +1,32 @@
-import os
+"""
+controller.py — Orquestrador OSM2DXF (DDD Application Layer)
+Responsabilidade única: coordenar o fluxo entre use cases.
+Toda lógica de domínio reside nos use cases em application/use_cases/.
+"""
 import json
-import pandas as pd
-import osmnx as ox
-from shapely.geometry import Point
-import numpy as np
-from pyproj import Transformer
+import geopandas as gpd
+from typing import Dict, Optional
 
-from osmnx_client import fetch_osm_data
-from dxf_generator import DXFGenerator
 from spatial_audit import run_spatial_audit
-from elevation_client import fetch_elevation_grid
-from contour_generator import generate_contours
 from analytics_engine import AnalyticsEngine
-try:
-    from domain.services.environmental_engine import EnvironmentalEngine
-    from .report_generator import generate_report
-    from .utils.logger import Logger
-    from .utils.geo import sirgas2000_utm_epsg
-except (ImportError, ValueError):
-    from domain.services.environmental_engine import EnvironmentalEngine
-    from report_generator import generate_report
-    from utils.logger import Logger
-    from utils.geo import sirgas2000_utm_epsg
+from utils.logger import Logger
+from utils.geo import sirgas2000_utm_epsg
+from application.use_cases.osm_fetcher import OsmFetcherUseCase
+from application.use_cases.environmental_extractor import EnvironmentalExtractorUseCase
+from application.use_cases.terrain_processor import TerrainProcessorUseCase
+from application.use_cases.cad_exporter import CadExporterUseCase
+from application.use_cases.report_orchestrator import ReportOrchestratorUseCase
+
 
 class OSMController:
-    def __init__(self, lat, lon, radius, output_file, layers_config, crs, export_format='dxf', selection_mode='circle', polygon=None):
+    """
+    Orquestra o pipeline OSM → Análise Espacial → DXF + PDF.
+    Delega toda responsabilidade de domínio para use cases especializados.
+    """
+
+    def __init__(self, lat: float, lon: float, radius: float, output_file: str,
+                 layers_config: Dict, crs: str, export_format: str = 'dxf',
+                 selection_mode: str = 'circle', polygon=None):
         self.lat = lat
         self.lon = lon
         self.radius = radius
@@ -34,372 +36,151 @@ class OSMController:
         self.export_format = export_format.lower()
         self.selection_mode = selection_mode
         self.polygon = polygon
-        self.project_metadata = {
-            'client': 'CLIENTE PADRÃO',
-            'project': 'EXTRACAO ESPACIAL'
-        }
-        self.audit_summary = {"violations": 0, "coverageScore": 0}
-        self.analytics_res = None
-        self.grid_rows = []
+        self.project_metadata = {'client': 'CLIENTE PADRÃO', 'project': 'EXTRAÇÃO ESPACIAL'}
+        self.audit_summary: Dict = {'violations': 0, 'coverageScore': 0}
 
-    def run(self):
-        """Orchestrates the Osm2Dxf flow."""
-        Logger.info(f"OSM Audit & Export Starting (Format: {self.export_format})", progress=5)
-        
-        # 1. Prepare Layers
-        tags = self._build_tags()
+    # ── Main pipeline ─────────────────────────────────────────────────────────
+
+    def run(self) -> None:
+        """Executa o pipeline completo OSM → DXF + PDF."""
+        Logger.info(f"Pipeline OSM iniciado (formato: {self.export_format})", progress=5)
+
+        # 1. Buscar features OSM
+        osm = OsmFetcherUseCase(
+            self.lat, self.lon, self.radius,
+            self.layers_config, self.crs, self.selection_mode, self.polygon
+        )
+        tags = osm.build_tags()
         if not tags:
-            Logger.error("No infrastructure layers selected!")
-            return
+            Logger.error("Nenhuma layer selecionada."); return
 
-        # 2. Fetch Features
-        Logger.info("Step 1/5: Fetching OSM features...", progress=10)
-        gdf = self._fetch_features(tags)
+        Logger.info("1/5: Buscando features OSM...", progress=10)
+        gdf = osm.fetch(tags)
         if gdf is None or gdf.empty:
-            Logger.info("No architectural features found in radius.", "warning")
-            return
+            Logger.info("Nenhuma feature encontrada no raio.", "warning"); return
 
-        # 3. Spatial GIS Audit (Authoritative Logic)
-        Logger.info("Step 2/5: Running spatial audit...", progress=30)
+        # 2. Auditoria espacial
+        Logger.info("2/5: Auditoria espacial...", progress=30)
         analysis_gdf = self._run_audit(gdf)
 
-        # 4. Preview Data (GeoJSON) will be sent after environmental extraction
-
-        # 5. Coordinate Offset & CAD Export
-        # AUTHORITATIVE FIX: Check if we want Georeferenced (Absolute) or Localized (0,0)
+        # 3. Inicializar DXF e adicionar features OSM
+        Logger.info("3/5: Gerando DXF...", progress=50)
         use_georef = self.layers_config.get('georef', True)
-        
-        Logger.info(f"Step 3/5: Initializing DXF Generation (Georef: {use_georef})...", progress=50)
-        dxf_gen = DXFGenerator(self.output_file)
-        
-        if use_georef:
-            dxf_gen.diff_x = 0.0
-            dxf_gen.diff_y = 0.0
-            dxf_gen._offset_initialized = True
-            
-        dxf_gen.add_features(gdf) # Features set the offset ONLY if not initialized above
-        
-        # 5.a Phase 9 & 10: AS IS Environmental Features (APP, Land Use, UCs)
-        Logger.info("Extracting AS IS constraints (APP / Land Use / UC)...")
-        app_gdf = EnvironmentalEngine.extract_and_buffer_waterways(gdf)
-        landuse_gdf = EnvironmentalEngine.extract_land_use(gdf)
-        
-        # Determine bounds for UC fetching. If local bounds fail, use radius.
-        bounds = gdf.total_bounds
-        if any(pd.isna(b) or np.isinf(b) for b in bounds):
-             buffer_deg = self.radius / 111320.0
-             bounds = (self.lon - buffer_deg, self.lat - buffer_deg, self.lon + buffer_deg, self.lat + buffer_deg)
-             
-        uc_res = EnvironmentalEngine.process_all_conservation_units(bounds[0], bounds[1], bounds[2], bounds[3])
-        uc_gdf = uc_res['combined_gdf']
-        self._uc_metadata = uc_res['metadata']
-        
-        if not app_gdf.empty:
-            dxf_gen.add_features(app_gdf)
-            
-        if not landuse_gdf.empty:
-            dxf_gen.add_features(landuse_gdf)
-            
-        if not uc_gdf.empty:
-            dxf_gen.add_features(uc_gdf)
+        cad = CadExporterUseCase(self.output_file, self.lat, self.lon, self.layers_config)
+        dxf_gen = cad.initialize_dxf(use_georef)
+        dxf_gen.add_features(gdf)
 
-        # 4. Preview Data (GeoJSON) - Moved after environmental extraction
-        self._send_geojson_preview(gdf, analysis_gdf, app_gdf, landuse_gdf, uc_gdf)
+        # 4. Extração ambiental (APP / Uso do Solo / UCs)
+        Logger.info("4/5: Extraindo restrições ambientais...", progress=70)
+        env = EnvironmentalExtractorUseCase(self.lat, self.lon, self.radius)
+        env_result = env.extract(gdf)
+        cad.add_environmental_layers(
+            dxf_gen, env_result['app_gdf'],
+            env_result['landuse_gdf'], env_result['uc_gdf']
+        )
+        self._uc_metadata = env_result.get('uc_metadata', {})
 
-        # 6. Terrain & Contours (Optional)
+        # 5. Preview GeoJSON
+        self._send_geojson_preview(gdf, analysis_gdf, **{
+            k: env_result[k] for k in ('app_gdf', 'landuse_gdf', 'uc_gdf')
+        })
+
+        # 6. Terreno (opcional)
+        analytics_res, grid_rows = None, []
         if self.layers_config.get('terrain', False):
-            self._process_terrain(gdf, dxf_gen)
+            terrain = TerrainProcessorUseCase(self.output_file, self.layers_config)
+            terrain_result = terrain.process(gdf, dxf_gen)
+            grid_rows = terrain_result['grid_rows']
+            analytics_res = terrain_result['analytics_res']
 
-        # 6a. Post-process Analytics (Phase 2: Dominância de Mercado)
-        # We enrich BEFORE final saving so XDATA includes analytics
-        if self.analytics_res:
-            self._enrich_with_analytics(gdf)
+        # 7. Enriquecimento BIM com analytics
+        if analytics_res and grid_rows:
+            self._enrich_with_analytics(gdf, grid_rows, analytics_res)
 
-
-        # 7. Cartographic Elements
-        if dxf_gen.bounds is not None:
-            self._add_cad_essentials(dxf_gen)
-            
-        # 7a. Satellite Imagery (Raster Overlay)
+        # 8. Elementos cartográficos + satélite
+        cad.add_cartographic_elements(dxf_gen)
         if self.layers_config.get('satellite', False):
-            self._add_satellite_overlay(dxf_gen)
+            cad.add_satellite_overlay(dxf_gen)
 
-        # 8. Save & Cleanup
-        Logger.info("Step 5/5: Finalizing export package...", progress=90)
+        # 9. Salvar DXF + CSV
+        Logger.info("5/5: Finalizando exportação...", progress=90)
         dxf_gen.save()
-        self._export_csv_metadata(gdf)
-        
-        # 9. Technical Report (PDF)
-        try:
-            pdf_file = self.output_file.replace('.dxf', '_laudo.pdf')
-            report_data = {
-                'project_name': self.project_metadata.get('project', 'BASE TOPOGRÁFICA'),
-                'client': self.project_metadata.get('client', 'CLIENTE PADRÃO'),
-                'location_label': f"{self.lat}, {self.lon}",
-                'satellite_img': getattr(self, 'satellite_cache_path', None),
-                'stats': {
-                    'avg_slope': self.analytics_res['slope_avg'] if self.analytics_res else 8.4,
-                    'min_height': float(gdf.geometry.centroid.z.min()) if 'z' in gdf.geometry.centroid else 0.0,
-                    'max_height': float(gdf.geometry.centroid.z.max()) if 'z' in gdf.geometry.centroid else 0.0,
-                    'total_buildings': int(gdf[gdf['building'].notna()].shape[0]) if 'building' in gdf else 0,
-                    'total_road_length': float(gdf[gdf['highway'].notna()].geometry.length.sum()) if 'highway' in gdf else 0,
-                    'total_nature': int(gdf[gdf['natural'].notna()].shape[0]) if 'natural' in gdf else 0,
-                    'total_building_area': float(gdf[gdf['building'].notna()].geometry.area.sum()) if 'building' in gdf else 0,
-                    'avg_solar': float(self.analytics_res['solar'].mean()) if self.analytics_res else 0.72,
-                    'max_flow': float(self.analytics_res['hydrology'].max()) if self.analytics_res else 0.0,
-                    'cut_volume': float(self.analytics_res['earthwork']['cut_volume']) if self.analytics_res else 0.0,
-                    'fill_volume': float(self.analytics_res['earthwork']['fill_volume']) if self.analytics_res else 0.0
-                }
-            }
-            generate_report(report_data, pdf_file)
-        except Exception as re:
-            Logger.info(f"Report generation skipped or failed: {re}", "warning")
+        cad.export_csv_metadata(gdf)
 
-        Logger.success(f"Audit Complete: Generated {self.output_file}")
+        # 10. Relatório PDF
+        report = ReportOrchestratorUseCase(
+            self.output_file, self.project_metadata, self.lat, self.lon
+        )
+        report.generate(gdf, analytics_res, cad.satellite_cache_path)
 
-    def _fetch_features(self, tags):
-        try:
-            if self.selection_mode == 'polygon':
-                 return fetch_osm_data(self.lat, self.lon, self.radius, tags, crs=self.crs, polygon=self.polygon)
-            return fetch_osm_data(self.lat, self.lon, self.radius, tags, crs=self.crs)
-        except Exception as e:
-            Logger.error(f"OSM Fetch Error: {str(e)}")
-            return None
+        Logger.success(f"Pipeline concluído: {self.output_file}")
 
-    def _run_audit(self, gdf):
-        """Runs spatial analysis on the fetched features."""
-        # 1. Determine Target CRS (EPSG)
-        target_epsg = self.crs
+    # ── Helpers internos ───────────────────────────────────────────────────────
+
+    def _run_audit(self, gdf: gpd.GeoDataFrame) -> Optional[gpd.GeoDataFrame]:
         if self.crs == 'auto':
-            # Use centroid of the data to find the best SIRGAS 2000 UTM zone
             centroid = gdf.geometry.centroid
-            avg_lat = centroid.y.mean()
-            avg_lon = centroid.x.mean()
-            target_epsg = f"EPSG:{sirgas2000_utm_epsg(avg_lat, avg_lon)}"
-            Logger.info(f"Auto-selected CRS: {target_epsg} (SIRGAS 2000 UTM)")
+            epsg = sirgas2000_utm_epsg(centroid.y.mean(), centroid.x.mean())
+            Logger.info(f"CRS automático: EPSG:{epsg} (SIRGAS 2000 UTM)")
         try:
             audit_summary, analysis_gdf = run_spatial_audit(gdf)
             self.audit_summary = audit_summary
-            Logger.info(f"Spatial Audit: {audit_summary['violations']} violations detected.")
+            Logger.info(f"Auditoria: {audit_summary['violations']} violações detectadas.")
             return analysis_gdf
-        except Exception as se:
-            Logger.error(f"Spatial Audit internal failure: {se}")
+        except Exception as e:
+            Logger.error(f"Falha na auditoria espacial: {e}")
             return None
 
-    def _enrich_with_analytics(self, gdf):
-        """Enriches feature GeoDataFrame with interpolated analytics data."""
-        if not self.analytics_res or not self.grid_rows: return
-        
-        Logger.info("Enriching features with Enterprise BIM Metrics (Hydrology/Solar/Terrain)...")
-        
-        # 1. Slope Calculation
-        def get_slope(geom):
+    def _enrich_with_analytics(self, gdf: gpd.GeoDataFrame,
+                                grid_rows: list, analytics_res: Dict) -> None:
+        Logger.info("Enriquecimento BIM: Hidrologia / Solar / Terreno...")
+
+        def interp(geom, grid, **kw):
             if geom is None or geom.is_empty: return 0.0
-            return AnalyticsEngine.interpolate_point_slope(geom.centroid, self.grid_rows, self.analytics_res)
-            
-        # 2. Aspect (Orientation) Calculation
-        def get_aspect(geom):
-            if geom is None or geom.is_empty: return 0.0
-            aspect_grid = self.analytics_res['aspect']
-            return AnalyticsEngine.interpolate_point_value(geom.centroid, self.grid_rows, aspect_grid)
-            
-        # 3. Hydrology (Flow Accumulation)
-        def get_hydrology(geom):
-            if geom is None or geom.is_empty: return 0.0
-            hydrology_grid = self.analytics_res['hydrology']
-            return AnalyticsEngine.interpolate_point_value(geom.centroid, self.grid_rows, hydrology_grid)
-            
-        # 4. Solar Potential
-        def get_solar(geom):
-            if geom is None or geom.is_empty: return 0.0
-            solar_grid = self.analytics_res['solar']
-            return AnalyticsEngine.interpolate_point_value(geom.centroid, self.grid_rows, solar_grid)
-            
-        # Apply Metrics
-        gdf['declividade_pct'] = gdf.geometry.apply(get_slope)
-        gdf['orientacao_deg'] = gdf.geometry.apply(get_aspect)
-        gdf['fluxo_acumulado'] = gdf.geometry.apply(get_hydrology)
-        gdf['potencial_solar'] = gdf.geometry.apply(get_solar)
+            return AnalyticsEngine.interpolate_point_value(geom.centroid, grid_rows, grid)
 
-    def _process_terrain(self, gdf, dxf_gen):
-        try:
-            # AUTHORITATIVE FIX: Convert project-space bounds to Lat/Lon for elevation API
-            gdf_4326 = gdf.to_crs(epsg=4326)
-            b = gdf_4326.total_bounds
-            north, south, east, west = b[3], b[1], b[2], b[0]
-            
-            # Resolution-aware expansion
-            margin = 0.0005 # Degrees
-            elev_points, rows, cols = fetch_elevation_grid(north + margin, south - margin, east + margin, west - margin, resolution=100) 
-            
-            if elev_points:
-                Logger.info(f"Reconstructing {rows}x{cols} terrain grid...", progress=60)
-                transformer = Transformer.from_crs("EPSG:4326", gdf.crs, always_xy=True)
-                
-                grid_rows = []
-                current_row = []
-                for lat, lon, z in elev_points:
-                    x, y = transformer.transform(lon, lat)
-                    current_row.append((x, y, z))
-                    if len(current_row) >= cols:
-                        grid_rows.append(current_row)
-                        current_row = []
-                
-                if current_row: grid_rows.append(current_row)
-                
-                self.grid_rows = grid_rows # Store for enrichment
-                # Dynamic Analytics (Phase 2 & 3)
-                self.analytics_res = AnalyticsEngine.calculate_slope_grid(grid_rows)
-                if self.analytics_res:
-                    Logger.info(f"Geomorphometry Calculated: Avg Slope {self.analytics_res['slope_avg']:.1f}%")
+        gdf['declividade_pct'] = gdf.geometry.apply(
+            lambda g: AnalyticsEngine.interpolate_point_slope(g.centroid, grid_rows, analytics_res)
+            if g and not g.is_empty else 0.0
+        )
+        gdf['orientacao_deg']  = gdf.geometry.apply(lambda g: interp(g, analytics_res['aspect']))
+        gdf['fluxo_acumulado'] = gdf.geometry.apply(lambda g: interp(g, analytics_res['hydrology']))
+        if 'solar' in analytics_res:
+            gdf['potencial_solar'] = gdf.geometry.apply(lambda g: interp(g, analytics_res['solar']))
 
-                dxf_gen.add_terrain_from_grid(grid_rows)
-                
-                # Contours
-                if self.layers_config.get('contours', False):
-                    self._add_contours(grid_rows, dxf_gen)
-                    
-                # Hydrology 
-                if self.layers_config.get('hydrology', False):
-                    dxf_gen.add_hydrology(grid_rows)
-                    
-                # Profile CSV Export
-                try:
-                    import numpy as np
-                    mid_idx = len(grid_rows) // 2
-                    mid_row = [p[2] for p in grid_rows[mid_idx]]
-                    csv_path = self.output_file.replace('.dxf', '_perfil_longitudinal.csv')
-                    np.savetxt(csv_path, mid_row, delimiter=',', header='elevation_m', comments='')
-                except Exception as e:
-                    Logger.warn(f"Profile CSV export failed: {e}")
-                    
-        except Exception as e:
-            Logger.error(f"Terrain submodule failure: {str(e)}")
-
-    def _add_contours(self, grid_rows, dxf_gen):
-        try:
-            interval = 1.0 if not self.layers_config.get('high_res_contours') else 0.5
-            contours = generate_contours(grid_rows, interval=interval)
-            if contours:
-                dxf_gen.add_contour_lines(contours)
-                Logger.info(f"Integrated {len(contours)} contour lines.")
-        except Exception as ce:
-            Logger.error(f"Contour math error: {ce}")
-
-    def _add_cad_essentials(self, dxf_gen):
-        min_x, min_y, max_x, max_y = dxf_gen.bounds
-        dxf_gen.add_coordinate_grid(min_x, min_y, max_x, max_y, dxf_gen.diff_x, dxf_gen.diff_y)
-        dxf_gen.add_cartographic_elements(min_x, min_y, max_x, max_y, dxf_gen.diff_x, dxf_gen.diff_y)
-        
-    def _add_satellite_overlay(self, dxf_gen):
-        """Fetches Google Maps Static Satellite Image and embeds it as a Raster in the DXF."""
-        try:
-            from infrastructure.external_api.google_maps_static import GoogleMapsStaticAPI
-            import math
-            import os
-            
-            # Simple zoom calculation based on radius (Google Maps zoom levels 14 to 20)
-            zoom = 18
-            if self.radius > 800: zoom = 15
-            elif self.radius > 400: zoom = 16
-            elif self.radius > 200: zoom = 17
-            elif self.radius < 50: zoom = 19
-            
-            # Fetch using Google Web Mercator to get the image
-            img_path = GoogleMapsStaticAPI.fetch_satellite_image(self.lat, self.lon, zoom=zoom, scale=2)
-            
-            if img_path and os.path.exists(img_path):
-                # The bounds for the raster overlay need to roughly match the captured geographic box
-                # For simplicity, we stretch the image over the entire requested radius bounds
-                bounds = dxf_gen.bounds
-                if bounds:
-                    dxf_gen.add_raster_overlay(img_path, bounds)
-                    # Keep a reference to attach to PDF later
-                    self.satellite_cache_path = img_path
-                    
-        except ImportError:
-            Logger.warn("Google Maps Static API module not found. Skipping overlay.")
-        except Exception as e:
-            Logger.error(f"Failed to integrate satellite overlay: {e}")
-
-    def _export_csv_metadata(self, gdf):
-        try:
-            csv_file = self.output_file.replace('.dxf', '_metadata.csv')
-            df = gdf.copy()
-            df['area_m2'] = df.geometry.area
-            df['length_m'] = df.geometry.length
-            df_csv = pd.DataFrame(df.drop(columns='geometry'))
-            df_csv.to_csv(csv_file, index=False)
-            Logger.info(f"Metadata exported to {os.path.basename(csv_file)}")
-        except Exception as e:
-            Logger.error(f"CSV Metadata Export failed: {e}")
-
-    def _build_tags(self):
-        tags = {}
-        if self.layers_config.get('buildings', True): tags['building'] = True
-        if self.layers_config.get('roads', True): tags['highway'] = True
-        if self.layers_config.get('vegetation', True):
-            tags.update({
-                'natural': ['wood', 'scrub', 'heath', 'grassland', 'tree', 'tree_row', 'water'],
-                'landuse': ['forest', 'grass', 'residential', 'commercial', 'industrial'],
-                'waterway': True
-            })    
-        if self.layers_config.get('furniture', False):
-            tags['amenity'] = ['bench', 'waste_basket', 'bicycle_parking', 'fountain', 'bus_station']
-            tags['highway'] = ['street_lamp']
-        return tags
-
-    def _send_geojson_preview(self, gdf, analysis_gdf=None, app_gdf=None, landuse_gdf=None, uc_gdf=None):
+    def _send_geojson_preview(self, gdf, analysis_gdf=None,
+                               app_gdf=None, landuse_gdf=None, uc_gdf=None) -> None:
         if Logger.SKIP_GEOJSON: return
         try:
-            preview_gdf = gdf.copy()
-            preview_gdf['area'] = preview_gdf.geometry.area
-            preview_gdf['length'] = preview_gdf.geometry.length
-            def get_type(row):
-                if row.get('building'): return 'building'
-                if row.get('highway'): return 'highway'
-                return 'other'
-            preview_gdf['feature_type'] = preview_gdf.apply(get_type, axis=1)
-            gdf_wgs84 = preview_gdf.to_crs(epsg=4326)
-            payload = json.loads(gdf_wgs84.to_json())
-            
-            # Incorporate Analysis Data
-            if analysis_gdf is not None and not analysis_gdf.empty:
-                analysis_wgs84 = analysis_gdf.to_crs(epsg=4326)
-                analysis_json = json.loads(analysis_wgs84.to_json())
-                for f in analysis_json['features']: f['properties']['is_analysis'] = True
-                payload['features'].extend(analysis_json['features'])
-                
-            # Incorporate Phase 9: AS IS APP
-            if app_gdf is not None and not app_gdf.empty:
-                app_wgs84 = app_gdf.to_crs(epsg=4326)
-                app_json = json.loads(app_wgs84.to_json())
-                for f in app_json['features']: f['properties']['is_app'] = True
-                payload['features'].extend(app_json['features'])
-                
-            # Incorporate Phase 9: Land Use
-            if landuse_gdf is not None and not landuse_gdf.empty:
-                lu_wgs84 = landuse_gdf.to_crs(epsg=4326)
-                lu_json = json.loads(lu_wgs84.to_json())
-                for f in lu_json['features']: f['properties']['is_landuse'] = True
-                payload['features'].extend(lu_json['features'])
-                
-            # Incorporate Phase 10: Conservation Units
+            preview = gdf.copy()
+            preview['area'] = preview.geometry.area
+            preview['length'] = preview.geometry.length
+            preview['feature_type'] = preview.apply(
+                lambda r: 'building' if r.get('building')
+                else ('highway' if r.get('highway') else 'other'), axis=1
+            )
+            payload = json.loads(preview.to_crs(epsg=4326).to_json())
+
+            extras = [
+                (analysis_gdf, 'is_analysis'), (app_gdf, 'is_app'),
+                (landuse_gdf, 'is_landuse'),
+            ]
+            for extra_gdf, flag in extras:
+                if extra_gdf is not None and not extra_gdf.empty:
+                    feats = json.loads(extra_gdf.to_crs(epsg=4326).to_json())['features']
+                    for f in feats: f['properties'][flag] = True
+                    payload['features'].extend(feats)
+
             if uc_gdf is not None and not uc_gdf.empty:
-                uc_wgs84 = uc_gdf.to_crs(epsg=4326)
-                uc_json = json.loads(uc_wgs84.to_json())
-                for f in uc_json['features']: 
-                     f['properties']['is_uc'] = True
-                     # Frontend coloring relies on landuse simulation or explicit is_uc handle
-                     f['properties']['landuse'] = 'conservation_unit' 
-                payload['features'].extend(uc_json['features'])
-                
+                feats = json.loads(uc_gdf.to_crs(epsg=4326).to_json())['features']
+                for f in feats:
+                    f['properties']['is_uc'] = True
+                    f['properties']['landuse'] = 'conservation_unit'
+                payload['features'].extend(feats)
+
             payload['audit_summary'] = self.audit_summary
-            
-            # Phase 10 meta for Toast notification
             if getattr(self, '_uc_metadata', None):
-                 payload['uc_metadata'] = self._uc_metadata
-                 
+                payload['uc_metadata'] = self._uc_metadata
             Logger.geojson(payload)
         except Exception as e:
-            Logger.error(f"GeoJSON Sync Error: {str(e)}")
+            Logger.error(f"Erro no preview GeoJSON: {str(e)}")

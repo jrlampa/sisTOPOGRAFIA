@@ -15,6 +15,16 @@ try:
 except (ImportError, ValueError):
     from utils.logger import Logger
 
+# ── Módulos extraídos (SRP Refactor P3-C2) ───────────────────────────────────
+try:
+    from .layer_classifier import classify_layer
+    from .bim_data_attacher import attach_bim_data
+    from .legend_builder import LegendBuilder
+except (ImportError, ValueError):
+    from layer_classifier import classify_layer
+    from bim_data_attacher import attach_bim_data
+    from legend_builder import LegendBuilder
+
 class DXFGenerator:
     def __init__(self, filename):
         self.filename = filename
@@ -37,23 +47,8 @@ class DXFGenerator:
             pass # Already exists
 
     def _add_bim_data(self, entity, tags):
-        """Attaches Half-way BIM metadata to any DXF entity via XDATA."""
-        if tags is None or (hasattr(tags, 'empty') and tags.empty): return
-        if not hasattr(tags, 'items'): return
-        xdata = []
-        for k, v in tags.items():
-            if v is None or (hasattr(pd, 'isna') and pd.isna(v)): continue
-            # Handle potential Series/Lists by taking the first item if needed
-            val = v if np.isscalar(v) else (v[0] if len(v) > 0 else None)
-            if val is None or k == 'geometry': continue
-            val_str = f"{k}={val}"[:240]  # Safe length < 255
-            xdata.append((1000, val_str))
-        
-        if xdata:
-            try:
-                entity.set_xdata('SISRUA_BIM', xdata)
-            except Exception as e:
-                Logger.info(f"Failed to attach BIM data: {e}")
+        """Delega para bim_data_attacher (SRP Refactor P3-C2)."""
+        attach_bim_data(entity, tags)
 
     # Legacy setup methods removed (handled by StyleManager)
 
@@ -90,64 +85,8 @@ class DXFGenerator:
             self._draw_geometry(geom, layer, self.diff_x, self.diff_y, tags)
 
     def determine_layer(self, tags, row):
-        """Maps OSM tags to DXF Layers"""
-        # ── HIDROGRAFIA: PRIORIDADE MAXIMA ─────────────────────────────────
-        # waterway DEVE ser checado ANTES de qualquer amenity/power/telecom.
-        # Feicoes OSM de rios podem co-existir com tags amenity/fountain.
-        if 'waterway' in tags and not pd.isna(tags.get('waterway')):
-            return 'sisTOPO_HIDROGRAFIA'
-        if 'natural' in tags and not pd.isna(tags.get('natural')) \
-                and tags['natural'] in ['water', 'wetland', 'bay', 'coastline']:
-            return 'sisTOPO_HIDROGRAFIA'
-
-        # Power Infrastructure
-        if 'power' in tags and not pd.isna(tags['power']):
-            if tags['power'] in ['line', 'tower', 'substation']:
-                return 'sisTOPO_INFRA_POWER_HV'
-            return 'sisTOPO_INFRA_POWER_LV'
-
-        # Telecom Infrastructure
-        if 'telecom' in tags and not pd.isna(tags['telecom']):
-            return 'sisTOPO_INFRA_TELECOM'
-
-        # Street Furniture
-        furniture_amenities = ['bench', 'waste_basket', 'bicycle_parking', 'fountain', 'drinking_water']
-        if ('amenity' in tags and tags['amenity'] in furniture_amenities) or \
-           ('highway' in tags and tags['highway'] == 'street_lamp'):
-            return 'sisTOPO_MOBILIARIO_URBANO'
-
-        if 'building' in tags and not pd.isna(tags['building']):
-            return 'sisTOPO_EDIFICACAO'
-            
-        # Environmental Constraints & AS IS Data
-        if 'sisTOPO_type' in tags and not pd.isna(tags['sisTOPO_type']):
-            t = tags['sisTOPO_type']
-            if t == 'UC_FEDERAL': return 'sisTOPO_UC_FEDERAL'
-            if t == 'UC_ESTADUAL': return 'sisTOPO_UC_ESTADUAL'
-            if t == 'UC_MUNICIPAL': return 'sisTOPO_UC_MUNICIPAL'
-            
-        if 'app_type' in tags and tags['app_type'] == 'APP_30M':
-            return 'sisTOPO_RESTRICAO_APP_30M'
-            
-        if 'landuse' in tags and not pd.isna(tags['landuse']):
-            lu = tags['landuse']
-            if lu == 'residential': return 'sisTOPO_USO_RESIDENCIAL'
-            if lu == 'commercial': return 'sisTOPO_USO_COMERCIAL'
-            if lu == 'industrial': return 'sisTOPO_USO_INDUSTRIAL'
-            if lu in ['forest', 'grass', 'meadow', 'park']: return 'sisTOPO_USO_VEGETACAO'
-            return 'sisTOPO_USO_VEGETACAO' # Fallback
-            
-        # landuse ja tratado acima, waterway ja tratado no topo
-        if 'highway' in tags and not pd.isna(tags['highway']):
-            return 'sisTOPO_VIAS'
-        if 'natural' in tags and tags['natural'] in ['tree', 'wood', 'scrub']:
-            return 'sisTOPO_VEGETACAO'
-        if 'amenity' in tags:
-            return 'sisTOPO_EQUIPAMENTOS'
-        if 'leisure' in tags:
-            return 'sisTOPO_VEGETACAO'  # Parks, etc
-
-        return '0'  # Default layer
+        """Delega para layer_classifier.classify_layer() (SRP Refactor P3-C2)."""
+        return classify_layer(tags)
 
     def _safe_v(self, v, fallback_val=None):
         """Absolute guard for float values. Returns fallback_val if invalid."""
@@ -736,176 +675,32 @@ class DXFGenerator:
             Logger.error(f"Failed to attach Raster Overlay to DXF: {e}")
 
     def add_cartographic_elements(self, min_x, min_y, max_x, max_y, diff_x, diff_y):
-        """Adds North Arrow and Scale Bar to the drawing"""
-        try:
-            # Place North Arrow at top-right with margin
-            margin = 10.0
-            na_x = self._safe_v(max_x - diff_x - margin)
-            na_y = self._safe_v(max_y - diff_y - margin)
-            self.msp.add_blockref('NORTE', (na_x, na_y))
-
-            # Place Scale Bar at bottom-right
-            sb_x = self._safe_v(max_x - diff_x - 30.0)
-            sb_y = self._safe_v(min_y - diff_y + margin)
-            self.msp.add_blockref('ESCALA', (sb_x, sb_y))
-        except Exception as e:
-            Logger.info(f"Cartographic elements failed: {e}")
+        """Delega para LegendBuilder (SRP Refactor P3-C2)."""
+        self._legend_builder().add_cartographic_elements(min_x, min_y, max_x, max_y, diff_x, diff_y)
 
     def add_coordinate_grid(self, min_x, min_y, max_x, max_y, diff_x, diff_y, spacing=50.0):
-        """Draws an engineering UTM coordinate crosshair grid with labels"""
-        # Strictly validate all grid inputs
-        min_x, max_x = self._safe_v(min_x), self._safe_v(max_x)
-        min_y, max_y = self._safe_v(min_y), self._safe_v(max_y)
-        diff_x, diff_y = self._safe_v(diff_x), self._safe_v(diff_y)
-
-        # Outer Frame
-        frame_pts = [
-            (min_x - diff_x - 5, min_y - diff_y - 5),
-            (max_x - diff_x + 5, min_y - diff_y - 5),
-            (max_x - diff_x + 5, max_y - diff_y + 5),
-            (min_x - diff_x - 5, max_y - diff_y + 5)
-        ]
-        self.msp.add_lwpolyline(frame_pts, close=True, dxfattribs={'layer': 'sisTOPO_QUADRO', 'color': 7})
-
-        # Internal UTM Crosshair Grid 
-        # Determine grid bounds aligned to spacing
-        import math
-        grid_min_x = math.floor(min_x / spacing) * spacing
-        grid_max_x = math.ceil(max_x / spacing) * spacing
-        grid_min_y = math.floor(min_y / spacing) * spacing
-        grid_max_y = math.ceil(max_y / spacing) * spacing
-        
-        layer_grid = 'QUADRO_MALHA'
-        layer_text = 'QUADRO_TEXTO'
-        
-        import numpy as np
-        cross_size = spacing * 0.05
-        
-        # Prevent massive loops
-        if (grid_max_x - grid_min_x) / spacing > 100 or (grid_max_y - grid_min_y) / spacing > 100:
-            Logger.info("Grid area too large, skipping internal crosshairs.")
-            return
-
-        for x in np.arange(grid_min_x, grid_max_x + spacing, spacing):
-            for y in np.arange(grid_min_y, grid_max_y + spacing, spacing):
-                # Draw small crosshair and label
-                lx = self._safe_v(x - diff_x)
-                ly = self._safe_v(y - diff_y)
-                
-                # Check bounds loosely
-                if (min_x - 10 <= x <= max_x + 10) and (min_y - 10 <= y <= max_y + 10):
-                    self.msp.add_line((lx - cross_size, ly), (lx + cross_size, ly), dxfattribs={'layer': layer_grid, 'color': 8})
-                    self.msp.add_line((lx, ly - cross_size), (lx, ly + cross_size), dxfattribs={'layer': layer_grid, 'color': 8})
-                    
-                    self.msp.add_text(
-                        f"{x:.0f}, {y:.0f}",
-                        dxfattribs={
-                            'layer': layer_text,
-                            'height': spacing * 0.04,
-                            'color': 8,
-                            'style': 'STANDARD'
-                        }
-                    ).set_placement((lx + cross_size, ly + cross_size))
+        """Delega para LegendBuilder (SRP Refactor P3-C2)."""
+        self._legend_builder().add_coordinate_grid(min_x, min_y, max_x, max_y, diff_x, diff_y, spacing)
 
     def add_legend(self):
-        """Adds a professional legend to the Model Space"""
-        min_x, min_y, max_x, max_y = self.bounds
-        # Place to the right of the drawing with safety
-        start_x = self._safe_v(max_x - self.diff_x + 20)
-        start_y = self._safe_v(max_y - self.diff_y)
-        
-        # Legend Header
-        self.msp.add_text("LEGENDA TÉCNICA", dxfattribs={'height': 4, 'style': 'PRO_STYLE', 'layer': 'sisTOPO_QUADRO'}).set_placement((start_x, start_y))
-        
-        items = [
-            ("EDIFICAÇÕES", "sisTOPO_EDIFICACAO", 5),
-            ("VIAS / RUAS", "sisTOPO_VIAS", 1),
-            ("MEIO-FIO", "sisTOPO_VIAS_MEIO_FIO", 9),
-            ("VEGETAÇÃO", "sisTOPO_VEGETACAO", 3),
-            ("ILUMINAÇÃO PÚBLICA", "sisTOPO_MOBILIARIO_URBANO", 2),
-            ("REDE ELÉTRICA (AT)", "sisTOPO_INFRA_POWER_HV", 1),
-            ("REDE ELÉTRICA (BT)", "sisTOPO_INFRA_POWER_LV", 30),
-            ("TELECOMUNICAÇÕES", "sisTOPO_INFRA_TELECOM", 90),
-            ("CURVAS DE NÍVEL", "sisTOPO_TOPOGRAFIA_CURVAS", 8)
-        ]
-        
-        y_offset = -10
-        for label, layer, color in items:
-            # Sample Geometry
-            self.msp.add_line((start_x, start_y + y_offset), (start_x + 10, start_y + y_offset), dxfattribs={'layer': layer, 'color': color})
-            self.msp.add_text(label, dxfattribs={'height': 2.5, 'layer': 'sisTOPO_QUADRO'}).set_placement((start_x + 12, start_y + y_offset - 1))
-            y_offset -= 8
+        """Delega para LegendBuilder (SRP Refactor P3-C2)."""
+        self._legend_builder().add_legend()
 
     def add_title_block(self, client="N/A", project="sisTOPOGRAFIA - Engenharia", designer="sisTOPOGRAFIA AI"):
-        """Creates a professional A3 Title Block in Paper Space"""
-        # 1. Create Layout
-        layout = self.doc.layout('Layout1')
-        
-        # A3 is roughly 420x297 units (mm)
-        width, height = 420, 297
-        
-        # 2. Draw A3 Border
-        layout.add_lwpolyline([(0, 0), (width, 0), (width, height), (0, height)], close=True, dxfattribs={'layer': 'sisTOPO_QUADRO', 'lineweight': 50})
-        
-        # 3. Create Viewport (Visualizing Model Space)
-        # AUTHORITATIVE FIX: Viewport must point to the drawing centroid, not (0,0)
-        # This prevents the drawing "vanishing" in georeferenced mode.
-        cx = (self.bounds[0] + self.bounds[2]) / 2
-        cy = (self.bounds[1] + self.bounds[3]) / 2
-        view_x = cx - self.diff_x
-        view_y = cy - self.diff_y
-        
-        # Calculate appropriate zoom height based on bounds
-        v_height = max(abs(self.bounds[2] - self.bounds[0]), abs(self.bounds[3] - self.bounds[1])) * 1.2
-        if v_height < 50: v_height = 200 # Fallback for small areas
-        
-        vp = layout.add_viewport(
-            center=(width/2, height/2 + 20),
-            size=(width - 40, height - 80),
-            view_center_point=(view_x, view_y),
-            view_height=200 # Fixed zoom for consistency
-        )
-        vp.dxf.status = 1
-        
-        # 4. Draw Title Block (Carimbo) - Bottom Right Corner
-        cb_x, cb_y = width - 185, 0
-        cb_w, cb_h = 185, 50
-        
-        # Main box
-        layout.add_lwpolyline([(cb_x, cb_y), (cb_x + cb_w, cb_y), (cb_x + cb_w, cb_y + cb_h), (cb_x, cb_y + cb_h)], close=True, dxfattribs={'layer': 'sisTOPO_QUADRO'})
-        
-        # Sub-divisions
-        layout.add_line((cb_x, cb_y + 25), (cb_x + cb_w, cb_y + 25), dxfattribs={'layer': 'sisTOPO_QUADRO'})
-        layout.add_line((cb_x + 100, cb_y), (cb_x + 100, cb_y + 25), dxfattribs={'layer': 'sisTOPO_QUADRO'})
-        
-        # Add Text Fields (Sanitized)
-        import datetime
-        date_str = datetime.date.today().strftime("%d/%m/%Y")
-        
-        # Project Title with standardized alignment
-        p_name = str(project).upper()
-        c_name = str(client)
-        d_name = str(designer)
-        
-        def add_layout_text(text, pos, height, style='PRO_STYLE'):
-            t = layout.add_text(text, dxfattribs={'height': height, 'style': style})
-            t.dxf.halign = 0 # Left
-            t.dxf.valign = 0 # Baseline
-            t.dxf.insert = pos
-            t.dxf.align_point = pos
-            return t
+        """Delega para LegendBuilder (SRP Refactor P3-C2)."""
+        self._legend_builder().add_title_block(client, project, designer)
 
-        add_layout_text(f"PROJETO: {p_name[:50]}", (cb_x + 5, cb_y + 35), 4)
-        add_layout_text(f"CLIENTE: {c_name[:50]}", (cb_x + 5, cb_y + 15), 3)
-        add_layout_text(f"DATA: {date_str}", (cb_x + 105, cb_y + 15), 2.5)
-        add_layout_text(f"ENGINE: sisRUA Unified v1.5", (cb_x + 105, cb_y + 5), 2)
-        add_layout_text(f"RESPONSÁVEL: {d_name[:50]}", (cb_x + 5, cb_y + 5), 2.5)
-        
-        # Logo
-        try:
-            layout.add_blockref('LOGO', (cb_x + cb_w - 20, cb_y + cb_h - 10))
-        except Exception as e:
-            Logger.error(f"Error adding logo block reference: {e}")
+    def _legend_builder(self) -> 'LegendBuilder':
+        """Instancia LegendBuilder com contexto atual do DXFGenerator."""
+        return LegendBuilder(
+            msp=self.msp,
+            doc=self.doc,
+            bounds=self.bounds,
+            diff_x=self.diff_x,
+            diff_y=self.diff_y,
+            safe_v_fn=self._safe_v,
+            project_info=self.project_info
+        )
 
 
     def save(self):
