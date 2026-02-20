@@ -27,7 +27,7 @@ except (ImportError, ValueError):
     from legend_builder import LegendBuilder
 
 class DXFGenerator:
-    def __init__(self, filename):
+    def __init__(self, filename, layers_config=None):
         self.filename = filename
         self.doc = ezdxf.new('R2013')
         self.diff_x = 0.0
@@ -35,7 +35,8 @@ class DXFGenerator:
         self.bounds = [0.0, 0.0, 0.0, 0.0]  # Standard bounding box
         
         # Setup CAD standards via StyleManager (SRP Refactor)
-        DXFStyleManager.setup_all(self.doc)
+        # Filters layers based on layers_config if provided
+        DXFStyleManager.setup_all(self.doc, layers_config)
         
         self.msp = self.doc.modelspace()
         self.project_info = {} # Store metadata for title block

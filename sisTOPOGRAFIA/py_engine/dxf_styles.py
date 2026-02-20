@@ -5,11 +5,11 @@ class DXFStyleManager:
     """Manages CAD layers, blocks, and styles to decouple logic from DXFGenerator."""
     
     @staticmethod
-    def setup_all(doc):
+    def setup_all(doc, layers_config=None):
         """Initialize all document styles and standards."""
         DXFStyleManager.setup_linetypes(doc)
         DXFStyleManager.setup_text_styles(doc)
-        DXFStyleManager.setup_layers(doc)
+        DXFStyleManager.setup_layers(doc, layers_config)
         DXFStyleManager.setup_blocks(doc)
         DXFStyleManager.setup_logo(doc)
 
@@ -28,63 +28,56 @@ class DXFStyleManager:
             doc.styles.new('PRO_STYLE', dxfattribs={'font': 'arial.ttf'})
 
     @staticmethod
-    def setup_layers(doc):
-        """Define standard engineering layers."""
-        layers = [
-            ('sisTOPO_EDIFICACAO', 7, 0.30),    # White/Black
-            ('sisTOPO_VIAS', 8, 0.15),          # Gray
-            ('sisTOPO_VIAS_MEIO_FIO', 251, 0.09), # Light Gray
-            ('sisTOPO_VEGETACAO', 3, 0.13),      # Green
-            ('sisTOPO_MOBILIARIO_URBANO', 40, 0.15),
-            ('sisTOPO_EQUIPAMENTOS', 4, 0.15),
-            ('sisTOPO_INFRA_POWER_HV', 1, 0.35), # Red
-            ('sisTOPO_INFRA_POWER_LV', 30, 0.20),
-            ('sisTOPO_INFRA_TELECOM', 94, 0.15),
-            ('sisTOPO_TOPOGRAFIA_CURVAS', 252, 0.09),
-            ('sisTOPO_MALHA_COORD', 253, 0.05),
-            ('sisTOPO_ANNOT_AREA', 2, 0.13),
-            ('sisTOPO_ANNOT_LENGTH', 2, 0.13),
-            ('sisTOPO_LEGENDA', 7, 0.15),
-            ('sisTOPO_TEXTO', 7, 0.15),
-            ('sisTOPO_CURVAS_NIVEL_MESTRA', 251, 0.25),
-            ('sisTOPO_CURVAS_NIVEL_INTERM', 252, 0.09),
-            ('sisTOPO_QUADRO', 7, 0.50), # Border
-            
-            # Phase 9: AS-IS Restrictions & Land Use
-            ('sisTOPO_RESTRICAO_APP_30M', 1, 0.35), # Red
-            ('sisTOPO_USO_RESIDENCIAL', 5, 0.15),   # Blue
-            ('sisTOPO_USO_COMERCIAL', 6, 0.15),     # Magenta
-            ('sisTOPO_USO_INDUSTRIAL', 8, 0.15),    # Dark Gray
-            ('sisTOPO_USO_VEGETACAO', 3, 0.15),     # Green
-            
-            # Phase 10: Conservation Units
-            ('sisTOPO_UC_FEDERAL', 5, 0.50),        # Dark Blue
-            ('sisTOPO_UC_ESTADUAL', 4, 0.50),       # Cyan
-            ('sisTOPO_UC_MUNICIPAL', 6, 0.50),      # Magenta
+    def setup_layers(doc, layers_config=None):
+        """Define standard engineering layers, filtered by layers_config."""
+        # Mapping layers to layers_config keys
+        # If layers_config is None, all layers are created (backward compatibility)
+        conf = layers_config if layers_config is not None else {}
+        is_all = layers_config is None
 
-            # Hidrografia - cursos d'agua e corpos hidricos
-            ('sisTOPO_HIDROGRAFIA', 140, 0.35),     # Azul agua (cor 140)
+        layers_map = [
+            ('sisTOPO_EDIFICACAO', 7, 0.30, 'buildings'),
+            ('sisTOPO_VIAS', 8, 0.15, 'roads'),
+            ('sisTOPO_VIAS_MEIO_FIO', 251, 0.09, 'roads'),
+            ('sisTOPO_VEGETACAO', 3, 0.13, 'nature'),
+            ('sisTOPO_MOBILIARIO_URBANO', 40, 0.15, 'furniture'),
+            ('sisTOPO_EQUIPAMENTOS', 4, 0.15, 'equipment'),
+            ('sisTOPO_INFRA_POWER_HV', 1, 0.35, 'infrastructure'),
+            ('sisTOPO_INFRA_POWER_LV', 30, 0.20, 'infrastructure'),
+            ('sisTOPO_INFRA_TELECOM', 94, 0.15, 'infrastructure'),
+            ('sisTOPO_TOPOGRAFIA_CURVAS', 252, 0.09, 'terrain'),
+            ('sisTOPO_MALHA_COORD', 253, 0.05, 'cartography'),
+            ('sisTOPO_ANNOT_AREA', 2, 0.13, 'labels'),
+            ('sisTOPO_ANNOT_LENGTH', 2, 0.13, 'labels'),
+            ('sisTOPO_LEGENDA', 7, 0.15, 'cartography'),
+            ('sisTOPO_TEXTO', 7, 0.15, 'labels'),
+            ('sisTOPO_CURVAS_NIVEL_MESTRA', 251, 0.25, 'contours'),
+            ('sisTOPO_CURVAS_NIVEL_INTERM', 252, 0.09, 'contours'),
+            ('sisTOPO_QUADRO', 7, 0.50, 'cartography'),
+            ('sisTOPO_RESTRICAO_APP_30M', 1, 0.35, 'app'),
+            ('sisTOPO_USO_RESIDENCIAL', 5, 0.15, 'landuse'),
+            ('sisTOPO_USO_COMERCIAL', 6, 0.15, 'landuse'),
+            ('sisTOPO_USO_INDUSTRIAL', 8, 0.15, 'landuse'),
+            ('sisTOPO_USO_VEGETACAO', 3, 0.15, 'landuse'),
+            ('sisTOPO_UC_FEDERAL', 5, 0.50, 'uc'),
+            ('sisTOPO_UC_ESTADUAL', 4, 0.50, 'uc'),
+            ('sisTOPO_UC_MUNICIPAL', 6, 0.50, 'uc'),
+            ('sisTOPO_HIDROGRAFIA', 140, 0.35, 'hydrology'),
+            ('sisTOPO_TERRENO_TIN', 251, 0.09, 'generate_tin'),
         ]
         
         # Standard CAD lineweights mapped (mm to internal int)
-        # AutoCAD only accepts: 0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50...
         def map_weight(w):
             val = int(w * 100)
-            if val <= 5: return 5
-            if val <= 9: return 9
-            if val <= 13: return 13
-            if val <= 15: return 15
-            if val <= 18: return 18
-            if val <= 20: return 20
-            if val <= 25: return 25
-            if val <= 30: return 30
-            if val <= 35: return 35
-            if val <= 40: return 40
-            if val <= 50: return 50
-            return 53
+            weights = [0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 100, 120, 140, 200, 211]
+            return min(weights, key=lambda x:abs(x-val))
 
-        for name, color, lineweight in layers:
-            if name not in doc.layers:
+        for name, color, lineweight, key in layers_map:
+            # Create layer if all mode, OR if key is enabled in config
+            # Also support 'vegetation' as alias for 'nature'
+            enabled = is_all or conf.get(key, False) or (key == 'nature' and conf.get('vegetation', False))
+            
+            if enabled and name not in doc.layers:
                 doc.layers.new(name, dxfattribs={
                     'color': color,
                     'lineweight': map_weight(lineweight)

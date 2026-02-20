@@ -34,7 +34,7 @@ class CadExporterUseCase:
 
     def initialize_dxf(self, use_georef: bool = True) -> DXFGenerator:
         """Cria e configura o DXFGenerator."""
-        gen = DXFGenerator(self.output_file)
+        gen = DXFGenerator(self.output_file, layers_config=self.layers_config)
         if use_georef:
             gen.diff_x = 0.0
             gen.diff_y = 0.0

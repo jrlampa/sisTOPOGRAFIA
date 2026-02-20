@@ -71,14 +71,18 @@ class OSMController:
         dxf_gen.add_features(gdf)
 
         # 4. Extração ambiental (APP / Uso do Solo / UCs)
-        Logger.info("4/5: Extraindo restrições ambientais...", progress=70)
-        env = EnvironmentalExtractorUseCase(self.lat, self.lon, self.radius)
-        env_result = env.extract(gdf)
-        cad.add_environmental_layers(
-            dxf_gen, env_result['app_gdf'],
-            env_result['landuse_gdf'], env_result['uc_gdf']
-        )
-        self._uc_metadata = env_result.get('uc_metadata', {})
+        env_result = {'app_gdf': None, 'landuse_gdf': None, 'uc_gdf': None}
+        if any(self.layers_config.get(k, False) for k in ('app', 'landuse', 'uc')):
+            Logger.info("4/5: Extraindo restrições ambientais...", progress=70)
+            env = EnvironmentalExtractorUseCase(self.lat, self.lon, self.radius)
+            env_result = env.extract(gdf)
+            cad.add_environmental_layers(
+                dxf_gen, env_result['app_gdf'],
+                env_result['landuse_gdf'], env_result['uc_gdf']
+            )
+            self._uc_metadata = env_result.get('uc_metadata', {})
+        else:
+            self._uc_metadata = {}
 
         # 5. Preview GeoJSON
         self._send_geojson_preview(gdf, analysis_gdf, **{
@@ -98,7 +102,9 @@ class OSMController:
             self._enrich_with_analytics(gdf, grid_rows, analytics_res)
 
         # 8. Elementos cartográficos + satélite
-        cad.add_cartographic_elements(dxf_gen)
+        if self.layers_config.get('cartography', True):
+            cad.add_cartographic_elements(dxf_gen)
+            
         if self.layers_config.get('satellite', False):
             cad.add_satellite_overlay(dxf_gen)
 
