@@ -1,0 +1,103 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+      - production
+      - release/alpha-release
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: cloud-run-deployment
+  cancel-in-progress: true
+
+jobs:
+  predeploy:
+    uses: ./.github/workflows/pre-deploy.yml
+    secrets: inherit
+
+  deploy:
+    needs: predeploy
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Enable Required APIs
+        run: |
+          echo "Enabling required Google Cloud APIs..."
+          gcloud services enable \
+            cloudresourcemanager.googleapis.com \
+            cloudtasks.googleapis.com \
+            run.googleapis.com \
+            --project=${{ secrets.GCP_PROJECT_ID }}
+          echo "Required APIs enabled successfully."
+
+      - name: Ensure Cloud Tasks Queue Exists
+        run: |
+          # Check if queue exists
+          if ! gcloud tasks queues describe sisrua-queue \
+            --location=southamerica-east1 \
+            --project=${{ secrets.GCP_PROJECT_ID }} &> /dev/null; then
+            echo "Queue 'sisrua-queue' not found. Creating..."
+            gcloud tasks queues create sisrua-queue \
+              --location=southamerica-east1 \
+              --project=${{ secrets.GCP_PROJECT_ID }} \
+              --max-dispatches-per-second=10 \
+              --max-concurrent-dispatches=10
+            echo "Queue 'sisrua-queue' created successfully."
+          else
+            echo "Queue 'sisrua-queue' already exists."
+          fi
+
+      - name: Deploy to Cloud Run
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+        run: |
+          cd sisrua_unified
+          gcloud run deploy sisrua-app \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --source=. \
+            --region=southamerica-east1 \
+            --allow-unauthenticated \
+            --memory=1024Mi \
+            --cpu=2 \
+            --timeout=300 \
+            --min-instances=0 \
+            --max-instances=10 \
+            --update-env-vars="GROQ_API_KEY=${GROQ_API_KEY},GCP_PROJECT=${GCP_PROJECT},CLOUD_TASKS_LOCATION=southamerica-east1,CLOUD_TASKS_QUEUE=sisrua-queue,NODE_ENV=production"
+
+      - name: Capture Cloud Run Service URL
+        run: |
+          CLOUD_RUN_URL=$(gcloud run services describe sisrua-app \
+            --region=southamerica-east1 \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --format='value(status.url)')
+          echo "CLOUD_RUN_URL=${CLOUD_RUN_URL}" >> $GITHUB_ENV
+          echo "Deployed service URL: ${CLOUD_RUN_URL}"
+
+      - name: Update environment variable with service URL
+        run: |
+          gcloud run services update sisrua-app \
+            --region=southamerica-east1 \
+            --project=${{ secrets.GCP_PROJECT_ID }} \
+            --update-env-vars="CLOUD_RUN_BASE_URL=${CLOUD_RUN_URL}"
