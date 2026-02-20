@@ -82,3 +82,42 @@ coverage-final.json
 *.njsproj
 *.sln
 *.sw?
+
+# ── Auditoria / Outputs de Testes ──────────────────────────────────────────
+# Arquivos gerados em debug e pytest que não devem ser versionados
+py_engine/test_out.txt
+py_engine/test_result.txt
+py_engine/audit_pytest.txt
+py_engine/audit_coverage.txt
+py_engine/.pytest_output.txt
+py_engine/*.pytest_output.txt
+py_engine/test_verify_*.csv
+py_engine/test_phase9_metadata.csv
+py_engine/test_verify_perfil_longitudinal.csv
+
+# DXFs de teste gerados localmente (não devem ir ao repo)
+py_engine/test_verify.dxf
+py_engine/test_phase9.dxf
+py_engine/test_layers.dxf
+test_layers.dxf
+test_layers_metadata.csv
+
+# Backups desnecessários
+package-lock.json.backup
+package.json.backup
+
+# Scripts de debug e diagnóstico (movidos para docs/scripts ou removidos)
+py_engine/debug_import.py
+py_engine/debug_integration.py
+py_engine/debug_labels.py
+py_engine/live_test_generator.py
+py_engine/reproduce_dxf_error.py
+py_engine/analyze_pad.py
+py_engine/verify_polygon.py
+py_engine/run_user_test.py
+
+# Logs de engine
+engine_check.log
+engine_error.log
+engine_validation.log
+final_validation.log

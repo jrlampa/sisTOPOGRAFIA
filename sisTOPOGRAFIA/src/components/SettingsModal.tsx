@@ -26,6 +26,7 @@ interface SettingsModalProps {
   // Persistence Props
   onSaveProject?: () => void;
   onLoadProject?: (file: File) => void;
+  onSaveCloudProject?: () => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -44,7 +45,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onExportDxf,
   onExportGeoJSON,
   onSaveProject,
-  onLoadProject
+  onLoadProject,
+  onSaveCloudProject
 }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'project'>('general');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -148,21 +150,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
           {activeTab === 'project' ? (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-              {/* Project Actions */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Local Actions */}
+              <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--enterprise-blue)' }}>
+                <FolderOpen size={18} />
+                <h3 className="font-bold text-sm uppercase">Armazenamento Local</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mb-6">
                 <button
                   onClick={onSaveProject}
                   disabled={!onSaveProject}
                   className="btn-enterprise flex items-center justify-center gap-2 p-3 rounded-lg border border-white/30 text-slate-700 hover:text-slate-900 transition-all disabled:opacity-50"
                 >
-                  <Save size={16} /> Salvar Projeto (.osmpro)
+                  <Save size={16} /> Salvar Local (.osmpro)
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={!onLoadProject}
                   className="btn-enterprise flex items-center justify-center gap-2 p-3 rounded-lg border border-white/30 text-slate-700 hover:text-slate-900 transition-all disabled:opacity-50"
                 >
-                  <FolderOpen size={16} /> Carregar Projeto
+                  <FolderOpen size={16} /> Carregar Local
                 </button>
                 <input
                   type="file"
@@ -171,6 +177,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   accept=".osmpro,.json"
                   className="hidden"
                 />
+              </div>
+
+              {/* Cloud Actions */}
+              <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--enterprise-blue)' }}>
+                <Upload size={18} />
+                <h3 className="font-bold text-sm uppercase">Nuvem Enterprise (Firestore)</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  onClick={onSaveCloudProject}
+                  disabled={!onSaveCloudProject}
+                  className="btn-enterprise flex items-center justify-center gap-2 p-3 rounded-lg border border-blue-400/30 text-blue-700 bg-blue-50/50 hover:bg-blue-100/50 transition-all disabled:opacity-50"
+                >
+                  <Upload size={16} /> Fazer Backup na Nuvem
+                </button>
               </div>
 
               <div className="glass-panel p-4 rounded-lg border border-white/20">

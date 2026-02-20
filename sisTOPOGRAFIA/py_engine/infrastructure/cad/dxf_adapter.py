@@ -133,7 +133,7 @@ class DxfAdapter:
                 self.msp.add_text(
                     f"{c['elevation']:.0f}",
                     dxfattribs={
-                        'layer': 'TERRAIN_CONTOUR_LABEL',
+                        'layer': 'sisTOPO_TERRAIN_CONTOUR_LABEL',
                         'height': 1.8,
                         'rotation': angle,
                         'style': 'STANDARD'
@@ -188,12 +188,12 @@ class DxfAdapter:
         
         self.msp.add_text(
             f"PROJETO: {metadata.get('project', 'SISTOPOGRAFIA_GEN_001')}",
-            dxfattribs={'layer': 'ANNOT_STAMP', 'height': 2.5}
+            dxfattribs={'layer': 'sisTOPO_ANNOT_STAMP', 'height': 2.5}
         ).set_placement((lx, ly - 10))
         
         self.msp.add_text(
             f"COORDENADA CENTRAL: {self.diff_x:.2f}, {self.diff_y:.2f}",
-            dxfattribs={'layer': 'ANNOT_STAMP', 'height': 2.0}
+            dxfattribs={'layer': 'sisTOPO_ANNOT_STAMP', 'height': 2.0}
         ).set_placement((lx, ly - 15))
 
     def _attach_bim_data(self, entity, tags):

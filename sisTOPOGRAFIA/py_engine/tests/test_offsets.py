@@ -19,7 +19,7 @@ class TestOffsets:
         dxf_gen._draw_street_offsets(line, tags, 0, 0)
         
         # Check entities
-        polylines = [e for e in dxf_gen.msp if e.dxftype() == 'LWPOLYLINE' and e.dxf.layer == 'VIAS_MEIO_FIO']
+        polylines = [e for e in dxf_gen.msp if e.dxftype() == 'LWPOLYLINE' and e.dxf.layer == 'sisTOPO_VIAS_MEIO_FIO']
         assert len(polylines) == 2
         
         # Check Y coords of offsets
@@ -38,7 +38,7 @@ class TestOffsets:
         tags = {'highway': 'primary'}
         dxf_gen._draw_street_offsets(line, tags, 0, 0)
         
-        polylines = [e for e in dxf_gen.msp if e.dxftype() == 'LWPOLYLINE' and e.dxf.layer == 'VIAS_MEIO_FIO']
+        polylines = [e for e in dxf_gen.msp if e.dxftype() == 'LWPOLYLINE' and e.dxf.layer == 'sisTOPO_VIAS_MEIO_FIO']
         assert len(polylines) == 2
         
         ys = [p.get_points()[0][1] for p in polylines]
@@ -51,5 +51,5 @@ class TestOffsets:
         tags = {'highway': 'footway'}
         dxf_gen._draw_street_offsets(line, tags, 0, 0)
         
-        polylines = [e for e in dxf_gen.msp if e.dxftype() == 'LWPOLYLINE' and e.dxf.layer == 'VIAS_MEIO_FIO']
+        polylines = [e for e in dxf_gen.msp if e.dxftype() == 'LWPOLYLINE' and e.dxf.layer == 'sisTOPO_VIAS_MEIO_FIO']
         assert len(polylines) == 0

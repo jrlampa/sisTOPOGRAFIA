@@ -14,7 +14,8 @@ import {
   LayoutDashboard,
   Sun,
   ShieldAlert,
-  Droplets // Added for HydrologicalProfilePanel
+  Droplets,
+  Square
 } from 'lucide-react';
 import HydrologicalProfilePanel from './components/analytics/HydrologicalProfilePanel'; // Added import
 import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode } from './types';
@@ -33,15 +34,20 @@ import BimInspector from './components/analytics/BimInspector';
 import AiDesignPanel from './components/analytics/AiDesignPanel';
 import EnterpriseDashboard from './components/dashboard/EnterpriseDashboard';
 import FloatingLayerPanel from './components/gis/FloatingLayerPanel';
+import EarthworkPanel from './components/analytics/EarthworkPanel';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useOsmEngine } from './hooks/useOsmEngine';
 import { useSearch } from './hooks/useSearch';
+import { useAuth } from './contexts/AuthContext';
 import { useDxfExport } from './hooks/useDxfExport';
 import { useKmlImport } from './hooks/useKmlImport';
 import { useFileOperations } from './hooks/useFileOperations';
 import { useElevationProfile } from './hooks/useElevationProfile';
+import { useEarthwork } from './hooks/useEarthwork';
 
 function App() {
+  const { user, loginWithGoogle, logout } = useAuth();
+
   // Global State with Undo/Redo
   const {
     state: appState,
@@ -158,7 +164,7 @@ function App() {
     onError: (message) => showToast(message, 'error')
   });
 
-  const { saveProject, loadProject } = useFileOperations({
+  const { saveProject, loadProject, saveToCloud } = useFileOperations({
     appState,
     setAppState,
     onSuccess: (message) => showToast(message, 'success'),
@@ -166,10 +172,22 @@ function App() {
   });
 
   const { profileData: elevationProfileData, loadProfile: loadElevationProfile, clearProfile } = useElevationProfile();
+  const { calculateEarthwork, isCalculating: isCalculatingEarthwork } = useEarthwork();
 
   const updateSettings = (newSettings: AppSettings) => {
     setAppState({ ...appState, settings: newSettings }, true);
   };
+
+  // Phase 10: Listener for Environmental Meta
+  useEffect(() => {
+    const handleUC = (e: Event) => {
+      const customE = e as CustomEvent;
+      const msg = `Área Protegida (${customE.detail.type}): ${customE.detail.name}`;
+      showToast(msg, 'success'); // Employs success toast class but signals attention
+    };
+    window.addEventListener('uc-detected', handleUC);
+    return () => window.removeEventListener('uc-detected', handleUC);
+  }, []);
 
   const handleMapClick = (newCenter: GeoLocation) => {
     setAppState({ ...appState, center: newCenter }, true);
@@ -218,14 +236,6 @@ function App() {
 
   const handleKmlDrop = async (file: File) => {
     await importKml(file);
-  };
-
-  const handleSaveProject = () => {
-    saveProject();
-  };
-
-  const handleLoadProject = (file: File) => {
-    loadProject(file);
   };
 
   // Get current location on mount (only if center is default)
@@ -311,8 +321,9 @@ function App() {
             isDownloading={isDownloading}
             onExportDxf={handleDownloadDxf}
             onExportGeoJSON={handleDownloadGeoJSON}
-            onSaveProject={handleSaveProject}
-            onLoadProject={handleLoadProject}
+            onSaveProject={saveProject}
+            onLoadProject={loadProject}
+            onSaveCloudProject={saveToCloud}
           />
         )}
       </AnimatePresence>
@@ -353,6 +364,28 @@ function App() {
             >
               <Sparkles size={16} />
               Analista IA
+            </motion.button>
+          )}
+
+          {user ? (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={logout}
+              className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 border border-white/10 rounded-xl flex items-center gap-2 transition-all shadow-lg"
+              title={user.email || 'Conta Corporativa'}
+            >
+              <img src={user.photoURL || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'} alt="Avatar" className="w-5 h-5 rounded-full border border-white/20" />
+              <span className="text-[10px] font-bold text-slate-300">SAIR</span>
+            </motion.button>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={loginWithGoogle}
+              className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400 rounded-xl flex items-center gap-2 transition-all shadow-lg"
+            >
+              <span className="text-[10px] font-bold">LOGIN</span>
             </motion.button>
           )}
 
@@ -450,6 +483,13 @@ function App() {
                   title="Modo Perfil"
                 >
                   <TrendingUp size={14} />
+                </button>
+                <button
+                  onClick={() => handleSelectionModeChange('pad')}
+                  className={`flex-none px-3 py-2 rounded-lg transition-all ml-1 ${selectionMode === 'pad' ? 'bg-orange-600 text-white shadow-xl shadow-orange-500/10' : 'text-slate-500 hover:text-slate-300'}`}
+                  title="Platô 2.5D (Corte/Aterro)"
+                >
+                  <Square size={14} />
                 </button>
               </div>
             </div>
@@ -700,6 +740,17 @@ function App() {
                   handleSelectionModeChange('circle');
                 }}
                 isDark={isDark}
+              />
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {selectionMode === 'pad' && polygon.length > 2 && (
+              <EarthworkPanel
+                polygonPoints={polygon.map(p => [p.lat, p.lng] as [number, number])}
+                onClose={() => handleSelectionModeChange('pad')}
+                isDark={isDark}
+                onCalculate={(targetZ) => calculateEarthwork(polygon, targetZ)}
               />
             )}
           </AnimatePresence>

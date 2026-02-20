@@ -18,9 +18,9 @@ def dxf_gen(tmp_path):
 
 def test_layer_creation(dxf_gen):
     """Test if standard layers are created."""
-    assert 'EDIFICACAO' in dxf_gen.doc.layers
-    assert 'VIAS' in dxf_gen.doc.layers
-    assert 'VEGETACAO' in dxf_gen.doc.layers
+    assert 'sisTOPO_EDIFICACAO' in dxf_gen.doc.layers
+    assert 'sisTOPO_VIAS' in dxf_gen.doc.layers
+    assert 'sisTOPO_VEGETACAO' in dxf_gen.doc.layers
 
 def test_block_creation(dxf_gen):
     """Test if blocks are created."""
@@ -34,17 +34,17 @@ def test_building_extrusion(dxf_gen):
     
     # Case 1: Specific height
     tags1 = {'building': 'yes', 'height': '15'}
-    thickness1 = dxf_gen._get_thickness(tags1, 'EDIFICACAO')
+    thickness1 = dxf_gen._get_thickness(tags1, 'sisTOPO_EDIFICACAO')
     assert thickness1 == 15.0
 
     # Case 2: Levels
     tags2 = {'building': 'yes', 'building:levels': '4'}
-    thickness2 = dxf_gen._get_thickness(tags2, 'EDIFICACAO')
+    thickness2 = dxf_gen._get_thickness(tags2, 'sisTOPO_EDIFICACAO')
     assert thickness2 == 12.0 # 4 * 3.0
 
     # Case 3: Default
     tags3 = {'building': 'yes'}
-    thickness3 = dxf_gen._get_thickness(tags3, 'EDIFICACAO')
+    thickness3 = dxf_gen._get_thickness(tags3, 'sisTOPO_EDIFICACAO')
     assert thickness3 == 3.5
 
 def test_add_features(dxf_gen):

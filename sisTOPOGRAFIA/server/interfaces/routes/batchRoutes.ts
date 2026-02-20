@@ -1,0 +1,79 @@
+import { Router, Request, Response } from 'express';
+import path from 'path';
+import fs from 'fs';
+import multer from 'multer';
+import { batchRowSchema } from '../../schemas/apiSchemas.js';
+import { parseBatchCsv, RawBatchRow } from '../../services/batchService.js';
+import { createDxfTask } from '../../services/cloudTasksService.js';
+import { createJob } from '../../services/jobStatusService.js';
+import {
+    createCacheKey, getCachedFilename, setCachedFilename, deleteCachedFilename
+} from '../../services/cacheService.js';
+import { logger } from '../../utils/logger.js';
+
+// dxfDirectory é injetado no bootstrap via factory
+export function createBatchRouter(dxfDirectory: string, getBaseUrl: (req: Request) => string) {
+    const router = Router();
+    const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
+    // POST /api/batch/dxf
+    router.post('/dxf', upload.single('file'), async (req: Request, res: Response) => {
+        try {
+            if (!req.file) return res.status(400).json({ error: 'Arquivo CSV é obrigatório' });
+
+            const rows = await parseBatchCsv(req.file.buffer);
+            if (rows.length === 0) return res.status(400).json({ error: 'CSV vazio ou inválido' });
+
+            const results: Array<{ name: string; status: string; jobId?: string | number; url?: string }> = [];
+            const errors: Array<{ line: number; message: string; row: RawBatchRow }> = [];
+
+            for (const entry of rows) {
+                const validation = batchRowSchema.safeParse(entry.row);
+                if (!validation.success) {
+                    errors.push({
+                        line: entry.line,
+                        message: validation.error.issues.map(issue => issue.message).join(', '),
+                        row: entry.row
+                    });
+                    continue;
+                }
+
+                const { name, lat, lon, radius, mode } = validation.data;
+                const cacheKey = createCacheKey({ lat, lon, radius, mode, polygon: [], layers: {} });
+                const cachedFilename = getCachedFilename(cacheKey);
+
+                if (cachedFilename) {
+                    const cachedFilePath = path.join(dxfDirectory, cachedFilename);
+                    if (fs.existsSync(cachedFilePath)) {
+                        results.push({ name, status: 'cached', url: `${getBaseUrl(req)}/downloads/${cachedFilename}` });
+                        continue;
+                    }
+                    deleteCachedFilename(cacheKey);
+                }
+
+                const safeName = name.toLowerCase().replace(/[^a-z0-9-_]+/g, '_').slice(0, 40) || 'batch';
+                const filename = `dxf_${safeName}_${Date.now()}_${entry.line}.dxf`;
+                const outputFile = path.join(dxfDirectory, filename);
+                const downloadUrl = `${getBaseUrl(req)}/downloads/${filename}`;
+
+                const { taskId } = await createDxfTask({
+                    lat, lon, radius, mode,
+                    polygon: '[]', layers: {}, projection: 'local',
+                    outputFile, filename, cacheKey, downloadUrl
+                });
+
+                createJob(taskId);
+                results.push({ name, status: 'queued', jobId: taskId });
+            }
+
+            if (results.length === 0) return res.status(400).json({ error: 'Nenhuma linha válida no CSV', errors });
+            return res.status(200).json({ results, errors });
+
+        } catch (err: any) {
+            logger.error('Batch DXF upload failed', { error: err });
+            return res.status(500).json({ error: 'Falha no processamento batch', details: err.message });
+        }
+    });
+
+    return router;
+}

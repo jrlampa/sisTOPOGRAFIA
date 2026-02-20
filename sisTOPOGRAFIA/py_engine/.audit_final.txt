@@ -1,0 +1,335 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\jonat\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\python.exe
+cachedir: .pytest_cache
+rootdir: C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine
+plugins: anyio-4.12.1, cov-7.0.0, mock-3.15.1
+collecting ... collected 45 items
+
+tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_slope_flat_terrain_returns_zero FAILED [  2%]
+tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_slope_inclined_terrain FAILED [  4%]
+tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_slope_grid_too_small_returns_none PASSED [  6%]
+tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_slope_grid_returns_slope_and_aspect FAILED [  8%]
+tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_heatmap_data_structure FAILED [ 11%]
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_import_report_generator PASSED [ 13%]
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data FAILED [ 15%]
+tests/test_audit_p2_coverage.py::TestHydrology::test_import_hydrology PASSED [ 17%]
+tests/test_audit_p2_coverage.py::TestHydrology::test_app_buffer_distance FAILED [ 20%]
+tests/test_audit_p2_coverage.py::TestHydrology::test_app_classification FAILED [ 22%]
+tests/test_dxf_generator.py::test_layer_creation PASSED                  [ 24%]
+tests/test_dxf_generator.py::test_block_creation PASSED                  [ 26%]
+tests/test_dxf_generator.py::test_building_extrusion PASSED              [ 28%]
+tests/test_dxf_generator.py::test_add_features PASSED                    [ 31%]
+tests/test_dxf_generator.py::test_legend_and_title_block PASSED          [ 33%]
+tests/test_elevation.py::TestElevation::test_fetch_elevation_grid_success PASSED [ 35%]
+tests/test_elevation.py::TestElevation::test_fetch_elevation_grid_failure PASSED [ 37%]
+tests/test_elevation_probing.py::test_elevation_probing PASSED           [ 40%]
+tests/test_infra.py::TestInfra::test_determine_layer_power_hv PASSED     [ 42%]
+tests/test_infra.py::TestInfra::test_determine_layer_power_lv PASSED     [ 44%]
+tests/test_infra.py::TestInfra::test_determine_layer_telecom PASSED      [ 46%]
+tests/test_infra.py::TestInfra::test_determine_layer_priority PASSED     [ 48%]
+tests/test_offsets.py::TestOffsets::test_offset_residential PASSED       [ 51%]
+tests/test_offsets.py::TestOffsets::test_offset_primary PASSED           [ 53%]
+tests/test_offsets.py::TestOffsets::test_offset_footway PASSED           [ 55%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_waterway_river PASSED [ 57%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_waterway_stream PASSED [ 60%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_waterway_canal PASSED [ 62%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_natural_water PASSED [ 64%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_natural_wetland PASSED [ 66%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_waterway_with_amenity_tag_does_NOT_go_to_equipamentos PASSED [ 68%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_waterway_never_goes_to_equipamentos PASSED [ 71%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_hidrografia_layer_exists_in_doc PASSED [ 73%]
+tests/test_phase11_hardening.py::TestAPICircuitBreaker::test_icmbio_timeout_returns_none PASSED [ 75%]
+tests/test_phase11_hardening.py::TestAPICircuitBreaker::test_inea_connection_error_returns_none PASSED [ 77%]
+tests/test_phase11_hardening.py::TestAPICircuitBreaker::test_environmental_engine_continues_without_apis PASSED [ 80%]
+tests/test_phase11_hardening.py::TestAPICircuitBreaker::test_dxf_generated_even_with_all_apis_offline PASSED [ 82%]
+tests/test_phase11_hardening.py::TestLayerConsistency::test_all_expected_layers_exist PASSED [ 84%]
+tests/test_smart_labels.py::TestSmartLabels::test_rotation_horizontal PASSED [ 86%]
+tests/test_smart_labels.py::TestSmartLabels::test_rotation_vertical PASSED [ 88%]
+tests/test_smart_labels.py::TestSmartLabels::test_rotation_readability PASSED [ 91%]
+tests/test_spatial_audit.py::test_spatial_audit_no_data PASSED           [ 93%]
+tests/test_spatial_audit.py::test_violation_detection PASSED             [ 95%]
+tests/test_spatial_audit.py::test_lighting_coverage PASSED               [ 97%]
+tests/test_spatial_audit.py::test_analysis_layers_output PASSED          [100%]
+
+================================== FAILURES ===================================
+__________ TestAnalyticsEngine.test_slope_flat_terrain_returns_zero ___________
+
+self = <py_engine.tests.test_audit_p2_coverage.TestAnalyticsEngine object at 0x00000185D5430AA0>
+
+    def test_slope_flat_terrain_returns_zero(self):
+        from analytics_engine import AnalyticsEngine
+        result = AnalyticsEngine.calculate_slope_grid(self._make_flat_grid())
+        assert result is not None
+>       assert "slope" in result
+E       AssertionError: assert 'slope' in {'aspect': array([[270., 270., 270., 270.],\n       [270., 270., 270., 270.],\n       [270., 270., 270., 270.],\n       [270., 270., 270., 270.]]), 'earthwork': {'cut_volume': 0.0, 'fill_volume': 0.0, 'net_volume': 0.0, 'target_z': 100.0}, 'hydrology': array([[2., 2., 2., 1.],\n       [2., 2., 2., 1.],\n       [2., 2., 2., 1.],\n       [1., 1., 1., 1.]]), 'slope_avg': np.float64(0.0), ...}
+
+tests\test_audit_p2_coverage.py:37: AssertionError
+_______________ TestAnalyticsEngine.test_slope_inclined_terrain _______________
+
+self = <py_engine.tests.test_audit_p2_coverage.TestAnalyticsEngine object at 0x00000185D54F0380>
+
+    def test_slope_inclined_terrain(self):
+        from analytics_engine import AnalyticsEngine
+        result = AnalyticsEngine.calculate_slope_grid(self._make_slope_grid())
+        assert result is not None
+>       slope_arr = result["slope"]
+                    ^^^^^^^^^^^^^^^
+E       KeyError: 'slope'
+
+tests\test_audit_p2_coverage.py:46: KeyError
+________ TestAnalyticsEngine.test_slope_grid_returns_slope_and_aspect _________
+
+self = <py_engine.tests.test_audit_p2_coverage.TestAnalyticsEngine object at 0x00000185D54F09B0>
+
+    def test_slope_grid_returns_slope_and_aspect(self):
+        from analytics_engine import AnalyticsEngine
+        result = AnalyticsEngine.calculate_slope_grid(self._make_slope_grid())
+        assert result is not None
+>       assert "slope" in result
+E       AssertionError: assert 'slope' in {'aspect': array([[270., 270., 270., 270., 270.],\n       [270., 270., 270., 270., 270.],\n       [270., 270., 270., 270., 270.],\n       [270., 270., 270., 270., 270.],\n       [270., 270., 270., 270., 270.]]), 'earthwork': {'cut_volume': 15000.0, 'fill_volume': 15000.0, 'net_volume': 0.0, 'target_z': 20.0}, 'hydrology': array([[5., 4., 3., 2., 1.],\n       [4., 4., 3., 2., 1.],\n       [3., 3., 3., 2., 1.],\n       [2., 2., 2., 2., 1.],\n       [1., 1., 1., 1., 1.]]), 'slope_avg': np.float64(100.0), ...}
+
+tests\test_audit_p2_coverage.py:59: AssertionError
+_______________ TestAnalyticsEngine.test_heatmap_data_structure _______________
+
+self = <py_engine.tests.test_audit_p2_coverage.TestAnalyticsEngine object at 0x00000185D54F0C20>
+
+    def test_heatmap_data_structure(self):
+        """Verifica que o output do heatmap tem estrutura vßlida para o frontend."""
+        from analytics_engine import AnalyticsEngine
+        grid = self._make_slope_grid()
+        result = AnalyticsEngine.calculate_slope_grid(grid)
+        assert result is not None
+        # Slope deve ser um ndarray ou lista
+>       slope = result["slope"]
+                ^^^^^^^^^^^^^^^
+E       KeyError: 'slope'
+
+tests\test_audit_p2_coverage.py:72: KeyError
+_________ TestReportGenerator.test_generate_report_with_minimal_data __________
+
+self = <report_generator.PDFReportGenerator object at 0x00000186014C6810>
+text = 'ò Proceder com levantamento planialtimÚtrico cadastral in-loco para validaþÒo centimÚtrica.'
+
+    def normalize_text(self, text):
+        """Check that text input is in the correct format/encoding"""
+        # - for TTF unicode fonts: unicode object (utf8 encoding)
+        # - for built-in fonts: string instances (encoding: latin-1, cp1252)
+        if not self.is_ttf_font and self.core_fonts_encoding:
+            try:
+>               return text.encode(self.core_fonts_encoding).decode("latin-1")
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               UnicodeEncodeError: 'latin-1' codec can't encode character '\u2022' in position 0: ordinal not in range(256)
+
+C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\fpdf\fpdf.py:5257: UnicodeEncodeError
+
+The above exception was the direct cause of the following exception:
+
+self = <py_engine.tests.test_audit_p2_coverage.TestReportGenerator object at 0x00000185D54F11C0>
+tmp_path = WindowsPath('C:/sisTOPOGRAFIA/sisTOPOGRAFIA/sisTOPOGRAFIA/py_engine/.pytest_tmp_audit/test_generate_report_with_mini0')
+
+    def test_generate_report_with_minimal_data(self, tmp_path):
+        """generate_report com dados mÝnimos nÒo deve lanþar exceþÒo."""
+        try:
+            from report_generator import generate_report
+        except ImportError:
+            pytest.skip("report_generator nÒo disponÝvel")
+    
+        output_path = str(tmp_path / "test_report.pdf")
+        minimal_data = {
+            "location": {"lat": -22.15018, "lon": -42.92185, "name": "Teste"},
+            "radius": 500,
+            "features": {},
+            "stats": {"total_features": 0},
+        }
+    
+        try:
+>           generate_report(minimal_data, output_path)
+
+tests\test_audit_p2_coverage.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+report_generator.py:167: in generate_report
+    return generator.create_report(data, filename)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+report_generator.py:114: in create_report
+    self.multi_cell(0, 6, rec)
+C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\fpdf\fpdf.py:242: in wrapper
+    return fn(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\fpdf\deprecation.py:32: in wrapper
+    return fn(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\fpdf\fpdf.py:4525: in multi_cell
+    text = self.normalize_text(text)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <report_generator.PDFReportGenerator object at 0x00000186014C6810>
+text = 'ò Proceder com levantamento planialtimÚtrico cadastral in-loco para validaþÒo centimÚtrica.'
+
+    def normalize_text(self, text):
+        """Check that text input is in the correct format/encoding"""
+        # - for TTF unicode fonts: unicode object (utf8 encoding)
+        # - for built-in fonts: string instances (encoding: latin-1, cp1252)
+        if not self.is_ttf_font and self.core_fonts_encoding:
+            try:
+                return text.encode(self.core_fonts_encoding).decode("latin-1")
+            except UnicodeEncodeError as error:
+>               raise FPDFUnicodeEncodingException(
+                    text_index=error.start,
+                    character=text[error.start],
+                    font_name=self.font_family + self.font_style,
+                ) from error
+E               fpdf.errors.FPDFUnicodeEncodingException: Character "ò" at index 0 in text is outside the range of characters supported by the font used: "helvetica". Please consider using a Unicode font.
+
+C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\fpdf\fpdf.py:5259: FPDFUnicodeEncodingException
+
+During handling of the above exception, another exception occurred:
+
+self = <py_engine.tests.test_audit_p2_coverage.TestReportGenerator object at 0x00000185D54F11C0>
+tmp_path = WindowsPath('C:/sisTOPOGRAFIA/sisTOPOGRAFIA/sisTOPOGRAFIA/py_engine/.pytest_tmp_audit/test_generate_report_with_mini0')
+
+    def test_generate_report_with_minimal_data(self, tmp_path):
+        """generate_report com dados mÝnimos nÒo deve lanþar exceþÒo."""
+        try:
+            from report_generator import generate_report
+        except ImportError:
+            pytest.skip("report_generator nÒo disponÝvel")
+    
+        output_path = str(tmp_path / "test_report.pdf")
+        minimal_data = {
+            "location": {"lat": -22.15018, "lon": -42.92185, "name": "Teste"},
+            "radius": 500,
+            "features": {},
+            "stats": {"total_features": 0},
+        }
+    
+        try:
+            generate_report(minimal_data, output_path)
+            # Se gerou, deve existir (ou o m¾dulo retorna sem gerar se dados insuficientes)
+        except Exception as e:
+            # Falhas de PDF sÒo aceitßveis se o motivo for dados insuficientes
+            # mas nÒo aceitamos ImportError ou TypeError de interface
+>           assert "pdf" in str(e).lower() or "data" in str(e).lower() or "missing" in str(e).lower(), \
+                f"ExceþÒo inesperada em generate_report: {e}"
+E           AssertionError: ExceþÒo inesperada em generate_report: Character "ò" at index 0 in text is outside the range of characters supported by the font used: "helvetica". Please consider using a Unicode font.
+E           assert ('pdf' in 'character "ò" at index 0 in text is outside the range of characters supported by the font used: "helvetica". please consider using a unicode font.' or 'data' in 'character "ò" at index 0 in text is outside the range of characters supported by the font used: "helvetica". please consider using a unicode font.' or 'missing' in 'character "ò" at index 0 in text is outside the range of characters supported by the font used: "helvetica". please consider using a unicode font.')
+E            +  where 'character "ò" at index 0 in text is outside the range of characters supported by the font used: "helvetica". please consider using a unicode font.' = <built-in method lower of str object at 0x00000186030905B0>()
+E            +    where <built-in method lower of str object at 0x00000186030905B0> = 'Character "ò" at index 0 in text is outside the range of characters supported by the font used: "helvetica". Please consider using a Unicode font.'.lower
+E            +      where 'Character "ò" at index 0 in text is outside the range of characters supported by the font used: "helvetica". Please consider using a Unicode font.' = str(FPDFUnicodeEncodingException(('0', "'ò'", "'helvetica'")))
+E            +  and   'character "ò" at index 0 in text is outside the range of characters supported by the font used: "helvetica". please consider using a unicode font.' = <built-in method lower of str object at 0x00000186030909D0>()
+E            +    where <built-in method lower of str object at 0x00000186030909D0> = 'Character "ò" at index 0 in text is outside the range of characters supported by the font used: "helvetica". Please consider using a Unicode font.'.lower
+E            +      where 'Character "ò" at index 0 in text is outside the range of characters supported by the font used: "helvetica". Please consider using a Unicode font.' = str(FPDFUnicodeEncodingException(('0', "'ò'", "'helvetica'")))
+E            +  and   'character "ò" at index 0 in text is outside the range of characters supported by the font used: "helvetica". please consider using a unicode font.' = <built-in method lower of str object at 0x0000018603090C90>()
+E            +    where <built-in method lower of str object at 0x0000018603090C90> = 'Character "ò" at index 0 in text is outside the range of characters supported by the font used: "helvetica". Please consider using a Unicode font.'.lower
+E            +      where 'Character "ò" at index 0 in text is outside the range of characters supported by the font used: "helvetica". Please consider using a Unicode font.' = str(FPDFUnicodeEncodingException(('0', "'ò'", "'helvetica'")))
+
+tests\test_audit_p2_coverage.py:110: AssertionError
+___________________ TestHydrology.test_app_buffer_distance ____________________
+
+self = <py_engine.tests.test_audit_p2_coverage.TestHydrology object at 0x00000185D54F16A0>
+
+    def test_app_buffer_distance(self):
+        """APP de 30m em margem de rio deve ser calculada corretamente."""
+        try:
+            from domain.services.hydrology import HydrologyService
+        except ImportError:
+            pytest.skip("HydrologyService nÒo disponÝvel")
+    
+        from shapely.geometry import LineString
+        river = LineString([(0, 0), (100, 0)])
+>       buffer = HydrologyService.calculate_app_buffer(river, buffer_m=30.0)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: type object 'HydrologyService' has no attribute 'calculate_app_buffer'
+
+tests\test_audit_p2_coverage.py:136: AttributeError
+____________________ TestHydrology.test_app_classification ____________________
+
+self = <py_engine.tests.test_audit_p2_coverage.TestHydrology object at 0x00000185D54F1910>
+
+    def test_app_classification(self):
+        """ClassificaþÒo de APP deve retornar tipo correto."""
+        try:
+            from domain.services.hydrology import HydrologyService
+        except ImportError:
+            pytest.skip("HydrologyService nÒo disponÝvel")
+    
+        # Rio de largura <= 10m \u2192 APP = 30m (C\xf3digo Florestal Art. 4)
+>       result = HydrologyService.classify_app_width(river_width_m=8.0)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: type object 'HydrologyService' has no attribute 'classify_app_width'
+
+tests\test_audit_p2_coverage.py:149: AttributeError
+============================== warnings summary ===============================
+..\..\..\..\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:50
+  C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:50: PyparsingDeprecationWarning: 'addParseAction' deprecated - use 'add_parse_action'
+    number.addParseAction(lambda t: float(t[0]))  # convert to float
+
+..\..\..\..\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:51
+  C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:51: PyparsingDeprecationWarning: 'addParseAction' deprecated - use 'add_parse_action'
+    string_ = quotedString.addParseAction(lambda t: t[0][1:-1])  # remove quotes
+
+..\..\..\..\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:57
+  C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:57: PyparsingDeprecationWarning: 'oneOf' deprecated - use 'one_of'
+    Relation = oneOf(["==", "!=", "<", "<=", ">", ">=", "?", "!?"])
+
+..\..\..\..\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:63
+  C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:63: PyparsingDeprecationWarning: 'setResultsName' deprecated - use 'set_results_name'
+    ).setResultsName("EntityQuery")
+
+..\..\..\..\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:65
+  C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:65: PyparsingDeprecationWarning: 'infixNotation' deprecated - use 'infix_notation'
+    InfixBoolQuery = infixNotation(
+
+..\..\..\..\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:72
+  C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:72: PyparsingDeprecationWarning: 'setResultsName' deprecated - use 'set_results_name'
+    ).setResultsName("AttribQuery")
+
+..\..\..\..\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:74
+  C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:74: PyparsingDeprecationWarning: 'setResultsName' deprecated - use 'set_results_name'
+    AttribQueryOptions = Literal("i").setResultsName("AttribQueryOptions")
+
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+  C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine\report_generator.py:17: DeprecationWarning: The parameter "ln" is deprecated since v2.5.2. Instead of ln=True use new_x=XPos.LMARGIN, new_y=YPos.NEXT.
+    self.cell(0, 15, 'sisTOPOGRAFIA', ln=True, align='L')
+
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+  C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine\report_generator.py:20: DeprecationWarning: The parameter "ln" is deprecated since v2.5.2. Instead of ln=True use new_x=XPos.LMARGIN, new_y=YPos.NEXT.
+    self.cell(0, 5, 'ENGENHARIA E AN┴LISE GEOESPACIAL', ln=True, align='L')
+
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+  C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine\report_generator.py:39: DeprecationWarning: The parameter "ln" is deprecated since v2.5.2. Instead of ln=True use new_x=XPos.LMARGIN, new_y=YPos.NEXT.
+    self.cell(0, 10, 'LAUDO T╔CNICO DE AN┴LISE TOPOGR┴FICA', ln=True, align='C')
+
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+  C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine\report_generator.py:58: DeprecationWarning: The parameter "ln" is deprecated since v2.5.2. Instead of ln=True use new_x=XPos.LMARGIN, new_y=YPos.NEXT.
+    self.cell(0, 8, value, border=0, ln=True)
+
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+  C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine\report_generator.py:66: DeprecationWarning: The parameter "ln" is deprecated since v2.5.2. Instead of ln=True use new_x=XPos.LMARGIN, new_y=YPos.NEXT.
+    self.cell(0, 10, '1. SUM┴RIO TOPOGR┴FICO E AMBIENTAL', ln=True)
+
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+  C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine\report_generator.py:94: DeprecationWarning: The parameter "ln" is deprecated since v2.5.2. Instead of ln=True use new_x=XPos.LMARGIN, new_y=YPos.NEXT.
+    self.cell(0, 8, m_val, border='B', ln=True, align='R')
+
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+  C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine\report_generator.py:101: DeprecationWarning: The parameter "ln" is deprecated since v2.5.2. Instead of ln=True use new_x=XPos.LMARGIN, new_y=YPos.NEXT.
+    self.cell(0, 10, '2. RECOMENDAÃıES T╔CNICAS', ln=True)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_slope_flat_terrain_returns_zero
+FAILED tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_slope_inclined_terrain
+FAILED tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_slope_grid_returns_slope_and_aspect
+FAILED tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_heatmap_data_structure
+FAILED tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_with_minimal_data
+FAILED tests/test_audit_p2_coverage.py::TestHydrology::test_app_buffer_distance
+FAILED tests/test_audit_p2_coverage.py::TestHydrology::test_app_classification
+================== 7 failed, 38 passed, 21 warnings in 2.97s ==================

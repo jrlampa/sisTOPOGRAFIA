@@ -24,6 +24,12 @@ class Logger:
         sys.stdout.flush()
 
     @staticmethod
+    def warn(message):
+        """Alias for warning-level messages — emitted as 'warning' status."""
+        print(json.dumps({"status": "warning", "message": message}))
+        sys.stdout.flush()
+
+    @staticmethod
     def success(message):
         print(json.dumps({"status": "success", "message": message}))
         sys.stdout.flush()

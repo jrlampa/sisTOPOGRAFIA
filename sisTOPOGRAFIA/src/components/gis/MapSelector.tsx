@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Circle, useMapEvents, GeoJSON, Polygon
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { GeoJsonObject, FeatureCollection } from 'geojson';
+import { SelectionMode } from '../../types';
 
 // Fix for default marker icon in React Leaflet
 // @ts-ignore
@@ -16,7 +17,7 @@ L.Icon.Default.mergeOptions({
 interface MapSelectorProps {
     center: { lat: number; lng: number; label?: string };
     radius: number;
-    selectionMode: 'circle' | 'polygon' | 'measure';
+    selectionMode: SelectionMode;
     polygonPoints: [number, number][];
     onLocationChange: (newCenter: { lat: number; lng: number; label?: string }) => void;
     onPolygonChange: (points: [number, number][]) => void;
@@ -60,9 +61,8 @@ const SelectionManager = ({
                 onLocationChange({
                     lat: e.latlng.lat,
                     lng: e.latlng.lng,
-                    label: `Selected (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`
                 });
-            } else if (selectionMode === 'polygon') {
+            } else if (selectionMode === 'polygon' || selectionMode === 'pad') {
                 onPolygonChange([...polygonPoints, [e.latlng.lat, e.latlng.lng]]);
             } else if (selectionMode === 'measure' && onMeasurePathChange) {
                 // Measure mode uses 2 points
@@ -127,7 +127,7 @@ const SelectionManager = ({
                     />
                 </>
             )}
-            {selectionMode === 'polygon' && polygonPoints.length > 0 && (
+            {(selectionMode === 'polygon' || selectionMode === 'pad') && polygonPoints.length > 0 && (
                 <>
                     {polygonPoints.map((point: any, i: number) => (
                         <Marker key={i} position={point} />
@@ -341,7 +341,62 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                 {geojson && (
                     <GeoJSON
                         data={geojson}
+                        style={(feature: any) => {
+                            const props = feature?.properties || {};
+                            // APP Waterways (Alert Red/Blue)
+                            if (props.waterway || props.natural === 'water') {
+                                return { color: '#ef4444', weight: 6, opacity: 0.8, dashArray: '4 8' }; // Red dashed thick line to indicate APP
+                            }
+
+                            // Phase 10: Conservation Units
+                            if (props.is_uc) {
+                                let cColor = '#f97316'; // Fallback orange
+                                if (props.sisTOPO_type === 'UC_FEDERAL') cColor = '#1d4ed8'; // Dark Blue
+                                if (props.sisTOPO_type === 'UC_ESTADUAL') cColor = '#06b6d4'; // Cyan
+                                if (props.sisTOPO_type === 'UC_MUNICIPAL') cColor = '#d946ef'; // Magenta
+
+                                return { color: cColor, fillColor: cColor, fillOpacity: 0.1, weight: 3, dashArray: '5 5' };
+                            }
+
+                            // Phase 9: Land Use
+                            if (props.landuse === 'residential') return { color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.15, weight: 1 };
+                            if (props.landuse === 'commercial') return { color: '#a855f7', fillColor: '#a855f7', fillOpacity: 0.15, weight: 1 };
+                            if (props.landuse === 'industrial') return { color: '#64748b', fillColor: '#64748b', fillOpacity: 0.15, weight: 1 };
+                            if (['forest', 'grass', 'park', 'meadow'].includes(props.landuse)) {
+                                return { color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.15, weight: 1 };
+                            }
+
+                            // Default styling for roads/buildings
+                            const isBuilding = !!props.building;
+                            return {
+                                color: isBuilding ? '#f8fafc' : '#3388ff',
+                                weight: isBuilding ? 1 : 2,
+                                opacity: 0.6,
+                                fillColor: isBuilding ? '#cbd5e1' : 'transparent',
+                                fillOpacity: isBuilding ? 0.3 : 0
+                            };
+                        }}
                         onEachFeature={(feature, layer) => {
+                            const props = feature?.properties || {};
+                            let tooltipContent = '';
+                            if (props.is_uc) {
+                                tooltipContent = `🛡️ ÁREA PROTEGIDA\n${props.name}\nEsfera: ${props.sisTOPO_type}\n❗ Atenção Legal Necessária`;
+                            } else if (props.waterway === 'generated_app_buffer') {
+                                tooltipContent = `⚠️ APP (Preservação 30m)`;
+                            } else if (props.waterway) {
+                                tooltipContent = `APP (Curso d'água): ${props.name || 'Desconhecido'}`;
+                            } else if (props.landuse) {
+                                tooltipContent = `Uso do Solo: ${props.landuse}`;
+                            } else if (props.building) {
+                                tooltipContent = `Edificação ${props['building:levels'] ? `(${props['building:levels']} pav.)` : ''}`;
+                            } else if (props.highway) {
+                                tooltipContent = `Via: ${props.name || props.highway}`;
+                            }
+
+                            if (tooltipContent) {
+                                layer.bindTooltip(tooltipContent, { permanent: false, direction: 'auto' });
+                            }
+
                             layer.on({
                                 click: (e) => {
                                     L.DomEvent.stopPropagation(e);

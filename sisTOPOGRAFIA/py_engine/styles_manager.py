@@ -10,8 +10,8 @@ class CADStylesManager:
     
     DEFAULT_STYLES = {
         "layers": {
-            "INFRA_POWER_HV": {"color": 1, "linetype": "CONTINUOUS"},
-            "INFRA_POWER_LV": {"color": 2, "linetype": "HIDDEN"},
+            "sisTOPO_INFRA_POWER_HV": {"color": 1, "linetype": "CONTINUOUS"},
+            "sisTOPO_INFRA_POWER_LV": {"color": 2, "linetype": "HIDDEN"},
             "BUILDING": {"color": 7, "linetype": "CONTINUOUS"},
             "ROAD": {"color": 8, "linetype": "CONTINUOUS"},
             "TERRAIN_POINTS": {"color": 34, "linetype": "CONTINUOUS"},

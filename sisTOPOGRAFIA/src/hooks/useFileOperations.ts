@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { GlobalState, AppSettings } from '../types';
+import { GlobalState } from '../types';
+import { db } from '../config/firebase';
+import { collection, addDoc, getDocs, query, where, Timestamp } from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
 
 interface UseFileOperationsProps {
   appState: GlobalState;
@@ -19,6 +22,7 @@ export function useFileOperations({
   onError
 }: UseFileOperationsProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
 
   const saveProject = () => {
     try {
@@ -28,9 +32,9 @@ export function useFileOperations({
         timestamp: new Date().toISOString(),
         version: PROJECT_VERSION
       };
-      
-      const blob = new Blob([JSON.stringify(projectData, null, 2)], { 
-        type: 'application/json' 
+
+      const blob = new Blob([JSON.stringify(projectData, null, 2)], {
+        type: 'application/json'
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -40,7 +44,7 @@ export function useFileOperations({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       onSuccess('Project Saved');
     } catch (error) {
       onError('Failed to save project');
@@ -52,16 +56,16 @@ export function useFileOperations({
   const loadProject = (file: File) => {
     setIsLoading(true);
     const reader = new FileReader();
-    
+
     reader.onload = (e) => {
       try {
         const text = e.target?.result as string;
         const data = JSON.parse(text);
-        
+
         if (!data || !data.state) {
           throw new Error('Invalid project file format');
         }
-        
+
         setAppState(data.state, true);
         onSuccess('Project Loaded');
       } catch (error) {
@@ -70,18 +74,43 @@ export function useFileOperations({
         setIsLoading(false);
       }
     };
-    
+
     reader.onerror = () => {
       onError('Failed to read file');
       setIsLoading(false);
     };
-    
+
     reader.readAsText(file);
+  };
+
+  const saveToCloud = async () => {
+    if (!user) {
+      onError('Você precisa estar logado para salvar na nuvem.');
+      return;
+    }
+    try {
+      setIsLoading(true);
+      const projectData = {
+        state: appState,
+        userId: user.uid,
+        projectName: appState.settings.projectMetadata.projectName,
+        createdAt: Timestamp.now(),
+        version: PROJECT_VERSION
+      };
+      await addDoc(collection(db, 'projects'), projectData);
+      onSuccess('Projeto salvo na nuvem com sucesso!');
+    } catch (error) {
+      console.error(error);
+      onError('Falha ao salvar na nuvem.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return {
     saveProject,
     loadProject,
+    saveToCloud,
     isLoading
   };
 }

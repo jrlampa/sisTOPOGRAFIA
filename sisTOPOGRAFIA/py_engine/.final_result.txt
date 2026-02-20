@@ -1,0 +1,122 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\jonat\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\python.exe
+cachedir: .pytest_cache
+rootdir: C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine
+plugins: anyio-4.12.1, cov-7.0.0, mock-3.15.1
+collecting ... collected 48 items
+
+tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_returns_dict_with_required_keys PASSED [  2%]
+tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_flat_grid_slope_avg_is_zero PASSED [  4%]
+tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_inclined_grid_slope_avg_gt_50 PASSED [  6%]
+tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_aspect_shape_matches_grid PASSED [  8%]
+tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_too_small_grid_returns_none PASSED [ 10%]
+tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_earthwork_keys_present PASSED [ 12%]
+tests/test_audit_p2_coverage.py::TestAnalyticsEngine::test_hydrology_heatmap_is_ndarray PASSED [ 14%]
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_is_callable PASSED [ 16%]
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror XFAIL [ 18%]
+tests/test_audit_p2_coverage.py::TestHydrology::test_import_hydrology_service PASSED [ 20%]
+tests/test_audit_p2_coverage.py::TestHydrology::test_extract_talwegs_returns_list PASSED [ 22%]
+tests/test_audit_p2_coverage.py::TestHydrology::test_extract_talwegs_flat_terrain PASSED [ 25%]
+tests/test_audit_p2_coverage.py::TestHydrology::test_extract_talwegs_valley_detected PASSED [ 27%]
+tests/test_dxf_generator.py::test_layer_creation PASSED                  [ 29%]
+tests/test_dxf_generator.py::test_block_creation PASSED                  [ 31%]
+tests/test_dxf_generator.py::test_building_extrusion PASSED              [ 33%]
+tests/test_dxf_generator.py::test_add_features PASSED                    [ 35%]
+tests/test_dxf_generator.py::test_legend_and_title_block PASSED          [ 37%]
+tests/test_elevation.py::TestElevation::test_fetch_elevation_grid_success PASSED [ 39%]
+tests/test_elevation.py::TestElevation::test_fetch_elevation_grid_failure PASSED [ 41%]
+tests/test_elevation_probing.py::test_elevation_probing PASSED           [ 43%]
+tests/test_infra.py::TestInfra::test_determine_layer_power_hv PASSED     [ 45%]
+tests/test_infra.py::TestInfra::test_determine_layer_power_lv PASSED     [ 47%]
+tests/test_infra.py::TestInfra::test_determine_layer_telecom PASSED      [ 50%]
+tests/test_infra.py::TestInfra::test_determine_layer_priority PASSED     [ 52%]
+tests/test_offsets.py::TestOffsets::test_offset_residential PASSED       [ 54%]
+tests/test_offsets.py::TestOffsets::test_offset_primary PASSED           [ 56%]
+tests/test_offsets.py::TestOffsets::test_offset_footway PASSED           [ 58%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_waterway_river PASSED [ 60%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_waterway_stream PASSED [ 62%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_waterway_canal PASSED [ 64%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_natural_water PASSED [ 66%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_natural_wetland PASSED [ 68%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_waterway_with_amenity_tag_does_NOT_go_to_equipamentos PASSED [ 70%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_waterway_never_goes_to_equipamentos PASSED [ 72%]
+tests/test_phase11_hardening.py::TestWaterwayLayerClassification::test_hidrografia_layer_exists_in_doc PASSED [ 75%]
+tests/test_phase11_hardening.py::TestAPICircuitBreaker::test_icmbio_timeout_returns_none PASSED [ 77%]
+tests/test_phase11_hardening.py::TestAPICircuitBreaker::test_inea_connection_error_returns_none PASSED [ 79%]
+tests/test_phase11_hardening.py::TestAPICircuitBreaker::test_environmental_engine_continues_without_apis PASSED [ 81%]
+tests/test_phase11_hardening.py::TestAPICircuitBreaker::test_dxf_generated_even_with_all_apis_offline PASSED [ 83%]
+tests/test_phase11_hardening.py::TestLayerConsistency::test_all_expected_layers_exist PASSED [ 85%]
+tests/test_smart_labels.py::TestSmartLabels::test_rotation_horizontal PASSED [ 87%]
+tests/test_smart_labels.py::TestSmartLabels::test_rotation_vertical PASSED [ 89%]
+tests/test_smart_labels.py::TestSmartLabels::test_rotation_readability PASSED [ 91%]
+tests/test_spatial_audit.py::test_spatial_audit_no_data PASSED           [ 93%]
+tests/test_spatial_audit.py::test_violation_detection PASSED             [ 95%]
+tests/test_spatial_audit.py::test_lighting_coverage PASSED               [ 97%]
+tests/test_spatial_audit.py::test_analysis_layers_output PASSED          [100%]
+
+============================== warnings summary ===============================
+..\..\..\..\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:50
+  C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:50: PyparsingDeprecationWarning: 'addParseAction' deprecated - use 'add_parse_action'
+    number.addParseAction(lambda t: float(t[0]))  # convert to float
+
+..\..\..\..\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:51
+  C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:51: PyparsingDeprecationWarning: 'addParseAction' deprecated - use 'add_parse_action'
+    string_ = quotedString.addParseAction(lambda t: t[0][1:-1])  # remove quotes
+
+..\..\..\..\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:57
+  C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:57: PyparsingDeprecationWarning: 'oneOf' deprecated - use 'one_of'
+    Relation = oneOf(["==", "!=", "<", "<=", ">", ">=", "?", "!?"])
+
+..\..\..\..\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:63
+  C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:63: PyparsingDeprecationWarning: 'setResultsName' deprecated - use 'set_results_name'
+    ).setResultsName("EntityQuery")
+
+..\..\..\..\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:65
+  C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:65: PyparsingDeprecationWarning: 'infixNotation' deprecated - use 'infix_notation'
+    InfixBoolQuery = infixNotation(
+
+..\..\..\..\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:72
+  C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:72: PyparsingDeprecationWarning: 'setResultsName' deprecated - use 'set_results_name'
+    ).setResultsName("AttribQuery")
+
+..\..\..\..\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:74
+  C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\ezdxf\queryparser.py:74: PyparsingDeprecationWarning: 'setResultsName' deprecated - use 'set_results_name'
+    AttribQueryOptions = Literal("i").setResultsName("AttribQueryOptions")
+
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror
+  C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine\report_generator.py:17: DeprecationWarning: The parameter "ln" is deprecated since v2.5.2. Instead of ln=True use new_x=XPos.LMARGIN, new_y=YPos.NEXT.
+    self.cell(0, 15, 'sisTOPOGRAFIA', ln=True, align='L')
+
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror
+  C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine\report_generator.py:20: DeprecationWarning: The parameter "ln" is deprecated since v2.5.2. Instead of ln=True use new_x=XPos.LMARGIN, new_y=YPos.NEXT.
+    self.cell(0, 5, 'ENGENHARIA E AN┴LISE GEOESPACIAL', ln=True, align='L')
+
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror
+  C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine\report_generator.py:39: DeprecationWarning: The parameter "ln" is deprecated since v2.5.2. Instead of ln=True use new_x=XPos.LMARGIN, new_y=YPos.NEXT.
+    self.cell(0, 10, 'LAUDO T╔CNICO DE AN┴LISE TOPOGR┴FICA', ln=True, align='C')
+
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror
+  C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine\report_generator.py:58: DeprecationWarning: The parameter "ln" is deprecated since v2.5.2. Instead of ln=True use new_x=XPos.LMARGIN, new_y=YPos.NEXT.
+    self.cell(0, 8, value, border=0, ln=True)
+
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror
+  C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine\report_generator.py:66: DeprecationWarning: The parameter "ln" is deprecated since v2.5.2. Instead of ln=True use new_x=XPos.LMARGIN, new_y=YPos.NEXT.
+    self.cell(0, 10, '1. SUM┴RIO TOPOGR┴FICO E AMBIENTAL', ln=True)
+
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror
+  C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine\report_generator.py:94: DeprecationWarning: The parameter "ln" is deprecated since v2.5.2. Instead of ln=True use new_x=XPos.LMARGIN, new_y=YPos.NEXT.
+    self.cell(0, 8, m_val, border='B', ln=True, align='R')
+
+tests/test_audit_p2_coverage.py::TestReportGenerator::test_generate_report_minimal_data_no_typeerror
+  C:\sisTOPOGRAFIA\sisTOPOGRAFIA\sisTOPOGRAFIA\py_engine\report_generator.py:101: DeprecationWarning: The parameter "ln" is deprecated since v2.5.2. Instead of ln=True use new_x=XPos.LMARGIN, new_y=YPos.NEXT.
+    self.cell(0, 10, '2. RECOMENDAÃıES T╔CNICAS', ln=True)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================= 47 passed, 1 xfailed, 21 warnings in 3.73s ==================

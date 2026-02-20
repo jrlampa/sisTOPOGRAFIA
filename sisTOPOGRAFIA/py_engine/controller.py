@@ -13,10 +13,12 @@ from elevation_client import fetch_elevation_grid
 from contour_generator import generate_contours
 from analytics_engine import AnalyticsEngine
 try:
+    from domain.services.environmental_engine import EnvironmentalEngine
     from .report_generator import generate_report
     from .utils.logger import Logger
     from .utils.geo import sirgas2000_utm_epsg
 except (ImportError, ValueError):
+    from domain.services.environmental_engine import EnvironmentalEngine
     from report_generator import generate_report
     from utils.logger import Logger
     from utils.geo import sirgas2000_utm_epsg
@@ -61,8 +63,7 @@ class OSMController:
         Logger.info("Step 2/5: Running spatial audit...", progress=30)
         analysis_gdf = self._run_audit(gdf)
 
-        # 4. Preview Data (GeoJSON)
-        self._send_geojson_preview(gdf, analysis_gdf)
+        # 4. Preview Data (GeoJSON) will be sent after environmental extraction
 
         # 5. Coordinate Offset & CAD Export
         # AUTHORITATIVE FIX: Check if we want Georeferenced (Absolute) or Localized (0,0)
@@ -77,6 +78,33 @@ class OSMController:
             dxf_gen._offset_initialized = True
             
         dxf_gen.add_features(gdf) # Features set the offset ONLY if not initialized above
+        
+        # 5.a Phase 9 & 10: AS IS Environmental Features (APP, Land Use, UCs)
+        Logger.info("Extracting AS IS constraints (APP / Land Use / UC)...")
+        app_gdf = EnvironmentalEngine.extract_and_buffer_waterways(gdf)
+        landuse_gdf = EnvironmentalEngine.extract_land_use(gdf)
+        
+        # Determine bounds for UC fetching. If local bounds fail, use radius.
+        bounds = gdf.total_bounds
+        if any(pd.isna(b) or np.isinf(b) for b in bounds):
+             buffer_deg = self.radius / 111320.0
+             bounds = (self.lon - buffer_deg, self.lat - buffer_deg, self.lon + buffer_deg, self.lat + buffer_deg)
+             
+        uc_res = EnvironmentalEngine.process_all_conservation_units(bounds[0], bounds[1], bounds[2], bounds[3])
+        uc_gdf = uc_res['combined_gdf']
+        self._uc_metadata = uc_res['metadata']
+        
+        if not app_gdf.empty:
+            dxf_gen.add_features(app_gdf)
+            
+        if not landuse_gdf.empty:
+            dxf_gen.add_features(landuse_gdf)
+            
+        if not uc_gdf.empty:
+            dxf_gen.add_features(uc_gdf)
+
+        # 4. Preview Data (GeoJSON) - Moved after environmental extraction
+        self._send_geojson_preview(gdf, analysis_gdf, app_gdf, landuse_gdf, uc_gdf)
 
         # 6. Terrain & Contours (Optional)
         if self.layers_config.get('terrain', False):
@@ -310,15 +338,18 @@ class OSMController:
         tags = {}
         if self.layers_config.get('buildings', True): tags['building'] = True
         if self.layers_config.get('roads', True): tags['highway'] = True
-        if self.layers_config.get('nature', True):
-            tags['natural'] = ['tree', 'wood', 'scrub', 'water']
-            tags['landuse'] = ['forest', 'grass', 'park']
+        if self.layers_config.get('vegetation', True):
+            tags.update({
+                'natural': ['wood', 'scrub', 'heath', 'grassland', 'tree', 'tree_row', 'water'],
+                'landuse': ['forest', 'grass', 'residential', 'commercial', 'industrial'],
+                'waterway': True
+            })    
         if self.layers_config.get('furniture', False):
             tags['amenity'] = ['bench', 'waste_basket', 'bicycle_parking', 'fountain', 'bus_station']
             tags['highway'] = ['street_lamp']
         return tags
 
-    def _send_geojson_preview(self, gdf, analysis_gdf=None):
+    def _send_geojson_preview(self, gdf, analysis_gdf=None, app_gdf=None, landuse_gdf=None, uc_gdf=None):
         if Logger.SKIP_GEOJSON: return
         try:
             preview_gdf = gdf.copy()
@@ -331,12 +362,44 @@ class OSMController:
             preview_gdf['feature_type'] = preview_gdf.apply(get_type, axis=1)
             gdf_wgs84 = preview_gdf.to_crs(epsg=4326)
             payload = json.loads(gdf_wgs84.to_json())
+            
+            # Incorporate Analysis Data
             if analysis_gdf is not None and not analysis_gdf.empty:
                 analysis_wgs84 = analysis_gdf.to_crs(epsg=4326)
                 analysis_json = json.loads(analysis_wgs84.to_json())
                 for f in analysis_json['features']: f['properties']['is_analysis'] = True
                 payload['features'].extend(analysis_json['features'])
+                
+            # Incorporate Phase 9: AS IS APP
+            if app_gdf is not None and not app_gdf.empty:
+                app_wgs84 = app_gdf.to_crs(epsg=4326)
+                app_json = json.loads(app_wgs84.to_json())
+                for f in app_json['features']: f['properties']['is_app'] = True
+                payload['features'].extend(app_json['features'])
+                
+            # Incorporate Phase 9: Land Use
+            if landuse_gdf is not None and not landuse_gdf.empty:
+                lu_wgs84 = landuse_gdf.to_crs(epsg=4326)
+                lu_json = json.loads(lu_wgs84.to_json())
+                for f in lu_json['features']: f['properties']['is_landuse'] = True
+                payload['features'].extend(lu_json['features'])
+                
+            # Incorporate Phase 10: Conservation Units
+            if uc_gdf is not None and not uc_gdf.empty:
+                uc_wgs84 = uc_gdf.to_crs(epsg=4326)
+                uc_json = json.loads(uc_wgs84.to_json())
+                for f in uc_json['features']: 
+                     f['properties']['is_uc'] = True
+                     # Frontend coloring relies on landuse simulation or explicit is_uc handle
+                     f['properties']['landuse'] = 'conservation_unit' 
+                payload['features'].extend(uc_json['features'])
+                
             payload['audit_summary'] = self.audit_summary
+            
+            # Phase 10 meta for Toast notification
+            if getattr(self, '_uc_metadata', None):
+                 payload['uc_metadata'] = self._uc_metadata
+                 
             Logger.geojson(payload)
         except Exception as e:
             Logger.error(f"GeoJSON Sync Error: {str(e)}")

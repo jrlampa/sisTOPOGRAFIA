@@ -147,7 +147,7 @@ export interface AppSettings {
   contourInterval: number;
 }
 
-export type SelectionMode = 'circle' | 'polygon' | 'measure';
+export type SelectionMode = 'circle' | 'polygon' | 'measure' | 'pad';
 
 export interface GlobalState {
   center: GeoLocation;

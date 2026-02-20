@@ -63,10 +63,10 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
         // DOCKER-FIRST: Always use Python directly (no .exe binaries)
         // This works in both Docker containers and native development environments
         const scriptPath = path.join(__dirname, '../py_engine/main.py');
-        
+
         // Allow customization via environment variable (useful for different Python versions)
         const pythonCommand = process.env.PYTHON_COMMAND || 'python3';
-        
+
         const command = pythonCommand;
         const args = [scriptPath];
 
@@ -116,6 +116,68 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
             logger.info('Python process exited', { exitCode: code });
             if (code === 0) {
                 resolve(stdoutData);
+            } else {
+                reject(new Error(`Python script failed with code ${code}\nStderr: ${stderrData}`));
+            }
+        });
+
+        pythonProcess.on('error', (err) => {
+            reject(new Error(`Failed to spawn python process: ${err.message}`));
+        });
+    });
+};
+
+interface AnalyzePadOptions {
+    polygon: string;
+    targetZ: number;
+}
+
+export const analyzePad = (options: AnalyzePadOptions): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        if (!options.polygon || options.targetZ === undefined) {
+            reject(new Error('Missing required parameters for Pad analysis'));
+            return;
+        }
+
+        const scriptPath = path.join(__dirname, '../py_engine/analyze_pad.py');
+        const pythonCommand = process.env.PYTHON_COMMAND || 'python3';
+
+        const command = pythonCommand;
+        const args = [
+            scriptPath,
+            '--polygon', String(options.polygon),
+            '--target_z', String(options.targetZ)
+        ];
+
+        logger.info('Spawning Python process for Pad Earthworks Analysis', {
+            command,
+            args: args.join(' '),
+            timestamp: new Date().toISOString()
+        });
+
+        const pythonProcess = spawn(command, args);
+
+        let stdoutData = '';
+        let stderrData = '';
+
+        pythonProcess.stdout.on('data', (data) => {
+            stdoutData += data.toString();
+        });
+
+        pythonProcess.stderr.on('data', (data) => {
+            stderrData += data.toString();
+        });
+
+        pythonProcess.on('close', (code) => {
+            if (code === 0) {
+                try {
+                    // Try to parse the last JSON object from stdout
+                    const jsonStr = stdoutData.trim().split('\n').pop() || '{}';
+                    const result = JSON.parse(jsonStr);
+                    resolve(result);
+                } catch (e: any) {
+                    reject(new Error(`Failed to parse python output: ${e.message}\nOutput: ${stdoutData}`));
+                }
             } else {
                 reject(new Error(`Python script failed with code ${code}\nStderr: ${stderrData}`));
             }

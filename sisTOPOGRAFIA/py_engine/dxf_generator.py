@@ -42,9 +42,10 @@ class DXFGenerator:
         if not hasattr(tags, 'items'): return
         xdata = []
         for k, v in tags.items():
+            if v is None or (hasattr(pd, 'isna') and pd.isna(v)): continue
             # Handle potential Series/Lists by taking the first item if needed
             val = v if np.isscalar(v) else (v[0] if len(v) > 0 else None)
-            if val is None or pd.isna(val) or k == 'geometry': continue
+            if val is None or k == 'geometry': continue
             val_str = f"{k}={val}"[:240]  # Safe length < 255
             xdata.append((1000, val_str))
         
@@ -90,36 +91,63 @@ class DXFGenerator:
 
     def determine_layer(self, tags, row):
         """Maps OSM tags to DXF Layers"""
+        # ── HIDROGRAFIA: PRIORIDADE MAXIMA ─────────────────────────────────
+        # waterway DEVE ser checado ANTES de qualquer amenity/power/telecom.
+        # Feicoes OSM de rios podem co-existir com tags amenity/fountain.
+        if 'waterway' in tags and not pd.isna(tags.get('waterway')):
+            return 'sisTOPO_HIDROGRAFIA'
+        if 'natural' in tags and not pd.isna(tags.get('natural')) \
+                and tags['natural'] in ['water', 'wetland', 'bay', 'coastline']:
+            return 'sisTOPO_HIDROGRAFIA'
+
         # Power Infrastructure
         if 'power' in tags and not pd.isna(tags['power']):
-            if tags['power'] in ['line', 'tower', 'substation']: # High Voltage usually
-                return 'INFRA_POWER_HV'
-            return 'INFRA_POWER_LV' # poles, minor_lines
+            if tags['power'] in ['line', 'tower', 'substation']:
+                return 'sisTOPO_INFRA_POWER_HV'
+            return 'sisTOPO_INFRA_POWER_LV'
 
         # Telecom Infrastructure
         if 'telecom' in tags and not pd.isna(tags['telecom']):
-            return 'INFRA_TELECOM'
+            return 'sisTOPO_INFRA_TELECOM'
 
         # Street Furniture
         furniture_amenities = ['bench', 'waste_basket', 'bicycle_parking', 'fountain', 'drinking_water']
         if ('amenity' in tags and tags['amenity'] in furniture_amenities) or \
            ('highway' in tags and tags['highway'] == 'street_lamp'):
-            return 'MOBILIARIO_URBANO'
+            return 'sisTOPO_MOBILIARIO_URBANO'
 
         if 'building' in tags and not pd.isna(tags['building']):
-            return 'EDIFICACAO'
-        if 'highway' in tags and not pd.isna(tags['highway']):
-            return 'VIAS'
-        if 'natural' in tags and tags['natural'] in ['tree', 'wood', 'scrub']:
-            return 'VEGETACAO'
-        if 'amenity' in tags:
-            return 'EQUIPAMENTOS'
-        if 'leisure' in tags:
-             return 'VEGETACAO' # Parks, etc
-        if 'waterway' in tags or 'natural' in tags and tags['natural'] == 'water':
-            return 'HIDROGRAFIA'
+            return 'sisTOPO_EDIFICACAO'
             
-        return '0' # Default layer
+        # Environmental Constraints & AS IS Data
+        if 'sisTOPO_type' in tags and not pd.isna(tags['sisTOPO_type']):
+            t = tags['sisTOPO_type']
+            if t == 'UC_FEDERAL': return 'sisTOPO_UC_FEDERAL'
+            if t == 'UC_ESTADUAL': return 'sisTOPO_UC_ESTADUAL'
+            if t == 'UC_MUNICIPAL': return 'sisTOPO_UC_MUNICIPAL'
+            
+        if 'app_type' in tags and tags['app_type'] == 'APP_30M':
+            return 'sisTOPO_RESTRICAO_APP_30M'
+            
+        if 'landuse' in tags and not pd.isna(tags['landuse']):
+            lu = tags['landuse']
+            if lu == 'residential': return 'sisTOPO_USO_RESIDENCIAL'
+            if lu == 'commercial': return 'sisTOPO_USO_COMERCIAL'
+            if lu == 'industrial': return 'sisTOPO_USO_INDUSTRIAL'
+            if lu in ['forest', 'grass', 'meadow', 'park']: return 'sisTOPO_USO_VEGETACAO'
+            return 'sisTOPO_USO_VEGETACAO' # Fallback
+            
+        # landuse ja tratado acima, waterway ja tratado no topo
+        if 'highway' in tags and not pd.isna(tags['highway']):
+            return 'sisTOPO_VIAS'
+        if 'natural' in tags and tags['natural'] in ['tree', 'wood', 'scrub']:
+            return 'sisTOPO_VEGETACAO'
+        if 'amenity' in tags:
+            return 'sisTOPO_EQUIPAMENTOS'
+        if 'leisure' in tags:
+            return 'sisTOPO_VEGETACAO'  # Parks, etc
+
+        return '0'  # Default layer
 
     def _safe_v(self, v, fallback_val=None):
         """Absolute guard for float values. Returns fallback_val if invalid."""
@@ -238,7 +266,7 @@ class DXFGenerator:
             layer = '0'
 
         # Draw Labels for Streets
-        if (layer == 'VIAS' or layer == '0') and 'name' in tags:
+        if (layer == 'sisTOPO_VIAS' or layer == '0') and 'name' in tags:
             name = str(tags['name'])
             if name.lower() != 'nan' and name.strip():
                 # Use centroid of the line to place text
@@ -266,7 +294,7 @@ class DXFGenerator:
                         text = self.msp.add_text(
                             name, 
                             dxfattribs={
-                                'layer': 'TEXTO', 
+                                'layer': 'sisTOPO_TEXTO', 
                                 'height': 2.5,
                                 'rotation': safe_val,
                                 'style': 'PRO_STYLE'
@@ -288,13 +316,13 @@ class DXFGenerator:
         if isinstance(geom, LineString):
             self._draw_linestring(geom, layer, diff_x, diff_y, tags)
             # Draw offsets for streets
-            if layer == 'VIAS' and 'highway' in tags:
+            if layer == 'sisTOPO_VIAS' and 'highway' in tags:
                  self._draw_street_offsets(geom, tags, diff_x, diff_y) # Call offset method
 
         elif isinstance(geom, MultiLineString):
             for line in geom.geoms:
                 self._draw_linestring(line, layer, diff_x, diff_y, tags)
-                if layer == 'VIAS' and 'highway' in tags:
+                if layer == 'sisTOPO_VIAS' and 'highway' in tags:
                      self._draw_street_offsets(line, tags, diff_x, diff_y)
 
         elif isinstance(geom, Point):
@@ -325,19 +353,19 @@ class DXFGenerator:
                     pts = [self._safe_p((p[0] - diff_x, p[1] - diff_y)) for p in side_geom.coords]
                     pts = self._validate_points(pts, min_points=2)
                     if pts:
-                        self.msp.add_lwpolyline(pts, dxfattribs={'layer': 'VIAS_MEIO_FIO', 'color': 251})
+                        self.msp.add_lwpolyline(pts, dxfattribs={'layer': 'sisTOPO_VIAS_MEIO_FIO', 'color': 251})
                 elif isinstance(side_geom, MultiLineString):
                     for subline in side_geom.geoms:
                         pts = [self._safe_p((p[0] - diff_x, p[1] - diff_y)) for p in subline.coords]
                         pts = self._validate_points(pts, min_points=2)
                         if pts:
-                            self.msp.add_lwpolyline(pts, dxfattribs={'layer': 'VIAS_MEIO_FIO', 'color': 251})
+                            self.msp.add_lwpolyline(pts, dxfattribs={'layer': 'sisTOPO_VIAS_MEIO_FIO', 'color': 251})
         except Exception as e:
             Logger.info(f"Street offset failed: {e}")
 
     def _get_thickness(self, tags, layer):
         """Calculates extrusion height based on OSM tags"""
-        if layer != 'EDIFICACAO':
+        if layer != 'sisTOPO_EDIFICACAO':
             return 0.0
             
         try:
@@ -376,7 +404,7 @@ class DXFGenerator:
         entity = self.msp.add_lwpolyline(points, close=True, dxfattribs=dxf_attribs)
         self._add_bim_data(entity, tags)
         
-        if layer == 'EDIFICACAO':
+        if layer == 'sisTOPO_EDIFICACAO':
             try:
                 area = poly.area
                 centroid = poly.centroid
@@ -385,7 +413,7 @@ class DXFGenerator:
                     txt = self.msp.add_text(
                         f"{area:.1f} m2",
                         dxfattribs={
-                            'layer': 'ANNOT_AREA',
+                            'layer': 'sisTOPO_ANNOT_AREA',
                             'height': 1.5,
                             'color': 7
                         }
@@ -411,7 +439,7 @@ class DXFGenerator:
 
                 clean_points = deduplicate_epsilon(points)
                 if clean_points and len(clean_points) >= 3:
-                    hatch = self.msp.add_hatch(color=253, dxfattribs={'layer': 'EDIFICACAO_HATCH'})
+                    hatch = self.msp.add_hatch(color=253, dxfattribs={'layer': 'sisTOPO_EDIFICACAO_HATCH'})
                     hatch.set_pattern_fill('ANSI31', scale=0.5, angle=45.0)
                     hatch.paths.add_polyline_path(clean_points, is_closed=True)
             except Exception as he:
@@ -437,7 +465,7 @@ class DXFGenerator:
         self._add_bim_data(entity, tags)
         
         # Annotate length for roads
-        if layer == 'VIAS':
+        if layer == 'sisTOPO_VIAS':
             try:
                 length = line.length
                 if not (math.isnan(length) or math.isinf(length)):
@@ -447,7 +475,7 @@ class DXFGenerator:
                         ltxt = self.msp.add_text(
                             f"{length:.1f}m",
                             dxfattribs={
-                                'layer': 'ANNOT_LENGTH',
+                                'layer': 'sisTOPO_ANNOT_LENGTH',
                                 'height': 2.0,
                                 'color': 7,
                                 'rotation': 0.0
@@ -485,10 +513,10 @@ class DXFGenerator:
             'V_LEVEL': tags.get('voltage', '0V')
         })
 
-        if layer == 'VEGETACAO':
+        if layer == 'sisTOPO_VEGETACAO':
              ent = self.msp.add_blockref('ARVORE', (x, y))
              self._add_bim_data(ent, tags)
-        elif layer == 'MOBILIARIO_URBANO':
+        elif layer == 'sisTOPO_MOBILIARIO_URBANO':
              amenity = tags.get('amenity')
              highway = tags.get('highway')
              if amenity == 'bench':
@@ -500,18 +528,18 @@ class DXFGenerator:
              else:
                  ent = self.msp.add_circle((x, y), radius=0.3, dxfattribs={'layer': layer, 'color': 40})
              self._add_bim_data(ent, tags)
-        elif layer == 'EQUIPAMENTOS':
+        elif layer == 'sisTOPO_EQUIPAMENTOS':
              ent = self.msp.add_blockref('POSTE', (x, y))
              ent.add_auto_attribs(attribs)
              self._add_bim_data(ent, tags)
         elif 'INFRA_POWER' in layer:
-             if layer == 'INFRA_POWER_HV' or tags.get('power') == 'tower':
+             if layer == 'sisTOPO_INFRA_POWER_HV' or tags.get('power') == 'tower':
                  ent = self.msp.add_blockref('TORRE', (x, y))
              else:
                  ent = self.msp.add_blockref('POSTE', (x, y))
              ent.add_auto_attribs(attribs)
              self._add_bim_data(ent, tags)
-        elif layer == 'INFRA_TELECOM':
+        elif layer == 'sisTOPO_INFRA_TELECOM':
              ent = self.msp.add_blockref('POSTE', (x, y), dxfattribs={'xscale': 0.8, 'yscale': 0.8})
              ent.add_auto_attribs(attribs)
              self._add_bim_data(ent, tags)
@@ -540,7 +568,7 @@ class DXFGenerator:
                     x = self._safe_v(float(p[0]) - self.diff_x)
                     y = self._safe_v(float(p[1]) - self.diff_y)
                     z = self._safe_v(float(p[2]))
-                    self.msp.add_point((x, y, z), dxfattribs={'layer': 'TERRENO_PONTOS', 'color': 252})
+                    self.msp.add_point((x, y, z), dxfattribs={'layer': 'sisTOPO_TERRENO_PONTOS', 'color': 252})
                 except (ValueError, TypeError, IndexError) as e:
                     Logger.error(f"Error setting point at ({r}, {c}): {e}")
 
@@ -558,7 +586,7 @@ class DXFGenerator:
              pts_2d = [(self._safe_v(p[0]), self._safe_v(p[1])) for p in line_points]
              
              is_major = abs(z_val % (5 * interval)) < 0.01
-             layer = 'TOPOGRAFIA_CURVAS_MESTRA' if is_major else 'TOPOGRAFIA_CURVAS'
+             layer = 'TOPOGRAFIA_CURVAS_MESTRA' if is_major else 'sisTOPO_TOPOGRAFIA_CURVAS'
              color = 8 if not is_major else 7
              
              valid_line = self._validate_points(pts_2d, min_points=2)
@@ -586,7 +614,7 @@ class DXFGenerator:
                      self.msp.add_text(
                          f"{z_val:.0f}",
                          dxfattribs={
-                             'layer': 'TOPOGRAFIA_CURVAS_TEXTO',
+                             'layer': 'sisTOPO_TOPOGRAFIA_CURVAS_TEXTO',
                              'height': 1.8,
                              'rotation': angle,
                              'color': 7,
@@ -737,7 +765,7 @@ class DXFGenerator:
             (max_x - diff_x + 5, max_y - diff_y + 5),
             (min_x - diff_x - 5, max_y - diff_y + 5)
         ]
-        self.msp.add_lwpolyline(frame_pts, close=True, dxfattribs={'layer': 'QUADRO', 'color': 7})
+        self.msp.add_lwpolyline(frame_pts, close=True, dxfattribs={'layer': 'sisTOPO_QUADRO', 'color': 7})
 
         # Internal UTM Crosshair Grid 
         # Determine grid bounds aligned to spacing
@@ -787,25 +815,25 @@ class DXFGenerator:
         start_y = self._safe_v(max_y - self.diff_y)
         
         # Legend Header
-        self.msp.add_text("LEGENDA TÉCNICA", dxfattribs={'height': 4, 'style': 'PRO_STYLE', 'layer': 'QUADRO'}).set_placement((start_x, start_y))
+        self.msp.add_text("LEGENDA TÉCNICA", dxfattribs={'height': 4, 'style': 'PRO_STYLE', 'layer': 'sisTOPO_QUADRO'}).set_placement((start_x, start_y))
         
         items = [
-            ("EDIFICAÇÕES", "EDIFICACAO", 5),
-            ("VIAS / RUAS", "VIAS", 1),
-            ("MEIO-FIO", "VIAS_MEIO_FIO", 9),
-            ("VEGETAÇÃO", "VEGETACAO", 3),
-            ("ILUMINAÇÃO PÚBLICA", "MOBILIARIO_URBANO", 2),
-            ("REDE ELÉTRICA (AT)", "INFRA_POWER_HV", 1),
-            ("REDE ELÉTRICA (BT)", "INFRA_POWER_LV", 30),
-            ("TELECOMUNICAÇÕES", "INFRA_TELECOM", 90),
-            ("CURVAS DE NÍVEL", "TOPOGRAFIA_CURVAS", 8)
+            ("EDIFICAÇÕES", "sisTOPO_EDIFICACAO", 5),
+            ("VIAS / RUAS", "sisTOPO_VIAS", 1),
+            ("MEIO-FIO", "sisTOPO_VIAS_MEIO_FIO", 9),
+            ("VEGETAÇÃO", "sisTOPO_VEGETACAO", 3),
+            ("ILUMINAÇÃO PÚBLICA", "sisTOPO_MOBILIARIO_URBANO", 2),
+            ("REDE ELÉTRICA (AT)", "sisTOPO_INFRA_POWER_HV", 1),
+            ("REDE ELÉTRICA (BT)", "sisTOPO_INFRA_POWER_LV", 30),
+            ("TELECOMUNICAÇÕES", "sisTOPO_INFRA_TELECOM", 90),
+            ("CURVAS DE NÍVEL", "sisTOPO_TOPOGRAFIA_CURVAS", 8)
         ]
         
         y_offset = -10
         for label, layer, color in items:
             # Sample Geometry
             self.msp.add_line((start_x, start_y + y_offset), (start_x + 10, start_y + y_offset), dxfattribs={'layer': layer, 'color': color})
-            self.msp.add_text(label, dxfattribs={'height': 2.5, 'layer': 'QUADRO'}).set_placement((start_x + 12, start_y + y_offset - 1))
+            self.msp.add_text(label, dxfattribs={'height': 2.5, 'layer': 'sisTOPO_QUADRO'}).set_placement((start_x + 12, start_y + y_offset - 1))
             y_offset -= 8
 
     def add_title_block(self, client="N/A", project="sisTOPOGRAFIA - Engenharia", designer="sisTOPOGRAFIA AI"):
@@ -817,7 +845,7 @@ class DXFGenerator:
         width, height = 420, 297
         
         # 2. Draw A3 Border
-        layout.add_lwpolyline([(0, 0), (width, 0), (width, height), (0, height)], close=True, dxfattribs={'layer': 'QUADRO', 'lineweight': 50})
+        layout.add_lwpolyline([(0, 0), (width, 0), (width, height), (0, height)], close=True, dxfattribs={'layer': 'sisTOPO_QUADRO', 'lineweight': 50})
         
         # 3. Create Viewport (Visualizing Model Space)
         # AUTHORITATIVE FIX: Viewport must point to the drawing centroid, not (0,0)
@@ -844,11 +872,11 @@ class DXFGenerator:
         cb_w, cb_h = 185, 50
         
         # Main box
-        layout.add_lwpolyline([(cb_x, cb_y), (cb_x + cb_w, cb_y), (cb_x + cb_w, cb_y + cb_h), (cb_x, cb_y + cb_h)], close=True, dxfattribs={'layer': 'QUADRO'})
+        layout.add_lwpolyline([(cb_x, cb_y), (cb_x + cb_w, cb_y), (cb_x + cb_w, cb_y + cb_h), (cb_x, cb_y + cb_h)], close=True, dxfattribs={'layer': 'sisTOPO_QUADRO'})
         
         # Sub-divisions
-        layout.add_line((cb_x, cb_y + 25), (cb_x + cb_w, cb_y + 25), dxfattribs={'layer': 'QUADRO'})
-        layout.add_line((cb_x + 100, cb_y), (cb_x + 100, cb_y + 25), dxfattribs={'layer': 'QUADRO'})
+        layout.add_line((cb_x, cb_y + 25), (cb_x + cb_w, cb_y + 25), dxfattribs={'layer': 'sisTOPO_QUADRO'})
+        layout.add_line((cb_x + 100, cb_y), (cb_x + 100, cb_y + 25), dxfattribs={'layer': 'sisTOPO_QUADRO'})
         
         # Add Text Fields (Sanitized)
         import datetime

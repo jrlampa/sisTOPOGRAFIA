@@ -31,24 +31,39 @@ class DXFStyleManager:
     def setup_layers(doc):
         """Define standard engineering layers."""
         layers = [
-            ('EDIFICACAO', 7, 0.30),    # White/Black
-            ('VIAS', 8, 0.15),          # Gray
-            ('VIAS_MEIO_FIO', 251, 0.09), # Light Gray
-            ('VEGETACAO', 3, 0.13),      # Green
-            ('MOBILIARIO_URBANO', 40, 0.15),
-            ('EQUIPAMENTOS', 4, 0.15),
-            ('INFRA_POWER_HV', 1, 0.35), # Red
-            ('INFRA_POWER_LV', 30, 0.20),
-            ('INFRA_TELECOM', 94, 0.15),
-            ('TOPOGRAFIA_CURVAS', 252, 0.09),
-            ('MALHA_COORD', 253, 0.05),
-            ('ANNOT_AREA', 2, 0.13),
-            ('ANNOT_LENGTH', 2, 0.13),
-            ('LEGENDA', 7, 0.15),
-            ('TEXTO', 7, 0.15),
-            ('CURVAS_NIVEL_MESTRA', 251, 0.25),
-            ('CURVAS_NIVEL_INTERM', 252, 0.09),
-            ('QUADRO', 7, 0.50), # Border
+            ('sisTOPO_EDIFICACAO', 7, 0.30),    # White/Black
+            ('sisTOPO_VIAS', 8, 0.15),          # Gray
+            ('sisTOPO_VIAS_MEIO_FIO', 251, 0.09), # Light Gray
+            ('sisTOPO_VEGETACAO', 3, 0.13),      # Green
+            ('sisTOPO_MOBILIARIO_URBANO', 40, 0.15),
+            ('sisTOPO_EQUIPAMENTOS', 4, 0.15),
+            ('sisTOPO_INFRA_POWER_HV', 1, 0.35), # Red
+            ('sisTOPO_INFRA_POWER_LV', 30, 0.20),
+            ('sisTOPO_INFRA_TELECOM', 94, 0.15),
+            ('sisTOPO_TOPOGRAFIA_CURVAS', 252, 0.09),
+            ('sisTOPO_MALHA_COORD', 253, 0.05),
+            ('sisTOPO_ANNOT_AREA', 2, 0.13),
+            ('sisTOPO_ANNOT_LENGTH', 2, 0.13),
+            ('sisTOPO_LEGENDA', 7, 0.15),
+            ('sisTOPO_TEXTO', 7, 0.15),
+            ('sisTOPO_CURVAS_NIVEL_MESTRA', 251, 0.25),
+            ('sisTOPO_CURVAS_NIVEL_INTERM', 252, 0.09),
+            ('sisTOPO_QUADRO', 7, 0.50), # Border
+            
+            # Phase 9: AS-IS Restrictions & Land Use
+            ('sisTOPO_RESTRICAO_APP_30M', 1, 0.35), # Red
+            ('sisTOPO_USO_RESIDENCIAL', 5, 0.15),   # Blue
+            ('sisTOPO_USO_COMERCIAL', 6, 0.15),     # Magenta
+            ('sisTOPO_USO_INDUSTRIAL', 8, 0.15),    # Dark Gray
+            ('sisTOPO_USO_VEGETACAO', 3, 0.15),     # Green
+            
+            # Phase 10: Conservation Units
+            ('sisTOPO_UC_FEDERAL', 5, 0.50),        # Dark Blue
+            ('sisTOPO_UC_ESTADUAL', 4, 0.50),       # Cyan
+            ('sisTOPO_UC_MUNICIPAL', 6, 0.50),      # Magenta
+
+            # Hidrografia - cursos d'agua e corpos hidricos
+            ('sisTOPO_HIDROGRAFIA', 140, 0.35),     # Azul agua (cor 140)
         ]
         
         # Standard CAD lineweights mapped (mm to internal int)
@@ -81,9 +96,9 @@ class DXFStyleManager:
         # ARVORE (Tree)
         if 'ARVORE' not in doc.blocks:
             blk = doc.blocks.new(name='ARVORE')
-            blk.add_circle((0, 0), radius=2, dxfattribs={'layer': 'VEGETACAO', 'color': 3})
-            blk.add_line((-1.5, 0), (1.5, 0), dxfattribs={'layer': 'VEGETACAO'})
-            blk.add_line((0, -1.5), (0, 1.5), dxfattribs={'layer': 'VEGETACAO'})
+            blk.add_circle((0, 0), radius=2, dxfattribs={'layer': 'sisTOPO_VEGETACAO', 'color': 3})
+            blk.add_line((-1.5, 0), (1.5, 0), dxfattribs={'layer': 'sisTOPO_VEGETACAO'})
+            blk.add_line((0, -1.5), (0, 1.5), dxfattribs={'layer': 'sisTOPO_VEGETACAO'})
 
         # POSTE (Utility Pole)
         if 'POSTE' not in doc.blocks:
