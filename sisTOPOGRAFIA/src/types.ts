@@ -128,6 +128,7 @@ export interface LayerConfig {
   grid: boolean;
   hydrology: boolean;
   satellite: boolean;
+  generate_tin: boolean;
 }
 
 export type ProjectionType = 'local' | 'utm';

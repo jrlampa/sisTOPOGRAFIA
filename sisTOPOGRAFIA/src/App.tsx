@@ -84,7 +84,8 @@ function App() {
         dimensions: false,
         grid: false,
         hydrology: false,
-        satellite: false
+        satellite: false,
+        generate_tin: true
       },
       projectMetadata: {
         projectName: 'PROJECT OSM-01',

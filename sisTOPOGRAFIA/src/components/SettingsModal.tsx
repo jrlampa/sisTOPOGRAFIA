@@ -341,12 +341,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   )}
 
                   <LayerToggle
-                    label="Terreno (Malha 3D)"
+                    label="Terreno (Pontos 3D)"
                     icon={Mountain}
                     active={settings.layers.terrain}
                     onClick={() => toggleLayer('terrain')}
                     colorClass="bg-purple-500/20 text-purple-500"
                   />
+
+                  {/* TIN Mesh Toggle (Enterprise) */}
+                  {settings.layers.terrain && (
+                    <div className={`ml-8 flex items-center gap-3 p-2 rounded-lg border transition-all ${settings.layers.generate_tin ? 'bg-slate-800 border-purple-500/50' : 'bg-slate-900 border-slate-800'}`}>
+                      <button
+                        onClick={() => toggleLayer('generate_tin')}
+                        className="flex items-center gap-2 text-xs w-full text-left"
+                      >
+                        <Grid3X3 size={14} className={settings.layers.generate_tin ? 'text-purple-400' : 'text-slate-600'} />
+                        <span className={settings.layers.generate_tin ? 'text-purple-200' : 'text-slate-500'}>Gerar Malha TIN 2.5D (Superfície)</span>
+                        <div className={`ml-auto w-2 h-2 rounded-full ${settings.layers.generate_tin ? 'bg-purple-500' : 'bg-slate-700'}`} />
+                      </button>
+                    </div>
+                  )}
                   <LayerToggle
                     label="Curvas de Nível (Isolinhas)"
                     icon={Activity}

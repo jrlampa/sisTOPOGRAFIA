@@ -5,6 +5,7 @@ import pandas as pd
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, Point
 import geopandas as gpd
 import math
+from scipy.spatial import Delaunay
 try:
     from .dxf_styles import DXFStyleManager
 except (ImportError, ValueError):
@@ -486,7 +487,7 @@ class DXFGenerator:
              ent = self.msp.add_circle((x, y), radius=0.5, dxfattribs={'layer': layer})
              self._add_bim_data(ent, tags)
 
-    def add_terrain_from_grid(self, grid_rows):
+    def add_terrain_from_grid(self, grid_rows, generate_tin=True):
         """
         grid_rows: List of rows, where each row is a list of (x, y, z) tuples.
         """
@@ -500,7 +501,7 @@ class DXFGenerator:
         if rows < 2 or cols < 2:
             return
 
-        # 2.5D Enforcement: Replaced 3D polymesh with individual 3D Points
+        # 1. PONTOS DE TERRENO
         for r, row in enumerate(grid_rows):
             for c, p in enumerate(row):
                 try:
@@ -510,6 +511,103 @@ class DXFGenerator:
                     self.msp.add_point((x, y, z), dxfattribs={'layer': 'sisTOPO_TERRENO_PONTOS', 'color': 252})
                 except (ValueError, TypeError, IndexError) as e:
                     Logger.error(f"Error setting point at ({r}, {c}): {e}")
+
+        # 2. MALHA TIN (Enterprise Feature - C1/C2)
+        if generate_tin:
+            self.add_tin_mesh(grid_rows)
+
+    def add_tin_mesh(self, grid_rows):
+        """
+        Gera uma Malha Triangulada (TIN) usando Delaunay Triangulation.
+        Representa a superfície 2.5D de forma contínua usando 3DFACE.
+        """
+        try:
+            points_3d = []
+            for row in grid_rows:
+                for p in row:
+                    points_3d.append((
+                        self._safe_v(p[0] - self.diff_x),
+                        self._safe_v(p[1] - self.diff_y),
+                        self._safe_v(p[2])
+                    ))
+            
+            pts_2d = np.array([(p[0], p[1]) for p in points_3d])
+            tri = Delaunay(pts_2d)
+            
+            layer = 'sisTOPO_TERRENO_TIN'
+            if layer not in self.doc.layers:
+                self.doc.layers.add(name=layer, color=253) # Dark Gray for mesh
+
+            for triangle_nodes in tri.simplices:
+                # nodes are indices in points_3d
+                p1 = points_3d[triangle_nodes[0]]
+                p2 = points_3d[triangle_nodes[1]]
+                p3 = points_3d[triangle_nodes[2]]
+                
+                # 3DFACE (p1, p2, p3, p3) - Fourth point is same as third for triangles
+                self.msp.add_3dface([p1, p2, p3, p3], dxfattribs={'layer': layer})
+                
+            Logger.info(f"Malha TIN gerada com {len(tri.simplices)} triângulos.")
+        except Exception as e:
+            Logger.error(f"Falha ao gerar malha TIN: {e}")
+
+    def add_slope_hatch(self, grid_rows, analytics):
+        """
+        Destaca áreas de risco (declividade alta) com hachuras sólidas no DXF.
+        Enterprise Feature para dominância de mercado.
+        """
+        if not analytics or 'slope_pct' not in analytics:
+            return
+            
+        slope_grid = analytics['slope_pct']
+        rows = len(grid_rows)
+        cols = len(grid_rows[0])
+        
+        # Buffer de hatch por layer
+        # 30% - 100%: Laranja (sisTOPO_RISCO_MEDIO)
+        # > 100%: Vermelho (sisTOPO_RISCO_ALTO)
+        
+        try:
+            for r in range(rows - 1):
+                for c in range(cols - 1):
+                    # Pega a declividade média da célula (aprox)
+                    s = slope_grid[r, c]
+                    
+                    if s < 30.0:
+                        continue
+                        
+                    # Determina layer e cor
+                    if s > 100.0:
+                        layer = 'sisTOPO_RISCO_ALTO'
+                        color = 1 # Red
+                    else:
+                        layer = 'sisTOPO_RISCO_MEDIO'
+                        color = 30 # Orange
+                        
+                    if layer not in self.doc.layers:
+                        self.doc.layers.add(name=layer, color=color)
+                        
+                    # Define polígono da célula
+                    p1 = grid_rows[r][c]
+                    p2 = grid_rows[r][c+1]
+                    p3 = grid_rows[r+1][c+1]
+                    p4 = grid_rows[r+1][c]
+                    
+                    pts = [
+                        (self._safe_v(p1[0] - self.diff_x), self._safe_v(p1[1] - self.diff_y)),
+                        (self._safe_v(p2[0] - self.diff_x), self._safe_v(p2[1] - self.diff_y)),
+                        (self._safe_v(p3[0] - self.diff_x), self._safe_v(p3[1] - self.diff_y)),
+                        (self._safe_v(p4[0] - self.diff_x), self._safe_v(p4[1] - self.diff_y))
+                    ]
+                    
+                    # Cria hachura sólida
+                    hatch = self.msp.add_hatch(color=color, dxfattribs={'layer': layer})
+                    hatch.set_solid_fill()
+                    hatch.paths.add_polyline_path(pts, is_closed=True)
+                    
+            Logger.info("Hachuras de risco de talude integradas ao DXF.")
+        except Exception as e:
+            Logger.error(f"Erro ao gerar hachuras de risco: {e}")
 
     def add_contour_lines(self, contour_lines, interval=1.0):
         """

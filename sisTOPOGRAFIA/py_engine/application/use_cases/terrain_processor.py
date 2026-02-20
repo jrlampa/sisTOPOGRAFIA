@@ -69,8 +69,12 @@ class TerrainProcessorUseCase:
             if analytics:
                 Logger.info(f"Geomorfometria: Declividade média {analytics['slope_avg']:.1f}%")
 
-            # DXF: grade de terreno
-            dxf_gen.add_terrain_from_grid(grid_rows)
+            # DXF: grade de terreno + Malha TIN (Enterprise)
+            dxf_gen.add_terrain_from_grid(grid_rows, generate_tin=self.layers_config.get('generate_tin', True))
+
+            # Hachuras de risco de talude (Enterprise)
+            if self.layers_config.get('slopeAnalysis', True):
+                dxf_gen.add_slope_hatch(grid_rows, analytics)
 
             # Curvas de nível
             if self.layers_config.get('contours', False):
