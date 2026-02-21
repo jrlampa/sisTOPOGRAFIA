@@ -145,4 +145,9 @@ describe('parseUtmQuery', () => {
     expect(result!.lat).toBeGreaterThan(0);
     expect(result!.label).toContain('UTM 30U');
   });
+
+  it('deve retornar null para zona UTM > 60 (branch linha 21)', () => {
+    // Zone 61 is out of valid UTM range (1-60)
+    expect(parseUtmQuery('61K 714316 7549084')).toBeNull();
+  });
 });

@@ -77,4 +77,23 @@ describe('useElevationProfile', () => {
     expect(result.current.profileData).toEqual([]);
     expect(result.current.error).toBeNull();
   });
+
+  it('deve usar mensagem fallback quando erro não é instância de Error (branch linha 24)', async () => {
+    // Throw a non-Error value → branch: `'Failed to load elevation profile'`
+    (fetchElevationProfile as ReturnType<typeof vi.fn>).mockRejectedValueOnce('string error');
+
+    const { result } = renderHook(() => useElevationProfile());
+
+    const start = { lat: -22.15018, lng: -42.92185 };
+    const end = { lat: -22.16, lng: -42.93 };
+
+    await act(async () => {
+      await result.current.loadProfile(start, end);
+    });
+
+    await waitFor(() => {
+      expect(result.current.error).toBe('Failed to load elevation profile');
+      expect(result.current.profileData).toEqual([]);
+    });
+  });
 });

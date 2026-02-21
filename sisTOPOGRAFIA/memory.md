@@ -341,6 +341,24 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
     - `geo.ts`: 87.05% → **100% lines** ✅
   - **Cobertura Frontend geral:** melhorada significativamente (+15 testes)
   - **Total:** 192 testes Python + 200 testes Node.js + 67 testes frontend passando 🏆
+- [x] **FASE 30:** Cobertura de Testes Frontend — useSearch, useElevationProfile, useKmlImport, geo.ts branches
+  - **`tests/hooks/useSearch.test.ts`** — 5 novos testes (5 → 10):
+    - Coordenadas lat/lng diretas (`-22.15018, -42.92185`) → `onLocationFound` sem fetch (linhas 43-46)
+    - Query UTM direta (`23K 714316 7549084`) → `onLocationFound` sem fetch (linhas 48-52)
+    - Fetch retorna `null` → `onError('No location data received')` (linhas 71-72)
+    - `handleSearch` (form submit) → `e.preventDefault()` + `executeSearch` (linhas 82-84)
+    - Erro não-Error thrown → mensagem fallback `'Search failed'` (branch linha 74)
+    - `useSearch.ts`: 77.41% → **100% lines + 96% branches** ✅
+  - **`tests/hooks/useElevationProfile.test.ts`** — 1 novo teste (4 → 5):
+    - Non-Error rejection → `'Failed to load elevation profile'` (branch linha 24)
+    - `useElevationProfile.ts`: 66.66% → **87.5% branches** ✅
+  - **`tests/hooks/useKmlImport.test.ts`** — 1 novo teste (3 → 4):
+    - Non-Error rejection → `'KML import failed'` (branch linha 31)
+    - `useKmlImport.ts`: 75% → **88.88% branches** ✅
+  - **`tests/utils/geo.test.ts`** — 1 novo teste (9 → 10):
+    - Zona UTM > 60 (`61K 714316 7549084`) → `null` (branch linha 21)
+    - `geo.ts` branches: **90.69%** ✅
+  - **Total:** 192 testes Python + 200 testes Node.js + 75 testes frontend passando 🏆
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)
