@@ -268,6 +268,14 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
   - **Atualizados manualmente:** `server/tests/api.test.ts`, `tests/hooks/useFileOperations.test.ts`
   - **CHANGELOG.md**: justificativa técnica documentada em `[1.0.0]`
   - **Total:** 192 testes Python + 191 testes Node.js passando
+- [x] **FASE 25:** Exportação GeoJSON & Clean Code
+  - **Exportação GeoJSON implementada:** `App.tsx` — `handleExportGeoJSON()` usa a função existente `osmToGeoJSON()` para gerar e baixar arquivo `.geojson` do cliente, sem custo de backend.
+    - Sanitização do nome do arquivo: `projectName.replace(/[^a-zA-Z0-9_-]/g, '_')` (evita caracteres inválidos no sistema de arquivos)
+    - MIME type correto: `application/geo+json` (RFC 7946)
+    - Botão "GeoJSON" no `SettingsExportFooter` agora funciona totalmente
+  - **Clean Code — `console.error` → `Logger.error`:** `useDxfExport.ts` e `useFileOperations.ts` agora usam o frontend Logger (5 ocorrências corrigidas), eliminando logs não estruturados
+  - **Novos Testes Frontend:** `tests/utils/geo.test.ts` (11 testes): `osmToGeoJSON` (8 casos: null, vazio, node, way+geometry, way sem geometry, relation, mix, tags undefined) + `parseUtmQuery` (3 casos: string inválida, zona 0, UTM válido 23K)
+  - **Total:** 192 testes Python + 191 testes Node.js + 11 novos testes frontend (vitest) passando
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)
