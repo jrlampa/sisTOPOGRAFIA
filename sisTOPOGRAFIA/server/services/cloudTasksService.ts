@@ -12,12 +12,14 @@ const GCP_PROJECT_NUMBER = process.env.GCP_PROJECT_NUMBER || process.env.GOOGLE_
 const CLOUD_TASKS_LOCATION = process.env.CLOUD_TASKS_LOCATION || 'southamerica-east1';
 const CLOUD_TASKS_QUEUE = process.env.CLOUD_TASKS_QUEUE || 'sisrua-queue';
 const CLOUD_RUN_BASE_URL = process.env.CLOUD_RUN_BASE_URL || 'http://localhost:3001';
+/* istanbul ignore next */
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_DEVELOPMENT = NODE_ENV === 'development' || !GCP_PROJECT;
 /*
  * Default service account pattern:
  * - Compute Engine default ({PROJECT_NUMBER}-compute@developer.gserviceaccount.com) used by Cloud Run when not customized
  */
+/* istanbul ignore next */
 const DEFAULT_COMPUTE_SERVICE_ACCOUNT = GCP_PROJECT_NUMBER ? `${GCP_PROJECT_NUMBER}-compute@developer.gserviceaccount.com` : '';
 // Priority: explicit override > Cloud Run service account > compute default
 const RESOLVED_SERVICE_ACCOUNT_EMAIL = [

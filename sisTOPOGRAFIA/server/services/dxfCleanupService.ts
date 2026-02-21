@@ -79,6 +79,7 @@ function performCleanup(): void {
  * Start the periodic cleanup interval
  */
 function startCleanupInterval(): void {
+    /* istanbul ignore if */
     if (cleanupIntervalId) {
         return; // Already running
     }

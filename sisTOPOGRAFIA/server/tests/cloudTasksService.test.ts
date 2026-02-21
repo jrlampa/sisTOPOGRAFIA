@@ -97,6 +97,16 @@ describe('cloudTasksService — Production mode', () => {
     expect(result.alreadyCompleted).toBeUndefined();
   });
 
+  it('usa string vazio como taskName quando response.name é undefined', async () => {
+    createTaskMock.mockResolvedValueOnce([{}]); // response sem name
+    const { createDxfTask } = await import('../services/cloudTasksService');
+
+    const result = await createDxfTask(BASE_PAYLOAD);
+
+    expect(result.taskId).toBe('test-uuid');
+    expect(result.taskName).toBe('');
+  });
+
   it('codifica payload como base64 no body da task', async () => {
     const { createDxfTask } = await import('../services/cloudTasksService');
 
