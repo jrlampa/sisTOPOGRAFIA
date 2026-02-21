@@ -29,7 +29,9 @@ export interface JobInfo {
 }
 
 // Use Firestore or fallback to memory (for development)
-const USE_FIRESTORE = process.env.NODE_ENV === 'production' || process.env.USE_FIRESTORE === 'true';
+// Evaluated at call time to allow test environment overrides
+const isFirestoreEnabled = (): boolean =>
+    process.env.NODE_ENV === 'production' || process.env.USE_FIRESTORE === 'true';
 
 // In-memory fallback for development
 const jobs = new Map<string, JobInfo>();
@@ -46,7 +48,7 @@ export async function createJob(id: string): Promise<JobInfo> {
         updatedAt: Timestamp.now()
     };
 
-    if (USE_FIRESTORE) {
+    if (isFirestoreEnabled()) {
         try {
             const firestoreService = FirestoreInfrastructure.getInstance();
             await firestoreService.safeWrite('jobs', id, job);
@@ -74,7 +76,7 @@ export async function createJob(id: string): Promise<JobInfo> {
  * Get job by ID
  */
 export async function getJob(id: string): Promise<JobInfo | null> {
-    if (USE_FIRESTORE) {
+    if (isFirestoreEnabled()) {
         try {
             const firestoreService = FirestoreInfrastructure.getInstance();
             const job = await firestoreService.safeRead<JobInfo>('jobs', id);
@@ -96,7 +98,7 @@ export async function getJob(id: string): Promise<JobInfo | null> {
  * Update job status
  */
 export async function updateJobStatus(id: string, status: JobStatus, progress?: number): Promise<void> {
-    if (USE_FIRESTORE) {
+    if (isFirestoreEnabled()) {
         try {
             const firestoreService = FirestoreInfrastructure.getInstance();
             const job = await firestoreService.safeRead<JobInfo>('jobs', id);
@@ -145,7 +147,7 @@ export async function updateJobStatus(id: string, status: JobStatus, progress?: 
  * Complete a job with result
  */
 export async function completeJob(id: string, result: { url: string; filename: string }): Promise<void> {
-    if (USE_FIRESTORE) {
+    if (isFirestoreEnabled()) {
         try {
             const firestoreService = FirestoreInfrastructure.getInstance();
             const job = await firestoreService.safeRead<JobInfo>('jobs', id);
@@ -191,7 +193,7 @@ export async function completeJob(id: string, result: { url: string; filename: s
  * Fail a job with error
  */
 export async function failJob(id: string, error: string): Promise<void> {
-    if (USE_FIRESTORE) {
+    if (isFirestoreEnabled()) {
         try {
             const firestoreService = FirestoreInfrastructure.getInstance();
             const job = await firestoreService.safeRead<JobInfo>('jobs', id);
@@ -235,7 +237,7 @@ export async function failJob(id: string, error: string): Promise<void> {
  * For memory mode, can be called manually
  */
 export function cleanupOldJobs(): void {
-    if (!USE_FIRESTORE) {
+    if (!isFirestoreEnabled()) {
         const oneHourAgo = Date.now() - 60 * 60 * 1000;
         for (const [id, job] of jobs.entries()) {
             const createdAt = job.createdAt instanceof Date ? job.createdAt.getTime() : job.createdAt.toMillis();
@@ -249,12 +251,16 @@ export function cleanupOldJobs(): void {
 }
 
 // Start periodic cleanup for memory mode
-if (!USE_FIRESTORE) {
-    setInterval(cleanupOldJobs, 60 * 60 * 1000); // Every hour
+let _jobCleanupInterval: ReturnType<typeof setInterval> | null = null;
+if (!isFirestoreEnabled()) {
+    _jobCleanupInterval = setInterval(cleanupOldJobs, 60 * 60 * 1000); // Every hour
 }
 
 // Export legacy functions for backward compatibility
 export function stopCleanupInterval(): void {
-    // No-op in Firestore mode (handled by firestoreService)
-    logger.info('Job cleanup interval stopped (handled by Firestore service)');
+    if (_jobCleanupInterval) {
+        clearInterval(_jobCleanupInterval);
+        _jobCleanupInterval = null;
+    }
+    logger.info('Job cleanup interval stopped');
 }

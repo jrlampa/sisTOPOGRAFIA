@@ -33,7 +33,9 @@ type DxfCachePayload = {
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Use Firestore or fallback to memory
-const USE_FIRESTORE = process.env.NODE_ENV === 'production' || process.env.USE_FIRESTORE === 'true';
+// Evaluated at call time to allow test environment overrides
+const isFirestoreEnabled = (): boolean =>
+    process.env.NODE_ENV === 'production' || process.env.USE_FIRESTORE === 'true';
 
 // In-memory fallback for development
 const cacheStore = new Map<string, CacheEntry>();
@@ -85,7 +87,7 @@ const createCacheKey = (payload: DxfCachePayload): string => {
  * Get cached filename by key
  */
 const getCachedFilename = async (key: string): Promise<string | null> => {
-    if (USE_FIRESTORE) {
+    if (isFirestoreEnabled()) {
         try {
             const firestoreService = FirestoreInfrastructure.getInstance();
             const entry = await firestoreService.safeRead<CacheEntry>('cache', key);
@@ -155,7 +157,7 @@ const setCachedFilename = async (key: string, filename: string, ttlMs: number = 
         createdAt: Timestamp.now()
     };
 
-    if (USE_FIRESTORE) {
+    if (isFirestoreEnabled()) {
         try {
             const firestoreService = FirestoreInfrastructure.getInstance();
             await firestoreService.safeWrite('cache', key, entry);
@@ -188,7 +190,7 @@ const setCachedFilename = async (key: string, filename: string, ttlMs: number = 
  * Delete cached filename
  */
 const deleteCachedFilename = async (key: string): Promise<void> => {
-    if (USE_FIRESTORE) {
+    if (isFirestoreEnabled()) {
         try {
             const firestoreService = FirestoreInfrastructure.getInstance();
             await firestoreService.safeDelete('cache', key);
@@ -211,7 +213,7 @@ const deleteCachedFilename = async (key: string): Promise<void> => {
  * Cleanup expired cache entries (called by Firestore auto-cleanup)
  */
 export function cleanupExpiredCache(): void {
-    if (!USE_FIRESTORE) {
+    if (!isFirestoreEnabled()) {
         const now = Date.now();
         for (const [key, entry] of cacheStore.entries()) {
             const expiresAt = entry.expiresAt instanceof Date ? entry.expiresAt.getTime() : entry.expiresAt.toMillis();
@@ -225,8 +227,19 @@ export function cleanupExpiredCache(): void {
 }
 
 // Start periodic cleanup for memory mode
-if (!USE_FIRESTORE) {
-    setInterval(cleanupExpiredCache, 60 * 60 * 1000); // Every hour
+let _cleanupInterval: ReturnType<typeof setInterval> | null = null;
+if (!isFirestoreEnabled()) {
+    _cleanupInterval = setInterval(cleanupExpiredCache, 60 * 60 * 1000); // Every hour
+}
+
+/**
+ * Stop periodic cleanup interval (used in tests to prevent memory leaks)
+ */
+export function stopCleanupInterval(): void {
+    if (_cleanupInterval) {
+        clearInterval(_cleanupInterval);
+        _cleanupInterval = null;
+    }
 }
 
 export {
