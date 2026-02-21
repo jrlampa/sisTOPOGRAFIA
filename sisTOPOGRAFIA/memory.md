@@ -107,7 +107,7 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 3. **Raster Satélite:**
    `quota_manager.py` (SQLite) → `google_maps_static.py` → `.png` → `DXFTerrainDrawer.add_raster_overlay()`
 
-## 5. Estado Atual (FASE 13 - Modularização Frontend)
+## 5. Estado Atual (FASE 14 - Cobertura de Testes - Camada de Aplicação)
 
 ### Concluído:
 - [x] Correção do prefixo `sisTOPO_` em todas as layers (87 testes passando)
@@ -124,11 +124,16 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
   - `components/settings/SettingsGeneralTab.tsx`: Aba de configurações gerais (layers, sistema, aparência)
   - `components/settings/SettingsProjectTab.tsx`: Aba de projeto e metadados (storage, carimbo)
   - `components/settings/SettingsExportFooter.tsx`: Rodapé de exportação (DXF, GeoJSON)
+- [x] **FASE 14:** Cobertura de Testes - Camada de Aplicação (DDD)
+  - `test_use_cases.py` (21 testes): `OsmFetcherUseCase`, `EnvironmentalExtractorUseCase`, `HydrologyService`
+  - `test_cut_fill_optimizer.py` (8 testes): `CutFillOptimizer` com mock da API de elevação
+  - Waterway detection testada (APP 30m buffer com GDFs sintéticos projetados)
+  - Movido `@testing-library/dom` para `devDependencies` no `package.json`
+  - **Total:** 116 testes Python passando (87 + 21 + 8)
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)
-- [ ] Implementação completa de Waterway detection via OSMNx (parcialmente implementado)
-- [ ] Busca automática de APP 30m buffer (parcialmente via environmental_extractor)
+- [ ] Implementação completa de Waterway detection via OSMNx (build_tags testado; fetch mockado)
 
 ## 6. Regras de Desenvolvimento
 
