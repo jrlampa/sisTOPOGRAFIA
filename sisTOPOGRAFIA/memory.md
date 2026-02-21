@@ -601,3 +601,24 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
   - CodeQL: 0 alertas ✅
   - **Total:** 283 Python + 203 Node.js + 229 frontend = **715 total** 🏆
   - Coordenadas de teste: `-22.15018, -42.92185` com raio 100m/500m/1km — áreas com infraestrutura elétrica ativam o toast automaticamente
+
+- [x] **FASE 39:** Melhoria de Cobertura de Testes Python (81% → 85%) + Bugfix `report_generator.py`
+  - **Problema:** Cobertura Python estava em 81% (acima do mínimo 80%), mas vários módulos tinham cobertura < 80% individualmente. Além disso, bug crítico em `report_generator.py` impedia geração real de laudos PDF.
+  - **Bugfix `report_generator.py`:**
+    - `multi_cell(0, 6, rec)` → `multi_cell(0, 6, rec, new_x=XPos.LMARGIN, new_y=YPos.NEXT)` (3 ocorrências)
+    - **Causa:** fpdf2 ≥ 2.6 alterou o padrão de `new_x` de `XPos.LMARGIN` para `XPos.RIGHT` nos `multi_cell`. Após renderizar a primeira recomendação, cursor ficava em x=200 (borda direita), impossibilitando `multi_cell` subsequentes.
+    - Módulo agora totalmente funcional: `report_generator.py` 69% → 100%
+  - **Novos arquivos de teste:**
+    - `py_engine/tests/test_legend_builder.py` (**15 testes**): `LegendBuilder` — add_cartographic_elements (ok/exceção), add_coordinate_grid (básico/área-grande/espaçamento), add_legend, add_title_block (todos tamanhos ABNT / fallback / exceção LOGO), add_geodetic_control_table (sem marcos / com marcos / limite 10)
+      - `legend_builder.py`: **60% → 96%** ✅
+    - `py_engine/tests/test_report_generator.py` (**12 testes**): `PDFReportGenerator` — generate_report (arquivo criado / caminho / conteúdo / campos mínimos), sections (project_info / topographic alta/baixa density / earthwork / satellite none/inexistente/real), header+footer
+      - `report_generator.py`: **69% → 100%** ✅
+    - `py_engine/tests/test_elevation_api.py` (**11 testes**): `ElevationApiAdapter` — _probe_latency (json_post OK/error/GET/status≠200), select_best_provider (todos falham → fallback / menor latência / TTL cache), fetch_grid (json_post shape / GET provider / poucos resultados / exceção → fallback 100.0)
+      - `elevation_api.py`: **66% → 100%** ✅
+  - **Expansão `test_dxf_validation.py`:**
+    - +18 novos testes `classify_layer`: prodist_type HV/MT/BT, highway=street_lamp, amenity bench, UC_FEDERAL/UC_ESTADUAL/UC_MUNICIPAL (sisTOPO_type + TOPO_type legado), APP_30M, landuse commercial/industrial/forest/unknown-fallback, natural=tree, amenity=restaurant, leisure=park, telecom=exchange
+    - `layer_classifier.py`: **77% → 100%** ✅
+  - **Cobertura Python final:**
+    - **85% statements/lines** 🏆 (de 81% → 85%)
+    - Threshold 80% **PASSING** ✅
+  - **Total:** 337 Python + 203 Node.js + 229 frontend = **769 total** 🏆

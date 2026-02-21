@@ -201,6 +201,81 @@ class TestLayerClassifier:
         from layer_classifier import classify_layer
         assert classify_layer({'landuse': 'residential'}) == 'sisTOPO_USO_RESIDENCIAL'
 
+    # ── Branches adicionais FASE 39 ──────────────────────────────────────────
+
+    def test_prodist_faixa_hv(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'prodist_type': 'HV'}) == 'sisTOPO_PRODIST_FAIXA_HV'
+
+    def test_prodist_faixa_mt(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'prodist_type': 'MT'}) == 'sisTOPO_PRODIST_FAIXA_MT'
+
+    def test_prodist_faixa_bt(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'prodist_type': 'BT'}) == 'sisTOPO_PRODIST_FAIXA_BT'
+
+    def test_highway_street_lamp_is_mobiliario(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'highway': 'street_lamp'}) == 'sisTOPO_MOBILIARIO_URBANO'
+
+    def test_amenity_bench_is_mobiliario(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'amenity': 'bench'}) == 'sisTOPO_MOBILIARIO_URBANO'
+
+    def test_uc_federal(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'sisTOPO_type': 'UC_FEDERAL'}) == 'sisTOPO_UC_FEDERAL'
+
+    def test_uc_estadual(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'sisTOPO_type': 'UC_ESTADUAL'}) == 'sisTOPO_UC_ESTADUAL'
+
+    def test_uc_municipal(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'sisTOPO_type': 'UC_MUNICIPAL'}) == 'sisTOPO_UC_MUNICIPAL'
+
+    def test_app_30m(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'app_type': 'APP_30M'}) == 'sisTOPO_RESTRICAO_APP_30M'
+
+    def test_landuse_commercial(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'landuse': 'commercial'}) == 'sisTOPO_USO_COMERCIAL'
+
+    def test_landuse_industrial(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'landuse': 'industrial'}) == 'sisTOPO_USO_INDUSTRIAL'
+
+    def test_landuse_forest_is_vegetacao(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'landuse': 'forest'}) == 'sisTOPO_USO_VEGETACAO'
+
+    def test_landuse_unknown_is_vegetacao_fallback(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'landuse': 'cemetery'}) == 'sisTOPO_USO_VEGETACAO'
+
+    def test_natural_tree_is_vegetacao(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'natural': 'tree'}) == 'sisTOPO_VEGETACAO'
+
+    def test_amenity_restaurant_is_equipamentos(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'amenity': 'restaurant'}) == 'sisTOPO_EQUIPAMENTOS'
+
+    def test_leisure_park_is_vegetacao(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'leisure': 'park'}) == 'sisTOPO_VEGETACAO'
+
+    def test_telecom_is_infra_telecom(self):
+        from layer_classifier import classify_layer
+        assert classify_layer({'telecom': 'exchange'}) == 'sisTOPO_INFRA_TELECOM'
+
+    def test_topo_type_legacy(self):
+        """Coluna legada TOPO_type deve ser reconhecida como sisTOPO_type."""
+        from layer_classifier import classify_layer
+        assert classify_layer({'TOPO_type': 'UC_FEDERAL'}) == 'sisTOPO_UC_FEDERAL'
+
 
 # ── 5. BIM XDATA ──────────────────────────────────────────────────────────────
 
