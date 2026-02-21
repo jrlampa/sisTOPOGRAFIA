@@ -114,6 +114,16 @@ class OSMController:
         dxf_gen.project_info['perimeter'] = perimeter
         dxf_gen.project_info.update(self.project_metadata)
 
+        # 3.6 ANEEL/PRODIST: Faixas de Servidão (normas da concessionária sobrescrevem ABNT)
+        self._concessionaria_rules_applied = False
+        if self.layers_config.get('infrastructure', False):
+            from domain.services.aneel_prodist_rules import AneelProdistRules
+            if AneelProdistRules.has_power_infrastructure(gdf):
+                faixas_gdf = AneelProdistRules.generate_faixas_servid(gdf)
+                if not faixas_gdf.empty:
+                    dxf_gen.add_features(faixas_gdf)
+                    self._concessionaria_rules_applied = True
+
         # 4. Extração ambiental (APP / Uso do Solo / UCs)
         env_result = {'app_gdf': None, 'landuse_gdf': None, 'uc_gdf': None}
         if any(self.layers_config.get(k, False) for k in ('app', 'landuse', 'uc')):
@@ -239,6 +249,8 @@ class OSMController:
             payload['audit_summary'] = self.audit_summary
             if getattr(self, '_uc_metadata', None):
                 payload['uc_metadata'] = self._uc_metadata
+            if getattr(self, '_concessionaria_rules_applied', False):
+                payload['concessionaria_rules_applied'] = True
             Logger.geojson(payload)
         except Exception as e:
             Logger.error(f"Erro no preview GeoJSON: {str(e)}")

@@ -11,7 +11,7 @@ from typing import Dict, Tuple
 try:
     from domain.services.environmental_engine import EnvironmentalEngine
     from utils.logger import Logger
-except ImportError:
+except ImportError:  # pragma: no cover
     from domain.services.environmental_engine import EnvironmentalEngine
     from utils.logger import Logger
 

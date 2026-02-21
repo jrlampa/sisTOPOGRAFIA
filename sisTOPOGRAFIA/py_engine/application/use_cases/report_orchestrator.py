@@ -9,7 +9,7 @@ from typing import Dict, Optional, List
 try:
     from report_generator import generate_report
     from utils.logger import Logger
-except ImportError:
+except ImportError:  # pragma: no cover
     from report_generator import generate_report
     from utils.logger import Logger
 

@@ -41,6 +41,17 @@ STREET_WIDTHS = {
     'default': 3.0
 }
 
+# ANEEL/PRODIST — Faixa de Servidão (Right-of-Way) por lado, em metros
+# Referência: PRODIST Módulo 3 §6.4 (Acesso ao Sistema de Distribuição)
+PRODIST_BUFFER_HV_M = 15.0   # Alta Tensão ≥ 69 kV
+PRODIST_BUFFER_MT_M = 8.0    # Média Tensão 13,8 kV – 34,5 kV
+PRODIST_BUFFER_BT_M = 2.0    # Baixa Tensão < 13,8 kV
+
+# Layers PRODIST (normas da concessionária sobrescrevem ABNT)
+LAYER_PRODIST_FAIXA_HV = 'sisTOPO_PRODIST_FAIXA_HV'
+LAYER_PRODIST_FAIXA_MT = 'sisTOPO_PRODIST_FAIXA_MT'
+LAYER_PRODIST_FAIXA_BT = 'sisTOPO_PRODIST_FAIXA_BT'
+
 # Layer Names (all prefixed with TOPO_ for ABNT standardization)
 LAYER_EDIFICACAO = 'sisTOPO_EDIFICACAO'
 LAYER_VEGETACAO = 'sisTOPO_VEGETACAO'

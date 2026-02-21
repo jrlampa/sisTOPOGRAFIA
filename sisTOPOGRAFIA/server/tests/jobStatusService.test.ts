@@ -149,4 +149,44 @@ describe('JobStatusService', () => {
             expect(job.error).toBe('API timeout');
         });
     });
+
+    describe('Limpeza automática de jobs antigos (cleanup loop)', () => {
+        it('deve remover job com mais de 1 hora via setInterval', () => {
+            jest.useFakeTimers();
+
+            // Use isolateModules to load a fresh instance so startCleanupInterval()
+            // registers its setInterval against the fake timer engine
+            let isolatedCreate: (id: string) => any;
+            let isolatedGet: (id: string) => any;
+            let isolatedStop: () => void;
+
+            jest.isolateModules(() => {
+                // eslint-disable-next-line @typescript-eslint/no-require-imports
+                const svc = require('../services/jobStatusService');
+                isolatedCreate = svc.createJob;
+                isolatedGet = svc.getJob;
+                isolatedStop = svc.stopCleanupInterval;
+            });
+
+            try {
+                // Create job at fake-clock T0
+                isolatedCreate!('job-cleanup-old');
+                const job = isolatedGet!('job-cleanup-old');
+                expect(job).not.toBeNull();
+
+                // Backdate createdAt by 2 hours so the cleanup condition fires
+                // (MAX_JOB_AGE = 1h; Date.now() after advance = T0 + 1h + 1ms)
+                job.createdAt = new Date(Date.now() - 2 * 60 * 60 * 1000);
+
+                // Advance fake clock by 1h + 1ms → fires the cleanup setInterval
+                jest.advanceTimersByTime(60 * 60 * 1000 + 1);
+
+                // Job should have been removed by the cleanup callback (lines 34-38)
+                expect(isolatedGet!('job-cleanup-old')).toBeNull();
+            } finally {
+                isolatedStop!();
+                jest.useRealTimers();
+            }
+        });
+    });
 });

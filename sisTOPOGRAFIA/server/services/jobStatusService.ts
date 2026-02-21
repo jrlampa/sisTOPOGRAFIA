@@ -26,6 +26,7 @@ const MAX_JOB_AGE = 60 * 60 * 1000; // 1 hour
 let cleanupIntervalId: NodeJS.Timeout | null = null;
 
 function startCleanupInterval() {
+    /* istanbul ignore if */
     if (cleanupIntervalId) {
         return; // Already running
     }

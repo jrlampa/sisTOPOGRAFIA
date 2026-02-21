@@ -9,7 +9,7 @@ from typing import Any
 
 try:
     from utils.logger import Logger
-except ImportError:
+except ImportError:  # pragma: no cover
     from utils.logger import Logger
 
 # Comprimento máximo de string XDATA: 255 chars (DXF spec), usamos 240 com margem

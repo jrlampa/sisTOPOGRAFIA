@@ -174,6 +174,17 @@ function App() {
     return () => window.removeEventListener('uc-detected', handleUC);
   }, []);
 
+  useEffect(() => {
+    const handleProdist = () => {
+      showToast(
+        '⚡ Normas ANEEL/PRODIST aplicadas — padrões ABNT ignorados para infraestrutura elétrica.',
+        'info'
+      );
+    };
+    window.addEventListener('aneel-prodist-applied', handleProdist);
+    return () => window.removeEventListener('aneel-prodist-applied', handleProdist);
+  }, []);
+
   const handleMapClick = (newCenter: GeoLocation) => { setAppState({ ...appState, center: newCenter }, true); clearData(); };
 
   const [selectedFeature, setSelectedFeature] = useState<unknown>(null);

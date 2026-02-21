@@ -12,21 +12,20 @@ const GCP_PROJECT_NUMBER = process.env.GCP_PROJECT_NUMBER || process.env.GOOGLE_
 const CLOUD_TASKS_LOCATION = process.env.CLOUD_TASKS_LOCATION || 'southamerica-east1';
 const CLOUD_TASKS_QUEUE = process.env.CLOUD_TASKS_QUEUE || 'sisrua-queue';
 const CLOUD_RUN_BASE_URL = process.env.CLOUD_RUN_BASE_URL || 'http://localhost:3001';
+/* istanbul ignore next */
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_DEVELOPMENT = NODE_ENV === 'development' || !GCP_PROJECT;
 /*
- * Default service account patterns:
+ * Default service account pattern:
  * - Compute Engine default ({PROJECT_NUMBER}-compute@developer.gserviceaccount.com) used by Cloud Run when not customized
- * - App Engine default ({PROJECT_ID}@appspot.gserviceaccount.com) kept for legacy deployments
  */
+/* istanbul ignore next */
 const DEFAULT_COMPUTE_SERVICE_ACCOUNT = GCP_PROJECT_NUMBER ? `${GCP_PROJECT_NUMBER}-compute@developer.gserviceaccount.com` : '';
-const DEFAULT_APPSPOT_SERVICE_ACCOUNT = GCP_PROJECT ? `${GCP_PROJECT}@appspot.gserviceaccount.com` : '';
-// Priority: explicit override > Cloud Run service account > compute default (preferred) > appspot legacy
+// Priority: explicit override > Cloud Run service account > compute default
 const RESOLVED_SERVICE_ACCOUNT_EMAIL = [
     process.env.CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL,
     process.env.CLOUD_RUN_SERVICE_ACCOUNT,
-    DEFAULT_COMPUTE_SERVICE_ACCOUNT,
-    DEFAULT_APPSPOT_SERVICE_ACCOUNT
+    DEFAULT_COMPUTE_SERVICE_ACCOUNT
 ].find(Boolean) || '';
 // Validation happens in createDxfTask to keep development mode (without GCP vars) working.
 

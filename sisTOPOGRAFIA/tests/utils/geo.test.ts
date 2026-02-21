@@ -79,6 +79,84 @@ describe('osmToGeoJSON', () => {
     const result = osmToGeoJSON(elements);
     expect(result.features[0].properties).toEqual({});
   });
+
+  it('deve disparar evento uc-detected para elementos com tag is_uc (linhas 61-72)', () => {
+    // Arrange: element with UC metadata triggers CustomEvent dispatch
+    const dispatched: Event[] = [];
+    const handler = (e: Event) => dispatched.push(e);
+    window.addEventListener('uc-detected', handler);
+
+    // Clear any previous uc_toasted set from other tests
+    (window as any).__uc_toasted = undefined;
+
+    const elements: OsmElement[] = [
+      {
+        type: 'node',
+        id: 999,
+        lat: -22.15,
+        lon: -42.92,
+        tags: { is_uc: 'yes', sisTOPO_type: 'UC_Estadual', name: 'Parque Teste' }
+      }
+    ];
+
+    osmToGeoJSON(elements);
+
+    // Should have fired one uc-detected event
+    expect(dispatched).toHaveLength(1);
+    const detail = (dispatched[0] as CustomEvent).detail;
+    expect(detail.name).toBe('Parque Teste');
+    expect(detail.type).toBe('UC_Estadual');
+
+    // Second call with same name: should NOT dispatch again (deduplication via __uc_toasted)
+    dispatched.length = 0;
+    osmToGeoJSON(elements);
+    expect(dispatched).toHaveLength(0);
+
+    window.removeEventListener('uc-detected', handler);
+  });
+
+  it('deve disparar evento aneel-prodist-applied quando elemento tem tag power', () => {
+    const dispatched: Event[] = [];
+    const handler = (e: Event) => dispatched.push(e);
+    window.addEventListener('aneel-prodist-applied', handler);
+
+    // Reset deduplication flag between test runs
+    (window as any).__prodist_toasted = undefined;
+
+    const elements = [
+      { type: 'way', id: 200, geometry: [{ lat: -22.15, lon: -42.92 }, { lat: -22.14, lon: -42.91 }],
+        tags: { power: 'line' } }
+    ];
+
+    osmToGeoJSON(elements);
+
+    expect(dispatched).toHaveLength(1);
+
+    // Second call: deduplication should prevent a second event
+    dispatched.length = 0;
+    osmToGeoJSON(elements);
+    expect(dispatched).toHaveLength(0);
+
+    window.removeEventListener('aneel-prodist-applied', handler);
+  });
+
+  it('não deve disparar aneel-prodist-applied para elementos sem tag power', () => {
+    const dispatched: Event[] = [];
+    const handler = (e: Event) => dispatched.push(e);
+    window.addEventListener('aneel-prodist-applied', handler);
+
+    (window as any).__prodist_toasted = undefined;
+
+    const elements = [
+      { type: 'node', id: 300, lat: -22.15, lon: -42.92, tags: { building: 'yes' } }
+    ];
+
+    osmToGeoJSON(elements);
+
+    expect(dispatched).toHaveLength(0);
+
+    window.removeEventListener('aneel-prodist-applied', handler);
+  });
 });
 
 describe('parseUtmQuery', () => {
@@ -95,8 +173,8 @@ describe('parseUtmQuery', () => {
   });
 
   it('deve converter coordenadas UTM sul para WGS84', () => {
-    // Coordenadas de teste padronizadas do memory.md: 23K 788547 7634925
-    const result = parseUtmQuery('23K 788547 7634925');
+    // Coordenadas de teste padronizadas: 23K 714316 7549084 → -22.15018, -42.92185
+    const result = parseUtmQuery('23K 714316 7549084');
     expect(result).not.toBeNull();
     expect(result!.lat).toBeCloseTo(-22.15, 0);
     expect(result!.lng).toBeCloseTo(-42.92, 0);
@@ -109,5 +187,10 @@ describe('parseUtmQuery', () => {
     expect(result).not.toBeNull();
     expect(result!.lat).toBeGreaterThan(0);
     expect(result!.label).toContain('UTM 30U');
+  });
+
+  it('deve retornar null para zona UTM > 60 (branch linha 21)', () => {
+    // Zone 61 is out of valid UTM range (1-60)
+    expect(parseUtmQuery('61K 714316 7549084')).toBeNull();
   });
 });

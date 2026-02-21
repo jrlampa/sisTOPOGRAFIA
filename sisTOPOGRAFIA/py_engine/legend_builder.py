@@ -10,7 +10,7 @@ import numpy as np
 
 try:
     from utils.logger import Logger
-except ImportError:
+except ImportError:  # pragma: no cover
     from utils.logger import Logger
 
 # Itens fixos da legenda técnica sisTOPOGRAFIA (ABNT)

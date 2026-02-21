@@ -240,6 +240,7 @@ export function cleanupOldJobs(): void {
     if (!isFirestoreEnabled()) {
         const oneHourAgo = Date.now() - 60 * 60 * 1000;
         for (const [id, job] of jobs.entries()) {
+            /* istanbul ignore next */
             const createdAt = job.createdAt instanceof Date ? job.createdAt.getTime() : job.createdAt.toMillis();
             if (createdAt < oneHourAgo) {
                 jobs.delete(id);

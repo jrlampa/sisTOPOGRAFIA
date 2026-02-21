@@ -54,6 +54,21 @@ describe('Logger', () => {
       // Debug is logged but might not appear in console in production
       expect(logs.length).toBeGreaterThanOrEqual(0);
     });
+
+    it('should store log entry when NODE_ENV is development (lines 67-68)', () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+      Logger.clearLogs();
+
+      Logger.debug('Debug in development mode');
+
+      // Lines 67-68: this.log('debug', ...) executes and stores an entry
+      expect(Logger.getLogs()).toHaveLength(1);
+      expect(Logger.getLogs()[0].level).toBe('debug');
+      expect(Logger.getLogs()[0].message).toBe('Debug in development mode');
+
+      process.env.NODE_ENV = originalEnv;
+    });
   });
 
   describe('log management', () => {
@@ -101,6 +116,76 @@ describe('Logger', () => {
       const logs = Logger.getLogs();
       
       expect(logs[0].timestamp).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('console output (development mode)', () => {
+    it('should call console.error for error level', () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+      Logger.error('Test error message');
+      expect(spy).toHaveBeenCalled();
+      process.env.NODE_ENV = originalEnv;
+      spy.mockRestore();
+    });
+
+    it('should call console.warn for warn level', () => {
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+      Logger.warn('Test warn message');
+      expect(spy).toHaveBeenCalled();
+      process.env.NODE_ENV = originalEnv;
+      spy.mockRestore();
+    });
+
+    it('should call console.log for info level', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+      Logger.info('Test info message');
+      expect(spy).toHaveBeenCalled();
+      process.env.NODE_ENV = originalEnv;
+      spy.mockRestore();
+    });
+
+    it('should pass data as third argument when data is provided', () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+      const data = { code: 42 };
+      Logger.error('Message with data', data);
+      // Called with prefix, message, and data
+      expect(spy).toHaveBeenCalledWith(expect.stringContaining('ERROR'), 'Message with data', data);
+      process.env.NODE_ENV = originalEnv;
+      spy.mockRestore();
+    });
+
+    it('should call console.log without data when data is undefined', () => {
+      const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+      Logger.info('Message without data');
+      // Called with only prefix and message (no third arg)
+      expect(spy).toHaveBeenCalledWith(expect.stringContaining('INFO'), 'Message without data');
+      process.env.NODE_ENV = originalEnv;
+      spy.mockRestore();
+    });
+  });
+
+  describe('debug in non-development mode', () => {
+    it('should not log debug when NODE_ENV is production', () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      Logger.clearLogs();
+
+      Logger.debug('This debug should not appear');
+
+      // In production, debug does not call this.log so no entry added
+      expect(Logger.getLogs()).toHaveLength(0);
+
+      process.env.NODE_ENV = originalEnv;
     });
   });
 });

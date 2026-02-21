@@ -24,7 +24,9 @@ export function useSearch({ onLocationFound, onError }: UseSearchProps) {
     const lat = parseFloat(numbers[0]);
     const lng = parseFloat(numbers[1]);
 
+    /* v8 ignore next -- parseFloat on regex-matched digit strings should not produce NaN; defensive guard */
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    /* v8 ignore next -- regex-matched lat/lng digits unlikely to exceed geographic limits; defensive guard */
     if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
 
     return {

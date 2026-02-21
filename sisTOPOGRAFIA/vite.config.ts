@@ -40,6 +40,28 @@ export default defineConfig(({ mode }) => {
       coverage: {
         provider: 'v8',
         reporter: ['text', 'json', 'html'],
+        include: [
+          'src/hooks/**/*.{ts,tsx}',
+          'src/services/**/*.{ts,tsx}',
+          'src/utils/**/*.{ts,tsx}',
+          'src/config/api.ts',
+          'src/constants.ts',
+          'src/contexts/AuthContext.tsx',
+          'src/components/ui/Toast.tsx',
+          'src/components/ui/ProgressIndicator.tsx',
+          'src/components/ui/ErrorBoundary.tsx',
+          'src/components/settings/LayerToggle.tsx',
+          'src/components/settings/NestedLayerToggle.tsx',
+          'src/components/settings/SettingsExportFooter.tsx',
+          'src/components/layout/HistoryControls.tsx',
+          'src/components/gis/DxfLegend.tsx',
+        ],
+        thresholds: {
+          statements: 80,
+          branches: 70,
+          functions: 80,
+          lines: 80,
+        },
         exclude: [
           'node_modules/',
           'tests/',

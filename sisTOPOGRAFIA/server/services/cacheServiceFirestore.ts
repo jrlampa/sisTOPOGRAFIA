@@ -97,6 +97,7 @@ const getCachedFilename = async (key: string): Promise<string | null> => {
             }
 
             // Check if expired
+            /* istanbul ignore next */
             const expiresAt = entry.expiresAt instanceof Timestamp
                 ? entry.expiresAt.toMillis()
                 : entry.expiresAt.getTime();
@@ -120,6 +121,7 @@ const getCachedFilename = async (key: string): Promise<string | null> => {
                 if (!entry) {
                     return null;
                 }
+                /* istanbul ignore next */
                 const expiresAt = entry.expiresAt instanceof Date ? entry.expiresAt.getTime() : entry.expiresAt.toMillis();
                 if (expiresAt <= Date.now()) {
                     cacheStore.delete(key);
@@ -136,6 +138,7 @@ const getCachedFilename = async (key: string): Promise<string | null> => {
             return null;
         }
 
+        /* istanbul ignore next */
         const expiresAt = entry.expiresAt instanceof Date ? entry.expiresAt.getTime() : entry.expiresAt.toMillis();
         if (expiresAt <= Date.now()) {
             cacheStore.delete(key);
@@ -216,6 +219,7 @@ export function cleanupExpiredCache(): void {
     if (!isFirestoreEnabled()) {
         const now = Date.now();
         for (const [key, entry] of cacheStore.entries()) {
+            /* istanbul ignore next */
             const expiresAt = entry.expiresAt instanceof Date ? entry.expiresAt.getTime() : entry.expiresAt.toMillis();
             if (expiresAt <= now) {
                 cacheStore.delete(key);

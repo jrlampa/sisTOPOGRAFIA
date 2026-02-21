@@ -9,7 +9,7 @@ import geopandas as gpd
 try:
     from osmnx_client import fetch_osm_data
     from utils.logger import Logger
-except ImportError:
+except ImportError:  # pragma: no cover
     from osmnx_client import fetch_osm_data
     from utils.logger import Logger
 

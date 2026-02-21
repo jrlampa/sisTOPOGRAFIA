@@ -125,6 +125,27 @@ describe('CacheService', () => {
       // Should be the same because keys are sorted internally
       expect(key1).toBe(key2);
     });
+
+    it('deve usar {} como padrão quando layers é undefined', () => {
+      const payloadComLayers = {
+        lat: -22.15018,
+        lon: -42.92185,
+        radius: 100,
+        mode: 'circle',
+        polygon: null,
+        layers: {}
+      };
+      const payloadSemLayers = {
+        lat: -22.15018,
+        lon: -42.92185,
+        radius: 100,
+        mode: 'circle',
+        polygon: null,
+        layers: undefined
+      };
+      // layers=undefined é normalizado para {}, gerando o mesmo hash
+      expect(createCacheKey(payloadSemLayers as any)).toBe(createCacheKey(payloadComLayers));
+    });
   });
 
   describe('setCachedFilename and getCachedFilename', () => {

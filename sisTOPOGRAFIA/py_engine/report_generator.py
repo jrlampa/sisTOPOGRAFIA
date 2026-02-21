@@ -115,7 +115,7 @@ class PDFReportGenerator(FPDF):
             "Os dados sugerem morfologia que requer atencao especial para "
             "drenagem e estabilidade de taludes."
         )
-        self.multi_cell(0, 6, summary)
+        self.multi_cell(0, 6, summary, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.ln(5)
 
         self.set_fill_color(*_GRAY_BG)
@@ -144,7 +144,7 @@ class PDFReportGenerator(FPDF):
             "- Considerar o uso de contencoes caso a declividade em cortes ultrapasse 30%.",
         ]
         for rec in recs:
-            self.multi_cell(0, 6, rec)
+            self.multi_cell(0, 6, rec, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.ln(5)
 
     def _section_earthwork(self, stats: dict) -> None:
@@ -182,7 +182,7 @@ class PDFReportGenerator(FPDF):
             "Certifico que os dados deste laudo sao provenientes de processamento "
             "algoritmico de bases abertas (OSM) e georeferenciamento de satelite. "
             "Possui carater tecnico-preliminar para estudos de viabilidade.",
-            align='C'
+            align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT
         )
         self.ln(10)
         self.set_font('helvetica', 'B', 10)

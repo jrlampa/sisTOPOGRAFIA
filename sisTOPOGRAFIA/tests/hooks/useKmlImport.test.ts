@@ -109,4 +109,28 @@ describe('useKmlImport', () => {
       expect(mockOnError).toHaveBeenCalled();
     });
   });
+
+  it('deve usar mensagem fallback quando erro não é instância de Error (branch linha 31)', async () => {
+    // Throw a non-Error value → branch: `'KML import failed'`
+    (parseKml as ReturnType<typeof vi.fn>).mockRejectedValueOnce('falha inesperada');
+
+    const mockFile = new File(['<kml></kml>'], 'test.kml', {
+      type: 'application/vnd.google-earth.kml+xml'
+    });
+
+    const { result } = renderHook(() =>
+      useKmlImport({
+        onImportSuccess: mockOnImportSuccess,
+        onError: mockOnError
+      })
+    );
+
+    await act(async () => {
+      await result.current.importKml(mockFile);
+    });
+
+    await waitFor(() => {
+      expect(mockOnError).toHaveBeenCalledWith('KML import failed');
+    });
+  });
 });

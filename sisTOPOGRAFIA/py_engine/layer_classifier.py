@@ -8,10 +8,13 @@ import pandas as pd
 
 # Mapeamento de layers DXF da plataforma sisTOPOGRAFIA (Padrão ABNT)
 LAYER_NAMES = {
-    'HIDROGRAFIA':       'sisTOPO_HIDROGRAFIA',
-    'INFRA_POWER_HV':    'sisTOPO_INFRA_POWER_HV',
-    'INFRA_POWER_LV':    'sisTOPO_INFRA_POWER_LV',
-    'INFRA_TELECOM':     'sisTOPO_INFRA_TELECOM',
+    'HIDROGRAFIA':          'sisTOPO_HIDROGRAFIA',
+    'INFRA_POWER_HV':       'sisTOPO_INFRA_POWER_HV',
+    'INFRA_POWER_LV':       'sisTOPO_INFRA_POWER_LV',
+    'INFRA_TELECOM':        'sisTOPO_INFRA_TELECOM',
+    'PRODIST_FAIXA_HV':     'sisTOPO_PRODIST_FAIXA_HV',
+    'PRODIST_FAIXA_MT':     'sisTOPO_PRODIST_FAIXA_MT',
+    'PRODIST_FAIXA_BT':     'sisTOPO_PRODIST_FAIXA_BT',
     'MOBILIARIO_URBANO': 'sisTOPO_MOBILIARIO_URBANO',
     'EDIFICACAO':        'sisTOPO_EDIFICACAO',
     'UC_FEDERAL':        'sisTOPO_UC_FEDERAL',
@@ -62,6 +65,15 @@ def classify_layer(tags) -> str:
     natural = _get('natural')
     if natural in _WATER_NATURAL:
         return LAYER_NAMES['HIDROGRAFIA']
+
+    # 1.5. Faixa de Servidão ANEEL/PRODIST (sobrepõe ABNT para infraestrutura elétrica)
+    prodist_type = _get('prodist_type')
+    if prodist_type == 'HV':
+        return LAYER_NAMES['PRODIST_FAIXA_HV']
+    if prodist_type == 'MT':
+        return LAYER_NAMES['PRODIST_FAIXA_MT']
+    if prodist_type == 'BT':
+        return LAYER_NAMES['PRODIST_FAIXA_BT']
 
     # 2. Infraestrutura elétrica
     power = _get('power')
