@@ -3,6 +3,7 @@ import { GlobalState } from '../types';
 import { db } from '../config/firebase';
 import { collection, addDoc, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
+import Logger from '../utils/logger';
 
 interface UseFileOperationsProps {
   appState: GlobalState;
@@ -100,7 +101,7 @@ export function useFileOperations({
       await addDoc(collection(db, 'projects'), projectData);
       onSuccess('Projeto salvo na nuvem com sucesso!');
     } catch (error) {
-      console.error(error);
+      Logger.error('Falha ao salvar na nuvem', error);
       onError('Falha ao salvar na nuvem.');
     } finally {
       setIsLoading(false);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { generateDXF, getDxfJobStatus } from '../services/dxfService';
 import { SelectionMode, GeoLocation, LayerConfig, EconomicData } from '../types';
+import Logger from '../utils/logger';
 
 interface UseDxfExportProps {
   onSuccess: (message: string) => void;
@@ -118,7 +119,7 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
               setHeatmapData(hData);
             }
           } catch (e) {
-            console.error("Failed to load heatmap data", e);
+            Logger.error("Failed to load heatmap data", e);
           }
 
           // Fetch AI Suggestion
@@ -130,7 +131,7 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
               setAiSuggestion(aiText);
             }
           } catch (e) {
-            console.error("Failed to load AI suggestion", e);
+            Logger.error("Failed to load AI suggestion", e);
           }
 
           // Fetch Economic Data
@@ -142,7 +143,7 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
               setEconomicData(econData);
             }
           } catch (e) {
-            console.error("Failed to load economic data", e);
+            Logger.error("Failed to load economic data", e);
           }
 
           // Fetch Profile CSV
@@ -164,7 +165,7 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
               setLongitudinalProfile(profile);
             }
           } catch (e) {
-            console.error("Failed to load profile CSV", e);
+            Logger.error("Failed to load profile CSV", e);
           }
 
           // Fetch PDF Report
@@ -180,7 +181,7 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
               pdfLink.click();
             }
           } catch (e) {
-            console.error("Failed to download PDF report", e);
+            Logger.error("Failed to download PDF report", e);
           }
 
           onSuccess('DXF Downloaded');

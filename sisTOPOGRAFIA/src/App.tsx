@@ -145,6 +145,26 @@ function App() {
 
   const updateSettings = (newSettings: AppSettings) => setAppState({ ...appState, settings: newSettings }, true);
 
+  const handleExportGeoJSON = () => {
+    if (!osmData) { showToast('Realize uma análise primeiro para exportar.', 'info'); return; }
+    try {
+      const geojson = osmToGeoJSON(osmData);
+      const safeName = appState.settings.projectMetadata.projectName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${safeName}_osm.geojson`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('GeoJSON exportado com sucesso!', 'success');
+    } catch {
+      showToast('Falha ao exportar GeoJSON.', 'error');
+    }
+  };
+
   useEffect(() => {
     const handleUC = (e: Event) => {
       const ev = e as CustomEvent;
@@ -223,7 +243,7 @@ function App() {
             onRadiusChange={r => setAppState({ ...appState, radius: r }, false)}
             polygon={polygon} onClearPolygon={() => setAppState({ ...appState, polygon: [] }, true)}
             hasData={!!osmData} isDownloading={isDownloading} onExportDxf={handleDownloadDxf}
-            onExportGeoJSON={() => showToast('Exportação GeoJSON ainda não disponível.', 'info')}
+            onExportGeoJSON={handleExportGeoJSON}
             onSaveProject={saveProject} onLoadProject={loadProject} onSaveCloudProject={saveToCloud}
           />
         )}
