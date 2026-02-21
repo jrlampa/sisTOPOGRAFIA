@@ -1,6 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { z } from 'zod';
-import { searchSchema, elevationProfileSchema } from '../../schemas/apiSchemas.js';
+import { searchSchema, elevationProfileSchema, analyzePadSchema } from '../../schemas/apiSchemas.js';
 import { GeocodingService } from '../../services/geocodingService.js';
 import { ElevationService } from '../../services/elevationService.js';
 import { analyzePad } from '../../pythonBridge.js';
@@ -55,12 +54,17 @@ router.post('/elevation/profile', async (req: Request, res: Response) => {
 // POST /api/analyze-pad
 router.post('/analyze-pad', upload.none(), async (req: Request, res: Response) => {
     try {
-        const { polygon, target_z } = req.body;
-        if (!polygon || !target_z) {
-            return res.status(400).json({ error: 'polygon e target_z são obrigatórios' });
+        const validation = analyzePadSchema.safeParse(req.body);
+        if (!validation.success) {
+            logger.warn('Analyze Pad validation failed', { issues: validation.error.issues, ip: req.ip });
+            return res.status(400).json({
+                error: 'Requisição inválida',
+                details: validation.error.issues.map(i => i.message).join(', ')
+            });
         }
+        const { polygon, target_z } = validation.data;
         logger.info('Pad Analysis requested', { targetZ: target_z });
-        const result = await analyzePad({ polygon, targetZ: parseFloat(target_z) });
+        const result = await analyzePad({ polygon, targetZ: target_z });
         return res.json(result);
     } catch (error: any) {
         logger.error('Analyze Pad error', { error: error.message, stack: error.stack });

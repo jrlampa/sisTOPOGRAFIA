@@ -79,6 +79,16 @@ export const dxfRequestExtendedSchema = z.object({
     projection: z.string().max(50).optional()
 });
 
+// Analyze Pad (terraplenagem) endpoint schema
+export const analyzePadSchema = z.object({
+    polygon: z.string()
+        .min(1, 'Polígono é obrigatório')
+        .max(50000, 'Polígono muito complexo (limite: 50.000 caracteres)'),
+    target_z: z.coerce.number()
+        .min(-500, 'Cota alvo inválida (mínimo: -500m)')
+        .max(9000, 'Cota alvo inválida (máximo: 9000m)')
+});
+
 // Batch row schema (for CSV processing)
 export const batchRowSchema = z.object({
     name: z.string()

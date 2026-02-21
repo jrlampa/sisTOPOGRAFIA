@@ -107,7 +107,7 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 3. **Raster Satélite:**
    `quota_manager.py` (SQLite) → `google_maps_static.py` → `.png` → `DXFTerrainDrawer.add_raster_overlay()`
 
-## 5. Estado Atual (FASE 21 - Performance Monitoring & Rate Limiter 100% Coverage)
+## 5. Estado Atual (FASE 24 - Versão 1.0.0: Primeiro Release Estável)
 
 ### Concluído:
 - [x] Correção do prefixo `sisTOPO_` em todas as layers (87 testes passando)
@@ -215,6 +215,59 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
     - `server/tests/rateLimiter.test.ts`: +3 testes diretos de `keyGenerator` (IPv4, IPv6, undefined), +2 testes de handlers (DXF e geral com valores completos)
     - `server/tests/monitoring.test.ts`: 6 testes (next(), log de conclusão, slow request warn, sem warn rápido, status HTTP, arredondamento)
   - **Total:** 192 testes Python + 161 testes Node.js passando
+
+- [x] **FASE 22:** Input Validation Hardening & ABNT Script Fix
+  - **Novo schema Zod:** `analyzePadSchema` adicionado em `server/schemas/apiSchemas.ts`
+    - Valida `polygon` como string não-vazia com limite de 50.000 caracteres (proteção contra payloads gigantes)
+    - Valida `target_z` como número coercível no intervalo [-500m, 9000m] (faixa de cotas plausível no Brasil)
+  - **Validação Zod em `geoRoutes.ts`:** Rota `POST /api/analyze-pad` agora usa `analyzePadSchema.safeParse()` em vez de checagem manual `if (!polygon || !target_z)`, alinhando-a ao padrão de todas as outras rotas do sistema.
+  - **Bug Fix ABNT:** `py_engine/scripts/verify_abnt_standards.py`
+    - Comentário do cabeçalho corrigido: `TOPO_*` → `sisTOPO_*`
+    - Mensagens de erro agora usam `sisTOPO_CURVAS_NIVEL_MESTRA` (prefixo correto)
+    - Layer de curvas intermediárias corrigida: `sisTOPO_CURVAS_NIVEL_INTERM` (inexistente) → `sisTOPO_TOPOGRAFIA_CURVAS` (nome real, conforme `memory.md` e `dxf_styles.py`)
+  - **Novos Testes Backend:** `server/tests/apiSchemas.test.ts` (30 testes):
+    - `searchSchema` (4 testes): query vazia, longa, válida, coordenadas
+    - `elevationProfileSchema` (5 testes): lat/lon fora do range, steps default, steps acima do limite
+    - `analyzePadSchema` (10 testes): coerção de string, polygon vazio/ausente, target_z ausente/fora do range/-500 a 9000, payload gigante, valor negativo válido
+    - `analysisSchema` (3 testes): stats básicos, sem locationName, buildings negativo
+    - `batchRowSchema` (4 testes): linha válida, nome com caractere especial, raio acima do limite, modo default
+    - `dxfRequestExtendedSchema` (4 testes): DXF válido, raio, modo inválido, coerção string→number
+  - **Total:** 192 testes Python + 191 testes Node.js passando
+
+- [x] **FASE 23:** Zeragem e Coerência de Versionamento
+  - **Versão canônica:** `0.1.0` — zeragem do versionamento com baseline pré-release semver correto
+  - **Arquivos atualizados (todos sincronizados para `0.1.0`):**
+    - `VERSION` (fonte única da verdade)
+    - `package.json` e `package-lock.json`
+    - `py_engine/constants.py` (`PROJECT_VERSION`)
+    - `src/hooks/useFileOperations.ts` (`PROJECT_VERSION`)
+    - `server/swagger.ts` (era `1.2.0` — inconsistente)
+    - `server/interfaces/routes/systemRoutes.ts` (era `1.2.0` — 3 ocorrências)
+    - `server/index.ts` (era `1.2.0` no log de startup)
+    - `server/tests/api.test.ts` (expectativas atualizadas de `1.2.0`)
+    - `tests/hooks/useFileOperations.test.ts` (fixture corrigida de `3.0.0` — obsoleta)
+  - **Scripts ampliados:**
+    - `scripts/update-version.sh`: agora cobre `server/swagger.ts`, `server/interfaces/routes/systemRoutes.ts`, `server/index.ts`
+    - `scripts/check-version.sh`: agora verifica `server/swagger.ts` e `server/interfaces/routes/systemRoutes.ts`
+  - **CHANGELOG.md**: atualizado para refletir zeragem e registro histórico
+  - **Total:** 192 testes Python + 191 testes Node.js passando
+
+- [x] **FASE 24:** Análise de Maturidade & Correção de Versionamento para `1.0.0`
+  - **Análise técnica:** `0.1.0` era incoerente — semver `0.x.x` indica "instável/pré-alpha", contradizendo:
+    - 23 fases de desenvolvimento enterprise concluídas
+    - 383+ testes (192 Python + 191 Node.js) com ~97% de cobertura
+    - Arquitetura DDD/Clean Architecture enterprise completa
+    - Deploy production-ready (Cloud Run, Docker, Firestore)
+    - Conformidade ABNT NBR 13133 com 30+ layers DXF
+    - Security hardening completo (Zod, rate limiting, circuit breakers, sanitização)
+  - **Versão correta: `1.0.0`** — primeiro release estável de produção (semver correto para o nível de maturidade)
+  - **Arquivos atualizados via `scripts/update-version.sh 1.0.0`:**
+    - `VERSION`, `package.json`, `package-lock.json`
+    - `py_engine/constants.py`, `src/hooks/useFileOperations.ts`
+    - `server/swagger.ts`, `server/interfaces/routes/systemRoutes.ts`, `server/index.ts`
+  - **Atualizados manualmente:** `server/tests/api.test.ts`, `tests/hooks/useFileOperations.test.ts`
+  - **CHANGELOG.md**: justificativa técnica documentada em `[1.0.0]`
+  - **Total:** 192 testes Python + 191 testes Node.js passando
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)

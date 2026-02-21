@@ -93,6 +93,39 @@ if [ -f "$TS_FILE" ]; then
     echo -e "${GREEN}✓ Updated src/hooks/useFileOperations.ts${NC}"
 fi
 
+# Update server/swagger.ts (API version info)
+SWAGGER_FILE="$PROJECT_ROOT/server/swagger.ts"
+if [ -f "$SWAGGER_FILE" ]; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s/version: '[^']*'/version: '$NEW_VERSION'/g" "$SWAGGER_FILE"
+    else
+        sed -i "s/version: '[^']*'/version: '$NEW_VERSION'/g" "$SWAGGER_FILE"
+    fi
+    echo -e "${GREEN}✓ Updated server/swagger.ts${NC}"
+fi
+
+# Update server/interfaces/routes/systemRoutes.ts (health/version endpoints)
+SYSTEM_ROUTES_FILE="$PROJECT_ROOT/server/interfaces/routes/systemRoutes.ts"
+if [ -f "$SYSTEM_ROUTES_FILE" ]; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s/version: '[^']*'/version: '$NEW_VERSION'/g" "$SYSTEM_ROUTES_FILE"
+    else
+        sed -i "s/version: '[^']*'/version: '$NEW_VERSION'/g" "$SYSTEM_ROUTES_FILE"
+    fi
+    echo -e "${GREEN}✓ Updated server/interfaces/routes/systemRoutes.ts${NC}"
+fi
+
+# Update server/index.ts (startup log)
+SERVER_INDEX_FILE="$PROJECT_ROOT/server/index.ts"
+if [ -f "$SERVER_INDEX_FILE" ]; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s/version: '[^']*'/version: '$NEW_VERSION'/g" "$SERVER_INDEX_FILE"
+    else
+        sed -i "s/version: '[^']*'/version: '$NEW_VERSION'/g" "$SERVER_INDEX_FILE"
+    fi
+    echo -e "${GREEN}✓ Updated server/index.ts${NC}"
+fi
+
 echo ""
 echo -e "${GREEN}================================================${NC}"
 echo -e "${GREEN}Version updated successfully to $NEW_VERSION!${NC}"

@@ -177,7 +177,7 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
 
 // ── Startup ────────────────────────────────────────────────────────────────
 app.listen(port, async () => {
-    logger.info('Backend online', { service: 'sisTOPOGRAFIA Backend', version: '1.2.0', port });
+    logger.info('Backend online', { service: 'sisTOPOGRAFIA Backend', version: '1.0.0', port });
     if (process.env.NODE_ENV !== 'production' && process.env.USE_FIRESTORE !== 'true') {
         logger.info('Firestore disabled (development mode)');
     }
