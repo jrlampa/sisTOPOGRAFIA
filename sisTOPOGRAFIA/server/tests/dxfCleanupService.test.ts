@@ -30,6 +30,7 @@ describe('DxfCleanupService', () => {
     });
 
     afterEach(() => {
+        jest.restoreAllMocks();
         // Limpa arquivos temporários
         try {
             fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -82,6 +83,68 @@ describe('DxfCleanupService', () => {
             // Não cria o arquivo — simula arquivo já deletado antes do cleanup
             scheduleDxfDeletion(filePath);
             expect(() => triggerCleanupNow()).not.toThrow();
+        });
+
+        it('deve efetivamente deletar arquivo quando TTL expirou (Date.now mockado)', () => {
+            const filePath = path.join(tmpDir, 'to-expire.dxf');
+            fs.writeFileSync(filePath, 'DXF content');
+
+            scheduleDxfDeletion(filePath);
+
+            // Avança Date.now 11 minutos para forçar expiração
+            const futureTime = Date.now() + 11 * 60 * 1000;
+            jest.spyOn(Date, 'now').mockReturnValue(futureTime);
+
+            triggerCleanupNow();
+
+            expect(fs.existsSync(filePath)).toBe(false);
+        });
+
+        it('deve logar ciclo de cleanup quando arquivos são deletados', () => {
+            const { logger } = jest.requireMock('../utils/logger') as any;
+            const filePath = path.join(tmpDir, 'cycle-log.dxf');
+            fs.writeFileSync(filePath, 'DXF content');
+
+            scheduleDxfDeletion(filePath);
+
+            const futureTime = Date.now() + 11 * 60 * 1000;
+            jest.spyOn(Date, 'now').mockReturnValue(futureTime);
+
+            triggerCleanupNow();
+
+            // Verifica que o logger foi chamado (info ou warn para o ciclo)
+            expect(logger.info).toHaveBeenCalled();
+        });
+
+        it('deve tratar erro de fs.unlinkSync graciosamente', () => {
+            const filePath = path.join(tmpDir, 'error-delete.dxf');
+            fs.writeFileSync(filePath, 'DXF content');
+
+            scheduleDxfDeletion(filePath);
+
+            const futureTime = Date.now() + 11 * 60 * 1000;
+            jest.spyOn(Date, 'now').mockReturnValue(futureTime);
+            jest.spyOn(fs, 'unlinkSync').mockImplementationOnce(() => {
+                throw new Error('Permission denied');
+            });
+
+            // Não deve propagar o erro
+            expect(() => triggerCleanupNow()).not.toThrow();
+        });
+
+        it('deve logar arquivo não encontrado quando já foi deletado externamente', () => {
+            const { logger } = jest.requireMock('../utils/logger') as any;
+            const filePath = path.join(tmpDir, 'gone-externally.dxf');
+            // Não cria o arquivo — simula deleção externa
+
+            scheduleDxfDeletion(filePath);
+
+            const futureTime = Date.now() + 11 * 60 * 1000;
+            jest.spyOn(Date, 'now').mockReturnValue(futureTime);
+
+            triggerCleanupNow();
+
+            expect(logger.warn).toHaveBeenCalled();
         });
     });
 

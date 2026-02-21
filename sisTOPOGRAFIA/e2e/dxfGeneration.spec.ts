@@ -64,7 +64,7 @@ test.describe('DXF Generation Flow', () => {
 
     const searchInput = page.locator('input[type="search"], input[placeholder*="pesquis" i]').first();
     if (await searchInput.isVisible()) {
-      await searchInput.fill(${lat}, );
+      await searchInput.fill(`${lat}, ${lon}`);
       await searchInput.press('Enter');
       await page.waitForTimeout(2000);
     }

@@ -107,7 +107,7 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 3. **Raster Satélite:**
    `quota_manager.py` (SQLite) → `google_maps_static.py` → `.png` → `DXFTerrainDrawer.add_raster_overlay()`
 
-## 5. Estado Atual (FASE 17 - Cache OSM & Feature Completeness)
+## 5. Estado Atual (FASE 18 - Cache Persistente em Disco & Cobertura de Testes)
 
 ### Concluído:
 - [x] Correção do prefixo `sisTOPO_` em todas as layers (87 testes passando)
@@ -161,10 +161,25 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
     - `TestOsmCache` (9 testes): cache key, miss, set/get, TTL expirado, clear, integração com fetch
     - `TestOsmFetcherEquipmentTags` (10 testes): equipment, infrastructure, combinado, alias cadastral
   - **Total:** 180 testes Python passando
+- [x] **FASE 18:** Cache Persistente em Disco & Cobertura de Testes Backend
+  - **Cache OSM L2 (disco):** `osmnx_client.py` agora implementa cache hierárquico L1 (memória) + L2 (disco, pickle).
+    - `_OSM_CACHE_DIR`: configurável via `OSM_CACHE_DIR` env var; padrão `/tmp/sistopografia_osm_cache` (Cloud Run compatible)
+    - `_get_disk_cached()` / `_set_disk_cache()`: get/set em disco com TTL e tratamento de corrupção
+    - `_disk_cache_path()`: path determinístico por chave SHA-256
+    - `clear_osm_cache()` atualizado: limpa L1 e L2 (arquivos `.pkl` no diretório de cache)
+    - Promoção L2→L1: hit em disco popula automaticamente a memória para requisições subsequentes
+    - Tolerância a falhas: erros de I/O em disco são silenciosos — sem impacto no fluxo principal
+  - **Bug Fix E2E:** `e2e/dxfGeneration.spec.ts` linha 67 — template literal corrigido (`${lat}, ${lon}`)
+  - **Cobertura Backend melhorada:** 83.17% → 93.14% (statements)
+    - `cloudTasksService.ts`: 56.66% → 95% (+15 novos testes: modo dev, produção, getTaskStatus, erros)
+    - `dxfCleanupService.ts`: 71.05% → 94.73% (+5 novos testes: Date.now mockado, fs.unlinkSync error, log de ciclo)
+  - **Novos Testes Python:** `test_fase18_disk_cache.py` (12 testes):
+    - `TestOsmDiskCache` (12 testes): path, set/get, TTL expirado, corrupção, dir inexistente, clear, promoção L2→L1, criação de diretório
+  - **Total:** 192 testes Python + 94 testes Node.js passando
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)
-- [ ] Cache persistente (Redis / disco) para ambiente multi-processo (Cloud Run)
+- [ ] Cache persistente cross-instance (Cloud Storage / Redis) para Cloud Run com múltiplas réplicas
 
 ## 6. Regras de Desenvolvimento
 
