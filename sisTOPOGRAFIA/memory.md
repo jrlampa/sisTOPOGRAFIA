@@ -18,6 +18,8 @@ O sistema segue conceitos de **Clean Architecture** e **DDD (Domain-Driven Desig
   - `components/layout/AppSidebar.tsx`: Painel lateral (busca, controles, resultados).
   - `components/layout/MapOverlayControls.tsx`: Botões overlay sobre o mapa.
   - `components/gis/MapSelector.tsx`: Mapa Leaflet principal.
+  - `components/settings/`: Módulos do painel de configuração (SRP): `LayerToggle`, `SettingsGeneralTab`, `SettingsProjectTab`, `SettingsExportFooter`.
+  - `components/SettingsModal.tsx` (~119 linhas): Orquestrador do modal de configuração.
   - Painéis de Analytics (`EarthworkPanel`, `HydrologicalProfilePanel`): Coletam input e geram payloads.
 - **Auth & Storage:** Firebase Auth + Firestore para sessão e salvamento de projetos `.osmpro`.
 
@@ -105,7 +107,7 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 3. **Raster Satélite:**
    `quota_manager.py` (SQLite) → `google_maps_static.py` → `.png` → `DXFTerrainDrawer.add_raster_overlay()`
 
-## 5. Estado Atual (FASE 12 - Pós-Hardening)
+## 5. Estado Atual (FASE 13 - Modularização Frontend)
 
 ### Concluído:
 - [x] Correção do prefixo `sisTOPO_` em todas as layers (87 testes passando)
@@ -117,6 +119,11 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 - [x] 15 novos testes unitários para módulos SRP (`test_modular_drawers.py`)
 - [x] `fpdf2` adicionado em `requirements.txt`
 - [x] `.gitignore` atualizado com padrões de banco de dados e output
+- [x] **FASE 13:** Modularização de `SettingsModal.tsx` 567→119 linhas (SRP)
+  - `components/settings/LayerToggle.tsx`: Componente de toggle de layer reutilizável
+  - `components/settings/SettingsGeneralTab.tsx`: Aba de configurações gerais (layers, sistema, aparência)
+  - `components/settings/SettingsProjectTab.tsx`: Aba de projeto e metadados (storage, carimbo)
+  - `components/settings/SettingsExportFooter.tsx`: Rodapé de exportação (DXF, GeoJSON)
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)
@@ -142,3 +149,30 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 - Input do usuário: sanitizar via Zod (backend) + validação Python
 - Nenhum dado externo não sanitizado deve ir direto para o DXF
 - APIs públicas: rate limiting via `quota_manager.py` (SQLite local)
+
+## 7. Roles da Equipe de Desenvolvimento
+
+### Tech Lead (Orquestrador)
+- **Responsabilidade:** Visão arquitetural, decisões de design de sistema, revisão de PRs críticos, garantir aderência ao DDD e SRP.
+- **Foco:** Manter coerência entre camadas (Frontend → Node.js → Python), evolução da arquitetura, atualização do `memory.md`.
+- **Ferramentas:** GitHub Issues/PRs, arquitetura de software, definição de interfaces entre módulos.
+
+### Dev Fullstack Sênior (Principal Coder)
+- **Responsabilidade:** Implementação de features completas (frontend + backend + Python engine), refatoração, modularização de código > 500 linhas.
+- **Foco:** Clean Code, SRP, performance, integração entre camadas, Zero Cost APIs.
+- **Stack:** TypeScript/React (frontend), Node.js/Express (backend), Python/ezdxf/geopandas (engine).
+
+### DevOps/QA (Testes e Infraestrutura)
+- **Responsabilidade:** Manter Docker, CI/CD, testes unitários e E2E, validação headless de `.dxf` (accoreconsole.exe), cobertura de testes.
+- **Foco:** `pytest` (Python), Jest (Node.js), Playwright (E2E), Docker Compose, Cloud Run.
+- **Regra:** Executar `python -m pytest py_engine/tests/` após toda mudança no motor Python.
+
+### UI/UX Designer (Interfaces)
+- **Responsabilidade:** Interface em pt-BR, Glassmorphism design system, acessibilidade, consistência visual.
+- **Foco:** Componentes React responsivos, TailwindCSS, feedback visual ao usuário, UX de mapas.
+- **Regra:** Toda interface deve usar terminologia em pt-BR. Sem texto hardcoded em inglês na UI.
+
+### Estagiário (Criatividade Fora da Caixa)
+- **Responsabilidade:** Propor soluções inovadoras, pesquisar novas APIs gratuitas, prototipar ideias experimentais.
+- **Foco:** OSM features não exploradas, integrações criativas (IBGE, INEA, ICMBio), otimizações não óbvias.
+- **Regra:** Toda proposta deve ser Zero Cost e não quebrar os testes existentes.
