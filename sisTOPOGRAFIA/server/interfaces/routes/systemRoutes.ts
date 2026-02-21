@@ -18,7 +18,7 @@ router.get('/', async (_req: Request, res: Response) => {
             return res.json({
                 status: 'degraded',
                 service: 'sisTOPOGRAFIA Backend',
-                version: '0.1.0',
+                version: '1.0.0',
                 python: 'unavailable',
                 error: 'Invalid Python command configuration'
             });
@@ -48,7 +48,7 @@ router.get('/', async (_req: Request, res: Response) => {
         return res.json({
             status: 'online',
             service: 'sisTOPOGRAFIA Backend',
-            version: '0.1.0',
+            version: '1.0.0',
             python: pythonAvailable ? 'available' : 'unavailable',
             environment: process.env.NODE_ENV || 'development',
             dockerized: process.env.DOCKER_ENV === 'true',
@@ -60,7 +60,7 @@ router.get('/', async (_req: Request, res: Response) => {
         return res.json({
             status: 'degraded',
             service: 'sisTOPOGRAFIA Backend',
-            version: '0.1.0',
+            version: '1.0.0',
             error: 'Health check encountered an error'
         });
     }
