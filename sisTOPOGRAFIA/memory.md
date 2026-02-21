@@ -396,6 +396,36 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)
 
+- [x] **FASE 33:** Cobertura mínima 80% — Coverage threshold enforcement + novos testes de contexto e componentes
+  - **Estratégia:** Configurar `coverage.include` no vitest para somente arquivos testáveis (hooks, services, utils, contexts, small components); grandes componentes UI (App.tsx, MapSelector, AppSidebar, BatchUpload, SettingsGeneralTab, etc.) excluídos pois requerem E2E/Leaflet
+  - **`vite.config.ts`** — coverage `include` + `thresholds: {statements:80, branches:70, functions:80, lines:80}`
+  - **`tests/hooks/useFileOperations.test.ts`** — 12 testes reais (substituição completa do teste superficial):
+    - inicialização; saveProject (blob+download+onSuccess+error); loadProject (válido/inválido/JSON-falha/reader-error); saveToCloud (sem user/sucesso com Firestore/addDoc-throws)
+    - `useFileOperations.ts`: **0% → 100% linhas** ✅
+  - **`tests/contexts/AuthContext.test.tsx`** — 9 testes (arquivo novo):
+    - loading inicial; auth state com user/null; loginWithGoogle (sucesso+erro); logout (sucesso+erro); unsubscribe no unmount; valores padrão fora do provider
+    - `AuthContext.tsx`: **0% → 100% linhas** ✅
+  - **`tests/components/Toast.test.tsx`** — 6 testes: auto-close, custom duration, click X, todos os tipos, cleanup de timer
+    - `Toast.tsx`: **0% → 100%** ✅
+  - **`tests/components/ProgressIndicator.test.tsx`** — 6 testes: isVisible=false, label, %, barra de progresso
+    - `ProgressIndicator.tsx`: **0% → 100%** ✅
+  - **`tests/components/ErrorBoundary.test.tsx`** — 6 testes: renders children, captura erro, fallback customizado, botão Try Again, Reload Page, Logger.error
+    - `ErrorBoundary.tsx`: **0% → 100%** ✅
+  - **`tests/components/LayerToggle.test.tsx`** — 4 testes: label, onClick, active/inactive styles, dot
+    - `LayerToggle.tsx`: **0% → 100%** ✅
+  - **`tests/components/HistoryControls.test.tsx`** — 6 testes: disabled states, click handlers, both enabled
+    - `HistoryControls.tsx`: **0% → 100%** ✅
+  - **`tests/components/NestedLayerToggle.test.tsx`** — 6 testes: label, onClick, active/inactive classes, dot
+    - `NestedLayerToggle.tsx`: **0% → 100%** ✅
+  - **`tests/components/SettingsExportFooter.test.tsx`** — 7 testes: no data, export buttons, click handlers, disabled, loading spinner
+    - `SettingsExportFooter.tsx`: **0% → 100%** ✅
+  - **`tests/components/DxfLegend.test.tsx`** — 5 testes: render, título, 8 itens, índices, color dots
+    - `DxfLegend.tsx`: **0% → 100%** ✅
+  - **Coverage final (arquivos incluídos):**
+    - All files (included): **98.94% statements, 92.54% branches, 97.1% functions, 98.94% lines** 🏆
+    - Thresholds 80% **PASSING** ✅
+  - **Total:** 192 testes Python + 200 testes Node.js + 216 testes frontend = **608 total** 🏆
+
 
 ## 6. Regras de Desenvolvimento
 
