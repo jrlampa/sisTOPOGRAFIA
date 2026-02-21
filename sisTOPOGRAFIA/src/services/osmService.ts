@@ -55,6 +55,7 @@ export const fetchOsmData = async (lat: number, lng: number, radius: number): Pr
       }
     }
 
+    /* v8 ignore next -- lastError is always set when endpoints fail; || fallback is defensive */
     throw lastError || new Error('All Overpass endpoints failed');
   } catch (error) {
     Logger.error("Failed to fetch OSM data", error);

@@ -494,5 +494,91 @@ describe('useDxfExport', () => {
     clearIntervalSpy.mockRestore();
     vi.spyOn(window, 'setInterval').mockRestore();
   });
+
+  // ── downloadDxf — resultado sem url nem jobId → throw (linha 76) ─────────
+
+  it('downloadDxf lança "Backend failed" quando resultado não tem url nem jobId (linha 76)', async () => {
+    (generateDXF as any).mockResolvedValueOnce({}); // resultado vazio: sem url, sem jobId
+
+    const { result } = renderHook(() =>
+      useDxfExport({ onSuccess: mockOnSuccess, onError: mockOnError })
+    );
+
+    await act(async () => {
+      await result.current.downloadDxf(center, radius, 'circle', [], layers as any);
+    });
+
+    expect(mockOnError).toHaveBeenCalledWith(
+      expect.stringContaining('Backend failed to queue DXF generation')
+    );
+    expect(result.current.jobStatus).toBe('failed');
+  });
+
+  // ── polling — job failed sem error → fallback 'DXF generation failed' (linha 200) ───
+
+  it('polling usa "DXF generation failed" como fallback quando error é null (linha 200)', async () => {
+    (generateDXF as any).mockResolvedValueOnce({ status: 'queued', jobId: 'job-noerr' });
+    (getDxfJobStatus as any).mockResolvedValueOnce({
+      status: 'failed',
+      progress: 0,
+      result: null,
+      error: null  // falsy → fallback 'DXF generation failed' usado
+    });
+
+    let capturedCallback: (() => void) | null = null;
+    vi.spyOn(window, 'setInterval').mockImplementation((cb: any) => {
+      capturedCallback = cb;
+      return 122 as any;
+    });
+
+    const { result } = renderHook(() =>
+      useDxfExport({ onSuccess: mockOnSuccess, onError: mockOnError })
+    );
+
+    await act(async () => {
+      await result.current.downloadDxf(center, radius, 'circle', [], layers as any);
+    });
+
+    await act(async () => { await capturedCallback!(); });
+
+    await waitFor(() => {
+      expect(mockOnError).toHaveBeenCalledWith(
+        expect.stringContaining('DXF generation failed')
+      );
+    });
+
+    vi.spyOn(window, 'setInterval').mockRestore();
+  });
+
+  // ── polling — getDxfJobStatus lança não-Error → fallback (linha 212) ─────
+
+  it('polling usa "DXF generation failed" quando erro não é instância de Error (linha 212)', async () => {
+    (generateDXF as any).mockResolvedValueOnce({ status: 'queued', jobId: 'job-nonerr' });
+    (getDxfJobStatus as any).mockRejectedValueOnce('string-error-value'); // não é Error
+
+    let capturedCallback: (() => void) | null = null;
+    vi.spyOn(window, 'setInterval').mockImplementation((cb: any) => {
+      capturedCallback = cb;
+      return 123 as any;
+    });
+
+    const { result } = renderHook(() =>
+      useDxfExport({ onSuccess: mockOnSuccess, onError: mockOnError })
+    );
+
+    await act(async () => {
+      await result.current.downloadDxf(center, radius, 'circle', [], layers as any);
+    });
+
+    await act(async () => { await capturedCallback!(); });
+
+    await waitFor(() => {
+      expect(mockOnError).toHaveBeenCalledWith(
+        expect.stringContaining('DXF generation failed')
+      );
+    });
+
+    vi.spyOn(window, 'setInterval').mockRestore();
+  });
 });
 

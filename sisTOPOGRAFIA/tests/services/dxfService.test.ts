@@ -106,6 +106,15 @@ describe('dxfService', () => {
 
       await expect(getDxfJobStatus('bad-id')).rejects.toThrow('Detalhes do erro');
     });
+
+    it('usa mensagem padrão quando errorData não tem details nem error', async () => {
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({})
+      }) as any;
+
+      await expect(getDxfJobStatus('missing-id')).rejects.toThrow('Failed to load job status');
+    });
   });
 
   // ── calculateStats ────────────────────────────────────────────────────────

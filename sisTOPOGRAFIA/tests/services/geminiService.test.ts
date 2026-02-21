@@ -126,6 +126,18 @@ describe('geminiService', () => {
       expect(result).toContain('Internal Server Error');
     });
 
+    it('usa "Analysis failed" como fallback quando errorData não tem message nem error (linha 52)', async () => {
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({}) // sem message, sem error, sem analysis
+      }) as any;
+
+      const result = await analyzeArea(mockStats, 'Nova Friburgo', true);
+      expect(result).toContain('Erro na análise');
+      expect(result).toContain('Analysis failed');
+    });
+
     it('retorna mensagem de conexão quando fetch lança exceção', async () => {
       global.fetch = vi.fn().mockRejectedValueOnce(new Error('Network failure')) as any;
 

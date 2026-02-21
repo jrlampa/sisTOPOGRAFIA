@@ -108,6 +108,23 @@ describe('fetchElevationGrid', () => {
     expect(grid).toHaveLength(gridSize);
     expect(grid.every(row => row.every(pt => pt.elevation === 0))).toBe(true);
   });
+
+  it('usa 0 quando valor de elevação é 0 (0 é falsy em JS, testando ramo direito do `|| 0` na linha 65)', async () => {
+    const gridSize = 2; // 2x2 = 4 pontos
+    // Primeiro ponto tem elevation=0 (nível do mar): em JS, `0 || 0` avalia o ramo direito (0)
+    const mockJson = { elevation: [0, 100, 200, 300] };
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockJson)
+    }) as any;
+
+    const grid = await fetchElevationGrid(center, radius, gridSize);
+
+    expect(grid).toHaveLength(gridSize);
+    expect(grid[0][0].elevation).toBe(0); // 0 || 0 → 0 (ramo direito tomado)
+    expect(grid[0][1].elevation).toBe(100);
+  });
 });
 
 describe('fetchElevationProfile', () => {

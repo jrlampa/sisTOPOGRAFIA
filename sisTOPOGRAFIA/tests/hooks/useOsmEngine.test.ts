@@ -231,4 +231,24 @@ describe('useOsmEngine', () => {
 
     vi.useRealTimers();
   });
+
+  // ── center.label || "selected area" (linha 49) ───────────────────────────
+
+  it('runAnalysis usa "selected area" como fallback quando center.label é undefined', async () => {
+    (fetchOsmData as any).mockResolvedValueOnce(mockOsmElements);
+    (fetchElevationGrid as any).mockResolvedValueOnce(mockTerrain);
+    (calculateStats as any).mockReturnValueOnce(mockStats);
+    (analyzeArea as any).mockResolvedValueOnce('Área padrão analisada.');
+
+    const centerSemLabel = { lat: -22.15018, lng: -42.92185 }; // sem label → undefined
+
+    const { result } = renderHook(() => useOsmEngine());
+
+    await act(async () => {
+      await result.current.runAnalysis(centerSemLabel as any, radius, true);
+    });
+
+    // analyzeArea deve ter sido chamado com "selected area" como fallback
+    expect(analyzeArea).toHaveBeenCalledWith(mockStats, 'selected area', true);
+  });
 });

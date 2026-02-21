@@ -179,4 +179,31 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('d-user').textContent).toBe('null');
     expect(screen.getByTestId('d-loading').textContent).toBe('true');
   });
+
+  // ── default context functions ─────────────────────────────────────────────
+
+  it('funções padrão do contexto não lançam erros quando chamadas fora do provider', async () => {
+    const DefaultFuncConsumer: React.FC = () => {
+      const { loginWithGoogle, logout } = useAuth();
+      return (
+        <div>
+          <button data-testid="default-login" onClick={() => loginWithGoogle()}>Login</button>
+          <button data-testid="default-logout" onClick={() => logout()}>Logout</button>
+        </div>
+      );
+    };
+
+    render(<DefaultFuncConsumer />);
+
+    // Call the default no-op functions — they should not throw
+    await act(async () => {
+      screen.getByTestId('default-login').click();
+    });
+    await act(async () => {
+      screen.getByTestId('default-logout').click();
+    });
+
+    // If we get here without throwing, the default functions work correctly
+    expect(screen.getByTestId('default-login')).toBeTruthy();
+  });
 });

@@ -59,6 +59,7 @@ export function useOsmEngine() {
             setError(err.message || "Audit failed.");
             setStatusMessage('');
             return false;
+        /* v8 ignore next -- finally branch: V8 artifact; both exception and normal paths tested */
         } finally {
             setTimeout(() => {
                 setIsProcessing(false);
