@@ -2,7 +2,7 @@
 """
 verify_abnt_standards.py — Script de verificação automatizada para padrões ABNT em DXF.
 Valida:
-1. Prefixos de camadas (TOPO_*)
+1. Prefixos de camadas (sisTOPO_*)
 2. Cores ACI (1-7 para camadas técnicas)
 3. Pesos de linha (0.35 para mestras, 0.13 para intermediárias)
 """
@@ -44,12 +44,12 @@ def verify_dxf(file_path):
     if 'sisTOPO_CURVAS_NIVEL_MESTRA' in doc.layers:
         l = doc.layers.get('sisTOPO_CURVAS_NIVEL_MESTRA')
         if l.dxf.lineweight != 35: # milímetros * 100
-             errors.append(f"Camada TOPO_CURVAS_NIVEL_MESTRA deve ter peso 0.35mm (atual: {l.dxf.lineweight/100}mm)")
+             errors.append(f"Camada sisTOPO_CURVAS_NIVEL_MESTRA deve ter peso 0.35mm (atual: {l.dxf.lineweight/100}mm)")
 
-    if 'sisTOPO_CURVAS_NIVEL_INTERM' in doc.layers:
-        l = doc.layers.get('sisTOPO_CURVAS_NIVEL_INTERM')
+    if 'sisTOPO_TOPOGRAFIA_CURVAS' in doc.layers:
+        l = doc.layers.get('sisTOPO_TOPOGRAFIA_CURVAS')
         if l.dxf.lineweight != 13:
-             errors.append(f"Camada TOPO_CURVAS_NIVEL_INTERM deve ter peso 0.13mm (atual: {l.dxf.lineweight/100}mm)")
+             errors.append(f"Camada sisTOPO_TOPOGRAFIA_CURVAS deve ter peso 0.13mm (atual: {l.dxf.lineweight/100}mm)")
 
     if errors:
         print("\n=== FALHAS NA PADRONIZAÇÃO ABNT ===")
