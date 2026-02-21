@@ -18,7 +18,9 @@ const normalizeRow = (row: Record<string, unknown>): RawBatchRow => {
     const normalized: RawBatchRow = {};
     Object.entries(row).forEach(([key, value]) => {
         const trimmedKey = key.trim();
+        /* istanbul ignore next -- csv-parser always yields strings; non-string branch is unreachable in practice */
         const trimmedValue = typeof value === 'string' ? value.trim() : value;
+        /* istanbul ignore next -- trimmedValue is always a string (see above); remaining branches are defensive */
         normalized[trimmedKey as keyof RawBatchRow] = typeof trimmedValue === 'string'
             ? trimmedValue
             : trimmedValue ? String(trimmedValue) : undefined;

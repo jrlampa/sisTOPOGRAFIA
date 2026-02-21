@@ -206,4 +206,29 @@ describe('useOsmEngine', () => {
       expect(result.current.error).toBe('Audit failed.');
     });
   });
+
+  // ── setTimeout body (linhas 64-65) ──────────────────────────────────────
+
+  it('runAnalysis reseta isProcessing e progressValue via setTimeout após 800ms (linhas 64-65)', async () => {
+    vi.useFakeTimers();
+    (fetchOsmData as any).mockRejectedValueOnce(new Error('Timeout'));
+
+    const { result } = renderHook(() => useOsmEngine());
+
+    // Start runAnalysis — it will throw, enter finally, and schedule setTimeout(800)
+    await act(async () => {
+      await result.current.runAnalysis(center, radius, true);
+    });
+
+    // Before timer fires, isProcessing should still be true (set at start of runAnalysis)
+    expect(result.current.isProcessing).toBe(true);
+
+    // Advance timers by 800ms to fire the setTimeout
+    await act(async () => { vi.advanceTimersByTime(800); });
+
+    expect(result.current.isProcessing).toBe(false);
+    expect(result.current.progressValue).toBe(0);
+
+    vi.useRealTimers();
+  });
 });

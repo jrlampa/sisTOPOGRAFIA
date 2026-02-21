@@ -19,10 +19,12 @@ export const parseUtmQuery = (query: string): GeoLocation | null => {
   const northing = parseFloat(match[4]);
 
   if (!Number.isFinite(zone) || zone < 1 || zone > 60) return null;
+  /* v8 ignore next -- regex guarantees easting/northing are digit sequences (always finite) */
   if (!Number.isFinite(easting) || !Number.isFinite(northing)) return null;
 
   const isSouthBand = band === 'S' || /^[C-M]$/.test(band);
   const isNorthBand = band === 'N' || /^[N-X]$/.test(band);
+  /* v8 ignore next -- UTM_REGEX only matches [C-HJ-NP-X|NS], all covered by south/north band patterns */
   if (!isSouthBand && !isNorthBand) return null;
 
   const projString = isSouthBand
@@ -31,6 +33,7 @@ export const parseUtmQuery = (query: string): GeoLocation | null => {
 
   const [lng, lat] = proj4(projString, 'WGS84').forward([easting, northing]);
 
+  /* v8 ignore next 2 -- proj4 never returns non-finite/out-of-range for valid UTM inputs; defensive guard */
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
 

@@ -397,5 +397,102 @@ describe('useDxfExport', () => {
     act(() => { result.current.setLongitudinalProfile([{ distance: 0, elevation: 850 }]); });
     expect(result.current.longitudinalProfile).toEqual([{ distance: 0, elevation: 850 }]);
   });
+
+  // ── polling — PDF fetch throws → Logger.error (linhas 183-185) ──────────
+
+  it('polling registra erro quando fetch do PDF lança exceção (linhas 183-185)', async () => {
+    (generateDXF as any).mockResolvedValueOnce({ status: 'queued', jobId: 'job-pdferr' });
+    (getDxfJobStatus as any).mockResolvedValueOnce({
+      status: 'completed',
+      progress: 100,
+      result: { url: '/downloads/job-pdferr.dxf' },
+      error: null
+    });
+
+    const pdfError = new Error('PDF fetch failed');
+    // Heatmap, AI, econ succeed; CSV ok; PDF throws
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+      .mockResolvedValueOnce({ ok: true, text: async () => '' })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+      .mockResolvedValueOnce({
+        ok: true,
+        clone: () => ({ blob: async () => new Blob() }),
+        text: async () => 'elevation\n850'
+      })
+      .mockRejectedValueOnce(pdfError);          // PDF fetch throws
+    global.fetch = fetchMock as any;
+
+    const anchorClickSpy = vi.fn();
+    const origCreateElement = document.createElement.bind(document);
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = origCreateElement(tag);
+      if (tag === 'a') { el.click = anchorClickSpy; }
+      return el;
+    });
+
+    let capturedCallback: (() => void) | null = null;
+    vi.spyOn(window, 'setInterval').mockImplementation((cb: any) => {
+      capturedCallback = cb;
+      return 120 as any;
+    });
+
+    const { result } = renderHook(() =>
+      useDxfExport({ onSuccess: mockOnSuccess, onError: mockOnError })
+    );
+
+    await act(async () => {
+      await result.current.downloadDxf(center, radius, 'circle', [], layers as any);
+    });
+
+    await act(async () => { await capturedCallback!(); });
+
+    await waitFor(() => {
+      // PDF error is caught and logged but does NOT prevent success
+      expect(mockOnSuccess).toHaveBeenCalledWith('DXF Downloaded');
+    });
+
+    expect(Logger.error).toHaveBeenCalledWith('Failed to download PDF report', pdfError);
+
+    createElementSpy.mockRestore();
+    vi.spyOn(window, 'setInterval').mockRestore();
+  });
+
+  // ── polling — !isActive guard: unmount before catch fires (linhas 207-209) ─
+
+  it('polling não chama onError quando componente desmontado antes do catch (linhas 207-209)', async () => {
+    (generateDXF as any).mockResolvedValueOnce({ status: 'queued', jobId: 'job-inactive' });
+    // getDxfJobStatus rejects to trigger the catch block
+    (getDxfJobStatus as any).mockRejectedValue(new Error('Timeout'));
+
+    let capturedCallback: (() => void) | null = null;
+    vi.spyOn(window, 'setInterval').mockImplementation((cb: any) => {
+      capturedCallback = cb;
+      return 121 as any;
+    });
+    const clearIntervalSpy = vi.spyOn(window, 'clearInterval').mockImplementation(() => {});
+
+    const { result, unmount } = renderHook(() =>
+      useDxfExport({ onSuccess: mockOnSuccess, onError: mockOnError })
+    );
+
+    await act(async () => {
+      await result.current.downloadDxf(center, radius, 'circle', [], layers as any);
+    });
+
+    expect(capturedCallback).not.toBeNull();
+
+    // Unmount → cleanup sets isActive = false
+    unmount();
+
+    // Call interval callback after unmount → getDxfJobStatus throws, catch fires with !isActive
+    await act(async () => { await capturedCallback!(); });
+
+    // onError must NOT have been called because isActive = false → early return
+    expect(mockOnError).not.toHaveBeenCalled();
+
+    clearIntervalSpy.mockRestore();
+    vi.spyOn(window, 'setInterval').mockRestore();
+  });
 });
 

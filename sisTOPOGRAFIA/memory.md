@@ -426,6 +426,28 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
     - Thresholds 80% **PASSING** ✅
   - **Total:** 192 testes Python + 200 testes Node.js + 216 testes frontend = **608 total** 🏆
 
+- [x] **FASE 34:** Fechamento final de gaps de branch coverage — ignore comments + 3 testes cirúrgicos
+  - **Estratégia:** Comentários `/* v8 ignore next */` (vitest/v8) e `/* istanbul ignore next */` (jest/babel) para branches defensivos genuinamente inacessíveis; 3 testes novos para branches testáveis
+  - **Branches defensivos ignorados (unreachable via regex/parser):**
+    - `src/utils/geo.ts` (4 locais): `!Number.isFinite(easting/northing)` — regex garante dígitos; `!isSouthBand && !isNorthBand` — regex só casa letters válidas; `!Number.isFinite(lat/lng)` + out-of-range — proj4 retorna valores válidos para inputs UTM válidos
+    - `src/utils/logger.ts` (1 local): `catch { return true }` em `isDevelopment()` — `process.env` nunca lança em JS normal
+    - `server/services/batchService.ts` (2 locais): `typeof value !== 'string'` — csv-parser sempre retorna strings
+    - `server/services/geocodingService.ts` (2 locais): `!Number.isFinite(zone/easting/northing)` — parseInt/parseFloat de matches de regex de dígitos são sempre finitos; `zoneLetter && !isSouthBand && !isNorthBand` — regex só casa letters válidas
+  - **`tests/hooks/useDxfExport.test.ts`** — 2 novos testes:
+    - PDF fetch throws → `Logger.error("Failed to download PDF report")` mas `onSuccess` ainda dispara (linhas 183-185) ✅
+    - Componente desmontado antes do catch disparar → `!isActive` guard retorna early, `onError` NÃO é chamado (linhas 207-209) ✅
+    - `useDxfExport.ts`: **93.36% → 100% linhas** ✅
+  - **`tests/hooks/useOsmEngine.test.ts`** — 1 novo teste com `vi.useFakeTimers()`:
+    - Após falha em `runAnalysis`, avançar 800ms dispara o body do `setTimeout` → `isProcessing=false`, `progressValue=0` (linhas 64-65) ✅
+    - `useOsmEngine.ts`: **97.8% → 100% linhas** ✅
+  - **Cobertura final frontend (arquivos incluídos):**
+    - **99.31% statements, 94.52% branches, 97.1% functions, 99.31% lines** 🏆
+  - **Cobertura final backend:**
+    - `batchService.ts`: 55.55% → **100% branches** ✅
+    - `geocodingService.ts`: 91.89% → **100% branches** ✅
+    - All backend: **99.65% statements, 93.1% branches, 100% functions, 99.64% lines** 🏆
+  - CodeQL: 0 alertas ✅
+  - **Total:** 192 testes Python + 200 testes Node.js + 219 testes frontend = **611 total** 🏆
 
 ## 6. Regras de Desenvolvimento
 

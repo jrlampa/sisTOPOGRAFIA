@@ -11,6 +11,7 @@ interface LogEntry {
 const isDevelopment = () => {
   try {
     return !process.env.NODE_ENV || process.env.NODE_ENV === 'development';
+  /* v8 ignore next 2 -- process.env access never throws in normal JS execution; defensive catch */
   } catch {
     return true; // Default to development if we can't determine
   }
