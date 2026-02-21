@@ -226,3 +226,36 @@ describe('cloudTasksService — getTaskStatus', () => {
     expect(result.status).toBe('unknown');
   });
 });
+
+describe('cloudTasksService — Missing service account email', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    // Production mode: GCP_PROJECT set, all service account vars blanked
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: 'production',
+      GCP_PROJECT: 'no-sa-project',          // non-empty → IS_DEVELOPMENT = false
+      GCP_PROJECT_NUMBER: '',                // blank → no compute default
+      CLOUD_TASKS_LOCATION: 'loc',
+      CLOUD_TASKS_QUEUE: 'queue',
+      CLOUD_RUN_BASE_URL: 'https://example.com',
+      CLOUD_RUN_SERVICE_ACCOUNT: '',         // blank
+      CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL: ''  // blank
+    };
+    jest.resetModules();
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    jest.clearAllMocks();
+  });
+
+  it('lança erro quando RESOLVED_SERVICE_ACCOUNT_EMAIL está vazio (linhas 130-132)', async () => {
+    const { createDxfTask } = await import('../services/cloudTasksService');
+
+    // RESOLVED_SERVICE_ACCOUNT_EMAIL = find(Boolean) of all blank values → ''
+    // Triggers the guard at lines 129-133 of cloudTasksService.ts
+    await expect(createDxfTask(BASE_PAYLOAD)).rejects.toThrow(/service account email not configured/i);
+  });
+});

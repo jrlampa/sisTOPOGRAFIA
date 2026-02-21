@@ -132,5 +132,35 @@ describe('BatchService', () => {
       // Empty CSV fields become empty strings, not undefined
       expect(results[0].row.radius).toBe('');
     });
+
+    it('should reject the promise on stream error', async () => {
+      // Trigger the .on('error', reject) handler (line 46 of batchService.ts).
+      // Use isolateModules + doMock + require to load a batchService with a csv-parser
+      // that emits an error event on the piped transform stream.
+      let isolatedParseFn: typeof parseBatchCsv | undefined;
+
+      jest.isolateModules(() => {
+        // jest.doMock is designed for dynamic per-test mocking inside isolateModules
+        jest.doMock('csv-parser', () => {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { Transform } = require('stream');
+          return jest.fn(() => {
+            return new Transform({
+              objectMode: true,
+              transform(_chunk: any, _enc: any, cb: any) {
+                // Call cb with an error to trigger the stream's 'error' event
+                cb(new Error('CSV stream failure'));
+              }
+            });
+          });
+        });
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const mod = require('../services/batchService');
+        isolatedParseFn = mod.parseBatchCsv;
+      });
+
+      const buffer = Buffer.from('name,lat,lon,radius,mode\nData,-23.5,-46.6,500,circle');
+      await expect(isolatedParseFn!(buffer)).rejects.toThrow('CSV stream failure');
+    });
   });
 });

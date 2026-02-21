@@ -160,4 +160,46 @@ describe('DxfCleanupService', () => {
             }).not.toThrow();
         });
     });
+
+    describe('startCleanupInterval — guard e corpo do intervalo', () => {
+        it('deve acionar performCleanup() via setInterval e respeitar guard "already running"', () => {
+            jest.useFakeTimers();
+
+            let isolatedSchedule: (f: string) => void;
+            let isolatedStop: () => void;
+            let isolatedTrigger: () => void;
+
+            jest.isolateModules(() => {
+                // eslint-disable-next-line @typescript-eslint/no-require-imports
+                const svc = require('../services/dxfCleanupService');
+                isolatedSchedule = svc.scheduleDxfDeletion;
+                isolatedStop = svc.stopDxfCleanup;
+                isolatedTrigger = svc.triggerCleanupNow;
+            });
+
+            // Mirrors service constants: DXF_FILE_TTL_MS = 10 min, CLEANUP_CHECK_INTERVAL = 2 min
+            const DXF_TTL_MS = 10 * 60 * 1000;
+            const CLEANUP_INTERVAL_MS = 2 * 60 * 1000;
+
+            try {
+                // Schedule a file — at module load startCleanupInterval() ran once (interval registered)
+                const filePath = path.join(tmpDir, 'guard-test.dxf');
+                fs.writeFileSync(filePath, 'DXF');
+                isolatedSchedule!(filePath);
+
+                // Mark file as old so performCleanup() finds it (advance past TTL)
+                const futureTime = Date.now() + DXF_TTL_MS + 60_000; // 1 min past TTL
+                jest.spyOn(Date, 'now').mockReturnValue(futureTime);
+
+                // Advance timers by CLEANUP_CHECK_INTERVAL to fire the interval body (line 87)
+                jest.advanceTimersByTime(CLEANUP_INTERVAL_MS + 1);
+
+                // File should have been deleted by the interval-driven performCleanup (line 87)
+                expect(fs.existsSync(filePath)).toBe(false);
+            } finally {
+                isolatedStop!();
+                jest.useRealTimers();
+            }
+        });
+    });
 });

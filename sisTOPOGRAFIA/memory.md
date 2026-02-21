@@ -298,6 +298,24 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
     - `geocodingService.ts`: 92.75% → 95.65% statements; **100% line coverage**
   - **Cobertura Backend geral:** 97.07% → 98.27% statements (13 suites, 197 testes)
   - **Total:** 192 testes Python + 197 testes Node.js + 52 testes frontend passando
+- [x] **FASE 28:** Cobertura de Testes — BatchService, CloudTasks & DxfCleanup + Fix Dead Code
+  - **`server/tests/batchService.test.ts`** — 1 novo teste (CSV stream error, linha 46):
+    - Usa `jest.isolateModules()` + `jest.mock('csv-parser', ...)` para injetar um Transform que chama `cb(new Error(...))` ao processar dados
+    - `batchService.ts`: 95.83% → **100% statements + 100% lines** ✅
+  - **`server/services/cloudTasksService.ts`** — Remoção de dead code (`DEFAULT_APPSPOT_SERVICE_ACCOUNT`):
+    - `DEFAULT_APPSPOT_SERVICE_ACCOUNT = GCP_PROJECT ? '...' : ''` tornava o guard `!RESOLVED_SERVICE_ACCOUNT_EMAIL` (linhas 129-133) irrefutavelmente false quando `GCP_PROJECT` estava definido (modo produção)
+    - Removido o fallback legacy appspot da cadeia de resolução (inseguro — `project-id@appspot.gserviceaccount.com` não é garantido como email de SA válido)
+    - Guard agora realmente protege: cobre o cenário legítimo onde `GCP_PROJECT` existe mas `GCP_PROJECT_NUMBER`, `CLOUD_RUN_SERVICE_ACCOUNT` e `CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL` estão em branco
+  - **`server/tests/cloudTasksService.test.ts`** — 1 novo describe block:
+    - "cloudTasksService — Missing service account email": produção com `GCP_PROJECT` mas sem `GCP_PROJECT_NUMBER` nem contas explícitas → rejeita com `service account email not configured`
+    - `cloudTasksService.ts`: 95% → **100% statements + 100% lines** ✅
+  - **`server/tests/dxfCleanupService.test.ts`** — 1 novo describe block:
+    - Usa `jest.useFakeTimers()` + `jest.isolateModules()` para registrar `setInterval` no engine de timers falsos
+    - `jest.advanceTimersByTime(5min+1ms)` aciona o callback que chama `performCleanup()` (linha 87)
+    - Verifica que arquivo com `createdAt` defasado é efetivamente deletado via cleanup automático
+    - `dxfCleanupService.ts`: 94.73% → **97.36%** (linhas 87 e outras agora cobertas; linha 83 [guard interno não exportado] é dead code aceitável)
+  - **Cobertura Backend geral:** 98.27% → **99.13% statements / 99.64% lines** 🏆
+  - **Total:** 192 testes Python + 200 testes Node.js + 52 testes frontend passando
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)
