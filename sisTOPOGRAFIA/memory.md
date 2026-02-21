@@ -107,7 +107,7 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 3. **Raster Satélite:**
    `quota_manager.py` (SQLite) → `google_maps_static.py` → `.png` → `DXFTerrainDrawer.add_raster_overlay()`
 
-## 5. Estado Atual (FASE 19 - Integração Cross-Instance & Refinamentos Enterprise)
+## 5. Estado Atual (FASE 20 - Enterprise Hardening & Cobertura de Testes Firestore)
 
 ### Concluído:
 - [x] Correção do prefixo `sisTOPO_` em todas as layers (87 testes passando)
@@ -186,6 +186,20 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
   - **Novos Testes Backend:** `server/tests/jobStatusServiceFirestore.test.ts` (8 testes): ciclo completo em modo memória
   - **Novos Testes Backend:** `server/tests/cacheServiceFirestore.test.ts` (7 testes): createCacheKey, set/get/delete/TTL em modo memória
   - **Total:** 192 testes Python + 113 testes Node.js passando
+- [x] **FASE 20:** Enterprise Hardening - Cobertura de Testes Firestore & Correção de Timer Leaks
+  - **Correção de timer leaks:** `cacheServiceFirestore.ts` e `jobStatusServiceFirestore.ts` armazenam referência do `setInterval` e expõem `stopCleanupInterval()` para limpeza correta em testes (prevenindo "worker process failed to exit gracefully").
+  - **Refatoração `isFirestoreEnabled()`:** `USE_FIRESTORE` de constante de módulo para função chamada em runtime — permite que testes alterem `process.env.USE_FIRESTORE` sem recarregar módulos.
+  - **Cobertura de Testes Backend massivamente expandida:** 73.17% → 96.06% (statements)
+    - `cacheServiceFirestore.ts`: 50.51% → 100% (statements)
+    - `jobStatusServiceFirestore.ts`: 40.76% → 100% (statements)
+  - **Novos Testes Backend (41 novos testes):**
+    - Paths Firestore (USE_FIRESTORE=true) para todos os métodos (createJob, getJob, updateJobStatus, completeJob, failJob)
+    - Circuit breaker fallback com job/cache existente em memória (linhas 121-126, 169-173, 214-217)
+    - Limpeza de jobs antigos com `jest.spyOn(Date, 'now')` (try-finally para restauração segura)
+    - Serialização determinística de arrays no `createCacheKey` (linha 56 coberta)
+    - Timeout de cache e expiração TTL em modo Firestore
+    - Erros críticos vs circuit breaker em todos os handlers
+  - **Total:** 192 testes Python + 154 testes Node.js passando
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)
