@@ -51,11 +51,13 @@ O sistema segue conceitos de **Clean Architecture** e **DDD (Domain-Driven Desig
 3. **Imagens Raster Satellite:**
    DXF processa a latitude central -> Aciona `quota_manager.py` (Limite SQLite) -> `google_maps_static.py` -> Traz .png -> Adiciona ao ModelSpace cartográfico (`sisTOPO_MDT_IMAGEM_SATELITE`).
 
-## 4. Estado Atual "AS IS" (Momento Presente: FASE 9)
+## 4. Estado Atual "AS IS" (Momento Presente: FASE 9 — CONCLUÍDA)
 
-Nós alcançamos a Maturidade BIM Enterprise da Fase 8. O foco atual (Fase 9) é enriquecimento "AS-IS":
+Nós alcançamos a Maturidade BIM Enterprise da Fase 8 e concluímos a Fase 9:
 
-- [EM ANDAMENTO] - Implementar detecção automática de Rios (`waterway`) no OSM via Python.
-- [EM ANDAMENTO] - Gerar geometrias de **buffer 30m** com `shapely` representando Áreas de Preservação Permanente (APP Legal).
-- [EM ANDAMENTO] - Buscar dados de Zoneamento (`landuse`) via OSM.
-- [EM ANDAMENTO] - Extrair XDATA de altura `building:levels` ou `height` diretamente nas tags do OSM para edifícios (sisTOPO_EDIFICACAO) proporcionando elevações precisas pro DXF e Metadados.
+- [x] Detecção automática de Rios (`waterway`) no OSM via Python — `EnvironmentalEngine.extract_and_buffer_waterways()`
+- [x] Geometrias de **buffer 30m** (APP Legal) com `shapely` — `sisTOPO_RESTRICAO_APP_30M`
+- [x] Dados de Zoneamento (`landuse`) via OSM — `EnvironmentalEngine.extract_land_use()`
+- [x] Extração de altura de edifícios (`building:levels`, `height`) para XDATA BIM — `DXFGenerator._get_thickness()`
+- [x] **Padrão de nomenclatura de layers corrigido** — prefixo `sisTOPO_` em todos os layers DXF (`layer_classifier.py`, `dxf_styles.py`, `dxf_generator.py`)
+- [x] `fpdf2` adicionado ao `requirements.txt` (dependência ausente corrigida)

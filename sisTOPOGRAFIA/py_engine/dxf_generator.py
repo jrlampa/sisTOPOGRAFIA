@@ -207,7 +207,7 @@ class DXFGenerator:
             layer = '0'
 
         # Draw Labels for Streets
-        if (layer == 'TOPO_VIAS' or layer == '0') and 'name' in tags:
+        if (layer == 'sisTOPO_VIAS' or layer == '0') and 'name' in tags:
             name = str(tags['name'])
             if name.lower() != 'nan' and name.strip():
                 # Use centroid of the line to place text
@@ -235,7 +235,7 @@ class DXFGenerator:
                         text = self.msp.add_text(
                             name, 
                             dxfattribs={
-                                'layer': 'TOPO_TEXTO', 
+                                'layer': 'sisTOPO_TEXTO', 
                                 'height': 2.5,
                                 'rotation': safe_val,
                                 'style': 'PRO_STYLE'
@@ -257,13 +257,13 @@ class DXFGenerator:
         if isinstance(geom, LineString):
             self._draw_linestring(geom, layer, diff_x, diff_y, tags)
             # Draw offsets for streets
-            if layer == 'TOPO_VIAS' and 'highway' in tags:
+            if layer == 'sisTOPO_VIAS' and 'highway' in tags:
                  self._draw_street_offsets(geom, tags, diff_x, diff_y) # Call offset method
 
         elif isinstance(geom, MultiLineString):
             for line in geom.geoms:
                 self._draw_linestring(line, layer, diff_x, diff_y, tags)
-                if layer == 'TOPO_VIAS' and 'highway' in tags:
+                if layer == 'sisTOPO_VIAS' and 'highway' in tags:
                      self._draw_street_offsets(line, tags, diff_x, diff_y)
 
         elif isinstance(geom, Point):
@@ -294,13 +294,13 @@ class DXFGenerator:
                     pts = [self._safe_p((p[0] - diff_x, p[1] - diff_y)) for p in side_geom.coords]
                     pts = self._validate_points(pts, min_points=2)
                     if pts:
-                        self.msp.add_lwpolyline(pts, dxfattribs={'layer': 'TOPO_VIAS_MEIO_FIO', 'color': 251})
+                        self.msp.add_lwpolyline(pts, dxfattribs={'layer': 'sisTOPO_VIAS_MEIO_FIO', 'color': 251})
                 elif isinstance(side_geom, MultiLineString):
                     for subline in side_geom.geoms:
                         pts = [self._safe_p((p[0] - diff_x, p[1] - diff_y)) for p in subline.coords]
                         pts = self._validate_points(pts, min_points=2)
                         if pts:
-                            self.msp.add_lwpolyline(pts, dxfattribs={'layer': 'TOPO_VIAS_MEIO_FIO', 'color': 251})
+                            self.msp.add_lwpolyline(pts, dxfattribs={'layer': 'sisTOPO_VIAS_MEIO_FIO', 'color': 251})
             
             Logger.info(f"Offsets de via (meio-fio) gerados para: {tags.get('name', 'S/N')}")
         except Exception as e:
@@ -308,7 +308,7 @@ class DXFGenerator:
 
     def _get_thickness(self, tags, layer):
         """Calculates extrusion height based on OSM tags"""
-        if layer != 'TOPO_EDIFICACAO':
+        if layer != 'sisTOPO_EDIFICACAO':
             return 0.0
             
         try:
@@ -347,7 +347,7 @@ class DXFGenerator:
         entity = self.msp.add_lwpolyline(points, close=True, dxfattribs=dxf_attribs)
         self._add_bim_data(entity, tags)
         
-        if layer == 'TOPO_EDIFICACAO':
+        if layer == 'sisTOPO_EDIFICACAO':
             try:
                 area = poly.area
                 centroid = poly.centroid
@@ -356,7 +356,7 @@ class DXFGenerator:
                     txt = self.msp.add_text(
                         f"{area:.1f} m2",
                         dxfattribs={
-                            'layer': 'TOPO_ANNOT_AREA',
+                            'layer': 'sisTOPO_ANNOT_AREA',
                             'height': 1.5,
                             'color': 7
                         }
@@ -382,7 +382,7 @@ class DXFGenerator:
 
                 clean_points = deduplicate_epsilon(points)
                 if clean_points and len(clean_points) >= 3:
-                    hatch = self.msp.add_hatch(color=8, dxfattribs={'layer': 'TOPO_EDIFICACAO_HATCH'})
+                    hatch = self.msp.add_hatch(color=8, dxfattribs={'layer': 'sisTOPO_EDIFICACAO_HATCH'})
                     hatch.set_pattern_fill('ANSI31', scale=0.5, angle=45.0)
                     hatch.paths.add_polyline_path(clean_points, is_closed=True)
             except Exception as he:
@@ -408,7 +408,7 @@ class DXFGenerator:
         self._add_bim_data(entity, tags)
         
         # Annotate length for roads
-        if layer == 'TOPO_VIAS':
+        if layer == 'sisTOPO_VIAS':
             try:
                 length = line.length
                 if not (math.isnan(length) or math.isinf(length)):
@@ -418,7 +418,7 @@ class DXFGenerator:
                         ltxt = self.msp.add_text(
                             f"{length:.1f}m",
                             dxfattribs={
-                                'layer': 'TOPO_ANNOT_LENGTH',
+                                'layer': 'sisTOPO_ANNOT_LENGTH',
                                 'height': 2.0,
                                 'color': 7,
                                 'rotation': 0.0
@@ -456,10 +456,10 @@ class DXFGenerator:
             'V_LEVEL': tags.get('voltage', '0V')
         })
 
-        if layer == 'TOPO_VEGETACAO':
+        if layer == 'sisTOPO_VEGETACAO':
              ent = self.msp.add_blockref('ARVORE', (x, y))
              self._add_bim_data(ent, tags)
-        elif layer == 'TOPO_MOBILIARIO_URBANO':
+        elif layer == 'sisTOPO_MOBILIARIO_URBANO':
              amenity = tags.get('amenity')
              highway = tags.get('highway')
              if amenity == 'bench':
@@ -471,18 +471,18 @@ class DXFGenerator:
              else:
                  ent = self.msp.add_circle((x, y), radius=0.3, dxfattribs={'layer': layer, 'color': 40})
              self._add_bim_data(ent, tags)
-        elif layer == 'TOPO_EQUIPAMENTOS':
+        elif layer == 'sisTOPO_EQUIPAMENTOS':
              ent = self.msp.add_blockref('POSTE', (x, y))
              ent.add_auto_attribs(attribs)
              self._add_bim_data(ent, tags)
         elif 'INFRA_POWER' in layer:
-             if layer == 'TOPO_INFRA_POWER_HV' or tags.get('power') == 'tower':
+             if layer == 'sisTOPO_INFRA_POWER_HV' or tags.get('power') == 'tower':
                  ent = self.msp.add_blockref('TORRE', (x, y))
              else:
                  ent = self.msp.add_blockref('POSTE', (x, y))
              ent.add_auto_attribs(attribs)
              self._add_bim_data(ent, tags)
-        elif layer == 'TOPO_INFRA_TELECOM':
+        elif layer == 'sisTOPO_INFRA_TELECOM':
              ent = self.msp.add_blockref('POSTE', (x, y), dxfattribs={'xscale': 0.8, 'yscale': 0.8})
              ent.add_auto_attribs(attribs)
              self._add_bim_data(ent, tags)
@@ -511,7 +511,7 @@ class DXFGenerator:
                     x = self._safe_v(float(p[0]) - self.diff_x)
                     y = self._safe_v(float(p[1]) - self.diff_y)
                     z = self._safe_v(float(p[2]))
-                    self.msp.add_point((x, y, z), dxfattribs={'layer': 'TOPO_TERRENO_PONTOS', 'color': 1})
+                    self.msp.add_point((x, y, z), dxfattribs={'layer': 'sisTOPO_TERRENO_PONTOS', 'color': 1})
                 except (ValueError, TypeError, IndexError) as e:
                     Logger.error(f"Error setting point at ({r}, {c}): {e}")
 
@@ -537,7 +537,7 @@ class DXFGenerator:
             pts_2d = np.array([(p[0], p[1]) for p in points_3d])
             tri = Delaunay(pts_2d)
             
-            layer = 'TOPO_TERRENO_TIN'
+            layer = 'sisTOPO_TERRENO_TIN'
             if layer not in self.doc.layers:
                 self.doc.layers.add(name=layer, color=8) # Cinza para malha
 
@@ -581,10 +581,10 @@ class DXFGenerator:
                         
                     # Determina layer e cor
                     if s > 100.0:
-                        layer = 'TOPO_RISCO_ALTO'
+                        layer = 'sisTOPO_RISCO_ALTO'
                         color = 1 # Red
                     else:
-                        layer = 'TOPO_RISCO_MEDIO'
+                        layer = 'sisTOPO_RISCO_MEDIO'
                         color = 30 # Orange
                         
                     if layer not in self.doc.layers:
@@ -626,7 +626,7 @@ class DXFGenerator:
              pts_2d = [(self._safe_v(p[0]), self._safe_v(p[1])) for p in line_points]
              
              is_major = abs(z_val % (5 * interval)) < 0.01
-             layer = 'TOPO_CURVAS_NIVEL_MESTRA' if is_major else 'TOPO_TOPOGRAFIA_CURVAS'
+             layer = 'sisTOPO_CURVAS_NIVEL_MESTRA' if is_major else 'sisTOPO_TOPOGRAFIA_CURVAS'
              color = 8 if not is_major else 7
              
              valid_line = self._validate_points(pts_2d, min_points=2)
@@ -654,7 +654,7 @@ class DXFGenerator:
                      self.msp.add_text(
                          f"{z_val:.0f}",
                          dxfattribs={
-                             'layer': 'TOPO_TOPOGRAFIA_CURVAS_TEXTO',
+                             'layer': 'sisTOPO_TOPOGRAFIA_CURVAS_TEXTO',
                              'height': 1.8,
                              'rotation': angle,
                              'color': 7,
@@ -854,13 +854,13 @@ class DXFGenerator:
 
             # Inserir bloco
             self.msp.add_blockref('TOPO_MARCO_GEODESICO', (lx, ly), dxfattribs={
-                'layer': 'TOPO_PONTOS_COORD',
+                'layer': 'sisTOPO_PONTOS_COORD',
                 'color': 1
             })
             
             # Adicionar texto ID e Cota
             self.msp.add_text(f"{label} (H={lz:.3f}m)",
-                              dxfattribs={'layer': 'TOPO_PONTOS_TEXTO', 'height': 0.8, 'color': 1}
+                              dxfattribs={'layer': 'sisTOPO_PONTOS_TEXTO', 'height': 0.8, 'color': 1}
                              ).set_placement((lx + 1, ly + 1))
         except Exception as e:
             Logger.warn(f"Erro ao adicionar marco {label}: {e}")

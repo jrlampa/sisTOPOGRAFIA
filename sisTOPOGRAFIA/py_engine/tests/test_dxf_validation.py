@@ -79,32 +79,32 @@ class TestDXFLayers:
     """Testa que as layers corretas são criadas para cada tipo de feição OSM."""
 
     EXPECTED_LAYERS = {
-        'TOPO_EDIFICACAO',
-        'TOPO_VIAS',
-        'TOPO_VEGETACAO',
+        'sisTOPO_EDIFICACAO',
+        'sisTOPO_VIAS',
+        'sisTOPO_VEGETACAO',
     }
 
     def test_expected_layers_created(self, dxf_doc):
-        """Layers TOPO_* devem existir na tabela de layers."""
+        """Layers sisTOPO_* devem existir na tabela de layers."""
         layer_names = {layer.dxf.name for layer in dxf_doc.layers}
         for expected in self.EXPECTED_LAYERS:
             assert expected in layer_names, \
                 f"Layer '{expected}' ausente no DXF. Layers encontradas: {layer_names}"
 
     def test_no_orphan_layer_zero_only(self, dxf_doc):
-        """Deve haver pelo menos uma layer TOPO além da '0'."""
+        """Deve haver pelo menos uma layer sisTOPO além da '0'."""
         layer_names = {layer.dxf.name for layer in dxf_doc.layers}
-        topo_layers = [l for l in layer_names if l.startswith('TOPO_')]
+        topo_layers = [l for l in layer_names if l.startswith('sisTOPO_')]
         assert len(topo_layers) >= 3, \
-            f"Esperado >= 3 layers TOPO_, encontradas: {topo_layers}"
+            f"Esperado >= 3 layers sisTOPO_, encontradas: {topo_layers}"
 
     def test_layer_edificacao_exists(self, dxf_doc):
         layer_names = {layer.dxf.name for layer in dxf_doc.layers}
-        assert 'TOPO_EDIFICACAO' in layer_names
+        assert 'sisTOPO_EDIFICACAO' in layer_names
 
     def test_layer_vias_exists(self, dxf_doc):
         layer_names = {layer.dxf.name for layer in dxf_doc.layers}
-        assert 'TOPO_VIAS' in layer_names
+        assert 'sisTOPO_VIAS' in layer_names
 
 
 # ── 3. Entidades ──────────────────────────────────────────────────────────────
@@ -171,15 +171,15 @@ class TestLayerClassifier:
         """waterway deve ter prioridade sobre amenity (fountain em rio)."""
         from layer_classifier import classify_layer
         tags = {'waterway': 'river', 'amenity': 'fountain'}
-        assert classify_layer(tags) == 'TOPO_HIDROGRAFIA'
+        assert classify_layer(tags) == 'sisTOPO_HIDROGRAFIA'
 
     def test_building_returns_edificacao(self):
         from layer_classifier import classify_layer
-        assert classify_layer({'building': 'residential'}) == 'TOPO_EDIFICACAO'
+        assert classify_layer({'building': 'residential'}) == 'sisTOPO_EDIFICACAO'
 
     def test_highway_returns_vias(self):
         from layer_classifier import classify_layer
-        assert classify_layer({'highway': 'residential'}) == 'TOPO_VIAS'
+        assert classify_layer({'highway': 'residential'}) == 'sisTOPO_VIAS'
 
     def test_unknown_returns_default_layer(self):
         from layer_classifier import classify_layer
@@ -187,19 +187,19 @@ class TestLayerClassifier:
 
     def test_power_hv_line(self):
         from layer_classifier import classify_layer
-        assert classify_layer({'power': 'line'}) == 'TOPO_INFRA_POWER_HV'
+        assert classify_layer({'power': 'line'}) == 'sisTOPO_INFRA_POWER_HV'
 
     def test_power_lv_fuse(self):
         from layer_classifier import classify_layer
-        assert classify_layer({'power': 'fuse'}) == 'TOPO_INFRA_POWER_LV'
+        assert classify_layer({'power': 'fuse'}) == 'sisTOPO_INFRA_POWER_LV'
 
     def test_natural_water_is_hidrografia(self):
         from layer_classifier import classify_layer
-        assert classify_layer({'natural': 'water'}) == 'TOPO_HIDROGRAFIA'
+        assert classify_layer({'natural': 'water'}) == 'sisTOPO_HIDROGRAFIA'
 
     def test_landuse_residential(self):
         from layer_classifier import classify_layer
-        assert classify_layer({'landuse': 'residential'}) == 'TOPO_USO_RESIDENCIAL'
+        assert classify_layer({'landuse': 'residential'}) == 'sisTOPO_USO_RESIDENCIAL'
 
 
 # ── 5. BIM XDATA ──────────────────────────────────────────────────────────────
