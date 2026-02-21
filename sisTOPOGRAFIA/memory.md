@@ -107,7 +107,7 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 3. **Raster Satélite:**
    `quota_manager.py` (SQLite) → `google_maps_static.py` → `.png` → `DXFTerrainDrawer.add_raster_overlay()`
 
-## 5. Estado Atual (FASE 22 - Input Validation Hardening & ABNT Script Fix)
+## 5. Estado Atual (FASE 23 - Zeragem e Coerência de Versionamento)
 
 ### Concluído:
 - [x] Correção do prefixo `sisTOPO_` em todas as layers (87 testes passando)
@@ -232,6 +232,24 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
     - `analysisSchema` (3 testes): stats básicos, sem locationName, buildings negativo
     - `batchRowSchema` (4 testes): linha válida, nome com caractere especial, raio acima do limite, modo default
     - `dxfRequestExtendedSchema` (4 testes): DXF válido, raio, modo inválido, coerção string→number
+  - **Total:** 192 testes Python + 191 testes Node.js passando
+
+- [x] **FASE 23:** Zeragem e Coerência de Versionamento
+  - **Versão canônica:** `0.1.0` — zeragem do versionamento com baseline pré-release semver correto
+  - **Arquivos atualizados (todos sincronizados para `0.1.0`):**
+    - `VERSION` (fonte única da verdade)
+    - `package.json` e `package-lock.json`
+    - `py_engine/constants.py` (`PROJECT_VERSION`)
+    - `src/hooks/useFileOperations.ts` (`PROJECT_VERSION`)
+    - `server/swagger.ts` (era `1.2.0` — inconsistente)
+    - `server/interfaces/routes/systemRoutes.ts` (era `1.2.0` — 3 ocorrências)
+    - `server/index.ts` (era `1.2.0` no log de startup)
+    - `server/tests/api.test.ts` (expectativas atualizadas de `1.2.0`)
+    - `tests/hooks/useFileOperations.test.ts` (fixture corrigida de `3.0.0` — obsoleta)
+  - **Scripts ampliados:**
+    - `scripts/update-version.sh`: agora cobre `server/swagger.ts`, `server/interfaces/routes/systemRoutes.ts`, `server/index.ts`
+    - `scripts/check-version.sh`: agora verifica `server/swagger.ts` e `server/interfaces/routes/systemRoutes.ts`
+  - **CHANGELOG.md**: atualizado para refletir zeragem e registro histórico
   - **Total:** 192 testes Python + 191 testes Node.js passando
 
 ### Em Andamento:

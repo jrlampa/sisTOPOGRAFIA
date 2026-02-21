@@ -52,18 +52,18 @@ describe('useFileOperations - Unit Tests', () => {
     const projectData = {
       state: mockAppState,
       timestamp: new Date().toISOString(),
-      version: '3.0.0'
+      version: '0.1.0'
     };
 
     expect(projectData.state).toBeDefined();
-    expect(projectData.version).toBe('3.0.0');
+    expect(projectData.version).toBe('0.1.0');
     expect(projectData.timestamp).toBeTruthy();
   });
 
   it('should validate project file format', () => {
     const validData = {
       state: mockAppState,
-      version: '3.0.0'
+      version: '0.1.0'
     };
 
     const invalidData = {

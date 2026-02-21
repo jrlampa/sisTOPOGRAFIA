@@ -61,5 +61,23 @@ else
     exit 1
 fi
 
+# Check server/swagger.ts
+SWAGGER_VERSION=$(grep "version: '" "$PROJECT_ROOT/server/swagger.ts" | head -1 | sed "s/.*version: '\(.*\)'.*/\1/")
+if [ "$SWAGGER_VERSION" = "$EXPECTED_VERSION" ]; then
+    echo "server/swagger.ts: ${GREEN}$SWAGGER_VERSION ✓${NC}"
+else
+    echo "server/swagger.ts: ${RED}$SWAGGER_VERSION ✗ (expected $EXPECTED_VERSION)${NC}"
+    exit 1
+fi
+
+# Check server/interfaces/routes/systemRoutes.ts
+SYSTEM_VERSION=$(grep "version: '" "$PROJECT_ROOT/server/interfaces/routes/systemRoutes.ts" | head -1 | sed "s/.*version: '\(.*\)'.*/\1/")
+if [ "$SYSTEM_VERSION" = "$EXPECTED_VERSION" ]; then
+    echo "server/interfaces/routes/systemRoutes.ts: ${GREEN}$SYSTEM_VERSION ✓${NC}"
+else
+    echo "server/interfaces/routes/systemRoutes.ts: ${RED}$SYSTEM_VERSION ✗ (expected $EXPECTED_VERSION)${NC}"
+    exit 1
+fi
+
 echo ""
 echo -e "${GREEN}✅ All versions are consistent!${NC}"

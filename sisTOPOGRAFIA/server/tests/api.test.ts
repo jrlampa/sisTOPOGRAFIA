@@ -21,7 +21,7 @@ describe('API Endpoints', () => {
       res.json({
         status: 'ok',
         service: 'sisRUA DXF Generator',
-        version: '1.2.0',
+        version: '0.1.0',
         timestamp: new Date().toISOString()
       });
     });
@@ -34,7 +34,7 @@ describe('API Endpoints', () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('status', 'ok');
       expect(response.body).toHaveProperty('service', 'sisRUA DXF Generator');
-      expect(response.body).toHaveProperty('version', '1.2.0');
+      expect(response.body).toHaveProperty('version', '0.1.0');
       expect(response.body).toHaveProperty('timestamp');
     });
 
