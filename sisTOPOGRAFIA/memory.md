@@ -359,6 +359,23 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
     - Zona UTM > 60 (`61K 714316 7549084`) → `null` (branch linha 21)
     - `geo.ts` branches: **90.69%** ✅
   - **Total:** 192 testes Python + 200 testes Node.js + 75 testes frontend passando 🏆
+- [x] **FASE 31:** Cobertura de Testes Frontend — dxfService, osmService, geminiService, kmlParser
+  - **`tests/services/dxfService.test.ts`** — 14 novos testes (arquivo novo):
+    - `generateDXF`: queued, cached, HTTP error (details), HTTP error (fallback)
+    - `getDxfJobStatus`: success, HTTP error (error), HTTP error (details)
+    - `calculateStats`: array vazio, edificações, natureza/landuse, altura via tag height, via building:levels×3.2m, altura inválida, campos fixos (avgSlope/avgSolar)
+    - `dxfService.ts`: 0% → **100% statements + 100% lines** ✅
+  - **`tests/services/osmService.test.ts`** — 6 testes (arquivo novo):
+    - `fetchOsmData`: success, fallback entre endpoints, todos falham, rede, verificação de query, non-Error thrown (branch lines 52-54)
+    - `osmService.ts`: 0% → **100% statements + 100% lines** ✅
+  - **`tests/services/geminiService.test.ts`** — 11 testes (arquivo novo):
+    - `findLocationWithGemini`: AI desabilitada, sucesso, HTTP não-ok, rede
+    - `analyzeArea`: AI desabilitada, sucesso, error+analysis, error+message, rede, response.json() throws (lines 55-56), verificação de payload
+    - `geminiService.ts`: 0% → **100% statements + 100% lines** ✅
+  - **`tests/utils/kmlParser.test.ts`** — 7 testes (arquivo novo):
+    - `parseKml`: KML válido, sem coordenadas, coordenadas vazias, menos de 3 pontos, FileReader error, NaN filtrado, DOMParser.parseFromString throws (lines 47-48)
+    - `kmlParser.ts`: 0% → **100% statements + 100% branches + 100% lines** ✅
+  - **Total:** 192 testes Python + 200 testes Node.js + 113 testes frontend passando 🏆
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)
