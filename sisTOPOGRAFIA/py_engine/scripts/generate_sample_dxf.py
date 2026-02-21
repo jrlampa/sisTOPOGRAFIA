@@ -1,43 +1,60 @@
+import sys
+import os
+import geopandas as gpd
+from shapely.geometry import Polygon, Point, LineString
 
-import sys
-import os
-import sys
-import os
 # Adicionar o diretório pai (py_engine) ao path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dxf_generator import DXFGenerator
-import geopandas as gpd
-from shapely.geometry import Polygon, Point, LineString
+from memorial_engine import MemorialEngine
 
 def generate_test_dxf(output_path):
     gen = DXFGenerator(output_path)
     
-    # Criar dados de teste variados
+    # Coordenadas SIRGAS 2000 UTM (Búzios - Vila Nova)
+    center_x, center_y = 788547.0, 7634925.0
+    
+    # Criar um polígono de teste (lote de 20x50m)
+    vertices = [
+        (center_x, center_y, 10.0, "P1"),
+        (center_x + 20, center_y, 10.5, "P2"),
+        (center_x + 20, center_y + 50, 11.0, "P3"),
+        (center_x, center_y + 50, 10.8, "P4"),
+    ]
+    
+    poly_coords = [v[:3] for v in vertices]
+    
+    # Dados de teste para simular feições reais
     data = gpd.GeoDataFrame({
         'geometry': [
-            Polygon([(0,0), (50,0), (50,50), (0,50)]),   # Edificação
-            LineString([(0,10), (100,10)]),               # Via
-            Point(25, 25),                                 # Árvore/Vegetação
-            LineString([(0,60), (100,60)]),               # Poste/Energia
+            Polygon(poly_coords),                        # Área do Lote
+            LineString([(center_x-5, center_y-5), (center_x+25, center_y-5)]), # Rua
+            Point(center_x + 10, center_y - 2),          # Poste Enel
+            Point(center_x + 5, center_y + 5),           # Árvore
         ],
         'building': ['yes', None, None, None],
         'highway':  [None, 'residential', None, None],
-        'natural':  [None, None, 'tree', None],
-        'power':    [None, None, None, 'line'],
-        'name':     ['Edificio Teste', 'Rua ABNT', 'Ipê Amarelo', 'Rede MT']
+        'natural':  [None, None, None, 'tree'],
+        'power':    [None, None, 'pole', None],
+        'name':     ['LOTE 01', 'RUA DAS ACÁCIAS', 'PE-001', 'AR-01']
     }, crs='EPSG:31983')
     
     gen.add_features(data)
     
-    # Adicionar curvas de nível (List[List[Tuple[x,y,z]]])
-    contours = [
-        [(0, 0, 100.0), (100, 100, 100.0)],
-        [(0, 10, 101.0), (100, 110, 101.0)]
-    ]
-    gen.add_contour_lines(contours)
+    # Injetar informações de projeto para o Carimbo e Memorial
+    gen.project_info.update({
+        'client': 'JONATAS LAMPA - TESTE ENGENHARIA',
+        'project': 'LOTEAMENTO VILA NOVA - BÚZIOS',
+        'location': 'ARMAÇÃO DOS BÚZIOS, RJ',
+        'designer': 'JONATAS LAMPA (RT)',
+        'paper_size': 'A1',
+        'total_area': MemorialEngine.calculate_area(poly_coords),
+        'perimeter': MemorialEngine.calculate_perimeter(poly_coords),
+        'vertices': vertices
+    })
     
     gen.save()
-    print(f"DXF de teste gerado em: {output_path}")
+    print(f"Processo concluído. Verifique {output_path} e o arquivo de memorial correspondente.")
 
 if __name__ == "__main__":
     generate_test_dxf("test_abnt.dxf")

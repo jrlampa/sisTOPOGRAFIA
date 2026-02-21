@@ -785,9 +785,9 @@ class DXFGenerator:
         """Delega para LegendBuilder (SRP Refactor P3-C2)."""
         self._legend_builder().add_legend()
 
-    def add_title_block(self, client="N/A", project="sisTOPOGRAFIA - Engenharia", designer="sisTOPOGRAFIA AI"):
-        """Delega para LegendBuilder (SRP Refactor P3-C2)."""
-        self._legend_builder().add_title_block(client, project, designer)
+    def add_title_block(self, client="N/A", project="sisTOPOGRAFIA - Engenharia", designer="Jonatas Lampa (RT)", paper_size="A3"):
+        """Delega para LegendBuilder com suporte a paper_size."""
+        self._legend_builder().add_title_block(client, project, designer, paper_size)
 
     def _legend_builder(self) -> 'LegendBuilder':
         """Instancia LegendBuilder com contexto atual do DXFGenerator."""
@@ -806,11 +806,35 @@ class DXFGenerator:
         # Professional finalization
         try:
             self.add_legend()
+            paper_size = self.project_info.get('paper_size', 'A3')
             self.add_title_block(
                 client=self.project_info.get('client', 'CLIENTE PADRÃO'),
-                project=self.project_info.get('project', 'BASE TOPOGRÁFICA - sisTOPOGRAFIA')
+                project=self.project_info.get('project', 'BASE TOPOGRÁFICA - sisTOPOGRAFIA'),
+                designer="Jonatas Lampa (RT)",
+                paper_size=paper_size
             )
             self.doc.saveas(self.filename)
-            Logger.info(f"DXF saved successfully: {os.path.basename(self.filename)}")
+            Logger.info(f"DXF ({paper_size}) saved successfully: {os.path.basename(self.filename)}")
+            
+            # Auto-generate Memorial if area is available
+            if self.project_info.get('total_area'):
+                self._save_memorial()
         except Exception as e:
             Logger.error(f"DXF Save Error: {e}")
+    def _save_memorial(self):
+        """Helper to save memorial text file alongside DXF."""
+        try:
+            try:
+                from .memorial_engine import MemorialEngine
+            except (ImportError, ValueError):
+                from memorial_engine import MemorialEngine
+            # We would need coordinates here. For now, use fallback or mock vertices if available
+            # In a real scenario, we extract vertices from the main boundary polygon
+            vertices = self.project_info.get('vertices', [])
+            memorial_text = MemorialEngine.generate_memorial(self.project_info, vertices)
+            mem_path = self.filename.replace('.dxf', '_MEMORIAL.txt')
+            with open(mem_path, 'w', encoding='utf-8') as f:
+                f.write(memorial_text)
+            Logger.info(f"Memorial Descritivo gerado em: {os.path.basename(mem_path)}")
+        except Exception as e:
+            Logger.warn(f"Falha ao gerar memorial: {e}")

@@ -1,0 +1,40 @@
+
+MEMORIAL DESCRITIVO - LEVANTAMENTO TOPOGRÁFICO
+-------------------------------------------------------------------------
+PROJETO: LOTEAMENTO VILA NOVA - BÚZIOS
+CLIENTE: JONATAS LAMPA - TESTE ENGENHARIA
+LOCALIZAÇÃO: ARMAÇÃO DOS BÚZIOS, RJ
+-------------------------------------------------------------------------
+
+1. OBJETO
+O presente memorial descreve uma área de terras com 1,000.00 m², 
+situada em ARMAÇÃO DOS BÚZIOS, RJ, conforme polígono definido pelos vértices abaixo.
+
+2. METODOLOGIA E PRECISÃO
+O levantamento foi realizado utilizando técnicas de georreferenciamento 
+amarradas ao Sistema Geodésico Brasileiro, com Datum SIRGAS 2000 e 
+Projeção UTM. Os erros cometidos estão dentro das tolerâncias 
+exigidas pela NBR 13133.
+
+3. DESCRIÇÃO PERIMÉTRICA
+Inicia-se a descrição deste perímetro no vértice P1, 
+de coordenadas E= 788,547.000m e N= 7,634,925.000m.
+
+TABELA DE COORDENADAS (SIRGAS 2000 UTM)
+VÉRTICE | ESTE (X)      | NORTE (Y)     | COTA (Z)
+---------------------------------------------------------
+P1      | 788,547.000   | 7,634,925.000 | 10.000  
+P2      | 788,567.000   | 7,634,925.000 | 10.500  
+P3      | 788,567.000   | 7,634,975.000 | 11.000  
+P4      | 788,547.000   | 7,634,975.000 | 10.800  
+
+-------------------------------------------------------------------------
+PERÍMETRO TOTAL: 140.00 m
+ÁREA TOTAL: 1,000.00 m²
+-------------------------------------------------------------------------
+
+4. RESPONSABILIDADE TÉCNICA
+JONATAS LAMPA (RT)
+Registro Profissional Conforme ART/CFT vinculada.
+
+ARMAÇÃO DOS BÚZIOS, RJ, 20 de February de 2026.

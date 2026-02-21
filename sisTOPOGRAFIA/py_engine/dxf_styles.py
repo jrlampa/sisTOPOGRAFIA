@@ -130,10 +130,27 @@ class DXFStyleManager:
         # TORRE (Power Tower)
         if 'TORRE' not in doc.blocks:
             blk = doc.blocks.new(name='TORRE')
-            blk.add_lwpolyline([(-1, -1), (1, -1), (1, 1), (-1, 1)], close=True)
+            blk.add_lwpolyline([(-1, -1), (1, -1), (1, 1), (-1, 1)], close=True, dxfattribs={'lineweight': 35})
             blk.add_line((-1, -1), (1, 1))
             blk.add_line((-1, 1), (1, -1))
             blk.add_attdef('ID', (1.2, 1.2), dxfattribs={'height': 0.5, 'color': 2})
+
+        # BUEIRO (Manhole / Storm Drain)
+        if 'BUEIRO' not in doc.blocks:
+            blk = doc.blocks.new(name='BUEIRO')
+            blk.add_circle((0, 0), radius=0.6, dxfattribs={'color': 7})
+            blk.add_circle((0, 0), radius=0.5, dxfattribs={'color': 8})
+            # Símbolo de "X" interno para bueiros de águas pluviais
+            blk.add_line((-0.35, -0.35), (0.35, 0.35))
+            blk.add_line((-0.35, 0.35), (0.35, -0.35))
+
+        # POSTE_CONCESSIONARIA (Light/Enel Standard)
+        if 'POSTE_ENEL' not in doc.blocks:
+            blk = doc.blocks.new(name='POSTE_ENEL')
+            blk.add_circle((0, 0), radius=0.45, dxfattribs={'color': 7, 'lineweight': 25})
+            blk.add_circle((0, 0), radius=0.2, dxfattribs={'color': 7})
+            blk.add_line((0, -0.45), (0, 0.45))
+            blk.add_line((-0.45, 0), (0.45, 0))
 
         # NORTH ARROW
         if 'NORTE' not in doc.blocks:

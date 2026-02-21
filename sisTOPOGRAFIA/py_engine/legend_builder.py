@@ -26,6 +26,15 @@ _LEGEND_ITEMS = [
     ("CURVAS DE NÍVEL",     "TOPO_TOPOGRAFIA_CURVAS",   8),
 ]
 
+# Dimensões ABNT (Largura, Altura) em mm
+_PAPER_SIZES = {
+    'A0': (1189, 841),
+    'A1': (841, 594),
+    'A2': (594, 420),
+    'A3': (420, 297),
+    'A4': (210, 297),
+}
+
 
 class LegendBuilder:
     """
@@ -134,15 +143,28 @@ class LegendBuilder:
 
     def add_title_block(self, client: str = "N/A",
                          project: str = "sisTOPOGRAFIA - Engenharia",
-                         designer: str = "sisTOPOGRAFIA AI") -> None:
-        """Cria carimbo profissional A3 no espaço de papel."""
+                         designer: str = "Jonatas Lampa (RT)",
+                         paper_size: str = 'A3') -> None:
+        """Cria carimbo profissional e bordas normatizadas (NBR 10068)."""
         layout = self.doc.layout('Layout1')
-        width, height = 420, 297
-
-        # Moldura A3
+        width, height = _PAPER_SIZES.get(paper_size.upper(), _PAPER_SIZES['A3'])
+        
+        # Margens NBR 10068: Esquerda sempre 25mm. Outras: 10mm (A0/A1) ou 7mm (A2/A3/A4)
+        m_left = 25
+        m_others = 10 if paper_size.upper() in ['A0', 'A1'] else 7
+        
+        # Moldura interna (Borda de desenho)
+        layout.add_lwpolyline(
+            [(m_left, m_others), (width - m_others, m_others), 
+             (width - m_others, height - m_others), (m_left, height - m_others)], 
+            close=True,
+            dxfattribs={'layer': 'TOPO_QUADRO', 'lineweight': 50}
+        )
+        
+        # Moldura externa (Corte da folha)
         layout.add_lwpolyline(
             [(0, 0), (width, 0), (width, height), (0, height)], close=True,
-            dxfattribs={'layer': 'TOPO_QUADRO', 'lineweight': 50}
+            dxfattribs={'layer': 'TOPO_QUADRO', 'lineweight': 13}
         )
 
         # Viewport centrado no desenho
@@ -156,25 +178,27 @@ class LegendBuilder:
             v_height = 200
 
         vp = layout.add_viewport(
-            center=(width / 2, height / 2 + 20),
-            size=(width - 40, height - 80),
+            center=( (width + m_left - m_others)/2, (height)/2 + 20),
+            size=(width - m_left - m_others - 10, height - m_others*2 - 80),
             view_center_point=(view_x, view_y),
-            view_height=200
+            view_height=v_height
         )
         vp.dxf.status = 1
 
-        # Carimbo bottom-right
-        cb_x, cb_y = width - 185, 0
-        cb_w, cb_h = 185, 50
+        # Carimbo bottom-right (dentro da moldura interna)
+        cb_w, cb_h = 175, 45 # Padrão para pranchas técnicas
+        cb_x = width - m_others - cb_w
+        cb_y = m_others
 
         layout.add_lwpolyline(
             [(cb_x, cb_y), (cb_x + cb_w, cb_y),
              (cb_x + cb_w, cb_y + cb_h), (cb_x, cb_y + cb_h)],
-            close=True, dxfattribs={'layer': 'TOPO_QUADRO'}
+            close=True, dxfattribs={'layer': 'TOPO_QUADRO', 'lineweight': 35}
         )
-        layout.add_line((cb_x, cb_y + 25), (cb_x + cb_w, cb_y + 25),
+        # Divisões internas do carimbo
+        layout.add_line((cb_x, cb_y + 20), (cb_x + cb_w, cb_y + 20),
                         dxfattribs={'layer': 'TOPO_QUADRO'})
-        layout.add_line((cb_x + 100, cb_y), (cb_x + 100, cb_y + 25),
+        layout.add_line((cb_x + 90, cb_y), (cb_x + 90, cb_y + 20),
                         dxfattribs={'layer': 'TOPO_QUADRO'})
 
         date_str = datetime.date.today().strftime("%d/%m/%Y")
@@ -187,11 +211,16 @@ class LegendBuilder:
             t.dxf.align_point = pos
             return t
 
-        _add_text(f"PROJETO: {str(project).upper()[:50]}", (cb_x + 5, cb_y + 35), 4)
-        _add_text(f"CLIENTE: {str(client)[:50]}",          (cb_x + 5, cb_y + 15), 3)
-        _add_text(f"DATA: {date_str}",                     (cb_x + 105, cb_y + 15), 2.5)
-        _add_text("ENGINE: sisTOPOGRAFIA v1.5",            (cb_x + 105, cb_y + 5), 2)
-        _add_text(f"RESPONSÁVEL: {str(designer)[:50]}",    (cb_x + 5, cb_y + 5), 2.5)
+        s_proj = str(project).upper()
+        s_client = str(client)
+        s_designer = str(designer).upper()
+        
+        _add_text(f"PROJETO: {s_proj[:50]}", (cb_x + 5, cb_y + 32), 3.5)
+        _add_text(f"CLIENTE: {s_client[:50]}",         (cb_x + 5, cb_y + 22), 2.5)
+        _add_text(f"RESPONSÁVEL TÉCNICO: {s_designer}", (cb_x + 5, cb_y + 12), 2.5)
+        _add_text(f"DATA: {date_str}",                     (cb_x + 95, cb_y + 12), 2.0)
+        _add_text(f"ESCALA: {self.project_info.get('scale', '1:1000')}", (cb_x + 95, cb_y + 5), 2.0)
+        _add_text("SISTEMA: SIRGAS 2000 / UTM",            (cb_x + 5, cb_y + 5), 2.0)
 
         try:
             layout.add_blockref('LOGO', (cb_x + cb_w - 20, cb_y + cb_h - 10))
