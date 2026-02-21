@@ -23,7 +23,7 @@ def extract_and_convert_kml(input_file: str, output_file: str, layer_type='UC_MU
         gdf = gpd.read_file(input_file, driver='KML')
         
         # Metadata Enrichment
-        gdf['sisTOPO_type'] = layer_type
+        gdf['TOPO_type'] = layer_type
         gdf['vintage_year'] = year
         
         # Output as optimized GeoJSON

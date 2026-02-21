@@ -41,7 +41,7 @@ class ICMBioApiAdapter:
             gdf.set_crs(epsg=4326, inplace=True)
             
             # Standardize attributes for the engine
-            gdf['sisTOPO_type'] = 'UC_FEDERAL'
+            gdf['TOPO_type'] = 'UC_FEDERAL'
             gdf['name'] = gdf.get('nome', 'UC Federal')
             gdf['vintage_year'] = 'API-Realtime'
             

@@ -35,35 +35,40 @@ class DXFStyleManager:
         conf = layers_config if layers_config is not None else {}
         is_all = layers_config is None
 
-        layers_map = [
-            ('sisTOPO_EDIFICACAO', 7, 0.30, 'buildings'),
-            ('sisTOPO_VIAS', 8, 0.15, 'roads'),
-            ('sisTOPO_VIAS_MEIO_FIO', 251, 0.09, 'roads'),
-            ('sisTOPO_VEGETACAO', 3, 0.13, 'nature'),
-            ('sisTOPO_MOBILIARIO_URBANO', 40, 0.15, 'furniture'),
-            ('sisTOPO_EQUIPAMENTOS', 4, 0.15, 'equipment'),
-            ('sisTOPO_INFRA_POWER_HV', 1, 0.35, 'infrastructure'),
-            ('sisTOPO_INFRA_POWER_LV', 30, 0.20, 'infrastructure'),
-            ('sisTOPO_INFRA_TELECOM', 94, 0.15, 'infrastructure'),
-            ('sisTOPO_TOPOGRAFIA_CURVAS', 252, 0.09, 'terrain'),
-            ('sisTOPO_MALHA_COORD', 253, 0.05, 'cartography'),
-            ('sisTOPO_ANNOT_AREA', 2, 0.13, 'labels'),
-            ('sisTOPO_ANNOT_LENGTH', 2, 0.13, 'labels'),
-            ('sisTOPO_LEGENDA', 7, 0.15, 'cartography'),
-            ('sisTOPO_TEXTO', 7, 0.15, 'labels'),
-            ('sisTOPO_CURVAS_NIVEL_MESTRA', 251, 0.25, 'contours'),
-            ('sisTOPO_CURVAS_NIVEL_INTERM', 252, 0.09, 'contours'),
-            ('sisTOPO_QUADRO', 7, 0.50, 'cartography'),
-            ('sisTOPO_RESTRICAO_APP_30M', 1, 0.35, 'app'),
-            ('sisTOPO_USO_RESIDENCIAL', 5, 0.15, 'landuse'),
-            ('sisTOPO_USO_COMERCIAL', 6, 0.15, 'landuse'),
-            ('sisTOPO_USO_INDUSTRIAL', 8, 0.15, 'landuse'),
-            ('sisTOPO_USO_VEGETACAO', 3, 0.15, 'landuse'),
-            ('sisTOPO_UC_FEDERAL', 5, 0.50, 'uc'),
-            ('sisTOPO_UC_ESTADUAL', 4, 0.50, 'uc'),
-            ('sisTOPO_UC_MUNICIPAL', 6, 0.50, 'uc'),
-            ('sisTOPO_HIDROGRAFIA', 140, 0.35, 'hydrology'),
-            ('sisTOPO_TERRENO_TIN', 251, 0.09, 'generate_tin'),
+        layers = [
+            ('TOPO_EDIFICACAO', 7, 0.30, 'buildings'),
+            ('TOPO_VIAS', 7, 0.25, 'roads'),
+            ('TOPO_VIAS_MEIO_FIO', 8, 0.09, 'roads'),
+            ('TOPO_VEGETACAO', 3, 0.20, 'nature'),
+            ('TOPO_MOBILIARIO_URBANO', 1, 0.15, 'furniture'),
+            ('TOPO_EQUIPAMENTOS', 4, 0.15, 'equipment'),
+            ('TOPO_INFRA_POWER_HV', 1, 0.35, 'infrastructure'),
+            ('TOPO_INFRA_POWER_LV', 2, 0.20, 'infrastructure'),
+            ('TOPO_INFRA_TELECOM', 6, 0.15, 'infrastructure'),
+            ('TOPO_TOPOGRAFIA_CURVAS', 1, 0.09, 'terrain'),
+            ('TOPO_MALHA_COORD', 8, 0.05, 'cartography'),
+            ('TOPO_ANNOT_AREA', 2, 0.13, 'labels'),
+            ('TOPO_ANNOT_LENGTH', 2, 0.13, 'labels'),
+            ('TOPO_LEGENDA', 7, 0.15, 'cartography'),
+            ('TOPO_TEXTO', 7, 0.15, 'labels'),
+            ('TOPO_CURVAS_NIVEL_MESTRA', 7, 0.35, 'contours'),
+            ('TOPO_CURVAS_NIVEL_INTERM', 8, 0.13, 'contours'),
+            ('TOPO_QUADRO', 7, 0.50, 'cartography'),
+            ('TOPO_RESTRICAO_APP_30M', 1, 0.35, 'app'),
+            ('TOPO_USO_RESIDENCIAL', 5, 0.15, 'landuse'),
+            ('TOPO_USO_COMERCIAL', 6, 0.15, 'landuse'),
+            ('TOPO_USO_INDUSTRIAL', 6, 0.15, 'landuse'),
+            ('TOPO_USO_VEGETACAO', 3, 0.15, 'landuse'),
+            ('TOPO_UC_FEDERAL', 5, 0.50, 'uc'),
+            ('TOPO_UC_ESTADUAL', 4, 0.50, 'uc'),
+            ('TOPO_UC_MUNICIPAL', 6, 0.50, 'uc'),
+            ('TOPO_HIDROGRAFIA', 4, 0.35, 'hydrology'),
+            ('TOPO_TERRENO_TIN', 8, 0.09, 'generate_tin'),
+            ('TOPO_TERRENO_PONTOS', 1, 0.05, 'terrain'),
+            ('TOPO_EDIFICACAO_HATCH', 8, 0.05, 'buildings'),
+            ('TOPO_TOPOGRAFIA_CURVAS_TEXTO', 7, 0.15, 'contours'),
+            ('TOPO_RISCO_ALTO', 1, 0.35, 'slopeAnalysis'),
+            ('TOPO_RISCO_MEDIO', 2, 0.20, 'slopeAnalysis'),
         ]
         
         # Standard CAD lineweights mapped (mm to internal int)
@@ -72,7 +77,7 @@ class DXFStyleManager:
             weights = [0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 100, 120, 140, 200, 211]
             return min(weights, key=lambda x:abs(x-val))
 
-        for name, color, lineweight, key in layers_map:
+        for name, color, lineweight, key in layers:
             # Create layer if all mode, OR if key is enabled in config
             # Also support 'vegetation' as alias for 'nature'
             enabled = is_all or conf.get(key, False) or (key == 'nature' and conf.get('vegetation', False))
@@ -89,9 +94,9 @@ class DXFStyleManager:
         # ARVORE (Tree)
         if 'ARVORE' not in doc.blocks:
             blk = doc.blocks.new(name='ARVORE')
-            blk.add_circle((0, 0), radius=2, dxfattribs={'layer': 'sisTOPO_VEGETACAO', 'color': 3})
-            blk.add_line((-1.5, 0), (1.5, 0), dxfattribs={'layer': 'sisTOPO_VEGETACAO'})
-            blk.add_line((0, -1.5), (0, 1.5), dxfattribs={'layer': 'sisTOPO_VEGETACAO'})
+            blk.add_circle((0, 0), radius=2, dxfattribs={'layer': 'TOPO_VEGETACAO', 'color': 3})
+            blk.add_line((-1.5, 0), (1.5, 0), dxfattribs={'layer': 'TOPO_VEGETACAO'})
+            blk.add_line((0, -1.5), (0, 1.5), dxfattribs={'layer': 'TOPO_VEGETACAO'})
 
         # POSTE (Utility Pole)
         if 'POSTE' not in doc.blocks:

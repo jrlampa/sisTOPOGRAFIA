@@ -6,25 +6,25 @@ DDD — Domain Layer (puro, sem dependências de infraestrutura).
 import pandas as pd
 
 
-# Mapeamento de layers DXF da plataforma sisTOPOGRAFIA
+# Mapeamento de layers DXF da plataforma sisTOPOGRAFIA (Padrão ABNT)
 LAYER_NAMES = {
-    'HIDROGRAFIA':       'sisTOPO_HIDROGRAFIA',
-    'INFRA_POWER_HV':    'sisTOPO_INFRA_POWER_HV',
-    'INFRA_POWER_LV':    'sisTOPO_INFRA_POWER_LV',
-    'INFRA_TELECOM':     'sisTOPO_INFRA_TELECOM',
-    'MOBILIARIO_URBANO': 'sisTOPO_MOBILIARIO_URBANO',
-    'EDIFICACAO':        'sisTOPO_EDIFICACAO',
-    'UC_FEDERAL':        'sisTOPO_UC_FEDERAL',
-    'UC_ESTADUAL':       'sisTOPO_UC_ESTADUAL',
-    'UC_MUNICIPAL':      'sisTOPO_UC_MUNICIPAL',
-    'APP_30M':           'sisTOPO_RESTRICAO_APP_30M',
-    'USO_RESIDENCIAL':   'sisTOPO_USO_RESIDENCIAL',
-    'USO_COMERCIAL':     'sisTOPO_USO_COMERCIAL',
-    'USO_INDUSTRIAL':    'sisTOPO_USO_INDUSTRIAL',
-    'USO_VEGETACAO':     'sisTOPO_USO_VEGETACAO',
-    'VIAS':              'sisTOPO_VIAS',
-    'VEGETACAO':         'sisTOPO_VEGETACAO',
-    'EQUIPAMENTOS':      'sisTOPO_EQUIPAMENTOS',
+    'HIDROGRAFIA':       'TOPO_HIDROGRAFIA',
+    'INFRA_POWER_HV':    'TOPO_INFRA_POWER_HV',
+    'INFRA_POWER_LV':    'TOPO_INFRA_POWER_LV',
+    'INFRA_TELECOM':     'TOPO_INFRA_TELECOM',
+    'MOBILIARIO_URBANO': 'TOPO_MOBILIARIO_URBANO',
+    'EDIFICACAO':        'TOPO_EDIFICACAO',
+    'UC_FEDERAL':        'TOPO_UC_FEDERAL',
+    'UC_ESTADUAL':       'TOPO_UC_ESTADUAL',
+    'UC_MUNICIPAL':      'TOPO_UC_MUNICIPAL',
+    'APP_30M':           'TOPO_RESTRICAO_APP_30M',
+    'USO_RESIDENCIAL':   'TOPO_USO_RESIDENCIAL',
+    'USO_COMERCIAL':     'TOPO_USO_COMERCIAL',
+    'USO_INDUSTRIAL':    'TOPO_USO_INDUSTRIAL',
+    'USO_VEGETACAO':     'TOPO_USO_VEGETACAO',
+    'VIAS':              'TOPO_VIAS',
+    'VEGETACAO':         'TOPO_VEGETACAO',
+    'EQUIPAMENTOS':      'TOPO_EQUIPAMENTOS',
 }
 
 _FURNITURE_AMENITIES = frozenset([
@@ -85,11 +85,11 @@ def classify_layer(tags) -> str:
         return LAYER_NAMES['EDIFICACAO']
 
     # 6. UCs e APP
-    sis_type = _get('sisTOPO_type')
-    if sis_type is not None:
-        if sis_type == 'UC_FEDERAL':   return LAYER_NAMES['UC_FEDERAL']
-        if sis_type == 'UC_ESTADUAL':  return LAYER_NAMES['UC_ESTADUAL']
-        if sis_type == 'UC_MUNICIPAL': return LAYER_NAMES['UC_MUNICIPAL']
+    top_type = _get('TOPO_type') or _get('sisTOPO_type') # Suporte legado curto
+    if top_type is not None:
+        if top_type == 'UC_FEDERAL':   return LAYER_NAMES['UC_FEDERAL']
+        if top_type == 'UC_ESTADUAL':  return LAYER_NAMES['UC_ESTADUAL']
+        if top_type == 'UC_MUNICIPAL': return LAYER_NAMES['UC_MUNICIPAL']
 
     app_type = _get('app_type')
     if app_type == 'APP_30M':

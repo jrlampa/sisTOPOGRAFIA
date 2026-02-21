@@ -380,7 +380,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                             const props = feature?.properties || {};
                             let tooltipContent = '';
                             if (props.is_uc) {
-                                tooltipContent = `🛡️ ÁREA PROTEGIDA\n${props.name}\nEsfera: ${props.sisTOPO_type}\n❗ Atenção Legal Necessária`;
+                                tooltipContent = `🛡️ ÁREA PROTEGIDA\n${props.name}\nEsfera: ${props.TOPO_type}\n❗ Atenção Legal Necessária`;
                             } else if (props.waterway === 'generated_app_buffer') {
                                 tooltipContent = `⚠️ APP (Preservação 30m)`;
                             } else if (props.waterway) {

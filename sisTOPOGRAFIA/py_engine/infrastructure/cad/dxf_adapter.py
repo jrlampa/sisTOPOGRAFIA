@@ -62,14 +62,14 @@ class DxfAdapter:
 
     def _determine_layer(self, tags):
         """Standard layer mapping for sisTOPOGRAFIA enterprise standards."""
-        if 'building' in tags and not pd.isna(tags['building']): return 'ARQ_BUILDING'
+        if 'building' in tags and not pd.isna(tags['building']): return 'TOPO_EDIFICACAO'
         if 'highway' in tags and not pd.isna(tags['highway']):
             kind = tags['highway']
-            if kind in ['primary', 'secondary', 'tertiary']: return 'INFRA_ROAD_MAJOR'
-            return 'INFRA_ROAD_MINOR'
-        if 'natural' in tags and tags['natural'] == 'tree': return 'ENV_NATURE_TREE'
-        if 'water' in tags or 'natural' in tags and tags['natural'] == 'water': return 'ENV_WATER'
-        return '0_UNCLASSIFIED'
+            if kind in ['primary', 'secondary', 'tertiary']: return 'TOPO_VIAS'
+            return 'TOPO_VIAS'
+        if 'natural' in tags and tags['natural'] == 'tree': return 'TOPO_VEGETACAO'
+        if 'water' in tags or 'natural' in tags and tags['natural'] == 'water': return 'TOPO_HIDROGRAFIA'
+        return '0'
 
     def _draw_geometry(self, geom, layer, tags):
         """Draws complex geometry with BIM metadata."""
@@ -101,7 +101,7 @@ class DxfAdapter:
         """Adds contour lines to the DXF with BIM enrichment and automated labeling."""
         for c in contours:
             is_major = c.get('is_major', False)
-            layer = 'TERRAIN_CONTOUR_MAJOR' if is_major else 'TERRAIN_CONTOUR_MINOR'
+            layer = 'TOPO_CURVAS_NIVEL_MESTRA' if is_major else 'TOPO_CURVAS_NIVEL_INTERM'
             pts = [(p[0] - self.diff_x, p[1] - self.diff_y) for p in c['points']]
             
             if len(pts) < 2: continue
@@ -133,7 +133,7 @@ class DxfAdapter:
                 self.msp.add_text(
                     f"{c['elevation']:.0f}",
                     dxfattribs={
-                        'layer': 'sisTOPO_TERRAIN_CONTOUR_LABEL',
+                        'layer': 'TOPO_TOPOGRAFIA_CURVAS_TEXTO',
                         'height': 1.8,
                         'rotation': angle,
                         'style': 'STANDARD'
@@ -143,7 +143,7 @@ class DxfAdapter:
     def add_hydrology(self, talvegs: List[List[List[float]]]):
         """Adds natural drainage lines (talwegs) to the DXF."""
         Logger.info(f"Infrastructure: Adding Hydrology ({len(talvegs)} segments)...")
-        layer = 'TERRAIN_HYDROLOGY_TALWEG'
+        layer = 'TOPO_HIDROGRAFIA'
         for segment in talvegs:
             p1 = (segment[0][0], segment[0][1])
             p2 = (segment[1][0], segment[1][1])
@@ -159,8 +159,8 @@ class DxfAdapter:
         min_y = math.floor(self.bounds[1] / spacing) * spacing
         max_y = math.ceil(self.bounds[3] / spacing) * spacing
         
-        layer_grid = 'ANNOT_GRID_CROSS'
-        layer_text = 'ANNOT_GRID_TEXT'
+        layer_grid = 'TOPO_MALHA_COORD'
+        layer_text = 'TOPO_TEXTO'
         
         for x in np.arange(min_x, max_x + spacing, spacing):
             for y in np.arange(min_y, max_y + spacing, spacing):
@@ -187,13 +187,13 @@ class DxfAdapter:
         ly = self.bounds[1] - self.diff_y
         
         self.msp.add_text(
-            f"PROJETO: {metadata.get('project', 'SISTOPOGRAFIA_GEN_001')}",
-            dxfattribs={'layer': 'sisTOPO_ANNOT_STAMP', 'height': 2.5}
+            f"PROJETO: {metadata.get('project', 'sisTOPOGRAFIA_GEN_001')}",
+            dxfattribs={'layer': 'TOPO_QUADRO', 'height': 2.5}
         ).set_placement((lx, ly - 10))
         
         self.msp.add_text(
             f"COORDENADA CENTRAL: {self.diff_x:.2f}, {self.diff_y:.2f}",
-            dxfattribs={'layer': 'sisTOPO_ANNOT_STAMP', 'height': 2.0}
+            dxfattribs={'layer': 'TOPO_QUADRO', 'height': 2.0}
         ).set_placement((lx, ly - 15))
 
     def _attach_bim_data(self, entity, tags):

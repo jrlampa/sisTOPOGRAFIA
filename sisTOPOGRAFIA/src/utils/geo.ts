@@ -58,14 +58,14 @@ export const osmToGeoJSON = (elements: any[] | null): any => {
     if (!geometry) return null;
 
     // Phase 10: Dispatch UC Metadata for Toast
-    if (el.tags?.is_uc && el.tags?.sisTOPO_type) {
+    if (el.tags?.is_uc && (el.tags?.TOPO_type || el.tags?.sisTOPO_type)) {
       if (!(window as any).__uc_toasted) {
         (window as any).__uc_toasted = new Set();
       }
       if (!(window as any).__uc_toasted.has(el.tags.name)) {
         (window as any).__uc_toasted.add(el.tags.name);
         const event = new CustomEvent('uc-detected', {
-          detail: { name: el.tags.name, type: el.tags.sisTOPO_type }
+          detail: { name: el.tags.name, type: el.tags.TOPO_type || el.tags.sisTOPO_type }
         });
         window.dispatchEvent(event);
       }

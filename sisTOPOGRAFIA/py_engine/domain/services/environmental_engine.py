@@ -124,7 +124,7 @@ class EnvironmentalEngine:
                     bbox_poly = Polygon([(minx, miny), (maxx, miny), (maxx, maxy), (minx, maxy)])
                     gdf = gdf[gdf.geometry.intersects(bbox_poly)].copy()
                     
-                    gdf['sisTOPO_type'] = target_type
+                    gdf['TOPO_type'] = target_type
                     return {'gdf': gdf, 'vintage_year': vintage}
                     
                 except Exception as e:

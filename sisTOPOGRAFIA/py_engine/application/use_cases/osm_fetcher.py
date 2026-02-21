@@ -38,17 +38,29 @@ class OsmFetcherUseCase:
         tags: Dict = {}
         if self.layers_config.get('buildings', True):
             tags['building'] = True
+        
         if self.layers_config.get('roads', True):
             tags['highway'] = True
+            
         if self.layers_config.get('vegetation', True):
             tags.update({
                 'natural': ['wood', 'scrub', 'heath', 'grassland', 'tree', 'tree_row', 'water'],
                 'landuse': ['forest', 'grass', 'residential', 'commercial', 'industrial'],
                 'waterway': True
             })
+            
         if self.layers_config.get('furniture', False):
             tags['amenity'] = ['bench', 'waste_basket', 'bicycle_parking', 'fountain', 'bus_station']
-            tags['highway'] = ['street_lamp']
+            # Only add street_lamp if highway fetch is not already broad (True)
+            if tags.get('highway') is not True:
+                current_hw = tags.get('highway', [])
+                if isinstance(current_hw, list):
+                    if 'street_lamp' not in current_hw:
+                        current_hw.append('street_lamp')
+                    tags['highway'] = current_hw
+                else:
+                    tags['highway'] = ['street_lamp']
+                    
         return tags
 
     def fetch(self, tags: Dict) -> Optional[gpd.GeoDataFrame]:

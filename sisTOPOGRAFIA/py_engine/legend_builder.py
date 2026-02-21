@@ -13,17 +13,17 @@ try:
 except ImportError:
     from utils.logger import Logger
 
-# Itens fixos da legenda técnica sisTOPOGRAFIA
+# Itens fixos da legenda técnica sisTOPOGRAFIA (ABNT)
 _LEGEND_ITEMS = [
-    ("EDIFICAÇÕES",         "sisTOPO_EDIFICACAO",          5),
-    ("VIAS / RUAS",         "sisTOPO_VIAS",                1),
-    ("MEIO-FIO",            "sisTOPO_VIAS_MEIO_FIO",       9),
-    ("VEGETAÇÃO",           "sisTOPO_VEGETACAO",           3),
-    ("ILUMINAÇÃO PÚBLICA",  "sisTOPO_MOBILIARIO_URBANO",   2),
-    ("REDE ELÉTRICA (AT)",  "sisTOPO_INFRA_POWER_HV",      1),
-    ("REDE ELÉTRICA (BT)",  "sisTOPO_INFRA_POWER_LV",     30),
-    ("TELECOMUNICAÇÕES",    "sisTOPO_INFRA_TELECOM",      90),
-    ("CURVAS DE NÍVEL",     "sisTOPO_TOPOGRAFIA_CURVAS",   8),
+    ("EDIFICAÇÕES",         "TOPO_EDIFICACAO",          5),
+    ("VIAS / RUAS",         "TOPO_VIAS",                1),
+    ("MEIO-FIO",            "TOPO_VIAS_MEIO_FIO",       9),
+    ("VEGETAÇÃO",           "TOPO_VEGETACAO",           3),
+    ("ILUMINAÇÃO PÚBLICA",  "TOPO_MOBILIARIO_URBANO",   2),
+    ("REDE ELÉTRICA (AT)",  "TOPO_INFRA_POWER_HV",      1),
+    ("REDE ELÉTRICA (BT)",  "TOPO_INFRA_POWER_LV",     30),
+    ("TELECOMUNICAÇÕES",    "TOPO_INFRA_TELECOM",      90),
+    ("CURVAS DE NÍVEL",     "TOPO_TOPOGRAFIA_CURVAS",   8),
 ]
 
 
@@ -78,7 +78,7 @@ class LegendBuilder:
             (min_x - diff_x - 5, max_y - diff_y + 5),
         ]
         self.msp.add_lwpolyline(frame_pts, close=True,
-                                dxfattribs={'layer': 'sisTOPO_QUADRO', 'color': 7})
+                                dxfattribs={'layer': 'TOPO_QUADRO', 'color': 7})
 
         grid_min_x = math.floor(min_x / spacing) * spacing
         grid_max_x = math.ceil(max_x / spacing) * spacing
@@ -116,7 +116,7 @@ class LegendBuilder:
 
         self.msp.add_text(
             "LEGENDA TÉCNICA",
-            dxfattribs={'height': 4, 'style': 'PRO_STYLE', 'layer': 'sisTOPO_QUADRO'}
+            dxfattribs={'height': 4, 'style': 'PRO_STYLE', 'layer': 'TOPO_QUADRO'}
         ).set_placement((start_x, start_y))
 
         y_offset = -10
@@ -128,7 +128,7 @@ class LegendBuilder:
             )
             self.msp.add_text(
                 label,
-                dxfattribs={'height': 2.5, 'layer': 'sisTOPO_QUADRO'}
+                dxfattribs={'height': 2.5, 'layer': 'TOPO_QUADRO'}
             ).set_placement((start_x + 12, start_y + y_offset - 1))
             y_offset -= 8
 
@@ -142,7 +142,7 @@ class LegendBuilder:
         # Moldura A3
         layout.add_lwpolyline(
             [(0, 0), (width, 0), (width, height), (0, height)], close=True,
-            dxfattribs={'layer': 'sisTOPO_QUADRO', 'lineweight': 50}
+            dxfattribs={'layer': 'TOPO_QUADRO', 'lineweight': 50}
         )
 
         # Viewport centrado no desenho
@@ -170,12 +170,12 @@ class LegendBuilder:
         layout.add_lwpolyline(
             [(cb_x, cb_y), (cb_x + cb_w, cb_y),
              (cb_x + cb_w, cb_y + cb_h), (cb_x, cb_y + cb_h)],
-            close=True, dxfattribs={'layer': 'sisTOPO_QUADRO'}
+            close=True, dxfattribs={'layer': 'TOPO_QUADRO'}
         )
         layout.add_line((cb_x, cb_y + 25), (cb_x + cb_w, cb_y + 25),
-                        dxfattribs={'layer': 'sisTOPO_QUADRO'})
+                        dxfattribs={'layer': 'TOPO_QUADRO'})
         layout.add_line((cb_x + 100, cb_y), (cb_x + 100, cb_y + 25),
-                        dxfattribs={'layer': 'sisTOPO_QUADRO'})
+                        dxfattribs={'layer': 'TOPO_QUADRO'})
 
         date_str = datetime.date.today().strftime("%d/%m/%Y")
 
