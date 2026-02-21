@@ -107,7 +107,7 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 3. **Raster Satélite:**
    `quota_manager.py` (SQLite) → `google_maps_static.py` → `.png` → `DXFTerrainDrawer.add_raster_overlay()`
 
-## 5. Estado Atual (FASE 18 - Cache Persistente em Disco & Cobertura de Testes)
+## 5. Estado Atual (FASE 19 - Integração Cross-Instance & Refinamentos Enterprise)
 
 ### Concluído:
 - [x] Correção do prefixo `sisTOPO_` em todas as layers (87 testes passando)
@@ -176,10 +176,19 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
   - **Novos Testes Python:** `test_fase18_disk_cache.py` (12 testes):
     - `TestOsmDiskCache` (12 testes): path, set/get, TTL expirado, corrupção, dir inexistente, clear, promoção L2→L1, criação de diretório
   - **Total:** 192 testes Python + 94 testes Node.js passando
+- [x] **FASE 19:** Integração Cross-Instance & Refinamentos Enterprise
+  - **Cross-instance real:** `taskRoutes.ts` e `GenerateDxfUseCase.ts` agora usam `jobStatusServiceFirestore.ts` e `cacheServiceFirestore.ts`
+    - Em produção (`USE_FIRESTORE=true`): estado de jobs e cache DXF persistidos no Firestore — cross-instance nativo em Cloud Run multi-réplica
+    - Em desenvolvimento (`USE_FIRESTORE=false`): fallback automático para memória — zero impacto no DX
+    - Todas as chamadas agora são `async/await` — sem fire-and-forget em rotas críticas
+  - **Rate Limiter pt-BR:** Mensagens de erro do rate limiter (`dxfRateLimiter` e `generalRateLimiter`) traduzidas para português (pt-BR)
+  - **Health Endpoint melhorado:** `/health` agora reporta `firestoreEnabled` e `osmCache.entries` (monitoramento zero-cost do cache L2 em disco)
+  - **Novos Testes Backend:** `server/tests/jobStatusServiceFirestore.test.ts` (8 testes): ciclo completo em modo memória
+  - **Novos Testes Backend:** `server/tests/cacheServiceFirestore.test.ts` (7 testes): createCacheKey, set/get/delete/TTL em modo memória
+  - **Total:** 192 testes Python + 113 testes Node.js passando
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)
-- [ ] Cache persistente cross-instance (Cloud Storage / Redis) para Cloud Run com múltiplas réplicas
 
 ## 6. Regras de Desenvolvimento
 

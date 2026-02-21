@@ -1,6 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { spawn } from 'child_process';
 import { logger } from '../../utils/logger.js';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
 const router = Router();
 const ALLOWED_PYTHON_COMMANDS = ['python3', 'python'];
@@ -28,6 +31,20 @@ router.get('/', async (_req: Request, res: Response) => {
             proc.on('error', () => { clearTimeout(timeout); resolve(false); });
         });
 
+        // OSM disk cache stats (zero-cost monitoring)
+        const osmCacheDir = process.env.OSM_CACHE_DIR || path.join(os.tmpdir(), 'sistopografia_osm_cache');
+        let osmCacheStats: Record<string, unknown> = { available: false };
+        try {
+            if (fs.existsSync(osmCacheDir)) {
+                const files = fs.readdirSync(osmCacheDir).filter(f => f.startsWith('osm_') && f.endsWith('.pkl'));
+                osmCacheStats = { available: true, entries: files.length, dir: osmCacheDir };
+            } else {
+                osmCacheStats = { available: true, entries: 0, dir: osmCacheDir };
+            }
+        } catch {
+            osmCacheStats = { available: false };
+        }
+
         return res.json({
             status: 'online',
             service: 'sisTOPOGRAFIA Backend',
@@ -35,7 +52,9 @@ router.get('/', async (_req: Request, res: Response) => {
             python: pythonAvailable ? 'available' : 'unavailable',
             environment: process.env.NODE_ENV || 'development',
             dockerized: process.env.DOCKER_ENV === 'true',
-            groqApiKey: { configured: !!process.env.GROQ_API_KEY }
+            groqApiKey: { configured: !!process.env.GROQ_API_KEY },
+            firestoreEnabled: process.env.USE_FIRESTORE === 'true',
+            osmCache: osmCacheStats
         });
     } catch {
         return res.json({
