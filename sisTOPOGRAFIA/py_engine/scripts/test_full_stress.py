@@ -31,11 +31,21 @@ def test_full_system_stress():
         'cartography': True,
         'satellite': True,
         'environmental': True,
+        'nature': True,
+        'vegetation': True,
+        'landuse': True,
+        'uc': True,
+        'app': True,
         'contours': True,
+        'high_res_contours': True, # Novo: Ativa curvas de nível de 0.5m
         'slopeAnalysis': True,
         'hydrology': True,
         'cadastral': True,
+        'roads': True,
+        'buildings': True,
+        'furniture': True,
         'terrain': True,
+        'generate_tin': True,
         'report': True
     }
 

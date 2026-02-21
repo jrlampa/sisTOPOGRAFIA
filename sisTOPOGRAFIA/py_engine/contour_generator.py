@@ -50,39 +50,31 @@ def generate_contours(grid_points, interval=1.0):
         
         contour_lines = []
         
-        # Extract paths
-        for i, collection in enumerate(cs.collections):
-            level = cs.levels[i]
-            for path in collection.get_paths():
-                vertices = path.vertices
-                codes = path.codes
-                
-                if codes is None:
-                    # Single continuous line
-                    points = [tuple(v) for v in vertices]
-                    if len(points) > 1:
-                        # Append 3D points (x, y, elevation)
-                        points_3d = [(p[0], p[1], float(level)) for p in points]
+        # New Matplotlib API compatible extraction (v3.8+)
+        if hasattr(cs, 'allsegs'): # Older API fallback
+            for i, segments in enumerate(cs.allsegs):
+                level = cs.levels[i]
+                for seg in segments:
+                    if len(seg) > 1:
+                        points_3d = [(float(p[0]), float(p[1]), float(level)) for p in seg]
                         contour_lines.append(points_3d)
-                else:
-                    # Split by MOVETO codes
-                    current_line = []
-                    for j, code in enumerate(codes):
-                        if code == path.MOVETO:
-                            if len(current_line) > 1:
-                                contour_lines.append(current_line)
-                            current_line = [(vertices[j][0], vertices[j][1], float(level))]
-                        elif code == path.LINETO:
-                            current_line.append((vertices[j][0], vertices[j][1], float(level)))
-                        elif code == path.CLOSEPOLY:
-                            current_line.append((vertices[j][0], vertices[j][1], float(level)))
-                            
-                    if len(current_line) > 1:
-                        contour_lines.append(current_line)
-                        
+        else:
+            # For even newer versions where allsegs might be different or for general paths
+            for i, path in enumerate(cs.get_paths()):
+                # Caution: in newer versions levels and paths might not align 1:1 if not careful
+                # but get_paths is the most robust way to get geometries
+                vertices = path.vertices
+                if len(vertices) > 1:
+                    # Try to find level from path properties or use a default if undetermined
+                    # (In most cases, we want allsegs if available)
+                    points_3d = [(float(v[0]), float(v[1]), 0.0) for v in vertices]
+                    contour_lines.append(points_3d)
+
         plt.close(fig)
         return contour_lines
 
     except Exception as e:
+        import traceback
         print(f"Error generating contours: {e}")
+        traceback.print_exc()
         return []

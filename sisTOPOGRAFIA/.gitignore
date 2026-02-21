@@ -99,8 +99,13 @@ py_engine/test_verify_perfil_longitudinal.csv
 py_engine/test_verify.dxf
 py_engine/test_phase9.dxf
 py_engine/test_layers.dxf
-test_layers.dxf
 test_layers_metadata.csv
+
+# Outputs de Estresse Profissional
+py_engine/scripts/FULL_STRESS_TEST_*
+py_engine/scripts/*.dxf
+py_engine/scripts/*.txt
+py_engine/scripts/*.csv
 
 # Backups desnecessários
 package-lock.json.backup

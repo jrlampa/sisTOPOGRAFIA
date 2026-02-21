@@ -10,15 +10,28 @@ from typing import Optional, Dict, List, Tuple
 from pyproj import Transformer
 
 try:
-    from elevation_client import fetch_elevation_grid
-    from contour_generator import generate_contours
-    from analytics_engine import AnalyticsEngine
+    from application.use_cases.elevation_client import fetch_elevation_grid
+    from domain.services.contours import ContourService
+    from application.use_cases.analytics_engine import AnalyticsEngine
     from utils.logger import Logger
+    HAS_LEGACY = False
 except ImportError:
-    from elevation_client import fetch_elevation_grid
-    from contour_generator import generate_contours
-    from analytics_engine import AnalyticsEngine
-    from utils.logger import Logger
+    try:
+        from elevation_client import fetch_elevation_grid
+        from contour_generator import generate_contours
+        from analytics_engine import AnalyticsEngine
+        from utils.logger import Logger
+        HAS_LEGACY = True
+    except ImportError:
+        # Fallback para execução direta de scripts
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from elevation_client import fetch_elevation_grid
+        from contour_generator import generate_contours
+        from analytics_engine import AnalyticsEngine
+        from utils.logger import Logger
+        HAS_LEGACY = True
 
 
 class TerrainProcessorUseCase:
@@ -111,10 +124,28 @@ class TerrainProcessorUseCase:
     def _add_contours(self, grid_rows: List, dxf_gen) -> None:
         try:
             interval = 0.5 if self.layers_config.get('high_res_contours') else 1.0
-            contours = generate_contours(grid_rows, interval=interval)
-            if contours:
-                dxf_gen.add_contour_lines(contours)
-                Logger.info(f"{len(contours)} curvas de nível integradas.")
+            
+            if not HAS_LEGACY:
+                # Use o novo ContourService (DDD) se disponível
+                # Precisamos converter grid_rows (List[List[Tuple]]) para np.ndarray
+                z_grid = np.array([[p[2] for p in row] for row in grid_rows])
+                # Assumindo dx/dy médios da grade
+                contours = ContourService.generate_contours(z_grid, dx=1.0, dy=1.0, interval=interval)
+                if contours:
+                    # Converter formato do ContourService para o esperado pelo dxf_gen
+                    # ContourService: List[dict{'elevation', 'points'}]
+                    # dxf_gen legacy format: List[List[Tuple(x,y,z)]]
+                    formatted_contours = []
+                    for c in contours:
+                        formatted_contours.append([(p[0], p[1], c['elevation']) for p in c['points']])
+                    dxf_gen.add_contour_lines(formatted_contours)
+                    Logger.info(f"{len(contours)} curvas de nível (DDD) integradas.")
+            else:
+                # Fallback para o gerador legado corrigido
+                contours = generate_contours(grid_rows, interval=interval)
+                if contours:
+                    dxf_gen.add_contour_lines(contours)
+                    Logger.info(f"{len(contours)} curvas de nível (Legado) integradas.")
         except Exception as ce:
             Logger.error(f"Erro no cálculo de contornos: {ce}")
 

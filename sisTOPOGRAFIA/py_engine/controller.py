@@ -34,7 +34,7 @@ class OSMController:
         self.lon = lon
         self.radius = radius
         self.output_file = output_file
-        self.layers_config = layers_config
+        self.layers_config = self._normalize_layers_config(layers_config)
         self.crs = crs
         self.export_format = export_format.lower()
         self.selection_mode = selection_mode
@@ -43,6 +43,25 @@ class OSMController:
         self.audit_summary: Dict = {'violations': 0, 'coverageScore': 0}
         self._uc_metadata: Dict = {}
         self._geodetic_features: list = []
+
+    def _normalize_layers_config(self, config: Dict) -> Dict:
+        """Expande aliases de configuração para garantir compatibilidade entre módulos."""
+        normalized = config.copy()
+        
+        # Mapeamento de Aliases para chaves canônicas do sistema
+        if config.get('cadastral'):
+            for k in ['buildings', 'roads', 'furniture', 'equipment', 'infrastructure']:
+                normalized.setdefault(k, True)
+                
+        if config.get('environmental'):
+            for k in ['nature', 'vegetation', 'landuse', 'uc', 'app', 'hydrology']:
+                normalized.setdefault(k, True)
+                
+        if config.get('terrain'):
+            for k in ['terrain', 'contours', 'generate_tin', 'slopeAnalysis']:
+                normalized.setdefault(k, True)
+                
+        return normalized
 
     # ── Main pipeline ─────────────────────────────────────────────────────────
 

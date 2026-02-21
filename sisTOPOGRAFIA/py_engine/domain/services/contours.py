@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import List, Any
+from typing import List, Any, Dict
 
 class ContourService:
     """Pure domain service for generating topographic contours."""
@@ -24,18 +24,39 @@ class ContourService:
             return []
 
         # Use matplotlib's contour engine (pure math part)
-        cs = plt.contour(X, Y, z_grid, levels=levels)
-        plt.close() # Don't actually plot
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        cs = ax.contour(X, Y, z_grid, levels=levels)
         
         results = []
-        for i, collection in enumerate(cs.collections):
-            level = cs.levels[i]
-            for path in collection.get_paths():
+        
+        # New Matplotlib API compatible extraction (v3.8+)
+        if hasattr(cs, 'allsegs'): # Older API fallback
+            all_segs = getattr(cs, 'allsegs')
+            for i, segments in enumerate(all_segs):
+                level = cs.levels[i]
+                for seg in segments:
+                    if len(seg) > 2:
+                        # Usando Any para evitar erros de lint com numpy/list
+                        seg_points: Any = seg
+                        results.append({
+                            'elevation': float(level),
+                            'points': seg_points.tolist() if hasattr(seg_points, 'tolist') else [list(p) for p in seg_points],
+                            'is_major': (level % (5 * interval) == 0)
+                        })
+        else:
+            # v3.8+ extraction
+            for i, path in enumerate(cs.get_paths()):
                 vertices = path.vertices
                 if len(vertices) > 2:
+                    # Note: In newer versions, we might need to map paths to levels
+                    # For simplicity in this context, we take the level from cs.levels if matching
+                    level = cs.levels[i] if i < len(cs.levels) else 0.0
                     results.append({
                         'elevation': float(level),
                         'points': vertices.tolist(),
                         'is_major': (level % (5 * interval) == 0)
                     })
+
+        plt.close(fig)
         return results

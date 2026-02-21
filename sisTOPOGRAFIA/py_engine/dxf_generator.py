@@ -301,6 +301,8 @@ class DXFGenerator:
                         pts = self._validate_points(pts, min_points=2)
                         if pts:
                             self.msp.add_lwpolyline(pts, dxfattribs={'layer': 'TOPO_VIAS_MEIO_FIO', 'color': 251})
+            
+            Logger.info(f"Offsets de via (meio-fio) gerados para: {tags.get('name', 'S/N')}")
         except Exception as e:
             Logger.info(f"Street offset failed: {e}")
 
@@ -836,5 +838,31 @@ class DXFGenerator:
             with open(mem_path, 'w', encoding='utf-8') as f:
                 f.write(memorial_text)
             Logger.info(f"Memorial Descritivo gerado em: {os.path.basename(mem_path)}")
+        except Exception as e:
+            Logger.warn(f"Falha ao gerar memorial: {e}")
+
+    def add_geodetic_marker(self, lat, lon, alt, label):
+        """Adiciona um bloco de marco geodésico no ModelSpace."""
+        from utils.geo import wgs84_to_utm
+        try:
+            # Converter para UTM (SIRGAS 2000)
+            east, north = wgs84_to_utm(lat, lon)
+            # Aplicar offset local da planta
+            lx = self._safe_v(east - self.diff_x)
+            ly = self._safe_v(north - self.diff_y)
+            lz = self._safe_v(alt)
+
+            # Inserir bloco
+            self.msp.add_blockref('TOPO_MARCO_GEODESICO', (lx, ly), dxfattribs={
+                'layer': 'TOPO_PONTOS_COORD',
+                'color': 1
+            })
+            
+            # Adicionar texto ID e Cota
+            self.msp.add_text(f"{label} (H={lz:.3f}m)",
+                              dxfattribs={'layer': 'TOPO_PONTOS_TEXTO', 'height': 0.8, 'color': 1}
+                             ).set_placement((lx + 1, ly + 1))
+        except Exception as e:
+            Logger.warn(f"Erro ao adicionar marco {label}: {e}")
         except Exception as e:
             Logger.warn(f"Falha ao gerar memorial: {e}")
