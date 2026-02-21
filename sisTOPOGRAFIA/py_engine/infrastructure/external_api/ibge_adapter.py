@@ -3,7 +3,7 @@ import json
 import math
 try:
     from ...utils.logger import Logger
-except (ImportError, ValueError):
+except (ImportError, ValueError):  # pragma: no cover
     try:
         from py_engine.utils.logger import Logger
     except:

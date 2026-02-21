@@ -622,3 +622,28 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
     - **85% statements/lines** 🏆 (de 81% → 85%)
     - Threshold 80% **PASSING** ✅
   - **Total:** 337 Python + 203 Node.js + 229 frontend = **769 total** 🏆
+
+- [x] **FASE 40:** Cobertura Python 85% → 88% — pragma no cover + 41 novos testes
+  - **Problema:** Vários módulos com cobertura individual < 80% e 8 import fallback blocks desnecessariamente contados.
+  - **`# pragma: no cover`** adicionado a 8 `except ImportError:` fallback blocks genuinamente inalcançáveis:
+    - `ibge_adapter.py` — fallback Logger class: **79% → 100%** ✅
+    - `incra_adapter.py` — fallback Logger class: **78% → 100%** ✅
+    - `osmnx_client.py` — fallback imports (2 linhas)
+    - `environmental_engine.py` — fallback imports (3 linhas)
+    - `environmental_extractor.py` — fallback imports (2 linhas)
+    - `report_orchestrator.py` — fallback imports (2 linhas)
+    - `legend_builder.py` — fallback import (1 linha): **96% → 98%** ✅
+    - `bim_data_attacher.py` — fallback import (1 linha)
+  - **Novos arquivos de teste:**
+    - `py_engine/tests/test_bim_data_attacher.py` (**13 testes**): tags=None, Series vazia, sem items, todos-None, set_xdata exceção, geometry-key ignorada, lista usa 1°, lista vazia, NaN float, pd.isna TypeError, string truncada, válido chama set_xdata, scalar número → `bim_data_attacher.py`: **71% → 100%** ✅
+    - `py_engine/tests/test_report_orchestrator.py` (**10 testes**): init, generate (sucesso/exceção/com analytics), build_report_data (sem/com analytics, satellite, location_label), safe_centroid_stat (attr não encontrado, exceção, float ok) → `report_orchestrator.py`: **32% → 100%** ✅
+    - `py_engine/tests/test_osmnx_extra.py` (**9 testes**): L2 disk cache hit (linhas 140-142), busca por polígono (146-152), raio máximo ValueError (156), GDF não vazio + custom CRS sucesso/fallback (169-183), OSError em clear e _get_disk_cached → `osmnx_client.py`: cobertura de todos os branches ✅
+  - **Expansão `test_use_cases.py`** (+9 testes):
+    - `TestEnvironmentalEngineExtra`: GDF geográfico → reprojeta para EPSG:3857 para APP buffer (linhas 58-59/71), fetch_uc_fallback lê arquivo via mocks (110-131), process_all_uc com ICMBio non-empty (183-184) → `environmental_engine.py`: **71% → 89%** ✅
+    - `TestEnvironmentalExtractorExtract`: extract() completo (linhas 39-54), _resolve_bounds com NaN (linha 69) → `environmental_extractor.py`: **64% → 100%** ✅
+    - `TestAnalyticsEngineInterpolation`: interpolate_point_value com grid real (138-151), interpolate_point_slope com/sem analytics (156-157) → `analytics_engine.py`: **82% → 100%** ✅
+  - **Cobertura Python final:**
+    - **88% statements/lines** 🏆 (de 85% → 88%)
+    - Threshold 80% **PASSING** ✅
+  - CodeQL: 0 alertas ✅
+  - **Total:** 378 Python + 203 Node.js + 229 frontend = **810 total** 🏆

@@ -273,3 +273,167 @@ class TestOsmFetcherFetch:
             -22.15018, -42.92185, 100, {'building': True}, crs='auto'
         )
         assert result is not None
+
+
+# ── 5. EnvironmentalEngine — Geographic CRS e fetch_uc_fallback ──────────────
+
+class TestEnvironmentalEngineExtra:
+    """Cobre branches não testados do EnvironmentalEngine."""
+
+    def _make_geographic_waterway_gdf(self):
+        """GDF em CRS geográfico (EPSG:4326) com um rio."""
+        return gpd.GeoDataFrame(
+            {
+                'geometry': [LineString([(-42.925, -22.155), (-42.920, -22.150)])],
+                'waterway': ['river'],
+            },
+            crs='EPSG:4326'
+        )
+
+    def test_geographic_crs_waterway_reprojects_for_buffer(self):
+        """APP buffer em CRS geográfico deve reprojetar para EPSG:3857 e voltar."""
+        from domain.services.environmental_engine import EnvironmentalEngine
+        gdf = self._make_geographic_waterway_gdf()
+        app_gdf = EnvironmentalEngine.extract_and_buffer_waterways(gdf)
+        # Deve gerar APP mesmo em CRS geográfico
+        assert not app_gdf.empty
+        assert 'app_type' in app_gdf.columns
+
+    def test_fetch_uc_fallback_reads_file_when_exists(self, tmp_path):
+        """fetch_uc_fallback deve ler arquivo GeoJSON existente e retornar GDF."""
+        from domain.services.environmental_engine import EnvironmentalEngine
+
+        bbox = (-43.0, -23.0, -42.0, -22.0)
+        mock_gdf = gpd.GeoDataFrame(
+            {'geometry': [Point(-42.92, -22.15)], 'nome': ['UC Teste']},
+            crs='EPSG:4326'
+        )
+
+        with patch('domain.services.environmental_engine.os.path.exists', return_value=True), \
+             patch('domain.services.environmental_engine.gpd.read_file', return_value=mock_gdf):
+            result = EnvironmentalEngine.fetch_uc_fallback(bbox, 'UC_FEDERAL')
+
+        assert result is not None
+        assert 'gdf' in result
+        assert not result['gdf'].empty
+
+    def test_process_all_uc_with_icmbio_non_empty(self):
+        """process_all_conservation_units deve combinar GDFs quando ICMBio retorna dados."""
+        from domain.services.environmental_engine import EnvironmentalEngine
+
+        gdf_fed = gpd.GeoDataFrame(
+            {'geometry': [Point(-42.92, -22.15)], 'sisTOPO_type': ['UC_FEDERAL']},
+            crs='EPSG:4326'
+        )
+        gdf_est = gpd.GeoDataFrame(columns=['geometry'])
+
+        with patch('domain.services.environmental_engine.ICMBioApiAdapter.fetch_uc_federal',
+                   return_value=gdf_fed), \
+             patch('domain.services.environmental_engine.IneaApiAdapter.fetch_uc_estadual',
+                   return_value=gdf_est):
+            result = EnvironmentalEngine.process_all_conservation_units(
+                min_lon=-43.0, min_lat=-23.0, max_lon=-42.0, max_lat=-22.0
+            )
+
+        assert 'combined_gdf' in result
+        assert not result['combined_gdf'].empty
+
+
+# ── 6. EnvironmentalExtractorUseCase — extract() ─────────────────────────────
+
+class TestEnvironmentalExtractorExtract:
+    """Cobre o método extract() da EnvironmentalExtractorUseCase (linhas 39-54)."""
+
+    def test_extract_returns_expected_keys(self):
+        """extract() deve retornar dict com app_gdf, landuse_gdf, uc_gdf, uc_metadata."""
+        from application.use_cases.environmental_extractor import EnvironmentalExtractorUseCase
+        from domain.services.environmental_engine import EnvironmentalEngine
+
+        extractor = EnvironmentalExtractorUseCase(lat=-22.15018, lon=-42.92185, radius=500)
+        gdf = gpd.GeoDataFrame(
+            {
+                'geometry': [LineString([(0, 0), (100, 0)])],
+                'waterway': ['river'],
+            },
+            crs='EPSG:32724'
+        )
+
+        empty_gdf = gpd.GeoDataFrame(columns=['geometry'])
+        with patch.object(EnvironmentalEngine, 'process_all_conservation_units',
+                          return_value={'combined_gdf': empty_gdf, 'metadata': {}}):
+            result = extractor.extract(gdf)
+
+        assert 'app_gdf' in result
+        assert 'landuse_gdf' in result
+        assert 'uc_gdf' in result
+        assert 'uc_metadata' in result
+
+    def test_extract_resolve_bounds_with_nan_falls_back_to_radius(self):
+        """_resolve_bounds com GDF vazio (bounds=NaN) deve usar raio como fallback."""
+        from application.use_cases.environmental_extractor import EnvironmentalExtractorUseCase
+
+        extractor = EnvironmentalExtractorUseCase(lat=-22.15018, lon=-42.92185, radius=500)
+        gdf_empty = gpd.GeoDataFrame({'geometry': []}, geometry='geometry', crs='EPSG:32724')
+
+        bounds = extractor._resolve_bounds(gdf_empty)
+        assert len(bounds) == 4
+        assert bounds[0] < -42.92185 < bounds[2]
+
+
+# ── 7. AnalyticsEngine — interpolate_point_value e interpolate_point_slope ────
+
+class TestAnalyticsEngineInterpolation:
+    """Cobre linhas 138-151 e 156-157 do analytics_engine.py."""
+
+    def _make_grid_rows(self, rows=3, cols=3):
+        """Grade de pontos [(x, y, z)] 3x3."""
+        grid = []
+        for r in range(rows):
+            row = []
+            for c in range(cols):
+                row.append((float(c * 10), float(r * 10), float(r + c)))
+            grid.append(row)
+        return grid
+
+    def test_interpolate_point_value_returns_closest(self):
+        """interpolate_point_value deve retornar o valor do ponto mais próximo."""
+        from analytics_engine import AnalyticsEngine
+        import numpy as np
+
+        grid_rows = self._make_grid_rows(3, 3)
+        values_grid = np.array([[float(r + c) for c in range(3)] for r in range(3)])
+
+        # Ponto no canto superior esquerdo (0,0) — distância zero para grid_rows[0][0]=(0,0,0)
+        point = Point(0.0, 0.0)
+        result = AnalyticsEngine.interpolate_point_value(point, grid_rows, values_grid)
+        assert isinstance(result, float)
+        assert result == 0.0  # (r=0, c=0) → values_grid[0,0] = 0.0
+
+    def test_interpolate_point_value_none_grid_returns_zero(self):
+        """values_grid=None deve retornar 0.0 imediatamente."""
+        from analytics_engine import AnalyticsEngine
+
+        point = Point(0.0, 0.0)
+        result = AnalyticsEngine.interpolate_point_value(point, [], None)
+        assert result == 0.0
+
+    def test_interpolate_point_slope_no_analytics_returns_zero(self):
+        """analytics_res vazio/None deve retornar 0.0."""
+        from analytics_engine import AnalyticsEngine
+
+        point = Point(0.0, 0.0)
+        result = AnalyticsEngine.interpolate_point_slope(point, [], None)
+        assert result == 0.0
+
+    def test_interpolate_point_slope_with_analytics_delegates(self):
+        """interpolate_point_slope com analytics_res deve delegar para interpolate_point_value."""
+        from analytics_engine import AnalyticsEngine
+        import numpy as np
+
+        grid_rows = self._make_grid_rows(2, 2)
+        values_grid = np.array([[1.0, 2.0], [3.0, 4.0]])
+        analytics_res = {'slope_pct': values_grid}
+
+        point = Point(0.0, 0.0)
+        result = AnalyticsEngine.interpolate_point_slope(point, grid_rows, analytics_res)
+        assert isinstance(result, float)

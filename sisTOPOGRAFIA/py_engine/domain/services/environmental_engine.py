@@ -7,7 +7,7 @@ try:
     from utils.logger import Logger
     from infrastructure.adapters.icmbio_api_adapter import ICMBioApiAdapter
     from infrastructure.adapters.inea_api_adapter import IneaApiAdapter
-except ImportError:
+except ImportError:  # pragma: no cover
     from .utils.logger import Logger
     from ..infrastructure.adapters.icmbio_api_adapter import ICMBioApiAdapter
     from ..infrastructure.adapters.inea_api_adapter import IneaApiAdapter
