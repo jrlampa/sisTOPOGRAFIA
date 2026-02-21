@@ -376,6 +376,22 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
     - `parseKml`: KML válido, sem coordenadas, coordenadas vazias, menos de 3 pontos, FileReader error, NaN filtrado, DOMParser.parseFromString throws (lines 47-48)
     - `kmlParser.ts`: 0% → **100% statements + 100% branches + 100% lines** ✅
   - **Total:** 192 testes Python + 200 testes Node.js + 113 testes frontend passando 🏆
+- [x] **FASE 32:** Cobertura de Testes Frontend — useDxfExport, useEarthwork, useOsmEngine, useUndoRedo
+  - **`tests/hooks/useUndoRedo.test.ts`** — 14 novos testes (arquivo novo):
+    - Inicialização com estado inicial; `setState` com commit=true/false; deduplicação por JSON.stringify; `undo`/`redo` simples e múltiplos; guard `canUndo=false`/`canRedo=false`; `saveSnapshot` cria histórico e limpa future; sequência completa de canUndo/canRedo
+    - `useUndoRedo.ts`: **0% → 100% todos os métricas** ✅
+  - **`tests/hooks/useEarthwork.test.ts`** — 5 novos testes (arquivo novo):
+    - Inicialização; cálculo bem-sucedido (verifica FormData); erro HTTP com campo `error`; erro HTTP fallback; exceção de rede; `isCalculating=true` durante fetch
+    - `useEarthwork.ts`: **0% → 100% linhas** ✅
+  - **`tests/hooks/useOsmEngine.test.ts`** — 9 novos testes (arquivo novo):
+    - Inicialização; pipeline completo (OSM→terrain→stats→AI); AI desabilitada; nenhum elemento OSM; erro fetchOsmData; erro fetchElevationGrid; clearData; setOsmData; non-Error thrown
+    - `useOsmEngine.ts`: **0% → 97.8% linhas** ✅
+  - **`tests/hooks/useDxfExport.test.ts`** — 12 testes (substituição completa do arquivo superficial):
+    - Inicialização; cached URL → download imediato; queued → setJobId; erro generateDXF; resultado null/falsy; non-Error fallback
+    - Polling: job completed + assets suplementares (heatmap/AI/econ/CSV/PDF) carregados; completed sem URL → onError; job failed; getDxfJobStatus throws
+    - Setters: setHeatmapData, setAiSuggestion, setEconomicData, setLongitudinalProfile
+    - `useDxfExport.ts`: **0% → 93.36% linhas** ✅ (linhas 208-209 = `!isActive` guard de unmount, não testável sem timing real)
+  - **Total:** 192 testes Python + 200 testes Node.js + 151 testes frontend passando 🏆
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)
