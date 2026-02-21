@@ -52,11 +52,7 @@ class IneaApiAdapter:
                 
             gdf = gpd.GeoDataFrame.from_features(data['features'])
             gdf.set_crs(epsg=4326, inplace=True)
-            
-            # The instruction was to replace 'sisTOPO_type' with 'TOPO_type'.
-            # The provided code snippet for replacement was syntactically incorrect.
-            # Assuming the intent is to simply change the key name in the assignment.
-            gdf['TOPO_type'] = 'UC_ESTADUAL'
+            gdf['sisTOPO_type'] = 'UC_ESTADUAL'
             gdf['name'] = gdf.get('nome', 'UC Estadual')
             gdf['vintage_year'] = 'API-Realtime'
             

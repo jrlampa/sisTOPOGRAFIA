@@ -126,3 +126,15 @@ engine_check.log
 engine_error.log
 engine_validation.log
 final_validation.log
+
+# SQLite local quota/cache databases
+*.db
+local_data/
+
+# Output directory (generated files)
+output/
+
+# Pytest temporary test files
+test_offsets.dxf
+test_hardening.dxf
+py_engine/test_modular.dxf
