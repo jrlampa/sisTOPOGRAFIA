@@ -53,7 +53,7 @@ O sistema segue conceitos de **Clean Architecture** e **DDD (Domain-Driven Desig
 - **Dimensão Espacial:** Todo o ecossistema é 2.5D. Usar lwpolyline com `elevation`, `thickness` e 3DFACE para TIN. NUNCA usar `LINE` 3D puro.
 - **Custo Zero:** Todo provedor externo usa Free Tier. Groq API (IA), OSMNx, Open-Elevation, IBGE/INCRA APIs públicas.
 - **Coordenadas de Teste Padronizadas:**
-  - UTM: `23K 788547 7634925` (raio ~100m)
+  - UTM: `23K 714316 7549084` (equivale a -22.15018, -42.92185; raio ~100m)
   - Decimal: `-22.15018, -42.92185` (raio ~500m e 1km)
 - **Docker First:** Infraestrutura pronta para Cloud Run.
 - **Limite de Linhas:** Arquivos > 500 linhas DEVEM ser modularizados. Usar SRP.
@@ -276,6 +276,14 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
   - **Clean Code — `console.error` → `Logger.error`:** `useDxfExport.ts` e `useFileOperations.ts` agora usam o frontend Logger (5 ocorrências corrigidas), eliminando logs não estruturados
   - **Novos Testes Frontend:** `tests/utils/geo.test.ts` (11 testes): `osmToGeoJSON` (8 casos: null, vazio, node, way+geometry, way sem geometry, relation, mix, tags undefined) + `parseUtmQuery` (3 casos: string inválida, zona 0, UTM válido 23K)
   - **Total:** 192 testes Python + 191 testes Node.js + 11 novos testes frontend (vitest) passando
+- [x] **FASE 26:** Correção de Coordenadas UTM & Estabilidade de Testes
+  - **Bug Fix — `tests/utils/geo.test.ts`:** Correção do test case `parseUtmQuery` (UTM sul para WGS84).
+    - Coordenada UTM `23K 788547 7634925` NÃO corresponde a -22.15018, -42.92185 (erro de dados no memory.md).
+    - A conversão via proj4 retorna ~(-21.36, -42.22) para aquela entrada.
+    - Coordenada UTM CORRETA para -22.15018, -42.92185 em zona 23K: `23K 714316 7549084` (verificado por round-trip).
+    - Atualizado: input do test para `23K 714316 7549084`; expectations já corretas (-22.15, -42.92).
+  - **Atualizado `memory.md`:** Coordenada UTM padronizada corrigida de `23K 788547 7634925` → `23K 714316 7549084`.
+  - **Total:** 192 testes Python + 191 testes Node.js + 52 testes frontend (vitest) passando
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)

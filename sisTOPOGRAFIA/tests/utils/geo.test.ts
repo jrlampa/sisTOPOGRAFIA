@@ -95,8 +95,8 @@ describe('parseUtmQuery', () => {
   });
 
   it('deve converter coordenadas UTM sul para WGS84', () => {
-    // Coordenadas de teste padronizadas do memory.md: 23K 788547 7634925
-    const result = parseUtmQuery('23K 788547 7634925');
+    // Coordenadas de teste padronizadas: 23K 714316 7549084 → -22.15018, -42.92185
+    const result = parseUtmQuery('23K 714316 7549084');
     expect(result).not.toBeNull();
     expect(result!.lat).toBeCloseTo(-22.15, 0);
     expect(result!.lng).toBeCloseTo(-42.92, 0);
