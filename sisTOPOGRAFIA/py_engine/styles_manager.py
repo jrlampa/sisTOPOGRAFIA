@@ -10,13 +10,13 @@ class CADStylesManager:
     
     DEFAULT_STYLES = {
         "layers": {
-            "TOPO_INFRA_POWER_HV": {"color": 1, "linetype": "CONTINUOUS"},
-            "TOPO_INFRA_POWER_LV": {"color": 30, "linetype": "HIDDEN"},
-            "TOPO_EDIFICACAO": {"color": 7, "linetype": "CONTINUOUS"},
-            "TOPO_VIAS": {"color": 7, "linetype": "CONTINUOUS"},
-            "TOPO_TERRENO_PONTOS": {"color": 252, "linetype": "CONTINUOUS"},
-            "TOPO_CURVAS_NIVEL_MESTRA": {"color": 7, "linetype": "CONTINUOUS"},
-            "TOPO_CURVAS_NIVEL_INTERM": {"color": 8, "linetype": "CONTINUOUS"}
+            "sisTOPO_INFRA_POWER_HV": {"color": 1, "linetype": "CONTINUOUS"},
+            "sisTOPO_INFRA_POWER_LV": {"color": 30, "linetype": "HIDDEN"},
+            "sisTOPO_EDIFICACAO": {"color": 7, "linetype": "CONTINUOUS"},
+            "sisTOPO_VIAS": {"color": 7, "linetype": "CONTINUOUS"},
+            "sisTOPO_TERRENO_PONTOS": {"color": 252, "linetype": "CONTINUOUS"},
+            "sisTOPO_CURVAS_NIVEL_MESTRA": {"color": 7, "linetype": "CONTINUOUS"},
+            "sisTOPO_CURVAS_NIVEL_INTERM": {"color": 8, "linetype": "CONTINUOUS"}
         }
     }
 

@@ -32,7 +32,7 @@ def verify_dxf(file_path):
         if name == '0' or name.upper().startswith('DEF'):
             continue
             
-        if not name.startswith('TOPO_'):
+        if not name.startswith('sisTOPO_'):
             errors.append(f"Camada com prefixo inválido: {name}")
             
         # Verificar cores ACI (exceções para camadas de análise como RISCO ou TIN)
@@ -41,13 +41,13 @@ def verify_dxf(file_path):
                 errors.append(f"Camada {name} usa cor fora do padrão técnico (ACI {color})")
 
     # 2. Verificar Pesos de Linha em Curvas de Nível
-    if 'TOPO_CURVAS_NIVEL_MESTRA' in doc.layers:
-        l = doc.layers.get('TOPO_CURVAS_NIVEL_MESTRA')
+    if 'sisTOPO_CURVAS_NIVEL_MESTRA' in doc.layers:
+        l = doc.layers.get('sisTOPO_CURVAS_NIVEL_MESTRA')
         if l.dxf.lineweight != 35: # milímetros * 100
              errors.append(f"Camada TOPO_CURVAS_NIVEL_MESTRA deve ter peso 0.35mm (atual: {l.dxf.lineweight/100}mm)")
 
-    if 'TOPO_CURVAS_NIVEL_INTERM' in doc.layers:
-        l = doc.layers.get('TOPO_CURVAS_NIVEL_INTERM')
+    if 'sisTOPO_CURVAS_NIVEL_INTERM' in doc.layers:
+        l = doc.layers.get('sisTOPO_CURVAS_NIVEL_INTERM')
         if l.dxf.lineweight != 13:
              errors.append(f"Camada TOPO_CURVAS_NIVEL_INTERM deve ter peso 0.13mm (atual: {l.dxf.lineweight/100}mm)")
 

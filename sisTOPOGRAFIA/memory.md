@@ -1,6 +1,6 @@
 # sisTOPOGRAFIA - Memória de Contexto do Sistema (RAG)
 
-> **Objetivo:** Fornecer contexto imediato, arquitetural e situacional para a IA (Fullstack Sênior), evitando re-leitura desnecessária de arquivos grandes. Atualize este documento sempre que houver mudanças significativas de arquitetura ou novas funcionalidades grandes.
+> **Objetivo:** Fornecer contexto imediato, arquitetural e situacional para a IA (Fullstack Sênior), evitando re-leitura desnecessária de arquivos grandes. Atualize este documento sempre que houver mudanças significativas de arquitetura ou novas funcionalidades.
 
 ---
 
@@ -13,49 +13,132 @@ O sistema segue conceitos de **Clean Architecture** e **DDD (Domain-Driven Desig
 - **Local:** `/src`
 - **Responsabilidade:** Renderização da UI (Glassmorphism), interação com o mapa (Leaflet), desenho de polígonos e envio de requisições simplificadas para o Node.js.
 - **Componentes Chave:**
-  - `MapSelector.tsx`: Componente principal do Leaflet (desenha modes: `circle`, `polygon`, `measure`, `pad`).
-  - Painéis de Analytics (`EarthworkPanel`, `HydrologicalProfilePanel`): Coletam input do usuário e geram payloads.
-- **Auth & Storage:** Usa `Firebase Auth` e `Firestore` para sessão e salvamento de `.osmpro` geolocalizado na nuvem.
+  - `App.tsx` (~302 linhas): Componente raiz. Usa hooks e delega UI para subcomponentes.
+  - `components/layout/AppHeader.tsx`: Header da aplicação (auth, navegação, IA).
+  - `components/layout/AppSidebar.tsx`: Painel lateral (busca, controles, resultados).
+  - `components/layout/MapOverlayControls.tsx`: Botões overlay sobre o mapa.
+  - `components/gis/MapSelector.tsx`: Mapa Leaflet principal.
+  - Painéis de Analytics (`EarthworkPanel`, `HydrologicalProfilePanel`): Coletam input e geram payloads.
+- **Auth & Storage:** Firebase Auth + Firestore para sessão e salvamento de projetos `.osmpro`.
 
 ### 1.2 Backend Server (Node.js, Express)
 
 - **Local:** `/server`
-- **Responsabilidade:** API REST para o Frontend, validação de segurança (Zod), rate limiting (express-rate-limit), e orquestrar a execução do Motor Python.
-- **Integração Python:** `pythonBridge.ts` usa `child_process.spawn` para invocar scripts Python (via executável local ou Docker) e fazer parser do `stdout` (JSON).
+- **Responsabilidade:** API REST para o Frontend, validação (Zod), rate limiting, orquestração do Motor Python.
+- **Integração Python:** `pythonBridge.ts` usa `child_process.spawn` para invocar scripts Python e parsear `stdout` (JSON).
 
 ### 1.3 Motor Geoprocessamento (Python)
 
 - **Local:** `/py_engine`
-- **Responsabilidade:** Core intelligence matemática avançada, geração de arquivos CAD (.dxf) pesados, e algoritmos 2.5D.
-- **Estrutura DDD:**
-  - `/domain`: Lógica de negócio (algoritmos topológicos como `cut_fill_optimizer.py`, `environmental_engine.py`, `contours.py`).
-  - `/infrastructure/cad`: Responsável direto pelo DXF (`dxf_generator.py`, `dxf_adapter.py`, `dxf_styles.py`).
-  - `/infrastructure/external_api`: Comitê de fetchers (`elevation_client.py` [OpenElevation DEM], `osmnx_client.py` [OSM], `google_maps_static.py` [Raster satélite]).
+- **Responsabilidade:** Core intelligence matemática avançada, geração de arquivos CAD (.dxf) pesados, algoritmos 2.5D.
+- **Estrutura DDD (modular):**
+  - `controller.py`: Orquestrador. Delega para use cases.
+  - `main.py`: Entrypoint CLI.
+  - `dxf_generator.py` (~365 linhas): Classe principal DXF. Delega para módulos SRP.
+  - `dxf_geometry_drawer.py` (~240 linhas): **[NOVO]** Desenho de geometrias (polígonos, linhas, pontos).
+  - `dxf_terrain_drawer.py` (~200 linhas): **[NOVO]** Desenho de terreno (TIN, curvas, hidrologia, raster).
+  - `dxf_styles.py`: Gerenciamento de estilos e layers CAD.
+  - `layer_classifier.py`: Classificação de features OSM em layers CAD.
+  - `legend_builder.py`: Construção de legenda e quadro de título.
+  - `bim_data_attacher.py`: Anexação de dados BIM (XDATA) às entidades.
+  - `/domain/services/`: Algoritmos de negócio (cut_fill, contours, environmental_engine, hydrology).
+  - `/infrastructure/external_api/`: Fetchers de APIs externas (elevation, OSM, IBGE, INCRA).
+  - `/infrastructure/adapters/`: Adaptadores de APIs ambientais (ICMBio, INEA).
 
 ## 2. Padrões OBRIGATÓRIOS do Projeto (Regras Globais)
 
-- **Layering CAD:** TODAS as layers geradas no `.dxf` DEVEM conter o prefixo `sisTOPO_` (ex: `sisTOPO_VIAS`, `sisTOPO_EDIFICACAO`).
-- **Dimensão Espacial:** Todo o ecossistema é voltado a análises em **2.5D**. Não usar puro 3D.
-- **Custo Zero Ext:** Todo provedor externo (APIs) deve ser mantido na "Free Tier". (Zero custo a todo custo). Ferramenta principal: Groq API (IA), OSMNx, Open-Elevation.
+- **Layering CAD:** TODAS as layers geradas no `.dxf` DEVEM conter o prefixo `sisTOPO_` (ex: `sisTOPO_VIAS`, `sisTOPO_EDIFICACAO`). **CRÍTICO: Este padrão foi corrigido e validado em Fase 11.**
+- **Dimensão Espacial:** Todo o ecossistema é 2.5D. Usar lwpolyline com `elevation`, `thickness` e 3DFACE para TIN. NUNCA usar `LINE` 3D puro.
+- **Custo Zero:** Todo provedor externo usa Free Tier. Groq API (IA), OSMNx, Open-Elevation, IBGE/INCRA APIs públicas.
 - **Coordenadas de Teste Padronizadas:**
-  - UTM: `23K 788547 7634925` (raios ~100m)
-  - Decimal: `-22.15018, -42.92185` (raio max ~1km)
-- **Docker First:** A infraestrutura e scripts Python são escritos preparados para serem envelopados via container (Cloud Run).
+  - UTM: `23K 788547 7634925` (raio ~100m)
+  - Decimal: `-22.15018, -42.92185` (raio ~500m e 1km)
+- **Docker First:** Infraestrutura pronta para Cloud Run.
+- **Limite de Linhas:** Arquivos > 500 linhas DEVEM ser modularizados. Usar SRP.
 
-## 3. Fluxos de Dados (Data Flow) Principais
+## 3. Convenção de Layers DXF (sisTOPO_)
 
-1. **Geração DXF Padrão:**
-   `Frontend Map (Lat/Lon/Radius)` -> `Node.js POST /api/generate-dxf` -> `pythonBridge` chama `main.py` -> Cria o Cache Local / Roda `dxf_generator` -> Retorna ID/Link do arquivo.
-2. **Cálculo de Terraplenagem 2.5D (Pad Earthworks):**
-   `Frontend (EarthworkPanel)` desenha um Polígono e define Target Z -> POST `/api/analyze-pad` -> `analyze_pad.py` roda `CutFillOptimizer` -> Busca Malha DEM HR local -> Calcula Voxels -> Retorna `{"cut": m3, "fill": m3}`.
-3. **Imagens Raster Satellite:**
-   DXF processa a latitude central -> Aciona `quota_manager.py` (Limite SQLite) -> `google_maps_static.py` -> Traz .png -> Adiciona ao ModelSpace cartográfico (`sisTOPO_MDT_IMAGEM_SATELITE`).
+```
+sisTOPO_EDIFICACAO          # Edificações (com ANSI31 hatch)
+sisTOPO_VIAS                # Vias (com sisTOPO_VIAS_MEIO_FIO)
+sisTOPO_VIAS_MEIO_FIO       # Curb offsets das vias
+sisTOPO_VEGETACAO           # Vegetação / árvores
+sisTOPO_EQUIPAMENTOS        # Equipamentos urbanos
+sisTOPO_MOBILIARIO_URBANO   # Mobiliário urbano
+sisTOPO_HIDROGRAFIA         # Rios, córregos, corpos d'água (waterway/natural:water)
+sisTOPO_TERRENO_PONTOS      # Pontos de grade de terreno
+sisTOPO_TERRENO_TIN         # Malha TIN (3DFACE)
+sisTOPO_CURVAS_NIVEL_MESTRA # Curvas de nível mestras (5x intervalo)
+sisTOPO_TOPOGRAFIA_CURVAS   # Curvas de nível intermediárias
+sisTOPO_RESTRICAO_APP_30M   # Buffer APP Legal 30m (Código Florestal)
+sisTOPO_USO_RESIDENCIAL     # Uso do solo: residencial
+sisTOPO_USO_COMERCIAL       # Uso do solo: comercial
+sisTOPO_USO_INDUSTRIAL      # Uso do solo: industrial
+sisTOPO_USO_VEGETACAO       # Uso do solo: vegetação/floresta
+sisTOPO_UC_FEDERAL          # Unidade de Conservação Federal (ICMBio)
+sisTOPO_UC_ESTADUAL         # Unidade de Conservação Estadual (INEA)
+sisTOPO_UC_MUNICIPAL        # Unidade de Conservação Municipal
+sisTOPO_INFRA_POWER_HV      # Infraestrutura elétrica alta tensão
+sisTOPO_INFRA_POWER_LV      # Infraestrutura elétrica baixa tensão
+sisTOPO_INFRA_TELECOM       # Infraestrutura de telecomunicações
+sisTOPO_TEXTO               # Textos / rótulos
+sisTOPO_ANNOT_AREA          # Anotações de área (m²)
+sisTOPO_ANNOT_LENGTH        # Anotações de comprimento (m)
+sisTOPO_LEGENDA             # Legenda cartográfica
+sisTOPO_QUADRO              # Quadro de título
+sisTOPO_MALHA_COORD         # Malha de coordenadas
+sisTOPO_PONTOS_COORD        # Marcos geodésicos (blocos)
+sisTOPO_PONTOS_TEXTO        # Textos de marcos geodésicos
+sisTOPO_MDT_IMAGEM_SATELITE # Raster satélite overlay
+sisTOPO_RISCO_ALTO          # Hachura de risco alto (declividade > 100%)
+sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
+```
 
-## 4. Estado Atual "AS IS" (Momento Presente: FASE 9)
+## 4. Fluxos de Dados Principais
 
-Nós alcançamos a Maturidade BIM Enterprise da Fase 8. O foco atual (Fase 9) é enriquecimento "AS-IS":
+1. **Geração DXF:**
+   `Frontend (Lat/Lon/Raio)` → `POST /api/generate-dxf` → `pythonBridge.ts` → `main.py` → `OSMController.run()` → `DXFGenerator` + `DXFGeometryDrawer` + `DXFTerrainDrawer` → `arquivo.dxf`
 
-- [EM ANDAMENTO] - Implementar detecção automática de Rios (`waterway`) no OSM via Python.
-- [EM ANDAMENTO] - Gerar geometrias de **buffer 30m** com `shapely` representando Áreas de Preservação Permanente (APP Legal).
-- [EM ANDAMENTO] - Buscar dados de Zoneamento (`landuse`) via OSM.
-- [EM ANDAMENTO] - Extrair XDATA de altura `building:levels` ou `height` diretamente nas tags do OSM para edifícios (sisTOPO_EDIFICACAO) proporcionando elevações precisas pro DXF e Metadados.
+2. **Cálculo de Terraplenagem 2.5D:**
+   `EarthworkPanel` → `POST /api/analyze-pad` → `CutFillOptimizer` → `{cut: m³, fill: m³}`
+
+3. **Raster Satélite:**
+   `quota_manager.py` (SQLite) → `google_maps_static.py` → `.png` → `DXFTerrainDrawer.add_raster_overlay()`
+
+## 5. Estado Atual (FASE 12 - Pós-Hardening)
+
+### Concluído:
+- [x] Correção do prefixo `sisTOPO_` em todas as layers (87 testes passando)
+- [x] Modularização: `dxf_generator.py` 868→365 linhas (SRP)
+- [x] Novo módulo: `dxf_geometry_drawer.py` (geometrias)
+- [x] Novo módulo: `dxf_terrain_drawer.py` (terreno, TIN, curvas, hidrologia)
+- [x] Modularização: `src/App.tsx` 763→302 linhas
+- [x] Novos componentes: `AppHeader.tsx`, `AppSidebar.tsx`, `MapOverlayControls.tsx`
+- [x] 15 novos testes unitários para módulos SRP (`test_modular_drawers.py`)
+- [x] `fpdf2` adicionado em `requirements.txt`
+- [x] `.gitignore` atualizado com padrões de banco de dados e output
+
+### Em Andamento:
+- [ ] Testes E2E com Playwright (requerem servidor ativo)
+- [ ] Implementação completa de Waterway detection via OSMNx (parcialmente implementado)
+- [ ] Busca automática de APP 30m buffer (parcialmente via environmental_extractor)
+
+## 6. Regras de Desenvolvimento
+
+### SRP (Single Responsibility Principle):
+- `DXFGenerator`: Orquestração e API pública do DXF
+- `DXFGeometryDrawer`: APENAS desenho de geometrias (polígonos, linhas, pontos)
+- `DXFTerrainDrawer`: APENAS terreno (TIN, curvas, hidrologia, raster)
+- `LegendBuilder`: APENAS legenda e quadro de título
+- `LayerClassifier`: APENAS classificação de features em layers
+- `BimDataAttacher`: APENAS anexação de XDATA BIM
+
+### Circuit Breaker (APIs externas):
+- APIs governamentais (ICMBio, INEA) DEVEM retornar `None` em timeout/conexão falha
+- O DXF DEVE ser gerado mesmo com TODAS as APIs offline
+- Ver `TestAPICircuitBreaker` em `test_phase11_hardening.py`
+
+### Segurança:
+- Input do usuário: sanitizar via Zod (backend) + validação Python
+- Nenhum dado externo não sanitizado deve ir direto para o DXF
+- APIs públicas: rate limiting via `quota_manager.py` (SQLite local)
