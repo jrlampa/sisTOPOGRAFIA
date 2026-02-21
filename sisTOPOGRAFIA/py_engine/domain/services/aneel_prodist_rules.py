@@ -16,7 +16,7 @@ try:
         LAYER_PRODIST_FAIXA_HV, LAYER_PRODIST_FAIXA_MT, LAYER_PRODIST_FAIXA_BT,
     )
     from utils.logger import Logger
-except ImportError:
+except ImportError:  # pragma: no cover
     from ...constants import (
         PRODIST_BUFFER_HV_M, PRODIST_BUFFER_MT_M, PRODIST_BUFFER_BT_M,
         LAYER_PRODIST_FAIXA_HV, LAYER_PRODIST_FAIXA_MT, LAYER_PRODIST_FAIXA_BT,

@@ -209,3 +209,20 @@ class TestProdistConstants:
         assert LAYER_PRODIST_FAIXA_HV.startswith('sisTOPO_')
         assert LAYER_PRODIST_FAIXA_MT.startswith('sisTOPO_')
         assert LAYER_PRODIST_FAIXA_BT.startswith('sisTOPO_')
+
+
+class TestAneelProdistRulesReturnEmpty:
+    """Cobre linha 97 — return _empty quando todos os resultados são geometrias vazias com power válido."""
+
+    def test_returns_empty_when_all_geometries_empty_but_power_valid(self):
+        """Todos os itens têm power não-nulo mas geometria vazia → results=[] → linha 97."""
+        from shapely.geometry import MultiLineString
+        # Todos têm power='line' (não nulo → passam filtro), mas geometria vazia
+        gdf = _make_gdf([
+            {'geometry': MultiLineString(), 'power': 'line'},
+            {'geometry': MultiLineString(), 'power': 'tower'},
+            {'geometry': MultiLineString(), 'power': 'cable'},
+        ])
+        result = AneelProdistRules.generate_faixas_servid(gdf)
+        # power não-nulo → power_gdf não vazio, mas geometrias vazias → results=[] → return _empty (linha 97)
+        assert result.empty

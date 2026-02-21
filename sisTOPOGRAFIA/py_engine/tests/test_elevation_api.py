@@ -194,3 +194,31 @@ class TestFetchGrid:
         # Grade de fallback: 3x3 com elevation=100.0
         assert len(grid) == 3
         assert all(pt[2] == 100.0 for row in grid for pt in row)
+
+
+# ── Cobertura de elevation_client.py — linhas 52-53 ─────────────────────────
+
+class TestElevationClientFetchBatch:
+    """Cobre o caminho de exceção no fetch_batch de elevation_client.py (linhas 52-53)."""
+
+    def test_fetch_batch_exception_returns_zero_fallback(self):
+        """Quando requests.post lança exceção, fetch_batch retorna zeros (linhas 52-54)."""
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+        from unittest.mock import patch
+        import elevation_client
+
+        # Mocka requests.post para lançar exceção
+        with patch('elevation_client.requests.post', side_effect=Exception("timeout")):
+            elevations, rows, cols = elevation_client.fetch_elevation_grid(
+                north=-22.150, south=-22.151, east=-42.921, west=-42.922,
+                resolution=1000  # Poucos pontos para teste rápido
+            )
+
+        # Com a exceção, fetch_batch retorna fallback com elevation=0
+        assert isinstance(elevations, list)
+        assert len(elevations) > 0
+        # Todos os valores de elevação devem ser 0 (fallback)
+        assert all(e[2] == 0 for e in elevations)

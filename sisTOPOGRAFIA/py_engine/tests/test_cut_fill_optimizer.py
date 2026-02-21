@@ -115,3 +115,58 @@ class TestCutFillOptimizerBasic:
                    return_value=([], 0, 0)):
             with pytest.raises(Exception, match="No elevation data"):
                 opt.calculate()
+
+
+class TestCutFillOptimizerEdgeCases:
+    """Cobre branches não testados: linha 66 (poly_area≤0), linha 72 (grid 1×1), linhas 90-99 (loop)."""
+
+    def test_degenerate_polygon_zero_area_raises(self):
+        """Polígono com todos pontos no mesmo lugar → área zero → ValueError (linha 66)."""
+        from domain.services.cut_fill_optimizer import CutFillOptimizer
+        # Triângulo degenerado: todos os pontos no mesmo lugar
+        degenerate = [
+            [-22.150, -42.922],
+            [-22.150, -42.922],
+            [-22.150, -42.922],
+            [-22.150, -42.922],
+        ]
+        opt = CutFillOptimizer(degenerate, target_z=600.0)
+        with patch(MOCK_PATH, return_value=_make_flat_elevation(600.0)):
+            with pytest.raises((ValueError, Exception)):
+                opt.calculate()
+
+    def test_1x1_grid_uses_cell_area_fallback(self):
+        """Grid 1×1 (rows=1, cols=1) → célula calculada por poly_area (linha 72)."""
+        from domain.services.cut_fill_optimizer import CutFillOptimizer
+        opt = CutFillOptimizer(POLYGON_100M, target_z=TARGET_Z_FLAT)
+        # Retorna 1 ponto NO centro do polígono (dentro) com elevação igual ao target → fill=cut=0
+        center_elev = [(-22.1505, -42.9215, TARGET_Z_FLAT)]
+        with patch(MOCK_PATH, return_value=(center_elev, 1, 1)):
+            result = opt.calculate()
+        # cell_area = poly_area/1 (linha 72); ponto no centro → dentro → dz=0 → sem volume
+        assert result['cut'] == pytest.approx(0.0, abs=1e-3)
+        assert result['fill'] == pytest.approx(0.0, abs=1e-3)
+
+    def test_fill_required_when_point_inside_and_target_above_terrain(self):
+        """Ponto dentro do polígono com target > elevação → fill acumulado (linhas 94-96)."""
+        from domain.services.cut_fill_optimizer import CutFillOptimizer
+        # target=700 > elev=600 → dz=+100 → fill += volume
+        opt = CutFillOptimizer(POLYGON_100M, target_z=TARGET_Z_HIGH)
+        center_elev = [(-22.1505, -42.9215, TARGET_Z_FLAT)]
+        with patch(MOCK_PATH, return_value=(center_elev, 1, 1)):
+            result = opt.calculate()
+        # ponto dentro, dz=100 → total_fill > 0
+        assert result['fill'] > 0.0
+        assert result['cut'] == pytest.approx(0.0, abs=1e-3)
+
+    def test_cut_required_when_point_inside_and_target_below_terrain(self):
+        """Ponto dentro do polígono com target < elevação → cut acumulado (linhas 97-99)."""
+        from domain.services.cut_fill_optimizer import CutFillOptimizer
+        # target=500 < elev=600 → dz=-100 → cut += volume
+        opt = CutFillOptimizer(POLYGON_100M, target_z=TARGET_Z_LOW)
+        center_elev = [(-22.1505, -42.9215, TARGET_Z_FLAT)]
+        with patch(MOCK_PATH, return_value=(center_elev, 1, 1)):
+            result = opt.calculate()
+        # ponto dentro, dz=-100 → total_cut > 0
+        assert result['cut'] > 0.0
+        assert result['fill'] == pytest.approx(0.0, abs=1e-3)

@@ -5,7 +5,7 @@ from shapely.geometry import Polygon, Point
 
 try:
     from ...utils.geo import sirgas2000_utm_epsg
-    from ...elevation_client import fetch_elevation_grid
+    from ...elevation_client import fetch_elevation_grid  # pragma: no cover
 except ImportError:
     import sys
     import os
