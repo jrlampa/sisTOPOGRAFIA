@@ -4,7 +4,7 @@ matplotlib.use('Agg') # Headless mode
 import matplotlib.pyplot as plt
 from shapely.geometry import LineString
 
-def generate_contours(grid_points, interval=1.0):
+def generate_contours(grid_points, interval=1.0, tolerance=0.1):
     """
     Generates contour lines from a grid of (x, y, z) points.
     
@@ -71,6 +71,17 @@ def generate_contours(grid_points, interval=1.0):
                     contour_lines.append(points_3d)
 
         plt.close(fig)
+        if tolerance > 0:
+            smoothed_contours = []
+            for polyline in contour_lines:
+                if len(polyline) > 2:
+                    line = LineString(polyline)
+                    simplified = line.simplify(tolerance, preserve_topology=True)
+                    smoothed_contours.append(list(simplified.coords))
+                else:
+                    smoothed_contours.append(polyline)
+            return smoothed_contours
+            
         return contour_lines
 
     except Exception as e:

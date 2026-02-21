@@ -124,13 +124,14 @@ class TerrainProcessorUseCase:
     def _add_contours(self, grid_rows: List, dxf_gen) -> None:
         try:
             interval = 0.5 if self.layers_config.get('high_res_contours') else 1.0
+            tolerance = self.layers_config.get('contour_tolerance', 0.1)
             
             if not HAS_LEGACY:
                 # Use o novo ContourService (DDD) se disponível
                 # Precisamos converter grid_rows (List[List[Tuple]]) para np.ndarray
                 z_grid = np.array([[p[2] for p in row] for row in grid_rows])
                 # Assumindo dx/dy médios da grade
-                contours = ContourService.generate_contours(z_grid, dx=1.0, dy=1.0, interval=interval)
+                contours = ContourService.generate_contours(z_grid, dx=1.0, dy=1.0, interval=interval, tolerance=tolerance)
                 if contours:
                     # Converter formato do ContourService para o esperado pelo dxf_gen
                     # ContourService: List[dict{'elevation', 'points'}]
@@ -142,7 +143,7 @@ class TerrainProcessorUseCase:
                     Logger.info(f"{len(contours)} curvas de nível (DDD) integradas.")
             else:
                 # Fallback para o gerador legado corrigido
-                contours = generate_contours(grid_rows, interval=interval)
+                contours = generate_contours(grid_rows, interval=interval, tolerance=tolerance)
                 if contours:
                     dxf_gen.add_contour_lines(contours)
                     Logger.info(f"{len(contours)} curvas de nível (Legado) integradas.")

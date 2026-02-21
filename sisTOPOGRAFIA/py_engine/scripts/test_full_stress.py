@@ -46,7 +46,8 @@ def test_full_system_stress():
         'furniture': True,
         'terrain': True,
         'generate_tin': True,
-        'report': True
+        'report': True,
+        'contour_tolerance': 0.1 # Ativa suavização Douglas-Peucker (0.1m)
     }
 
     Logger.info("=== INICIANDO TESTE DE ESTRESSE COMPLETO (GOD MODE) ===")

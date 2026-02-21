@@ -1,12 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Any, Dict
+from shapely.geometry import LineString
 
 class ContourService:
     """Pure domain service for generating topographic contours."""
     
     @staticmethod
-    def generate_contours(z_grid: np.ndarray, dx: float, dy: float, interval: float = 1.0) -> List[Dict[str, Any]]:
+    def generate_contours(z_grid: np.ndarray, dx: float, dy: float, interval: float = 1.0, tolerance: float = 0.1) -> List[Dict[str, Any]]:
         """
         Generates contour lines (isolines) from elevation grid.
         Returns a list of dicts with 'elevation' and 'points'.
@@ -58,5 +59,11 @@ class ContourService:
                         'is_major': (level % (5 * interval) == 0)
                     })
 
+        for item in results:
+            if tolerance > 0:
+                line = LineString(item['points'])
+                simplified = line.simplify(tolerance, preserve_topology=True)
+                item['points'] = list(simplified.coords)
+        
         plt.close(fig)
         return results
