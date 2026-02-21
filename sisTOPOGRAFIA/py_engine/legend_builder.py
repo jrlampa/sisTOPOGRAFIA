@@ -140,6 +140,9 @@ class LegendBuilder:
                 dxfattribs={'height': 2.5, 'layer': 'TOPO_QUADRO'}
             ).set_placement((start_x + 12, start_y + y_offset - 1))
             y_offset -= 8
+            
+        # Adicionar tabela de geodésia se houver dados
+        self.add_geodetic_control_table()
 
     def add_title_block(self, client: str = "N/A",
                          project: str = "sisTOPOGRAFIA - Engenharia",
@@ -226,3 +229,28 @@ class LegendBuilder:
             layout.add_blockref('LOGO', (cb_x + cb_w - 20, cb_y + cb_h - 10))
         except Exception as e:
             Logger.error(f"Erro ao adicionar bloco LOGO: {e}")
+
+    def add_geodetic_control_table(self) -> None:
+        """Adiciona tabela formal de marcos geodésicos encontrados no Layout."""
+        marcos = self.project_info.get('geodetic_markers', [])
+        if not marcos:
+            return
+
+        layout = self.doc.layout('Layout1')
+        # Posicionar em local padrão (acima do carimbo mas seguro contra Y=0)
+        start_x, start_y = 25 + 5, 50 # Próximo à margem esquerda, altura segura
+        
+        def _text(txt, x, y, h=2.5, bold=False):
+            layout.add_text(txt, dxfattribs={
+                'height': h, 'style': 'PRO_STYLE',
+                'color': 7
+            }).set_placement((x, y))
+
+        _text("TABELA DE CONTROLE GEODÉSICO (IBGE/BDG)", start_x, start_y + 10, 3.0)
+        _text("ID MARCO | LATITUDE      | LONGITUDE     | ALTITUDE (m)", start_x, start_y + 5, 2.0)
+        _text("-" * 60, start_x, start_y + 3, 2.0)
+
+        for i, m in enumerate(marcos[:10]): # Limite de 10 na tabela do layout
+            y = start_y - (i * 4)
+            row = f"{m['id']:<9} | {m['lat']:<13.7f} | {m['lon']:<13.7f} | {m['altitude']:.3f}"
+            _text(row, start_x, y, 2.0)

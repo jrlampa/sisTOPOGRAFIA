@@ -5,6 +5,18 @@ class DXFStyleManager:
     """Manages CAD layers, blocks, and styles to decouple logic from DXFGenerator."""
     
     @staticmethod
+    def _add_geodetic_marker_block(doc):
+        """Bloco técnico para Marco Geodésico (Triângulo + Círculo)."""
+        block = doc.blocks.new(name='TOPO_MARCO_GEODESICO')
+        # Triângulo (base 2m, altura ~1.73m)
+        block.add_lwpolyline([(-1, -0.57), (1, -0.57), (0, 1.15)], close=True, 
+                             dxfattribs={'color': 1})
+        # Círculo central
+        block.add_circle((0, 0), radius=0.3, dxfattribs={'color': 1})
+        # Ponto central
+        block.add_point((0, 0), dxfattribs={'color': 1})
+
+    @staticmethod
     def setup_all(doc, layers_config=None):
         """Initialize all document styles and standards."""
         DXFStyleManager.setup_linetypes(doc)
@@ -69,6 +81,8 @@ class DXFStyleManager:
             ('TOPO_TOPOGRAFIA_CURVAS_TEXTO', 7, 0.15, 'contours'),
             ('TOPO_RISCO_ALTO', 1, 0.35, 'slopeAnalysis'),
             ('TOPO_RISCO_MEDIO', 2, 0.20, 'slopeAnalysis'),
+            ('TOPO_PONTOS_COORD', 1, 0.15, 'geodesy'),
+            ('TOPO_PONTOS_TEXTO', 7, 0.15, 'geodesy'),
         ]
         
         # Standard CAD lineweights mapped (mm to internal int)
@@ -166,6 +180,9 @@ class DXFStyleManager:
             blk.add_text("0", dxfattribs={'height': 1}).set_placement((0, -1.5), align=TextEntityAlignment.CENTER)
             blk.add_text("5m", dxfattribs={'height': 1}).set_placement((5, -1.5), align=TextEntityAlignment.CENTER)
             blk.add_text("10m", dxfattribs={'height': 1}).set_placement((10, -1.5), align=TextEntityAlignment.CENTER)
+
+        # GEODETIC MARKER (Triangle + Circle)
+        DXFStyleManager._add_geodetic_marker_block(doc)
 
     @staticmethod
     def setup_logo(doc):

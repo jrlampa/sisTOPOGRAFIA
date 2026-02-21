@@ -57,4 +57,6 @@ def generate_test_dxf(output_path):
     print(f"Processo concluído. Verifique {output_path} e o arquivo de memorial correspondente.")
 
 if __name__ == "__main__":
-    generate_test_dxf("test_abnt.dxf")
+    out_dir = r"C:\Users\jonat\OneDrive - IM3 Brasil\Teste\sisTOPOGRAFIA"
+    out_file = os.path.join(out_dir, "PROJETO_EXECUTIVO_VILA_NOVA.dxf")
+    generate_test_dxf(out_file)
