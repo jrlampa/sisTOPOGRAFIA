@@ -1,6 +1,6 @@
-import { createCacheKey, getCachedFilename, deleteCachedFilename } from '../services/cacheService.js';
+import { createCacheKey, getCachedFilename, deleteCachedFilename } from '../services/cacheServiceFirestore.js';
 import { createDxfTask } from '../services/cloudTasksService.js';
-import { createJob } from '../services/jobStatusService.js';
+import { createJob } from '../services/jobStatusServiceFirestore.js';
 import fs from 'fs';
 import path from 'path';
 import { logger } from '../utils/logger.js';
@@ -29,7 +29,7 @@ export class GenerateDxfUseCase {
             layers: layers ?? {}
         });
 
-        const cachedFilename = getCachedFilename(cacheKey);
+        const cachedFilename = await getCachedFilename(cacheKey);
         if (cachedFilename) {
             const cachedFilePath = path.join(this.dxfDirectory, cachedFilename);
             if (fs.existsSync(cachedFilePath)) {
@@ -50,7 +50,7 @@ export class GenerateDxfUseCase {
                 };
             }
 
-            deleteCachedFilename(cacheKey);
+            await deleteCachedFilename(cacheKey);
             logger.warn('DXF cache entry missing file', {
                 cacheKey,
                 filename: cachedFilename,
@@ -97,7 +97,7 @@ export class GenerateDxfUseCase {
         const { taskId, alreadyCompleted } = await createDxfTask(pythonTaskArgs);
 
         if (!alreadyCompleted) {
-            createJob(taskId);
+            await createJob(taskId);
         }
 
         const responseStatus = alreadyCompleted ? 'success' : 'queued';

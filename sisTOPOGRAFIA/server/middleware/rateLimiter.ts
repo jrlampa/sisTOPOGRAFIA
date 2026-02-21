@@ -18,7 +18,7 @@ const dxfRateLimiter = rateLimit({
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     keyGenerator,
-    message: { error: 'Too many DXF requests, please try again later.' },
+    message: { error: 'Muitas requisições de DXF. Tente novamente mais tarde.' },
     handler: (req, res, _next, options) => {
         logger.warn('DXF rate limit exceeded', {
             ip: req.ip,
@@ -36,7 +36,7 @@ const generalRateLimiter = rateLimit({
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     keyGenerator,
-    message: { error: 'Too many requests, please try again later.' },
+    message: { error: 'Muitas requisições. Tente novamente mais tarde.' },
     handler: (req, res, _next, options) => {
         logger.warn('Rate limit exceeded', {
             ip: req.ip,

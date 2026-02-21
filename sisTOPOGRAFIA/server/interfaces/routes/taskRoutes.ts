@@ -2,8 +2,8 @@ import { Router, Request, Response } from 'express';
 import { generateDxf } from '../../pythonBridge.js';
 import {
     createJob, updateJobStatus, completeJob, failJob, getJob
-} from '../../services/jobStatusService.js';
-import { setCachedFilename } from '../../services/cacheService.js';
+} from '../../services/jobStatusServiceFirestore.js';
+import { setCachedFilename } from '../../services/cacheServiceFirestore.js';
 import { scheduleDxfDeletion } from '../../services/dxfCleanupService.js';
 import { webhookRateLimiter } from '../../middleware/auth.js';
 import { verifyCloudTasksToken } from '../../middleware/auth.js';
@@ -28,22 +28,22 @@ router.post(
 
             if (!taskId) return res.status(400).json({ error: 'Task ID é obrigatório' });
 
-            updateJobStatus(taskId, 'processing', 10);
+            await updateJobStatus(taskId, 'processing', 10);
             logger.info('Processing DXF generation task', { taskId, lat, lon, radius, mode, cacheKey });
 
             try {
                 await generateDxf({ lat, lon, radius, mode, polygon, layers, projection, outputFile });
 
-                setCachedFilename(cacheKey, filename);
+                await setCachedFilename(cacheKey, filename);
                 scheduleDxfDeletion(outputFile);
-                completeJob(taskId, { url: downloadUrl, filename });
+                await completeJob(taskId, { url: downloadUrl, filename });
 
                 logger.info('DXF generation completed', { taskId, filename, cacheKey });
                 return res.status(200).json({ status: 'success', taskId, url: downloadUrl, filename });
 
             } catch (error: any) {
                 logger.error('DXF generation failed', { taskId, error: error.message, stack: error.stack });
-                failJob(taskId, error.message);
+                await failJob(taskId, error.message);
                 return res.status(500).json({ status: 'failed', taskId, error: error.message });
             }
 
@@ -57,7 +57,7 @@ router.post(
 // GET /api/jobs/:id — Status de processamento assíncrono
 router.get('/jobs/:id', async (req: Request, res: Response) => {
     try {
-        const job = getJob(req.params.id);
+        const job = await getJob(req.params.id);
         if (!job) return res.status(404).json({ error: 'Job não encontrado' });
         return res.json({ id: job.id, status: job.status, progress: job.progress, result: job.result, error: job.error });
     } catch (err: any) {
