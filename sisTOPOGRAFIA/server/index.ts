@@ -16,6 +16,7 @@ import fs from 'fs';
 
 import { logger } from './utils/logger.js';
 import { generalRateLimiter, dxfRateLimiter } from './middleware/rateLimiter.js';
+import { monitoringMiddleware } from './middleware/monitoring.js';
 import { requireAuth, checkQuota } from './middleware/firebaseAuth.js';
 import { GenerateDxfUseCase } from './application/GenerateDxfUseCase.js';
 import { DxfController } from './interfaces/controllers/DxfController.js';
@@ -109,6 +110,7 @@ app.set('trust proxy', 1);
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
 app.use(generalRateLimiter);
+app.use(monitoringMiddleware);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // Request logger

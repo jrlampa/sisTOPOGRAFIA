@@ -107,7 +107,7 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 3. **Raster Satélite:**
    `quota_manager.py` (SQLite) → `google_maps_static.py` → `.png` → `DXFTerrainDrawer.add_raster_overlay()`
 
-## 5. Estado Atual (FASE 20 - Enterprise Hardening & Cobertura de Testes Firestore)
+## 5. Estado Atual (FASE 21 - Performance Monitoring & Rate Limiter 100% Coverage)
 
 ### Concluído:
 - [x] Correção do prefixo `sisTOPO_` em todas as layers (87 testes passando)
@@ -200,9 +200,25 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
     - Timeout de cache e expiração TTL em modo Firestore
     - Erros críticos vs circuit breaker em todos os handlers
   - **Total:** 192 testes Python + 154 testes Node.js passando
+- [x] **FASE 21:** Performance Monitoring & Rate Limiter 100% Coverage
+  - **Novo módulo SRP:** `server/middleware/monitoring.ts` — middleware de monitoramento de performance
+    - Registra método, caminho, status HTTP e duração (ms) de cada requisição via `logger.info`
+    - Emite `logger.warn` para requisições lentas (> 5.000 ms) — sem dependências externas (zero custo)
+    - Responsabilidade única: apenas observação — sem lógica de negócio (SRP)
+    - Registrado globalmente em `server/index.ts` após `generalRateLimiter`
+  - **Rate Limiter testável:** `keyGenerator` exportado de `rateLimiter.ts` como named export
+    - Permite testes diretos da função de geração de chave (IPv4, IPv6, fallback 'unknown')
+  - **Cobertura Backend melhorada:** 96.06% → 97.02% (statements)
+    - `rateLimiter.ts`: 58.33% → 100% (statements + branches + funcs + lines) — handlers e keyGenerator totalmente testados
+    - `monitoring.ts`: Novo módulo — 100% (statements + branches + funcs + lines) desde o primeiro commit
+  - **Novos Testes Backend (7 novos testes):**
+    - `server/tests/rateLimiter.test.ts`: +3 testes diretos de `keyGenerator` (IPv4, IPv6, undefined), +2 testes de handlers (DXF e geral com valores completos)
+    - `server/tests/monitoring.test.ts`: 6 testes (next(), log de conclusão, slow request warn, sem warn rápido, status HTTP, arredondamento)
+  - **Total:** 192 testes Python + 161 testes Node.js passando
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)
+
 
 ## 6. Regras de Desenvolvimento
 
