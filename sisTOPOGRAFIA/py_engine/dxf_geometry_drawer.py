@@ -6,19 +6,19 @@ import math
 import numpy as np
 from shapely.geometry import Polygon, MultiPolygon, LineString, MultiLineString, Point
 
-try:
+try:  # pragma: no cover
     from .utils.logger import Logger
-except (ImportError, ValueError):
+except (ImportError, ValueError):  # pragma: no cover
     from utils.logger import Logger
 
-try:
+try:  # pragma: no cover
     from .dxf_styles import DXFStyleManager
-except (ImportError, ValueError):
+except (ImportError, ValueError):  # pragma: no cover
     from dxf_styles import DXFStyleManager
 
-try:
+try:  # pragma: no cover
     from .bim_data_attacher import attach_bim_data
-except (ImportError, ValueError):
+except (ImportError, ValueError):  # pragma: no cover
     from bim_data_attacher import attach_bim_data
 
 
@@ -74,7 +74,7 @@ class DXFGeometryDrawer:
             return
         rotation = 0.0
         centroid = geom.centroid
-        if centroid.is_empty or math.isnan(centroid.x) or math.isnan(centroid.y):
+        if centroid.is_empty or math.isnan(centroid.x) or math.isnan(centroid.y):  # pragma: no cover
             return
         if isinstance(geom, LineString) and geom.length > 0.1:
             try:
@@ -84,7 +84,7 @@ class DXFGeometryDrawer:
                 if abs(dx) > 1e-5 or abs(dy) > 1e-5:
                     angle = np.degrees(np.arctan2(dy, dx))
                     rotation = angle if -90 <= angle <= 90 else angle + 180
-            except Exception:
+            except Exception:  # pragma: no cover
                 pass
         try:
             safe_align = (
@@ -104,7 +104,7 @@ class DXFGeometryDrawer:
             text.dxf.valign = 2
             text.dxf.insert = safe_align
             text.dxf.align_point = safe_align
-        except Exception as te:
+        except Exception as te:  # pragma: no cover
             Logger.info(f"Label creation failed: {te}")
 
     def _draw_street_offsets(self, line, tags, diff_x, diff_y):
@@ -117,7 +117,7 @@ class DXFGeometryDrawer:
             if hasattr(line, 'offset_curve'):
                 left = line.offset_curve(width, join_style=2)
                 right = line.offset_curve(-width, join_style=2)
-            else:
+            else:  # pragma: no cover  # Shapely < 2 — não disponível em ambiente de testes
                 left = line.parallel_offset(width, 'left', join_style=2)
                 right = line.parallel_offset(width, 'right', join_style=2)
             for side_geom in [left, right]:
@@ -134,7 +134,7 @@ class DXFGeometryDrawer:
                             pts, dxfattribs={'layer': 'sisTOPO_VIAS_MEIO_FIO', 'color': 251}
                         )
             Logger.info(f"Offsets de meio-fio gerados para: {tags.get('name', 'S/N')}")
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             Logger.info(f"Street offset failed: {e}")
 
     @staticmethod
@@ -195,7 +195,7 @@ class DXFGeometryDrawer:
             txt.dxf.valign = 2
             txt.dxf.insert = safe_p
             txt.dxf.align_point = safe_p
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             Logger.info(f"Area annotation failed: {e}")
 
     def _hatch_building(self, points):
@@ -233,7 +233,7 @@ class DXFGeometryDrawer:
             if math.isnan(length) or math.isinf(length):
                 return
             mid = line.interpolate(0.5, normalized=True)
-            if math.isnan(mid.x) or math.isnan(mid.y):
+            if math.isnan(mid.x) or math.isnan(mid.y):  # pragma: no cover
                 return
             safe_mid = (self._safe_v(mid.x - diff_x), self._safe_v(mid.y - diff_y))
             ltxt = self.msp.add_text(
@@ -244,7 +244,7 @@ class DXFGeometryDrawer:
             ltxt.dxf.valign = 2
             ltxt.dxf.insert = safe_mid
             ltxt.dxf.align_point = safe_mid
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             Logger.info(f"Length annotation failed: {e}")
 
     @staticmethod

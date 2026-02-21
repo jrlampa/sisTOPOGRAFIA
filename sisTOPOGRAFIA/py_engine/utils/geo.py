@@ -41,3 +41,16 @@ def validate_coordinates(lat: float, lon: float, radius: float) -> None:
         raise ValueError(f"Raio inválido: {radius!r}. Deve ser > 0.")
     if radius > 10000:
         raise ValueError(f"Raio excessivo: {radius!r}. Máximo permitido: 10000m.")
+
+
+def wgs84_to_utm(lat: float, lon: float) -> tuple:
+    """
+    Converte coordenadas WGS84 (lat, lon) para UTM SIRGAS 2000 (easting, northing).
+    Retorna (easting, northing) em metros no fuso UTM correspondente.
+    Usa pyproj com EPSG SIRGAS 2000 compatível com ABNT NBR 13133.
+    """
+    from pyproj import Transformer
+    epsg = sirgas2000_utm_epsg(lat, lon)
+    transformer = Transformer.from_crs('EPSG:4326', f'EPSG:{epsg}', always_xy=True)
+    easting, northing = transformer.transform(lon, lat)
+    return easting, northing

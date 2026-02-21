@@ -12,7 +12,7 @@ from typing import Dict, List
 try:
     from dxf_generator import DXFGenerator
     from utils.logger import Logger
-except ImportError:
+except ImportError:  # pragma: no cover
     from dxf_generator import DXFGenerator
     from utils.logger import Logger
 

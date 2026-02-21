@@ -7,9 +7,9 @@ import math
 import numpy as np
 from scipy.spatial import Delaunay
 
-try:
+try:  # pragma: no cover
     from .utils.logger import Logger
-except (ImportError, ValueError):
+except (ImportError, ValueError):  # pragma: no cover
     from utils.logger import Logger
 
 

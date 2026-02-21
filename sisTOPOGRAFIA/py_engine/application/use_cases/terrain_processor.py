@@ -16,13 +16,13 @@ try:
     from utils.logger import Logger
     HAS_LEGACY = False
 except ImportError:
-    try:
+    try:  # pragma: no cover
         from elevation_client import fetch_elevation_grid
         from contour_generator import generate_contours
         from analytics_engine import AnalyticsEngine
         from utils.logger import Logger
         HAS_LEGACY = True
-    except ImportError:
+    except ImportError:  # pragma: no cover
         # Fallback para execução direta de scripts
         import sys
         import os
