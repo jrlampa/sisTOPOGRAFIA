@@ -107,7 +107,7 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 3. **Raster Satélite:**
    `quota_manager.py` (SQLite) → `google_maps_static.py` → `.png` → `DXFTerrainDrawer.add_raster_overlay()`
 
-## 5. Estado Atual (FASE 14 - Cobertura de Testes - Camada de Aplicação)
+## 5. Estado Atual (FASE 15 - Enterprise Hardening & Clean Code)
 
 ### Concluído:
 - [x] Correção do prefixo `sisTOPO_` em todas as layers (87 testes passando)
@@ -129,7 +129,11 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
   - `test_cut_fill_optimizer.py` (8 testes): `CutFillOptimizer` com mock da API de elevação
   - Waterway detection testada (APP 30m buffer com GDFs sintéticos projetados)
   - Movido `@testing-library/dom` para `devDependencies` no `package.json`
-  - **Total:** 116 testes Python passando (87 + 21 + 8)
+- [x] **FASE 15:** Enterprise Hardening & Clean Code
+  - **Bug Fix:** Bloco `except Exception` duplicado removido de `dxf_generator.add_geodetic_marker()` (dead code)
+  - **No-Mock Rule:** `EconomicAnalysisUseCase.execute()` — `drain_length` substituído por cálculo derivado de `sqrt(total_volume) * slope_factor`; `solar_avg` lê média real do array numpy de analytics
+  - **Novos Testes:** `test_enterprise_features.py` (16 testes): `EconomicAnalysisUseCase` (10 casos) + `SuggestiveDesignUseCase` (6 casos) com GroqAdapter mockado
+  - **Total:** 132 testes Python passando (116 + 16)
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)

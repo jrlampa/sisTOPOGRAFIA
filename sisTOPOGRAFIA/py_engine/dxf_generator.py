@@ -361,5 +361,3 @@ class DXFGenerator:
                              ).set_placement((lx + 1, ly + 1))
         except Exception as e:
             Logger.warn(f"Erro ao adicionar marco {label}: {e}")
-        except Exception as e:
-            Logger.warn(f"Falha ao gerar memorial: {e}")

@@ -1,3 +1,4 @@
+import numpy as np
 from typing import Dict, Any
 try:
     from ...utils.logger import Logger
@@ -32,19 +33,24 @@ class EconomicAnalysisUseCase:
         fill_cost = fill_vol * self.unit_prices["fill_per_m3"]
         total_earthwork_cost = cut_cost + fill_cost
         
-        # Estimate Drainage Needs (simplified: based on slope > 15%)
-        # Here we mock length based on radius if high slope detected
+        # Estimate Drainage Needs from real slope analytics
+        # Drainage length is proportional to total earthwork volume and slope steepness:
+        # drained perimeter ≈ sqrt(cut_volume + fill_volume) * slope_factor
         slope_avg = analytics.get('slope_avg', 0)
-        drain_length = 0
-        if slope_avg > 15.0:
-            drain_length = 150 # Mock m
+        total_moved = cut_vol + fill_vol
+        slope_factor = max(1.0, slope_avg / 15.0)  # ≥1 when slope ≥ 15%
+        drain_length = round((total_moved ** 0.5) * slope_factor, 2) if total_moved > 0 else 0.0
         drain_cost = drain_length * self.unit_prices["drain_per_m"]
 
         total_project_cost = total_earthwork_cost + drain_cost
 
-        # Solar ROI (Simple payback estimate)
-        solar_avg = analytics.get('solar_avg', 0)
-        potential_savings = solar_avg * 1000 * self.unit_prices["solar_roi_factor"] # Mock logic
+        # Solar ROI — based on solar analytics array average when available
+        solar_raw = analytics.get('solar')
+        if solar_raw is not None and hasattr(solar_raw, '__len__') and len(solar_raw) > 0:
+            solar_avg = float(np.mean(solar_raw))
+        else:
+            solar_avg = float(analytics.get('solar_avg', 0))
+        potential_savings = solar_avg * 1000 * self.unit_prices["solar_roi_factor"]
 
         return {
             "currency": "BRL",
