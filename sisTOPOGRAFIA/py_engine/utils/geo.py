@@ -25,3 +25,19 @@ def sirgas2000_utm_epsg(latitude: float, longitude: float) -> int:
         # SIRGAS 2000 / UTM zone 18S (31978) to 25S (31985)
         # Formula: 31960 + zone. Zone 23S -> 31960 + 23 = 31983.
         return 31960 + zone
+
+
+def validate_coordinates(lat: float, lon: float, radius: float) -> None:
+    """
+    Valida entradas de coordenadas e raio antes do processamento.
+    Lança ValueError com mensagem descritiva em caso de entrada inválida.
+    Esta função é a linha de defesa do motor Python contra dados não sanitizados.
+    """
+    if not math.isfinite(lat) or not (-90 <= lat <= 90):
+        raise ValueError(f"Latitude inválida: {lat!r}. Esperado: -90 a 90.")
+    if not math.isfinite(lon) or not (-180 <= lon <= 180):
+        raise ValueError(f"Longitude inválida: {lon!r}. Esperado: -180 a 180.")
+    if not math.isfinite(radius) or radius <= 0:
+        raise ValueError(f"Raio inválido: {radius!r}. Deve ser > 0.")
+    if radius > 10000:
+        raise ValueError(f"Raio excessivo: {radius!r}. Máximo permitido: 10000m.")

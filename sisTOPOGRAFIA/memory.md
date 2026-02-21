@@ -107,7 +107,7 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 3. **Raster Satélite:**
    `quota_manager.py` (SQLite) → `google_maps_static.py` → `.png` → `DXFTerrainDrawer.add_raster_overlay()`
 
-## 5. Estado Atual (FASE 15 - Enterprise Hardening & Clean Code)
+## 5. Estado Atual (FASE 16 - Cobertura de Testes & Sanitização de Entradas)
 
 ### Concluído:
 - [x] Correção do prefixo `sisTOPO_` em todas as layers (87 testes passando)
@@ -134,6 +134,19 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
   - **No-Mock Rule:** `EconomicAnalysisUseCase.execute()` — `drain_length` substituído por cálculo derivado de `sqrt(total_volume) * slope_factor`; `solar_avg` lê média real do array numpy de analytics
   - **Novos Testes:** `test_enterprise_features.py` (16 testes): `EconomicAnalysisUseCase` (10 casos) + `SuggestiveDesignUseCase` (6 casos) com GroqAdapter mockado
   - **Total:** 132 testes Python passando (116 + 16)
+- [x] **FASE 16:** Cobertura de Testes Backend & Sanitização de Entradas
+  - **Sanitização Python:** `validate_coordinates()` adicionada em `utils/geo.py` — valida lat, lon, raio contra NaN, Inf e limites geográficos
+  - **Integração:** `controller.py` chama `validate_coordinates()` no `__init__` antes de qualquer processamento
+  - **Novos Testes Python:** `test_input_sanitization.py` (29 testes): `validate_coordinates`, `utm_zone`, `sirgas2000_utm_epsg`
+  - **Novos Testes Backend:** `server/tests/jobStatusService.test.ts` (17 testes): ciclo completo de jobs
+  - **Novos Testes Backend:** `server/tests/dxfCleanupService.test.ts` (8 testes): agendamento e limpeza de DXF
+  - **Ampliação:** `server/tests/elevationService.test.ts` +9 testes incluindo mock de fetch e fallback de terreno plano
+  - **Cobertura Backend melhorada:** 62.92% → 83.17% (statements)
+    - `elevationService.ts`: 34.48% → 100%
+    - `jobStatusService.ts`: 26.92% → 88.46%
+    - `dxfCleanupService.ts`: 34.21% → 71.05%
+  - **Gitignore:** Removidos do tracking arquivos de debug/diagnóstico (debug_*.py, audit_*.txt, *.db) seguindo regras existentes
+  - **Total:** 161 testes Python + 79 testes Node.js passando
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)

@@ -11,7 +11,7 @@ from typing import Dict, Optional
 from spatial_audit import run_spatial_audit
 from analytics_engine import AnalyticsEngine
 from utils.logger import Logger
-from utils.geo import sirgas2000_utm_epsg
+from utils.geo import sirgas2000_utm_epsg, validate_coordinates
 from application.use_cases.osm_fetcher import OsmFetcherUseCase
 from application.use_cases.environmental_extractor import EnvironmentalExtractorUseCase
 from application.use_cases.terrain_processor import TerrainProcessorUseCase
@@ -30,6 +30,7 @@ class OSMController:
     def __init__(self, lat: float, lon: float, radius: float, output_file: str,
                  layers_config: Dict, crs: str, export_format: str = 'dxf',
                  selection_mode: str = 'circle', polygon=None):
+        validate_coordinates(lat, lon, radius)
         self.lat = lat
         self.lon = lon
         self.radius = radius
