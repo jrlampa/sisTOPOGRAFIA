@@ -112,14 +112,18 @@ package-lock.json.backup
 package.json.backup
 
 # Scripts de debug e diagnóstico (movidos para docs/scripts ou removidos)
-py_engine/debug_import.py
-py_engine/debug_integration.py
-py_engine/debug_labels.py
+py_engine/debug_*.py
 py_engine/live_test_generator.py
 py_engine/reproduce_dxf_error.py
 py_engine/analyze_pad.py
 py_engine/verify_polygon.py
 py_engine/run_user_test.py
+
+# Arquivos de resultado de auditoria e diagnóstico
+py_engine/.audit_*.txt
+py_engine/.b2_result.txt
+py_engine/.final_result.txt
+ts_errors.txt
 
 # Logs de engine
 engine_check.log
