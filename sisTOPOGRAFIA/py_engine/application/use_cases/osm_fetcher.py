@@ -60,7 +60,15 @@ class OsmFetcherUseCase:
                     tags['highway'] = current_hw
                 else:
                     tags['highway'] = ['street_lamp']
-                    
+
+        if self.layers_config.get('equipment', False):
+            tags['leisure'] = ['park', 'playground', 'sports_centre', 'pitch', 'garden']
+            tags['man_made'] = ['tower', 'water_tower', 'chimney', 'flagpole', 'reservoir_covered']
+
+        if self.layers_config.get('infrastructure', False):
+            tags['power'] = ['line', 'tower', 'substation', 'pole', 'cable']
+            tags['telecom'] = True
+
         return tags
 
     def fetch(self, tags: Dict) -> Optional[gpd.GeoDataFrame]:

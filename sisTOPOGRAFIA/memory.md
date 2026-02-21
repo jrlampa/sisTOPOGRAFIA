@@ -107,7 +107,7 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 3. **Raster Satélite:**
    `quota_manager.py` (SQLite) → `google_maps_static.py` → `.png` → `DXFTerrainDrawer.add_raster_overlay()`
 
-## 5. Estado Atual (FASE 16 - Cobertura de Testes & Sanitização de Entradas)
+## 5. Estado Atual (FASE 17 - Cache OSM & Feature Completeness)
 
 ### Concluído:
 - [x] Correção do prefixo `sisTOPO_` em todas as layers (87 testes passando)
@@ -147,10 +147,24 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
     - `dxfCleanupService.ts`: 34.21% → 71.05%
   - **Gitignore:** Removidos do tracking arquivos de debug/diagnóstico (debug_*.py, audit_*.txt, *.db) seguindo regras existentes
   - **Total:** 161 testes Python + 79 testes Node.js passando
+- [x] **FASE 17:** Cache OSM & Feature Completeness
+  - **Cache OSM em memória:** `osmnx_client.py` agora implementa cache TTL (1 hora) baseado em SHA-256 dos parâmetros. Zero custo — sem dependências externas. Evita chamadas redundantes à API OSMNx.
+    - `_cache_key()`: gera chave determinística por lat/lon/radius/tags/polygon
+    - `_get_cached()` / `_set_cache()`: get/set com validação de TTL
+    - `clear_osm_cache()`: limpeza explícita (testes e rotação)
+  - **Feature Completeness — `OsmFetcherUseCase.build_tags()`:**
+    - Adicionado suporte à config `equipment` → tags OSM: `leisure`, `man_made`
+    - Adicionado suporte à config `infrastructure` → tags OSM: `power`, `telecom`
+    - Alinhamento completo com `layer_classifier.py` (sisTOPO_EQUIPAMENTOS, INFRA_POWER_*, INFRA_TELECOM)
+    - `controller._normalize_layers_config(cadastral=True)` já normalizava para `equipment=True`; agora build_tags() consome corretamente
+  - **Novos Testes Python:** `test_fase17_osm_cache.py` (19 testes):
+    - `TestOsmCache` (9 testes): cache key, miss, set/get, TTL expirado, clear, integração com fetch
+    - `TestOsmFetcherEquipmentTags` (10 testes): equipment, infrastructure, combinado, alias cadastral
+  - **Total:** 180 testes Python passando
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)
-- [ ] Implementação completa de Waterway detection via OSMNx (build_tags testado; fetch mockado)
+- [ ] Cache persistente (Redis / disco) para ambiente multi-processo (Cloud Run)
 
 ## 6. Regras de Desenvolvimento
 
