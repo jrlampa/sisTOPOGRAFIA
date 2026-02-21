@@ -57,6 +57,8 @@ O sistema segue conceitos de **Clean Architecture** e **DDD (Domain-Driven Desig
   - Decimal: `-22.15018, -42.92185` (raio ~500m e 1km)
 - **Docker First:** Infraestrutura pronta para Cloud Run.
 - **Limite de Linhas:** Arquivos > 500 linhas DEVEM ser modularizados. Usar SRP.
+- **ANEEL/PRODIST:** Quando infraestrutura elétrica detectada (`infrastructure: true` + OSM `power` tags), `AneelProdistRules.generate_faixas_servid()` gera buffers de faixa de servidão no DXF. Normas ABNT são substituídas pelas normas da concessionária. Toast explícito é exibido no frontend via `CustomEvent('aneel-prodist-applied')`. Referência: PRODIST Módulo 3 §6.4.
+- **Cobertura Mínima:** >= 80% em todas as camadas (Python, Node.js, Frontend).
 
 ## 3. Convenção de Layers DXF (sisTOPO_)
 
@@ -83,6 +85,9 @@ sisTOPO_UC_MUNICIPAL        # Unidade de Conservação Municipal
 sisTOPO_INFRA_POWER_HV      # Infraestrutura elétrica alta tensão
 sisTOPO_INFRA_POWER_LV      # Infraestrutura elétrica baixa tensão
 sisTOPO_INFRA_TELECOM       # Infraestrutura de telecomunicações
+sisTOPO_PRODIST_FAIXA_HV    # Faixa de Servidão PRODIST AT (≥69kV, buffer 15m/lado)
+sisTOPO_PRODIST_FAIXA_MT    # Faixa de Servidão PRODIST MT (buffer 8m/lado)
+sisTOPO_PRODIST_FAIXA_BT    # Faixa de Servidão PRODIST BT (<13,8kV, buffer 2m/lado)
 sisTOPO_TEXTO               # Textos / rótulos
 sisTOPO_ANNOT_AREA          # Anotações de área (m²)
 sisTOPO_ANNOT_LENGTH        # Anotações de comprimento (m)
@@ -570,3 +575,29 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
 - **Responsabilidade:** Propor soluções inovadoras, pesquisar novas APIs gratuitas, prototipar ideias experimentais.
 - **Foco:** OSM features não exploradas, integrações criativas (IBGE, INEA, ICMBio), otimizações não óbvias.
 - **Regra:** Toda proposta deve ser Zero Cost e não quebrar os testes existentes.
+
+- [x] **FASE 38:** ANEEL/PRODIST — Faixa de Servidão Elétrica + Toast de Norma da Concessionária
+  - **Problema:** Enunciado exige "Aplicar regras ANEEL/PRODIST; quando houver implantação de normas da concessionária, ignorar ABNT com toast explícito."
+  - **Novos arquivos:**
+    - `py_engine/domain/services/aneel_prodist_rules.py`: Serviço `AneelProdistRules` — `has_power_infrastructure(gdf)` + `generate_faixas_servid(gdf)`. Gera buffers de faixa de servidão por lado conforme PRODIST Módulo 3 §6.4:
+      - Alta Tensão (≥ 69 kV, power=line/tower/substation): **15 m** por lado
+      - Média Tensão (polo, transformador etc.): **8 m** por lado
+      - Baixa Tensão (minor_line, cable): **2 m** por lado
+    - `py_engine/tests/test_aneel_prodist_rules.py`: **25 testes** (has_power_infrastructure, generate_faixas_servid, distâncias, CRS reprojection, geometria vazia, tipos mistos)
+  - **Arquivos modificados:**
+    - `py_engine/constants.py` — 9 novas constantes (3 buffer + 3 nomes de layer + comentário de referência PRODIST)
+    - `py_engine/layer_classifier.py` — LAYER_NAMES: +3 chaves PRODIST; `classify_layer()`: +9 linhas para regra 1.5 (prodist_type → layer PRODIST)
+    - `py_engine/dxf_styles.py` — 3 novas layers DXF PRODIST (sisTOPO_PRODIST_FAIXA_HV/MT/BT, cores 1/3/2, lineweights 0.25/0.20/0.15 mm)
+    - `py_engine/controller.py` — Passo 3.6: chama `AneelProdistRules` quando `infrastructure=true` e infraestrutura elétrica detectada; adiciona faixas ao DXF; sinaliza `_concessionaria_rules_applied=True` no payload GeoJSON
+    - `src/utils/geo.ts` — `osmToGeoJSON()`: detecta `el.tags?.power` → dispara `CustomEvent('aneel-prodist-applied')` com deduplicação via `window.__prodist_toasted`
+    - `src/App.tsx` — `useEffect` ouve `'aneel-prodist-applied'` → `showToast('⚡ Normas ANEEL/PRODIST aplicadas — padrões ABNT ignorados para infraestrutura elétrica.', 'info')`
+    - `tests/utils/geo.test.ts` — +2 testes: dispatch do evento com power=line e deduplicação; sem evento para elementos sem `power`
+  - **Fluxo completo:**
+    1. Usuário analisa área com infraestrutura elétrica (OSM `power` tags)
+    2. `osmToGeoJSON()` detecta → dispara `'aneel-prodist-applied'`
+    3. App.tsx exibe toast informativo (ABNT ignorada, PRODIST aplicada)
+    4. Ao gerar DXF: controller detecta `power` features → gera buffers de faixa de servidão → adiciona layers PRODIST ao DXF; flag incluída no preview GeoJSON
+  - Code review: 5 comentários; 4 endereçados (docstring clarificada, comentário MT, gramática, docstring de teste)
+  - CodeQL: 0 alertas ✅
+  - **Total:** 283 Python + 203 Node.js + 229 frontend = **715 total** 🏆
+  - Coordenadas de teste: `-22.15018, -42.92185` com raio 100m/500m/1km — áreas com infraestrutura elétrica ativam o toast automaticamente

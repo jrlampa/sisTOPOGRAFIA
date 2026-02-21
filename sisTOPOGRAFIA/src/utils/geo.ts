@@ -74,6 +74,12 @@ export const osmToGeoJSON = (elements: any[] | null): any => {
       }
     }
 
+    // ANEEL/PRODIST: detectar infraestrutura elétrica → normas ABNT substituídas pela concessionária
+    if (el.tags?.power && !(window as any).__prodist_toasted) {
+      (window as any).__prodist_toasted = true;
+      window.dispatchEvent(new CustomEvent('aneel-prodist-applied'));
+    }
+
     return {
       type: 'Feature',
       properties: el.tags || {},

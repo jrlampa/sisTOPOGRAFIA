@@ -114,6 +114,49 @@ describe('osmToGeoJSON', () => {
 
     window.removeEventListener('uc-detected', handler);
   });
+
+  it('deve disparar evento aneel-prodist-applied quando elemento tem tag power', () => {
+    const dispatched: Event[] = [];
+    const handler = (e: Event) => dispatched.push(e);
+    window.addEventListener('aneel-prodist-applied', handler);
+
+    // Reset deduplication flag between test runs
+    (window as any).__prodist_toasted = undefined;
+
+    const elements = [
+      { type: 'way', id: 200, geometry: [{ lat: -22.15, lon: -42.92 }, { lat: -22.14, lon: -42.91 }],
+        tags: { power: 'line' } }
+    ];
+
+    osmToGeoJSON(elements);
+
+    expect(dispatched).toHaveLength(1);
+
+    // Second call: deduplication should prevent a second event
+    dispatched.length = 0;
+    osmToGeoJSON(elements);
+    expect(dispatched).toHaveLength(0);
+
+    window.removeEventListener('aneel-prodist-applied', handler);
+  });
+
+  it('não deve disparar aneel-prodist-applied para elementos sem tag power', () => {
+    const dispatched: Event[] = [];
+    const handler = (e: Event) => dispatched.push(e);
+    window.addEventListener('aneel-prodist-applied', handler);
+
+    (window as any).__prodist_toasted = undefined;
+
+    const elements = [
+      { type: 'node', id: 300, lat: -22.15, lon: -42.92, tags: { building: 'yes' } }
+    ];
+
+    osmToGeoJSON(elements);
+
+    expect(dispatched).toHaveLength(0);
+
+    window.removeEventListener('aneel-prodist-applied', handler);
+  });
 });
 
 describe('parseUtmQuery', () => {
