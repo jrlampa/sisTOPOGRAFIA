@@ -3,6 +3,7 @@ controller.py — Orquestrador OSM2DXF (DDD Application Layer)
 Responsabilidade única: coordenar o fluxo entre use cases.
 Toda lógica de domínio reside nos use cases em application/use_cases/.
 """
+import math
 import json
 import geopandas as gpd
 from typing import Dict, Optional
@@ -16,6 +17,8 @@ from application.use_cases.environmental_extractor import EnvironmentalExtractor
 from application.use_cases.terrain_processor import TerrainProcessorUseCase
 from application.use_cases.cad_exporter import CadExporterUseCase
 from application.use_cases.report_orchestrator import ReportOrchestratorUseCase
+from infrastructure.external_api.ibge_adapter import IBGEAdapter
+from infrastructure.external_api.incra_adapter import INCRAAdapter
 
 
 class OSMController:
@@ -38,6 +41,8 @@ class OSMController:
         self.polygon = polygon
         self.project_metadata = {'client': 'CLIENTE PADRÃO', 'project': 'EXTRAÇÃO ESPACIAL'}
         self.audit_summary: Dict = {'violations': 0, 'coverageScore': 0}
+        self._uc_metadata: Dict = {}
+        self._geodetic_features: list = []
 
     # ── Main pipeline ─────────────────────────────────────────────────────────
 
@@ -70,6 +75,25 @@ class OSMController:
         dxf_gen = cad.initialize_dxf(use_georef)
         dxf_gen.add_features(gdf)
 
+        # 3.5 Calcular Geometria para Memorial
+        if self.selection_mode == 'circle':
+            area = math.pi * (self.radius ** 2)
+            perimeter = 2 * math.pi * self.radius
+            # Vértices aproximados para o memorial se for círculo
+            dxf_gen.project_info['vertices'] = [
+                (self.lon, self.lat + 0.0001, 0, "P1"),
+                (self.lon + 0.0001, self.lat, 0, "P2"),
+                (self.lon, self.lat - 0.0001, 0, "P3"),
+                (self.lon - 0.0001, self.lat, 0, "P4")
+            ]
+        else:
+            area = 0.0
+            perimeter = 0.0
+            
+        dxf_gen.project_info['total_area'] = area
+        dxf_gen.project_info['perimeter'] = perimeter
+        dxf_gen.project_info.update(self.project_metadata)
+
         # 4. Extração ambiental (APP / Uso do Solo / UCs)
         env_result = {'app_gdf': None, 'landuse_gdf': None, 'uc_gdf': None}
         if any(self.layers_config.get(k, False) for k in ('app', 'landuse', 'uc')):
@@ -84,7 +108,11 @@ class OSMController:
         else:
             self._uc_metadata = {}
 
-        # 5. Preview GeoJSON
+        # 5. Geodésia Oficial (IBGE/INCRA) - Antes do preview para aparecer no mapa
+        if self.layers_config.get('geodesy', True):
+            self._fetch_geodetic_data(dxf_gen)
+
+        # 6. Preview GeoJSON
         self._send_geojson_preview(gdf, analysis_gdf, **{
             k: env_result[k] for k in ('app_gdf', 'landuse_gdf', 'uc_gdf')
         })
@@ -108,12 +136,12 @@ class OSMController:
         if self.layers_config.get('satellite', False):
             cad.add_satellite_overlay(dxf_gen)
 
-        # 9. Salvar DXF + CSV
+        # 10. Salvar DXF + CSV
         Logger.info("5/5: Finalizando exportação...", progress=90)
         dxf_gen.save()
         cad.export_csv_metadata(gdf)
 
-        # 10. Relatório PDF
+        # 11. Relatório PDF
         report = ReportOrchestratorUseCase(
             self.output_file, self.project_metadata, self.lat, self.lon
         )
@@ -184,9 +212,40 @@ class OSMController:
                     f['properties']['landuse'] = 'conservation_unit'
                 payload['features'].extend(feats)
 
+            # 4. Geodésia (Marcos e INCRA)
+            if hasattr(self, '_geodetic_features'):
+                payload['features'].extend(self._geodetic_features)
+
             payload['audit_summary'] = self.audit_summary
             if getattr(self, '_uc_metadata', None):
                 payload['uc_metadata'] = self._uc_metadata
             Logger.geojson(payload)
         except Exception as e:
             Logger.error(f"Erro no preview GeoJSON: {str(e)}")
+
+    def _fetch_geodetic_data(self, dxf_gen) -> None:
+        """Busca marcos geodésicos e dados SIGEF via adaptadores."""
+        Logger.info("Buscando marcos geodésicos oficiais (IBGE)...")
+        # Criar BBOX aproximado (raio de ~5km para marcos)
+        delta = 0.05 
+        bbox = [self.lat - delta, self.lon - delta, self.lat + delta, self.lon + delta]
+        
+        self._geodetic_features = []
+        marcos = IBGEAdapter.get_stations_nearby(*bbox)
+        if marcos:
+            dxf_gen.project_info['geodetic_markers'] = marcos
+            for m in marcos:
+                dxf_gen.add_geodetic_marker(
+                    m['lat'], m['lon'], m['altitude'], f"IBGE-{m['id']}"
+                )
+                self._geodetic_features.append({
+                    "type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [m['lon'], m['lat']]},
+                    "properties": {"name": f"IBGE-{m['id']}", "altitude": m['altitude'], "is_geodesy": True}
+                })
+
+        if self.layers_config.get('incra', False):
+            Logger.info("Buscando parcelas certificadas (INCRA SIGEF)...")
+            parcelas = INCRAAdapter.get_parcels_nearby(*bbox)
+            dxf_gen.project_info['incra_parcels'] = parcelas
+            # Convert simple parcel list if possible or just log metadata

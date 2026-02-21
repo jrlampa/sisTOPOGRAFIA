@@ -61,8 +61,8 @@ class ReportOrchestratorUseCase:
                 'total_building_area': float(gdf[gdf['building'].notna()].geometry.area.sum()) if 'building' in gdf.columns else 0.0,
                 'avg_solar': float(analytics_res['solar'].mean()) if analytics_res and 'solar' in analytics_res else 0.72,
                 'max_flow': float(analytics_res['hydrology'].max()) if analytics_res and 'hydrology' in analytics_res else 0.0,
-                'cut_volume': float(analytics_res['earthwork']['cut_volume']) if analytics_res else 0.0,
-                'fill_volume': float(analytics_res['earthwork']['fill_volume']) if analytics_res else 0.0,
+                'cut_volume': float(analytics_res['earthwork']['cut_volume']) if analytics_res and 'earthwork' in analytics_res else 0.0,
+                'fill_volume': float(analytics_res['earthwork']['fill_volume']) if analytics_res and 'earthwork' in analytics_res else 0.0,
             }
         }
 
