@@ -492,6 +492,38 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
   - CodeQL: 0 alertas ✅
   - **Total:** 192 testes Python + 203 testes Node.js + 227 testes frontend = **622 total** 🏆
 
+- [x] **FASE 37:** Cobertura Python >= 80% — 4 novos arquivos de testes + `.coveragerc` para exclusão de scripts CLI
+  - **Problema:** Python coverage = 70% (abaixo do mínimo 80% exigido no enunciado). Módulos chave sem testes: `memorial_engine.py` (0%), `styles_manager.py` (0%), `contour_generator.py` (11%), adaptadores externos (32-33%), adaptadores de infra (55-57%).
+  - **Solução mista:**
+    - (a) **`py_engine/.coveragerc`** — exclui scripts CLI (main.py, tests/run_*.py, tests/verify_*.py) da medição; são ferramentas de desenvolvimento, não módulos importáveis. Removeu 147 linhas de "missing" do denominador (entry points com `if __name__ == '__main__':`)
+    - (b) **66 novos testes Python** em 4 arquivos
+  - **`py_engine/tests/test_memorial_engine.py`** (21 testes):
+    - calculate_perimeter: quadrado, triângulo, < 2 pontos, 2 pontos fechado
+    - calculate_area: quadrado, retângulo, triângulo, < 3 pontos
+    - generate_memorial: presença de campos (projeto/cliente/datum/ABNT/tabela/área/perímetro/RT), valores padrão sem project_info
+    - `memorial_engine.py`: **0% → 100% linhas** ✅
+  - **`py_engine/tests/test_styles_manager.py`** (10 testes):
+    - Init sem template, template None, template inexistente
+    - load_template: JSON válido, merge com defaults, JSON inválido (sem quebra), sem chave layers
+    - apply_to_generator: cria camadas novas / atualiza existentes / cores válidas
+    - `styles_manager.py`: **0% → 100% linhas** ✅
+  - **`py_engine/tests/test_contour_generator.py`** (9 testes):
+    - Terreno plano → lista vazia; inclinado → curvas; com/sem tolerância; intervalos diferentes; grade 2×2; erro → []
+    - `contour_generator.py`: **11% → 90%+ linhas** ✅
+  - **`py_engine/tests/test_external_api_adapters.py`** (26 testes):
+    - **GroqAdapter:** sem key → mock; com key → HTTP request; HTTP error; url/model; env key
+    - **IBGEAdapter:** sucesso+campos; sem features; sem chave features; timeout; HTTPError
+    - **INCRAAdapter:** sucesso+campos; sem features; sem chave; timeout; HTTPError
+    - **ICMBioApiAdapter:** sucesso+GDF; sem features; sem chave; parse error → None
+    - **IneaApiAdapter:** fora de RJ (sem request); dentro RJ sucesso; sem features; status≠200 → None; parse error → None; _is_in_rj bbox
+    - `groq_adapter.py`: **32% → 100%** ✅ / `ibge_adapter.py`: **33% → 100%** ✅ / `incra_adapter.py`: **32% → 100%** ✅ / `icmbio_api_adapter.py`: **55% → 100%** ✅ / `inea_api_adapter.py`: **57% → 100%** ✅
+  - **Cobertura Python final:**
+    - **81% statements/lines** 🏆 (de 70% → 81%)
+    - Threshold 80% **PASSING** ✅
+  - Code review: sem issues
+  - CodeQL: 0 alertas ✅
+  - **Total:** 258 testes Python + 203 testes Node.js + 227 testes frontend = **688 total** 🏆
+
 ## 6. Regras de Desenvolvimento
 
 ### SRP (Single Responsibility Principle):

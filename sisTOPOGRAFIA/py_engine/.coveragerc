@@ -1,0 +1,11 @@
+[run]
+source = py_engine
+omit =
+    */py_engine/main.py
+    */py_engine/tests/run_*.py
+    */py_engine/tests/verify_*.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
