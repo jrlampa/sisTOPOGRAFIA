@@ -316,6 +316,31 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
     - `dxfCleanupService.ts`: 94.73% → **97.36%** (linhas 87 e outras agora cobertas; linha 83 [guard interno não exportado] é dead code aceitável)
   - **Cobertura Backend geral:** 98.27% → **99.13% statements / 99.64% lines** 🏆
   - **Total:** 192 testes Python + 200 testes Node.js + 52 testes frontend passando
+- [x] **FASE 29:** Cobertura de Testes Frontend — ElevationService, Logger, Geo UC Metadata
+  - **`tests/services/elevationService.test.ts`** — 6 novos testes (de 1 → 7):
+    - `fetchElevationGrid` com `gridSize ≤ MAX_GRID_SIZE` (sem clamping, grade 2D correta, `Logger.info` chamado)
+    - `fetchElevationGrid` com HTTP response não-ok → grade plana fallback (catch block)
+    - `fetchElevationGrid` com dados inválidos (tamanho errado) → grade plana fallback
+    - `fetchElevationGrid` com fetch que lança exceção → grade plana fallback
+    - `fetchElevationProfile` — sucesso: verifica endpoint `/api/elevation/profile` e dados retornados
+    - `fetchElevationProfile` — erro HTTP e exceção → retorna `[]`
+    - `elevationService.ts`: 69.29% → **100% statements + 100% lines** ✅
+  - **`tests/utils/logger.test.ts`** — 6 novos testes:
+    - `console.error` chamado para level `error` (com `NODE_ENV=development`)
+    - `console.warn` chamado para level `warn` (com `NODE_ENV=development`)
+    - `console.log` chamado para level `info` (com `NODE_ENV=development`)
+    - `data` passada como terceiro argumento quando definida
+    - `console.log` chamado sem terceiro arg quando `data=undefined`
+    - `debug` em `NODE_ENV=development` → entry armazenado (linhas 67-68)
+    - `debug` em `NODE_ENV=production` → nenhuma entry armazenada
+    - `logger.ts`: 82.95% → **97.72% statements** (linhas 15-16 [catch de process.env] são dead code defensivo)
+  - **`tests/utils/geo.test.ts`** — 1 novo teste:
+    - Elemento OSM com `is_uc=yes` e `sisTOPO_type` → dispara `CustomEvent('uc-detected')` via `window.dispatchEvent()`
+    - Segunda chamada com mesmo nome → **não** dispara (deduplicação por `__uc_toasted` Set)
+    - Cobre linhas 61-72 de `geo.ts`
+    - `geo.ts`: 87.05% → **100% lines** ✅
+  - **Cobertura Frontend geral:** melhorada significativamente (+15 testes)
+  - **Total:** 192 testes Python + 200 testes Node.js + 67 testes frontend passando 🏆
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)

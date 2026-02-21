@@ -79,6 +79,41 @@ describe('osmToGeoJSON', () => {
     const result = osmToGeoJSON(elements);
     expect(result.features[0].properties).toEqual({});
   });
+
+  it('deve disparar evento uc-detected para elementos com tag is_uc (linhas 61-72)', () => {
+    // Arrange: element with UC metadata triggers CustomEvent dispatch
+    const dispatched: Event[] = [];
+    const handler = (e: Event) => dispatched.push(e);
+    window.addEventListener('uc-detected', handler);
+
+    // Clear any previous uc_toasted set from other tests
+    (window as any).__uc_toasted = undefined;
+
+    const elements: OsmElement[] = [
+      {
+        type: 'node',
+        id: 999,
+        lat: -22.15,
+        lon: -42.92,
+        tags: { is_uc: 'yes', sisTOPO_type: 'UC_Estadual', name: 'Parque Teste' }
+      }
+    ];
+
+    osmToGeoJSON(elements);
+
+    // Should have fired one uc-detected event
+    expect(dispatched).toHaveLength(1);
+    const detail = (dispatched[0] as CustomEvent).detail;
+    expect(detail.name).toBe('Parque Teste');
+    expect(detail.type).toBe('UC_Estadual');
+
+    // Second call with same name: should NOT dispatch again (deduplication via __uc_toasted)
+    dispatched.length = 0;
+    osmToGeoJSON(elements);
+    expect(dispatched).toHaveLength(0);
+
+    window.removeEventListener('uc-detected', handler);
+  });
 });
 
 describe('parseUtmQuery', () => {
