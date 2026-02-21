@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { dxfRateLimiter, generalRateLimiter } from '../middleware/rateLimiter';
+import { dxfRateLimiter, generalRateLimiter, keyGenerator } from '../middleware/rateLimiter';
 
 // Mock logger
 jest.mock('../utils/logger', () => ({
@@ -11,8 +11,25 @@ jest.mock('../utils/logger', () => ({
     }
 }));
 
+// Mock express-rate-limit to expose ipKeyGenerator and capture options
+jest.mock('express-rate-limit', () => {
+    const ipKeyGeneratorMock = jest.fn((ip: string) => ip);
+    const rateLimitMock = jest.fn((options: any) => {
+        const middleware = jest.fn();
+        (middleware as any).options = options;
+        return middleware;
+    });
+    (rateLimitMock as any).ipKeyGenerator = ipKeyGeneratorMock;
+    return {
+        __esModule: true,
+        default: rateLimitMock,
+        ipKeyGenerator: ipKeyGeneratorMock
+    };
+});
+
 // Import after mock so jest.mock is hoisted correctly
 import { logger } from '../utils/logger';
+import { ipKeyGenerator } from 'express-rate-limit';
 
 const mockRes = (): Partial<Response> => {
     const res: Partial<Response> = {};
@@ -22,6 +39,33 @@ const mockRes = (): Partial<Response> => {
 };
 
 describe('Rate Limiter Middleware', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    describe('keyGenerator', () => {
+        it('deve gerar chave com IPv4', () => {
+            const req = { ip: '192.168.1.100' } as unknown as Request;
+            const key = keyGenerator(req);
+            expect(ipKeyGenerator).toHaveBeenCalledWith('192.168.1.100');
+            expect(key).toBe('192.168.1.100');
+        });
+
+        it('deve gerar chave com IPv6', () => {
+            const req = { ip: '2001:db8::1' } as unknown as Request;
+            const key = keyGenerator(req);
+            expect(ipKeyGenerator).toHaveBeenCalledWith('2001:db8::1');
+            expect(key).toBe('2001:db8::1');
+        });
+
+        it('deve usar fallback "unknown" quando IP é undefined', () => {
+            const req = { ip: undefined } as unknown as Request;
+            const key = keyGenerator(req);
+            expect(ipKeyGenerator).toHaveBeenCalledWith('unknown');
+            expect(key).toBe('unknown');
+        });
+    });
+
     describe('Rate Limiter Configuration', () => {
         it('should export dxfRateLimiter', () => {
             expect(dxfRateLimiter).toBeDefined();
@@ -33,48 +77,17 @@ describe('Rate Limiter Middleware', () => {
             expect(typeof generalRateLimiter).toBe('function');
         });
 
-        it('should handle IPv4 addresses', () => {
-            const mockReq = {
-                ip: '192.168.1.100',
-                headers: {}
-            } as unknown as Request;
-
-            expect(dxfRateLimiter).toBeDefined();
-            expect(generalRateLimiter).toBeDefined();
-        });
-
-        it('should handle IPv6 addresses', () => {
-            const mockReq = {
-                ip: '2001:0db8:85a3:0000:0000:8a2e:0370:7334',
-                headers: {}
-            } as unknown as Request;
-
-            expect(dxfRateLimiter).toBeDefined();
-            expect(generalRateLimiter).toBeDefined();
-        });
-
-        it('should handle missing IP with fallback', () => {
-            const mockReq = {
-                ip: undefined,
-                headers: {}
-            } as unknown as Request;
-
-            expect(dxfRateLimiter).toBeDefined();
-            expect(generalRateLimiter).toBeDefined();
+        it('deve exportar keyGenerator', () => {
+            expect(keyGenerator).toBeDefined();
+            expect(typeof keyGenerator).toBe('function');
         });
     });
 
     describe('X-Forwarded-For Support', () => {
         it('should respect X-Forwarded-For when trust proxy is enabled', () => {
-            const mockReq = {
-                ip: '10.0.0.1',
-                headers: {
-                    'x-forwarded-for': '10.0.0.1'
-                }
-            } as unknown as Request;
-
-            expect(dxfRateLimiter).toBeDefined();
-            expect(generalRateLimiter).toBeDefined();
+            const req = { ip: '10.0.0.1', headers: { 'x-forwarded-for': '10.0.0.1' } } as unknown as Request;
+            const key = keyGenerator(req);
+            expect(key).toBe('10.0.0.1');
         });
     });
 
@@ -95,22 +108,17 @@ describe('Rate Limiter Middleware', () => {
                 windowMs: 3600000
             };
 
-            // Invoke the handler directly via the rate limiter's internal handler option
-            // We test by calling the middleware with a request that triggers the handler
             const handler = (dxfRateLimiter as any).options?.handler;
-            if (handler) {
-                handler(req, res, next, options);
-                expect(res.status).toHaveBeenCalledWith(429);
-                expect(res.json).toHaveBeenCalledWith(options.message);
-                expect(logger.warn).toHaveBeenCalledWith('DXF rate limit exceeded', expect.objectContaining({
-                    ip: req.ip,
-                    path: req.path
-                }));
-            } else {
-                // The handler is internal; verify the message and limiter config are correct
-                expect(options.message.error).toContain('DXF');
-                expect(options.statusCode).toBe(429);
-            }
+            expect(handler).toBeDefined();
+            handler(req, res, next, options);
+            expect(res.status).toHaveBeenCalledWith(429);
+            expect(res.json).toHaveBeenCalledWith(options.message);
+            expect(logger.warn).toHaveBeenCalledWith('DXF rate limit exceeded', expect.objectContaining({
+                ip: req.ip,
+                path: req.path,
+                limit: options.limit,
+                windowMs: options.windowMs
+            }));
         });
     });
 
@@ -132,18 +140,16 @@ describe('Rate Limiter Middleware', () => {
             };
 
             const handler = (generalRateLimiter as any).options?.handler;
-            if (handler) {
-                handler(req, res, next, options);
-                expect(res.status).toHaveBeenCalledWith(429);
-                expect(res.json).toHaveBeenCalledWith(options.message);
-                expect(logger.warn).toHaveBeenCalledWith('Rate limit exceeded', expect.objectContaining({
-                    ip: req.ip,
-                    path: req.path
-                }));
-            } else {
-                expect(options.message.error).not.toContain('DXF');
-                expect(options.statusCode).toBe(429);
-            }
+            expect(handler).toBeDefined();
+            handler(req, res, next, options);
+            expect(res.status).toHaveBeenCalledWith(429);
+            expect(res.json).toHaveBeenCalledWith(options.message);
+            expect(logger.warn).toHaveBeenCalledWith('Rate limit exceeded', expect.objectContaining({
+                ip: req.ip,
+                path: req.path,
+                limit: options.limit,
+                windowMs: options.windowMs
+            }));
         });
     });
 });
