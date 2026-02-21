@@ -284,6 +284,20 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
     - Atualizado: input do test para `23K 714316 7549084`; expectations já corretas (-22.15, -42.92).
   - **Atualizado `memory.md`:** Coordenada UTM padronizada corrigida de `23K 788547 7634925` → `23K 714316 7549084`.
   - **Total:** 192 testes Python + 191 testes Node.js + 52 testes frontend (vitest) passando
+- [x] **FASE 27:** Cobertura de Testes — Cleanup Loop & GeocodingService Edge Cases
+  - **`server/tests/jobStatusService.test.ts`** — 1 novo teste (cleanup loop com fake timers):
+    - Usa `jest.useFakeTimers()` + `jest.isolateModules()` para obter instância fresca do módulo cujo `setInterval` é registrado no engine de timers falsos
+    - Backdating de `job.createdAt` para -2h + `jest.advanceTimersByTime(1h+1ms)` → cleanup callback cobre linhas 34-38 (loop, condição, delete, log)
+    - `jobStatusService.ts`: 88.46% → 98.07% statements (linhas 34-38 cobertas; linha 30 [dead-code guard] irrelevante)
+  - **`server/tests/geocodingService.test.ts`** — 6 novos testes (edge cases e coordenadas padrão):
+    - UTM zona 61 → null (zona > 60, linha 45)
+    - Coordenadas padrão `23K 714316 7549084` → (-22.15018, -42.92185) com precisão 3 casas
+    - `utmToLatLon(0, ...)` → null (guard `!zone`, linha 65)
+    - `utmToLatLon(..., 0, ...)` → null (guard `!easting`, linha 65)
+    - `utmToLatLon(..., ..., 0)` → null (guard `!northing`, linha 65)
+    - `geocodingService.ts`: 92.75% → 95.65% statements; **100% line coverage**
+  - **Cobertura Backend geral:** 97.07% → 98.27% statements (13 suites, 197 testes)
+  - **Total:** 192 testes Python + 197 testes Node.js + 52 testes frontend passando
 
 ### Em Andamento:
 - [ ] Testes E2E com Playwright (requerem servidor ativo)
