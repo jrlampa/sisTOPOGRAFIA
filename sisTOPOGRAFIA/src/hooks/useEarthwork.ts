@@ -4,11 +4,12 @@ import { GeoLocation } from '../types';
 export const useEarthwork = () => {
     const [isCalculating, setIsCalculating] = useState(false);
 
-    const calculateEarthwork = async (polygon: GeoLocation[], targetZ: number) => {
+    const calculateEarthwork = async (polygon: GeoLocation[], targetZ: number, autoBalance: boolean = false) => {
         setIsCalculating(true);
         try {
             const formData = new FormData();
             formData.append('target_z', targetZ.toString());
+            formData.append('autoBalance', autoBalance.toString());
             formData.append('polygon', JSON.stringify(polygon.map(p => ({ lat: p.lat, lng: p.lng }))));
 
             const response = await fetch('http://localhost:5000/api/analyze-pad', {
@@ -26,7 +27,7 @@ export const useEarthwork = () => {
         } catch (error) {
             console.error("Earthwork calculation error:", error);
             throw error;
-        /* v8 ignore next -- finally branch: V8 artifact; both exception and normal paths tested */
+            /* v8 ignore next -- finally branch: V8 artifact; both exception and normal paths tested */
         } finally {
             setIsCalculating(false);
         }

@@ -124,6 +124,7 @@ py_engine/.audit_*.txt
 py_engine/.b2_result.txt
 py_engine/.final_result.txt
 ts_errors.txt
+test_results.txt
 
 # Logs de engine
 engine_check.log

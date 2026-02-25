@@ -85,3 +85,4 @@ temp
 *.tmp
 .gemini
 .cortex
+test_results.txt

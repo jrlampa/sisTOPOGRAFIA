@@ -130,6 +130,7 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
 interface AnalyzePadOptions {
     polygon: string;
     targetZ: number;
+    autoBalance?: boolean;
 }
 
 export const analyzePad = (options: AnalyzePadOptions): Promise<any> => {
@@ -148,6 +149,10 @@ export const analyzePad = (options: AnalyzePadOptions): Promise<any> => {
             '--polygon', String(options.polygon),
             '--target_z', String(options.targetZ)
         ];
+
+        if (options.autoBalance) {
+            args.push('--auto_balance');
+        }
 
         logger.info('Spawning Python process for Pad Earthworks Analysis', {
             command,

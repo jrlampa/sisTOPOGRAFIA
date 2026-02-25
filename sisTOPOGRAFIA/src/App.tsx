@@ -320,7 +320,7 @@ function App() {
                 polygonPoints={polygon.map(p => [p.lat, p.lng] as [number, number])}
                 onClose={() => handleSelectionModeChange('pad')}
                 isDark={isDark}
-                onCalculate={targetZ => calculateEarthwork(polygon, targetZ)}
+                onCalculate={(targetZ, autoBalance) => calculateEarthwork(polygon, targetZ, autoBalance)}
               />
             )}
           </AnimatePresence>

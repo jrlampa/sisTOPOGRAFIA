@@ -37,7 +37,7 @@ describe('apiSchemas — searchSchema', () => {
 describe('apiSchemas — elevationProfileSchema', () => {
     const validPayload = {
         start: { lat: -22.15018, lng: -42.92185 },
-        end:   { lat: -22.16,    lng: -42.93    },
+        end: { lat: -22.16, lng: -42.93 },
         steps: 25,
     };
 
@@ -77,12 +77,21 @@ describe('apiSchemas — analyzePadSchema', () => {
         target_z: '850',
     };
 
-    it('deve aceitar payload válido com target_z como string coercível', () => {
+    it('deve aceitar payload válido com target_z como string coercível e autoBalance default', () => {
         const result = analyzePadSchema.safeParse(validPayload);
         expect(result.success).toBe(true);
         if (result.success) {
             expect(result.data.target_z).toBe(850);
             expect(typeof result.data.target_z).toBe('number');
+            expect(result.data.autoBalance).toBe(false);
+        }
+    });
+
+    it('deve aceitar payload com autoBalance=true explícito', () => {
+        const result = analyzePadSchema.safeParse({ ...validPayload, autoBalance: 'true' });
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data.autoBalance).toBe(true);
         }
     });
 

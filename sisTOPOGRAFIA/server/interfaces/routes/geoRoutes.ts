@@ -62,9 +62,9 @@ router.post('/analyze-pad', upload.none(), async (req: Request, res: Response) =
                 details: validation.error.issues.map(i => i.message).join(', ')
             });
         }
-        const { polygon, target_z } = validation.data;
-        logger.info('Pad Analysis requested', { targetZ: target_z });
-        const result = await analyzePad({ polygon, targetZ: target_z });
+        const { polygon, target_z, autoBalance } = validation.data;
+        logger.info('Pad Analysis requested', { targetZ: target_z, autoBalance });
+        const result = await analyzePad({ polygon, targetZ: target_z, autoBalance });
         return res.json(result);
     } catch (error: any) {
         logger.error('Analyze Pad error', { error: error.message, stack: error.stack });

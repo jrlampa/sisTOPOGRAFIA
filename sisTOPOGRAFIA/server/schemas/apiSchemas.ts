@@ -86,7 +86,8 @@ export const analyzePadSchema = z.object({
         .max(50000, 'Polígono muito complexo (limite: 50.000 caracteres)'),
     target_z: z.coerce.number()
         .min(-500, 'Cota alvo inválida (mínimo: -500m)')
-        .max(9000, 'Cota alvo inválida (máximo: 9000m)')
+        .max(9000, 'Cota alvo inválida (máximo: 9000m)'),
+    autoBalance: z.coerce.boolean().optional().default(false)
 });
 
 // Batch row schema (for CSV processing)
