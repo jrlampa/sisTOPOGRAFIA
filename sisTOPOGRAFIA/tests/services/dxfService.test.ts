@@ -55,6 +55,34 @@ describe('dxfService', () => {
       await expect(generateDXF(lat, lon, radius, 'circle', [], {})).rejects.toThrow('Coordenada fora do Brasil');
     });
 
+    it('não inclui cabeçalho Authorization quando authToken não é fornecido', async () => {
+      const queuedResponse = { status: 'queued', jobId: 'no-auth' };
+
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => queuedResponse
+      }) as any;
+
+      await generateDXF(lat, lon, radius, 'circle', [], {});
+
+      const call = (global.fetch as any).mock.calls[0];
+      expect(call[1].headers['Authorization']).toBeUndefined();
+    });
+
+    it('inclui cabeçalho Authorization quando authToken é fornecido', async () => {
+      const queuedResponse = { status: 'queued', jobId: 'with-auth' };
+
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => queuedResponse
+      }) as any;
+
+      await generateDXF(lat, lon, radius, 'circle', [], {}, 'local', true, 'my-firebase-token');
+
+      const call = (global.fetch as any).mock.calls[0];
+      expect(call[1].headers['Authorization']).toBe('Bearer my-firebase-token');
+    });
+
     it('lança erro genérico quando corpo do erro não tem details', async () => {
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: false,

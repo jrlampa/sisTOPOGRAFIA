@@ -6,8 +6,18 @@ vi.mock('../../src/services/dxfService', () => ({
   getDxfJobStatus: vi.fn()
 }));
 
+vi.mock('../../src/contexts/AuthContext', () => ({
+  useAuth: vi.fn()
+}));
+
+vi.mock('../../src/config/firebase', () => ({
+  auth: {},
+  db: {}
+}));
+
 import { useDxfExport } from '../../src/hooks/useDxfExport';
 import { generateDXF, getDxfJobStatus } from '../../src/services/dxfService';
+import { useAuth } from '../../src/contexts/AuthContext';
 import Logger from '../../src/utils/logger';
 
 const center = { lat: -22.15018, lng: -42.92185, label: 'Nova Friburgo' };
@@ -23,6 +33,8 @@ describe('useDxfExport', () => {
     mockOnError = vi.fn();
     vi.clearAllMocks();
     vi.spyOn(Logger, 'error').mockImplementation(() => {});
+    // Default: no logged-in user (auth token not attached)
+    (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({ user: null });
   });
 
   afterEach(() => {
@@ -94,6 +106,49 @@ describe('useDxfExport', () => {
     expect(success).toBe(true);
     expect(result.current.jobId).toBe('job-abc');
     expect(mockOnSuccess).not.toHaveBeenCalled();
+  });
+
+  // ── downloadDxf — auth token ─────────────────────────────────────────────
+
+  it('downloadDxf passa token Firebase para generateDXF quando usuário está logado', async () => {
+    const mockGetIdToken = vi.fn().mockResolvedValueOnce('firebase-id-token-abc');
+    (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({ user: { getIdToken: mockGetIdToken } });
+    (generateDXF as any).mockResolvedValueOnce({ status: 'queued', jobId: 'job-auth' });
+
+    const { result } = renderHook(() =>
+      useDxfExport({ onSuccess: mockOnSuccess, onError: mockOnError })
+    );
+
+    await act(async () => {
+      await result.current.downloadDxf(center, radius, 'circle', [], layers as any);
+    });
+
+    expect(mockGetIdToken).toHaveBeenCalled();
+    // The 9th argument (index 8) of generateDXF is authToken
+    const callArgs = (generateDXF as any).mock.calls[0];
+    expect(callArgs[8]).toBe('firebase-id-token-abc');
+  });
+
+  it('downloadDxf continua sem token quando getIdToken falha', async () => {
+    const mockGetIdToken = vi.fn().mockRejectedValueOnce(new Error('Token error'));
+    (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({ user: { getIdToken: mockGetIdToken } });
+    (generateDXF as any).mockResolvedValueOnce({ status: 'queued', jobId: 'job-notoken' });
+
+    vi.spyOn(Logger, 'warn').mockImplementation(() => {});
+
+    const { result } = renderHook(() =>
+      useDxfExport({ onSuccess: mockOnSuccess, onError: mockOnError })
+    );
+
+    let success: boolean | undefined;
+    await act(async () => {
+      success = await result.current.downloadDxf(center, radius, 'circle', [], layers as any);
+    });
+
+    expect(success).toBe(true);
+    // generateDXF called without token (undefined as 9th arg)
+    const callArgs = (generateDXF as any).mock.calls[0];
+    expect(callArgs[8]).toBeUndefined();
   });
 
   // ── downloadDxf — error response ────────────────────────────────────────

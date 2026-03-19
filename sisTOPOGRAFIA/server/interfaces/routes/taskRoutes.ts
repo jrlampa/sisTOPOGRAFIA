@@ -62,7 +62,7 @@ router.get('/jobs/:id', async (req: Request, res: Response) => {
         return res.json({ id: job.id, status: job.status, progress: job.progress, result: job.result, error: job.error });
     } catch (err: any) {
         logger.error('Job status lookup failed', { error: err });
-        return res.status(500).json({ error: 'Falha ao buscar status do job', details: err.message });
+        return res.status(500).json({ error: 'Falha ao buscar status do job', details: err instanceof Error ? err.message : String(err) });
     }
 });
 

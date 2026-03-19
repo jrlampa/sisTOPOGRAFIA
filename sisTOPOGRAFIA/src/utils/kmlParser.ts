@@ -31,7 +31,10 @@ export const parseKml = async (file: File): Promise<[number, number][]> => {
                         const lon = parseFloat(parts[0]);
                         const lat = parseFloat(parts[1]);
                         // KML is lon,lat. Leaflet is lat,lon.
-                        if (!isNaN(lat) && !isNaN(lon)) {
+                        // Validate coordinate ranges before accepting the point
+                        if (!isNaN(lat) && !isNaN(lon) &&
+                            lat >= -90 && lat <= 90 &&
+                            lon >= -180 && lon <= 180) {
                             points.push([lat, lon]);
                         }
                     }

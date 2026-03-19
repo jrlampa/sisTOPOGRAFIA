@@ -76,7 +76,7 @@ export const dxfRequestExtendedSchema = z.object({
     mode: z.enum(['circle', 'polygon', 'bbox']),
     polygon: polygonSchema.optional(),
     layers: layersSchema.optional(),
-    projection: z.string().max(50).optional()
+    projection: z.enum(['local', 'utm']).optional()
 });
 
 // Analyze Pad (terraplenagem) endpoint schema
