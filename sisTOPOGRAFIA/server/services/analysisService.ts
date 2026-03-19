@@ -10,8 +10,7 @@ type AnalysisStats = {
     railways?: number;
     totalElements?: number;
     area?: number;
-    [key: string]: unknown;
-};
+} & Record<string, unknown>;
 
 export class AnalysisService {
     /**

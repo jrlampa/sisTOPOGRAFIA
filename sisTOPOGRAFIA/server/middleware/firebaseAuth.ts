@@ -36,7 +36,7 @@ export async function getFirebaseCerts(): Promise<Record<string, string>> {
 
     const cacheControl = response.headers.get('cache-control') || '';
     const maxAgeMatch = cacheControl.match(/max-age=(\d+)/);
-    const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1], 10) * 1000 : 3_600_000; // default 1 h
+    const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1], 10) * 1000 : 3_600_000; // default 1 hour
 
     const certs = (await response.json()) as Record<string, string>;
     certCache = { certs, expiresAt: now + maxAge };
