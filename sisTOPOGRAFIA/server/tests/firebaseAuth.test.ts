@@ -38,8 +38,11 @@ describe('getFirebaseCerts', () => {
     });
 
     it('lança erro quando fetch falha (HTTP não-ok)', async () => {
-        // Force cache miss by advancing time past any cached expiry
-        jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 7_200_000); // +2 hours
+        // Simulate the clock advancing 2 hours past the cached certificate TTL so
+        // getFirebaseCerts() skips the cache and makes a real fetch call.
+        // mockReturnValue returns the same fixed future timestamp on every Date.now() call,
+        // which is sufficient because the cache-expiry check only calls Date.now() once.
+        jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 7_200_000); // simulate +2 hours
 
         global.fetch = jest.fn().mockResolvedValueOnce({
             ok: false,

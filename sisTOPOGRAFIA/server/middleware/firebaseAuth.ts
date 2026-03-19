@@ -85,7 +85,7 @@ export async function verifyFirebaseIdToken(
         throw new Error('Token has expired');
     }
     if (payload.iat > nowSec + 300) {
-        // 5-minute clock-skew tolerance
+        // Reject tokens with iat more than 5 minutes in the future (clock-skew tolerance)
         throw new Error('Token issued in the future');
     }
     if (payload.aud !== projectId) {

@@ -21,9 +21,9 @@ export class DxfController {
             const result = await this.generateDxfUseCase.execute(validation.data, req.body, req);
             return res.status(result.status).json(result.data);
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             logger.error('DXF generation error via controller', { error: err });
-            return res.status(500).json({ error: 'Generation failed', details: err.message });
+            return res.status(500).json({ error: 'Generation failed', details: err instanceof Error ? err.message : String(err) });
         }
     }
 }

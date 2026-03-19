@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { layersSchema } from '../../schemas/apiSchemas.js';
 
 // Configuração para suportar coordenadas específicas de teste obrigatórias:
 // COORD PARA TESTE: 
@@ -23,8 +24,8 @@ export const dxfGenerationRequestSchema = z.object({
     utm: utmCoordinateSchema.optional(),
     radius: z.number().min(10, "Raio mínimo de 10m").max(5000, "Raio máximo de 5000m").default(100),
     polygon: z.any().optional(), // Pode ser string JSON ou Array de Coordenadas
-    layers: z.any().optional(),
-    projection: z.string().default('local')
+    layers: layersSchema.optional(),
+    projection: z.enum(['local', 'utm']).default('local')
 }).superRefine((data: any, ctx: z.RefinementCtx) => {
     // Validação estrita: se for UTM, precisa dos dados UTM. Se for circle, precisa de Lat/Lon.
     if (data.mode === 'utm' && !data.utm) {

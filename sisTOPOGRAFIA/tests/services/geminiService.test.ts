@@ -172,5 +172,17 @@ describe('geminiService', () => {
       expect(body.stats).toEqual(mockStats);
       expect(body.locationName).toBe('Nova Friburgo RJ');
     });
+
+    it('retorna string vazia quando servidor responde ok mas data.analysis está ausente', async () => {
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}) // sem campo analysis
+      }) as any;
+
+      const result = await analyzeArea(mockStats, 'Nova Friburgo', true);
+
+      expect(result).toBe('');
+      expect(typeof result).toBe('string');
+    });
   });
 });
