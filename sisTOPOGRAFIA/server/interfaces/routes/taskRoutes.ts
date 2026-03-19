@@ -64,9 +64,10 @@ router.get('/jobs/:id', async (req: Request, res: Response) => {
         const job = await getJob(req.params.id);
         if (!job) return res.status(404).json({ error: 'Job não encontrado' });
         return res.json({ id: job.id, status: job.status, progress: job.progress, result: job.result, error: job.error });
-    } catch (err: any) {
-        logger.error('Job status lookup failed', { error: err });
-        return res.status(500).json({ error: 'Falha ao buscar status do job', details: err instanceof Error ? err.message : String(err) });
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error('Job status lookup failed', { error: msg });
+        return res.status(500).json({ error: 'Falha ao buscar status do job', details: msg });
     }
 });
 

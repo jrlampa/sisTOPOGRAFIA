@@ -55,8 +55,8 @@ export function useOsmEngine() {
             setProgressValue(100);
             setStatusMessage('');
             return true;
-        } catch (err: any) {
-            setError(err.message || "Audit failed.");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Audit failed.");
             setStatusMessage('');
             return false;
         /* v8 ignore next -- finally branch: V8 artifact; both exception and normal paths tested */

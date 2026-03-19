@@ -1,5 +1,7 @@
 import { createVerify } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
+import { FieldValue } from '@google-cloud/firestore';
+import { FirestoreInfrastructure } from '../infrastructure/firestoreService.js';
 import { logger } from '../utils/logger.js';
 
 export interface AuthenticatedRequest extends Request {
@@ -161,8 +163,56 @@ export const checkQuota = async (req: AuthenticatedRequest, res: Response, next:
         return res.status(401).json({ error: 'Unauthorized: User not found for quota check' });
     }
 
-    // TODO: Connect with FirestoreService to read the user's daily quota.
-    // If quota > MAX_DAILY_REQUESTS, return 429 Too Many Requests
+    const MAX_DAILY_REQUESTS = parseInt(process.env.MAX_DAILY_DXF_REQUESTS || '10', 10);
 
-    next();
+    // Skip quota enforcement in development mode without Firestore
+    if (process.env.NODE_ENV !== 'production' && process.env.USE_FIRESTORE !== 'true') {
+        return next();
+    }
+
+    try {
+        const firestoreService = FirestoreInfrastructure.getInstance();
+        const db = firestoreService.getDb();
+
+        const today = new Date().toISOString().split('T')[0];
+        const quotaDocId = `${req.user.uid}_${today}`;
+        const quotaRef = db.collection('userQuotas').doc(quotaDocId);
+
+        // Atomic check-and-increment via Firestore transaction to prevent race conditions
+        let allowed = false;
+        await db.runTransaction(async (transaction) => {
+            const snapshot = await transaction.get(quotaRef);
+            const currentCount: number = snapshot.exists ? ((snapshot.data()?.count as number) ?? 0) : 0;
+
+            if (currentCount >= MAX_DAILY_REQUESTS) {
+                allowed = false;
+                return;
+            }
+
+            transaction.set(quotaRef, {
+                uid: req.user!.uid,
+                date: today,
+                count: FieldValue.increment(1)
+            }, { merge: true });
+
+            allowed = true;
+        });
+
+        if (!allowed) {
+            logger.warn('User daily quota exceeded', { uid: req.user.uid, max: MAX_DAILY_REQUESTS });
+            return res.status(429).json({
+                error: 'Limite diário de requisições atingido',
+                message: `Você atingiu o limite de ${MAX_DAILY_REQUESTS} gerações de DXF por dia. Tente novamente amanhã.`,
+                retryAfter: 'tomorrow'
+            });
+        }
+
+        logger.info('Quota check passed', { uid: req.user.uid, max: MAX_DAILY_REQUESTS });
+        return next();
+    } catch (error: unknown) {
+        // On Firestore errors, allow the request to proceed (fail open) to avoid blocking users
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.error('Quota check failed, allowing request', { uid: req.user.uid, error: msg });
+        return next();
+    }
 };
