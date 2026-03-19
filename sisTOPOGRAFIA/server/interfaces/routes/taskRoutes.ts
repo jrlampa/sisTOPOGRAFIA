@@ -41,15 +41,19 @@ router.post(
                 logger.info('DXF generation completed', { taskId, filename, cacheKey });
                 return res.status(200).json({ status: 'success', taskId, url: downloadUrl, filename });
 
-            } catch (error: any) {
-                logger.error('DXF generation failed', { taskId, error: error.message, stack: error.stack });
-                await failJob(taskId, error.message);
-                return res.status(500).json({ status: 'failed', taskId, error: error.message });
+            } catch (error: unknown) {
+                const msg = error instanceof Error ? error.message : String(error);
+                const stack = error instanceof Error ? error.stack : undefined;
+                logger.error('DXF generation failed', { taskId, error: msg, stack });
+                await failJob(taskId, msg);
+                return res.status(500).json({ status: 'failed', taskId, error: msg });
             }
 
-        } catch (error: any) {
-            logger.error('Task webhook error', { error: error.message, stack: error.stack });
-            return res.status(500).json({ error: 'Task processing failed', details: error.message });
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
+            const stack = error instanceof Error ? error.stack : undefined;
+            logger.error('Task webhook error', { error: msg, stack });
+            return res.status(500).json({ error: 'Task processing failed', details: msg });
         }
     }
 );

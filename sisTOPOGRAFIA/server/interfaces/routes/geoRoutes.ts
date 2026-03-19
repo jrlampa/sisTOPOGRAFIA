@@ -24,9 +24,10 @@ router.post('/search', smallBodyParser, async (req: Request, res: Response) => {
         const location = await GeocodingService.resolveLocation(validation.data.query);
         if (location) return res.json(location);
         return res.status(404).json({ error: 'Localização não encontrada' });
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
         logger.error('Search error', { error });
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: msg });
     }
 });
 
@@ -45,9 +46,11 @@ router.post('/elevation/profile', async (req: Request, res: Response) => {
         logger.info('Fetching elevation profile', { start, end, steps });
         const profile = await ElevationService.getElevationProfile(start, end, steps);
         return res.json({ profile });
-    } catch (error: any) {
-        logger.error('Elevation profile error', { error: error.message, stack: error.stack });
-        return res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        const stack = error instanceof Error ? error.stack : undefined;
+        logger.error('Elevation profile error', { error: msg, stack });
+        return res.status(500).json({ error: msg });
     }
 });
 
@@ -66,9 +69,11 @@ router.post('/analyze-pad', upload.none(), async (req: Request, res: Response) =
         logger.info('Pad Analysis requested', { targetZ: target_z, autoBalance });
         const result = await analyzePad({ polygon, targetZ: target_z, autoBalance });
         return res.json(result);
-    } catch (error: any) {
-        logger.error('Analyze Pad error', { error: error.message, stack: error.stack });
-        return res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        const stack = error instanceof Error ? error.stack : undefined;
+        logger.error('Analyze Pad error', { error: msg, stack });
+        return res.status(500).json({ error: msg });
     }
 });
 

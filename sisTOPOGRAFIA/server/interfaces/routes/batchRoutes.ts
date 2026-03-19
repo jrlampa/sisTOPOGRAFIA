@@ -69,9 +69,10 @@ export function createBatchRouter(dxfDirectory: string, getBaseUrl: (req: Reques
             if (results.length === 0) return res.status(400).json({ error: 'Nenhuma linha válida no CSV', errors });
             return res.status(200).json({ results, errors });
 
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
             logger.error('Batch DXF upload failed', { error: err });
-            return res.status(500).json({ error: 'Falha no processamento batch', details: err.message });
+            return res.status(500).json({ error: 'Falha no processamento batch', details: msg });
         }
     });
 

@@ -164,15 +164,18 @@ if (fs.existsSync(path.join(frontendDistDirectory, 'index.html'))) {
 }
 
 // ── Global error handler ───────────────────────────────────────────────────
-app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-    logger.error('Unhandled error', { error: err.message, stack: err.stack, path: req.path, method: req.method });
+app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    const status = (err as { status?: number })?.status;
+    logger.error('Unhandled error', { error: msg, stack, path: req.path, method: req.method });
     if (req.path.startsWith('/api')) {
-        return res.status(err.status || 500).json({
-            error: err.message || 'Internal server error',
-            details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        return res.status(status || 500).json({
+            error: msg || 'Internal server error',
+            details: process.env.NODE_ENV === 'development' ? stack : undefined
         });
     }
-    return res.status(err.status || 500).send('Internal Server Error');
+    return res.status(status || 500).send('Internal Server Error');
 });
 
 // ── Startup ────────────────────────────────────────────────────────────────
