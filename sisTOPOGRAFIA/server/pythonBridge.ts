@@ -97,6 +97,15 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
 
         const pythonProcess = spawn(command, args);
 
+        const timeoutMs = parseInt(process.env.PYTHON_TIMEOUT_MS || '60000', 10);
+        let settled = false;
+        const timeoutHandle = setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            pythonProcess.kill('SIGTERM');
+            reject(new Error(`Python process timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+
         let stdoutData = '';
         let stderrData = '';
 
@@ -113,6 +122,9 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
         });
 
         pythonProcess.on('close', (code) => {
+            clearTimeout(timeoutHandle);
+            if (settled) return;
+            settled = true;
             logger.info('Python process exited', { exitCode: code });
             if (code === 0) {
                 resolve(stdoutData);
@@ -122,6 +134,9 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
         });
 
         pythonProcess.on('error', (err) => {
+            clearTimeout(timeoutHandle);
+            if (settled) return;
+            settled = true;
             reject(new Error(`Failed to spawn python process: ${err.message}`));
         });
     });
@@ -162,6 +177,15 @@ export const analyzePad = (options: AnalyzePadOptions): Promise<any> => {
 
         const pythonProcess = spawn(command, args);
 
+        const timeoutMs = parseInt(process.env.PYTHON_TIMEOUT_MS || '60000', 10);
+        let settled = false;
+        const timeoutHandle = setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            pythonProcess.kill('SIGTERM');
+            reject(new Error(`Python process timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+
         let stdoutData = '';
         let stderrData = '';
 
@@ -174,6 +198,9 @@ export const analyzePad = (options: AnalyzePadOptions): Promise<any> => {
         });
 
         pythonProcess.on('close', (code) => {
+            clearTimeout(timeoutHandle);
+            if (settled) return;
+            settled = true;
             if (code === 0) {
                 try {
                     // Try to parse the last JSON object from stdout
@@ -189,6 +216,9 @@ export const analyzePad = (options: AnalyzePadOptions): Promise<any> => {
         });
 
         pythonProcess.on('error', (err) => {
+            clearTimeout(timeoutHandle);
+            if (settled) return;
+            settled = true;
             reject(new Error(`Failed to spawn python process: ${err.message}`));
         });
     });

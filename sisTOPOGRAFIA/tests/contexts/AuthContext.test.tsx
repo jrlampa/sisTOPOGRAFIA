@@ -103,20 +103,21 @@ describe('AuthContext', () => {
     expect(signInWithPopup).toHaveBeenCalledWith({}, {}); // auth={}, googleProvider={}
   });
 
-  it('loginWithGoogle loga erro mas não lança quando signInWithPopup falha', async () => {
+  it('loginWithGoogle loga erro e lança quando signInWithPopup falha', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     (signInWithPopup as any).mockRejectedValueOnce(new Error('Popup closed'));
 
-    render(<Wrapped />);
-
+    let capturedLogin: (() => Promise<void>) | undefined;
+    const Capture: React.FC = () => {
+      const { loginWithGoogle } = useAuth();
+      capturedLogin = loginWithGoogle;
+      return null;
+    };
+    render(<AuthProvider><Capture /></AuthProvider>);
     await act(async () => { authStateCallback!(null); });
-    await waitFor(() => screen.getByTestId('login'));
 
-    await act(async () => {
-      screen.getByTestId('login').click();
-    });
-
-    await waitFor(() => expect(consoleSpy).toHaveBeenCalled());
+    await expect(capturedLogin!()).rejects.toThrow('Popup closed');
+    expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
 
@@ -137,20 +138,21 @@ describe('AuthContext', () => {
     expect(signOut).toHaveBeenCalledWith({});
   });
 
-  it('logout loga erro mas não lança quando signOut falha', async () => {
+  it('logout loga erro e lança quando signOut falha', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     (signOut as any).mockRejectedValueOnce(new Error('Sign out error'));
 
-    render(<Wrapped />);
-
+    let capturedLogout: (() => Promise<void>) | undefined;
+    const Capture: React.FC = () => {
+      const { logout } = useAuth();
+      capturedLogout = logout;
+      return null;
+    };
+    render(<AuthProvider><Capture /></AuthProvider>);
     await act(async () => { authStateCallback!(null); });
-    await waitFor(() => screen.getByTestId('logout'));
 
-    await act(async () => {
-      screen.getByTestId('logout').click();
-    });
-
-    await waitFor(() => expect(consoleSpy).toHaveBeenCalled());
+    await expect(capturedLogout!()).rejects.toThrow('Sign out error');
+    expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
 

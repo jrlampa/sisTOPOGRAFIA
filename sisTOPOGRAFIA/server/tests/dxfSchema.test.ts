@@ -170,4 +170,35 @@ describe('dxfGenerationRequestSchema', () => {
         });
         expect(result.success).toBe(false);
     });
+
+    // ── previously-blocked valid production requests ──────────────────────────
+
+    it('aceita coordenadas -22.15018, -42.92185 com qualquer raio válido (ex: 200m)', () => {
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'circle',
+            lat: -22.15018,
+            lon: -42.92185,
+            radius: 200
+        });
+        expect(result.success).toBe(true);
+    });
+
+    it('aceita coordenadas -22.15018, -42.92185 com raio 100m', () => {
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'circle',
+            lat: -22.15018,
+            lon: -42.92185,
+            radius: 100
+        });
+        expect(result.success).toBe(true);
+    });
+
+    it('aceita UTM 23K 788547 7634925 com raio diferente de 100m (ex: 500m)', () => {
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'utm',
+            utm: { zone: '23K', easting: 788547, northing: 7634925 },
+            radius: 500
+        });
+        expect(result.success).toBe(true);
+    });
 });

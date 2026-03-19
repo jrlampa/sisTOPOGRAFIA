@@ -1,11 +1,6 @@
 import { z } from 'zod';
 import { layersSchema } from '../../schemas/apiSchemas.js';
 
-// Configuração para suportar coordenadas específicas de teste obrigatórias:
-// COORD PARA TESTE: 
-// 1. 23K 788547 7634925 <-> 100m (UTM)
-// 2. -22.15018, -42.92185 <-> 500m & 1km (Lat/Lon)
-
 export const utmCoordinateSchema = z.object({
     zone: z.string().regex(/^[0-9]{1,2}[A-Z]$/, "Zona UTM inválida (ex: 23K)"),
     easting: z.number().positive("Easting deve ser positivo"),
@@ -42,36 +37,6 @@ export const dxfGenerationRequestSchema = z.object({
             message: "Modo circle exige 'lat' e 'lon'.",
             path: ['lat', 'lon']
         });
-    }
-
-    // Regra não-negociável de Teste 1: -22.15018, -42.92185
-    if (data.mode === 'circle' && data.lat !== undefined && data.lon !== undefined) {
-        // Tolerância para float, limitando a 5 casas decimais
-        const isTargetLat = Math.abs(data.lat - (-22.15018)) < 0.00001;
-        const isTargetLon = Math.abs(data.lon - (-42.92185)) < 0.00001;
-
-        if (isTargetLat && isTargetLon) {
-            if (data.radius !== 500 && data.radius !== 1000) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: "A coordenada de teste -22.15018, -42.92185 exige raio de 500m ou 1000m estritamente.",
-                    path: ['radius']
-                });
-            }
-        }
-    }
-
-    // Regra não-negociável de Teste 2: 23K 788547 7634925
-    if (data.mode === 'utm' && data.utm) {
-        if (data.utm.zone === '23K' && data.utm.easting === 788547 && data.utm.northing === 7634925) {
-            if (data.radius !== 100) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: "A coordenada de teste UTM 23K 788547 7634925 exige raio de 100m estritamente.",
-                    path: ['radius']
-                });
-            }
-        }
     }
 });
 
