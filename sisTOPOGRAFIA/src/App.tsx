@@ -1,5 +1,5 @@
 import { AnimatePresence } from 'framer-motion';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import HydrologicalProfilePanel from './components/analytics/HydrologicalProfilePanel';
 import { GlobalState, AppSettings, GeoLocation, SelectionMode } from './types';
 import { DEFAULT_LOCATION } from './constants';
@@ -81,6 +81,11 @@ function App() {
 
   const { center, radius, selectionMode, polygon, measurePath, settings } = appState;
   const isDark = settings.theme === 'dark';
+
+  // Ref that always points to the latest appState, used in async callbacks to
+  // avoid stale closure issues (e.g. the geolocation useEffect below).
+  const appStateRef = useRef(appState);
+  useEffect(() => { appStateRef.current = appState; });
 
   const {
     isProcessing,
@@ -218,7 +223,7 @@ function App() {
   useEffect(() => {
     if (center.lat === DEFAULT_LOCATION.lat && center.lng === DEFAULT_LOCATION.lng) {
       navigator.geolocation?.getCurrentPosition(pos => {
-        setAppState({ ...appState, center: { lat: pos.coords.latitude, lng: pos.coords.longitude, label: 'Localização Atual' } }, false);
+        setAppState({ ...appStateRef.current, center: { lat: pos.coords.latitude, lng: pos.coords.longitude, label: 'Localização Atual' } }, false);
       });
     }
   }, []);

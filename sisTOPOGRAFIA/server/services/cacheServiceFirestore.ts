@@ -113,8 +113,8 @@ const getCachedFilename = async (key: string): Promise<string | null> => {
             }
 
             return entry.filename;
-        } catch (error: any) {
-            if (error.message.includes('Circuit breaker')) {
+        } catch (error: unknown) {
+            if (error instanceof Error && error.message.includes('Circuit breaker')) {
                 logger.warn('Cache read blocked by circuit breaker, checking memory', { key });
                 // Fallback to memory
                 const entry = cacheStore.get(key);
@@ -165,8 +165,8 @@ const setCachedFilename = async (key: string, filename: string, ttlMs: number = 
             const firestoreService = FirestoreInfrastructure.getInstance();
             await firestoreService.safeWrite('cache', key, entry);
             logger.info('Cache entry set in Firestore', { key, filename, ttlMs });
-        } catch (error: any) {
-            if (error.message.includes('Circuit breaker')) {
+        } catch (error: unknown) {
+            if (error instanceof Error && error.message.includes('Circuit breaker')) {
                 logger.warn('Cache write blocked by circuit breaker, using memory', { key });
                 // Fallback to memory
                 cacheStore.set(key, {
@@ -198,8 +198,8 @@ const deleteCachedFilename = async (key: string): Promise<void> => {
             const firestoreService = FirestoreInfrastructure.getInstance();
             await firestoreService.safeDelete('cache', key);
             logger.info('Cache entry deleted from Firestore', { key });
-        } catch (error: any) {
-            if (error.message.includes('Circuit breaker')) {
+        } catch (error: unknown) {
+            if (error instanceof Error && error.message.includes('Circuit breaker')) {
                 logger.warn('Cache delete blocked by circuit breaker, deleting from memory', { key });
                 cacheStore.delete(key);
             } else {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { generateDXF, getDxfJobStatus } from '../services/dxfService';
 import { SelectionMode, GeoLocation, LayerConfig, EconomicData } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import Logger from '../utils/logger';
 
 interface UseDxfExportProps {
@@ -9,6 +10,7 @@ interface UseDxfExportProps {
 }
 
 export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
+  const { user } = useAuth();
   const [isDownloading, setIsDownloading] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState('idle');
@@ -43,6 +45,16 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
     setJobProgress(0);
 
     try {
+      // Obtain the Firebase ID token so the backend can authenticate the request
+      let authToken: string | undefined;
+      if (user) {
+        try {
+          authToken = await user.getIdToken();
+        } catch (tokenError) {
+          Logger.warn('Could not retrieve Firebase ID token', tokenError);
+        }
+      }
+
       const result = await generateDXF(
         center.lat,
         center.lng,
@@ -51,7 +63,8 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
         polygon,
         layers,
         projection,
-        enableAI
+        enableAI,
+        authToken
       );
 
       if (!result) {

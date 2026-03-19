@@ -35,12 +35,18 @@ export const generateDXF = async (
   polygon: any[],
   layers: Record<string, boolean>,
   projection: 'local' | 'utm' = 'local',
-  enableAI: boolean = true
+  enableAI: boolean = true,
+  authToken?: string
 ): Promise<DxfQueueResponse | DxfCachedResponse> => {
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
 
   const response = await fetch(`${API_URL}/dxf`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ lat, lon, radius, mode, polygon, layers, projection, enableAI })
   });
 

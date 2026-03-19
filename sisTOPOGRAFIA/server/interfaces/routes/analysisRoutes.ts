@@ -38,23 +38,25 @@ router.post('/', smallBodyParser, async (req: Request, res: Response) => {
         logger.info('AI analysis completed successfully', { locationName: location });
         return res.json(result);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        const typeName = error instanceof Error ? error.constructor.name : typeof error;
         logger.error('Analysis error', {
-            error: error.message,
-            errorType: error.constructor.name,
-            isRateLimitError: error.message?.includes('rate limit') || error.message?.includes('429'),
-            isAuthError: error.message?.includes('401') || error.message?.includes('unauthorized'),
-            isNetworkError: error.message?.includes('ECONNREFUSED') || error.message?.includes('ETIMEDOUT')
+            error: msg,
+            errorType: typeName,
+            isRateLimitError: msg.includes('rate limit') || msg.includes('429'),
+            isAuthError: msg.includes('401') || msg.includes('unauthorized'),
+            isNetworkError: msg.includes('ECONNREFUSED') || msg.includes('ETIMEDOUT')
         });
 
-        const sanitizedMessage = String(error.message || 'Unknown error').slice(0, MAX_ERROR_MESSAGE_LENGTH);
+        const sanitizedMessage = msg.slice(0, MAX_ERROR_MESSAGE_LENGTH);
         let userMessage = '**Erro na Análise AI**\n\nNão foi possível processar a análise. Por favor, tente novamente.';
 
-        if (error.message?.includes('rate limit') || error.message?.includes('429'))
+        if (msg.includes('rate limit') || msg.includes('429'))
             userMessage = '**Limite de Taxa Excedido**\n\nAguarde alguns momentos e tente novamente.';
-        else if (error.message?.includes('401') || error.message?.includes('unauthorized'))
+        else if (msg.includes('401') || msg.includes('unauthorized'))
             userMessage = '**Erro de Autenticação**\n\nVerifique a GROQ_API_KEY no Cloud Run.';
-        else if (error.message?.includes('ECONNREFUSED') || error.message?.includes('ETIMEDOUT'))
+        else if (msg.includes('ECONNREFUSED') || msg.includes('ETIMEDOUT'))
             userMessage = '**Erro de Conexão**\n\nNão foi possível conectar à API Groq.';
 
         return res.status(500).json({ error: 'Análise falhou', details: sanitizedMessage, analysis: userMessage });

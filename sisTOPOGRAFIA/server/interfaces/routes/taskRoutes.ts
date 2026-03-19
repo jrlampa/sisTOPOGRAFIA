@@ -41,15 +41,19 @@ router.post(
                 logger.info('DXF generation completed', { taskId, filename, cacheKey });
                 return res.status(200).json({ status: 'success', taskId, url: downloadUrl, filename });
 
-            } catch (error: any) {
-                logger.error('DXF generation failed', { taskId, error: error.message, stack: error.stack });
-                await failJob(taskId, error.message);
-                return res.status(500).json({ status: 'failed', taskId, error: error.message });
+            } catch (error: unknown) {
+                const msg = error instanceof Error ? error.message : String(error);
+                const stack = error instanceof Error ? error.stack : undefined;
+                logger.error('DXF generation failed', { taskId, error: msg, stack });
+                await failJob(taskId, msg);
+                return res.status(500).json({ status: 'failed', taskId, error: msg });
             }
 
-        } catch (error: any) {
-            logger.error('Task webhook error', { error: error.message, stack: error.stack });
-            return res.status(500).json({ error: 'Task processing failed', details: error.message });
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
+            const stack = error instanceof Error ? error.stack : undefined;
+            logger.error('Task webhook error', { error: msg, stack });
+            return res.status(500).json({ error: 'Task processing failed', details: msg });
         }
     }
 );
@@ -60,9 +64,10 @@ router.get('/jobs/:id', async (req: Request, res: Response) => {
         const job = await getJob(req.params.id);
         if (!job) return res.status(404).json({ error: 'Job não encontrado' });
         return res.json({ id: job.id, status: job.status, progress: job.progress, result: job.result, error: job.error });
-    } catch (err: any) {
-        logger.error('Job status lookup failed', { error: err });
-        return res.status(500).json({ error: 'Falha ao buscar status do job', details: err.message });
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error('Job status lookup failed', { error: msg });
+        return res.status(500).json({ error: 'Falha ao buscar status do job', details: msg });
     }
 });
 

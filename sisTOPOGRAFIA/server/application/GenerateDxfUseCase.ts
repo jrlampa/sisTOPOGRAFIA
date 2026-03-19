@@ -16,8 +16,8 @@ export class GenerateDxfUseCase {
         const { lat, lon, radius, mode, utm } = data;
         const resolvedMode = mode || 'circle';
         const polygon = rawBody.polygon;
-        const layers = rawBody.layers;
-        const projection = rawBody.projection || 'local';
+        const layers = data.layers ?? rawBody.layers;
+        const projection = data.projection ?? 'local';
 
         // Prepare latitude and longitude if UTM was provided and mode is utm (to be handled later by python script conversion, Python script will need to understand the mode 'utm')
         const cacheKey = createCacheKey({

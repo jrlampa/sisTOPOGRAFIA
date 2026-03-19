@@ -214,4 +214,24 @@ describe('apiSchemas — dxfRequestExtendedSchema', () => {
             expect(typeof result.data.lon).toBe('number');
         }
     });
+
+    it('deve aceitar projection "local"', () => {
+        const result = dxfRequestExtendedSchema.safeParse({ ...validDxf, projection: 'local' });
+        expect(result.success).toBe(true);
+    });
+
+    it('deve aceitar projection "utm"', () => {
+        const result = dxfRequestExtendedSchema.safeParse({ ...validDxf, projection: 'utm' });
+        expect(result.success).toBe(true);
+    });
+
+    it('deve aceitar request sem projection (campo opcional)', () => {
+        const result = dxfRequestExtendedSchema.safeParse(validDxf);
+        expect(result.success).toBe(true);
+    });
+
+    it('deve rejeitar projection com valor arbitrário', () => {
+        const result = dxfRequestExtendedSchema.safeParse({ ...validDxf, projection: 'wgs84' });
+        expect(result.success).toBe(false);
+    });
 });

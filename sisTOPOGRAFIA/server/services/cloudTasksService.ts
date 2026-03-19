@@ -112,15 +112,17 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
                 taskName: `dev-task-${taskId}`,
                 alreadyCompleted: true  // Job already completed in dev mode
             };
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
+            const stack = error instanceof Error ? error.stack : undefined;
             logger.error('DXF generation failed in dev mode', {
                 taskId,
-                error: error.message,
-                stack: error.stack
+                error: msg,
+                stack
             });
 
-            failJob(taskId, error.message);
-            throw new Error(`DXF generation failed: ${error.message}`);
+            failJob(taskId, msg);
+            throw new Error(`DXF generation failed: ${msg}`);
         }
     }
 
@@ -174,12 +176,15 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
             taskId,
             taskName
         };
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        const code = (error as { code?: number })?.code;
+        const stack = error instanceof Error ? error.stack : undefined;
         logger.error('Failed to create Cloud Task', {
             taskId,
-            error: error.message,
-            errorCode: error.code,
-            stack: error.stack,
+            error: msg,
+            errorCode: code,
+            stack,
             queueName: parent,
             gcpProject: GCP_PROJECT,
             location: CLOUD_TASKS_LOCATION,
@@ -187,7 +192,7 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
         });
         
         // Check for permission denied errors (check code first for efficiency)
-        if (error.code === GRPC_PERMISSION_DENIED_CODE || error.message?.includes('PERMISSION_DENIED')) {
+        if (code === GRPC_PERMISSION_DENIED_CODE || msg.includes('PERMISSION_DENIED')) {
             // Cloud Run uses the default compute service account
             // Format: {PROJECT_NUMBER}-compute@developer.gserviceaccount.com
             const errorMsg = `Permission denied to access Cloud Tasks queue '${CLOUD_TASKS_QUEUE}'. ` +
@@ -210,7 +215,7 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
         }
         
         // Provide more specific error message for missing queue
-        if (error.message?.includes('NOT_FOUND') || error.code === GRPC_NOT_FOUND_CODE) {
+        if (msg.includes('NOT_FOUND') || code === GRPC_NOT_FOUND_CODE) {
             const errorMsg = `Cloud Tasks queue '${CLOUD_TASKS_QUEUE}' not found in project '${GCP_PROJECT}' at location '${CLOUD_TASKS_LOCATION}'. ` +
                            `Please verify that:\n` +
                            `1. The queue exists: gcloud tasks queues describe ${CLOUD_TASKS_QUEUE} --location=${CLOUD_TASKS_LOCATION} --project=${GCP_PROJECT}\n` +
@@ -225,7 +230,7 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
             throw new Error(errorMsg);
         }
         
-        throw new Error(`Failed to create Cloud Task: ${error.message}`);
+        throw new Error(`Failed to create Cloud Task: ${msg}`);
     }
 }
 

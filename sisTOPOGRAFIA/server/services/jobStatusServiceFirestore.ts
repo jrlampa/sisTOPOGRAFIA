@@ -13,6 +13,16 @@ import { Timestamp } from '@google-cloud/firestore';
 import { FirestoreInfrastructure } from '../infrastructure/firestoreService.js';
 import { logger } from '../utils/logger.js';
 
+/** Returns true when the error is a circuit-breaker/quota signal from FirestoreInfrastructure. */
+function isCircuitBreakerError(error: unknown): boolean {
+    return error instanceof Error && error.message.includes('Circuit breaker');
+}
+
+/** Extracts a human-readable message from any thrown value. */
+function toMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
 export type JobStatus = 'queued' | 'processing' | 'completed' | 'failed';
 
 export interface JobInfo {
@@ -53,10 +63,10 @@ export async function createJob(id: string): Promise<JobInfo> {
             const firestoreService = FirestoreInfrastructure.getInstance();
             await firestoreService.safeWrite('jobs', id, job);
             logger.info('Job created in Firestore', { jobId: id });
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Circuit breaker or quota exceeded
-            if (error.message.includes('Circuit breaker')) {
-                logger.error('Job creation blocked by circuit breaker', { jobId: id, error: error.message });
+            if (isCircuitBreakerError(error)) {
+                logger.error('Job creation blocked by circuit breaker', { jobId: id, error: toMessage(error) });
                 // Fallback to memory
                 jobs.set(id, job);
                 logger.warn('Job created in memory (fallback)', { jobId: id });
@@ -81,9 +91,9 @@ export async function getJob(id: string): Promise<JobInfo | null> {
             const firestoreService = FirestoreInfrastructure.getInstance();
             const job = await firestoreService.safeRead<JobInfo>('jobs', id);
             return job;
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Circuit breaker - try memory fallback
-            if (error.message.includes('Circuit breaker')) {
+            if (isCircuitBreakerError(error)) {
                 logger.warn('Job read blocked by circuit breaker, checking memory', { jobId: id });
                 return jobs.get(id) || null;
             }
@@ -113,8 +123,8 @@ export async function updateJobStatus(id: string, status: JobStatus, progress?: 
                 await firestoreService.safeWrite('jobs', id, job);
                 logger.info('Job status updated in Firestore', { jobId: id, status, progress });
             }
-        } catch (error: any) {
-            if (error.message.includes('Circuit breaker')) {
+        } catch (error: unknown) {
+            if (isCircuitBreakerError(error)) {
                 logger.warn('Job update blocked by circuit breaker, updating memory', { jobId: id });
                 const job = jobs.get(id);
                 if (job) {
@@ -161,8 +171,8 @@ export async function completeJob(id: string, result: { url: string; filename: s
                 await firestoreService.safeWrite('jobs', id, job);
                 logger.info('Job completed in Firestore', { jobId: id, filename: result.filename });
             }
-        } catch (error: any) {
-            if (error.message.includes('Circuit breaker')) {
+        } catch (error: unknown) {
+            if (isCircuitBreakerError(error)) {
                 logger.warn('Job complete blocked by circuit breaker, updating memory', { jobId: id });
                 const job = jobs.get(id);
                 if (job) {
@@ -206,13 +216,13 @@ export async function failJob(id: string, error: string): Promise<void> {
                 await firestoreService.safeWrite('jobs', id, job);
                 logger.error('Job failed in Firestore', { jobId: id, error });
             }
-        } catch (error: any) {
-            if (error.message.includes('Circuit breaker')) {
+        } catch (error: unknown) {
+            if (isCircuitBreakerError(error)) {
                 logger.warn('Job fail blocked by circuit breaker, updating memory', { jobId: id });
                 const job = jobs.get(id);
                 if (job) {
                     job.status = 'failed';
-                    job.error = error.toString();
+                    job.error = toMessage(error);
                     job.updatedAt = new Date();
                     jobs.set(id, job);
                 }

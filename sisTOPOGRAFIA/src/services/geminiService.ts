@@ -58,7 +58,7 @@ export const analyzeArea = async (stats: any, locationName: string, enableAI: bo
     
     const data = await response.json();
     Logger.info("Analysis completed");
-    return data.analysis;
+    return data.analysis ?? '';
   } catch (error) {
     Logger.error("Analysis error:", error);
     return "**Erro de conexão**: Não foi possível contatar o servidor de análise. Verifique se o backend está em execução na porta 3001.";

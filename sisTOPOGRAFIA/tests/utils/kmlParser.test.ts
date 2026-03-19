@@ -123,6 +123,25 @@ describe('kmlParser — parseKml', () => {
     expect(points.length).toBeGreaterThanOrEqual(3);
   });
 
+  it('filtra coordenadas fora dos limites geográficos válidos', async () => {
+    // Replace one coordinate pair with out-of-bounds values (lat > 90, lon > 180)
+    const kmlWithOutOfBounds = VALID_KML.replace(
+      '-42.92185,-22.15018,0',
+      '999,999,0\n            -42.92185,-22.15018,0'
+    );
+    const file = makeKmlFile(kmlWithOutOfBounds);
+    // Out-of-bounds pair is filtered; remaining points still form a valid polygon
+    const points = await parseKml(file);
+    expect(points.length).toBeGreaterThanOrEqual(3);
+    // Ensure no point has lat > 90 or lon > 180
+    for (const [lat, lon] of points) {
+      expect(lat).toBeGreaterThanOrEqual(-90);
+      expect(lat).toBeLessThanOrEqual(90);
+      expect(lon).toBeGreaterThanOrEqual(-180);
+      expect(lon).toBeLessThanOrEqual(180);
+    }
+  });
+
   it('rejeita quando o parsing interno do KML lança exceção (lines 47-48)', async () => {
     const file = makeKmlFile(VALID_KML);
 
