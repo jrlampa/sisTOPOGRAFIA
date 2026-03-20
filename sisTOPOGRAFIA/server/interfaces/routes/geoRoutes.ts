@@ -3,6 +3,7 @@ import { searchSchema, elevationProfileSchema, analyzePadSchema } from '../../sc
 import { GeocodingService } from '../../services/geocodingService.js';
 import { ElevationService } from '../../services/elevationService.js';
 import { analyzePad } from '../../pythonBridge.js';
+import { geoRateLimiter } from '../../middleware/rateLimiter.js';
 import { logger } from '../../utils/logger.js';
 import multer from 'multer';
 
@@ -11,7 +12,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 const smallBodyParser = (await import('express')).default.json({ limit: '100kb' });
 
 // POST /api/search
-router.post('/search', smallBodyParser, async (req: Request, res: Response) => {
+router.post('/search', geoRateLimiter, smallBodyParser, async (req: Request, res: Response) => {
     try {
         const validation = searchSchema.safeParse(req.body);
         if (!validation.success) {
@@ -32,7 +33,7 @@ router.post('/search', smallBodyParser, async (req: Request, res: Response) => {
 });
 
 // POST /api/elevation/profile
-router.post('/elevation/profile', async (req: Request, res: Response) => {
+router.post('/elevation/profile', geoRateLimiter, async (req: Request, res: Response) => {
     try {
         const validation = elevationProfileSchema.safeParse(req.body);
         if (!validation.success) {
@@ -55,7 +56,7 @@ router.post('/elevation/profile', async (req: Request, res: Response) => {
 });
 
 // POST /api/analyze-pad
-router.post('/analyze-pad', upload.none(), async (req: Request, res: Response) => {
+router.post('/analyze-pad', geoRateLimiter, upload.none(), async (req: Request, res: Response) => {
     try {
         const validation = analyzePadSchema.safeParse(req.body);
         if (!validation.success) {

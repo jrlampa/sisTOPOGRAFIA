@@ -38,6 +38,34 @@ export const dxfGenerationRequestSchema = z.object({
             path: ['lat', 'lon']
         });
     }
+
+    if (data.mode === 'polygon') {
+        // Validate polygon field: must be a non-empty array or a parseable JSON string
+        // representing a non-empty array.
+        const raw = data.polygon;
+        let resolved: unknown = raw;
+
+        if (typeof raw === 'string') {
+            try {
+                resolved = JSON.parse(raw);
+            } catch {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "Modo polygon exige 'polygon' como array de coordenadas ou JSON string válida.",
+                    path: ['polygon']
+                });
+                return;
+            }
+        }
+
+        if (!Array.isArray(resolved) || resolved.length < 3) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Modo polygon exige 'polygon' com pelo menos 3 pontos.",
+                path: ['polygon']
+            });
+        }
+    }
 });
 
 export type DxfGenerationRequest = z.infer<typeof dxfGenerationRequestSchema>;

@@ -27,6 +27,9 @@ import { logger } from './utils/logger.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Default Python subprocess timeout: configurable via PYTHON_TIMEOUT_MS env var (default 60 s)
+const PYTHON_TIMEOUT_MS = parseInt(process.env.PYTHON_TIMEOUT_MS || '60000', 10);
+
 interface DxfOptions {
     lat: number;
     lon: number;
@@ -97,7 +100,7 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
 
         const pythonProcess = spawn(command, args);
 
-        const timeoutMs = parseInt(process.env.PYTHON_TIMEOUT_MS || '60000', 10);
+        const timeoutMs = PYTHON_TIMEOUT_MS;
         let settled = false;
         const timeoutHandle = setTimeout(() => {
             if (settled) return;
@@ -177,7 +180,7 @@ export const analyzePad = (options: AnalyzePadOptions): Promise<any> => {
 
         const pythonProcess = spawn(command, args);
 
-        const timeoutMs = parseInt(process.env.PYTHON_TIMEOUT_MS || '60000', 10);
+        const timeoutMs = PYTHON_TIMEOUT_MS;
         let settled = false;
         const timeoutHandle = setTimeout(() => {
             if (settled) return;
