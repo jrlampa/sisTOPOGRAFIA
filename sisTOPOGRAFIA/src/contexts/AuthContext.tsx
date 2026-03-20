@@ -41,6 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await signInWithPopup(auth, googleProvider);
         } catch (error) {
             console.error("Error signing in with Google", error);
+            throw error;
         }
     };
 
@@ -49,6 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await signOut(auth);
         } catch (error) {
             console.error("Error signing out", error);
+            throw error;
         }
     };
 

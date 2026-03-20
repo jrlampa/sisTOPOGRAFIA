@@ -5,10 +5,10 @@ import multer from 'multer';
 import { batchRowSchema } from '../../schemas/apiSchemas.js';
 import { parseBatchCsv, RawBatchRow } from '../../services/batchService.js';
 import { createDxfTask } from '../../services/cloudTasksService.js';
-import { createJob } from '../../services/jobStatusService.js';
+import { createJob } from '../../services/jobStatusServiceFirestore.js';
 import {
     createCacheKey, getCachedFilename, setCachedFilename, deleteCachedFilename
-} from '../../services/cacheService.js';
+} from '../../services/cacheServiceFirestore.js';
 import { logger } from '../../utils/logger.js';
 
 // dxfDirectory é injetado no bootstrap via factory
@@ -40,7 +40,7 @@ export function createBatchRouter(dxfDirectory: string, getBaseUrl: (req: Reques
 
                 const { name, lat, lon, radius, mode } = validation.data;
                 const cacheKey = createCacheKey({ lat, lon, radius, mode, polygon: [], layers: {} });
-                const cachedFilename = getCachedFilename(cacheKey);
+                const cachedFilename = await getCachedFilename(cacheKey);
 
                 if (cachedFilename) {
                     const cachedFilePath = path.join(dxfDirectory, cachedFilename);
@@ -48,7 +48,7 @@ export function createBatchRouter(dxfDirectory: string, getBaseUrl: (req: Reques
                         results.push({ name, status: 'cached', url: `${getBaseUrl(req)}/downloads/${cachedFilename}` });
                         continue;
                     }
-                    deleteCachedFilename(cacheKey);
+                    await deleteCachedFilename(cacheKey);
                 }
 
                 const safeName = name.toLowerCase().replace(/[^a-z0-9-_]+/g, '_').slice(0, 40) || 'batch';
@@ -62,7 +62,7 @@ export function createBatchRouter(dxfDirectory: string, getBaseUrl: (req: Reques
                     outputFile, filename, cacheKey, downloadUrl
                 });
 
-                createJob(taskId);
+                await createJob(taskId);
                 results.push({ name, status: 'queued', jobId: taskId });
             }
 

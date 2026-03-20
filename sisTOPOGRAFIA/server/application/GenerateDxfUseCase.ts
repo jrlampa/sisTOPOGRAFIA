@@ -12,11 +12,11 @@ export class GenerateDxfUseCase {
         private readonly getBaseUrl: (req?: any) => string
     ) { }
 
-    async execute(data: DxfGenerationRequest, rawBody: any, req: any): Promise<{ status: number, data: any }> {
+    async execute(data: DxfGenerationRequest, req: any): Promise<{ status: number, data: any }> {
         const { lat, lon, radius, mode, utm } = data;
         const resolvedMode = mode || 'circle';
-        const polygon = rawBody.polygon;
-        const layers = data.layers ?? rawBody.layers;
+        const polygon = data.polygon;
+        const layers = data.layers;
         const projection = data.projection ?? 'local';
 
         // Prepare latitude and longitude if UTM was provided and mode is utm (to be handled later by python script conversion, Python script will need to understand the mode 'utm')

@@ -48,4 +48,23 @@ const generalRateLimiter = rateLimit({
     }
 });
 
-export { dxfRateLimiter, generalRateLimiter };
+// Geo/search endpoints: stricter limit to prevent geocoding enumeration attacks
+const geoRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 30,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    keyGenerator,
+    message: { error: 'Muitas requisições de busca. Tente novamente mais tarde.' },
+    handler: (req, res, _next, options) => {
+        logger.warn('Geo rate limit exceeded', {
+            ip: req.ip,
+            path: req.path,
+            limit: options.limit,
+            windowMs: options.windowMs
+        });
+        res.status(options.statusCode).json(options.message);
+    }
+});
+
+export { dxfRateLimiter, generalRateLimiter, geoRateLimiter };

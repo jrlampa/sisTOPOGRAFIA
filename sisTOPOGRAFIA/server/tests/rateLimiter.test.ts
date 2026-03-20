@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { dxfRateLimiter, generalRateLimiter, keyGenerator } from '../middleware/rateLimiter';
+import { dxfRateLimiter, generalRateLimiter, geoRateLimiter, keyGenerator } from '../middleware/rateLimiter';
 
 // Mock logger
 jest.mock('../utils/logger', () => ({
@@ -77,9 +77,9 @@ describe('Rate Limiter Middleware', () => {
             expect(typeof generalRateLimiter).toBe('function');
         });
 
-        it('deve exportar keyGenerator', () => {
-            expect(keyGenerator).toBeDefined();
-            expect(typeof keyGenerator).toBe('function');
+        it('deve exportar geoRateLimiter', () => {
+            expect(geoRateLimiter).toBeDefined();
+            expect(typeof geoRateLimiter).toBe('function');
         });
     });
 
@@ -145,6 +145,37 @@ describe('Rate Limiter Middleware', () => {
             expect(res.status).toHaveBeenCalledWith(429);
             expect(res.json).toHaveBeenCalledWith(options.message);
             expect(logger.warn).toHaveBeenCalledWith('Rate limit exceeded', expect.objectContaining({
+                ip: req.ip,
+                path: req.path,
+                limit: options.limit,
+                windowMs: options.windowMs
+            }));
+        });
+    });
+
+    describe('Geo Rate Limiter handler', () => {
+        it('deve retornar 429 com mensagem em pt-BR ao exceder limite geo', () => {
+            const req = {
+                ip: '10.0.0.2',
+                path: '/api/search',
+                headers: {}
+            } as unknown as Request;
+            const res = mockRes() as Response;
+            const next = jest.fn() as NextFunction;
+
+            const options = {
+                statusCode: 429,
+                message: { error: 'Muitas requisições de busca. Tente novamente mais tarde.' },
+                limit: 30,
+                windowMs: 900000
+            };
+
+            const handler = (geoRateLimiter as any).options?.handler;
+            expect(handler).toBeDefined();
+            handler(req, res, next, options);
+            expect(res.status).toHaveBeenCalledWith(429);
+            expect(res.json).toHaveBeenCalledWith(options.message);
+            expect(logger.warn).toHaveBeenCalledWith('Geo rate limit exceeded', expect.objectContaining({
                 ip: req.ip,
                 path: req.path,
                 limit: options.limit,

@@ -268,7 +268,10 @@ function App() {
       <AppHeader
         isDark={isDark} canUndo={canUndo} canRedo={canRedo} onUndo={undo} onRedo={redo}
         aiSuggestion={aiSuggestion} onAiPanelOpen={() => setAiPanelVisible(true)}
-        user={user} onLogin={loginWithGoogle} onLogout={logout} onSettingsOpen={() => setShowSettings(true)}
+        user={user}
+        onLogin={async () => { try { await loginWithGoogle(); } catch (err) { showToast(`Erro ao fazer login: ${err instanceof Error ? err.message : 'tente novamente'}`, 'error'); } }}
+        onLogout={async () => { try { await logout(); } catch (err) { showToast(`Erro ao sair: ${err instanceof Error ? err.message : 'tente novamente'}`, 'error'); } }}
+        onSettingsOpen={() => setShowSettings(true)}
       />
 
       <main className="flex-1 flex overflow-hidden relative">

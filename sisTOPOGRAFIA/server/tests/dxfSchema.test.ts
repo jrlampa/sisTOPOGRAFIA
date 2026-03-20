@@ -170,4 +170,108 @@ describe('dxfGenerationRequestSchema', () => {
         });
         expect(result.success).toBe(false);
     });
+
+    // ── previously-blocked valid production requests ──────────────────────────
+
+    it('aceita coordenadas -22.15018, -42.92185 com qualquer raio válido (ex: 200m)', () => {
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'circle',
+            lat: -22.15018,
+            lon: -42.92185,
+            radius: 200
+        });
+        expect(result.success).toBe(true);
+    });
+
+    it('aceita coordenadas -22.15018, -42.92185 com raio 100m', () => {
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'circle',
+            lat: -22.15018,
+            lon: -42.92185,
+            radius: 100
+        });
+        expect(result.success).toBe(true);
+    });
+
+    it('aceita UTM 23K 788547 7634925 com raio diferente de 100m (ex: 500m)', () => {
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'utm',
+            utm: { zone: '23K', easting: 788547, northing: 7634925 },
+            radius: 500
+        });
+        expect(result.success).toBe(true);
+    });
+
+    // ── polygon mode validation ────────────────────────────────────────────────
+
+    it('aceita modo polygon com array válido de 3+ pontos', () => {
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'polygon',
+            radius: 500,
+            polygon: [
+                { lat: -22.15, lng: -42.92 },
+                { lat: -22.16, lng: -42.92 },
+                { lat: -22.16, lng: -42.93 }
+            ]
+        });
+        expect(result.success).toBe(true);
+    });
+
+    it('aceita modo polygon com JSON string válida de 3+ pontos', () => {
+        const poly = JSON.stringify([
+            { lat: -22.15, lng: -42.92 },
+            { lat: -22.16, lng: -42.92 },
+            { lat: -22.16, lng: -42.93 }
+        ]);
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'polygon',
+            radius: 500,
+            polygon: poly
+        });
+        expect(result.success).toBe(true);
+    });
+
+    it('rejeita modo polygon sem campo polygon', () => {
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'polygon',
+            radius: 500
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it('rejeita modo polygon com array vazio', () => {
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'polygon',
+            radius: 500,
+            polygon: []
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it('rejeita modo polygon com array de menos de 3 pontos', () => {
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'polygon',
+            radius: 500,
+            polygon: [{ lat: -22.15, lng: -42.92 }, { lat: -22.16, lng: -42.92 }]
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it('rejeita modo polygon com JSON string inválida', () => {
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'polygon',
+            radius: 500,
+            polygon: 'NOT_VALID_JSON{'
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it('rejeita modo polygon com JSON string de array vazio', () => {
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'polygon',
+            radius: 500,
+            polygon: '[]'
+        });
+        expect(result.success).toBe(false);
+    });
 });

@@ -7,6 +7,7 @@
  */
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import 'dotenv/config';
 import swaggerUi from 'swagger-ui-express';
 
@@ -21,6 +22,9 @@ import { requireAuth, checkQuota } from './middleware/firebaseAuth.js';
 import { GenerateDxfUseCase } from './application/GenerateDxfUseCase.js';
 import { DxfController } from './interfaces/controllers/DxfController.js';
 import { specs } from './swagger.js';
+import { stopDxfCleanup } from './services/dxfCleanupService.js';
+import { stopCleanupInterval as stopCacheCleanup } from './services/cacheServiceFirestore.js';
+import { stopCleanupInterval as stopJobCleanup } from './services/jobStatusServiceFirestore.js';
 
 // ── Routers modulares ──────────────────────────────────────────────────────
 import systemRouter from './interfaces/routes/systemRoutes.js';
@@ -107,6 +111,31 @@ const corsOptions = {
 // ── Middleware global ──────────────────────────────────────────────────────
 // B3 FIX: trust proxy = 1 (aceita apenas o proxy mais próximo — Cloud Run LB)
 app.set('trust proxy', 1);
+
+// Apply Helmet with a strict default CSP for all routes.
+// Swagger UI needs 'unsafe-inline' for scripts and styles, so its route gets
+// a relaxed override below, keeping all other routes fully protected.
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'"],
+            imgSrc: ["'self'", 'data:'],
+        }
+    },
+    crossOriginEmbedderPolicy: false // Swagger UI loads cross-origin resources
+}));
+
+// Relax CSP for /api-docs (Swagger UI requires unsafe-inline)
+app.use('/api-docs', (_req, res, next) => {
+    res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    );
+    next();
+});
+
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
 app.use(generalRateLimiter);
@@ -187,5 +216,12 @@ app.listen(port, async () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => { logger.info('SIGTERM received'); process.exit(0); });
-process.on('SIGINT', () => { logger.info('SIGINT received'); process.exit(0); });
+function gracefulShutdown(signal: string) {
+    logger.info(`${signal} received — shutting down`);
+    stopDxfCleanup();
+    stopCacheCleanup();
+    stopJobCleanup();
+    process.exit(0);
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

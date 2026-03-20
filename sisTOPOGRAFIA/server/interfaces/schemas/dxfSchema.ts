@@ -1,11 +1,6 @@
 import { z } from 'zod';
 import { layersSchema } from '../../schemas/apiSchemas.js';
 
-// Configuração para suportar coordenadas específicas de teste obrigatórias:
-// COORD PARA TESTE: 
-// 1. 23K 788547 7634925 <-> 100m (UTM)
-// 2. -22.15018, -42.92185 <-> 500m & 1km (Lat/Lon)
-
 export const utmCoordinateSchema = z.object({
     zone: z.string().regex(/^[0-9]{1,2}[A-Z]$/, "Zona UTM inválida (ex: 23K)"),
     easting: z.number().positive("Easting deve ser positivo"),
@@ -44,33 +39,31 @@ export const dxfGenerationRequestSchema = z.object({
         });
     }
 
-    // Regra não-negociável de Teste 1: -22.15018, -42.92185
-    if (data.mode === 'circle' && data.lat !== undefined && data.lon !== undefined) {
-        // Tolerância para float, limitando a 5 casas decimais
-        const isTargetLat = Math.abs(data.lat - (-22.15018)) < 0.00001;
-        const isTargetLon = Math.abs(data.lon - (-42.92185)) < 0.00001;
+    if (data.mode === 'polygon') {
+        // Validate polygon field: must be a non-empty array or a parseable JSON string
+        // representing a non-empty array.
+        const raw = data.polygon;
+        let resolved: unknown = raw;
 
-        if (isTargetLat && isTargetLon) {
-            if (data.radius !== 500 && data.radius !== 1000) {
+        if (typeof raw === 'string') {
+            try {
+                resolved = JSON.parse(raw);
+            } catch {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
-                    message: "A coordenada de teste -22.15018, -42.92185 exige raio de 500m ou 1000m estritamente.",
-                    path: ['radius']
+                    message: "Modo polygon exige 'polygon' como array de coordenadas ou JSON string válida.",
+                    path: ['polygon']
                 });
+                return;
             }
         }
-    }
 
-    // Regra não-negociável de Teste 2: 23K 788547 7634925
-    if (data.mode === 'utm' && data.utm) {
-        if (data.utm.zone === '23K' && data.utm.easting === 788547 && data.utm.northing === 7634925) {
-            if (data.radius !== 100) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: "A coordenada de teste UTM 23K 788547 7634925 exige raio de 100m estritamente.",
-                    path: ['radius']
-                });
-            }
+        if (!Array.isArray(resolved) || resolved.length < 3) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Modo polygon exige 'polygon' com pelo menos 3 pontos.",
+                path: ['polygon']
+            });
         }
     }
 });
