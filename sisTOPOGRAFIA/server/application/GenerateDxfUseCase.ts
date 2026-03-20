@@ -12,7 +12,7 @@ export class GenerateDxfUseCase {
         private readonly getBaseUrl: (req?: any) => string
     ) { }
 
-    async execute(data: DxfGenerationRequest, _rawBody: any, req: any): Promise<{ status: number, data: any }> {
+    async execute(data: DxfGenerationRequest, req: any): Promise<{ status: number, data: any }> {
         const { lat, lon, radius, mode, utm } = data;
         const resolvedMode = mode || 'circle';
         const polygon = data.polygon;

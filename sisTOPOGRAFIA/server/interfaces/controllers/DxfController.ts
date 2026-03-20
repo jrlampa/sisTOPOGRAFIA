@@ -18,7 +18,7 @@ export class DxfController {
                 return res.status(400).json({ error: 'Invalid request body', details: validation.error.issues });
             }
 
-            const result = await this.generateDxfUseCase.execute(validation.data, req.body, req);
+            const result = await this.generateDxfUseCase.execute(validation.data, req);
             return res.status(result.status).json(result.data);
 
         } catch (err: unknown) {

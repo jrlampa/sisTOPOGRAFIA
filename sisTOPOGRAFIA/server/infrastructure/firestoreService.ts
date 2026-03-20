@@ -7,16 +7,16 @@ import { Firestore, Timestamp, FieldValue } from '@google-cloud/firestore';
 import { logger } from '../utils/logger.js';
 
 const QUOTAS = {
-    READS_PER_DAY: 50000,
-    WRITES_PER_DAY: 20000,
-    DELETES_PER_DAY: 20000,
-    STORAGE_BYTES: 1024 * 1024 * 1024, // 1 GiB free tier
+    READS_PER_DAY: parseInt(process.env.FIRESTORE_QUOTA_READS || '50000', 10),
+    WRITES_PER_DAY: parseInt(process.env.FIRESTORE_QUOTA_WRITES || '20000', 10),
+    DELETES_PER_DAY: parseInt(process.env.FIRESTORE_QUOTA_DELETES || '20000', 10),
+    STORAGE_BYTES: parseInt(process.env.FIRESTORE_QUOTA_STORAGE_BYTES || '1073741824', 10), // default 1 GiB free tier
 };
 
 // IMPORTANT CONSTRAINT: Max 90% capacity as requested
-const CIRCUIT_BREAKER_THRESHOLD = 0.90;
+const CIRCUIT_BREAKER_THRESHOLD = parseFloat(process.env.FIRESTORE_CIRCUIT_BREAKER_THRESHOLD || '0.90');
 // Oldest eviction starts at 80% to ensure we never hit 90% abruptly
-const CLEANUP_THRESHOLD = 0.80;
+const CLEANUP_THRESHOLD = parseFloat(process.env.FIRESTORE_CLEANUP_THRESHOLD || '0.80');
 
 interface QuotaUsage {
     date: string;
