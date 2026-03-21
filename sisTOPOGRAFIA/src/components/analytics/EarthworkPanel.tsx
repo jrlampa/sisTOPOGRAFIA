@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Shovel, Box, Loader2, ArrowDownToLine, ArrowUpToLine, Hash, Sparkles } from 'lucide-react';
+import Logger from '../../utils/logger';
 
 interface EarthworkPanelProps {
     polygonPoints: [number, number][];
@@ -23,7 +24,7 @@ const EarthworkPanel: React.FC<EarthworkPanelProps> = ({ polygonPoints, onClose,
             const data = await onCalculate(isAutoBalance ? 0 : Number(targetZ), isAutoBalance);
             setResult(data);
         } catch (error) {
-            console.error('Calculation failed', error);
+            Logger.error('Calculation failed', error);
         } finally {
             setIsLoading(false);
         }

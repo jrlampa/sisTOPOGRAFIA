@@ -1,4 +1,4 @@
-import { OsmElement, AnalysisStats } from '../types';
+import { OsmElement, AnalysisStats, GeoLocation } from '../types';
 import { API_BASE_URL } from '../config/api';
 
 const API_URL = API_BASE_URL;
@@ -32,7 +32,7 @@ export const generateDXF = async (
   lon: number,
   radius: number,
   mode: string,
-  polygon: any[],
+  polygon: GeoLocation[],
   layers: Record<string, boolean>,
   projection: 'local' | 'utm' = 'local',
   enableAI: boolean = true,

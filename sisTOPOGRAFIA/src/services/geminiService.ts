@@ -1,4 +1,4 @@
-import { GeoLocation } from '../types';
+import { GeoLocation, AnalysisStats } from '../types';
 import Logger from '../utils/logger';
 import { API_BASE_URL } from '../config/api';
 
@@ -26,7 +26,7 @@ export const findLocationWithGemini = async (query: string, enableAI: boolean): 
   }
 };
 
-export const analyzeArea = async (stats: any, locationName: string, enableAI: boolean): Promise<string> => {
+export const analyzeArea = async (stats: AnalysisStats, locationName: string, enableAI: boolean): Promise<string> => {
   if (!enableAI) return "Analysis summary disabled.";
 
   try {

@@ -7,6 +7,7 @@ import {
     GoogleAuthProvider
 } from 'firebase/auth';
 import { auth, googleProvider } from '../config/firebase';
+import Logger from '../utils/logger';
 
 interface AuthContextType {
     user: User | null;
@@ -40,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             await signInWithPopup(auth, googleProvider);
         } catch (error) {
-            console.error("Error signing in with Google", error);
+            Logger.error("Error signing in with Google", error);
             throw error;
         }
     };
@@ -49,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             await signOut(auth);
         } catch (error) {
-            console.error("Error signing out", error);
+            Logger.error("Error signing out", error);
             throw error;
         }
     };

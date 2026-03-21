@@ -26,7 +26,7 @@ export const useEarthwork = () => {
             const data = await response.json();
             return data;
         } catch (error) {
-            console.error("Earthwork calculation error:", error);
+            Logger.error("Earthwork calculation error:", error);
             throw error;
             /* v8 ignore next -- finally branch: V8 artifact; both exception and normal paths tested */
         } finally {

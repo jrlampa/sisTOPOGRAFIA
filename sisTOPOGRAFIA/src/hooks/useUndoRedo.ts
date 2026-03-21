@@ -52,7 +52,7 @@ export function useUndoRedo<T>(initialPresent: T) {
     setState(currentState => {
       if (commit) {
         // Prevent duplicate history entries if value hasn't effectively changed
-        if (JSON.stringify(currentState.present) === JSON.stringify(newPresent)) {
+        if (currentState.present === newPresent) {
             return currentState;
         }
         return {

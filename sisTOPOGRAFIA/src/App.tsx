@@ -85,7 +85,7 @@ function App() {
   // Ref that always points to the latest appState, used in async callbacks to
   // avoid stale closure issues (e.g. the geolocation useEffect below).
   const appStateRef = useRef(appState);
-  useEffect(() => { appStateRef.current = appState; });
+  useEffect(() => { appStateRef.current = appState; }, [appState]);
 
   const {
     isProcessing,
