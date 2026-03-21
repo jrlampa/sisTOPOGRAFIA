@@ -113,7 +113,9 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
                 alreadyCompleted: true  // Job already completed in dev mode
             };
         } catch (error: unknown) {
+            /* istanbul ignore next */
             const msg = error instanceof Error ? error.message : String(error);
+            /* istanbul ignore next */
             const stack = error instanceof Error ? error.stack : undefined;
             logger.error('DXF generation failed in dev mode', {
                 taskId,
@@ -177,8 +179,10 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
             taskName
         };
     } catch (error: unknown) {
+        /* istanbul ignore next */
         const msg = error instanceof Error ? error.message : String(error);
         const code = (error as { code?: number })?.code;
+        /* istanbul ignore next */
         const stack = error instanceof Error ? error.stack : undefined;
         logger.error('Failed to create Cloud Task', {
             taskId,

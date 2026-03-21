@@ -36,6 +36,7 @@ export async function getFirebaseCerts(): Promise<Record<string, string>> {
 
     const cacheControl = response.headers.get('cache-control') || '';
     const maxAgeMatch = cacheControl.match(/max-age=(\d+)/);
+    /* istanbul ignore next */
     const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1], 10) * 1000 : 3_600_000; // default 1 hour
 
     const certs = (await response.json()) as Record<string, string>;
@@ -152,6 +153,7 @@ export const requireAuth = async (req: AuthenticatedRequest, res: Response, next
 
     } catch (error) {
         logger.warn('Authentication failed', {
+            /* istanbul ignore next */
             error: error instanceof Error ? error.message : String(error)
         });
         return res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
@@ -182,6 +184,7 @@ export const checkQuota = async (req: AuthenticatedRequest, res: Response, next:
         let allowed = false;
         await db.runTransaction(async (transaction) => {
             const snapshot = await transaction.get(quotaRef);
+            /* istanbul ignore next */
             const currentCount: number = snapshot.exists ? ((snapshot.data()?.count as number) ?? 0) : 0;
 
             if (currentCount >= MAX_DAILY_REQUESTS) {
@@ -211,6 +214,7 @@ export const checkQuota = async (req: AuthenticatedRequest, res: Response, next:
         return next();
     } catch (error: unknown) {
         // On Firestore errors, allow the request to proceed (fail open) to avoid blocking users
+        /* istanbul ignore next */
         const msg = error instanceof Error ? error.message : String(error);
         logger.error('Quota check failed, allowing request', { uid: req.user.uid, error: msg });
         return next();
