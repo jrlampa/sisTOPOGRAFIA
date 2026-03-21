@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { GeoLocation } from '../types';
 import { API_BASE_URL } from '../config/api';
+import Logger from '../utils/logger';
 
 export const useEarthwork = () => {
     const [isCalculating, setIsCalculating] = useState(false);

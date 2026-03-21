@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useEarthwork } from '../../src/hooks/useEarthwork';
+import Logger from '../../src/utils/logger';
 
 describe('useEarthwork', () => {
   const originalFetch = global.fetch;
@@ -93,7 +94,7 @@ describe('useEarthwork', () => {
     global.fetch = vi.fn().mockRejectedValueOnce(new Error('Network error')) as any;
 
     const { result } = renderHook(() => useEarthwork());
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(Logger, 'error').mockImplementation(() => {});
 
     await act(async () => {
       await expect(result.current.calculateEarthwork(polygon, targetZ))

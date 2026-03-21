@@ -130,7 +130,7 @@ const SelectionManager = ({
             {(selectionMode === 'polygon' || selectionMode === 'pad') && polygonPoints.length > 0 && (
                 <>
                     {polygonPoints.map((point: any, i: number) => (
-                        <Marker key={i} position={point} />
+                        <Marker key={`polygon-pt-${i}-${point[0]}-${point[1]}`} position={point} />
                     ))}
                     {polygonPoints.length > 1 && (
                         <Polyline

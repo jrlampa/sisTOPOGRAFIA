@@ -73,7 +73,6 @@ export const dxfGenerationRequestSchema = z.object({
                 message: `Polygon não pode ter mais de ${MAX_POLYGON_POINTS} pontos.`,
                 path: ['polygon']
             });
-            return;
         }
 
         for (const pt of resolved) {
