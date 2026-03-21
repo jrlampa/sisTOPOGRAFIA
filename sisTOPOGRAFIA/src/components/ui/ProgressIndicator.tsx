@@ -8,7 +8,7 @@ interface ProgressIndicatorProps {
     message: string;
 }
 
-const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ isVisible, progress, message }) => {
+const ProgressIndicator: React.FC<ProgressIndicatorProps> = React.memo(({ isVisible, progress, message }) => {
     if (!isVisible) return null;
 
     return (
@@ -33,6 +33,6 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ isVisible, progre
             </p>
         </div>
     );
-};
+});
 
 export default ProgressIndicator;

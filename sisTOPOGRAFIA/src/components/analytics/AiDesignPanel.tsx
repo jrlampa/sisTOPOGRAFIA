@@ -53,7 +53,7 @@ const AiDesignPanel: React.FC<AiDesignPanelProps> = ({ isVisible, onClose, sugge
                                     return (
                                         <div key={i} className="flex gap-3 mb-3 group">
                                             <ChevronRight size={14} className="mt-1 text-indigo-500 group-hover:translate-x-1 transition-transform" />
-                                            <p className="text-slate-300 text-sm leading-relaxed flex-1">{line.replace(/^[- \d\.]+/, '').trim()}</p>
+                                            <p className="text-slate-300 text-sm leading-relaxed flex-1">{line.replace(/^[- \d.]+/, '').trim()}</p>
                                         </div>
                                     );
                                 }

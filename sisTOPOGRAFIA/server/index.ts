@@ -226,6 +226,6 @@ function gracefulShutdown(signal: string) {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('unhandledRejection', (reason: unknown) => {
-    logger.error('Unhandled Promise Rejection', { reason: String(reason) });
-    process.exit(1);
+    logger.error('Unhandled Promise Rejection — initiating graceful shutdown', { reason: String(reason) });
+    gracefulShutdown('unhandledRejection');
 });

@@ -48,10 +48,16 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const itemsRef = useRef(items);
+  // Keep a ref to the latest onError so the polling interval never captures a stale callback
+  const onErrorRef = useRef(onError);
 
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
   const pendingJobs = useMemo(
     () => items.filter((item) => item.status === 'queued' && item.jobId),
@@ -120,7 +126,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
           }
 
           if (status.status === 'failed') {
-            onError(`Batch DXF failed: ${item.name}`);
+            onErrorRef.current(`Batch DXF failed: ${item.name}`);
             return {
               jobId: item.jobId,
               status: 'failed' as const,
@@ -135,7 +141,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
           };
         } catch (error) {
           const message = error instanceof Error ? error.message : 'DXF generation failed';
-          onError(`Batch DXF failed: ${item.name}`);
+          onErrorRef.current(`Batch DXF failed: ${item.name}`);
           return {
             jobId: item.jobId,
             status: 'failed' as const,

@@ -11,7 +11,7 @@ interface ToastProps {
     duration?: number;
 }
 
-const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 4000 }) => {
+const Toast: React.FC<ToastProps> = React.memo(({ message, type, onClose, duration = 4000 }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             onClose();
@@ -55,6 +55,6 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 4000 }
             </motion.button>
         </motion.div>
     );
-};
+});
 
 export default Toast;

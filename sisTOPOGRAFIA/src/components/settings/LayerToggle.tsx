@@ -12,7 +12,7 @@ interface LayerToggleProps {
   colorClass: string;
 }
 
-const LayerToggle: React.FC<LayerToggleProps> = ({ label, icon: Icon, active, onClick, colorClass }) => (
+const LayerToggle: React.FC<LayerToggleProps> = React.memo(({ label, icon: Icon, active, onClick, colorClass }) => (
   <button
     onClick={onClick}
     className={`flex items-center gap-3 p-3 rounded-lg border transition-all glass-panel-hover ${active
@@ -30,6 +30,6 @@ const LayerToggle: React.FC<LayerToggleProps> = ({ label, icon: Icon, active, on
       style={active ? { backgroundColor: 'var(--enterprise-blue)' } : {}}
     />
   </button>
-);
+));
 
 export default LayerToggle;

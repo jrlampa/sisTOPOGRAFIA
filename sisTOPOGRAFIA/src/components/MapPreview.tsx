@@ -44,6 +44,8 @@ const MapPreview: React.FC<MapPreviewProps> = ({ center, radius, onCenterChange 
     return () => {
       // Cleanup handled by ref check usually, but good practice to remove if strict
     };
+    // Intentionally empty: only runs once to initialise the Leaflet map instance
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); 
 
   // Handle Click Events

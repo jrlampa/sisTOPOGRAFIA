@@ -7,7 +7,7 @@ interface DashboardProps {
   analysisText: string;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
+const Dashboard: React.FC<DashboardProps> = React.memo(({ stats, analysisText }) => {
   const data = [
     { name: 'Edificações', value: stats.totalBuildings, color: '#facc15' },
     { name: 'Vias', value: stats.totalRoads, color: '#f87171' },
@@ -97,6 +97,6 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
       </div>
     </div>
   );
-};
+});
 
 export default Dashboard;

@@ -1,5 +1,5 @@
 import { AnimatePresence } from 'framer-motion';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import HydrologicalProfilePanel from './components/analytics/HydrologicalProfilePanel';
 import { GlobalState, AppSettings, GeoLocation, SelectionMode } from './types';
 import { DEFAULT_LOCATION } from './constants';
@@ -26,6 +26,7 @@ import { useKmlImport } from './hooks/useKmlImport';
 import { useFileOperations } from './hooks/useFileOperations';
 import { useElevationProfile } from './hooks/useElevationProfile';
 import { useEarthwork } from './hooks/useEarthwork';
+import { downloadBlob } from './utils/downloadFile';
 
 function App() {
   const { user, loginWithGoogle, logout } = useAuth();
@@ -103,7 +104,7 @@ function App() {
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
-  const showToast = (message: string, type: ToastType) => setToast({ message, type });
+  const showToast = useCallback((message: string, type: ToastType) => setToast({ message, type }), []);
 
   const { searchQuery, setSearchQuery, isSearching, handleSearch } = useSearch({
     onLocationFound: (location) => {
@@ -148,27 +149,21 @@ function App() {
   const { profileData: elevationProfileData, loadProfile: loadElevationProfile, clearProfile } = useElevationProfile();
   const { calculateEarthwork } = useEarthwork();
 
-  const updateSettings = (newSettings: AppSettings) => setAppState({ ...appState, settings: newSettings }, true);
+  const updateSettings = useCallback((newSettings: AppSettings) =>
+    setAppState({ ...appStateRef.current, settings: newSettings }, true), [setAppState]);
 
-  const handleExportGeoJSON = () => {
+  const handleExportGeoJSON = useCallback(() => {
     if (!osmData) { showToast('Realize uma análise primeiro para exportar.', 'info'); return; }
     try {
       const geojson = osmToGeoJSON(osmData);
-      const safeName = appState.settings.projectMetadata.projectName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const safeName = appStateRef.current.settings.projectMetadata.projectName.replace(/[^a-zA-Z0-9_-]/g, '_');
       const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${safeName}_osm.geojson`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, `${safeName}_osm.geojson`);
       showToast('GeoJSON exportado com sucesso!', 'success');
     } catch {
       showToast('Falha ao exportar GeoJSON.', 'error');
     }
-  };
+  }, [osmData, showToast]);
 
   useEffect(() => {
     const handleUC = (e: Event) => {
@@ -177,7 +172,7 @@ function App() {
     };
     window.addEventListener('uc-detected', handleUC);
     return () => window.removeEventListener('uc-detected', handleUC);
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     const handleProdist = () => {
@@ -188,9 +183,12 @@ function App() {
     };
     window.addEventListener('aneel-prodist-applied', handleProdist);
     return () => window.removeEventListener('aneel-prodist-applied', handleProdist);
-  }, []);
+  }, [showToast]);
 
-  const handleMapClick = (newCenter: GeoLocation) => { setAppState({ ...appState, center: newCenter }, true); clearData(); };
+  const handleMapClick = useCallback((newCenter: GeoLocation) => {
+    setAppState({ ...appStateRef.current, center: newCenter }, true);
+    clearData();
+  }, [setAppState, clearData]);
 
   const [selectedFeature, setSelectedFeature] = useState<unknown>(null);
   const [isInspectorVisible, setInspectorVisible] = useState(false);
@@ -199,26 +197,28 @@ function App() {
   const [isProfilePanelVisible, setProfilePanelVisible] = useState(false);
   const [activeHeatmap, setActiveHeatmap] = useState<'none' | 'slope' | 'solar'>('none');
 
-  const handleSelectionModeChange = (mode: SelectionMode) =>
-    setAppState({ ...appState, selectionMode: mode, polygon: [], measurePath: [] }, true);
+  const handleSelectionModeChange = useCallback((mode: SelectionMode) =>
+    setAppState({ ...appStateRef.current, selectionMode: mode, polygon: [], measurePath: [] }, true), [setAppState]);
 
-  const handleMeasurePathChange = async (path: [number, number][]) => {
+  const handleMeasurePathChange = useCallback(async (path: [number, number][]) => {
     const geoPath = path.map(p => ({ lat: p[0], lng: p[1] }));
-    setAppState({ ...appState, measurePath: geoPath }, false);
+    setAppState({ ...appStateRef.current, measurePath: geoPath }, false);
     if (geoPath.length === 2) await loadElevationProfile(geoPath[0], geoPath[1]);
     else clearProfile();
-  };
+  }, [setAppState, loadElevationProfile, clearProfile]);
 
-  const handleFetchAndAnalyze = async () => {
+  const handleFetchAndAnalyze = useCallback(async () => {
+    const { center, radius, settings } = appStateRef.current;
     const success = await runAnalysis(center, radius, settings.enableAI);
     if (success) showToast('Análise Concluída!', 'success');
     else showToast('Falha na auditoria. Verifique os logs do backend.', 'error');
-  };
+  }, [runAnalysis, showToast]);
 
-  const handleDownloadDxf = async () => {
+  const handleDownloadDxf = useCallback(async () => {
+    const { center, radius, selectionMode, polygon, settings } = appStateRef.current;
     if (!osmData) return;
     await downloadDxf(center, radius, selectionMode, polygon, settings.layers, settings.projection, settings.enableAI);
-  };
+  }, [osmData, downloadDxf]);
 
   useEffect(() => {
     if (center.lat === DEFAULT_LOCATION.lat && center.lng === DEFAULT_LOCATION.lng) {
@@ -226,6 +226,8 @@ function App() {
         setAppState({ ...appStateRef.current, center: { lat: pos.coords.latitude, lng: pos.coords.longitude, label: 'Localização Atual' } }, false);
       });
     }
+    // Intentionally runs once on mount: uses appStateRef to avoid stale closure
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const polygonPoints = React.useMemo(() => polygon.map(p => [p.lat, p.lng] as [number, number]), [polygon]);

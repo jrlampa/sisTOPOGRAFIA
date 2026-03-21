@@ -93,6 +93,8 @@ const SelectionManager = ({
     // Fly to center when it changes
     React.useEffect(() => {
         flyToCenter(center);
+        // flyToCenter is recreated on every render; the stable deps are center lat/lng and map
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [center.lat, center.lng, map]);
 
     // Fix map size on mount and when window resizes
@@ -207,16 +209,15 @@ const CanvasHeatmap = ({ data, metadata, type }: any) => {
                 // HSL to RGB conversion inside loop for perf
                 // Slope: Green (120) to Red (0)
                 // Solar: Cyan (180) to Blue (240)
-                let h, s, l;
+                let h;
+                const s = 1;
+                const l = 0.5;
                 if (type === 'slope') {
                     h = (1 - Math.min(val, 1)) * 120 / 360;
                 } else {
                     h = ((Math.min(val, 1) * 60) + 180) / 360;
                 }
-                s = 1;
-                l = 0.5;
 
-                let rC, gC, bC;
                 const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
                 const p = 2 * l - q;
                 const hue2rgb = (p: number, q: number, t: number) => {
@@ -228,9 +229,9 @@ const CanvasHeatmap = ({ data, metadata, type }: any) => {
                     return p;
                 };
 
-                rC = hue2rgb(p, q, h + 1 / 3);
-                gC = hue2rgb(p, q, h);
-                bC = hue2rgb(p, q, h - 1 / 3);
+                const rC = hue2rgb(p, q, h + 1 / 3);
+                const gC = hue2rgb(p, q, h);
+                const bC = hue2rgb(p, q, h - 1 / 3);
 
                 imgData.data[idx] = Math.round(rC * 255);
                 imgData.data[idx + 1] = Math.round(gC * 255);
