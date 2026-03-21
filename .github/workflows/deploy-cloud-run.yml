@@ -73,7 +73,7 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
         run: |
-          cd sisrua_unified
+          cd sisTOPOGRAFIA
           gcloud run deploy sisrua-app \
             --project=${{ secrets.GCP_PROJECT_ID }} \
             --source=. \

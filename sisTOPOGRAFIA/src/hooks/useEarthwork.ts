@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { GeoLocation } from '../types';
+import { API_BASE_URL } from '../config/api';
 
 export const useEarthwork = () => {
     const [isCalculating, setIsCalculating] = useState(false);
@@ -12,7 +13,7 @@ export const useEarthwork = () => {
             formData.append('autoBalance', autoBalance.toString());
             formData.append('polygon', JSON.stringify(polygon.map(p => ({ lat: p.lat, lng: p.lng }))));
 
-            const response = await fetch('http://localhost:5000/api/analyze-pad', {
+            const response = await fetch(`${API_BASE_URL}/analyze-pad`, {
                 method: 'POST',
                 body: formData,
             });

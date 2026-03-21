@@ -7,22 +7,22 @@ on:
       - production
       - release/*
     paths:
-      - 'sisrua_unified/VERSION'
-      - 'sisrua_unified/package.json'
-      - 'sisrua_unified/package-lock.json'
-      - 'sisrua_unified/py_engine/constants.py'
-      - 'sisrua_unified/src/hooks/useFileOperations.ts'
+      - 'sisTOPOGRAFIA/VERSION'
+      - 'sisTOPOGRAFIA/package.json'
+      - 'sisTOPOGRAFIA/package-lock.json'
+      - 'sisTOPOGRAFIA/py_engine/constants.py'
+      - 'sisTOPOGRAFIA/src/hooks/useFileOperations.ts'
       - '.github/workflows/version-check.yml'
   push:
     branches:
       - main
       - production
     paths:
-      - 'sisrua_unified/VERSION'
-      - 'sisrua_unified/package.json'
-      - 'sisrua_unified/package-lock.json'
-      - 'sisrua_unified/py_engine/constants.py'
-      - 'sisrua_unified/src/hooks/useFileOperations.ts'
+      - 'sisTOPOGRAFIA/VERSION'
+      - 'sisTOPOGRAFIA/package.json'
+      - 'sisTOPOGRAFIA/package-lock.json'
+      - 'sisTOPOGRAFIA/py_engine/constants.py'
+      - 'sisTOPOGRAFIA/src/hooks/useFileOperations.ts'
   workflow_dispatch:
 
 permissions:
@@ -35,7 +35,7 @@ jobs:
     
     defaults:
       run:
-        working-directory: sisrua_unified
+        working-directory: sisTOPOGRAFIA
     
     steps:
       - name: Checkout code
@@ -46,7 +46,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: sisrua_unified/package-lock.json
+          cache-dependency-path: sisTOPOGRAFIA/package-lock.json
       
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
