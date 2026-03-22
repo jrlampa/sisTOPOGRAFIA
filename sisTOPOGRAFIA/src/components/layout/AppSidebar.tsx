@@ -9,12 +9,11 @@ import {
   Download,
   Square,
 } from 'lucide-react';
-import { AppSettings, GeoLocation, SelectionMode } from '../../types';
+import { AppSettings, GeoLocation, SelectionMode, AnalysisStats, OsmElement, TerrainGrid } from '../../types';
 import { MIN_RADIUS, MAX_RADIUS } from '../../constants';
 import Dashboard from '../analytics/Dashboard';
 import DxfLegend from '../gis/DxfLegend';
 import BatchUpload from '../ui/BatchUpload';
-import { AnalysisStats } from '../../types';
 
 interface AppSidebarProps {
   isDark: boolean;
@@ -32,10 +31,10 @@ interface AppSidebarProps {
   polygon: { lat: number; lng: number }[];
   onFetchAndAnalyze: () => void;
   error: string | null;
-  osmData: unknown;
+  osmData: OsmElement[] | null;
   stats: AnalysisStats | null;
   analysisText: string;
-  terrainData: unknown;
+  terrainData: TerrainGrid | null;
   isDownloading: boolean;
   onDownloadDxf: () => void;
   onToastError: (message: string) => void;
