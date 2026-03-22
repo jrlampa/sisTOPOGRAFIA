@@ -99,4 +99,6 @@ const Dashboard: React.FC<DashboardProps> = React.memo(({ stats, analysisText })
   );
 });
 
+Dashboard.displayName = 'Dashboard';
+
 export default Dashboard;

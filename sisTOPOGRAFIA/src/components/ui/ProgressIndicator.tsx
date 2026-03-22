@@ -35,4 +35,6 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = React.memo(({ isVisi
     );
 });
 
+ProgressIndicator.displayName = 'ProgressIndicator';
+
 export default ProgressIndicator;

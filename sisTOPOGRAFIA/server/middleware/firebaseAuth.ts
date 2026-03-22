@@ -34,6 +34,7 @@ export async function getFirebaseCerts(): Promise<Record<string, string>> {
         throw new Error(`Failed to fetch Firebase certificates: HTTP ${response.status}`);
     }
 
+    /* istanbul ignore next */
     const cacheControl = response.headers.get('cache-control') || '';
     const maxAgeMatch = cacheControl.match(/max-age=(\d+)/);
     /* istanbul ignore next */
@@ -152,10 +153,9 @@ export const requireAuth = async (req: AuthenticatedRequest, res: Response, next
         return next();
 
     } catch (error) {
-        logger.warn('Authentication failed', {
-            /* istanbul ignore next */
-            error: error instanceof Error ? error.message : String(error)
-        });
+        /* istanbul ignore next */
+        const authErrMsg = error instanceof Error ? error.message : String(error);
+        logger.warn('Authentication failed', { error: authErrMsg });
         return res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
     }
 };

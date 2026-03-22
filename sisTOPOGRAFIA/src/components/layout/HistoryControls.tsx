@@ -40,4 +40,6 @@ const HistoryControls: React.FC<HistoryControlsProps> = React.memo(({ canUndo, c
   );
 });
 
+HistoryControls.displayName = 'HistoryControls';
+
 export default HistoryControls;

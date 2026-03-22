@@ -57,4 +57,6 @@ const Toast: React.FC<ToastProps> = React.memo(({ message, type, onClose, durati
     );
 });
 
+Toast.displayName = 'Toast';
+
 export default Toast;

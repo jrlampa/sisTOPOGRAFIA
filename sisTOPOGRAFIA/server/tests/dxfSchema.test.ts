@@ -288,13 +288,14 @@ describe('dxfGenerationRequestSchema', () => {
 
     it('rejeita modo polygon com coordenadas fora dos limites (lat > 90)', () => {
         // Covers lines 80-88 (per-point coordinate validation)
+        // The validator expects array format [lon, lat], not objects
         const result = dxfGenerationRequestSchema.safeParse({
             mode: 'polygon',
             radius: 500,
             polygon: [
-                { lat: -22.15, lng: -42.92 },
-                { lat: 95.0, lng: -42.92 },  // lat > 90 is invalid
-                { lat: -22.16, lng: -42.93 }
+                [-42.92, -22.15],   // valid [lon, lat]
+                [-42.92, 95.0],     // lat > 90 is invalid
+                [-42.93, -22.16]    // valid [lon, lat]
             ]
         });
         expect(result.success).toBe(false);
@@ -306,9 +307,9 @@ describe('dxfGenerationRequestSchema', () => {
             mode: 'polygon',
             radius: 500,
             polygon: [
-                { lat: -22.15, lng: -42.92 },
-                { lat: -22.16, lng: -185.0 },  // lon < -180 is invalid
-                { lat: -22.16, lng: -42.93 }
+                [-42.92, -22.15],   // valid [lon, lat]
+                [-185.0, -22.16],   // lon < -180 is invalid
+                [-42.93, -22.16]    // valid [lon, lat]
             ]
         });
         expect(result.success).toBe(false);

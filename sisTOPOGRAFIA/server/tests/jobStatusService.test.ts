@@ -161,7 +161,6 @@ describe('JobStatusService', () => {
             let isolatedStop: () => void;
 
             jest.isolateModules(() => {
-                // eslint-disable-next-line @typescript-eslint/no-require-imports
                 const svc = require('../services/jobStatusService');
                 isolatedCreate = svc.createJob;
                 isolatedGet = svc.getJob;

@@ -170,4 +170,21 @@ describe('POST /api/batch/dxf', () => {
         expect(res.body.error).toBe('Falha no processamento batch');
         expect(res.body.details).toBe('CSV parse crash');
     });
+
+    it('retorna 400 quando todas as linhas falham na validação (results.length === 0)', async () => {
+        // All rows have invalid lat values → all fail batchRowSchema → results=[], errors non-empty
+        mockParseBatchCsv.mockResolvedValueOnce([
+            { line: 2, row: { name: 'Bad1', lat: 'not-a-number', lon: '-42.92', radius: '500', mode: 'circle' } },
+            { line: 3, row: { name: 'Bad2', lat: '999', lon: '-42.92', radius: '500', mode: 'circle' } }
+        ]);
+
+        const app = buildApp();
+        const res = await request(app)
+            .post('/api/batch/dxf')
+            .attach('file', Buffer.from('name,lat,lon,radius,mode'), 'batch.csv');
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe('Nenhuma linha válida no CSV');
+        expect(res.body.errors).toHaveLength(2);
+    });
 });

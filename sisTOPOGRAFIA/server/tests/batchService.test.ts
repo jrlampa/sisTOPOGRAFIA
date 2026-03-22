@@ -142,7 +142,6 @@ describe('BatchService', () => {
       jest.isolateModules(() => {
         // jest.doMock is designed for dynamic per-test mocking inside isolateModules
         jest.doMock('csv-parser', () => {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
           const { Transform } = require('stream');
           return jest.fn(() => {
             return new Transform({
@@ -154,7 +153,6 @@ describe('BatchService', () => {
             });
           });
         });
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const mod = require('../services/batchService');
         isolatedParseFn = mod.parseBatchCsv;
       });

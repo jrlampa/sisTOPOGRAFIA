@@ -41,4 +41,6 @@ const NestedLayerToggle: React.FC<NestedLayerToggleProps> = React.memo(({
   </div>
 ));
 
+NestedLayerToggle.displayName = 'NestedLayerToggle';
+
 export default NestedLayerToggle;

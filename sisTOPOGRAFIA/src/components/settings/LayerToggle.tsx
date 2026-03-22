@@ -32,4 +32,6 @@ const LayerToggle: React.FC<LayerToggleProps> = React.memo(({ label, icon: Icon,
   </button>
 ));
 
+LayerToggle.displayName = 'LayerToggle';
+
 export default LayerToggle;
