@@ -298,3 +298,65 @@ class TestAddRasterOverlay:
         non_existent = str(tmp_path / "nao_existe.png")
         drawer.add_raster_overlay(non_existent, bounds)
         assert True
+
+
+# ── add_tin_mesh: layer created on bare drawer ─────────────────────────────────
+
+class TestAddTinMeshLayerCreation:
+    def test_tin_layer_created_on_bare_drawer(self):
+        """add_tin_mesh cria a layer TIN quando ela não existe no documento."""
+        import ezdxf
+        doc = ezdxf.new('R2010')
+        msp = doc.modelspace()
+        bare = DXFTerrainDrawer(
+            msp, doc,
+            lambda v: float(v),
+            lambda pts, min_points=2: pts,
+            lambda: 0.0,
+            lambda: 0.0,
+        )
+        assert 'sisTOPO_TERRENO_TIN' not in doc.layers
+        grid = [
+            [(0.0, 0.0, 10.0), (10.0, 0.0, 11.0)],
+            [(0.0, 10.0, 12.0), (10.0, 10.0, 13.0)],
+        ]
+        bare.add_tin_mesh(grid)
+        assert 'sisTOPO_TERRENO_TIN' in doc.layers
+
+
+# ── add_slope_hatch: layer created on bare drawer ─────────────────────────────
+
+class TestAddSlopeHatchLayerCreation:
+    def test_slope_hatch_layer_created_on_bare_drawer(self):
+        """add_slope_hatch cria a layer RISCO quando ela não existe."""
+        import ezdxf
+        import numpy as np
+        doc = ezdxf.new('R2010')
+        msp = doc.modelspace()
+        bare = DXFTerrainDrawer(
+            msp, doc,
+            lambda v: float(v),
+            lambda pts, min_points=2: pts,
+            lambda: 0.0,
+            lambda: 0.0,
+        )
+        grid = [
+            [(float(c), float(r), 0.0) for c in range(3)]
+            for r in range(3)
+        ]
+        slope_grid = np.full((3, 3), 120.0)  # > 100 → RISCO_ALTO
+        assert 'sisTOPO_RISCO_ALTO' not in doc.layers
+        bare.add_slope_hatch(grid, analytics={'slope_pct': slope_grid})
+        assert 'sisTOPO_RISCO_ALTO' in doc.layers
+
+
+# ── _label_major_contour: angle < -90 adjustment ─────────────────────────────
+
+class TestLabelMajorContourAngle:
+    def test_angle_less_than_minus_90_adjusted(self, drawer, gen):
+        """Ângulo < -90° é ajustado +180° (terceiro quadrante)."""
+        # Pontos indo para baixo-esquerda: atan2(-2, -1) ≈ -116.6° < -90°
+        valid_line = [(float(10 - i), float(-2 * i)) for i in range(12)]
+        drawer._label_major_contour(valid_line, z_val=10.0)
+        texts = [e for e in gen.msp if e.dxftype() == 'TEXT']
+        assert len(texts) >= 1

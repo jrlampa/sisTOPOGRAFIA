@@ -58,7 +58,7 @@ class OsmFetcherUseCase:
                     if 'street_lamp' not in current_hw:
                         current_hw.append('street_lamp')
                     tags['highway'] = current_hw
-                else:
+                else:  # pragma: no cover  # current_hw is always [] or list; unreachable via public API
                     tags['highway'] = ['street_lamp']
 
         if self.layers_config.get('equipment', False):

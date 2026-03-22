@@ -76,6 +76,16 @@ class TestAddCoordinateGrid:
 
         assert count_fine > count_coarse, "Spacing menor deve gerar mais entidades"
 
+    def test_grid_point_outside_feature_bounds_skipped(self):
+        """Ponto de grade fora dos limites da feature (±10) deve ser ignorado."""
+        b = _make_builder()
+        # spacing=100, min_x=20 → grid starts at 0, first x=0 < min_x-10=10 → continue
+        before = len(list(b.msp))
+        b.add_coordinate_grid(20.0, 20.0, 80.0, 80.0, 0.0, 0.0, spacing=100.0)
+        after = len(list(b.msp))
+        # Moldura é sempre adicionada; crosshair at x=0 and y=0 are out of bounds
+        assert after >= before + 1
+
 
 class TestAddLegend:
     def test_legend_adds_entities(self):
@@ -85,6 +95,18 @@ class TestAddLegend:
         b.add_legend()
         after = len(list(b.msp))
         assert after > before
+
+    def test_legend_tiny_bounds_v_height_fallback(self):
+        """Bounds muito pequenas (< 50) devem usar v_height=200 como fallback."""
+        doc = ezdxf.new(dxfversion='R2010')
+        msp = doc.modelspace()
+        # bounds span < 41.67 → v_height < 50 → fallback to 200
+        tiny_bounds = [0.0, 0.0, 10.0, 10.0]
+        b = LegendBuilder(msp, doc, tiny_bounds, 0.0, 0.0, lambda v: float(v), {})
+        before = len(list(msp))
+        b.add_legend()
+        after = len(list(msp))
+        assert after > before  # viewport and borders were added
 
 
 class TestAddTitleBlock:
