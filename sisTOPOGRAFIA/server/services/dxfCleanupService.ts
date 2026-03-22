@@ -2,8 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { logger } from '../utils/logger.js';
 
-// DXF files should be deleted after 10 minutes as per requirements
-const DXF_FILE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+// DXF files should be deleted after 10 minutes as per requirements (configurable via env)
+const DXF_FILE_TTL_MS = parseInt(process.env.DXF_FILE_TTL_MS || String(10 * 60 * 1000), 10);
 const CLEANUP_CHECK_INTERVAL = 2 * 60 * 1000; // Check every 2 minutes
 
 interface ScheduledFile {

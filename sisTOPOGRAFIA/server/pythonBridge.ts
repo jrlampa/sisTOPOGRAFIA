@@ -151,7 +151,18 @@ interface AnalyzePadOptions {
     autoBalance?: boolean;
 }
 
-export const analyzePad = (options: AnalyzePadOptions): Promise<any> => {
+export interface AnalyzePadResult {
+    volume_cut: number;
+    volume_fill: number;
+    net_volume: number;
+    cut_area: number;
+    fill_area: number;
+    balance_factor: number;
+    /** Additional computed metrics returned by the Python engine may vary by configuration. */
+    [key: string]: unknown;
+}
+
+export const analyzePad = (options: AnalyzePadOptions): Promise<AnalyzePadResult> => {
     return new Promise((resolve, reject) => {
         if (!options.polygon || options.targetZ === undefined) {
             reject(new Error('Missing required parameters for Pad analysis'));
@@ -208,10 +219,11 @@ export const analyzePad = (options: AnalyzePadOptions): Promise<any> => {
                 try {
                     // Try to parse the last JSON object from stdout
                     const jsonStr = stdoutData.trim().split('\n').pop() || '{}';
-                    const result = JSON.parse(jsonStr);
+                    const result = JSON.parse(jsonStr) as AnalyzePadResult;
                     resolve(result);
-                } catch (e: any) {
-                    reject(new Error(`Failed to parse python output: ${e.message}\nOutput: ${stdoutData}`));
+                } catch (e: unknown) {
+                    const msg = e instanceof Error ? e.message : String(e);
+                    reject(new Error(`Failed to parse python output: ${msg}\nOutput: ${stdoutData}`));
                 }
             } else {
                 reject(new Error(`Python script failed with code ${code}\nStderr: ${stderrData}`));

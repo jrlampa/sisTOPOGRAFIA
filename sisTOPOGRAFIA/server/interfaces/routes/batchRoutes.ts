@@ -9,15 +9,26 @@ import { createJob } from '../../services/jobStatusServiceFirestore.js';
 import {
     createCacheKey, getCachedFilename, setCachedFilename, deleteCachedFilename
 } from '../../services/cacheServiceFirestore.js';
+import { geoRateLimiter } from '../../middleware/rateLimiter.js';
 import { logger } from '../../utils/logger.js';
 
 // dxfDirectory é injetado no bootstrap via factory
 export function createBatchRouter(dxfDirectory: string, getBaseUrl: (req: Request) => string) {
     const router = Router();
-    const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+    const upload = multer({
+        storage: multer.memoryStorage(),
+        limits: { fileSize: 5 * 1024 * 1024 },
+        fileFilter: (_req, file, cb) => {
+            if (file.mimetype === 'text/csv' || file.originalname.toLowerCase().endsWith('.csv')) {
+                cb(null, true);
+            } else {
+                cb(new Error('Apenas arquivos CSV são permitidos'));
+            }
+        }
+    });
 
     // POST /api/batch/dxf
-    router.post('/dxf', upload.single('file'), async (req: Request, res: Response) => {
+    router.post('/dxf', geoRateLimiter, upload.single('file'), async (req: Request, res: Response) => {
         try {
             if (!req.file) return res.status(400).json({ error: 'Arquivo CSV é obrigatório' });
 
@@ -54,7 +65,16 @@ export function createBatchRouter(dxfDirectory: string, getBaseUrl: (req: Reques
                 const safeName = name.toLowerCase().replace(/[^a-z0-9-_]+/g, '_').slice(0, 40) ||
                     /* istanbul ignore next */ 'batch';
                 const filename = `dxf_${safeName}_${Date.now()}_${entry.line}.dxf`;
-                const outputFile = path.join(dxfDirectory, filename);
+                // Defense-in-depth: verify the resolved output path stays inside dxfDirectory.
+                // Under normal flow this branch is unreachable because safeName is already
+                // sanitized to [a-z0-9-_], but guards against future regressions.
+                const outputFile = path.resolve(dxfDirectory, filename);
+                /* istanbul ignore next -- defense-in-depth guard, unreachable with sanitized filenames */
+                if (!outputFile.startsWith(path.resolve(dxfDirectory))) {
+                    logger.error('Path traversal attempt detected', { filename });
+                    errors.push({ line: entry.line, message: 'Nome de arquivo inválido', row: entry.row });
+                    continue;
+                }
                 const downloadUrl = `${getBaseUrl(req)}/downloads/${filename}`;
 
                 const { taskId } = await createDxfTask({

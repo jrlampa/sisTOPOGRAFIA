@@ -20,7 +20,8 @@ const buildMockRes = (statusCode = 200): Partial<Response> & EventEmitter => {
     return Object.assign(emitter, {
         statusCode,
         status: jest.fn().mockReturnThis(),
-        json: jest.fn().mockReturnThis()
+        json: jest.fn().mockReturnThis(),
+        getHeader: jest.fn().mockReturnValue(undefined)
     }) as unknown as Partial<Response> & EventEmitter;
 };
 

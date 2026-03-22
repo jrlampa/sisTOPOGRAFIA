@@ -12,9 +12,14 @@ export const keyGenerator = (req: Request): string => {
     return ipKeyGenerator(req.ip || 'unknown');
 };
 
+// Rate limit thresholds are configurable via environment variables for easy tuning
+const DXF_RATE_LIMIT = parseInt(process.env.RATE_LIMIT_DXF || '10', 10);
+const GENERAL_RATE_LIMIT = parseInt(process.env.RATE_LIMIT_GENERAL || '100', 10);
+const GEO_RATE_LIMIT = parseInt(process.env.RATE_LIMIT_GEO || '30', 10);
+
 const dxfRateLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    limit: 10,
+    limit: DXF_RATE_LIMIT,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     keyGenerator,
@@ -32,7 +37,7 @@ const dxfRateLimiter = rateLimit({
 
 const generalRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 100,
+    limit: GENERAL_RATE_LIMIT,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     keyGenerator,
@@ -51,7 +56,7 @@ const generalRateLimiter = rateLimit({
 // Geo/search endpoints: stricter limit to prevent geocoding enumeration attacks
 const geoRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 30,
+    limit: GEO_RATE_LIMIT,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     keyGenerator,

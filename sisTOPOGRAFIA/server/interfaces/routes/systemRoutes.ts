@@ -45,8 +45,8 @@ router.get('/', async (_req: Request, res: Response) => {
             osmCacheStats = { available: false };
         }
 
-        return res.json({
-            status: 'online',
+        return res.status(pythonAvailable ? 200 : 503).json({
+            status: pythonAvailable ? 'online' : 'degraded',
             service: 'sisTOPOGRAFIA Backend',
             version: '1.0.0',
             python: pythonAvailable ? 'available' : 'unavailable',

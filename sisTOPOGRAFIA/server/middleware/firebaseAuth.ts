@@ -41,6 +41,9 @@ export async function getFirebaseCerts(): Promise<Record<string, string>> {
     const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1], 10) * 1000 : 3_600_000; // default 1 hour
 
     const certs = (await response.json()) as Record<string, string>;
+    if (!certs || typeof certs !== 'object' || Object.keys(certs).length === 0) {
+        throw new Error('Firebase returned an empty or invalid certificate set');
+    }
     certCache = { certs, expiresAt: now + maxAge };
     return certs;
 }
@@ -214,10 +217,14 @@ export const checkQuota = async (req: AuthenticatedRequest, res: Response, next:
         logger.info('Quota check passed', { uid: req.user.uid, max: MAX_DAILY_REQUESTS });
         return next();
     } catch (error: unknown) {
-        // On Firestore errors, allow the request to proceed (fail open) to avoid blocking users
-        /* istanbul ignore next */
+        // In production, fail closed to prevent quota bypass via Firestore unavailability.
+        // In development/test, fail open to avoid blocking local workflows.
         const msg = error instanceof Error ? error.message : String(error);
-        logger.error('Quota check failed, allowing request', { uid: req.user.uid, error: msg });
+        if (process.env.NODE_ENV === 'production') {
+            logger.error('Quota check failed in production — rejecting request', { uid: req.user.uid, error: msg });
+            return res.status(503).json({ error: 'Serviço temporariamente indisponível' });
+        }
+        logger.error('Quota check failed, allowing request (non-production)', { uid: req.user.uid, error: msg });
         return next();
     }
 };

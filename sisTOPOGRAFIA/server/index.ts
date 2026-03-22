@@ -9,6 +9,7 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import 'dotenv/config';
+import { randomUUID } from 'crypto';
 import swaggerUi from 'swagger-ui-express';
 
 import { fileURLToPath } from 'url';
@@ -37,8 +38,37 @@ import { createBatchRouter } from './interfaces/routes/batchRoutes.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// ── Startup: validate required environment variables ───────────────────────
+export function validateEnv(): void {
+    const required: string[] = [];
+    if (process.env.NODE_ENV === 'production') {
+        required.push('FIREBASE_PROJECT_ID', 'GCP_PROJECT');
+    }
+    const missing = required.filter(v => !process.env[v]);
+    if (missing.length > 0) {
+        throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+    }
+}
+validateEnv();
+
 const app: Express = express();
 const port = process.env.PORT || 3001;
+
+// ── Active connection tracking for graceful drain ─────────────────────────
+let activeConnections = 0;
+app.use((_req: Request, res: Response, next: NextFunction) => {
+    activeConnections++;
+    let decremented = false;
+    const decrement = () => {
+        if (!decremented) {
+            decremented = true;
+            activeConnections--;
+        }
+    };
+    res.on('finish', decrement);
+    res.on('close', decrement);
+    next();
+});
 
 // ── Path helpers ───────────────────────────────────────────────────────────
 function resolveDxfDirectory(): string {
@@ -124,6 +154,11 @@ app.use(helmet({
             imgSrc: ["'self'", 'data:'],
         }
     },
+    hsts: {
+        maxAge: 31_536_000, // 1 year in seconds
+        includeSubDomains: true,
+        preload: true
+    },
     crossOriginEmbedderPolicy: false // Swagger UI loads cross-origin resources
 }));
 
@@ -139,6 +174,22 @@ app.use('/api-docs', (_req, res, next) => {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
 app.use(generalRateLimiter);
+
+// ── Request correlation ID (distributed tracing) ───────────────────────────
+const REQUEST_TIMEOUT_MS = parseInt(process.env.REQUEST_TIMEOUT_MS || '30000', 10);
+app.use((req: Request, res: Response, next: NextFunction) => {
+    const requestId = (req.headers['x-request-id'] as string) || randomUUID();
+    res.setHeader('x-request-id', requestId);
+    (req as Request & { requestId?: string }).requestId = requestId;
+    res.setTimeout(REQUEST_TIMEOUT_MS, () => {
+        logger.warn('Request timed out', { method: req.method, path: req.path, requestId });
+        if (!res.headersSent) {
+            res.status(503).json({ error: 'Request timeout' });
+        }
+    });
+    next();
+});
+
 app.use(monitoringMiddleware);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
@@ -208,24 +259,37 @@ app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
 });
 
 // ── Startup ────────────────────────────────────────────────────────────────
-app.listen(port, async () => {
+const server = app.listen(port, async () => {
     logger.info('Backend online', { service: 'sisTOPOGRAFIA Backend', version: '1.0.0', port });
     if (process.env.NODE_ENV !== 'production' && process.env.USE_FIRESTORE !== 'true') {
         logger.info('Firestore disabled (development mode)');
     }
 });
 
-// Graceful shutdown
-function gracefulShutdown(signal: string) {
-    logger.info(`${signal} received — shutting down`);
+// Graceful shutdown with connection draining
+const GRACEFUL_SHUTDOWN_TIMEOUT_MS = parseInt(process.env.GRACEFUL_SHUTDOWN_TIMEOUT_MS || '30000', 10);
+export function gracefulShutdown(signal: string): void {
+    logger.info(`${signal} received — draining connections`, { activeConnections });
     stopDxfCleanup();
     stopCacheCleanup();
     stopJobCleanup();
-    process.exit(0);
+    server.close(() => {
+        logger.info('All connections drained — exiting');
+        process.exit(0);
+    });
+    // Force-exit if connections don't drain within the timeout
+    setTimeout(() => {
+        logger.warn('Graceful shutdown timed out — forcing exit');
+        process.exit(1);
+    }, GRACEFUL_SHUTDOWN_TIMEOUT_MS).unref();
 }
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('unhandledRejection', (reason: unknown) => {
     logger.error('Unhandled Promise Rejection — initiating graceful shutdown', { reason: String(reason) });
     gracefulShutdown('unhandledRejection');
+});
+process.on('uncaughtException', (error: Error) => {
+    logger.error('Uncaught Exception — initiating graceful shutdown', { error: error.message, stack: error.stack });
+    gracefulShutdown('uncaughtException');
 });

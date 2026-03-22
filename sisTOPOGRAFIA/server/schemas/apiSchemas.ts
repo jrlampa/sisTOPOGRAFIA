@@ -55,7 +55,7 @@ export const polygonSchema = z.object({
                 z.number().min(-180).max(180), // longitude
                 z.number().min(-90).max(90)     // latitude
             ])
-        )
+        ).min(4, 'Polygon must have at least 4 points (3 vertices + closing point)')
     ).max(1000, 'Polygon too complex (max 1000 points)')
 }).strict();
 

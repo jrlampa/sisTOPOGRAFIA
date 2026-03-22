@@ -187,4 +187,14 @@ describe('POST /api/batch/dxf', () => {
         expect(res.body.error).toBe('Nenhuma linha válida no CSV');
         expect(res.body.errors).toHaveLength(2);
     });
+
+    it('rejeita arquivo que não é CSV (MIME type incorreto)', async () => {
+        const app = buildApp();
+        const res = await request(app)
+            .post('/api/batch/dxf')
+            .attach('file', Buffer.from('<html>not csv</html>'), { filename: 'upload.html', contentType: 'text/html' });
+
+        // multer fileFilter rejects with error → supertest returns 500
+        expect(res.status).toBe(500);
+    });
 });

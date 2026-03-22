@@ -73,6 +73,23 @@ describe('getFirebaseCerts', () => {
             global.fetch = originalFetch;
         }
     });
+
+    it('lança erro quando Firebase retorna conjunto de certificados vazio', async () => {
+        jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 14_400_000); // simulate +4 hours
+
+        global.fetch = jest.fn().mockResolvedValueOnce({
+            ok: true,
+            headers: { get: () => 'max-age=3600' },
+            json: async () => ({}) // empty cert set
+        }) as any;
+
+        try {
+            await expect(getFirebaseCerts()).rejects.toThrow('Firebase returned an empty or invalid certificate set');
+        } finally {
+            jest.restoreAllMocks();
+            global.fetch = originalFetch;
+        }
+    });
 });
 
 // ── verifyFirebaseIdToken ────────────────────────────────────────────────────
@@ -603,6 +620,60 @@ describe('checkQuota', () => {
             // Fail-open: next() must be called despite Firestore error
             expect(next).toHaveBeenCalled();
             expect(statusSpy).not.toHaveBeenCalled();
+        } finally {
+            (firestoreModule.FirestoreInfrastructure as any).getInstance = originalGetInstance;
+        }
+    });
+
+    it('fail-closed em produção: retorna 503 quando Firestore lança exceção', async () => {
+        process.env.NODE_ENV = 'production';
+        process.env.USE_FIRESTORE = 'true';
+
+        const mockDb = {
+            collection: jest.fn().mockReturnValue({
+                doc: jest.fn().mockReturnValue({})
+            }),
+            runTransaction: jest.fn().mockRejectedValue(new Error('Firestore unavailable'))
+        };
+        const mockFirestoreInstance = { getDb: jest.fn().mockReturnValue(mockDb) };
+
+        const firestoreModule = await import('../infrastructure/firestoreService');
+        const originalGetInstance = firestoreModule.FirestoreInfrastructure.getInstance;
+        (firestoreModule.FirestoreInfrastructure as any).getInstance = jest.fn().mockReturnValue(mockFirestoreInstance);
+
+        try {
+            await checkQuota(req as any, res as any, next);
+
+            // Fail-closed: must NOT call next() and must return 503
+            expect(next).not.toHaveBeenCalled();
+            expect(statusSpy).toHaveBeenCalledWith(503);
+            expect(jsonSpy).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+        } finally {
+            (firestoreModule.FirestoreInfrastructure as any).getInstance = originalGetInstance;
+        }
+    });
+
+    it('fail-open não-produção: chama next() quando Firestore lança valor não-Error', async () => {
+        process.env.NODE_ENV = 'test';
+        process.env.USE_FIRESTORE = 'true';
+
+        const mockDb = {
+            collection: jest.fn().mockReturnValue({
+                doc: jest.fn().mockReturnValue({})
+            }),
+            // Throw a non-Error string to exercise the String(error) branch of the ternary
+            runTransaction: jest.fn().mockRejectedValue('plain string error')
+        };
+        const mockFirestoreInstance = { getDb: jest.fn().mockReturnValue(mockDb) };
+
+        const firestoreModule = await import('../infrastructure/firestoreService');
+        const originalGetInstance = firestoreModule.FirestoreInfrastructure.getInstance;
+        (firestoreModule.FirestoreInfrastructure as any).getInstance = jest.fn().mockReturnValue(mockFirestoreInstance);
+
+        try {
+            await checkQuota(req as any, res as any, next);
+            // Fail-open in non-production: next() is still called
+            expect(next).toHaveBeenCalled();
         } finally {
             (firestoreModule.FirestoreInfrastructure as any).getInstance = originalGetInstance;
         }

@@ -30,7 +30,7 @@ type DxfCachePayload = {
     layers: unknown;
 };
 
-const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const DEFAULT_TTL_MS = parseInt(process.env.CACHE_TTL_MS || String(24 * 60 * 60 * 1000), 10); // 24 hours default
 
 // Use Firestore or fallback to memory
 // Evaluated at call time to allow test environment overrides

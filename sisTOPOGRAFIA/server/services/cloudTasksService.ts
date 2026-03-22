@@ -239,16 +239,21 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
 }
 
 /**
- * Get task status (for compatibility with old job status endpoint)
- * Note: Cloud Tasks doesn't provide easy status checking after task is dispatched,
- * so we'll need to implement our own tracking mechanism
+ * Get task status for compatibility with legacy callers.
+ * Cloud Tasks does not expose per-task status after dispatch; use the
+ * job-status service (jobStatusService / jobStatusServiceFirestore) for
+ * real-time tracking of in-progress or completed jobs.
  */
-export async function getTaskStatus(taskId: string): Promise<any> {
-    // This is a placeholder - we'll implement proper status tracking
-    // using an in-memory store or database
+export interface TaskStatusResult {
+    taskId: string;
+    status: 'unknown';
+    message: string;
+}
+
+export async function getTaskStatus(taskId: string): Promise<TaskStatusResult> {
     return {
         taskId,
         status: 'unknown',
-        message: 'Task status tracking not yet implemented'
+        message: 'Use GET /api/jobs/:id for real-time status tracking'
     };
 }
