@@ -274,4 +274,44 @@ describe('dxfGenerationRequestSchema', () => {
         });
         expect(result.success).toBe(false);
     });
+
+    it('rejeita modo polygon com mais de 1000 pontos', () => {
+        // Covers line 71 (MAX_POLYGON_POINTS check)
+        const bigPolygon = Array.from({ length: 1001 }, (_, i) => ({ lat: -22 + i * 0.001, lng: -42 }));
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'polygon',
+            radius: 500,
+            polygon: bigPolygon
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it('rejeita modo polygon com coordenadas fora dos limites (lat > 90)', () => {
+        // Covers lines 80-88 (per-point coordinate validation)
+        // The validator expects array format [lon, lat], not objects
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'polygon',
+            radius: 500,
+            polygon: [
+                [-42.92, -22.15],   // valid [lon, lat]
+                [-42.92, 95.0],     // lat > 90 is invalid
+                [-42.93, -22.16]    // valid [lon, lat]
+            ]
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it('rejeita modo polygon com longitude fora dos limites (lon < -180)', () => {
+        // Covers lines 80-88 (per-point coordinate validation, lon < -180 branch)
+        const result = dxfGenerationRequestSchema.safeParse({
+            mode: 'polygon',
+            radius: 500,
+            polygon: [
+                [-42.92, -22.15],   // valid [lon, lat]
+                [-185.0, -22.16],   // lon < -180 is invalid
+                [-42.93, -22.16]    // valid [lon, lat]
+            ]
+        });
+        expect(result.success).toBe(false);
+    });
 });

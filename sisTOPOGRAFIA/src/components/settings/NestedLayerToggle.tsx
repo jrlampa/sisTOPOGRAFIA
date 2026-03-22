@@ -20,7 +20,7 @@ interface NestedLayerToggleProps {
   dotActiveClass: string;
 }
 
-const NestedLayerToggle: React.FC<NestedLayerToggleProps> = ({
+const NestedLayerToggle: React.FC<NestedLayerToggleProps> = React.memo(({
   label,
   icon: Icon,
   active,
@@ -39,6 +39,8 @@ const NestedLayerToggle: React.FC<NestedLayerToggleProps> = ({
       <div className={`ml-auto w-2 h-2 rounded-full ${active ? dotActiveClass : 'bg-slate-700'}`} />
     </button>
   </div>
-);
+));
+
+NestedLayerToggle.displayName = 'NestedLayerToggle';
 
 export default NestedLayerToggle;

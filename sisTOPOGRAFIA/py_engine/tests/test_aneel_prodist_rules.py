@@ -211,6 +211,24 @@ class TestProdistConstants:
         assert LAYER_PRODIST_FAIXA_BT.startswith('sisTOPO_')
 
 
+class TestMixedMultiRowGdfs:
+    """Usa _mt_line_gdf e _bt_line_gdf para testar GDFs com múltiplas linhas."""
+
+    def test_mt_pole_gdf_all_get_mt_buffer(self):
+        """GDF com um polo (power=pole) → prodist_type MT."""
+        gdf = _mt_line_gdf()
+        result = AneelProdistRules.generate_faixas_servid(gdf)
+        assert len(result) == 1
+        assert result.iloc[0]['prodist_type'] == 'MT'
+
+    def test_bt_mixed_gdf_all_get_bt_buffer(self):
+        """GDF com minor_line e cable → todos prodist_type BT."""
+        gdf = _bt_line_gdf()
+        result = AneelProdistRules.generate_faixas_servid(gdf)
+        assert len(result) == 2
+        assert all(result['prodist_type'] == 'BT')
+
+
 class TestAneelProdistRulesReturnEmpty:
     """Cobre linha 97 — return _empty quando todos os resultados são geometrias vazias com power válido."""
 

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { GeoLocation } from '../types';
+import { API_BASE_URL } from '../config/api';
+import Logger from '../utils/logger';
 
 export const useEarthwork = () => {
     const [isCalculating, setIsCalculating] = useState(false);
@@ -12,7 +14,7 @@ export const useEarthwork = () => {
             formData.append('autoBalance', autoBalance.toString());
             formData.append('polygon', JSON.stringify(polygon.map(p => ({ lat: p.lat, lng: p.lng }))));
 
-            const response = await fetch('http://localhost:5000/api/analyze-pad', {
+            const response = await fetch(`${API_BASE_URL}/analyze-pad`, {
                 method: 'POST',
                 body: formData,
             });
@@ -25,7 +27,7 @@ export const useEarthwork = () => {
             const data = await response.json();
             return data;
         } catch (error) {
-            console.error("Earthwork calculation error:", error);
+            Logger.error("Earthwork calculation error:", error);
             throw error;
             /* v8 ignore next -- finally branch: V8 artifact; both exception and normal paths tested */
         } finally {

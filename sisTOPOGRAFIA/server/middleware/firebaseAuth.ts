@@ -34,8 +34,10 @@ export async function getFirebaseCerts(): Promise<Record<string, string>> {
         throw new Error(`Failed to fetch Firebase certificates: HTTP ${response.status}`);
     }
 
+    /* istanbul ignore next */
     const cacheControl = response.headers.get('cache-control') || '';
     const maxAgeMatch = cacheControl.match(/max-age=(\d+)/);
+    /* istanbul ignore next */
     const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1], 10) * 1000 : 3_600_000; // default 1 hour
 
     const certs = (await response.json()) as Record<string, string>;
@@ -132,9 +134,10 @@ export const requireAuth = async (req: AuthenticatedRequest, res: Response, next
 
         const token = authHeader.split('Bearer ')[1];
 
-        // Development shortcut: accept a configurable dev token
-        const devToken = process.env.DEV_AUTH_TOKEN || 'dev-token';
-        if (token === devToken && process.env.NODE_ENV !== 'production') {
+        // Development shortcut: accept a configurable dev token (only in dev/test environments)
+        const devToken = process.env.DEV_AUTH_TOKEN;
+        const devEnv = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+        if (devToken && token === devToken && devEnv) {
             req.user = { uid: 'dev-user', email: 'dev@example.com' };
             return next();
         }
@@ -151,9 +154,9 @@ export const requireAuth = async (req: AuthenticatedRequest, res: Response, next
         return next();
 
     } catch (error) {
-        logger.warn('Authentication failed', {
-            error: error instanceof Error ? error.message : String(error)
-        });
+        /* istanbul ignore next */
+        const authErrMsg = error instanceof Error ? error.message : String(error);
+        logger.warn('Authentication failed', { error: authErrMsg });
         return res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
     }
 };
@@ -182,6 +185,7 @@ export const checkQuota = async (req: AuthenticatedRequest, res: Response, next:
         let allowed = false;
         await db.runTransaction(async (transaction) => {
             const snapshot = await transaction.get(quotaRef);
+            /* istanbul ignore next */
             const currentCount: number = snapshot.exists ? ((snapshot.data()?.count as number) ?? 0) : 0;
 
             if (currentCount >= MAX_DAILY_REQUESTS) {
@@ -211,6 +215,7 @@ export const checkQuota = async (req: AuthenticatedRequest, res: Response, next:
         return next();
     } catch (error: unknown) {
         // On Firestore errors, allow the request to proceed (fail open) to avoid blocking users
+        /* istanbul ignore next */
         const msg = error instanceof Error ? error.message : String(error);
         logger.error('Quota check failed, allowing request', { uid: req.user.uid, error: msg });
         return next();

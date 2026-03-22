@@ -53,3 +53,14 @@ class TestOffsets:
         
         polylines = [e for e in dxf_gen.msp if e.dxftype() == 'LWPOLYLINE' and e.dxf.layer == 'sisTOPO_VIAS_MEIO_FIO']
         assert len(polylines) == 0
+
+    def test_offset_degenerate_line_empty_geometry_skipped(self, dxf_gen):
+        """Linha de comprimento zero gera offset_curve vazio → deve ser ignorado."""
+        # A LineString with identical endpoints produces LINESTRING EMPTY from offset_curve
+        line = LineString([(5.0, 5.0), (5.0, 5.0)])
+        tags = {'highway': 'residential'}
+        # Should not raise; both sides will be empty and continue'd
+        dxf_gen._draw_street_offsets(line, tags, 0, 0)
+        polylines = [e for e in dxf_gen.msp
+                     if e.dxftype() == 'LWPOLYLINE' and e.dxf.layer == 'sisTOPO_VIAS_MEIO_FIO']
+        assert len(polylines) == 0

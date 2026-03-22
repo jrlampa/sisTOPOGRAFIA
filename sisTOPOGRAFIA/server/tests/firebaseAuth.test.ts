@@ -217,7 +217,9 @@ describe('requireAuth', () => {
 
     it('aceita dev-token em modo de desenvolvimento', async () => {
         const originalEnv = process.env.NODE_ENV;
+        const originalDevToken = process.env.DEV_AUTH_TOKEN;
         process.env.NODE_ENV = 'development';
+        process.env.DEV_AUTH_TOKEN = 'dev-token';
         req.headers = { authorization: 'Bearer dev-token' };
 
         await requireAuth(req as any, res as any, next);
@@ -226,6 +228,7 @@ describe('requireAuth', () => {
         expect((req as AuthenticatedRequest).user).toEqual({ uid: 'dev-user', email: 'dev@example.com' });
 
         process.env.NODE_ENV = originalEnv;
+        process.env.DEV_AUTH_TOKEN = originalDevToken;
     });
 
     it('rejeita dev-token em modo de produção', async () => {

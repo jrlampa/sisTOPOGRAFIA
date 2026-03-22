@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import React from 'react';
+import Logger from '../../src/utils/logger';
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -104,7 +105,7 @@ describe('AuthContext', () => {
   });
 
   it('loginWithGoogle loga erro e lança quando signInWithPopup falha', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(Logger, 'error').mockImplementation(() => {});
     (signInWithPopup as any).mockRejectedValueOnce(new Error('Popup closed'));
 
     let capturedLogin: (() => Promise<void>) | undefined;
@@ -139,7 +140,7 @@ describe('AuthContext', () => {
   });
 
   it('logout loga erro e lança quando signOut falha', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(Logger, 'error').mockImplementation(() => {});
     (signOut as any).mockRejectedValueOnce(new Error('Sign out error'));
 
     let capturedLogout: (() => Promise<void>) | undefined;

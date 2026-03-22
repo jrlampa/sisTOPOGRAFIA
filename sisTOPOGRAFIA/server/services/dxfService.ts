@@ -251,7 +251,7 @@ export const generateDXF = (
   elements.forEach(el => {
     if (el.type === 'way' && el.geometry) {
       const isBuilding = !!el.tags?.building;
-      let layer = getLayer(el.tags);
+      const layer = getLayer(el.tags);
       const height = getHeight(el.tags);
       const layerOffset = getLayerOffset(el.tags);
       const isTunnel = el.tags?.tunnel === 'yes' || el.tags?.tunnel === 'building_passage';

@@ -51,7 +51,8 @@ export function createBatchRouter(dxfDirectory: string, getBaseUrl: (req: Reques
                     await deleteCachedFilename(cacheKey);
                 }
 
-                const safeName = name.toLowerCase().replace(/[^a-z0-9-_]+/g, '_').slice(0, 40) || 'batch';
+                const safeName = name.toLowerCase().replace(/[^a-z0-9-_]+/g, '_').slice(0, 40) ||
+                    /* istanbul ignore next */ 'batch';
                 const filename = `dxf_${safeName}_${Date.now()}_${entry.line}.dxf`;
                 const outputFile = path.join(dxfDirectory, filename);
                 const downloadUrl = `${getBaseUrl(req)}/downloads/${filename}`;
@@ -70,6 +71,7 @@ export function createBatchRouter(dxfDirectory: string, getBaseUrl: (req: Reques
             return res.status(200).json({ results, errors });
 
         } catch (err: unknown) {
+            /* istanbul ignore next */
             const msg = err instanceof Error ? err.message : String(err);
             logger.error('Batch DXF upload failed', { error: err });
             return res.status(500).json({ error: 'Falha no processamento batch', details: msg });

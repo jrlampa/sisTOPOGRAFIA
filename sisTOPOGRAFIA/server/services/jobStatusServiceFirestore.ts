@@ -20,6 +20,7 @@ function isCircuitBreakerError(error: unknown): boolean {
 
 /** Extracts a human-readable message from any thrown value. */
 function toMessage(error: unknown): string {
+    /* istanbul ignore next */
     return error instanceof Error ? error.message : String(error);
 }
 

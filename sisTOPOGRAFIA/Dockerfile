@@ -110,5 +110,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Expose port
 EXPOSE 8080
 
-# FIXED: Correct path to compiled server code (dist/server/server/index.js)
-CMD ["node", "dist/server/server/index.js"]
+CMD ["node", "dist/server/index.js"]

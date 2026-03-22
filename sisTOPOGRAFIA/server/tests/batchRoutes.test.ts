@@ -8,6 +8,9 @@
 jest.mock('../utils/logger', () => ({
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() }
 }));
+jest.mock('fs', () => ({
+    existsSync: jest.fn(() => false),
+}));
 jest.mock('../services/batchService', () => ({
     parseBatchCsv: jest.fn()
 }));
@@ -29,6 +32,7 @@ jest.mock('../infrastructure/firestoreService', () => ({
 
 import request from 'supertest';
 import express from 'express';
+import fs from 'fs';
 import { createBatchRouter } from '../interfaces/routes/batchRoutes';
 import { parseBatchCsv } from '../services/batchService';
 import { createDxfTask } from '../services/cloudTasksService';
@@ -42,6 +46,7 @@ const mockCreateDxfTask = createDxfTask as jest.Mock;
 const mockCreateJob = createJob as jest.Mock;
 const mockGetCachedFilename = getCachedFilename as jest.Mock;
 const mockDeleteCachedFilename = deleteCachedFilename as jest.Mock;
+const mockExistsSync = fs.existsSync as jest.Mock;
 
 const buildApp = () => {
     const app = express();
@@ -132,5 +137,54 @@ describe('POST /api/batch/dxf', () => {
         expect(res.body.errors).toHaveLength(1);
         expect(res.body.errors[0].line).toBe(2);
         expect(res.body.results[0]).toMatchObject({ name: 'Good', status: 'queued' });
+    });
+
+    it('retorna status cached quando arquivo existe no disco (linha 48-49)', async () => {
+        mockParseBatchCsv.mockResolvedValueOnce([
+            { line: 2, row: { name: 'CachedLoc', lat: '-22.15', lon: '-42.92', radius: '500', mode: 'circle' } }
+        ]);
+        mockGetCachedFilename.mockResolvedValueOnce('cached_file.dxf');
+        // File exists on disk → cached branch
+        mockExistsSync.mockReturnValueOnce(true);
+
+        const app = buildApp();
+        const res = await request(app)
+            .post('/api/batch/dxf')
+            .attach('file', Buffer.from('name,lat,lon,radius,mode\nCachedLoc,-22.15,-42.92,500,circle'), 'batch.csv');
+
+        expect(res.status).toBe(200);
+        expect(res.body.results[0]).toMatchObject({ name: 'CachedLoc', status: 'cached' });
+        expect(mockCreateDxfTask).not.toHaveBeenCalled();
+        expect(mockDeleteCachedFilename).not.toHaveBeenCalled();
+    });
+
+    it('retorna 500 quando parseBatchCsv lança exceção não tratada (linhas 73-75)', async () => {
+        mockParseBatchCsv.mockRejectedValueOnce(new Error('CSV parse crash'));
+
+        const app = buildApp();
+        const res = await request(app)
+            .post('/api/batch/dxf')
+            .attach('file', Buffer.from('any content'), 'batch.csv');
+
+        expect(res.status).toBe(500);
+        expect(res.body.error).toBe('Falha no processamento batch');
+        expect(res.body.details).toBe('CSV parse crash');
+    });
+
+    it('retorna 400 quando todas as linhas falham na validação (results.length === 0)', async () => {
+        // All rows have invalid lat values → all fail batchRowSchema → results=[], errors non-empty
+        mockParseBatchCsv.mockResolvedValueOnce([
+            { line: 2, row: { name: 'Bad1', lat: 'not-a-number', lon: '-42.92', radius: '500', mode: 'circle' } },
+            { line: 3, row: { name: 'Bad2', lat: '999', lon: '-42.92', radius: '500', mode: 'circle' } }
+        ]);
+
+        const app = buildApp();
+        const res = await request(app)
+            .post('/api/batch/dxf')
+            .attach('file', Buffer.from('name,lat,lon,radius,mode'), 'batch.csv');
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe('Nenhuma linha válida no CSV');
+        expect(res.body.errors).toHaveLength(2);
     });
 });

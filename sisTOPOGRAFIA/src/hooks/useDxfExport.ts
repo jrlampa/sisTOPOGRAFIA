@@ -3,6 +3,7 @@ import { generateDXF, getDxfJobStatus } from '../services/dxfService';
 import { SelectionMode, GeoLocation, LayerConfig, EconomicData } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import Logger from '../utils/logger';
+import { downloadFile, downloadBlob } from '../utils/downloadFile';
 
 interface UseDxfExportProps {
   onSuccess: (message: string) => void;
@@ -23,12 +24,7 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
 
   const triggerDownload = (url: string, center: GeoLocation) => {
     const filename = `dxf_export_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}.dxf`;
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
+    downloadFile(url, filename);
   };
 
   const downloadDxf = async (
@@ -170,11 +166,8 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
             const csvRes = await fetch(csvUrl);
             if (csvRes.ok) {
               const blob = await csvRes.clone().blob();
-              const filename = `dxf_export_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}.dxf`;
-              const csvLink = document.createElement('a');
-              csvLink.href = URL.createObjectURL(blob);
-              csvLink.download = filename.replace('.dxf', '_perfil.csv');
-              csvLink.click();
+              const filename = `dxf_export_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`;
+              downloadBlob(blob, `${filename}_perfil.csv`);
 
               // Parse for UI
               const csvText = await csvRes.text();
@@ -193,11 +186,8 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
             const pdfRes = await fetch(pdfUrl);
             if (pdfRes.ok) {
               const blob = await pdfRes.blob();
-              const filename = `dxf_export_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}.dxf`;
-              const pdfLink = document.createElement('a');
-              pdfLink.href = URL.createObjectURL(blob);
-              pdfLink.download = filename.replace('.dxf', '_laudo_executivo.pdf');
-              pdfLink.click();
+              const filename = `dxf_export_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}`;
+              downloadBlob(blob, `${filename}_laudo_executivo.pdf`);
             }
           } catch (e) {
             Logger.error("Failed to download PDF report", e);

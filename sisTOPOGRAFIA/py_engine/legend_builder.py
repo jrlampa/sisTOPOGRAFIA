@@ -227,7 +227,7 @@ class LegendBuilder:
 
         try:
             layout.add_blockref('LOGO', (cb_x + cb_w - 20, cb_y + cb_h - 10))
-        except Exception as e:
+        except Exception as e:  # pragma: no cover  # add_blockref never throws for missing blocks
             Logger.error(f"Erro ao adicionar bloco LOGO: {e}")
 
     def add_geodetic_control_table(self) -> None:

@@ -4,6 +4,7 @@ import { db } from '../config/firebase';
 import { collection, addDoc, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import Logger from '../utils/logger';
+import { downloadBlob } from '../utils/downloadFile';
 
 interface UseFileOperationsProps {
   appState: GlobalState;
@@ -37,14 +38,7 @@ export function useFileOperations({
       const blob = new Blob([JSON.stringify(projectData, null, 2)], {
         type: 'application/json'
       });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${appState.settings.projectMetadata.projectName}.osmpro`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, `${appState.settings.projectMetadata.projectName}.osmpro`);
 
       onSuccess('Project Saved');
     } catch (error) {

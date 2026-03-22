@@ -102,3 +102,32 @@ class TestGenerateContoursTerreno:
         result = generate_contours(grid, interval=1.0, tolerance=0.5)
         # Não deve lançar exceção e deve retornar lista
         assert isinstance(result, list)
+
+    def test_no_allsegs_uses_get_paths_fallback(self):
+        """Quando o objeto ContourSet não possui 'allsegs', usa get_paths() como fallback."""
+        from unittest.mock import patch, MagicMock
+        import numpy as np
+
+        grid = self._make_sloped_grid(z_min=100.0, z_max=110.0)
+
+        # Construir um mock de ContourSet sem allsegs mas com get_paths()
+        mock_path = MagicMock()
+        mock_path.vertices = np.array([[0.0, 0.0], [5.0, 5.0], [10.0, 10.0]])
+
+        # spec=['levels', 'get_paths'] → hasattr(cs, 'allsegs') returns False
+        mock_cs = MagicMock(spec=['levels', 'get_paths'])
+        mock_cs.levels = np.array([100.0, 105.0, 110.0])
+        mock_cs.get_paths.return_value = [mock_path]
+
+        mock_ax = MagicMock()
+        mock_ax.contour.return_value = mock_cs
+
+        mock_fig = MagicMock()
+        mock_fig.add_subplot.return_value = mock_ax
+
+        with patch('contour_generator.plt.figure', return_value=mock_fig), \
+             patch('contour_generator.plt.close'):
+            result = generate_contours(grid, interval=1.0, tolerance=0.0)
+
+        assert isinstance(result, list)
+        assert len(result) > 0

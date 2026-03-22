@@ -12,6 +12,8 @@ export const latLonCoordinateSchema = z.object({
     lon: z.number().min(-180).max(180, "Longitude inválida (-180 a 180)"),
 });
 
+const MAX_POLYGON_POINTS = 1000;
+
 export const dxfGenerationRequestSchema = z.object({
     mode: z.enum(['circle', 'polygon', 'utm']).default('circle'),
     lat: z.number().optional(),
@@ -40,8 +42,6 @@ export const dxfGenerationRequestSchema = z.object({
     }
 
     if (data.mode === 'polygon') {
-        // Validate polygon field: must be a non-empty array or a parseable JSON string
-        // representing a non-empty array.
         const raw = data.polygon;
         let resolved: unknown = raw;
 
@@ -64,6 +64,29 @@ export const dxfGenerationRequestSchema = z.object({
                 message: "Modo polygon exige 'polygon' com pelo menos 3 pontos.",
                 path: ['polygon']
             });
+            return;
+        }
+
+        if (resolved.length > MAX_POLYGON_POINTS) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Polygon não pode ter mais de ${MAX_POLYGON_POINTS} pontos.`,
+                path: ['polygon']
+            });
+        }
+
+        for (const pt of resolved) {
+            if (!Array.isArray(pt) || pt.length < 2) continue;
+            const [lon, lat] = pt as [number, number];
+            if (typeof lat !== 'number' || typeof lon !== 'number' ||
+                lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "Polygon contém coordenadas fora dos limites válidos.",
+                    path: ['polygon']
+                });
+                return;
+            }
         }
     }
 });

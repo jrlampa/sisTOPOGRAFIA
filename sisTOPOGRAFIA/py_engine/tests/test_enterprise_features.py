@@ -109,7 +109,22 @@ class TestEconomicAnalysisUseCase:
         # solar_avg (0.8) * 1000 * 0.10 = 80.0
         assert result['breakdown']['summary']['solar_annual_saving'] == pytest.approx(80.0, rel=0.05)
 
-    def test_total_capex_is_sum_of_parts(self):
+    def test_solar_raw_none_falls_back_to_solar_avg(self):
+        """Quando 'solar' está ausente da analytics, usa fallback solar_avg."""
+        uc = self._make_uc({'cut_per_m3': 25.0, 'fill_per_m3': 45.0,
+                            'drain_per_m': 120.0, 'solar_roi_factor': 0.10})
+        analytics = {
+            'earthwork': {'cut_volume': 0.0, 'fill_volume': 0.0},
+            'slope_avg': 0.0,
+            # 'solar' key absent → fallback to solar_avg
+            'solar_avg': 0.5,
+        }
+        result = uc.execute(analytics)
+        # solar_avg (0.5) * 1000 * 0.10 = 50.0
+        assert result['breakdown']['summary']['solar_annual_saving'] == pytest.approx(50.0, rel=0.05)
+
+
+
         """total_capex deve ser a soma de terraplenagem e drenagem."""
         uc = self._make_uc()
         analytics = _make_analytics(slope_avg=20.0, cut=200.0, fill=100.0)

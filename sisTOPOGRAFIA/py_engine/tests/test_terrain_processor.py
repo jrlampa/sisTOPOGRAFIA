@@ -186,6 +186,17 @@ class TestAddContours:
             processor._add_contours(grid_rows, dxf_gen)
         assert True  # sem propagação de exceção
 
+    def test_add_contours_generate_contours_exception_logged(self, processor, dxf_gen):
+        """Exceção em generate_contours (legacy path) é capturada e logada."""
+        grid_rows = [
+            [(float(c), float(r), float(r + c)) for c in range(4)]
+            for r in range(4)
+        ]
+        with patch('application.use_cases.terrain_processor.generate_contours',
+                   side_effect=RuntimeError('generate_contours fail')):
+            processor._add_contours(grid_rows, dxf_gen)
+        assert True  # sem propagação de exceção
+
 
 # ── _export_profile ───────────────────────────────────────────────────────────
 

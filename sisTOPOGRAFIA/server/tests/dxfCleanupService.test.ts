@@ -170,7 +170,6 @@ describe('DxfCleanupService', () => {
             let isolatedTrigger: () => void;
 
             jest.isolateModules(() => {
-                // eslint-disable-next-line @typescript-eslint/no-require-imports
                 const svc = require('../services/dxfCleanupService');
                 isolatedSchedule = svc.scheduleDxfDeletion;
                 isolatedStop = svc.stopDxfCleanup;

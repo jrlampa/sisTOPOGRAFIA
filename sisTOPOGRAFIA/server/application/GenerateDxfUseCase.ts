@@ -5,21 +5,43 @@ import fs from 'fs';
 import path from 'path';
 import { logger } from '../utils/logger.js';
 import { DxfGenerationRequest } from '../interfaces/schemas/dxfSchema.js';
+import type { Request } from 'express';
+
+interface DxfTaskPayload {
+    lat: number;
+    lon: number;
+    radius: number;
+    mode: string;
+    polygon: string;
+    layers: Record<string, boolean>;
+    projection: string;
+    outputFile: string;
+    filename: string;
+    cacheKey: string;
+    downloadUrl: string;
+    utm_zone?: string;
+    utm_easting?: number;
+    utm_northing?: number;
+}
+
+interface UseCaseResult {
+    status: number;
+    data: Record<string, unknown>;
+}
 
 export class GenerateDxfUseCase {
     constructor(
         private readonly dxfDirectory: string,
-        private readonly getBaseUrl: (req?: any) => string
+        private readonly getBaseUrl: (req?: Request) => string
     ) { }
 
-    async execute(data: DxfGenerationRequest, req: any): Promise<{ status: number, data: any }> {
+    async execute(data: DxfGenerationRequest, req: Request): Promise<UseCaseResult> {
         const { lat, lon, radius, mode, utm } = data;
         const resolvedMode = mode || 'circle';
         const polygon = data.polygon;
         const layers = data.layers;
         const projection = data.projection ?? 'local';
 
-        // Prepare latitude and longitude if UTM was provided and mode is utm (to be handled later by python script conversion, Python script will need to understand the mode 'utm')
         const cacheKey = createCacheKey({
             lat: lat ?? (utm ? utm.northing : 0),
             lon: lon ?? (utm ? utm.easting : 0),
@@ -73,8 +95,7 @@ export class GenerateDxfUseCase {
             cacheKey
         });
 
-        // Add 'utm_zone' strictly if utm is present
-        const pythonTaskArgs: any = {
+        const taskPayload: DxfTaskPayload = {
             lat: lat ?? 0,
             lon: lon ?? 0,
             radius,
@@ -89,12 +110,12 @@ export class GenerateDxfUseCase {
         };
 
         if (utm) {
-            pythonTaskArgs.utm_zone = utm.zone;
-            pythonTaskArgs.utm_easting = utm.easting;
-            pythonTaskArgs.utm_northing = utm.northing;
+            taskPayload.utm_zone = utm.zone;
+            taskPayload.utm_easting = utm.easting;
+            taskPayload.utm_northing = utm.northing;
         }
 
-        const { taskId, alreadyCompleted } = await createDxfTask(pythonTaskArgs);
+        const { taskId, alreadyCompleted } = await createDxfTask(taskPayload);
 
         if (!alreadyCompleted) {
             await createJob(taskId);

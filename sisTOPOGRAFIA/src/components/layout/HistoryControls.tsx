@@ -8,7 +8,7 @@ interface HistoryControlsProps {
   onRedo: () => void;
 }
 
-const HistoryControls: React.FC<HistoryControlsProps> = ({ canUndo, canRedo, onUndo, onRedo }) => {
+const HistoryControls: React.FC<HistoryControlsProps> = React.memo(({ canUndo, canRedo, onUndo, onRedo }) => {
   return (
     <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1 border border-slate-700">
       <button
@@ -38,6 +38,8 @@ const HistoryControls: React.FC<HistoryControlsProps> = ({ canUndo, canRedo, onU
       </button>
     </div>
   );
-};
+});
+
+HistoryControls.displayName = 'HistoryControls';
 
 export default HistoryControls;

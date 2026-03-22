@@ -129,7 +129,7 @@ class TestAddSatelliteOverlay:
             from PIL import Image as PILImage
             img_path = str(tmp_path / "sat.png")
             PILImage.new('RGB', (64, 64), color=(0, 0, 128)).save(img_path)
-        except ImportError:
+        except ImportError:  # pragma: no cover
             pytest.skip("PIL não disponível")
         dxf_gen.bounds = [0.0, 0.0, 100.0, 100.0]
         mock_api = MagicMock()

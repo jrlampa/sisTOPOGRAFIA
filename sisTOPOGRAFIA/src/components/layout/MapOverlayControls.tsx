@@ -1,13 +1,14 @@
 import { motion } from 'framer-motion';
 import { ShieldAlert, Sun, LayoutDashboard, Droplets, Sparkles } from 'lucide-react';
+import { EconomicData } from '../../types';
 
 interface MapOverlayControlsProps {
   activeHeatmap: 'none' | 'slope' | 'solar';
   onHeatmapChange: (h: 'none' | 'slope' | 'solar') => void;
-  economicData: unknown;
+  economicData: EconomicData | null;
   isDashboardVisible: boolean;
   onDashboardToggle: () => void;
-  longitudinalProfile: unknown;
+  longitudinalProfile: Array<{ distance: number; elevation: number }> | null;
   isProfilePanelVisible: boolean;
   onProfilePanelToggle: () => void;
   aiSuggestion: string | null;

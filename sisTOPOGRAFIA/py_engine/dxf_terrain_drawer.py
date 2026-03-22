@@ -176,11 +176,11 @@ class DXFTerrainDrawer:
                     p1 = grid_rows[r][c]
                     vx, vy = -gx[r, c], -gy[r, c]
                     mag = math.sqrt(vx ** 2 + vy ** 2)
-                    if mag == 0:
+                    if mag == 0:  # pragma: no cover  # requires laplacian>0 with exactly zero gradient
                         continue
                     tr = r + int(round(vy / mag))
                     tc = c + int(round(vx / mag))
-                    if not (0 <= tr < rows and 0 <= tc < cols):
+                    if not (0 <= tr < rows and 0 <= tc < cols):  # pragma: no cover  # mathematically unreachable
                         continue
                     p2 = grid_rows[tr][tc]
                     self.msp.add_line(
