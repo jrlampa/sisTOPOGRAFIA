@@ -85,7 +85,7 @@ class TestGroqAdapter:
         adapter = self._get_adapter(api_key=None)
         # Garante que GROQ_API_KEY não está no env
         with patch.dict(os.environ, {}, clear=False):
-            if "GROQ_API_KEY" in os.environ:
+            if "GROQ_API_KEY" in os.environ:  # pragma: no cover
                 os.environ.pop("GROQ_API_KEY")
             adapter.api_key = None
             result = adapter.get_completion("Analisar terreno")

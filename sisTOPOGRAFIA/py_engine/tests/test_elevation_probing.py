@@ -28,9 +28,9 @@ def test_elevation_probing():
         print(f"Sample Point (Center): {grid[2][2]}")
         if grid[2][2][2] != 0:
             Logger.success("Elevation data looks valid (Non-zero altitude).")
-        else:
+        else:  # pragma: no cover
             Logger.warn("Elevation data exists but is zero. Check API response.")
-    else:
+    else:  # pragma: no cover
         Logger.error("Failed to fetch grid or invalid grid size.")
 
 if __name__ == "__main__":

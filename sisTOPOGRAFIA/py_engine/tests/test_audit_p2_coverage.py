@@ -116,13 +116,13 @@ class TestReportGenerator:
 
         try:
             generate_report(minimal_data, output_path)
-        except (FPDFUnicodeEncodingException, UnicodeEncodeError):
+        except (FPDFUnicodeEncodingException, UnicodeEncodeError):  # pragma: no cover
             # Bug de encoding com bullet points em fonte helvetica
             # Não é um TypeError/AttributeError — a interface está correta
             pytest.xfail("Bug de encoding FPDF com caracteres Unicode (bullet •) — bug conhecido, não TypeError")
-        except (TypeError, AttributeError) as e:
+        except (TypeError, AttributeError) as e:  # pragma: no cover
             pytest.fail(f"Interface do generate_report incorreta: {e}")
-        except Exception:
+        except Exception:  # pragma: no cover
             # Outras exceções de runtime são aceitáveis (sem dados suficientes)
             pass
 

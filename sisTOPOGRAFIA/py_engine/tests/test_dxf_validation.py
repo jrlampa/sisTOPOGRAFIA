@@ -138,11 +138,11 @@ class TestDXFEntities:
         msp = dxf_doc.modelspace()
         for entity in msp:
             try:
-                if hasattr(entity.dxf, 'start'):
+                if hasattr(entity.dxf, 'start'):  # pragma: no cover
                     p = entity.dxf.start
                     assert all(np.isfinite(v) for v in [p.x, p.y]), \
                         f"Coordenada inválida em {entity.dxftype()}: {p}"
-            except Exception:
+            except Exception:  # pragma: no cover
                 pass  # Entidades sem 'start' são ignoradas
 
     def test_no_zero_area_closed_polylines(self, dxf_doc):

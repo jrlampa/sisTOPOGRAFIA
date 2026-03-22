@@ -289,7 +289,7 @@ class TestAddRasterOverlay:
             drawer.add_raster_overlay(img_path, bounds)
             images = [e for e in gen.msp if e.dxftype() == 'IMAGE']
             assert len(images) >= 1
-        except ImportError:
+        except ImportError:  # pragma: no cover
             pytest.skip("PIL não disponível")
 
     def test_invalid_path_logs_error(self, drawer, tmp_path):

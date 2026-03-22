@@ -286,9 +286,7 @@ class TestRun:
             'uc': False,
         })
 
-        osm_mock = MagicMock()
-        osm_mock.build_tags.return_value = {'building': ['yes']}
-        osm_mock.fetch.return_value = gdf
+        osm_mock = self._setup_mocks(tmp_path, gdf)
 
         audit_gdf = gpd.GeoDataFrame({'geometry': []}, crs='EPSG:32723')
         with patch('controller.OsmFetcherUseCase', return_value=osm_mock), \
