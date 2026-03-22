@@ -134,9 +134,10 @@ export const requireAuth = async (req: AuthenticatedRequest, res: Response, next
 
         const token = authHeader.split('Bearer ')[1];
 
-        // Development shortcut: accept a configurable dev token (only when explicitly set)
+        // Development shortcut: accept a configurable dev token (only in dev/test environments)
         const devToken = process.env.DEV_AUTH_TOKEN;
-        if (devToken && token === devToken && process.env.NODE_ENV !== 'production') {
+        const devEnv = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+        if (devToken && token === devToken && devEnv) {
             req.user = { uid: 'dev-user', email: 'dev@example.com' };
             return next();
         }

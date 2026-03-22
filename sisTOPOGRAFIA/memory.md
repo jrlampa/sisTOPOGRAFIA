@@ -710,3 +710,35 @@ sisTOPO_RISCO_MEDIO         # Hachura de risco médio (declividade 30-100%)
     - Threshold 80% **PASSING** (99% >> 80%) ✅
   - CodeQL: 0 alertas ✅
   - **Total:** 553 Python + 203 Node.js + 229 frontend = **985 total** 🏆
+
+- [x] **FASE 43:** Cobertura Node.js 100% em TODAS as métricas + correção de testes falhando + displayNames React.memo
+  - **Problema:** 2 testes falhando (`dxfSchema` usava formato `{lat,lng}` em vez de `[lon,lat]`); firebaseAuth dev-token test não setava `DEV_AUTH_TOKEN`; firestoreService em 21% de cobertura.
+  - **Correções:**
+    - `server/tests/dxfSchema.test.ts` — 2 testes de validação de polígono corrigidos para usar formato de array `[lon, lat]`
+    - `server/tests/firebaseAuth.test.ts` — dev-token test agora salva/restaura `DEV_AUTH_TOKEN`
+    - `server/tests/firestoreService.test.ts` — novo arquivo: 15 testes cobrindo `FirestoreInfrastructure` (singleton, quota guard, safeRead/Write/Delete, createProjectSnapshot)
+    - `server/tests/batchRoutes.test.ts` — novos testes: caminho de cache hit, todas-linhas-falham → 400, catch block → 500
+    - `server/middleware/firebaseAuth.ts` — `/* istanbul ignore next */` reposicionado para fora de object literals
+    - `server/interfaces/routes/batchRoutes.ts` — `/* istanbul ignore next */` para ramo `|| 'batch'` morto
+    - 4 diretivas ESLint disable obsoletas removidas de arquivos de teste
+    - `displayName` adicionado a 6 componentes `React.memo`: `Toast`, `ProgressIndicator`, `NestedLayerToggle`, `LayerToggle`, `HistoryControls`, `Dashboard`
+  - **Cobertura Node.js final:**
+    - **100% statements/branches/functions/lines** 🏆
+    - 296 testes Node.js (adicionados 93 desde FASE 42)
+  - Lint: 0 erros ✅; CodeQL: 0 alertas ✅
+  - **Total:** 553 Python + 296 Node.js + 237 frontend = **1.086 total** 🏆
+
+- [x] **FASE 44:** Criação do `TECHNICAL_REPORT.md` — Relatório Técnico Completo
+  - **Entregável:** `TECHNICAL_REPORT.md` criado na raiz do projeto com:
+    - Executive Summary
+    - Arquitetura do sistema (diagrama ASCII, tabelas de componentes)
+    - Stack tecnológica completa (Frontend, Backend, Python, Infrastructure)
+    - Referência de API (todos os endpoints com parâmetros)
+    - Tabela completa de layers DXF (sisTOPO_) com tipos de geometria
+    - Integração ANEEL/PRODIST documentada
+    - Segurança: auth, validação, rate limiting, Helmet, sanitização
+    - Testes e cobertura: tabela resumo (1.086 testes total) + lista completa de arquivos de teste
+    - Performance: estratégia de cache L1+L2, job queue assíncrona, TTL de arquivos DXF
+    - Deploy: Docker + Cloud Run + variáveis de ambiente
+    - Padrões de desenvolvimento: regras de código, coordenadas de teste, CI/CD
+  - **Total:** 553 Python + 296 Node.js + 237 frontend = **1.086 total** 🏆
