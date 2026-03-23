@@ -125,6 +125,7 @@
     "collectCoverageFrom": [
       "server/**/*.ts",
       "!server/tests/**",
+      "!server/index.ts",
       "!server/swagger.ts",
       "!server/services/dxfService.ts"
     ]

@@ -132,6 +132,23 @@ describe('DxfCleanupService', () => {
             expect(() => triggerCleanupNow()).not.toThrow();
         });
 
+        it('deve tratar erro não-Error de fs.unlinkSync graciosamente (cobre String(error))', () => {
+            const filePath = path.join(tmpDir, 'non-error-delete.dxf');
+            fs.writeFileSync(filePath, 'DXF content');
+
+            scheduleDxfDeletion(filePath);
+
+            const futureTime = Date.now() + 11 * 60 * 1000;
+            jest.spyOn(Date, 'now').mockReturnValue(futureTime);
+            jest.spyOn(fs, 'unlinkSync').mockImplementationOnce(() => {
+                // eslint-disable-next-line @typescript-eslint/only-throw-error
+                throw 'string error value';
+            });
+
+            // Não deve propagar o erro
+            expect(() => triggerCleanupNow()).not.toThrow();
+        });
+
         it('deve logar arquivo não encontrado quando já foi deletado externamente', () => {
             const { logger } = jest.requireMock('../utils/logger') as any;
             const filePath = path.join(tmpDir, 'gone-externally.dxf');

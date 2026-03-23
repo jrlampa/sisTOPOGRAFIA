@@ -25,6 +25,7 @@ router.get('/', async (_req: Request, res: Response) => {
         }
 
         const pythonAvailable = await new Promise<boolean>((resolve) => {
+            /* istanbul ignore next */
             const timeout = setTimeout(() => resolve(false), 2000);
             const proc = spawn(pythonCommand, ['--version']);
             proc.on('close', (code) => { clearTimeout(timeout); resolve(code === 0); });

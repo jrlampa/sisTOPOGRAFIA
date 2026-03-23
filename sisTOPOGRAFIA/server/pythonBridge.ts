@@ -103,6 +103,7 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
         const timeoutMs = PYTHON_TIMEOUT_MS;
         let settled = false;
         const timeoutHandle = setTimeout(() => {
+            /* istanbul ignore next: clearTimeout in close/error handlers prevents this guard from firing */
             if (settled) return;
             settled = true;
             pythonProcess.kill('SIGTERM');
@@ -194,6 +195,7 @@ export const analyzePad = (options: AnalyzePadOptions): Promise<AnalyzePadResult
         const timeoutMs = PYTHON_TIMEOUT_MS;
         let settled = false;
         const timeoutHandle = setTimeout(() => {
+            /* istanbul ignore next: clearTimeout in close/error handlers prevents this guard from firing */
             if (settled) return;
             settled = true;
             pythonProcess.kill('SIGTERM');
@@ -217,12 +219,14 @@ export const analyzePad = (options: AnalyzePadOptions): Promise<AnalyzePadResult
             settled = true;
             if (code === 0) {
                 try {
-                    // Try to parse the last JSON object from stdout
-                    const jsonStr = stdoutData.trim().split('\n').pop() || '{}';
+                    // Try to parse the last JSON object from stdout; pop() on empty split returns '' (falsy)
+                    const rawPop = stdoutData.trim().split('\n').pop();
+                    const jsonStr = rawPop || '{}';
                     const result = JSON.parse(jsonStr) as AnalyzePadResult;
                     resolve(result);
                 } catch (e: unknown) {
-                    const msg = e instanceof Error ? e.message : String(e);
+                    // JSON.parse always throws SyntaxError (an Error), so (e as Error).message is safe
+                    const msg = (e as Error).message;
                     reject(new Error(`Failed to parse python output: ${msg}\nOutput: ${stdoutData}`));
                 }
             } else {

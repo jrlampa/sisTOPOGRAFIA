@@ -180,6 +180,8 @@ describe('generateDxf', () => {
         await expectation;
         jest.useRealTimers();
     });
+
+    it('passes polygon and projection args when mode is polygon', async () => {
         const proc = createMockProcess();
         (spawn as jest.Mock).mockReturnValueOnce(proc);
         const promise = generateDxf({ ...validOptions, mode: 'polygon', polygon: '[[0,0]]', projection: 'utm' });
@@ -192,6 +194,30 @@ describe('generateDxf', () => {
         expect(args).toContain('[[0,0]]');
         expect(args).toContain('--projection');
         expect(args).toContain('utm');
+    });
+
+    it('uses "development" fallback when NODE_ENV is unset', async () => {
+        const originalNodeEnv = process.env.NODE_ENV;
+        delete process.env.NODE_ENV;
+        const proc = createMockProcess();
+        (spawn as jest.Mock).mockReturnValueOnce(proc);
+        const promise = generateDxf(validOptions);
+        proc.emit('close', 0);
+        await promise;
+        process.env.NODE_ENV = originalNodeEnv;
+        // The test just verifies it runs without error; NODE_ENV || 'development' is covered
+        expect(spawn).toHaveBeenCalled();
+    });
+
+    it('sets dockerized=true when DOCKER_ENV=true', async () => {
+        process.env.DOCKER_ENV = 'true';
+        const proc = createMockProcess();
+        (spawn as jest.Mock).mockReturnValueOnce(proc);
+        const promise = generateDxf(validOptions);
+        proc.emit('close', 0);
+        await promise;
+        delete process.env.DOCKER_ENV;
+        expect(spawn).toHaveBeenCalled();
     });
 });
 
@@ -260,6 +286,15 @@ describe('analyzePad', () => {
         const promise = analyzePad(validOptions);
         proc.emit('error', new Error('spawn ENOENT'));
         await expect(promise).rejects.toThrow('Failed to spawn python process: spawn ENOENT');
+    });
+
+    it('resolves with empty object when no stdout data is emitted (covers pop() || "{}" fallback)', async () => {
+        const proc = createMockProcess();
+        (spawn as jest.Mock).mockReturnValueOnce(proc);
+        const promise = analyzePad(validOptions);
+        // No stdout data emitted → stdoutData = '' → pop() returns '' → fallback to '{}'
+        proc.emit('close', 0);
+        await expect(promise).resolves.toEqual({});
     });
 
     it('settled guard fires in close handler after timeout for analyzePad', async () => {

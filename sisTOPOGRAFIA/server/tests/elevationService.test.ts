@@ -91,6 +91,14 @@ describe('ElevationService', () => {
       expect(profile.every((p: any) => p.elev === 0)).toBe(true);
     });
 
+    it('deve retornar fallback quando erro não-Error é lançado (cobre String(error))', async () => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      mockFetch.mockRejectedValueOnce('non-error rejection');
+      const profile = await ElevationService.getElevationProfile(start, end, 5);
+      expect(profile).toHaveLength(6);
+      expect(profile.every((p: any) => p.elev === 0)).toBe(true);
+    });
+
     it('deve retornar fallback quando API retorna status não-ok', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,

@@ -157,11 +157,48 @@ describe('AnalysisService.analyzeArea', () => {
         expect(result).toEqual({ analysis: 'Erro ao processar análise AI. Formato inválido.' });
     });
 
-    it('returns error analysis when groq throws', async () => {
+    it('returns error analysis when groq throws an Error', async () => {
         mockCreate.mockRejectedValueOnce(new Error('Network failure'));
         const result = await AnalysisService.analyzeArea(stats, 'TestCity', 'test-api-key');
         expect((result as Record<string, unknown>).analysis).toContain('Erro na análise AI');
         expect((result as Record<string, unknown>).analysis).toContain('TestCity');
+    });
+
+    it('returns error analysis when groq throws a non-Error value', async () => {
+        mockCreate.mockRejectedValueOnce('plain string error');
+        const result = await AnalysisService.analyzeArea(stats, 'TestCity', 'test-api-key');
+        expect((result as Record<string, unknown>).analysis).toContain('Erro na análise AI');
+        expect((result as Record<string, unknown>).analysis).toContain('TestCity');
+    });
+
+    it('uses hasData=true when roads > 0 even with buildings = 0', async () => {
+        mockCreate.mockResolvedValueOnce({
+            choices: [{ message: { content: '{"analysis":"roads only"}' } }]
+        });
+        const result = await AnalysisService.analyzeArea({ roads: 5 }, 'RoadsCity', 'test-api-key');
+        expect(result).toEqual({ analysis: 'roads only' });
+        const callArgs = mockCreate.mock.calls[0][0];
+        expect(callArgs.messages[0].content).toContain('Analise urbana profissional');
+    });
+
+    it('uses hasData=true when trees > 0 with buildings = 0 and roads = 0', async () => {
+        mockCreate.mockResolvedValueOnce({
+            choices: [{ message: { content: '{"analysis":"trees only"}' } }]
+        });
+        const result = await AnalysisService.analyzeArea({ trees: 2 }, 'GreenCity', 'test-api-key');
+        expect(result).toEqual({ analysis: 'trees only' });
+        const callArgs = mockCreate.mock.calls[0][0];
+        expect(callArgs.messages[0].content).toContain('Analise urbana profissional');
+    });
+
+    it('uses hasData=false when trees is undefined (covers trees ?? 0)', async () => {
+        mockCreate.mockResolvedValueOnce({
+            choices: [{ message: { content: '{"analysis":"no trees data"}' } }]
+        });
+        const result = await AnalysisService.analyzeArea({ buildings: 0, roads: 0 }, 'NoTreeCity', 'test-api-key');
+        expect(result).toEqual({ analysis: 'no trees data' });
+        const callArgs = mockCreate.mock.calls[0][0];
+        expect(callArgs.messages[0].content).toContain('falta de dados');
     });
 
     it('uses hasData=true prompt when stats have data', async () => {

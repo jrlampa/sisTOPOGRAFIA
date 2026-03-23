@@ -58,7 +58,8 @@ export async function withRetry<T>(
                 attempt,
                 maxAttempts,
                 delayMs: delay,
-                error: error instanceof Error ? error.message : String(error)
+                // Cast is safe: isRetryableError() returns true only when error instanceof Error
+                error: (error as Error).message
             });
             await new Promise(resolve => setTimeout(resolve, delay));
         }

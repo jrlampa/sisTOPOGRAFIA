@@ -134,6 +134,31 @@ describe('GenerateDxfUseCase', () => {
         });
     });
 
+    describe('fallback defaults', () => {
+        it('uses mode "circle" when mode is not provided', async () => {
+            const data = { radius: 500, lat: -23.5, lon: -46.6 } as DxfGenerationRequest;
+            await useCase.execute(data, mockReq);
+            const taskPayload = mockCreateDxfTask.mock.calls[0][0];
+            expect(taskPayload.mode).toBe('circle');
+        });
+
+        it('uses projection "local" when projection is not provided', async () => {
+            const data = { radius: 500, lat: -23.5, lon: -46.6, mode: 'circle' } as DxfGenerationRequest;
+            await useCase.execute(data, mockReq);
+            const taskPayload = mockCreateDxfTask.mock.calls[0][0];
+            expect(taskPayload.projection).toBe('local');
+        });
+
+        it('uses lat=0 and lon=0 when lat/lon and utm are both undefined', async () => {
+            // Edge case: no lat/lon and no utm → cacheKey gets lat:0, lon:0
+            const data = { radius: 500, mode: 'circle' } as DxfGenerationRequest;
+            await useCase.execute(data, mockReq);
+            const cacheKeyArgs = mockCreateCacheKey.mock.calls[0][0];
+            expect(cacheKeyArgs.lat).toBe(0);
+            expect(cacheKeyArgs.lon).toBe(0);
+        });
+    });
+
     describe('polygon handling', () => {
         it('passes polygon string as-is in task payload', async () => {
             const data: DxfGenerationRequest = { ...baseData, mode: 'polygon', polygon: '[[0,0],[1,0],[1,1],[0,0]]' };

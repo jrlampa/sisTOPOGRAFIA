@@ -116,6 +116,8 @@ describe('GET /', () => {
         expect(res.body.status).toBe('degraded');
         expect(res.body.error).toBeDefined();
     });
+
+    it('returns expected top-level fields in health check response', async () => {
         (spawn as jest.Mock).mockImplementationOnce(() => createMockSpawnProcess(0));
         (fs.existsSync as jest.Mock).mockReturnValueOnce(false);
         const res = await request(buildApp()).get('/');
@@ -123,6 +125,33 @@ describe('GET /', () => {
         expect(res.body.version).toBe('1.0.0');
         expect(res.body.groqApiKey).toBeDefined();
         expect(res.body.firestoreEnabled).toBeDefined();
+    });
+
+    it('uses "development" fallback when NODE_ENV is unset', async () => {
+        delete process.env.NODE_ENV;
+        (spawn as jest.Mock).mockImplementationOnce(() => createMockSpawnProcess(0));
+        (fs.existsSync as jest.Mock).mockReturnValueOnce(false);
+        const res = await request(buildApp()).get('/');
+        expect(res.body.environment).toBe('development');
+    });
+
+    it('sets dockerized=true when DOCKER_ENV=true', async () => {
+        process.env.DOCKER_ENV = 'true';
+        (spawn as jest.Mock).mockImplementationOnce(() => createMockSpawnProcess(0));
+        (fs.existsSync as jest.Mock).mockReturnValueOnce(false);
+        const res = await request(buildApp()).get('/');
+        expect(res.body.dockerized).toBe(true);
+        delete process.env.DOCKER_ENV;
+    });
+
+    it('filters out non-.pkl files that start with osm_ in OSM cache dir', async () => {
+        process.env.OSM_CACHE_DIR = '/tmp/osm_cache2';
+        (spawn as jest.Mock).mockImplementationOnce(() => createMockSpawnProcess(0));
+        (fs.existsSync as jest.Mock).mockReturnValueOnce(true);
+        // 'osm_cache.json' starts with osm_ but doesn't end with .pkl → should be excluded
+        (fs.readdirSync as jest.Mock).mockReturnValueOnce(['osm_a.pkl', 'osm_cache.json']);
+        const res = await request(buildApp()).get('/');
+        expect(res.body.osmCache.entries).toBe(1);
     });
 });
 

@@ -110,6 +110,8 @@ describe('verifyCloudTasksToken', () => {
         expect(res.status).toBe(401);
         expect(res.body.error).toBe('Unauthorized');
     });
+
+    it('returns 401 in production when verifyIdToken throws an Error', async () => {
         process.env.NODE_ENV = 'production';
         mockVerifyIdToken.mockRejectedValueOnce(new Error('Token expired'));
         const res = await request(buildApp()).post('/test')
