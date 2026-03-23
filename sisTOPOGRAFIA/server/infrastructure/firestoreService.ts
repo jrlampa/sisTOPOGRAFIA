@@ -77,7 +77,7 @@ export class FirestoreInfrastructure {
         return doc.data() as T;
     }
 
-    public async safeWrite<T extends Record<string, any>>(collection: string, docId: string, data: T): Promise<void> {
+    public async safeWrite<T extends Record<string, unknown>>(collection: string, docId: string, data: T): Promise<void> {
         await this.db.collection(collection).doc(docId).set(data);
         await this.incrementQuota('writes');
     }
@@ -90,7 +90,7 @@ export class FirestoreInfrastructure {
     /**
      * Feature 3: Snippet/Versions functionality
      */
-    public async createProjectSnapshot(jobId: string, data: any) {
+    public async createProjectSnapshot(jobId: string, data: Record<string, unknown>): Promise<string> {
         const snapshotId = `snap_${Date.now()}`;
         await this.safeWrite(`jobs/${jobId}/snapshots`, snapshotId, {
             data,

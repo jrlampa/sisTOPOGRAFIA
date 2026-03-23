@@ -57,17 +57,17 @@ export class ElevationService {
                 throw new Error(`Elevation API failed with status ${response.status}`);
             }
 
-            const data = await response.json();
+            const data = await response.json() as { results: Array<{ elevation: number }> };
             const totalDist = this.calculateDistance(start, end);
 
-            return data.results.map((r: any, i: number) => ({
+            return data.results.map((r, i: number) => ({
                 dist: parseFloat(((totalDist * i) / steps).toFixed(1)),
                 elev: r.elevation
             }));
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             logger.error('Elevation service error', {
-                error: error.message,
+                error: error instanceof Error ? error.message : String(error),
                 start,
                 end,
                 steps

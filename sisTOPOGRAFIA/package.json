@@ -118,6 +118,15 @@
     "moduleNameMapper": {
       "^(\\.{1,2}/.*)\\.js$": "$1"
     },
-    "coverageDirectory": "./coverage/backend"
+    "transform": {
+      "^.+\\.ts$": "<rootDir>/server/tests/jestPreprocess.cjs"
+    },
+    "coverageDirectory": "./coverage/backend",
+    "collectCoverageFrom": [
+      "server/**/*.ts",
+      "!server/tests/**",
+      "!server/swagger.ts",
+      "!server/services/dxfService.ts"
+    ]
   }
 }

@@ -57,10 +57,10 @@ function performCleanup(): void {
             } else {
                 logger.warn('DXF file already deleted or not found', { filePath });
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             logger.error('Failed to delete DXF file', {
                 filePath,
-                error: error.message
+                error: error instanceof Error ? error.message : String(error)
             });
         }
         
