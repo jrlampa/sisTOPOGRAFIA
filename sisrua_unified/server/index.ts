@@ -50,6 +50,95 @@ const ALLOWED_PYTHON_COMMANDS = ['python3', 'python'];
 const app: Express = express();
 const port = process.env.PORT || 3001;
 
+// Ollama process management
+let ollamaProcess: ReturnType<typeof spawn> | null = null;
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
+
+/**
+ * Check if Ollama is already running
+ */
+async function isOllamaRunning(): Promise<boolean> {
+    try {
+        const response = await fetch('http://localhost:11434/api/tags', {
+            method: 'GET',
+            signal: AbortSignal.timeout(2000)
+        });
+        return response.ok;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Start Ollama server
+ */
+async function startOllama(): Promise<void> {
+    // Check if already running
+    if (await isOllamaRunning()) {
+        logger.info('Ollama is already running');
+        return;
+    }
+
+    logger.info('Starting Ollama server...');
+    
+    try {
+        // Start Ollama process
+        ollamaProcess = spawn('ollama', ['serve'], {
+            detached: false,
+            stdio: 'pipe'
+        });
+
+        ollamaProcess.stdout?.on('data', (data) => {
+            logger.info(`Ollama: ${data.toString().trim()}`);
+        });
+
+        ollamaProcess.stderr?.on('data', (data) => {
+            logger.warn(`Ollama error: ${data.toString().trim()}`);
+        });
+
+        ollamaProcess.on('close', (code) => {
+            logger.info(`Ollama process exited with code ${code}`);
+            ollamaProcess = null;
+        });
+
+        ollamaProcess.on('error', (err) => {
+            logger.error('Failed to start Ollama:', err);
+            ollamaProcess = null;
+        });
+
+        // Wait a bit for Ollama to start
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Verify it started
+        if (await isOllamaRunning()) {
+            logger.info('Ollama server started successfully');
+            
+            // Check available models
+            const models = await OllamaService.getModels();
+            logger.info('Available Ollama models:', { models });
+            
+            if (!models.includes(OLLAMA_MODEL)) {
+                logger.warn(`Model ${OLLAMA_MODEL} not found. Run: ollama pull ${OLLAMA_MODEL}`);
+            }
+        } else {
+            logger.error('Ollama failed to start properly');
+        }
+    } catch (error) {
+        logger.error('Error starting Ollama:', error);
+    }
+}
+
+/**
+ * Stop Ollama server
+ */
+function stopOllama(): void {
+    if (ollamaProcess) {
+        logger.info('Stopping Ollama server...');
+        ollamaProcess.kill('SIGTERM');
+        ollamaProcess = null;
+    }
+}
+
 function resolveDxfDirectory(): string {
     const candidates = [
         path.resolve(__dirname, '../public/dxf'),
@@ -1350,17 +1439,26 @@ app.listen(port, async () => {
     } else {
         logger.info('Firestore disabled (development mode)');
     }
+
+    // Start Ollama when server starts
+    try {
+        await startOllama();
+    } catch (error) {
+        logger.error('Failed to start Ollama during server startup', { error });
+    }
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
     logger.info('SIGTERM received, shutting down gracefully');
+    stopOllama();
     stopFirestoreMonitoring();
     process.exit(0);
 });
 
 process.on('SIGINT', () => {
     logger.info('SIGINT received, shutting down gracefully');
+    stopOllama();
     stopFirestoreMonitoring();
     process.exit(0);
 });
