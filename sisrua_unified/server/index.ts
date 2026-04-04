@@ -1237,6 +1237,79 @@ app.get('/api/elevation/compare', async (req: Request, res: Response) => {
     }
 });
 
+// Slope Analysis Endpoint - Calculate terrain slope using TOPODATA
+app.get('/api/elevation/slope', async (req: Request, res: Response) => {
+    try {
+        const { lat, lng, radius = 100 } = req.query;
+        
+        if (!lat || !lng) {
+            return res.status(400).json({ error: 'Required: lat, lng' });
+        }
+        
+        const latitude = parseFloat(lat as string);
+        const longitude = parseFloat(lng as string);
+        const radiusM = parseInt(radius as string);
+        
+        // Convert radius to degrees (approximate)
+        const radiusDeg = radiusM / 111000.0;
+        
+        logger.info('Calculating slope', { lat: latitude, lng: longitude, radiusM });
+        
+        // Get elevation at center and 4 surrounding points
+        const centerElev = await TopodataService.getElevation(latitude, longitude);
+        const northElev = await TopodataService.getElevation(latitude + radiusDeg, longitude);
+        const southElev = await TopodataService.getElevation(latitude - radiusDeg, longitude);
+        const eastElev = await TopodataService.getElevation(latitude, longitude + radiusDeg);
+        const westElev = await TopodataService.getElevation(latitude, longitude - radiusDeg);
+        
+        if (centerElev === null) {
+            return res.status(404).json({ error: 'No elevation data available for this location' });
+        }
+        
+        // Calculate slope in each direction (percentage)
+        const slopeNorth = northElev !== null ? ((northElev - centerElev) / radiusM * 100) : null;
+        const slopeSouth = southElev !== null ? ((southElev - centerElev) / radiusM * 100) : null;
+        const slopeEast = eastElev !== null ? ((eastElev - centerElev) / radiusM * 100) : null;
+        const slopeWest = westElev !== null ? ((westElev - centerElev) / radiusM * 100) : null;
+        
+        // Calculate average slope magnitude
+        const slopes = [slopeNorth, slopeSouth, slopeEast, slopeWest].filter(s => s !== null) as number[];
+        const avgSlope = slopes.length > 0 ? slopes.reduce((a, b) => Math.abs(a) + Math.abs(b), 0) / slopes.length : 0;
+        
+        // Determine slope category
+        let category = 'flat';
+        if (avgSlope > 45) category = 'very_steep';
+        else if (avgSlope > 25) category = 'steep';
+        else if (avgSlope > 15) category = 'moderate';
+        else if (avgSlope > 5) category = 'gentle';
+        
+        return res.json({
+            location: { lat: latitude, lng: longitude },
+            radius_m: radiusM,
+            elevations: {
+                center: centerElev,
+                north: northElev,
+                south: southElev,
+                east: eastElev,
+                west: westElev
+            },
+            slopes_percent: {
+                north: slopeNorth,
+                south: slopeSouth,
+                east: slopeEast,
+                west: slopeWest
+            },
+            average_slope_percent: Math.round(avgSlope * 100) / 100,
+            category,
+            source: 'TOPODATA (30m)',
+            suitable_for: avgSlope < 15 ? 'construction' : avgSlope < 25 ? 'caution' : 'not_recommended'
+        });
+    } catch (error: any) {
+        logger.error('Slope calculation error', { error: error.message });
+        return res.status(500).json({ error: error.message });
+    }
+});
+
 if (fs.existsSync(path.join(frontendDistDirectory, 'index.html'))) {
     app.use(express.static(frontendDistDirectory));
 
