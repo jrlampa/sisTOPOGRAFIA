@@ -288,7 +288,7 @@ function App() {
             <h1 className="text-xl font-black tracking-tighter text-white flex items-center gap-2">
               SIS RUA <span className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-[10px] font-mono border border-blue-500/20">UNIFIED</span>
             </h1>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em]">Advanced Geo Analysis</p>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em]">Análise Geo Avançada</p>
           </div>
         </div>
 
@@ -323,12 +323,12 @@ function App() {
           {/* Search Card */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Target Area</label>
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Área Alvo</label>
             </div>
             <form onSubmit={handleSearch} className="relative group">
               <input
                 type="text"
-                placeholder='City, Address or Coords (UTM)'
+                placeholder='Cidade, Endereço ou Coordenadas (UTM)'
                 aria-label="Search area"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -345,7 +345,7 @@ function App() {
                     disabled={isSearching}
                     className="absolute right-2 top-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 shadow-lg shadow-blue-500/20"
                   >
-                    {isSearching ? <Loader2 className="animate-spin" size={12} /> : "FIND"}
+                    {isSearching ? <Loader2 className="animate-spin" size={12} /> : "BUSCAR"}
                   </motion.button>
                 )}
               </AnimatePresence>
@@ -373,25 +373,25 @@ function App() {
           <div className="space-y-6">
             <div className="flex flex-col gap-1.5">
               <div className="flex justify-between items-center">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Selection Mode</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Modo de Seleção</label>
               </div>
               <div className="flex p-1 bg-slate-900 rounded-xl border border-white/5">
                 <button
                   onClick={() => handleSelectionModeChange('circle')}
                   className={`flex-1 text-[10px] font-bold py-2 rounded-lg transition-all ${selectionMode === 'circle' ? 'bg-slate-800 text-blue-400 shadow-xl border border-white/5' : 'text-slate-500 hover:text-slate-300'}`}
                 >
-                  RADIUS
+                  RAIO
                 </button>
                 <button
                   onClick={() => handleSelectionModeChange('polygon')}
                   className={`flex-1 text-[10px] font-bold py-2 rounded-lg transition-all ${selectionMode === 'polygon' ? 'bg-slate-800 text-blue-400 shadow-xl border border-white/5' : 'text-slate-500 hover:text-slate-300'}`}
                 >
-                  POLYGON
+                  POLÍGONO
                 </button>
                 <button
                   onClick={() => handleSelectionModeChange('measure')}
                   className={`flex-none px-3 py-2 rounded-lg transition-all ${selectionMode === 'measure' ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-500/10' : 'text-slate-500 hover:text-slate-300'}`}
-                  title="Profile Mode"
+                  title="Modo Perfil"
                 >
                   <TrendingUp size={14} />
                 </button>
@@ -405,10 +405,10 @@ function App() {
                 className="space-y-4"
               >
                 <div className="flex justify-between items-center">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Region Radius</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Raio da Região</label>
                   <div className="bg-slate-900 border border-white/5 px-2.5 py-1 rounded-lg">
                     <span className="text-xs font-mono font-bold text-blue-400">{radius}</span>
-                    <span className="text-[10px] text-slate-600 ml-1">METERS</span>
+                    <span className="text-[10px] text-slate-600 ml-1">METROS</span>
                   </div>
                 </div>
                 <div className="relative pt-1">
@@ -449,14 +449,14 @@ function App() {
               {isProcessing ? (
                 <>
                   <Loader2 className="animate-spin" size={18} />
-                  PROCESSING...
+                  PROCESSANDO...
                 </>
               ) : (
                 <>
                   <div className="p-1 rounded bg-white/10 group-hover:rotate-12 transition-transform">
                     <TrendingUp size={16} />
                   </div>
-                  ANALYZE REGION
+                  ANALISAR REGIÃO
                 </>
               )}
             </motion.button>
@@ -500,8 +500,8 @@ function App() {
                     <Mountain size={18} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">TERRAIN ENGINE</span>
-                    <span className="text-xs font-bold text-slate-200">{terrainData ? 'High Resolution Grid Loaded' : 'Grid Pending...'}</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">MOTOR DE TERRENO</span>
+                    <span className="text-xs font-bold text-slate-200">{terrainData ? 'Grade de Alta Resolução Carregada' : 'Grade Pendente...'}</span>
                   </div>
                 </div>
 
@@ -517,7 +517,7 @@ function App() {
                       <Download size={18} />
                     </div>
                   )}
-                  {isDownloading ? 'GENERATING...' : 'DOWNLOAD DXF'}
+                  {isDownloading ? 'GERANDO...' : 'BAIXAR DXF'}
                 </motion.button>
               </motion.div>
             )}
