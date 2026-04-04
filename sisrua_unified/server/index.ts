@@ -1178,6 +1178,65 @@ app.post('/api/analyze', smallBodyParser, async (req: Request, res: Response) =>
     }
 });
 
+// Elevation Comparison Endpoint - Compare TOPODATA vs Open-Elevation
+app.get('/api/elevation/compare', async (req: Request, res: Response) => {
+    try {
+        const { lat, lng } = req.query;
+        
+        if (!lat || !lng) {
+            return res.status(400).json({ error: 'Required: lat, lng' });
+        }
+        
+        const latitude = parseFloat(lat as string);
+        const longitude = parseFloat(lng as string);
+        
+        logger.info('Comparing elevation sources', { lat: latitude, lng: longitude });
+        
+        // Get TOPODATA elevation
+        const topodataElev = await TopodataService.getElevation(latitude, longitude);
+        
+        // Get Open-Elevation elevation
+        let openElev = null;
+        try {
+            const response = await fetch("https://api.open-elevation.com/api/v1/lookup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ locations: [{ latitude, longitude }] }),
+                signal: AbortSignal.timeout(10000)
+            });
+            if (response.ok) {
+                const data = await response.json();
+                openElev = data.results[0]?.elevation ?? null;
+            }
+        } catch (e) {
+            logger.warn('Open-Elevation comparison fetch failed', { error: e });
+        }
+        
+        const isBrazil = TopodataService.isWithinBrazil(latitude, longitude);
+        
+        return res.json({
+            location: { lat: latitude, lng: longitude },
+            isBrazilianTerritory: isBrazil,
+            topodata: {
+                elevation: topodataElev,
+                resolution: '30m',
+                source: 'INPE TOPODATA'
+            },
+            openElevation: {
+                elevation: openElev,
+                resolution: '90m',
+                source: 'Open-Elevation'
+            },
+            difference: (topodataElev !== null && openElev !== null) 
+                ? Math.round((topodataElev - openElev) * 100) / 100 
+                : null
+        });
+    } catch (error: any) {
+        logger.error('Elevation comparison error', { error: error.message });
+        return res.status(500).json({ error: error.message });
+    }
+});
+
 if (fs.existsSync(path.join(frontendDistDirectory, 'index.html'))) {
     app.use(express.static(frontendDistDirectory));
 
