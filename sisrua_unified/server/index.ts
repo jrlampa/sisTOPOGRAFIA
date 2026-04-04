@@ -175,6 +175,12 @@ function resolveFrontendDistDirectory(): string {
 const dxfDirectory = resolveDxfDirectory();
 const frontendDistDirectory = resolveFrontendDistDirectory();
 
+// Ensure DXF directory exists
+if (!fs.existsSync(dxfDirectory)) {
+    logger.info('Creating DXF directory', { dxfDirectory });
+    fs.mkdirSync(dxfDirectory, { recursive: true });
+}
+
 // Debug logs for frontend directory
 logger.info('Frontend directory configuration', {
     frontendDistDirectory,
