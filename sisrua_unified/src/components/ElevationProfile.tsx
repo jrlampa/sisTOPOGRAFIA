@@ -26,8 +26,8 @@ const ElevationProfile: React.FC<ElevationProfileProps> = ({ data, onClose, isDa
                 <button
                     onClick={onClose}
                     className="hover:bg-white/10 p-1 rounded transition-colors"
-                    title="Close Elevation Profile"
-                    aria-label="Close"
+                    title="Fechar Perfil de Elevação"
+                    aria-label="Fechar"
                 >
                     <X size={16} />
                 </button>
