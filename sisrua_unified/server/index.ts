@@ -12,6 +12,7 @@ import fs from 'fs';
 import { GeocodingService } from './services/geocodingService.js';
 import { ElevationService } from './services/elevationService.js';
 import { AnalysisService } from './services/analysisService.js';
+import { OllamaService } from './services/ollamaService.js';
 import {
     createCacheKey,
     deleteCachedFilename,
@@ -1101,8 +1102,8 @@ app.post('/api/elevation/batch', async (req: Request, res: Response) => {
     }
 });
 
-// AI Analyze Endpoint (Delegating to AnalysisService)
-// Uses smaller body limit (100kb) - only needs stats object and location name
+// AI Analyze Endpoint (Delegating to OllamaService)
+// Uses Ollama local LLM instead of Groq cloud API
 app.post('/api/analyze', smallBodyParser, async (req: Request, res: Response) => {
     try {
         // Validate request with Zod schema
@@ -1119,61 +1120,47 @@ app.post('/api/analyze', smallBodyParser, async (req: Request, res: Response) =>
         }
 
         const { stats, locationName } = validation.data;
-        const apiKey = process.env.GROQ_API_KEY;
         
         // Provide default location name if not provided
         const location = locationName || 'Área Selecionada';
         
-        logger.info('GROQ API analysis requested', {
+        // Check if Ollama is available
+        const ollamaAvailable = await OllamaService.isAvailable();
+        
+        logger.info('Ollama AI analysis requested', {
             locationName: location,
-            hasApiKey: !!apiKey,
+            ollamaAvailable,
             timestamp: new Date().toISOString()
         });
         
-        if (!apiKey) {
-            logger.warn('Analysis requested but GROQ_API_KEY not configured');
+        if (!ollamaAvailable) {
+            logger.warn('Ollama service not available');
             return res.status(503).json({ 
-                error: 'GROQ_API_KEY not configured',
-                message: 'AI analysis is unavailable. Please configure GROQ_API_KEY in the .env file to enable intelligent analysis features.',
-                analysis: '**Análise AI Indisponível**\n\nPara habilitar análises inteligentes com IA, configure a variável `GROQ_API_KEY` no arquivo `.env`.\n\nObtenha sua chave gratuita em: https://console.groq.com/keys'
+                error: 'Ollama not available',
+                message: 'O serviço Ollama não está disponível. Verifique a instalação.',
+                analysis: '**Análise AI Indisponível**\n\nO serviço Ollama não está disponível. Verifique se:\n1. O Ollama está instalado: https://ollama.com\n2. O serviço está rodando: `ollama serve`\n3. O modelo llama3.2 está disponível: `ollama pull llama3.2`'
             });
         }
 
-        logger.info('Processing AI analysis request', { locationName: location, hasStats: !!stats });
-        // apiKey is guaranteed to be defined due to the check above
-        const result = await AnalysisService.analyzeArea(stats, location, apiKey!);
-        logger.info('AI analysis completed successfully', { locationName: location });
+        logger.info('Processing Ollama AI analysis request', { locationName: location, hasStats: !!stats });
+        const result = await OllamaService.analyzeArea(stats, location);
+        logger.info('Ollama AI analysis completed successfully', { locationName: location });
         return res.json(result);
     } catch (error: any) {
-        logger.error('Analysis error', { 
+        logger.error('Ollama analysis error', { 
             error: error.message,
             stack: error.stack,
             body: req.body,
-            errorType: error.constructor.name,
-            // Check for common Groq API errors
-            isRateLimitError: error.message?.includes('rate limit') || error.message?.includes('429'),
-            isAuthError: error.message?.includes('401') || error.message?.includes('unauthorized') || error.message?.includes('invalid api key'),
-            isNetworkError: error.message?.includes('ECONNREFUSED') || error.message?.includes('ETIMEDOUT')
+            errorType: error.constructor.name
         });
         
         // Sanitize error message to prevent injection
         const sanitizedMessage = String(error.message || 'Unknown error').slice(0, MAX_ERROR_MESSAGE_LENGTH);
         
-        // Provide more specific error messages
-        let userMessage = '**Erro na Análise AI**\n\nNão foi possível processar a análise. Por favor, tente novamente.';
-        
-        if (error.message?.includes('rate limit') || error.message?.includes('429')) {
-            userMessage = '**Limite de Taxa Excedido**\n\nMuitas requisições à API Groq. Por favor, aguarde alguns momentos e tente novamente.';
-        } else if (error.message?.includes('401') || error.message?.includes('unauthorized') || error.message?.includes('invalid api key')) {
-            userMessage = '**Erro de Autenticação**\n\nA chave GROQ_API_KEY parece estar inválida. Verifique a configuração no Cloud Run.';
-        } else if (error.message?.includes('ECONNREFUSED') || error.message?.includes('ETIMEDOUT')) {
-            userMessage = '**Erro de Conexão**\n\nNão foi possível conectar à API Groq. Verifique a conectividade de rede.';
-        }
-        
         return res.status(500).json({ 
             error: 'Analysis failed',
             details: sanitizedMessage,
-            analysis: userMessage
+            analysis: `**Erro na Análise AI**\n\nNão foi possível processar a análise. Erro: ${error.message}`
         });
     }
 });
