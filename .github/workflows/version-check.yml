@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - master
       - production
       - release/*
     paths:
@@ -16,6 +17,7 @@ on:
   push:
     branches:
       - main
+      - master
       - production
     paths:
       - 'sisrua_unified/VERSION'

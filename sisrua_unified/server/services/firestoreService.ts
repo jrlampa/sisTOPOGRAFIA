@@ -6,10 +6,25 @@
  * - Auto-cleanup at 80% of storage
  * - Real-time quota monitoring
  * - Safe shutdown handling
+ * - Lazy initialization - only loads when USE_FIRESTORE is enabled
  */
 
-import { Firestore, Timestamp, FieldValue } from '@google-cloud/firestore';
 import { logger } from '../utils/logger.js';
+
+// Lazy imports - only loaded when Firestore is actually used
+let Firestore: typeof import('@google-cloud/firestore').Firestore | null = null;
+let Timestamp: typeof import('@google-cloud/firestore').Timestamp | null = null;
+let FieldValue: typeof import('@google-cloud/firestore').FieldValue | null = null;
+
+async function loadFirestore() {
+  if (!Firestore) {
+    const firestoreModule = await import('@google-cloud/firestore');
+    Firestore = firestoreModule.Firestore;
+    Timestamp = firestoreModule.Timestamp;
+    FieldValue = firestoreModule.FieldValue;
+  }
+  return { Firestore: Firestore!, Timestamp: Timestamp!, FieldValue: FieldValue! };
+}
 
 // Firestore quotas (free tier)
 const QUOTAS = {
@@ -40,7 +55,7 @@ interface CircuitBreakerStatus {
 }
 
 class FirestoreService {
-    private db: Firestore;
+    private db: import('@google-cloud/firestore').Firestore | null = null;
     private quotaMonitorInterval: NodeJS.Timeout | null = null;
     private cleanupInterval: NodeJS.Timeout | null = null;
     private circuitBreakerStatus: CircuitBreakerStatus = {
@@ -48,8 +63,17 @@ class FirestoreService {
         usage: 0,
         limit: 0
     };
+    private initialized = false;
 
     constructor() {
+        // Don't initialize Firestore immediately - lazy load on first use
+    }
+
+    private async ensureInitialized(): Promise<void> {
+        if (this.initialized) return;
+        
+        const { Firestore } = await loadFirestore();
+        
         // Initialize Firestore
         this.db = new Firestore({
             projectId: process.env.GCP_PROJECT,
@@ -61,12 +85,15 @@ class FirestoreService {
             project: process.env.GCP_PROJECT,
             quotas: QUOTAS
         });
+        
+        this.initialized = true;
     }
 
     /**
      * Start quota monitoring and auto-cleanup
      */
     async start(): Promise<void> {
+        await this.ensureInitialized();
         logger.info('Starting Firestore quota monitoring');
 
         // Initialize quota document for today
@@ -114,6 +141,8 @@ class FirestoreService {
      * Initialize quota document for current day
      */
     private async initializeDailyQuota(): Promise<void> {
+        if (!this.db) return;
+        const { Timestamp } = await loadFirestore();
         const today = new Date().toISOString().split('T')[0];
         const quotaRef = this.db.collection('quotaMonitor').doc(today);
 
@@ -139,6 +168,9 @@ class FirestoreService {
      * Get current quota usage
      */
     async getCurrentUsage(): Promise<QuotaUsage> {
+        await this.ensureInitialized();
+        if (!this.db) throw new Error('Firestore not initialized');
+        const { Timestamp } = await loadFirestore();
         const today = new Date().toISOString().split('T')[0];
         const quotaRef = this.db.collection('quotaMonitor').doc(today);
 
@@ -167,6 +199,8 @@ class FirestoreService {
      * Increment quota counter
      */
     private async incrementQuota(operation: 'reads' | 'writes' | 'deletes', count: number = 1): Promise<void> {
+        if (!this.db) return;
+        const { Timestamp, FieldValue } = await loadFirestore();
         const today = new Date().toISOString().split('T')[0];
         const quotaRef = this.db.collection('quotaMonitor').doc(today);
 
@@ -276,7 +310,9 @@ class FirestoreService {
      * Cleanup old data (oldest first)
      */
     private async cleanupOldData(): Promise<void> {
+        if (!this.db) return;
         logger.info('Starting auto-cleanup of old data');
+        const { Timestamp } = await loadFirestore();
 
         const batch = this.db.batch();
         let deleteCount = 0;
@@ -330,7 +366,8 @@ class FirestoreService {
     /**
      * Get Firestore instance
      */
-    getDb(): Firestore {
+    getDb(): any {
+        if (!this.db) throw new Error('Firestore not initialized');
         return this.db;
     }
 
@@ -345,6 +382,8 @@ class FirestoreService {
      * Safe read with circuit breaker and quota tracking
      */
     async safeRead<T>(collection: string, docId: string): Promise<T | null> {
+        await this.ensureInitialized();
+        if (!this.db) throw new Error('Firestore not initialized');
         // Check circuit breaker
         const allowed = await this.checkCircuitBreaker('reads');
         if (!allowed) {
@@ -370,6 +409,8 @@ class FirestoreService {
      * Safe write with circuit breaker and quota tracking
      */
     async safeWrite<T extends Record<string, any>>(collection: string, docId: string, data: T): Promise<void> {
+        await this.ensureInitialized();
+        if (!this.db) throw new Error('Firestore not initialized');
         // Check circuit breaker
         const allowed = await this.checkCircuitBreaker('writes');
         if (!allowed) {
@@ -389,6 +430,8 @@ class FirestoreService {
      * Safe delete with circuit breaker and quota tracking
      */
     async safeDelete(collection: string, docId: string): Promise<void> {
+        await this.ensureInitialized();
+        if (!this.db) throw new Error('Firestore not initialized');
         // Check circuit breaker
         const allowed = await this.checkCircuitBreaker('deletes');
         if (!allowed) {

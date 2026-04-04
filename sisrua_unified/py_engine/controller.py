@@ -9,7 +9,7 @@ from pyproj import Transformer
 from osmnx_client import fetch_osm_data
 from dxf_generator import DXFGenerator
 from spatial_audit import run_spatial_audit
-from elevation_client import fetch_elevation_grid
+from elevation_client import fetch_elevation_grid, is_within_brazil
 from contour_generator import generate_contours
 from utils.logger import Logger
 from utils.geo import sirgas2000_utm_epsg
@@ -119,12 +119,37 @@ class OSMController:
             b = gdf_4326.total_bounds
             north, south, east, west = b[3], b[1], b[2], b[0]
             
+            # Detect elevation data source
+            center_lat = (north + south) / 2
+            center_lon = (east + west) / 2
+            use_topodata = is_within_brazil(center_lat, center_lon)
+            
+            # Store elevation metadata for report
+            self.elevation_metadata = {
+                'source': 'TOPODATA (INPE)' if use_topodata else 'Open-Elevation',
+                'resolution_m': 30 if use_topodata else 90,
+                'area_brazil': use_topodata,
+                'center_lat': center_lat,
+                'center_lon': center_lon
+            }
+            
             # Resolution-aware expansion
             margin = 0.0005 # Degrees
             elev_points, rows, cols = fetch_elevation_grid(north + margin, south - margin, east + margin, west - margin, resolution=100) 
             
             if elev_points:
+                # Calculate elevation statistics
+                elevations = [z for _, _, z in elev_points if z is not None]
+                if elevations:
+                    self.elevation_metadata.update({
+                        'min_elevation_m': min(elevations),
+                        'max_elevation_m': max(elevations),
+                        'avg_elevation_m': sum(elevations) / len(elevations),
+                        'points_count': len(elevations)
+                    })
+                
                 Logger.info(f"Reconstructing {rows}x{cols} terrain grid...", progress=60)
+                Logger.info(f"Elevation source: {self.elevation_metadata['source']} ({self.elevation_metadata['resolution_m']}m)")
                 transformer = Transformer.from_crs("EPSG:4326", gdf.crs, always_xy=True)
                 
                 grid_rows = []
@@ -144,6 +169,7 @@ class OSMController:
                     self._add_contours(grid_rows, dxf_gen)
         except Exception as e:
             Logger.error(f"Terrain submodule failure: {str(e)}")
+            self.elevation_metadata = {'source': 'Failed', 'error': str(e)}
 
     def _add_contours(self, grid_rows, dxf_gen):
         try:
@@ -169,6 +195,13 @@ class OSMController:
             df_csv = pd.DataFrame(df.drop(columns='geometry'))
             df_csv.to_csv(csv_file, index=False)
             Logger.info(f"Metadata exported to {os.path.basename(csv_file)}")
+            
+            # Export elevation metadata if available
+            if hasattr(self, 'elevation_metadata') and self.elevation_metadata:
+                elev_csv_file = self.output_file.replace('.dxf', '_elevation_metadata.csv')
+                elev_df = pd.DataFrame([self.elevation_metadata])
+                elev_df.to_csv(elev_csv_file, index=False)
+                Logger.info(f"Elevation metadata exported to {os.path.basename(elev_csv_file)}")
         except Exception as e:
             Logger.error(f"CSV Metadata Export failed: {e}")
 

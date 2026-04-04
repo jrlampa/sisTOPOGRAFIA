@@ -35,6 +35,9 @@ import {
 import { parseBatchCsv, RawBatchRow } from './services/batchService.js';
 import { specs } from './swagger.js';
 import { startFirestoreMonitoring, stopFirestoreMonitoring, getFirestoreService } from './services/firestoreService.js';
+import { IbgeService } from './services/ibgeService.js';
+import { IndeService } from './services/indeService.js';
+import { TopodataService } from './services/topodataService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -62,20 +65,32 @@ function resolveDxfDirectory(): string {
 
 function resolveFrontendDistDirectory(): string {
     const candidates = [
-        path.resolve(__dirname, '../../dist'),
-        path.resolve(__dirname, '../../../dist')
+        path.resolve(__dirname, '../dist'),           // server/../dist -> dist
+        path.resolve(__dirname, '../../dist'),      // server/../../dist -> project/dist
+        path.resolve(__dirname, '../../../dist'),   // fallback
+        path.resolve(process.cwd(), 'dist')         // cwd/dist
     ];
+
+    logger.info('Frontend directory candidates', { candidates });
 
     const existing = candidates.find((candidate) => fs.existsSync(path.join(candidate, 'index.html')));
     if (existing) {
+        logger.info('Found existing frontend directory', { existing });
         return existing;
     }
 
-    return candidates[candidates.length - 1];
+    return candidates[0]; // Default to first candidate
 }
 
 const dxfDirectory = resolveDxfDirectory();
 const frontendDistDirectory = resolveFrontendDistDirectory();
+
+// Debug logs for frontend directory
+logger.info('Frontend directory configuration', {
+    frontendDistDirectory,
+    exists: fs.existsSync(path.join(frontendDistDirectory, 'index.html')),
+    dirname: __dirname
+});
 
 /**
  * Get the base URL for the application
@@ -660,6 +675,160 @@ app.get('/api/jobs/:id', async (req: Request, res: Response) => {
     }
 });
 
+// IBGE API Endpoints - Brazilian territorial data
+// Get location info by coordinates (reverse geocoding)
+app.get('/api/ibge/location', async (req: Request, res: Response) => {
+    try {
+        const { lat, lng } = req.query;
+        
+        if (!lat || !lng) {
+            return res.status(400).json({ error: 'lat and lng query parameters required' });
+        }
+
+        const latitude = parseFloat(lat as string);
+        const longitude = parseFloat(lng as string);
+
+        if (isNaN(latitude) || isNaN(longitude)) {
+            return res.status(400).json({ error: 'Invalid coordinates' });
+        }
+
+        logger.info('IBGE reverse geocoding', { lat: latitude, lng: longitude });
+        
+        const locationInfo = await IbgeService.findMunicipioByCoordinates(latitude, longitude);
+        
+        if (locationInfo) {
+            return res.json(locationInfo);
+        } else {
+            return res.status(404).json({ error: 'Location not found in Brazilian territory' });
+        }
+    } catch (error: any) {
+        logger.error('IBGE location endpoint error', { error });
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Get all states
+app.get('/api/ibge/states', async (_req: Request, res: Response) => {
+    try {
+        const states = await IbgeService.getStates();
+        return res.json(states);
+    } catch (error: any) {
+        logger.error('IBGE states endpoint error', { error });
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Get municipalities by state
+app.get('/api/ibge/municipios/:uf', async (req: Request, res: Response) => {
+    try {
+        const { uf } = req.params;
+        const municipios = await IbgeService.getMunicipiosByState(uf.toUpperCase());
+        return res.json(municipios);
+    } catch (error: any) {
+        logger.error('IBGE municipios endpoint error', { error, uf: req.params.uf });
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Get municipality boundary (GeoJSON)
+app.get('/api/ibge/boundary/municipio/:id', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const boundary = await IbgeService.getMunicipalityBoundary(id);
+        
+        if (boundary) {
+            return res.json(boundary);
+        } else {
+            return res.status(404).json({ error: 'Municipality boundary not found' });
+        }
+    } catch (error: any) {
+        logger.error('IBGE boundary endpoint error', { error, id: req.params.id });
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// INDE API Endpoints - WMS/WFS for official Brazilian geographic data
+// Get WFS capabilities (available layers)
+app.get('/api/inde/capabilities/:source', async (req: Request, res: Response) => {
+    try {
+        const { source } = req.params;
+        const validSources = ['ibge', 'icmbio', 'ana', 'dnit'];
+        
+        if (!validSources.includes(source)) {
+            return res.status(400).json({ error: 'Invalid source', validSources });
+        }
+        
+        const capabilities = await IndeService.getWfsCapabilities(source as any);
+        return res.json({ source, layers: capabilities });
+    } catch (error: any) {
+        logger.error('INDE capabilities endpoint error', { error, source: req.params.source });
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Get features by bounding box
+app.get('/api/inde/features/:source', async (req: Request, res: Response) => {
+    try {
+        const { source } = req.params;
+        const { layer, west, south, east, north, limit = '1000' } = req.query;
+        
+        if (!layer || !west || !south || !east || !north) {
+            return res.status(400).json({ 
+                error: 'Required parameters: layer, west, south, east, north' 
+            });
+        }
+        
+        const features = await IndeService.getFeaturesByBBox(
+            layer as string,
+            parseFloat(west as string),
+            parseFloat(south as string),
+            parseFloat(east as string),
+            parseFloat(north as string),
+            source as any,
+            parseInt(limit as string)
+        );
+        
+        if (features) {
+            return res.json(features);
+        } else {
+            return res.status(404).json({ error: 'No features found' });
+        }
+    } catch (error: any) {
+        logger.error('INDE features endpoint error', { error });
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Get WMS map URL
+app.get('/api/inde/wms/:source', async (req: Request, res: Response) => {
+    try {
+        const { source } = req.params;
+        const { layer, west, south, east, north, width = '1024', height = '768' } = req.query;
+        
+        if (!layer || !west || !south || !east || !north) {
+            return res.status(400).json({ 
+                error: 'Required parameters: layer, west, south, east, north' 
+            });
+        }
+        
+        const mapUrl = IndeService.getWmsMapUrl(
+            layer as string,
+            parseFloat(west as string),
+            parseFloat(south as string),
+            parseFloat(east as string),
+            parseFloat(north as string),
+            parseInt(width as string),
+            parseInt(height as string),
+            source as any
+        );
+        
+        return res.json({ url: mapUrl });
+    } catch (error: any) {
+        logger.error('INDE WMS endpoint error', { error });
+        return res.status(500).json({ error: error.message });
+    }
+});
+
 // Coordinate Search Endpoint (Using GeocodingService)
 // Uses smaller body limit (100kb) - only needs a query string
 app.post('/api/search', smallBodyParser, async (req: Request, res: Response) => {
@@ -717,6 +886,217 @@ app.post('/api/elevation/profile', async (req: Request, res: Response) => {
             error: error.message,
             stack: error.stack
         });
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Elevation Profile Export Endpoint - Export to CSV or KML
+app.post('/api/elevation/profile/export', async (req: Request, res: Response) => {
+    try {
+        const { start, end, steps = 50, format = 'csv' } = req.body;
+        
+        if (!start || !end || format !== 'csv' && format !== 'kml') {
+            return res.status(400).json({ error: 'Required: start, end, format (csv|kml)' });
+        }
+        
+        logger.info('Exporting elevation profile', { start, end, steps, format });
+        
+        const profile = await ElevationService.getElevationProfile(start, end, steps);
+        
+        if (format === 'csv') {
+            // Generate CSV
+            let csv = 'distance_m,latitude,longitude,elevation_m\n';
+            profile.forEach((p: { dist: number; elev: number }, i: number) => {
+                const t = i / (profile.length - 1);
+                const lat = start.lat + (end.lat - start.lat) * t;
+                const lng = start.lng + (end.lng - start.lng) * t;
+                csv += `${p.dist.toFixed(2)},${lat.toFixed(6)},${lng.toFixed(6)},${p.elev.toFixed(2)}\n`;
+            });
+            
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', 'attachment; filename="elevation_profile.csv"');
+            return res.send(csv);
+        } else {
+            // Generate KML
+            const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+    <name>Perfil de Elevação</name>
+    <Style id="elevationLine">
+        <LineStyle><color>ff0000ff</color><width>3</width></LineStyle>
+    </Style>
+    <Placemark>
+        <name>Perfil de Elevação</name>
+        <styleUrl>#elevationLine</styleUrl>
+        <LineString>
+            <tessellate>1</tessellate>
+            <coordinates>
+${profile.map((p: { elev: number }, i: number) => {
+    const t = i / (profile.length - 1);
+    const lng = start.lng + (end.lng - start.lng) * t;
+    const lat = start.lat + (end.lat - start.lat) * t;
+    return `                ${lng.toFixed(6)},${lat.toFixed(6)},${p.elev.toFixed(2)}`;
+}).join('\n')}
+            </coordinates>
+        </LineString>
+    </Placemark>
+</Document>
+</kml>`;
+            
+            res.setHeader('Content-Type', 'application/vnd.google-earth.kml+xml');
+            res.setHeader('Content-Disposition', 'attachment; filename="elevation_profile.kml"');
+            return res.send(kml);
+        }
+    } catch (error: any) {
+        logger.error('Elevation profile export error', { error: error.message });
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Elevation Statistics Endpoint - Get elevation stats for an area
+app.get('/api/elevation/stats', async (req: Request, res: Response) => {
+    try {
+        const { lat, lng, radius = 500 } = req.query;
+        
+        if (!lat || !lng) {
+            return res.status(400).json({ error: 'Required: lat, lng' });
+        }
+        
+        const centerLat = parseFloat(lat as string);
+        const centerLng = parseFloat(lng as string);
+        const radiusM = parseInt(radius as string);
+        
+        // Convert radius to degrees (approximate)
+        const radiusDeg = radiusM / 111000.0;
+        
+        const north = centerLat + radiusDeg;
+        const south = centerLat - radiusDeg;
+        const east = centerLng + radiusDeg;
+        const west = centerLng - radiusDeg;
+        
+        logger.info('Fetching elevation stats', { centerLat, centerLng, radiusM });
+        
+        // Use ElevationService to get profile points for statistics
+        const steps = 10;
+        const points = [];
+        const gridSize = 5;
+        
+        for (let i = 0; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                const tLat = i / (gridSize - 1);
+                const tLng = j / (gridSize - 1);
+                const pointLat = south + (north - south) * tLat;
+                const pointLng = west + (east - west) * tLng;
+                
+                const elevation = await ElevationService.getElevationAt(pointLat, pointLng);
+                if (elevation !== null) {
+                    points.push(elevation);
+                }
+            }
+        }
+        
+        if (points.length === 0) {
+            return res.status(404).json({ error: 'No elevation data available' });
+        }
+        
+        // Calculate statistics
+        const min = Math.min(...points);
+        const max = Math.max(...points);
+        const avg = points.reduce((a, b) => a + b, 0) / points.length;
+        const range = max - min;
+        
+        // Detect data source
+        const useTopodata = TopodataService.isWithinBrazil(centerLat, centerLng);
+        
+        return res.json({
+            source: useTopodata ? 'TOPODATA (INPE)' : 'Open-Elevation',
+            resolution: useTopodata ? '30m' : '90m',
+            points_sampled: points.length,
+            min_elevation_m: Math.round(min * 100) / 100,
+            max_elevation_m: Math.round(max * 100) / 100,
+            avg_elevation_m: Math.round(avg * 100) / 100,
+            range_m: Math.round(range * 100) / 100,
+            center: { lat: centerLat, lng: centerLng },
+            radius_m: radiusM
+        });
+    } catch (error: any) {
+        logger.error('Elevation stats error', { error: error.message });
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// TOPODATA Cache Management Endpoints
+// Get cache status
+app.get('/api/elevation/cache/status', (req: Request, res: Response) => {
+    try {
+        const stats = TopodataService.getCacheStats();
+        return res.json({
+            ...stats,
+            isBrazilianTerritory: true,
+            source: 'INPE TOPODATA'
+        });
+    } catch (error: any) {
+        logger.error('Cache status error', { error: error.message });
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Clear cache (protected - should require auth in production)
+app.post('/api/elevation/cache/clear', (req: Request, res: Response) => {
+    try {
+        TopodataService.clearCache();
+        return res.json({ message: 'TOPODATA cache cleared successfully' });
+    } catch (error: any) {
+        logger.error('Cache clear error', { error: error.message });
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Batch elevation lookup (efficient for multiple points)
+app.post('/api/elevation/batch', async (req: Request, res: Response) => {
+    try {
+        const { points } = req.body;
+        
+        if (!points || !Array.isArray(points) || points.length === 0) {
+            return res.status(400).json({ error: 'Required: points array with {lat, lng}' });
+        }
+        
+        if (points.length > 100) {
+            return res.status(400).json({ error: 'Maximum 100 points allowed per request' });
+        }
+        
+        logger.info(`Batch elevation lookup for ${points.length} points`);
+        
+        const results = [];
+        let topodataCount = 0;
+        let openElevCount = 0;
+        
+        for (const point of points) {
+            const { lat, lng } = point;
+            const elevation = await ElevationService.getElevationAt(lat, lng);
+            const isBrazil = TopodataService.isWithinBrazil(lat, lng);
+            
+            if (isBrazil) topodataCount++;
+            else openElevCount++;
+            
+            results.push({
+                lat,
+                lng,
+                elevation,
+                source: isBrazil ? 'TOPODATA' : 'Open-Elevation'
+            });
+        }
+        
+        return res.json({
+            points: results,
+            summary: {
+                total: points.length,
+                topodata: topodataCount,
+                openElevation: openElevCount
+            }
+        });
+    } catch (error: any) {
+        logger.error('Batch elevation error', { error: error.message });
         return res.status(500).json({ error: error.message });
     }
 });

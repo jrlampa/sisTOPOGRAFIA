@@ -1,3 +1,5 @@
+import { IbgeService } from './ibgeService.js';
+
 export interface GeoLocation {
     lat: number;
     lng: number;
@@ -120,6 +122,126 @@ export class GeocodingService {
             }
         }
 
+        // 2. Try IBGE for Brazilian municipalities
+        const ibgeLocation = await this.searchIbgeMunicipio(query);
+        if (ibgeLocation) {
+            return ibgeLocation;
+        }
+
+        return null;
+    }
+
+    /**
+     * Search for Brazilian municipality using IBGE API
+     */
+    private static async searchIbgeMunicipio(query: string): Promise<GeoLocation | null> {
+        // Check if query looks like a Brazilian municipality name
+        const parts = query.split(/,\s*|\s+-\s+/);
+        const municipioName = parts[0].trim();
+        const ufHint = parts[1]?.trim().toUpperCase() || undefined;
+
+        // Validate: must be at least 3 characters and contain letters
+        if (municipioName.length < 3 || !/[a-zA-Z]/.test(municipioName)) {
+            return null;
+        }
+
+        const municipio = await IbgeService.findMunicipioByName(municipioName, ufHint);
+        
+        if (municipio) {
+            const uf = municipio.microrregiao?.mesorregiao?.UF?.sigla || 
+                       municipio.microrregiao?.mesorregiao?.UF?.sigla || 'SP';
+            
+            // Use state centroid as location (simplified approach)
+            const stateCentroid = this.getStateCentroid(uf);
+            if (stateCentroid) {
+                return {
+                    lat: stateCentroid.lat,
+                    lng: stateCentroid.lng,
+                    label: `${municipio.nome}, ${uf} (IBGE)`
+                };
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get approximate centroid for Brazilian state
+     */
+    private static getStateCentroid(uf: string): { lat: number; lng: number } | null {
+        // Approximate centroids for Brazilian states
+        const centroids: Record<string, { lat: number; lng: number }> = {
+            'AC': { lat: -9.02, lng: -70.81 },
+            'AL': { lat: -9.62, lng: -36.54 },
+            'AM': { lat: -3.42, lng: -65.00 },
+            'AP': { lat: 1.41, lng: -51.77 },
+            'BA': { lat: -12.27, lng: -41.71 },
+            'CE': { lat: -5.20, lng: -39.53 },
+            'DF': { lat: -15.83, lng: -47.86 },
+            'ES': { lat: -19.57, lng: -40.62 },
+            'GO': { lat: -15.93, lng: -50.14 },
+            'MA': { lat: -4.96, lng: -45.27 },
+            'MG': { lat: -18.10, lng: -44.38 },
+            'MS': { lat: -20.51, lng: -54.55 },
+            'MT': { lat: -12.64, lng: -55.42 },
+            'PA': { lat: -3.79, lng: -52.48 },
+            'PB': { lat: -7.24, lng: -36.78 },
+            'PE': { lat: -8.38, lng: -37.86 },
+            'PI': { lat: -6.60, lng: -42.28 },
+            'PR': { lat: -24.89, lng: -51.55 },
+            'RJ': { lat: -22.25, lng: -42.66 },
+            'RN': { lat: -5.81, lng: -36.59 },
+            'RO': { lat: -10.83, lng: -63.34 },
+            'RR': { lat: 2.00, lng: -61.00 },
+            'RS': { lat: -30.17, lng: -53.33 },
+            'SC': { lat: -27.33, lng: -51.22 },
+            'SE': { lat: -10.57, lng: -37.45 },
+            'SP': { lat: -22.25, lng: -48.63 },
+            'TO': { lat: -9.46, lng: -48.26 }
+        };
+        
+        return centroids[uf] || null;
+    }
+
+    /**
+     * Calculate centroid from GeoJSON geometry
+     */
+    private static calculateCentroid(geometry: any): { lat: number; lng: number } | null {
+        try {
+            if (geometry.type === 'Point') {
+                return { lng: geometry.coordinates[0], lat: geometry.coordinates[1] };
+            }
+            
+            if (geometry.type === 'Polygon') {
+                // Use first ring coordinates
+                const coords = geometry.coordinates[0];
+                let sumLng = 0, sumLat = 0;
+                for (const coord of coords) {
+                    sumLng += coord[0];
+                    sumLat += coord[1];
+                }
+                return {
+                    lng: sumLng / coords.length,
+                    lat: sumLat / coords.length
+                };
+            }
+            
+            if (geometry.type === 'MultiPolygon') {
+                // Use first polygon's first ring
+                const coords = geometry.coordinates[0][0];
+                let sumLng = 0, sumLat = 0;
+                for (const coord of coords) {
+                    sumLng += coord[0];
+                    sumLat += coord[1];
+                }
+                return {
+                    lng: sumLng / coords.length,
+                    lat: sumLat / coords.length
+                };
+            }
+        } catch (e) {
+            // Silent fail
+        }
         return null;
     }
 }
