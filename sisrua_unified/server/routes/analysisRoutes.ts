@@ -1,0 +1,67 @@
+import { Router, Request, Response } from 'express';
+import { OllamaService } from '../services/ollamaService.js';
+import { logger } from '../utils/logger.js';
+import { analysisSchema } from '../schemas/apiSchemas.js';
+
+const router = Router();
+const MAX_ERROR_MESSAGE_LENGTH = 200;
+
+// AI Analyze Endpoint using Ollama local LLM
+router.post('/', async (req: Request, res: Response) => {
+    try {
+        const validation = analysisSchema.safeParse(req.body);
+        if (!validation.success) {
+            logger.warn('Analysis validation failed', {
+                issues: validation.error.issues,
+                ip: req.ip
+            });
+            return res.status(400).json({
+                error: 'Invalid request',
+                details: validation.error.issues.map(i => i.message).join(', ')
+            });
+        }
+
+        const { stats, locationName } = validation.data;
+        const location = locationName || 'Área Selecionada';
+
+        // Check if Ollama is available
+        const ollamaAvailable = await OllamaService.isAvailable();
+
+        logger.info('Ollama AI analysis requested', {
+            locationName: location,
+            ollamaAvailable,
+            timestamp: new Date().toISOString()
+        });
+
+        if (!ollamaAvailable) {
+            logger.warn('Ollama service not available');
+            return res.status(503).json({
+                error: 'Ollama not available',
+                message: 'O serviço Ollama não está disponível. Verifique a instalação.',
+                analysis: '**Análise AI Indisponível**\n\nO serviço Ollama não está disponível. Verifique se:\n1. O Ollama está instalado: https://ollama.com\n2. O serviço está rodando: `ollama serve`\n3. O modelo llama3.2 está disponível: `ollama pull llama3.2`'
+            });
+        }
+
+        logger.info('Processing Ollama AI analysis request', { locationName: location, hasStats: !!stats });
+        const result = await OllamaService.analyzeArea(stats, location);
+        logger.info('Ollama AI analysis completed successfully', { locationName: location });
+        return res.json(result);
+    } catch (error: any) {
+        logger.error('Ollama analysis error', {
+            error: error.message,
+            stack: error.stack,
+            body: req.body,
+            errorType: error.constructor.name
+        });
+
+        const sanitizedMessage = String(error.message || 'Unknown error').slice(0, MAX_ERROR_MESSAGE_LENGTH);
+
+        return res.status(500).json({
+            error: 'Analysis failed',
+            details: sanitizedMessage,
+            analysis: `**Erro na Análise AI**\n\nNão foi possível processar a análise. Erro: ${error.message}`
+        });
+    }
+});
+
+export default router;
