@@ -69,30 +69,28 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
         ...payload
     };
 
-    // Development mode: Generate DXF directly
+    // Development mode: Generate DXF asynchronously (background)
     if (IS_DEVELOPMENT) {
-        logger.info('Development mode: Generating DXF directly (no Cloud Tasks)', {
+        logger.info('Development mode: Starting async DXF generation', {
             taskId,
             cacheKey: payload.cacheKey
         });
 
-        try {
-            // Create job FIRST (must exist before updateJobStatus)
-            createJob(taskId);
-            updateJobStatus(taskId, 'processing', 10);
+        // Create job for tracking
+        createJob(taskId);
+        updateJobStatus(taskId, 'processing', 10);
 
-            // Generate DXF directly using Python bridge
-            await generateDxf({
-                lat: payload.lat,
-                lon: payload.lon,
-                radius: payload.radius,
-                mode: payload.mode,
-                polygon: payload.polygon,
-                layers: payload.layers as Record<string, boolean>,
-                projection: payload.projection,
-                outputFile: payload.outputFile
-            });
-
+        // Run DXF generation in background (don't await)
+        generateDxf({
+            lat: payload.lat,
+            lon: payload.lon,
+            radius: payload.radius,
+            mode: payload.mode,
+            polygon: payload.polygon,
+            layers: payload.layers as Record<string, boolean>,
+            projection: payload.projection,
+            outputFile: payload.outputFile
+        }).then(() => {
             // Schedule DXF file for deletion after 10 minutes
             scheduleDxfDeletion(payload.outputFile);
 
@@ -107,22 +105,21 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
                 filename: payload.filename,
                 cacheKey: payload.cacheKey
             });
-
-            return {
-                taskId,
-                taskName: `dev-task-${taskId}`,
-                alreadyCompleted: true  // Job already completed in dev mode
-            };
-        } catch (error: any) {
+        }).catch((error: any) => {
             logger.error('DXF generation failed in dev mode', {
                 taskId,
                 error: error.message,
                 stack: error.stack
             });
-
             failJob(taskId, error.message);
-            throw new Error(`DXF generation failed: ${error.message}`);
-        }
+        });
+
+        // Return immediately with taskId (DXF is being generated in background)
+        return {
+            taskId,
+            taskName: `dev-task-${taskId}`,
+            alreadyCompleted: false
+        };
     }
 
     // Production mode: Use Cloud Tasks
