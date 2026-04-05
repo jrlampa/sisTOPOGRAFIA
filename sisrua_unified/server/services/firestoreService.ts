@@ -44,7 +44,7 @@ interface QuotaUsage {
     writes: number;
     deletes: number;
     storageBytes: number;
-    lastUpdated: Timestamp;
+    lastUpdated: import('@google-cloud/firestore').Timestamp;
 }
 
 interface CircuitBreakerStatus {
