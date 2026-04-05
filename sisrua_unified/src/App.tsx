@@ -223,6 +223,33 @@ function App() {
     showToast('Histórico BT limpo.', 'info');
   };
 
+  const exportBtHistory = () => {
+    if (btExportHistory.length === 0) {
+      showToast('Não há histórico BT para exportar.', 'info');
+      return;
+    }
+
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      projectName: settings.projectMetadata.projectName,
+      projectType: settings.projectType ?? 'ramais',
+      totalEntries: btExportHistory.length,
+      latest: btExportHistory[0],
+      entries: btExportHistory
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${settings.projectMetadata.projectName}_bt_history.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    showToast('Histórico BT exportado.', 'success');
+  };
+
   const validateBtBeforeExport = (): boolean => {
     if (!settings.layers.btNetwork) {
       return true;
@@ -545,12 +572,20 @@ function App() {
         <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-cyan-500/30 bg-slate-950/95 px-4 py-3 text-xs text-cyan-100 shadow-xl">
           <div className="flex items-center justify-between gap-4">
             <div className="font-semibold uppercase tracking-wide text-cyan-300">Resumo BT Exportado</div>
-            <button
-              onClick={clearBtExportHistory}
-              className="rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/10"
-            >
-              Limpar histórico
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={exportBtHistory}
+                className="inline-flex items-center gap-1 rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/10"
+              >
+                <Download size={10} /> Exportar
+              </button>
+              <button
+                onClick={clearBtExportHistory}
+                className="rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/10"
+              >
+                Limpar
+              </button>
+            </div>
           </div>
 
           {latestBtExport && (
