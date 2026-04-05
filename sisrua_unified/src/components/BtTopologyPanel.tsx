@@ -2,6 +2,7 @@ import React from 'react';
 import { Activity, Plus, Trash2, Sigma } from 'lucide-react';
 import { BtTopology, BtTransformerReading } from '../types';
 import {
+  calculateAccumulatedDemandKva,
   calculateBtSummary,
   calculateClandestinoDemandKvaByAreaAndClients,
   calculatePointDemandKva,
@@ -120,6 +121,13 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     clandestinoAreaM2,
     clandestinoClients: totalClandestinoClients
   });
+  const accumulatedDemandKva = calculateAccumulatedDemandKva({
+    projectType,
+    clandestinoAreaM2,
+    accumulatedClients: totalClandestinoClients,
+    downstreamAccumulatedKva: 0,
+    totalTrechoKva: summary.transformerDemandKw
+  });
 
   return (
     <div className="space-y-4 rounded-2xl border border-white/10 bg-slate-900/40 p-4">
@@ -142,6 +150,12 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         {projectType === 'clandestino'
           ? `Demanda por ponto (regra clandestino): ${pointDemandKva.toFixed(2)} kVA`
           : `Demanda por ponto (leituras de trafo): ${pointDemandKva.toFixed(2)} kW`}
+      </div>
+
+      <div className="rounded-lg border border-cyan-500/20 bg-cyan-950/20 p-2 text-[10px] text-cyan-200">
+        {projectType === 'clandestino'
+          ? `ACUMULADA (GERAL!I, clandestino): ${accumulatedDemandKva.toFixed(2)} kVA`
+          : `ACUMULADA (GERAL!I, normal): ${accumulatedDemandKva.toFixed(2)} kW`}
       </div>
 
       {projectType === 'clandestino' && (

@@ -86,6 +86,14 @@ interface CalculatePointDemandKvaInput {
   clandestinoClients: number;
 }
 
+interface CalculateAccumulatedDemandKvaInput {
+  projectType: BtProjectType;
+  clandestinoAreaM2: number;
+  accumulatedClients: number;
+  downstreamAccumulatedKva: number;
+  totalTrechoKva: number;
+}
+
 export const calculatePointDemandKva = ({
   projectType,
   transformerDemandKw,
@@ -97,6 +105,21 @@ export const calculatePointDemandKva = ({
   }
 
   return Number(transformerDemandKw.toFixed(2));
+};
+
+export const calculateAccumulatedDemandKva = ({
+  projectType,
+  clandestinoAreaM2,
+  accumulatedClients,
+  downstreamAccumulatedKva,
+  totalTrechoKva
+}: CalculateAccumulatedDemandKvaInput): number => {
+  if (projectType === 'clandestino') {
+    return calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, accumulatedClients);
+  }
+
+  // Mirrors GERAL[ACUMULADA] normal branch: acumulada dos filhos + total do trecho.
+  return Number((downstreamAccumulatedKva + totalTrechoKva).toFixed(2));
 };
 
 export const calculateClandestinoDemandKw = (areaM2: number): number => {
