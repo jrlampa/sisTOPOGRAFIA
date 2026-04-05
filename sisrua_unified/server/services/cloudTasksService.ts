@@ -112,6 +112,7 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
             layers: payload.layers as Record<string, boolean>,
             projection: payload.projection,
             contourRenderMode: payload.contourRenderMode,
+            btContext: payload.btContext ?? null,
             outputFile: payload.outputFile
         }).then(() => {
             const btContextSidecarPath = persistBtContextSidecar(payload.outputFile, payload.btContext);

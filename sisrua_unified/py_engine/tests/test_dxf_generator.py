@@ -89,3 +89,32 @@ def test_legend_and_title_block(dxf_gen):
     layout_text = [e.dxf.text for e in layout if e.dxftype() in ('TEXT', 'MTEXT')]
     assert any("TEST CLIENT" in t for t in layout_text)
     assert any("TEST PROJECT" in t for t in layout_text)
+
+def test_bt_summary_panel_is_generated(dxf_gen):
+    """Test if BT summary data is rendered into model space when BT context is provided."""
+    data = {'geometry': [Point(0,0)], 'building': [True]}
+    gdf = gpd.GeoDataFrame(data)
+    dxf_gen.add_features(gdf)
+
+    dxf_gen.bt_context = {
+        'projectType': 'ramais',
+        'btNetworkScenario': 'asis',
+        'totalPoles': 4,
+        'totalEdges': 3,
+        'totalTransformers': 1,
+        'verifiedPoles': 2,
+        'verifiedEdges': 1,
+        'verifiedTransformers': 1,
+        'criticalPole': {
+            'poleId': 'P3',
+            'accumulatedClients': 12,
+            'accumulatedDemandKva': 18.75
+        }
+    }
+
+    dxf_gen.save()
+
+    msp_text = [e.dxf.text for e in dxf_gen.msp if e.dxftype() in ('TEXT', 'MTEXT')]
+    assert any('QUADRO BT' in t for t in msp_text)
+    assert any('PONTO CRITICO: P3' in t for t in msp_text)
+    assert any('POSTES: 2/4' in t for t in msp_text)

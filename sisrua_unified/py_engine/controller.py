@@ -42,6 +42,7 @@ class OSMController:
             'client': 'CLIENTE PADRÃO',
             'project': 'EXTRACAO ESPACIAL'
         }
+        self.bt_context = {}
         self.audit_summary = {"violations": 0, "coverageScore": 0}
 
     def run(self):
@@ -84,6 +85,9 @@ class OSMController:
             dxf_gen.diff_x = 0.0
             dxf_gen.diff_y = 0.0
             dxf_gen._offset_initialized = True
+
+        dxf_gen.project_info = self.project_metadata
+        dxf_gen.bt_context = self.bt_context or {}
             
         dxf_gen.add_features(gdf) # Features set the offset ONLY if not initialized above
 

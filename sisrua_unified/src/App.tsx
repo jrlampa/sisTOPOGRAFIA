@@ -36,6 +36,27 @@ const EMPTY_BT_TOPOLOGY: BtTopology = {
 };
 const MAX_BT_EXPORT_HISTORY = 20;
 
+const downloadBlob = (content: string, type: string, filename: string) => {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+};
+
+const escapeCsvCell = (value: string | number) => {
+  const normalized = String(value).replace(/\r?\n/g, ' ');
+  if (normalized.includes(';') || normalized.includes('"')) {
+    return `"${normalized.replace(/"/g, '""')}"`;
+  }
+
+  return normalized;
+};
+
 const distanceMeters = (a: GeoLocation, b: GeoLocation) => {
   const earthRadius = 6371000;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
@@ -164,6 +185,12 @@ function App() {
       const poleId = typeof criticalPole.poleId === 'string' ? criticalPole.poleId : '';
       const accumulatedClients = typeof criticalPole.accumulatedClients === 'number' ? criticalPole.accumulatedClients : 0;
       const accumulatedDemandKva = typeof criticalPole.accumulatedDemandKva === 'number' ? criticalPole.accumulatedDemandKva : 0;
+      const verifiedPoles = typeof btContext.verifiedPoles === 'number' ? btContext.verifiedPoles : 0;
+      const totalPoles = typeof btContext.totalPoles === 'number' ? btContext.totalPoles : 0;
+      const verifiedEdges = typeof btContext.verifiedEdges === 'number' ? btContext.verifiedEdges : 0;
+      const totalEdges = typeof btContext.totalEdges === 'number' ? btContext.totalEdges : 0;
+      const verifiedTransformers = typeof btContext.verifiedTransformers === 'number' ? btContext.verifiedTransformers : 0;
+      const totalTransformers = typeof btContext.totalTransformers === 'number' ? btContext.totalTransformers : 0;
 
       if (!poleId) {
         return;
@@ -173,7 +200,13 @@ function App() {
         btContextUrl,
         criticalPoleId: poleId,
         criticalAccumulatedClients: accumulatedClients,
-        criticalAccumulatedDemandKva: accumulatedDemandKva
+        criticalAccumulatedDemandKva: accumulatedDemandKva,
+        verifiedPoles,
+        totalPoles,
+        verifiedEdges,
+        totalEdges,
+        verifiedTransformers,
+        totalTransformers
       };
 
       const historyEntry: BtExportHistoryEntry = {
@@ -225,7 +258,7 @@ function App() {
     showToast('Histórico BT limpo.', 'info');
   };
 
-  const exportBtHistory = () => {
+  const exportBtHistoryJson = () => {
     if (btExportHistory.length === 0) {
       showToast('Não há histórico BT para exportar.', 'info');
       return;
@@ -240,16 +273,56 @@ function App() {
       entries: btExportHistory
     };
 
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `${settings.projectMetadata.projectName}_bt_history.json`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
-    showToast('Histórico BT exportado.', 'success');
+    downloadBlob(
+      JSON.stringify(payload, null, 2),
+      'application/json',
+      `${settings.projectMetadata.projectName}_bt_history.json`
+    );
+    showToast('Histórico BT exportado em JSON.', 'success');
+  };
+
+  const exportBtHistoryCsv = () => {
+    if (btExportHistory.length === 0) {
+      showToast('Não há histórico BT para exportar.', 'info');
+      return;
+    }
+
+    const header = [
+      'exportedAt',
+      'projectType',
+      'criticalPoleId',
+      'criticalAccumulatedClients',
+      'criticalAccumulatedDemandKva',
+      'btContextUrl',
+      'verifiedPoles',
+      'totalPoles',
+      'verifiedEdges',
+      'totalEdges',
+      'verifiedTransformers',
+      'totalTransformers'
+    ];
+
+    const rows = btExportHistory.map((entry) => [
+      entry.exportedAt,
+      entry.projectType,
+      entry.criticalPoleId,
+      entry.criticalAccumulatedClients,
+      entry.criticalAccumulatedDemandKva.toFixed(2),
+      entry.btContextUrl,
+      entry.verifiedPoles ?? 0,
+      entry.totalPoles ?? 0,
+      entry.verifiedEdges ?? 0,
+      entry.totalEdges ?? 0,
+      entry.verifiedTransformers ?? 0,
+      entry.totalTransformers ?? 0
+    ]);
+
+    const csv = [header, ...rows]
+      .map((row) => row.map((value) => escapeCsvCell(value)).join(';'))
+      .join('\n');
+
+    downloadBlob(csv, 'text/csv;charset=utf-8', `${settings.projectMetadata.projectName}_bt_history.csv`);
+    showToast('Histórico BT exportado em CSV.', 'success');
   };
 
   const validateBtBeforeExport = (): boolean => {
@@ -585,10 +658,16 @@ function App() {
             <div className="font-semibold uppercase tracking-wide text-cyan-300">Resumo BT Exportado</div>
             <div className="flex items-center gap-2">
               <button
-                onClick={exportBtHistory}
+                onClick={exportBtHistoryJson}
                 className="inline-flex items-center gap-1 rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/10"
               >
-                <Download size={10} /> Exportar
+                <Download size={10} /> JSON
+              </button>
+              <button
+                onClick={exportBtHistoryCsv}
+                className="inline-flex items-center gap-1 rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/10"
+              >
+                <Download size={10} /> CSV
               </button>
               <button
                 onClick={clearBtExportHistory}
@@ -604,6 +683,11 @@ function App() {
               <div className="mt-1">
                 Ponto crítico: {latestBtExport.criticalPoleId} | CLT acum.: {latestBtExport.criticalAccumulatedClients} | Demanda acum.: {latestBtExport.criticalAccumulatedDemandKva.toFixed(2)}
               </div>
+              {((latestBtExport.totalPoles ?? 0) > 0 || (latestBtExport.totalEdges ?? 0) > 0 || (latestBtExport.totalTransformers ?? 0) > 0) && (
+                <div className="mt-1 text-cyan-100/90">
+                  Verificação AS-IS: Postes {latestBtExport.verifiedPoles ?? 0}/{latestBtExport.totalPoles ?? 0} | Arestas {latestBtExport.verifiedEdges ?? 0}/{latestBtExport.totalEdges ?? 0} | Trafos {latestBtExport.verifiedTransformers ?? 0}/{latestBtExport.totalTransformers ?? 0}
+                </div>
+              )}
               <a
                 href={latestBtExport.btContextUrl}
                 target="_blank"
@@ -621,6 +705,9 @@ function App() {
               {btExportHistory.slice(0, 5).map((entry, index) => (
                 <div key={`${entry.exportedAt}-${entry.criticalPoleId}-${index}`} className="text-[11px] text-cyan-100/90">
                   {new Date(entry.exportedAt).toLocaleString('pt-BR')} | {entry.projectType.toUpperCase()} | {entry.criticalPoleId} | {entry.criticalAccumulatedDemandKva.toFixed(2)}
+                  {((entry.totalPoles ?? 0) > 0 || (entry.totalEdges ?? 0) > 0 || (entry.totalTransformers ?? 0) > 0)
+                    ? ` | V ${entry.verifiedPoles ?? 0}/${entry.totalPoles ?? 0} P, ${entry.verifiedEdges ?? 0}/${entry.totalEdges ?? 0} A, ${entry.verifiedTransformers ?? 0}/${entry.totalTransformers ?? 0} T`
+                    : ''}
                 </div>
               ))}
             </div>

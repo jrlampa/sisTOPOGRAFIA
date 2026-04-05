@@ -37,6 +37,7 @@ interface DxfOptions {
     polygon?: string;
     projection?: string;
     contourRenderMode?: 'spline' | 'polyline';
+    btContext?: Record<string, unknown> | null;
 }
 
 export const generateDxf = (options: DxfOptions): Promise<string> => {
@@ -94,6 +95,10 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
 
         if (options.layers) {
             args.push('--layers', JSON.stringify(options.layers));
+        }
+
+        if (options.btContext) {
+            args.push('--bt_context', JSON.stringify(options.btContext));
         }
 
         logger.info('Spawning Python process for DXF generation', {

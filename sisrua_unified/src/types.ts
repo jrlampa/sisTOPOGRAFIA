@@ -164,6 +164,12 @@ export interface BtExportSummary {
   criticalPoleId: string;
   criticalAccumulatedClients: number;
   criticalAccumulatedDemandKva: number;
+  verifiedPoles?: number;
+  totalPoles?: number;
+  verifiedEdges?: number;
+  totalEdges?: number;
+  verifiedTransformers?: number;
+  totalTransformers?: number;
 }
 
 export interface BtExportHistoryEntry extends BtExportSummary {
