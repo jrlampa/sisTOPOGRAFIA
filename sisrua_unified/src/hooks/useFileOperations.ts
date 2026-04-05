@@ -89,6 +89,9 @@ export function useFileOperations({
         if (loadedState.btExportSummary === undefined) {
           loadedState.btExportSummary = null;
         }
+        if (!Array.isArray(loadedState.btExportHistory)) {
+          loadedState.btExportHistory = [];
+        }
 
         setAppState(loadedState, true);
         onSuccess('Project Loaded');

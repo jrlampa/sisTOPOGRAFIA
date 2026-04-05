@@ -162,6 +162,11 @@ export interface BtExportSummary {
   criticalAccumulatedDemandKva: number;
 }
 
+export interface BtExportHistoryEntry extends BtExportSummary {
+  exportedAt: string;
+  projectType: BtProjectType;
+}
+
 export interface AppSettings {
   enableAI: boolean;
   simplificationLevel: SimplificationLevel;
@@ -189,4 +194,5 @@ export interface GlobalState {
   settings: AppSettings;
   btTopology?: BtTopology;
   btExportSummary?: BtExportSummary | null;
+  btExportHistory?: BtExportHistoryEntry[];
 }

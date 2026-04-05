@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Map as MapIcon, Layers, Search, Loader2, AlertCircle, Settings, Mountain, TrendingUp } from 'lucide-react';
-import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary } from './types';
+import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary, BtExportHistoryEntry } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
 import MapSelector from './components/MapSelector';
 import Dashboard from './components/Dashboard';
@@ -34,6 +34,7 @@ const EMPTY_BT_TOPOLOGY: BtTopology = {
   transformers: [],
   edges: []
 };
+const MAX_BT_EXPORT_HISTORY = 20;
 
 const distanceMeters = (a: GeoLocation, b: GeoLocation) => {
   const earthRadius = 6371000;
@@ -101,13 +102,15 @@ function App() {
       }
     },
     btTopology: EMPTY_BT_TOPOLOGY,
-    btExportSummary: null
+    btExportSummary: null,
+    btExportHistory: []
   });
 
   // Derived state
   const { center, radius, selectionMode, polygon, measurePath, settings } = appState;
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
   const btExportSummary = appState.btExportSummary ?? null;
+  const btExportHistory = appState.btExportHistory ?? [];
   const isDark = settings.theme === 'dark';
   const btEditorMode: BtEditorMode = settings.btEditorMode ?? 'none';
   const [pendingBtEdgeStartPoleId, setPendingBtEdgeStartPoleId] = useState<string | null>(null);
@@ -170,7 +173,15 @@ function App() {
         criticalAccumulatedDemandKva: accumulatedDemandKva
       };
 
-      setAppState({ ...appState, btExportSummary: nextBtExportSummary }, false);
+      const historyEntry: BtExportHistoryEntry = {
+        ...nextBtExportSummary,
+        exportedAt: new Date().toISOString(),
+        projectType: settings.projectType ?? 'ramais'
+      };
+
+      const nextHistory = [historyEntry, ...(appState.btExportHistory ?? [])].slice(0, MAX_BT_EXPORT_HISTORY);
+
+      setAppState({ ...appState, btExportSummary: nextBtExportSummary, btExportHistory: nextHistory }, false);
       showToast(`Resumo BT: ponto crítico ${poleId} (${accumulatedDemandKva.toFixed(2)}).`, 'info');
     }
   });
@@ -538,6 +549,17 @@ function App() {
           >
             Abrir metadata BT (JSON)
           </a>
+
+          {btExportHistory.length > 0 && (
+            <div className="mt-3 border-t border-cyan-500/20 pt-2">
+              <div className="mb-1 font-semibold uppercase tracking-wide text-cyan-300">Histórico (últimas 5)</div>
+              {btExportHistory.slice(0, 5).map((entry, index) => (
+                <div key={`${entry.exportedAt}-${entry.criticalPoleId}-${index}`} className="text-[11px] text-cyan-100/90">
+                  {new Date(entry.exportedAt).toLocaleString('pt-BR')} | {entry.projectType.toUpperCase()} | {entry.criticalPoleId} | {entry.criticalAccumulatedDemandKva.toFixed(2)}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
