@@ -23,7 +23,7 @@ import { useElevationProfile } from './hooks/useElevationProfile';
 import {
   getClandestinoAreaRange,
   getClandestinoClientsRange,
-  getClandestinoDemandKvaByClients,
+  getClandestinoDiversificationFactorByClients,
   getClandestinoKvaByArea
 } from './utils/btCalculations';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -203,7 +203,7 @@ function App() {
         0
       );
 
-      if (getClandestinoDemandKvaByClients(totalClandestinoClients) === null) {
+      if (getClandestinoDiversificationFactorByClients(totalClandestinoClients) === null) {
         showToast(
           `Total de clientes/ramais fora da tabela (${clientsRange.min}-${clientsRange.max}). Atual: ${totalClandestinoClients}.`,
           'error'

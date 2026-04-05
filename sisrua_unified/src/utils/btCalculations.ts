@@ -59,13 +59,24 @@ export const getClandestinoKvaByArea = (areaM2: number): number | null => {
   return CLANDESTINO_AREA_TO_KVA[areaKey] ?? null;
 };
 
-export const getClandestinoDemandKvaByClients = (clients: number): number | null => {
+export const getClandestinoDiversificationFactorByClients = (clients: number): number | null => {
   const clientsKey = parseInteger(clients);
   if (clientsKey === null) {
     return null;
   }
 
   return CLANDESTINO_CLIENT_TO_DIVERSIF_FACTOR[clientsKey] ?? null;
+};
+
+export const calculateClandestinoDemandKvaByAreaAndClients = (areaM2: number, clients: number): number => {
+  const baseKva = getClandestinoKvaByArea(areaM2);
+  const diversificationFactor = getClandestinoDiversificationFactorByClients(clients);
+
+  if (baseKva === null || diversificationFactor === null) {
+    return 0;
+  }
+
+  return Number((baseKva * diversificationFactor).toFixed(2));
 };
 
 export const calculateClandestinoDemandKw = (areaM2: number): number => {

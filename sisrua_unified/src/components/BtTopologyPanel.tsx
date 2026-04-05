@@ -3,9 +3,11 @@ import { Activity, Plus, Trash2, Sigma } from 'lucide-react';
 import { BtTopology, BtTransformerReading } from '../types';
 import {
   calculateBtSummary,
+  calculateClandestinoDemandKvaByAreaAndClients,
   calculateTransformerDemandKw,
   calculateTransformerMonthlyBill,
   calculateClandestinoDemandKw,
+  getClandestinoDiversificationFactorByClients,
   getClandestinoAreaRange,
   getClandestinoKvaByArea
 } from '../utils/btCalculations';
@@ -101,6 +103,16 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   const clandestinoDemandKva = projectType === 'clandestino'
     ? getClandestinoKvaByArea(clandestinoAreaM2)
     : null;
+  const totalClandestinoClients = btTopology.edges.reduce(
+    (acc, edge) => acc + edge.conductors.reduce((sum, ramal) => sum + ramal.quantity, 0),
+    0
+  );
+  const clandestinoDiversificationFactor = projectType === 'clandestino'
+    ? getClandestinoDiversificationFactorByClients(totalClandestinoClients)
+    : null;
+  const clandestinoFinalDemandKva = projectType === 'clandestino'
+    ? calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, totalClandestinoClients)
+    : 0;
 
   return (
     <div className="space-y-4 rounded-2xl border border-white/10 bg-slate-900/40 p-4">
@@ -127,7 +139,12 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         <div className="rounded-lg border border-amber-500/20 bg-amber-950/20 p-2 text-[10px] text-amber-200">
           {clandestinoDemandKva === null
             ? `Área clandestina inválida (${clandestinoAreaM2} m²). Faixa da planilha: ${clandestinoAreaRange.min}-${clandestinoAreaRange.max} m² (inteiros).`
-            : `Carga clandestinos (${clandestinoAreaM2} m²): ${clandestinoDemandKw.toFixed(2)} kVA`}
+            : `Carga base clandestinos (${clandestinoAreaM2} m²): ${clandestinoDemandKw.toFixed(2)} kVA`}
+          {clandestinoDemandKva !== null && (
+            <div className="mt-1 text-amber-100">
+              Clientes: {totalClandestinoClients} | Fator: {clandestinoDiversificationFactor?.toFixed(2) ?? 'inválido'} | Demanda final: {clandestinoFinalDemandKva.toFixed(2)} kVA
+            </div>
+          )}
         </div>
       )}
 
