@@ -666,6 +666,13 @@ class DXFGenerator:
         verified_edges = int(self.bt_context.get('verifiedEdges', 0) or 0)
         verified_transformers = int(self.bt_context.get('verifiedTransformers', 0) or 0)
 
+        raw_ranking = self.bt_context.get('accumulatedByPole', [])
+        ranking_entries = []
+        if isinstance(raw_ranking, list):
+            for entry in raw_ranking[:5]:
+                if isinstance(entry, dict):
+                    ranking_entries.append(entry)
+
         lines = [
             'QUADRO BT',
             f'CENARIO: {scenario}',
@@ -681,8 +688,10 @@ class DXFGenerator:
         if project_type == 'CLANDESTINO':
             lines.insert(3, f'AREA CLANDESTINA: {clandestino_area} m2')
 
+        # Ranking section adds: separator gap (6) + section header (6) + col header (5) + each entry (5)
+        ranking_extra_height = (6 + 6 + 5 + len(ranking_entries) * 5) if ranking_entries else 0
         panel_width = 100
-        panel_height = 8 + (len(lines) * 6)
+        panel_height = 8 + (len(lines) * 6) + ranking_extra_height
         top_y = start_y
         bottom_y = start_y - panel_height
 
@@ -704,6 +713,51 @@ class DXFGenerator:
             self.msp.add_text(line, dxfattribs={'height': text_height, 'layer': 'QUADRO', 'style': 'PRO_STYLE'}).set_placement(
                 (start_x + 3, text_y)
             )
+
+        if ranking_entries:
+            body_bottom_y = top_y - 5 - ((len(lines) - 1) * 6)
+            separator_y = body_bottom_y - 6
+            self.msp.add_line(
+                (start_x, separator_y),
+                (start_x + panel_width, separator_y),
+                dxfattribs={'layer': 'QUADRO', 'color': 7}
+            )
+
+            section_header_y = separator_y - 4
+            self.msp.add_text(
+                'RANKING DEMANDA (kVA)',
+                dxfattribs={'height': 2.5, 'layer': 'QUADRO', 'style': 'PRO_STYLE'}
+            ).set_placement((start_x + 3, section_header_y))
+
+            col_header_y = section_header_y - 6
+            self.msp.add_text(
+                'POSTE',
+                dxfattribs={'height': 2.0, 'layer': 'QUADRO', 'style': 'PRO_STYLE'}
+            ).set_placement((start_x + 3, col_header_y))
+            self.msp.add_text(
+                'CLT',
+                dxfattribs={'height': 2.0, 'layer': 'QUADRO', 'style': 'PRO_STYLE'}
+            ).set_placement((start_x + 48, col_header_y))
+            self.msp.add_text(
+                'DEM(kVA)',
+                dxfattribs={'height': 2.0, 'layer': 'QUADRO', 'style': 'PRO_STYLE'}
+            ).set_placement((start_x + 68, col_header_y))
+
+            for rank_idx, entry in enumerate(ranking_entries):
+                entry_y = col_header_y - 5 - (rank_idx * 5)
+                pole_label = f'#{rank_idx + 1} {str(entry.get("poleId", "?"))}'
+                self.msp.add_text(
+                    pole_label,
+                    dxfattribs={'height': 2.0, 'layer': 'QUADRO', 'style': 'PRO_STYLE'}
+                ).set_placement((start_x + 3, entry_y))
+                self.msp.add_text(
+                    str(int(entry.get('accumulatedClients', 0))),
+                    dxfattribs={'height': 2.0, 'layer': 'QUADRO', 'style': 'PRO_STYLE'}
+                ).set_placement((start_x + 48, entry_y))
+                self.msp.add_text(
+                    f'{float(entry.get("accumulatedDemandKva", 0.0)):.2f}',
+                    dxfattribs={'height': 2.0, 'layer': 'QUADRO', 'style': 'PRO_STYLE'}
+                ).set_placement((start_x + 68, entry_y))
 
     def add_title_block(self, client="N/A", project="Projeto Urbanístico", designer="sisRUA AI"):
         """Creates a professional A3 Title Block in Paper Space"""

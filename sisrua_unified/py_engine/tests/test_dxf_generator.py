@@ -109,7 +109,12 @@ def test_bt_summary_panel_is_generated(dxf_gen):
             'poleId': 'P3',
             'accumulatedClients': 12,
             'accumulatedDemandKva': 18.75
-        }
+        },
+        'accumulatedByPole': [
+            {'poleId': 'P3', 'accumulatedClients': 12, 'accumulatedDemandKva': 18.75, 'localClients': 3, 'localTrechoDemandKva': 4.5},
+            {'poleId': 'P1', 'accumulatedClients': 8,  'accumulatedDemandKva': 12.00, 'localClients': 2, 'localTrechoDemandKva': 3.0},
+            {'poleId': 'P2', 'accumulatedClients': 4,  'accumulatedDemandKva': 6.25,  'localClients': 4, 'localTrechoDemandKva': 6.25},
+        ]
     }
 
     dxf_gen.save()
@@ -118,3 +123,7 @@ def test_bt_summary_panel_is_generated(dxf_gen):
     assert any('QUADRO BT' in t for t in msp_text)
     assert any('PONTO CRITICO: P3' in t for t in msp_text)
     assert any('POSTES: 2/4' in t for t in msp_text)
+    assert any('RANKING DEMANDA (kVA)' in t for t in msp_text)
+    assert any('#1 P3' in t for t in msp_text)
+    assert any('#2 P1' in t for t in msp_text)
+    assert any('18.75' in t for t in msp_text)
