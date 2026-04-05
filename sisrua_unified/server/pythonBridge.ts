@@ -36,6 +36,7 @@ interface DxfOptions {
     mode?: string;
     polygon?: string;
     projection?: string;
+    contourRenderMode?: 'spline' | 'polyline';
 }
 
 export const generateDxf = (options: DxfOptions): Promise<string> => {
@@ -87,6 +88,7 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
             '--selection_mode', String(options.mode || 'circle'),
             '--polygon', String(options.polygon || '[]'),
             '--projection', String(options.projection || 'local'),
+            '--contour_style', String(options.contourRenderMode || 'spline'),
             '--no-preview'
         );
 

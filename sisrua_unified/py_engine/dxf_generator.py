@@ -521,7 +521,7 @@ class DXFGenerator:
                     Logger.error(f"Error setting mesh vertex at ({r}, {c}): {e}")
                     mesh.set_mesh_vertex((r, c), (0.0, 0.0, 0.0))
 
-    def add_contour_lines(self, contour_lines):
+    def add_contour_lines(self, contour_lines, use_spline=True):
         """
         Draws contour lines as smooth SPLINE entities when possible.
         Falls back to 3D polylines for compatibility.
@@ -537,7 +537,7 @@ class DXFGenerator:
 
             # Use spline for smoother contour curves (more cartographically faithful).
             # Fallback to polyline3d if spline creation fails for any segment.
-            if len(valid_line) >= 3:
+            if use_spline and len(valid_line) >= 3:
                 try:
                     self.msp.add_spline(
                         fit_points=valid_line,

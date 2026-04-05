@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { X, Cpu, Zap, Layers, TreeDeciduous, Car, Building2, Mountain, LampFloor, Globe, Circle, Hexagon, Square, Eraser, Download, FileJson, Loader2, Moon, Sun, Map as MapIcon, Satellite, Type, Briefcase, Activity, Upload, Save, FolderOpen, PencilRuler, ArrowLeftRight, Grid3X3, AlertTriangle } from 'lucide-react';
-import { AppSettings, LayerConfig, ProjectionType, SelectionMode, GeoLocation, MapProvider, SimplificationLevel, ProjectMetadata } from '../types';
+import { AppSettings, LayerConfig, ProjectionType, SelectionMode, GeoLocation, MapProvider, SimplificationLevel, ProjectMetadata, ContourRenderMode } from '../types';
 import { MAX_RADIUS, MIN_RADIUS } from '../constants';
 
 interface SettingsModalProps {
@@ -56,6 +56,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const setProjection = (proj: ProjectionType) => onUpdateSettings({ ...settings, projection: proj });
   const setMapProvider = (provider: MapProvider) => onUpdateSettings({ ...settings, mapProvider: provider });
+  const setContourRenderMode = (mode: ContourRenderMode) => onUpdateSettings({ ...settings, contourRenderMode: mode });
 
   const toggleLayer = (key: keyof LayerConfig) => {
     onUpdateSettings({
@@ -364,6 +365,30 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         onChange={(e) => onUpdateSettings({ ...settings, contourInterval: parseInt(e.target.value) })}
                         className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500"
                       />
+
+                      <div className="mt-3">
+                        <div className="text-xs text-slate-400 mb-2">Tipo de Curva</div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setContourRenderMode('spline')}
+                            className={`flex-1 py-1.5 text-xs font-medium rounded border transition-all ${settings.contourRenderMode === 'spline'
+                              ? 'bg-pink-600 border-pink-500 text-white'
+                              : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                              }`}
+                          >
+                            Curva Suave (Spline)
+                          </button>
+                          <button
+                            onClick={() => setContourRenderMode('polyline')}
+                            className={`flex-1 py-1.5 text-xs font-medium rounded border transition-all ${settings.contourRenderMode === 'polyline'
+                              ? 'bg-pink-600 border-pink-500 text-white'
+                              : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                              }`}
+                          >
+                            Polilinha (Compatível)
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
 

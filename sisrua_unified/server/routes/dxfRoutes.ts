@@ -34,7 +34,8 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
         }
 
         const { lat, lon, radius, mode } = validation.data;
-        const { polygon, layers, projection } = req.body;
+        const { polygon, layers, projection, contourRenderMode } = req.body;
+        const resolvedContourRenderMode = contourRenderMode === 'polyline' ? 'polyline' : 'spline';
         const resolvedMode = mode || 'circle';
         const cacheKey = createCacheKey({
             lat,
@@ -74,7 +75,9 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
 
         logger.info('Queueing DXF generation', {
             lat, lon, radius, mode: resolvedMode,
-            projection: projection || 'local', cacheKey
+            projection: projection || 'local',
+            contourRenderMode: resolvedContourRenderMode,
+            cacheKey
         });
 
         const { taskId, alreadyCompleted } = await createDxfTask({
@@ -83,6 +86,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
             polygon: typeof polygon === 'string' ? polygon : JSON.stringify(polygon || []),
             layers: layers || {},
             projection: projection || 'local',
+            contourRenderMode: resolvedContourRenderMode,
             outputFile, filename, cacheKey, downloadUrl
         });
 

@@ -15,7 +15,19 @@ from utils.logger import Logger
 from utils.geo import sirgas2000_utm_epsg
 
 class OSMController:
-    def __init__(self, lat, lon, radius, output_file, layers_config, crs, export_format='dxf', selection_mode='circle', polygon=None):
+    def __init__(
+        self,
+        lat,
+        lon,
+        radius,
+        output_file,
+        layers_config,
+        crs,
+        export_format='dxf',
+        selection_mode='circle',
+        polygon=None,
+        contour_style='spline'
+    ):
         self.lat = lat
         self.lon = lon
         self.radius = radius
@@ -24,7 +36,8 @@ class OSMController:
         self.crs = crs
         self.export_format = export_format.lower()
         self.selection_mode = selection_mode
-        self.polygon = polygon
+        self.polygon = polygon or []
+        self.contour_style = contour_style if contour_style in ('spline', 'polyline') else 'spline'
         self.project_metadata = {
             'client': 'CLIENTE PADRÃO',
             'project': 'EXTRACAO ESPACIAL'
@@ -181,7 +194,7 @@ class OSMController:
             interval = 1.0 if not self.layers_config.get('high_res_contours') else 0.5
             contours = generate_contours(grid_rows, interval=interval)
             if contours:
-                dxf_gen.add_contour_lines(contours)
+                dxf_gen.add_contour_lines(contours, use_spline=self.contour_style != 'polyline')
                 Logger.info(f"Integrated {len(contours)} contour lines.")
         except Exception as ce:
             Logger.error(f"Contour math error: {ce}")

@@ -62,6 +62,7 @@ describe('cloudTasksService', () => {
       polygon: '[]',
       layers: {},
       projection: 'local',
+      contourRenderMode: 'spline',
       outputFile: '/tmp/file.dxf',
       filename: 'file.dxf',
       cacheKey: 'cache-key',
