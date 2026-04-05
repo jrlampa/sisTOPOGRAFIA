@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { X, Cpu, Zap, Layers, TreeDeciduous, Car, Building2, Mountain, LampFloor, Globe, Circle, Hexagon, Square, Eraser, Download, FileJson, Loader2, Moon, Sun, Map as MapIcon, Satellite, Type, Briefcase, Activity, Upload, Save, FolderOpen, PencilRuler, ArrowLeftRight, Grid3X3, AlertTriangle } from 'lucide-react';
-import { AppSettings, LayerConfig, ProjectionType, SelectionMode, GeoLocation, MapProvider, SimplificationLevel, ProjectMetadata, ContourRenderMode } from '../types';
+import { AppSettings, LayerConfig, ProjectionType, SelectionMode, GeoLocation, MapProvider, SimplificationLevel, ProjectMetadata, ContourRenderMode, BtProjectType, BtEditorMode } from '../types';
 import { MAX_RADIUS, MIN_RADIUS } from '../constants';
 
 interface SettingsModalProps {
@@ -57,6 +57,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const setProjection = (proj: ProjectionType) => onUpdateSettings({ ...settings, projection: proj });
   const setMapProvider = (provider: MapProvider) => onUpdateSettings({ ...settings, mapProvider: provider });
   const setContourRenderMode = (mode: ContourRenderMode) => onUpdateSettings({ ...settings, contourRenderMode: mode });
+  const setBtProjectType = (projectType: BtProjectType) => onUpdateSettings({ ...settings, projectType });
+  const setBtEditorMode = (btEditorMode: BtEditorMode) => onUpdateSettings({ ...settings, btEditorMode });
+  const setClandestinoAreaM2 = (clandestinoAreaM2: number) => onUpdateSettings({ ...settings, clandestinoAreaM2 });
 
   const toggleLayer = (key: keyof LayerConfig) => {
     onUpdateSettings({
@@ -218,6 +221,74 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         onChange={(e) => updateMetadata('date', e.target.value)}
                         className="w-full glass-panel border border-white/30 rounded p-2 text-sm text-slate-800 focus:border-blue-400 outline-none"
                       />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="glass-panel p-4 rounded-lg border border-white/20">
+                <div className="flex items-center gap-2 mb-4" style={{ color: 'var(--enterprise-blue)' }}>
+                  <Activity size={18} />
+                  <h3 className="font-bold text-sm uppercase">Topologia Rede BT</h3>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-slate-600 block mb-2">Tipo de Projeto</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { value: 'ramais', label: 'RAMAIS' },
+                        { value: 'geral', label: 'GERAL' },
+                        { value: 'clandestino', label: 'CLANDEST.' }
+                      ] as { value: BtProjectType; label: string }[]).map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setBtProjectType(option.value)}
+                          className={`py-2 text-xs font-semibold rounded border transition-all ${(settings.projectType ?? 'ramais') === option.value
+                            ? 'bg-blue-600 border-blue-500 text-white'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                            }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {(settings.projectType ?? 'ramais') === 'clandestino' && (
+                    <div>
+                      <label className="text-xs text-slate-600 block mb-1">Área de Clandestinos (m²)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={settings.clandestinoAreaM2 ?? 0}
+                        onChange={(e) => setClandestinoAreaM2(Number(e.target.value) || 0)}
+                        className="w-full glass-panel border border-white/30 rounded p-2 text-sm text-slate-800 focus:border-blue-400 outline-none"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">Campo obrigatório para o fluxo de clandestinos.</p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-xs text-slate-600 block mb-2">Modo de Edição no Mapa</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        { value: 'none', label: 'Navegar' },
+                        { value: 'add-pole', label: 'Inserir Poste' },
+                        { value: 'add-edge', label: 'Inserir Aresta' },
+                        { value: 'add-transformer', label: 'Inserir Trafo' }
+                      ] as { value: BtEditorMode; label: string }[]).map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setBtEditorMode(option.value)}
+                          className={`py-2 text-xs font-semibold rounded border transition-all ${(settings.btEditorMode ?? 'none') === option.value
+                            ? 'bg-emerald-600 border-emerald-500 text-white'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                            }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>

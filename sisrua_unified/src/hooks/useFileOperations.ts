@@ -67,6 +67,25 @@ export function useFileOperations({
         if (!loadedState.settings.contourRenderMode) {
           loadedState.settings.contourRenderMode = 'spline';
         }
+        if (!loadedState.settings.projectType) {
+          loadedState.settings.projectType = 'ramais';
+        }
+        if (!loadedState.settings.btEditorMode) {
+          loadedState.settings.btEditorMode = 'none';
+        }
+        if (typeof loadedState.settings.clandestinoAreaM2 !== 'number') {
+          loadedState.settings.clandestinoAreaM2 = 0;
+        }
+        if (typeof loadedState.settings.layers.btNetwork !== 'boolean') {
+          loadedState.settings.layers.btNetwork = true;
+        }
+        if (!loadedState.btTopology) {
+          loadedState.btTopology = {
+            poles: [],
+            transformers: [],
+            edges: []
+          };
+        }
 
         setAppState(loadedState, true);
         onSuccess('Project Loaded');

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Map as MapIcon, Layers, Search, Loader2, AlertCircle, Settings, Mountain, TrendingUp } from 'lucide-react';
-import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode } from './types';
+import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
 import MapSelector from './components/MapSelector';
 import Dashboard from './components/Dashboard';
@@ -10,6 +10,7 @@ import DxfLegend from './components/DxfLegend';
 import FloatingLayerPanel from './components/FloatingLayerPanel';
 import ElevationProfile from './components/ElevationProfile';
 import BatchUpload from './components/BatchUpload';
+import BtTopologyPanel from './components/BtTopologyPanel';
 import Toast, { ToastType } from './components/Toast';
 import ProgressIndicator from './components/ProgressIndicator';
 import { useUndoRedo } from './hooks/useUndoRedo';
@@ -20,6 +21,26 @@ import { useKmlImport } from './hooks/useKmlImport';
 import { useFileOperations } from './hooks/useFileOperations';
 import { useElevationProfile } from './hooks/useElevationProfile';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const EMPTY_BT_TOPOLOGY: BtTopology = {
+  poles: [],
+  transformers: [],
+  edges: []
+};
+
+const distanceMeters = (a: GeoLocation, b: GeoLocation) => {
+  const earthRadius = 6371000;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
+
+  const h =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+  return 2 * earthRadius * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+};
 
 function App() {
   // Global State with Undo/Redo
@@ -46,6 +67,9 @@ function App() {
       theme: 'dark',
       mapProvider: 'vector',
       contourInterval: 5,
+      projectType: 'ramais',
+      btEditorMode: 'none',
+      clandestinoAreaM2: 0,
       layers: {
         buildings: true,
         roads: true,
@@ -57,7 +81,8 @@ function App() {
         furniture: true,
         labels: true,
         dimensions: false,
-        grid: false
+        grid: false,
+        btNetwork: true
       },
       projectMetadata: {
         projectName: 'PROJECT OSM-01',
@@ -67,12 +92,16 @@ function App() {
         scale: 'N/A',
         revision: 'R00'
       }
-    }
+    },
+    btTopology: EMPTY_BT_TOPOLOGY
   });
 
   // Derived state
   const { center, radius, selectionMode, polygon, measurePath, settings } = appState;
+  const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
   const isDark = settings.theme === 'dark';
+  const btEditorMode: BtEditorMode = settings.btEditorMode ?? 'none';
+  const [pendingBtEdgeStartPoleId, setPendingBtEdgeStartPoleId] = useState<string | null>(null);
 
   // Core analysis engine
   const {
@@ -139,12 +168,164 @@ function App() {
     setAppState({ ...appState, settings: newSettings }, true);
   };
 
+  const updateBtTopology = (nextTopology: BtTopology) => {
+    setAppState({ ...appState, btTopology: nextTopology }, true);
+  };
+
+  const validateBtBeforeExport = (): boolean => {
+    if (!settings.layers.btNetwork) {
+      return true;
+    }
+
+    if (settings.projectType === 'clandestino' && (settings.clandestinoAreaM2 ?? 0) <= 0) {
+      showToast('Informe a área de clandestinos (m²) antes de exportar o DXF.', 'error');
+      return false;
+    }
+
+    const edgeWithoutConductors = btTopology.edges.find((edge) => edge.conductors.length === 0);
+    if (edgeWithoutConductors) {
+      showToast(`Aresta ${edgeWithoutConductors.id} sem condutores definidos.`, 'error');
+      return false;
+    }
+
+    if (settings.projectType === 'geral') {
+      const transformerWithoutReadings = btTopology.transformers.find((transformer) => transformer.readings.length === 0);
+      if (transformerWithoutReadings) {
+        showToast(`Transformador ${transformerWithoutReadings.id} sem leituras.`, 'error');
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const findNearestPole = (location: GeoLocation, maxDistanceMeters = 80): BtPoleNode | null => {
+    if (btTopology.poles.length === 0) {
+      return null;
+    }
+
+    let nearest = btTopology.poles[0];
+    let nearestDistance = distanceMeters(location, { lat: nearest.lat, lng: nearest.lng });
+
+    for (const pole of btTopology.poles.slice(1)) {
+      const poleDistance = distanceMeters(location, { lat: pole.lat, lng: pole.lng });
+      if (poleDistance < nearestDistance) {
+        nearest = pole;
+        nearestDistance = poleDistance;
+      }
+    }
+
+    return nearestDistance <= maxDistanceMeters ? nearest : null;
+  };
+
+  const handleBtMapClick = (location: GeoLocation) => {
+    if (btEditorMode === 'none') {
+      return;
+    }
+
+    if (btEditorMode === 'add-pole') {
+      const nextId = `P${btTopology.poles.length + 1}`;
+      const nextPole: BtPoleNode = {
+        id: nextId,
+        lat: location.lat,
+        lng: location.lng,
+        title: `Poste ${nextId}`
+      };
+
+      setAppState({
+        ...appState,
+        btTopology: {
+          ...btTopology,
+          poles: [...btTopology.poles, nextPole]
+        }
+      }, true);
+      showToast(`${nextPole.title} inserido`, 'success');
+      return;
+    }
+
+    if (btEditorMode === 'add-transformer') {
+      const nextId = `TR${btTopology.transformers.length + 1}`;
+      const nextTransformer: BtTransformer = {
+        id: nextId,
+        lat: location.lat,
+        lng: location.lng,
+        title: `Transformador ${nextId}`,
+        monthlyBillBrl: 0,
+        demandKw: 0,
+        readings: []
+      };
+
+      setAppState({
+        ...appState,
+        btTopology: {
+          ...btTopology,
+          transformers: [...btTopology.transformers, nextTransformer]
+        }
+      }, true);
+      showToast(`${nextTransformer.title} inserido`, 'success');
+      return;
+    }
+
+    if (btEditorMode === 'add-edge') {
+      const nearestPole = findNearestPole(location);
+      if (!nearestPole) {
+        showToast('Nenhum poste próximo (raio de captura: 80m)', 'error');
+        return;
+      }
+
+      if (!pendingBtEdgeStartPoleId) {
+        setPendingBtEdgeStartPoleId(nearestPole.id);
+        showToast(`Origem selecionada: ${nearestPole.title}`, 'info');
+        return;
+      }
+
+      if (pendingBtEdgeStartPoleId === nearestPole.id) {
+        showToast('Selecione um segundo poste para concluir a aresta', 'info');
+        return;
+      }
+
+      const fromPole = btTopology.poles.find((pole) => pole.id === pendingBtEdgeStartPoleId);
+      if (!fromPole) {
+        setPendingBtEdgeStartPoleId(null);
+        showToast('Poste de origem não encontrado', 'error');
+        return;
+      }
+
+      const edgeId = `E${btTopology.edges.length + 1}`;
+      const lengthMeters = Math.round(distanceMeters(
+        { lat: fromPole.lat, lng: fromPole.lng },
+        { lat: nearestPole.lat, lng: nearestPole.lng }
+      ));
+
+      setAppState({
+        ...appState,
+        btTopology: {
+          ...btTopology,
+          edges: [
+            ...btTopology.edges,
+            {
+              id: edgeId,
+              fromPoleId: fromPole.id,
+              toPoleId: nearestPole.id,
+              lengthMeters,
+              conductors: []
+            }
+          ]
+        }
+      }, true);
+
+      setPendingBtEdgeStartPoleId(null);
+      showToast(`Aresta ${edgeId} criada (${lengthMeters}m)`, 'success');
+    }
+  };
+
   const handleMapClick = (newCenter: GeoLocation) => {
     setAppState({ ...appState, center: newCenter }, true);
     clearData();
   };
 
   const handleSelectionModeChange = (mode: SelectionMode) => {
+    setPendingBtEdgeStartPoleId(null);
     setAppState({ ...appState, selectionMode: mode, polygon: [], measurePath: [] }, true);
   };
 
@@ -167,6 +348,8 @@ function App() {
 
   const handleDownloadDxf = async () => {
     if (!osmData) return;
+    if (!validateBtBeforeExport()) return;
+
     await downloadDxf(
       center,
       radius,
@@ -192,6 +375,7 @@ function App() {
   };
 
   const handleLoadProject = (file: File) => {
+    setPendingBtEdgeStartPoleId(null);
     loadProject(file);
   };
 
@@ -378,6 +562,56 @@ function App() {
 
           <div className="h-px bg-white/5 mx-2"></div>
 
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Editor BT</label>
+              <span className="text-[9px] text-slate-500 uppercase">{(settings.projectType ?? 'ramais').toUpperCase()}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => updateSettings({ ...settings, btEditorMode: 'none' })}
+                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'none' ? 'bg-slate-800 text-slate-100 border-white/10' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
+              >
+                NAVEGAR
+              </button>
+              <button
+                onClick={() => updateSettings({ ...settings, btEditorMode: 'add-pole' })}
+                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-pole' ? 'bg-blue-600 text-white border-blue-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
+              >
+                + POSTE
+              </button>
+              <button
+                onClick={() => {
+                  setPendingBtEdgeStartPoleId(null);
+                  updateSettings({ ...settings, btEditorMode: 'add-edge' });
+                }}
+                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-edge' ? 'bg-emerald-600 text-white border-emerald-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
+              >
+                + ARESTA
+              </button>
+              <button
+                onClick={() => updateSettings({ ...settings, btEditorMode: 'add-transformer' })}
+                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-transformer' ? 'bg-violet-600 text-white border-violet-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
+              >
+                + TRAFO
+              </button>
+            </div>
+            {settings.projectType === 'clandestino' && (
+              <div className="text-[10px] text-amber-300 bg-amber-900/20 border border-amber-500/20 rounded-lg p-2">
+                Área clandestina: {settings.clandestinoAreaM2 ?? 0} m²
+              </div>
+            )}
+          </div>
+
+          <div className="h-px bg-white/5 mx-2"></div>
+
+          <BtTopologyPanel
+            btTopology={btTopology}
+            projectType={settings.projectType ?? 'ramais'}
+            clandestinoAreaM2={settings.clandestinoAreaM2 ?? 0}
+            onTopologyChange={updateBtTopology}
+          />
+
           {/* Control Section */}
           <div className="space-y-6">
             <div className="flex flex-col gap-1.5">
@@ -541,6 +775,10 @@ function App() {
             selectionMode={selectionMode}
             polygonPoints={polygonPoints}
             onLocationChange={handleMapClick}
+            btEditorMode={btEditorMode}
+            btTopology={btTopology}
+            onBtMapClick={handleBtMapClick}
+            pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId}
             onPolygonChange={(points) => {
               const geoPoints = points.map(p => ({ lat: p[0], lng: p[1] }));
               setAppState({ ...appState, polygon: geoPoints }, true);

@@ -100,6 +100,7 @@ export interface LayerConfig {
   labels: boolean;
   dimensions: boolean;
   grid: boolean;
+  btNetwork: boolean;
 }
 
 export type ProjectionType = 'local' | 'utm';
@@ -107,6 +108,52 @@ export type AppTheme = 'light' | 'dark';
 export type MapProvider = 'vector' | 'satellite';
 export type SimplificationLevel = 'off' | 'low' | 'medium' | 'high';
 export type ContourRenderMode = 'spline' | 'polyline';
+export type BtProjectType = 'ramais' | 'geral' | 'clandestino';
+export type BtEditorMode = 'none' | 'add-pole' | 'add-transformer' | 'add-edge';
+
+export interface BtRamalEntry {
+  id: string;
+  quantity: number;
+  wireGaugeMm2: number;
+}
+
+export interface BtPoleNode {
+  id: string;
+  lat: number;
+  lng: number;
+  title: string;
+}
+
+export interface BtTransformerReading {
+  id: string;
+  kwhMonth: number;
+  unitRateBrlPerKwh: number;
+  billedBrl: number;
+}
+
+export interface BtTransformer {
+  id: string;
+  lat: number;
+  lng: number;
+  title: string;
+  monthlyBillBrl: number;
+  demandKw: number;
+  readings: BtTransformerReading[];
+}
+
+export interface BtEdge {
+  id: string;
+  fromPoleId: string;
+  toPoleId: string;
+  lengthMeters?: number;
+  conductors: BtRamalEntry[];
+}
+
+export interface BtTopology {
+  poles: BtPoleNode[];
+  transformers: BtTransformer[];
+  edges: BtEdge[];
+}
 
 export interface AppSettings {
   enableAI: boolean;
@@ -119,6 +166,9 @@ export interface AppSettings {
   mapProvider: MapProvider;
   projectMetadata: ProjectMetadata;
   contourInterval: number;
+  projectType?: BtProjectType;
+  btEditorMode?: BtEditorMode;
+  clandestinoAreaM2?: number;
 }
 
 export type SelectionMode = 'circle' | 'polygon' | 'measure';
@@ -130,4 +180,5 @@ export interface GlobalState {
   polygon: GeoLocation[];
   measurePath: GeoLocation[];
   settings: AppSettings;
+  btTopology?: BtTopology;
 }

@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Circle, useMapEvents, GeoJSON, Polygon
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { GeoJsonObject, FeatureCollection } from 'geojson';
+import { BtEditorMode, BtTopology, SelectionMode } from '../types';
 
 // Fix for default marker icon in React Leaflet
 // @ts-ignore
@@ -16,12 +17,16 @@ L.Icon.Default.mergeOptions({
 interface MapSelectorProps {
     center: { lat: number; lng: number; label?: string };
     radius: number;
-    selectionMode: 'circle' | 'polygon' | 'measure';
+    selectionMode: SelectionMode;
     polygonPoints: [number, number][];
     onLocationChange: (newCenter: { lat: number; lng: number; label?: string }) => void;
     onPolygonChange: (points: [number, number][]) => void;
     measurePath?: [number, number][]; // optional for now
     onMeasurePathChange?: (path: [number, number][]) => void;
+    btTopology?: BtTopology;
+    btEditorMode?: BtEditorMode;
+    pendingBtEdgeStartPoleId?: string | null;
+    onBtMapClick?: (location: { lat: number; lng: number; label?: string }) => void;
     onKmlDrop?: (file: File) => void;
     mapStyle?: string;
     onMapStyleChange?: (style: string) => void;
@@ -37,10 +42,21 @@ const SelectionManager = ({
     onLocationChange,
     onPolygonChange,
     measurePath = [],
-    onMeasurePathChange
+    onMeasurePathChange,
+    btEditorMode = 'none',
+    onBtMapClick
 }: any) => {
     const map = useMapEvents({
         click(e) {
+            if (btEditorMode !== 'none' && onBtMapClick) {
+                onBtMapClick({
+                    lat: e.latlng.lat,
+                    lng: e.latlng.lng,
+                    label: `BT (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`
+                });
+                return;
+            }
+
             if (selectionMode === 'circle') {
                 onLocationChange({
                     lat: e.latlng.lat,
@@ -162,12 +178,38 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     onPolygonChange,
     measurePath,
     onMeasurePathChange,
+    btTopology,
+    btEditorMode = 'none',
+    pendingBtEdgeStartPoleId,
+    onBtMapClick,
     onKmlDrop,
     mapStyle = 'dark',
     onMapStyleChange,
     showAnalysis = false,
     geojson
 }) => {
+    const topology = btTopology ?? { poles: [], transformers: [], edges: [] };
+    const polesById = React.useMemo(() => {
+        return new Map(topology.poles.map((pole) => [pole.id, pole]));
+    }, [topology.poles]);
+
+    const transformerIcon = React.useMemo(() => {
+        return L.divIcon({
+            className: 'bt-transformer-icon',
+            html: '<div style="background:#7c3aed;border:2px solid #ffffff;width:14px;height:14px;transform:rotate(45deg);"></div>',
+            iconSize: [14, 14],
+            iconAnchor: [7, 7]
+        });
+    }, []);
+
+    const poleIcon = React.useMemo(() => {
+        return L.divIcon({
+            className: 'bt-pole-icon',
+            html: '<div style="background:#2563eb;border:2px solid #ffffff;width:12px;height:12px;border-radius:9999px;"></div>',
+            iconSize: [12, 12],
+            iconAnchor: [6, 6]
+        });
+    }, []);
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -224,7 +266,56 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                     onPolygonChange={onPolygonChange}
                     measurePath={measurePath}
                     onMeasurePathChange={onMeasurePathChange}
+                    btEditorMode={btEditorMode}
+                    onBtMapClick={onBtMapClick}
                 />
+
+                {(topology.edges || []).map((edge) => {
+                    const from = polesById.get(edge.fromPoleId);
+                    const to = polesById.get(edge.toPoleId);
+                    if (!from || !to) {
+                        return null;
+                    }
+
+                    return (
+                        <Polyline
+                            key={edge.id}
+                            positions={[[from.lat, from.lng], [to.lat, to.lng]]}
+                            pathOptions={{ color: '#22c55e', weight: 3, opacity: 0.9 }}
+                        >
+                            <Popup>
+                                <div className="text-xs">
+                                    <div><strong>{edge.id}</strong></div>
+                                    <div>{edge.fromPoleId}{' -> '}{edge.toPoleId}</div>
+                                    {typeof edge.lengthMeters === 'number' && <div>{edge.lengthMeters} m</div>}
+                                </div>
+                            </Popup>
+                        </Polyline>
+                    );
+                })}
+
+                {(topology.poles || []).map((pole) => (
+                    <Marker key={pole.id} position={[pole.lat, pole.lng]} icon={poleIcon}>
+                        <Popup>
+                            <div className="text-xs">
+                                <strong>{pole.title}</strong>
+                                <div>{pole.id}</div>
+                            </div>
+                        </Popup>
+                    </Marker>
+                ))}
+
+                {(topology.transformers || []).map((transformer) => (
+                    <Marker key={transformer.id} position={[transformer.lat, transformer.lng]} icon={transformerIcon}>
+                        <Popup>
+                            <div className="text-xs">
+                                <strong>{transformer.title}</strong>
+                                <div>{transformer.id}</div>
+                                <div>Demanda: {transformer.demandKw} kW</div>
+                            </div>
+                        </Popup>
+                    </Marker>
+                ))}
 
                 {geojson && (
                     <GeoJSON data={geojson} />
@@ -234,7 +325,19 @@ const MapSelector: React.FC<MapSelectorProps> = ({
 
             {/* Overlay Controls could go here */}
             <div className="absolute bottom-4 left-4 z-[400] bg-slate-900/80 backdrop-blur text-xs p-2 rounded text-slate-400 border border-slate-700">
-                {selectionMode === 'circle' ? 'Clique para definir o centro' : 'Clique para adicionar pontos ao polígono'}
+                {btEditorMode !== 'none'
+                    ? btEditorMode === 'add-pole'
+                        ? 'Editor BT: clique para inserir poste'
+                        : btEditorMode === 'add-transformer'
+                            ? 'Editor BT: clique para inserir transformador'
+                            : pendingBtEdgeStartPoleId
+                                ? `Editor BT: selecione destino (origem ${pendingBtEdgeStartPoleId})`
+                                : 'Editor BT: selecione poste de origem'
+                    : selectionMode === 'circle'
+                        ? 'Clique para definir o centro'
+                        : selectionMode === 'measure'
+                            ? 'Clique em dois pontos para o perfil'
+                            : 'Clique para adicionar pontos ao polígono'}
             </div>
         </div>
     );
