@@ -811,6 +811,7 @@ function App() {
           <BtTopologyPanel
             btTopology={btTopology}
             projectType={settings.projectType ?? 'ramais'}
+            btNetworkScenario={btNetworkScenario}
             clandestinoAreaM2={settings.clandestinoAreaM2 ?? 0}
             onTopologyChange={updateBtTopology}
           />

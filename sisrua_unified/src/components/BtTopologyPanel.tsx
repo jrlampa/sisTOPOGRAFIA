@@ -1,6 +1,6 @@
 import React from 'react';
 import { Activity, Plus, Trash2, Sigma } from 'lucide-react';
-import { BtTopology, BtTransformerReading } from '../types';
+import { BtNetworkScenario, BtTopology, BtTransformerReading } from '../types';
 import {
   calculateAccumulatedDemandByPole,
   calculateAccumulatedDemandKva,
@@ -18,6 +18,7 @@ import {
 interface BtTopologyPanelProps {
   btTopology: BtTopology;
   projectType: 'ramais' | 'geral' | 'clandestino';
+  btNetworkScenario: BtNetworkScenario;
   clandestinoAreaM2: number;
   onTopologyChange: (next: BtTopology) => void;
 }
@@ -32,6 +33,7 @@ const nextId = (prefix: string): string => `${prefix}${Date.now()}${Math.floor(M
 const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   btTopology,
   projectType,
+  btNetworkScenario,
   clandestinoAreaM2,
   onTopologyChange
 }) => {
@@ -139,7 +141,13 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           <Activity size={16} />
           <h3 className="text-[11px] font-black uppercase tracking-[0.16em]">Topologia BT</h3>
         </div>
-        <span className="text-[10px] font-semibold text-slate-400 uppercase">{projectType}</span>
+        <span className="text-[10px] font-semibold text-slate-400 uppercase">{projectType} / {btNetworkScenario === 'asis' ? 'AS-IS' : 'PROJETO'}</span>
+      </div>
+
+      <div className={`rounded-lg border p-2 text-[10px] ${btNetworkScenario === 'asis' ? 'border-cyan-500/20 bg-cyan-950/20 text-cyan-100' : 'border-indigo-500/20 bg-indigo-950/20 text-indigo-100'}`}>
+        {btNetworkScenario === 'asis'
+          ? 'Cenário AS-IS: painel voltado para leitura, conferência e cálculo sobre rede existente.'
+          : 'Cenário REDE NOVA: painel voltado para projeto, lançamento e dimensionamento da nova topologia.'}
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-[10px]">
@@ -194,9 +202,13 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
       )}
 
       <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/50 p-3">
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Transformador (leituras)</div>
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Transformador ({btNetworkScenario === 'asis' ? 'leituras AS-IS' : 'base de projeto'})</div>
         {btTopology.transformers.length === 0 ? (
-          <div className="text-[10px] text-slate-500">Insira um transformador no mapa para editar leituras.</div>
+          <div className="text-[10px] text-slate-500">
+            {btNetworkScenario === 'asis'
+              ? 'Sem transformador identificado para conferência de leituras da rede existente.'
+              : 'Insira um transformador no mapa para montar a nova topologia BT.'}
+          </div>
         ) : (
           <>
             <select
@@ -310,9 +322,13 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
       </div>
 
       <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/50 p-3">
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Aresta (ramais)</div>
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Aresta ({btNetworkScenario === 'asis' ? 'ramais existentes' : 'ramais de projeto'})</div>
         {btTopology.edges.length === 0 ? (
-          <div className="text-[10px] text-slate-500">Insira arestas no mapa para informar ramais.</div>
+          <div className="text-[10px] text-slate-500">
+            {btNetworkScenario === 'asis'
+              ? 'Sem arestas cadastradas para representar os ramais existentes.'
+              : 'Insira arestas no mapa para lançar os ramais da rede nova.'}
+          </div>
         ) : (
           <>
             <select
