@@ -379,8 +379,8 @@ function App() {
         return false;
       }
 
-      const totalClandestinoClients = btTopology.edges.reduce(
-        (acc, edge) => acc + edge.conductors.reduce((sum, ramal) => sum + ramal.quantity, 0),
+      const totalClandestinoClients = btTopology.poles.reduce(
+        (acc, pole) => acc + (pole.ramais ?? []).reduce((sum, ramal) => sum + ramal.quantity, 0),
         0
       );
 
@@ -445,7 +445,8 @@ function App() {
         id: nextId,
         lat: location.lat,
         lng: location.lng,
-        title: `Poste ${nextId}`
+        title: `Poste ${nextId}`,
+        ramais: []
       };
 
       setAppState({
@@ -1019,7 +1020,7 @@ function App() {
               </button>
             </div>
             {btNetworkScenario === 'asis' && (
-              <div className="text-[10px] text-cyan-200 bg-cyan-900/20 border border-cyan-500/20 rounded-lg p-2">
+              <div className="text-[10px] text-cyan-900 bg-cyan-50 border border-cyan-300 rounded-lg p-2">
                 Rede Atual ativa: você pode navegar e lançar poste, condutor e trafo na topologia existente.
               </div>
             )}

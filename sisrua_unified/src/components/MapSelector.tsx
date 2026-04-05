@@ -303,29 +303,39 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         return null;
                     }
 
+                    const edgePopup = (
+                        <Popup>
+                            <div className="text-xs">
+                                <div><strong>{edge.id}</strong></div>
+                                <div>{edge.fromPoleId}{' <-> '}{edge.toPoleId}</div>
+                                {typeof edge.lengthMeters === 'number' && <div>{edge.lengthMeters} m</div>}
+                                <div style={{color: edge.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{edge.verified ? '✓ Verificado' : '○ Não verificado'}</div>
+                                {onBtDeleteEdge && (
+                                    <button
+                                        onClick={() => onBtDeleteEdge(edge.id)}
+                                        style={{marginTop: 4, padding: '2px 8px', background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer', fontSize: 11}}
+                                    >
+                                        Deletar condutor
+                                    </button>
+                                )}
+                            </div>
+                        </Popup>
+                    );
+
                     return (
-                        <Polyline
-                            key={edge.id}
-                            positions={[[from.lat, from.lng], [to.lat, to.lng]]}
-                            pathOptions={{ color: edge.verified ? '#22c55e' : '#f59e0b', weight: edge.verified ? 3 : 2, opacity: 0.9, dashArray: edge.verified ? undefined : '6 4' }}
-                        >
-                            <Popup>
-                                <div className="text-xs">
-                                    <div><strong>{edge.id}</strong></div>
-                                    <div>{edge.fromPoleId}{' <-> '}{edge.toPoleId}</div>
-                                    {typeof edge.lengthMeters === 'number' && <div>{edge.lengthMeters} m</div>}
-                                    <div style={{color: edge.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{edge.verified ? '✓ Verificado' : '○ Não verificado'}</div>
-                                    {onBtDeleteEdge && (
-                                        <button
-                                            onClick={() => onBtDeleteEdge(edge.id)}
-                                            style={{marginTop: 4, padding: '2px 8px', background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer', fontSize: 11}}
-                                        >
-                                            Deletar condutor
-                                        </button>
-                                    )}
-                                </div>
-                            </Popup>
-                        </Polyline>
+                        <React.Fragment key={edge.id}>
+                            {/* Invisible hit-area to make conductor selection easy on dense maps */}
+                            <Polyline
+                                positions={[[from.lat, from.lng], [to.lat, to.lng]]}
+                                pathOptions={{ color: '#000000', weight: 16, opacity: 0, lineCap: 'round' }}
+                            >
+                                {edgePopup}
+                            </Polyline>
+                            <Polyline
+                                positions={[[from.lat, from.lng], [to.lat, to.lng]]}
+                                pathOptions={{ color: edge.verified ? '#22c55e' : '#f59e0b', weight: edge.verified ? 3 : 2, opacity: 0.9, dashArray: edge.verified ? undefined : '6 4', interactive: false }}
+                            />
+                        </React.Fragment>
                     );
                 })}
 

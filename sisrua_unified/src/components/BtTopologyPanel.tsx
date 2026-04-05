@@ -1,6 +1,6 @@
 import React from 'react';
 import { Activity, Plus, Trash2, Sigma } from 'lucide-react';
-import { BtNetworkScenario, BtTopology, BtTransformerReading } from '../types';
+import { BtNetworkScenario, BtPoleRamalEntry, BtTopology, BtTransformerReading } from '../types';
 import {
   calculateAccumulatedDemandByPole,
   calculateAccumulatedDemandKva,
@@ -123,6 +123,13 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     });
   };
 
+  const updatePoleRamais = (poleId: string, ramais: BtPoleRamalEntry[]) => {
+    onTopologyChange({
+      ...btTopology,
+      poles: btTopology.poles.map((pole) => pole.id === poleId ? { ...pole, ramais } : pole)
+    });
+  };
+
   const updateTransformerVerified = (transformerId: string, verified: boolean) => {
     onTopologyChange({
       ...btTopology,
@@ -181,8 +188,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   const clandestinoDemandKva = projectType === 'clandestino'
     ? getClandestinoKvaByArea(clandestinoAreaM2)
     : null;
-  const totalClandestinoClients = btTopology.edges.reduce(
-    (acc, edge) => acc + edge.conductors.reduce((sum, ramal) => sum + ramal.quantity, 0),
+  const totalClandestinoClients = btTopology.poles.reduce(
+    (acc, pole) => acc + (pole.ramais ?? []).reduce((sum, ramal) => sum + ramal.quantity, 0),
     0
   );
   const clandestinoDiversificationFactor = projectType === 'clandestino'
@@ -208,58 +215,58 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   const criticalPole = accumulatedByPole[0] ?? null;
 
   return (
-    <div className="space-y-4 rounded-2xl border border-white/10 bg-slate-900/40 p-4">
+    <div className="space-y-4 rounded-2xl border border-slate-300 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-slate-300">
+        <div className="flex items-center gap-2 text-slate-700">
           <Activity size={16} />
           <h3 className="text-[11px] font-black uppercase tracking-[0.16em]">Topologia BT</h3>
         </div>
-        <span className="text-[10px] font-semibold text-slate-400 uppercase">{projectType} / {btNetworkScenario === 'asis' ? 'ATUAL' : 'PROJETO'}</span>
+        <span className="text-[10px] font-semibold text-slate-600 uppercase">{projectType} / {btNetworkScenario === 'asis' ? 'ATUAL' : 'PROJETO'}</span>
       </div>
 
-      <div className={`rounded-lg border p-2 text-[10px] ${btNetworkScenario === 'asis' ? 'border-cyan-500/20 bg-cyan-950/20 text-cyan-100' : 'border-indigo-500/20 bg-indigo-950/20 text-indigo-100'}`}>
+      <div className={`rounded-lg border p-2 text-[10px] ${btNetworkScenario === 'asis' ? 'border-cyan-300 bg-cyan-50 text-cyan-900' : 'border-indigo-300 bg-indigo-50 text-indigo-900'}`}>
         {btNetworkScenario === 'asis'
           ? 'Cenário REDE ATUAL: painel voltado para leitura, conferência e cálculo sobre rede existente.'
           : 'Cenário REDE NOVA: painel voltado para projeto, lançamento e dimensionamento da nova topologia.'}
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-[10px]">
-        <div className="rounded-lg border border-white/10 bg-slate-900 p-2 text-slate-300">Postes: {summary.poles}</div>
-        <div className="rounded-lg border border-white/10 bg-slate-900 p-2 text-slate-300">Condutores: {summary.edges}</div>
-        <div className="rounded-lg border border-white/10 bg-slate-900 p-2 text-slate-300">Trafos: {summary.transformers}</div>
-        <div className="rounded-lg border border-white/10 bg-slate-900 p-2 text-slate-300">Rede: {Math.round(summary.totalLengthMeters)} m</div>
+        <div className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700">Postes: {summary.poles}</div>
+        <div className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700">Condutores: {summary.edges}</div>
+        <div className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700">Trafos: {summary.transformers}</div>
+        <div className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700">Rede: {Math.round(summary.totalLengthMeters)} m</div>
       </div>
 
       {btNetworkScenario === 'asis' && (
         <div className="grid grid-cols-3 gap-2 text-[10px]">
-          <div className="rounded-lg border border-cyan-500/20 bg-slate-900 p-2 text-cyan-100">Postes verificados: {verifiedPoles}/{summary.poles}</div>
-          <div className="rounded-lg border border-cyan-500/20 bg-slate-900 p-2 text-cyan-100">Condutores verificados: {verifiedEdges}/{summary.edges}</div>
-          <div className="rounded-lg border border-cyan-500/20 bg-slate-900 p-2 text-cyan-100">Trafos verificados: {verifiedTransformers}/{summary.transformers}</div>
+          <div className="rounded-lg border border-cyan-300 bg-cyan-50 p-2 text-cyan-900">Postes verificados: {verifiedPoles}/{summary.poles}</div>
+          <div className="rounded-lg border border-cyan-300 bg-cyan-50 p-2 text-cyan-900">Condutores verificados: {verifiedEdges}/{summary.edges}</div>
+          <div className="rounded-lg border border-cyan-300 bg-cyan-50 p-2 text-cyan-900">Trafos verificados: {verifiedTransformers}/{summary.transformers}</div>
         </div>
       )}
 
-      <div className="rounded-lg border border-emerald-500/20 bg-emerald-950/20 p-2 text-[10px] text-emerald-200">
+      <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-2 text-[10px] text-emerald-900">
         {projectType === 'clandestino'
           ? `Demanda por ponto (regra clandestino): ${pointDemandKva.toFixed(2)} kVA`
           : `Demanda por ponto (leituras de trafo): ${pointDemandKva.toFixed(2)} kW`}
       </div>
 
-      <div className="rounded-lg border border-cyan-500/20 bg-cyan-950/20 p-2 text-[10px] text-cyan-200">
+      <div className="rounded-lg border border-cyan-300 bg-cyan-50 p-2 text-[10px] text-cyan-900">
         {projectType === 'clandestino'
           ? `ACUMULADA (GERAL!I, clandestino): ${accumulatedDemandKva.toFixed(2)} kVA`
           : `ACUMULADA (GERAL!I, normal): ${accumulatedDemandKva.toFixed(2)} kW`}
         {criticalPole && (
-          <div className="mt-1 text-cyan-100">
+          <div className="mt-1 text-cyan-900">
             Ponto crítico: {criticalPole.poleId} | CLT acum.: {criticalPole.accumulatedClients} | Demanda acum.: {criticalPole.accumulatedDemandKva.toFixed(2)} {projectType === 'clandestino' ? 'kVA' : 'kW'}
           </div>
         )}
       </div>
 
       {accumulatedByPole.length > 0 && (
-        <div className="rounded-lg border border-cyan-500/20 bg-slate-950/40 p-2 text-[10px] text-cyan-100">
-          <div className="mb-1 font-semibold uppercase tracking-wide text-cyan-300">Ranking Acumulada (Top 5)</div>
+        <div className="rounded-lg border border-cyan-200 bg-slate-50 p-2 text-[10px] text-slate-700">
+          <div className="mb-1 font-semibold uppercase tracking-wide text-cyan-800">Ranking Acumulada (Top 5)</div>
           {accumulatedByPole.slice(0, 5).map((item) => (
-            <div key={item.poleId} className="flex items-center justify-between border-b border-cyan-500/10 py-0.5 last:border-b-0">
+            <div key={item.poleId} className="flex items-center justify-between border-b border-cyan-200 py-0.5 last:border-b-0">
               <span>{item.poleId}</span>
               <span>
                 CLT {item.accumulatedClients} | {item.accumulatedDemandKva.toFixed(2)} {projectType === 'clandestino' ? 'kVA' : 'kW'}
@@ -270,20 +277,20 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
       )}
 
       {projectType === 'clandestino' && (
-        <div className="rounded-lg border border-amber-500/20 bg-amber-950/20 p-2 text-[10px] text-amber-200">
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-[10px] text-amber-900">
           {clandestinoDemandKva === null
             ? `Área clandestina inválida (${clandestinoAreaM2} m²). Faixa da planilha: ${clandestinoAreaRange.min}-${clandestinoAreaRange.max} m² (inteiros).`
             : `Carga base clandestinos (${clandestinoAreaM2} m²): ${clandestinoDemandKw.toFixed(2)} kVA`}
           {clandestinoDemandKva !== null && (
-            <div className="mt-1 text-amber-100">
+            <div className="mt-1 text-amber-900">
               Clientes: {totalClandestinoClients} | Fator: {clandestinoDiversificationFactor?.toFixed(2) ?? 'inválido'} | Demanda final: {clandestinoFinalDemandKva.toFixed(2)} kVA
             </div>
           )}
         </div>
       )}
 
-      <div className="space-y-3 rounded-lg border border-cyan-500/20 bg-slate-950/50 p-3">
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-300">Postes / Verificação</div>
+      <div className="space-y-3 rounded-lg border border-cyan-200 bg-slate-50 p-3">
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-800">Postes / Verificação</div>
 
         <div className="space-y-2">
           <div className="text-[10px] text-slate-400">Poste selecionado</div>
@@ -292,7 +299,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           ) : (
             <>
               <select
-                className="w-full rounded border border-white/10 bg-slate-900 p-2 text-xs text-slate-200"
+                className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
                 value={selectedPoleId}
                 onChange={(e) => setSelectedPoleId(e.target.value)}
               >
@@ -307,14 +314,67 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     value={selectedPole.title}
                     onChange={(e) => onBtRenamePole?.(selectedPole.id, e.target.value)}
                     placeholder="Nome do poste"
-                    className="w-full rounded border border-white/10 bg-slate-900 p-1.5 text-xs text-slate-200 focus:border-cyan-500/60 outline-none"
+                    className="w-full rounded border border-slate-300 bg-white p-1.5 text-xs text-slate-800 focus:border-cyan-500/60 outline-none"
                   />
                   <button
                     onClick={() => updatePoleVerified(selectedPole.id, !selectedPole.verified)}
-                    className="rounded border border-cyan-500/30 px-3 py-1 text-[10px] text-cyan-100 hover:bg-cyan-500/10"
+                    className="rounded border border-cyan-400 px-3 py-1 text-[10px] text-cyan-900 hover:bg-cyan-100"
                   >
                     {selectedPole.verified ? 'Marcar como não verificado' : 'Marcar poste como verificado'}
                   </button>
+
+                  <div className="rounded border border-slate-300 bg-white p-2">
+                    <div className="mb-2 flex items-center justify-between text-[10px] text-slate-600">
+                      <span>Ramais do poste</span>
+                      <button
+                        onClick={() => {
+                          updatePoleRamais(selectedPole.id, [
+                            ...(selectedPole.ramais ?? []),
+                            { id: nextId('RP'), quantity: 1 }
+                          ]);
+                        }}
+                        className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-slate-700 hover:bg-slate-100"
+                      >
+                        <Plus size={12} /> Ramal
+                      </button>
+                    </div>
+
+                    {(selectedPole.ramais ?? []).length === 0 ? (
+                      <div className="text-[10px] text-slate-500">Sem ramais cadastrados neste poste.</div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {(selectedPole.ramais ?? []).map((ramal) => (
+                          <div key={ramal.id} className="grid grid-cols-[1fr_auto] gap-2">
+                            <input
+                              type="number"
+                              min={1}
+                              value={ramal.quantity}
+                              onChange={(e) => {
+                                const quantity = Math.max(1, numberFromInput(e.target.value));
+                                updatePoleRamais(
+                                  selectedPole.id,
+                                  (selectedPole.ramais ?? []).map((item) => item.id === ramal.id ? { ...item, quantity } : item)
+                                );
+                              }}
+                              className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
+                            />
+                            <button
+                              onClick={() => {
+                                updatePoleRamais(
+                                  selectedPole.id,
+                                  (selectedPole.ramais ?? []).filter((item) => item.id !== ramal.id)
+                                );
+                              }}
+                              className="rounded border border-rose-300 p-1.5 text-rose-700 hover:bg-rose-50"
+                              title="Remover ramal"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </>
@@ -326,7 +386,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           {selectedEdge ? (
             <button
               onClick={() => updateEdgeVerified(selectedEdge.id, !selectedEdge.verified)}
-              className="rounded border border-cyan-500/30 px-3 py-1 text-[10px] text-cyan-100 hover:bg-cyan-500/10"
+              className="rounded border border-cyan-400 px-3 py-1 text-[10px] text-cyan-900 hover:bg-cyan-100"
             >
               {selectedEdge.verified ? 'Marcar condutor como não verificado' : 'Marcar condutor como verificado'}
             </button>
@@ -340,7 +400,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           {selectedTransformer ? (
             <button
               onClick={() => updateTransformerVerified(selectedTransformer.id, !selectedTransformer.verified)}
-              className="rounded border border-cyan-500/30 px-3 py-1 text-[10px] text-cyan-100 hover:bg-cyan-500/10"
+              className="rounded border border-cyan-400 px-3 py-1 text-[10px] text-cyan-900 hover:bg-cyan-100"
             >
               {selectedTransformer.verified ? 'Marcar trafo como não verificado' : 'Marcar trafo como verificado'}
             </button>
@@ -350,7 +410,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         </div>
       </div>
 
-      <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/50 p-3">
+      <div className="space-y-2 rounded-lg border border-slate-300 bg-slate-50 p-3">
         <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Transformador ({btNetworkScenario === 'asis' ? 'leituras da rede atual' : 'base de projeto'})</div>
         {btTopology.transformers.length === 0 ? (
           <div className="text-[10px] text-slate-500">
@@ -361,7 +421,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         ) : (
           <>
             <select
-              className="w-full rounded border border-white/10 bg-slate-900 p-2 text-xs text-slate-200"
+              className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
               value={selectedTransformerId}
               onChange={(e) => setSelectedTransformerId(e.target.value)}
             >
@@ -385,7 +445,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
                       updateTransformerReadings(selectedTransformer.id, [...selectedTransformer.readings, newReading]);
                     }}
-                    className="inline-flex items-center gap-1 rounded border border-white/10 px-2 py-1 text-slate-300 hover:text-white"
+                    className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-slate-700 hover:bg-slate-100"
                   >
                     <Plus size={12} /> Leitura
                   </button>
@@ -408,7 +468,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                             : item)
                         );
                       }}
-                      className="rounded border border-white/10 bg-slate-900 p-1.5 text-[11px] text-slate-200"
+                      className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
                     />
                     <input
                       type="number"
@@ -426,7 +486,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                             : item)
                         );
                       }}
-                      className="rounded border border-white/10 bg-slate-900 p-1.5 text-[11px] text-slate-200"
+                      className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
                     />
                     <input
                       type="number"
@@ -443,7 +503,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                             : item)
                         );
                       }}
-                      className="rounded border border-white/10 bg-slate-900 p-1.5 text-[11px] text-slate-200"
+                      className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
                     />
                     <button
                       onClick={() => {
@@ -460,7 +520,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                   </div>
                 ))}
 
-                <div className="rounded border border-white/10 bg-slate-900 p-2 text-[10px] text-slate-300">
+                <div className="rounded border border-slate-300 bg-white p-2 text-[10px] text-slate-700">
                   <div>Fatura mensal: R$ {selectedTransformer.monthlyBillBrl.toFixed(2)}</div>
                   <div>Demanda estimada: {selectedTransformer.demandKw.toFixed(2)} kW</div>
                 </div>
@@ -470,7 +530,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         )}
       </div>
 
-      <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/50 p-3">
+      <div className="space-y-2 rounded-lg border border-slate-300 bg-slate-50 p-3">
         <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Condutor ({btNetworkScenario === 'asis' ? 'ramais existentes' : 'ramais de projeto'})</div>
         {btTopology.edges.length === 0 ? (
           <div className="text-[10px] text-slate-500">
@@ -481,7 +541,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         ) : (
           <>
             <select
-              className="w-full rounded border border-white/10 bg-slate-900 p-2 text-xs text-slate-200"
+              className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
               value={selectedEdgeId}
               onChange={(e) => setSelectedEdgeId(e.target.value)}
             >
@@ -493,7 +553,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             {selectedEdge && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-[10px] text-slate-400">
-                  <span>Condutores</span>
+                  <span>Condutores do trecho</span>
                   <button
                     onClick={() => {
                       updateEdgeConductors(selectedEdge.id, [
@@ -501,9 +561,9 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                         { id: nextId('C'), quantity: 1, conductorName: '95 Al - Arm' }
                       ]);
                     }}
-                    className="inline-flex items-center gap-1 rounded border border-white/10 px-2 py-1 text-slate-300 hover:text-white"
+                    className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-slate-700 hover:bg-slate-100"
                   >
-                    <Plus size={12} /> Ramal
+                    <Plus size={12} /> Condutor
                   </button>
                 </div>
 
@@ -520,7 +580,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                           selectedEdge.conductors.map((item) => item.id === entry.id ? { ...item, quantity } : item)
                         );
                       }}
-                      className="rounded border border-white/10 bg-slate-900 p-1.5 text-[11px] text-slate-200"
+                      className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
                     />
                     <select
                       value={entry.conductorName}
@@ -531,7 +591,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                           selectedEdge.conductors.map((item) => item.id === entry.id ? { ...item, conductorName } : item)
                         );
                       }}
-                      className="rounded border border-white/10 bg-slate-900 p-1.5 text-[11px] text-slate-200"
+                      className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
                     >
                       {CONDUCTOR_NAMES.map((name) => (
                         <option key={name} value={name}>{name}</option>
@@ -552,7 +612,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                   </div>
                 ))}
 
-                <div className="rounded border border-white/10 bg-slate-900 p-2 text-[10px] text-slate-300">
+                <div className="rounded border border-slate-300 bg-white p-2 text-[10px] text-slate-700">
                   <div className="flex items-center gap-2">
                     <Sigma size={12} />
                     <span>
@@ -572,7 +632,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                   const statusColor = ratio < 0.8 ? '#22c55e' : ratio < 1 ? '#f59e0b' : '#ef4444';
                   const statusText = ratio < 0.8 ? 'OK' : ratio < 1 ? 'Atenção' : 'Sobrecarga';
                   return (
-                    <div className="rounded border border-white/10 bg-slate-900 p-2 text-[10px] text-slate-300">
+                    <div className="rounded border border-slate-300 bg-white p-2 text-[10px] text-slate-700">
                       <div className="flex items-center justify-between">
                         <span>Cap. condutores: {capacityAmps} A</span>
                         <span style={{ color: statusColor, fontWeight: 700 }}>{statusText}</span>

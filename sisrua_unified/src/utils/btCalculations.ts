@@ -165,18 +165,21 @@ export const calculateAccumulatedDemandByPole = (
   }
 
   const outgoingByPole = new Map<string, BtTopology['edges']>();
-  const incomingClientByPole = new Map<string, number>();
+  const localClientByPole = new Map<string, number>();
+
+  for (const pole of topology.poles) {
+    const localRamais = pole.ramais ?? [];
+    const localClients = localRamais.reduce((sum, item) => sum + item.quantity, 0);
+    localClientByPole.set(pole.id, localClients);
+  }
 
   for (const edge of topology.edges) {
     const outgoing = outgoingByPole.get(edge.fromPoleId) ?? [];
     outgoing.push(edge);
     outgoingByPole.set(edge.fromPoleId, outgoing);
-
-    const edgeClients = edge.conductors.reduce((sum, item) => sum + item.quantity, 0);
-    incomingClientByPole.set(edge.toPoleId, (incomingClientByPole.get(edge.toPoleId) ?? 0) + edgeClients);
   }
 
-  const totalClients = Array.from(incomingClientByPole.values()).reduce((sum, value) => sum + value, 0);
+  const totalClients = Array.from(localClientByPole.values()).reduce((sum, value) => sum + value, 0);
   const transformerDemandKva = topology.transformers.reduce((sum, transformer) => sum + transformer.demandKw, 0);
   const avgDemandPerClient = totalClients > 0 ? transformerDemandKva / totalClients : 0;
 
@@ -191,8 +194,8 @@ export const calculateAccumulatedDemandByPole = (
     if (activePath.has(poleId)) {
       const cycleFallback: BtPoleAccumulatedDemand = {
         poleId,
-        localClients: incomingClientByPole.get(poleId) ?? 0,
-        accumulatedClients: incomingClientByPole.get(poleId) ?? 0,
+        localClients: localClientByPole.get(poleId) ?? 0,
+        accumulatedClients: localClientByPole.get(poleId) ?? 0,
         localTrechoDemandKva: 0,
         accumulatedDemandKva: 0
       };
@@ -203,7 +206,7 @@ export const calculateAccumulatedDemandByPole = (
     const nextPath = new Set(activePath);
     nextPath.add(poleId);
 
-    const localClients = incomingClientByPole.get(poleId) ?? 0;
+    const localClients = localClientByPole.get(poleId) ?? 0;
     const children = outgoingByPole.get(poleId) ?? [];
 
     const childrenResults = children.map((edge) => visit(edge.toPoleId, nextPath));

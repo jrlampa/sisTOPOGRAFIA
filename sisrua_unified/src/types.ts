@@ -118,11 +118,17 @@ export interface BtRamalEntry {
   conductorName: string;
 }
 
+export interface BtPoleRamalEntry {
+  id: string;
+  quantity: number;
+}
+
 export interface BtPoleNode {
   id: string;
   lat: number;
   lng: number;
   title: string;
+  ramais?: BtPoleRamalEntry[];
   verified?: boolean;
 }
 
