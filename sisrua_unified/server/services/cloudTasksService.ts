@@ -47,6 +47,7 @@ export interface DxfTaskPayload {
     layers: Record<string, unknown>;
     projection: string;
     contourRenderMode: 'spline' | 'polyline';
+    btContext?: Record<string, unknown> | null;
     outputFile: string;
     filename: string;
     cacheKey: string;

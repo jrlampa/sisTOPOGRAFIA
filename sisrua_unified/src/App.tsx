@@ -21,6 +21,7 @@ import { useKmlImport } from './hooks/useKmlImport';
 import { useFileOperations } from './hooks/useFileOperations';
 import { useElevationProfile } from './hooks/useElevationProfile';
 import {
+  calculateAccumulatedDemandByPole,
   getClandestinoAreaRange,
   getClandestinoClientsRange,
   getClandestinoDiversificationFactorByClients,
@@ -385,6 +386,22 @@ function App() {
     if (!osmData) return;
     if (!validateBtBeforeExport()) return;
 
+    const btAccumulated = calculateAccumulatedDemandByPole(
+      btTopology,
+      settings.projectType ?? 'ramais',
+      settings.clandestinoAreaM2 ?? 0
+    );
+
+    const btContext = {
+      projectType: settings.projectType ?? 'ramais',
+      clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
+      totalTransformers: btTopology.transformers.length,
+      totalPoles: btTopology.poles.length,
+      totalEdges: btTopology.edges.length,
+      accumulatedByPole: btAccumulated,
+      criticalPole: btAccumulated[0] ?? null
+    };
+
     await downloadDxf(
       center,
       radius,
@@ -392,7 +409,8 @@ function App() {
       polygon,
       settings.layers,
       settings.projection,
-      settings.contourRenderMode
+      settings.contourRenderMode,
+      btContext
     );
   };
 

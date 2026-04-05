@@ -101,13 +101,14 @@ export const generateDXF = async (
   polygon: any[],
   layers: Record<string, boolean>,
   projection: 'local' | 'utm' = 'local',
-  contourRenderMode: 'spline' | 'polyline' = 'spline'
+  contourRenderMode: 'spline' | 'polyline' = 'spline',
+  btContext?: Record<string, unknown>
 ): Promise<DxfQueueResponse | DxfCachedResponse> => {
 
   const response = await fetch(`${API_URL}/dxf`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ lat, lon, radius, mode, polygon, layers, projection, contourRenderMode })
+    body: JSON.stringify({ lat, lon, radius, mode, polygon, layers, projection, contourRenderMode, btContext })
   });
 
   const parsed = await parseApiBody(response);

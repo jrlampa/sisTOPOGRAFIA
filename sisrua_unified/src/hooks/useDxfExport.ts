@@ -9,6 +9,10 @@ interface UseDxfExportProps {
   onError: (message: string) => void;
 }
 
+interface BtContextPayload {
+  [key: string]: unknown;
+}
+
 export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -33,7 +37,8 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
     polygon: GeoLocation[],
     layers: LayerConfig,
     projection: 'local' | 'utm' = 'utm',
-    contourRenderMode: ContourRenderMode = 'spline'
+    contourRenderMode: ContourRenderMode = 'spline',
+    btContext?: BtContextPayload
   ) => {
     setIsDownloading(true);
     setJobStatus('queued');
@@ -48,7 +53,8 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
         polygon,
         layers,
         projection,
-        contourRenderMode
+        contourRenderMode,
+        btContext
       );
 
       if (!result) {

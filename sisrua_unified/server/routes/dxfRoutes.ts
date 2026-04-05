@@ -34,7 +34,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
         }
 
         const { lat, lon, radius, mode } = validation.data;
-        const { polygon, layers, projection, contourRenderMode } = req.body;
+        const { polygon, layers, projection, contourRenderMode, btContext } = req.body;
         const resolvedContourRenderMode = contourRenderMode === 'polyline' ? 'polyline' : 'spline';
         const resolvedMode = mode || 'circle';
         const cacheKey = createCacheKey({
@@ -78,6 +78,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
             lat, lon, radius, mode: resolvedMode,
             projection: projection || 'local',
             contourRenderMode: resolvedContourRenderMode,
+            hasBtContext: !!btContext,
             cacheKey
         });
 
@@ -88,6 +89,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
             layers: layers || {},
             projection: projection || 'local',
             contourRenderMode: resolvedContourRenderMode,
+            btContext: btContext ?? null,
             outputFile, filename, cacheKey, downloadUrl
         });
 
