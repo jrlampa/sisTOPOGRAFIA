@@ -4,6 +4,7 @@ import { BtTopology, BtTransformerReading } from '../types';
 import {
   calculateBtSummary,
   calculateClandestinoDemandKvaByAreaAndClients,
+  calculatePointDemandKva,
   calculateTransformerDemandKw,
   calculateTransformerMonthlyBill,
   calculateClandestinoDemandKw,
@@ -113,6 +114,12 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   const clandestinoFinalDemandKva = projectType === 'clandestino'
     ? calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, totalClandestinoClients)
     : 0;
+  const pointDemandKva = calculatePointDemandKva({
+    projectType,
+    transformerDemandKw: summary.transformerDemandKw,
+    clandestinoAreaM2,
+    clandestinoClients: totalClandestinoClients
+  });
 
   return (
     <div className="space-y-4 rounded-2xl border border-white/10 bg-slate-900/40 p-4">
@@ -132,7 +139,9 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
       </div>
 
       <div className="rounded-lg border border-emerald-500/20 bg-emerald-950/20 p-2 text-[10px] text-emerald-200">
-        Demanda de transformadores: {summary.transformerDemandKw.toFixed(2)} kW
+        {projectType === 'clandestino'
+          ? `Demanda por ponto (regra clandestino): ${pointDemandKva.toFixed(2)} kVA`
+          : `Demanda por ponto (leituras de trafo): ${pointDemandKva.toFixed(2)} kW`}
       </div>
 
       {projectType === 'clandestino' && (

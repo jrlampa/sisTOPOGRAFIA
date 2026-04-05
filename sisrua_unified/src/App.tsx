@@ -218,7 +218,12 @@ function App() {
       return false;
     }
 
-    if (settings.projectType === 'geral') {
+    if (settings.projectType !== 'clandestino') {
+      if (btTopology.transformers.length === 0) {
+        showToast('Adicione ao menos um transformador com leituras para calcular demanda de clientes normais.', 'error');
+        return false;
+      }
+
       const transformerWithoutReadings = btTopology.transformers.find((transformer) => transformer.readings.length === 0);
       if (transformerWithoutReadings) {
         showToast(`Transformador ${transformerWithoutReadings.id} sem leituras.`, 'error');

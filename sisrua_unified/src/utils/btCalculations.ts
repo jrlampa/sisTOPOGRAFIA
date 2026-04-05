@@ -1,4 +1,4 @@
-import { BtTransformerReading, BtTopology } from '../types';
+import { BtProjectType, BtTransformerReading, BtTopology } from '../types';
 import {
   CLANDESTINO_AREA_TO_KVA,
   CLANDESTINO_CLIENT_TO_DIVERSIF_FACTOR,
@@ -77,6 +77,26 @@ export const calculateClandestinoDemandKvaByAreaAndClients = (areaM2: number, cl
   }
 
   return Number((baseKva * diversificationFactor).toFixed(2));
+};
+
+interface CalculatePointDemandKvaInput {
+  projectType: BtProjectType;
+  transformerDemandKw: number;
+  clandestinoAreaM2: number;
+  clandestinoClients: number;
+}
+
+export const calculatePointDemandKva = ({
+  projectType,
+  transformerDemandKw,
+  clandestinoAreaM2,
+  clandestinoClients
+}: CalculatePointDemandKvaInput): number => {
+  if (projectType === 'clandestino') {
+    return calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, clandestinoClients);
+  }
+
+  return Number(transformerDemandKw.toFixed(2));
 };
 
 export const calculateClandestinoDemandKw = (areaM2: number): number => {
