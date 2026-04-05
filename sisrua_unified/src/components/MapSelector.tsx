@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents, GeoJSON, Polygon, Polyline, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -27,6 +27,11 @@ interface MapSelectorProps {
     btEditorMode?: BtEditorMode;
     pendingBtEdgeStartPoleId?: string | null;
     onBtMapClick?: (location: { lat: number; lng: number; label?: string }) => void;
+    onBtDeletePole?: (id: string) => void;
+    onBtDeleteEdge?: (id: string) => void;
+    onBtDeleteTransformer?: (id: string) => void;
+    criticalPoleId?: string | null;
+    accumulatedByPole?: { poleId: string; accumulatedClients: number; accumulatedDemandKva: number }[];
     onKmlDrop?: (file: File) => void;
     mapStyle?: string;
     onMapStyleChange?: (style: string) => void;
@@ -182,6 +187,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     btEditorMode = 'none',
     pendingBtEdgeStartPoleId,
     onBtMapClick,
+    onBtDeletePole,
+    onBtDeleteEdge,
+    onBtDeleteTransformer,
+    criticalPoleId,
+    accumulatedByPole = [],
     onKmlDrop,
     mapStyle = 'dark',
     onMapStyleChange,
@@ -193,23 +203,35 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         return new Map(topology.poles.map((pole) => [pole.id, pole]));
     }, [topology.poles]);
 
-    const transformerIcon = React.useMemo(() => {
+    const accumulatedByPoleMap = React.useMemo(() => {
+        return new Map(accumulatedByPole.map((entry) => [entry.poleId, entry]));
+    }, [accumulatedByPole]);
+
+    const makePoleIcon = (poleId: string, verified: boolean) => {
+        const isCritical = poleId === criticalPoleId;
+        const isPending = poleId === pendingBtEdgeStartPoleId;
+        let bg = '#2563eb';
+        let size = 12;
+        if (isCritical) { bg = '#ef4444'; size = 16; }
+        else if (isPending) { bg = '#f59e0b'; size = 14; }
+        else if (verified) { bg = '#16a34a'; }
+        return L.divIcon({
+            className: 'bt-pole-icon',
+            html: `<div style="background:${bg};border:2px solid #ffffff;width:${size}px;height:${size}px;border-radius:9999px;box-shadow:0 0 0 2px ${bg}40;"></div>`,
+            iconSize: [size, size],
+            iconAnchor: [size / 2, size / 2]
+        });
+    };
+
+    const makeTransformerIcon = (verified: boolean) => {
+        const bg = verified ? '#15803d' : '#7c3aed';
         return L.divIcon({
             className: 'bt-transformer-icon',
-            html: '<div style="background:#7c3aed;border:2px solid #ffffff;width:14px;height:14px;transform:rotate(45deg);"></div>',
+            html: `<div style="background:${bg};border:2px solid #ffffff;width:14px;height:14px;transform:rotate(45deg);"></div>`,
             iconSize: [14, 14],
             iconAnchor: [7, 7]
         });
-    }, []);
-
-    const poleIcon = React.useMemo(() => {
-        return L.divIcon({
-            className: 'bt-pole-icon',
-            html: '<div style="background:#2563eb;border:2px solid #ffffff;width:12px;height:12px;border-radius:9999px;"></div>',
-            iconSize: [12, 12],
-            iconAnchor: [6, 6]
-        });
-    }, []);
+    };
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -281,13 +303,22 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         <Polyline
                             key={edge.id}
                             positions={[[from.lat, from.lng], [to.lat, to.lng]]}
-                            pathOptions={{ color: '#22c55e', weight: 3, opacity: 0.9 }}
+                            pathOptions={{ color: edge.verified ? '#22c55e' : '#f59e0b', weight: edge.verified ? 3 : 2, opacity: 0.9, dashArray: edge.verified ? undefined : '6 4' }}
                         >
                             <Popup>
                                 <div className="text-xs">
                                     <div><strong>{edge.id}</strong></div>
                                     <div>{edge.fromPoleId}{' -> '}{edge.toPoleId}</div>
                                     {typeof edge.lengthMeters === 'number' && <div>{edge.lengthMeters} m</div>}
+                                    <div style={{color: edge.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{edge.verified ? '✓ Verificado' : '○ Não verificado'}</div>
+                                    {onBtDeleteEdge && (
+                                        <button
+                                            onClick={() => onBtDeleteEdge(edge.id)}
+                                            style={{marginTop: 4, padding: '2px 8px', background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer', fontSize: 11}}
+                                        >
+                                            Deletar aresta
+                                        </button>
+                                    )}
                                 </div>
                             </Popup>
                         </Polyline>
@@ -295,23 +326,48 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                 })}
 
                 {(topology.poles || []).map((pole) => (
-                    <Marker key={pole.id} position={[pole.lat, pole.lng]} icon={poleIcon}>
+                    <Marker key={`${pole.id}-${pole.verified ? 'v' : 'u'}-${pole.id === criticalPoleId ? 'c' : 'n'}-${pole.id === pendingBtEdgeStartPoleId ? 'p' : 'x'}`} position={[pole.lat, pole.lng]} icon={makePoleIcon(pole.id, !!pole.verified)}>
                         <Popup>
                             <div className="text-xs">
                                 <strong>{pole.title}</strong>
                                 <div>{pole.id}</div>
+                                {pole.id === criticalPoleId && <div style={{color:'#ef4444', fontWeight:700, marginTop:2}}>⚠ Ponto crítico</div>}
+                                {accumulatedByPoleMap.has(pole.id) && (
+                                    <div style={{marginTop: 3, color: '#374151'}}>
+                                        <div>CLT acum.: {accumulatedByPoleMap.get(pole.id)!.accumulatedClients}</div>
+                                        <div>Dem. acum.: {accumulatedByPoleMap.get(pole.id)!.accumulatedDemandKva.toFixed(2)} kVA</div>
+                                    </div>
+                                )}
+                                <div style={{color: pole.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{pole.verified ? '✓ Verificado' : '○ Não verificado'}</div>
+                                {onBtDeletePole && (
+                                    <button
+                                        onClick={() => onBtDeletePole(pole.id)}
+                                        style={{marginTop: 4, padding: '2px 8px', background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer', fontSize: 11}}
+                                    >
+                                        Deletar poste
+                                    </button>
+                                )}
                             </div>
                         </Popup>
                     </Marker>
                 ))}
 
                 {(topology.transformers || []).map((transformer) => (
-                    <Marker key={transformer.id} position={[transformer.lat, transformer.lng]} icon={transformerIcon}>
+                    <Marker key={`${transformer.id}-${transformer.verified ? 'v' : 'u'}`} position={[transformer.lat, transformer.lng]} icon={makeTransformerIcon(!!transformer.verified)}>
                         <Popup>
                             <div className="text-xs">
                                 <strong>{transformer.title}</strong>
                                 <div>{transformer.id}</div>
                                 <div>Demanda: {transformer.demandKw} kW</div>
+                                <div style={{color: transformer.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{transformer.verified ? '✓ Verificado' : '○ Não verificado'}</div>
+                                {onBtDeleteTransformer && (
+                                    <button
+                                        onClick={() => onBtDeleteTransformer(transformer.id)}
+                                        style={{marginTop: 4, padding: '2px 8px', background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer', fontSize: 11}}
+                                    >
+                                        Deletar trafo
+                                    </button>
+                                )}
                             </div>
                         </Popup>
                     </Marker>

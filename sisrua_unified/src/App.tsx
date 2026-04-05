@@ -139,6 +139,12 @@ function App() {
   const btEditorMode: BtEditorMode = settings.btEditorMode ?? 'none';
   const [pendingBtEdgeStartPoleId, setPendingBtEdgeStartPoleId] = useState<string | null>(null);
 
+  const btAccumulatedByPole = React.useMemo(
+    () => calculateAccumulatedDemandByPole(btTopology, settings.projectType ?? 'ramais', settings.clandestinoAreaM2 ?? 0),
+    [btTopology, settings.projectType, settings.clandestinoAreaM2]
+  );
+  const btCriticalPoleId = btAccumulatedByPole[0]?.poleId ?? null;
+
   // Core analysis engine
   const {
     isProcessing,
@@ -504,6 +510,40 @@ function App() {
       setPendingBtEdgeStartPoleId(null);
       showToast(`Aresta ${edgeId} criada (${lengthMeters}m)`, 'success');
     }
+  };
+
+  const handleBtDeletePole = (poleId: string) => {
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        poles: btTopology.poles.filter((p) => p.id !== poleId),
+        edges: btTopology.edges.filter((e) => e.fromPoleId !== poleId && e.toPoleId !== poleId)
+      }
+    }, true);
+    showToast(`Poste ${poleId} removido`, 'info');
+  };
+
+  const handleBtDeleteEdge = (edgeId: string) => {
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        edges: btTopology.edges.filter((e) => e.id !== edgeId)
+      }
+    }, true);
+    showToast(`Aresta ${edgeId} removida`, 'info');
+  };
+
+  const handleBtDeleteTransformer = (transformerId: string) => {
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        transformers: btTopology.transformers.filter((t) => t.id !== transformerId)
+      }
+    }, true);
+    showToast(`Transformador ${transformerId} removido`, 'info');
   };
 
   const handleMapClick = (newCenter: GeoLocation) => {
@@ -1073,6 +1113,11 @@ function App() {
             btTopology={btTopology}
             onBtMapClick={handleBtMapClick}
             pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId}
+            onBtDeletePole={handleBtDeletePole}
+            onBtDeleteEdge={handleBtDeleteEdge}
+            onBtDeleteTransformer={handleBtDeleteTransformer}
+            criticalPoleId={btCriticalPoleId}
+            accumulatedByPole={btAccumulatedByPole}
             onPolygonChange={(points) => {
               const geoPoints = points.map(p => ({ lat: p[0], lng: p[1] }));
               setAppState({ ...appState, polygon: geoPoints }, true);
