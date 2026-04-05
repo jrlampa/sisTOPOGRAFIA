@@ -86,6 +86,9 @@ export function useFileOperations({
             edges: []
           };
         }
+        if (loadedState.btExportSummary === undefined) {
+          loadedState.btExportSummary = null;
+        }
 
         setAppState(loadedState, true);
         onSuccess('Project Loaded');

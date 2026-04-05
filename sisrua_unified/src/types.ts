@@ -155,6 +155,13 @@ export interface BtTopology {
   edges: BtEdge[];
 }
 
+export interface BtExportSummary {
+  btContextUrl: string;
+  criticalPoleId: string;
+  criticalAccumulatedClients: number;
+  criticalAccumulatedDemandKva: number;
+}
+
 export interface AppSettings {
   enableAI: boolean;
   simplificationLevel: SimplificationLevel;
@@ -181,4 +188,5 @@ export interface GlobalState {
   measurePath: GeoLocation[];
   settings: AppSettings;
   btTopology?: BtTopology;
+  btExportSummary?: BtExportSummary | null;
 }

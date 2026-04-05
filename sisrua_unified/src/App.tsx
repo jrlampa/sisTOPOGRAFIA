@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Map as MapIcon, Layers, Search, Loader2, AlertCircle, Settings, Mountain, TrendingUp } from 'lucide-react';
-import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode } from './types';
+import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
 import MapSelector from './components/MapSelector';
 import Dashboard from './components/Dashboard';
@@ -34,13 +34,6 @@ const EMPTY_BT_TOPOLOGY: BtTopology = {
   transformers: [],
   edges: []
 };
-
-interface BtExportSummary {
-  btContextUrl: string;
-  criticalPoleId: string;
-  criticalAccumulatedClients: number;
-  criticalAccumulatedDemandKva: number;
-}
 
 const distanceMeters = (a: GeoLocation, b: GeoLocation) => {
   const earthRadius = 6371000;
@@ -107,12 +100,14 @@ function App() {
         revision: 'R00'
       }
     },
-    btTopology: EMPTY_BT_TOPOLOGY
+    btTopology: EMPTY_BT_TOPOLOGY,
+    btExportSummary: null
   });
 
   // Derived state
   const { center, radius, selectionMode, polygon, measurePath, settings } = appState;
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
+  const btExportSummary = appState.btExportSummary ?? null;
   const isDark = settings.theme === 'dark';
   const btEditorMode: BtEditorMode = settings.btEditorMode ?? 'none';
   const [pendingBtEdgeStartPoleId, setPendingBtEdgeStartPoleId] = useState<string | null>(null);
@@ -134,7 +129,6 @@ function App() {
 
   // Toast notifications
   const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null);
-  const [btExportSummary, setBtExportSummary] = useState<BtExportSummary | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
   const showToast = (message: string, type: ToastType) => {
@@ -169,12 +163,14 @@ function App() {
         return;
       }
 
-      setBtExportSummary({
+      const nextBtExportSummary: BtExportSummary = {
         btContextUrl,
         criticalPoleId: poleId,
         criticalAccumulatedClients: accumulatedClients,
         criticalAccumulatedDemandKva: accumulatedDemandKva
-      });
+      };
+
+      setAppState({ ...appState, btExportSummary: nextBtExportSummary }, false);
       showToast(`Resumo BT: ponto crítico ${poleId} (${accumulatedDemandKva.toFixed(2)}).`, 'info');
     }
   });
