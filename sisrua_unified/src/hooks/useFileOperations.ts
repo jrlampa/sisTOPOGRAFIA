@@ -62,7 +62,13 @@ export function useFileOperations({
           throw new Error('Invalid project file format');
         }
         
-        setAppState(data.state, true);
+        const loadedState = data.state as GlobalState;
+        // Backward compatibility for older .osmpro files created before contour mode existed
+        if (!loadedState.settings.contourRenderMode) {
+          loadedState.settings.contourRenderMode = 'spline';
+        }
+
+        setAppState(loadedState, true);
         onSuccess('Project Loaded');
       } catch (error) {
         onError('Failed to load project');

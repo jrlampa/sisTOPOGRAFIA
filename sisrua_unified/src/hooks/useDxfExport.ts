@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { generateDXF, getDxfJobStatus } from '../services/dxfService';
 import { SelectionMode, GeoLocation, LayerConfig } from '../types';
 
+type ContourRenderMode = 'spline' | 'polyline';
+
 interface UseDxfExportProps {
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
@@ -30,7 +32,8 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
     selectionMode: SelectionMode,
     polygon: GeoLocation[],
     layers: LayerConfig,
-    projection: 'local' | 'utm' = 'utm'
+    projection: 'local' | 'utm' = 'utm',
+    contourRenderMode: ContourRenderMode = 'spline'
   ) => {
     setIsDownloading(true);
     setJobStatus('queued');
@@ -44,7 +47,8 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
         selectionMode,
         polygon,
         layers,
-        projection
+        projection,
+        contourRenderMode
       );
 
       if (!result) {

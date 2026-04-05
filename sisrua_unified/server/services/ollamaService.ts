@@ -13,8 +13,8 @@ export class OllamaService {
             const hasData = stats.buildings > 0 || stats.roads > 0 || stats.trees > 0;
 
             const prompt = hasData ?
-                `Analise urbana profissional em Português BR para ${locationName}: ${JSON.stringify(stats)}. Sugira melhorias focadas em mobilidade, infraestrutura e áreas verdes. Formate como Markdown profissional. Responda APENAS JSON: { "analysis": "markdown" }` :
-                `Explique em Português BR a falta de dados estruturais em ${locationName} e como o OSM pode ser complementado. JSON: { "analysis": "markdown" }`;
+                `Você é um especialista em urbanismo. Dados da área "${locationName}": ${JSON.stringify(stats)}. Responda SOMENTE com JSON válido no formato: {"analysis":"..."}. O valor de analysis deve ser um resumo CURTO em Português BR com no máximo 5 linhas: destaque os principais números (edificações, vias, vegetação), aponte 1 risco crítico e 1 ação prioritária. Sem introduções, sem listas longas.` :
+                `Área "${locationName}" sem dados OSM disponíveis. Responda APENAS JSON: {"analysis":"Área sem dados no OpenStreetMap. Verifique o endereço ou amplie o raio de busca."}`;
 
             logger.info('Requesting Ollama AI analysis', { 
                 locationName, 

@@ -206,7 +206,17 @@ class DXFGenerator:
 
     def _draw_geometry(self, geom, layer, diff_x, diff_y, tags):
         """Recursive geometry drawing with text support"""
-        if geom.is_empty:
+        if geom is None or geom.is_empty:
+            return
+
+        # Flatten GeometryCollections – gpd.clip can produce mixed-type
+        # collections when a geometry is only partially inside the clip mask.
+        from shapely.geometry import GeometryCollection
+        if isinstance(geom, GeometryCollection) and not isinstance(
+            geom, (Polygon, MultiPolygon, LineString, MultiLineString, Point)
+        ):
+            for sub in geom.geoms:
+                self._draw_geometry(sub, layer, diff_x, diff_y, tags)
             return
 
         # Ensure layer exists in the document, or fallback to '0'
@@ -511,25 +521,36 @@ class DXFGenerator:
                     Logger.error(f"Error setting mesh vertex at ({r}, {c}): {e}")
                     mesh.set_mesh_vertex((r, c), (0.0, 0.0, 0.0))
 
-    def add_contour_lines(self, contour_lines):
+    def add_contour_lines(self, contour_lines, use_spline=True):
         """
-        Draws contour lines.
+        Draws contour lines as smooth SPLINE entities when possible.
+        Falls back to 3D polylines for compatibility.
         contour_lines: List of points [(x, y, z), ...] or list of lists of points.
         """
         for line_points in contour_lines:
-             if len(line_points) < 2:
-                 continue
-             
-             # Draw as 3D Polyline (polyline with elevation)
-             # ezdxf add_lwpolyline is 2D with constant elevation.
-             # If points have different Z (unlikely for a contour line), we need Polyline.
-             # Use simple 3D Polyline
-             valid_line = self._validate_points(line_points, min_points=2, is_3d=True)
-             if valid_line:
-                 self.msp.add_polyline3d(
-                     valid_line, 
-                     dxfattribs={'layer': 'TOPOGRAFIA_CURVAS', 'color': 8}
-                 )
+            if len(line_points) < 2:
+                continue
+
+            valid_line = self._validate_points(line_points, min_points=2, is_3d=True)
+            if not valid_line:
+                continue
+
+            # Use spline for smoother contour curves (more cartographically faithful).
+            # Fallback to polyline3d if spline creation fails for any segment.
+            if use_spline and len(valid_line) >= 3:
+                try:
+                    self.msp.add_spline(
+                        fit_points=valid_line,
+                        dxfattribs={'layer': 'TOPOGRAFIA_CURVAS', 'color': 8}
+                    )
+                    continue
+                except Exception as e:
+                    Logger.info(f"Spline contour fallback to polyline: {e}")
+
+            self.msp.add_polyline3d(
+                valid_line,
+                dxfattribs={'layer': 'TOPOGRAFIA_CURVAS', 'color': 8}
+            )
 
     def add_cartographic_elements(self, min_x, min_y, max_x, max_y, diff_x, diff_y):
         """Adds North Arrow and Scale Bar to the drawing"""

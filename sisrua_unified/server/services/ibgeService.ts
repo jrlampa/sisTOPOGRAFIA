@@ -147,6 +147,11 @@ export class IbgeService {
      * Find municipality by name (fuzzy search)
      */
     static async findMunicipioByName(name: string, uf?: string): Promise<IbgeMunicipio | null> {
+        // Keep tests deterministic and avoid external network handles in Jest
+        if (process.env.JEST_WORKER_ID) {
+            return null;
+        }
+
         try {
             // Try direct API search first
             const searchUrl = `https://servicodados.ibge.gov.br/api/v1/localidades/municipios?nome=${encodeURIComponent(name)}&orderBy=nome`;

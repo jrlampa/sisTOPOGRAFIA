@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--format', type=str, required=False, default='dxf', help='Output format (dxf, kml, geojson)')
     parser.add_argument('--selection_mode', type=str, required=False, default='circle', help='Selection mode (circle, polygon)')
     parser.add_argument('--polygon', type=str, required=False, default='[]', help='JSON string of polygon points [[lat, lon], ...]')
+    parser.add_argument('--contour_style', type=str, required=False, default='spline', help='Contour render mode: spline or polyline')
     parser.add_argument('--client_name', type=str, required=False, default='CLIENTE PADRÃO', help='Client name for title block')
     parser.add_argument('--project_id', type=str, required=False, default='PROJETO URBANISTICO', help='Project ID for title block')
     parser.add_argument('--no-preview', action='store_true', help='Skip GeoJSON preview logs (prevents OOM in CLI)')
@@ -35,6 +36,15 @@ def main():
         if args.no_preview:
             Logger.SKIP_GEOJSON = True
 
+        raw_polygon = json.loads(args.polygon)
+        # Normalize polygon: accept both [[lat,lon],...] arrays and [{lat,lng},...] objects
+        # (frontend sends GeoLocation objects with {lat, lng} keys)
+        def _normalize_point(p):
+            if isinstance(p, dict):
+                return [p.get('lat', p.get('latitude', 0)), p.get('lng', p.get('lon', p.get('longitude', 0)))]
+            return list(p)  # already [lat, lon]
+        polygon = [_normalize_point(p) for p in raw_polygon] if raw_polygon else []
+
         controller = OSMController(
             lat=args.lat,
             lon=args.lon,
@@ -44,7 +54,8 @@ def main():
             crs=args.crs,
             export_format=args.format,
             selection_mode=args.selection_mode,
-            polygon=json.loads(args.polygon)
+            polygon=polygon,
+            contour_style=args.contour_style
         )
         controller.project_metadata = {
             'client': args.client_name,

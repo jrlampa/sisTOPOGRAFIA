@@ -106,11 +106,13 @@ export type ProjectionType = 'local' | 'utm';
 export type AppTheme = 'light' | 'dark';
 export type MapProvider = 'vector' | 'satellite';
 export type SimplificationLevel = 'off' | 'low' | 'medium' | 'high';
+export type ContourRenderMode = 'spline' | 'polyline';
 
 export interface AppSettings {
   enableAI: boolean;
   simplificationLevel: SimplificationLevel;
   orthogonalize: boolean;
+  contourRenderMode: ContourRenderMode;
   layers: LayerConfig;
   projection: ProjectionType;
   theme: AppTheme;

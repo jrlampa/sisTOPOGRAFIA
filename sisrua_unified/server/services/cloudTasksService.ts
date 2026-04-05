@@ -46,6 +46,7 @@ export interface DxfTaskPayload {
     polygon: string;
     layers: Record<string, unknown>;
     projection: string;
+    contourRenderMode: 'spline' | 'polyline';
     outputFile: string;
     filename: string;
     cacheKey: string;
@@ -89,6 +90,7 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
             polygon: payload.polygon,
             layers: payload.layers as Record<string, boolean>,
             projection: payload.projection,
+            contourRenderMode: payload.contourRenderMode,
             outputFile: payload.outputFile
         }).then(() => {
             // Schedule DXF file for deletion after 10 minutes

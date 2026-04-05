@@ -1,0 +1,183 @@
+name: Release - Deploy
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+  GCP_REGION: southamerica-east1
+  SERVICE_NAME: sisrua-app
+
+jobs:
+  # ============================================
+  # PRE-DEPLOY CHECKS
+  # ============================================
+  pre-deploy-checks:
+    name: Pre-Deploy Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run all tests
+        run: npm run test:all
+        env:
+          NODE_ENV: test
+          OFFLINE_MODE: true
+
+      - name: Security audit
+        run: npm run security:audit
+
+      - name: Build verification
+        run: npm run build
+
+      - name: Release checklist verification
+        run: |
+          echo "=== RELEASE CHECKLIST ==="
+          echo "✅ All tests passing"
+          echo "✅ Security audit clean"
+          echo "✅ Build successful"
+          echo "✅ Version updated (if needed)"
+          echo "========================"
+
+  # ============================================
+  # BUILD & PUSH CONTAINER
+  # ============================================
+  build-and-push:
+    name: Build & Push Container
+    runs-on: ubuntu-latest
+    needs: [pre-deploy-checks]
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+
+      - name: Build container image
+        run: |
+          docker build -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
+          docker tag gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:${{ github.sha }} gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:latest
+
+      - name: Push to Container Registry
+        run: |
+          docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:latest
+
+  # ============================================
+  # DEPLOY TO CLOUD RUN
+  # ============================================
+  deploy:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    timeout-minutes: 10
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    
+    steps:
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            --region ${{ env.GCP_REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars "NODE_ENV=production" \
+            --set-env-vars "CLOUD_RUN_BASE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
+            --set-env-vars "CLOUD_RUN_SERVICE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
+            --set-env-vars "GCP_PROJECT=${{ secrets.GCP_PROJECT }}" \
+            --set-secrets "GROQ_API_KEY=groq-api-key:latest"
+
+      - name: Get service URL
+        run: |
+          echo "SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} --region ${{ env.GCP_REGION }} --format 'value(status.url)')" >> $GITHUB_ENV
+
+  # ============================================
+  # SMOKE TESTS POST-DEPLOY
+  # ============================================
+  smoke-tests:
+    name: Post-Deploy Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Wait for service
+        run: |
+          echo "Waiting for service to be ready..."
+          sleep 30
+          curl -sf ${{ env.SERVICE_URL }}/health || (echo "Service not ready" && exit 1)
+
+      - name: Run smoke tests
+        run: npm run test:e2e -- --grep "@smoke"
+        env:
+          BASE_URL: ${{ env.SERVICE_URL }}
+          NODE_ENV: production
+
+      - name: Upload smoke test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-test-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+      - name: Notify success
+        if: success()
+        run: |
+          echo "🚀 Deployment successful!"
+          echo "Service URL: ${{ env.SERVICE_URL }}"
+          echo "Commit: ${{ github.sha }}"

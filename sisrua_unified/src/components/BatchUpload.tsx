@@ -30,6 +30,25 @@ type BatchUploadProps = {
 
 const API_URL = API_BASE_URL;
 
+const parseBatchResponse = async (response: Response): Promise<unknown> => {
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+  const rawBody = await response.text();
+
+  if (!rawBody || rawBody.trim().length === 0) {
+    throw new Error(`Batch endpoint returned empty response body (HTTP ${response.status})`);
+  }
+
+  if (!contentType.includes('application/json')) {
+    throw new Error(`Batch endpoint returned non-JSON response (HTTP ${response.status})`);
+  }
+
+  try {
+    return JSON.parse(rawBody);
+  } catch {
+    throw new Error(`Batch endpoint returned invalid JSON (HTTP ${response.status})`);
+  }
+};
+
 const sanitizeFileName = (name: string) =>
   name.toLowerCase().replace(/[^a-z0-9-_]+/g, '_').slice(0, 40) || 'batch';
 
@@ -75,19 +94,25 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
         body: formData
       });
 
-      const payload = await response.json();
+      const payload = await parseBatchResponse(response);
       if (!response.ok) {
-        throw new Error(payload.error || 'Batch upload failed');
+        const errorMessage =
+          typeof payload === 'object' &&
+          payload !== null &&
+          typeof (payload as Record<string, unknown>).error === 'string'
+            ? ((payload as Record<string, string>).error)
+            : 'Falha no envio em lote';
+        throw new Error(errorMessage);
       }
 
       const batchResponse = payload as BatchResponse;
       setItems(batchResponse.results || []);
       setErrors(batchResponse.errors || []);
       if (batchResponse.errors && batchResponse.errors.length > 0) {
-        onError(`CSV errors: ${batchResponse.errors.length} row(s) failed`);
+        onError(`Erros no CSV: ${batchResponse.errors.length} linha(s) com erro`);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Batch upload failed';
+      const message = error instanceof Error ? error.message : 'Falha no envio em lote';
       setErrors([{ line: 0, message }]);
       onError(message);
       setItems([]);
@@ -165,7 +190,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
 
   useEffect(() => {
     if (allCompleted) {
-      onInfo('Batch DXF complete. Ready to download.');
+      onInfo('DXF em lote concluído. Pronto para baixar.');
     }
   }, [allCompleted, onInfo]);
 
@@ -192,8 +217,8 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
           <Upload size={18} />
         </div>
         <div className="flex flex-col">
-          <span className="text-xs font-black uppercase tracking-wider text-slate-400">Batch DXF</span>
-          <span className="text-sm font-semibold text-slate-100">Upload CSV and queue exports</span>
+          <span className="text-xs font-black uppercase tracking-wider text-slate-400">DXF em Lote</span>
+          <span className="text-sm font-semibold text-slate-100">Enviar CSV e gerar exportações</span>
         </div>
       </div>
 
@@ -209,10 +234,10 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
         {isUploading ? (
           <span className="flex items-center gap-2 text-emerald-300">
             <Loader2 size={16} className="animate-spin" />
-            Uploading CSV...
+            Enviando CSV...
           </span>
         ) : (
-          <span>Drop CSV here or click to browse</span>
+          <span>Arraste CSV aqui ou clique para selecionar</span>
         )}
         <input type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
       </label>
@@ -221,11 +246,11 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-200">
           <div className="mb-2 flex items-center gap-2 text-rose-300">
             <AlertTriangle size={14} />
-            <span className="font-semibold">CSV errors</span>
+            <span className="font-semibold">Erros no CSV</span>
           </div>
           <ul className="space-y-1">
             {errors.map((err, index) => (
-              <li key={`${err.line}-${index}`}>Line {err.line || '-'}: {err.message}</li>
+              <li key={`${err.line}-${index}`}>Linha {err.line || '-'}: {err.message}</li>
             ))}
           </ul>
         </div>
@@ -237,7 +262,12 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
             <div key={`${item.name}-${item.jobId ?? 'cached'}`} className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-xs text-slate-200">
               <div className="flex flex-col">
                 <span className="font-semibold">{item.name}</span>
-                <span className="text-[10px] uppercase tracking-wider text-slate-500">{item.status}</span>
+                <span className="text-[10px] uppercase tracking-wider text-slate-500">{{
+                  queued: 'Na fila',
+                  cached: 'Em cache',
+                  completed: 'Concluído',
+                  failed: 'Erro'
+                }[item.status] ?? item.status}</span>
               </div>
               <div className="flex items-center gap-2">
                 {(item.status === 'completed' || item.status === 'cached') && item.url && (
@@ -245,14 +275,14 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
                     onClick={() => triggerDownload(item.url as string, item.name)}
                     className="rounded-lg bg-emerald-500/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-200"
                   >
-                    Download
+                    Baixar
                   </button>
                 )}
                 {item.status === 'queued' && (
                   <span className="text-[10px] text-slate-400">{item.progress ?? 0}%</span>
                 )}
                 {item.status === 'failed' && (
-                  <span className="text-[10px] text-rose-300">{item.error || 'Failed'}</span>
+                  <span className="text-[10px] text-rose-300">{item.error || 'Erro'}</span>
                 )}
                 {(item.status === 'completed' || item.status === 'cached') && (
                   <CheckCircle2 size={14} className="text-emerald-400" />
@@ -269,7 +299,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
           className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-600/20"
         >
           <DownloadCloud size={16} />
-          Download All
+          Baixar Tudo
         </button>
       )}
     </div>

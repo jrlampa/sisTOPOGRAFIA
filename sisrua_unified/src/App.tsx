@@ -41,6 +41,7 @@ function App() {
       enableAI: true,
       simplificationLevel: 'low',
       orthogonalize: true,
+      contourRenderMode: 'spline',
       projection: 'utm',
       theme: 'dark',
       mapProvider: 'vector',
@@ -166,7 +167,15 @@ function App() {
 
   const handleDownloadDxf = async () => {
     if (!osmData) return;
-    await downloadDxf(center, radius, selectionMode, polygon, settings.layers, settings.projection);
+    await downloadDxf(
+      center,
+      radius,
+      selectionMode,
+      polygon,
+      settings.layers,
+      settings.projection,
+      settings.contourRenderMode
+    );
   };
 
   const handleDownloadGeoJSON = async () => {
