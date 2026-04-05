@@ -21,7 +21,15 @@ interface BtTopologyPanelProps {
   btNetworkScenario: BtNetworkScenario;
   clandestinoAreaM2: number;
   onTopologyChange: (next: BtTopology) => void;
+  onBtRenamePole?: (poleId: string, title: string) => void;
 }
+
+const WIRE_AMPACITY: Record<number, number> = {
+  1.5: 15, 2.5: 21, 4: 27, 6: 34, 10: 46, 16: 61,
+  25: 80, 35: 99, 50: 119, 70: 151, 95: 182, 120: 210,
+  150: 240, 185: 273, 240: 325
+};
+const getWireAmpacity = (mm2: number): number => WIRE_AMPACITY[mm2] ?? Math.round(mm2 * 1.4);
 
 const numberFromInput = (value: string): number => {
   const parsed = Number(value);
@@ -35,7 +43,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   projectType,
   btNetworkScenario,
   clandestinoAreaM2,
-  onTopologyChange
+  onTopologyChange,
+  onBtRenamePole,
 }) => {
   const summary = calculateBtSummary(btTopology);
   const [selectedPoleId, setSelectedPoleId] = React.useState<string>('');
@@ -246,66 +255,73 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         </div>
       )}
 
-      {btNetworkScenario === 'asis' && (
-        <div className="space-y-3 rounded-lg border border-cyan-500/20 bg-slate-950/50 p-3">
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-300">Verificação AS-IS</div>
+      <div className="space-y-3 rounded-lg border border-cyan-500/20 bg-slate-950/50 p-3">
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-300">Postes / Verificação</div>
 
-          <div className="space-y-2">
-            <div className="text-[10px] text-slate-400">Poste existente</div>
-            {btTopology.poles.length === 0 ? (
-              <div className="text-[10px] text-slate-500">Nenhum poste disponível para marcação.</div>
-            ) : (
-              <>
-                <select
-                  className="w-full rounded border border-white/10 bg-slate-900 p-2 text-xs text-slate-200"
-                  value={selectedPoleId}
-                  onChange={(e) => setSelectedPoleId(e.target.value)}
-                >
-                  {btTopology.poles.map((pole) => (
-                    <option key={pole.id} value={pole.id}>{pole.title}</option>
-                  ))}
-                </select>
-                {selectedPole && (
+        <div className="space-y-2">
+          <div className="text-[10px] text-slate-400">Poste selecionado</div>
+          {btTopology.poles.length === 0 ? (
+            <div className="text-[10px] text-slate-500">Nenhum poste cadastrado.</div>
+          ) : (
+            <>
+              <select
+                className="w-full rounded border border-white/10 bg-slate-900 p-2 text-xs text-slate-200"
+                value={selectedPoleId}
+                onChange={(e) => setSelectedPoleId(e.target.value)}
+              >
+                {btTopology.poles.map((pole) => (
+                  <option key={pole.id} value={pole.id}>{pole.title}</option>
+                ))}
+              </select>
+              {selectedPole && (
+                <>
+                  <input
+                    type="text"
+                    value={selectedPole.title}
+                    onChange={(e) => onBtRenamePole?.(selectedPole.id, e.target.value)}
+                    placeholder="Nome do poste"
+                    className="w-full rounded border border-white/10 bg-slate-900 p-1.5 text-xs text-slate-200 focus:border-cyan-500/60 outline-none"
+                  />
                   <button
                     onClick={() => updatePoleVerified(selectedPole.id, !selectedPole.verified)}
                     className="rounded border border-cyan-500/30 px-3 py-1 text-[10px] text-cyan-100 hover:bg-cyan-500/10"
                   >
                     {selectedPole.verified ? 'Marcar como não verificado' : 'Marcar poste como verificado'}
                   </button>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <div className="text-[10px] text-slate-400">Aresta existente</div>
-            {selectedEdge ? (
-              <button
-                onClick={() => updateEdgeVerified(selectedEdge.id, !selectedEdge.verified)}
-                className="rounded border border-cyan-500/30 px-3 py-1 text-[10px] text-cyan-100 hover:bg-cyan-500/10"
-              >
-                {selectedEdge.verified ? 'Marcar aresta como não verificada' : 'Marcar aresta como verificada'}
-              </button>
-            ) : (
-              <div className="text-[10px] text-slate-500">Nenhuma aresta disponível para marcação.</div>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <div className="text-[10px] text-slate-400">Transformador existente</div>
-            {selectedTransformer ? (
-              <button
-                onClick={() => updateTransformerVerified(selectedTransformer.id, !selectedTransformer.verified)}
-                className="rounded border border-cyan-500/30 px-3 py-1 text-[10px] text-cyan-100 hover:bg-cyan-500/10"
-              >
-                {selectedTransformer.verified ? 'Marcar trafo como não verificado' : 'Marcar trafo como verificado'}
-              </button>
-            ) : (
-              <div className="text-[10px] text-slate-500">Nenhum transformador disponível para marcação.</div>
-            )}
-          </div>
+                </>
+              )}
+            </>
+          )}
         </div>
-      )}
+
+        <div className="space-y-2">
+          <div className="text-[10px] text-slate-400">Aresta</div>
+          {selectedEdge ? (
+            <button
+              onClick={() => updateEdgeVerified(selectedEdge.id, !selectedEdge.verified)}
+              className="rounded border border-cyan-500/30 px-3 py-1 text-[10px] text-cyan-100 hover:bg-cyan-500/10"
+            >
+              {selectedEdge.verified ? 'Marcar aresta como não verificada' : 'Marcar aresta como verificada'}
+            </button>
+          ) : (
+            <div className="text-[10px] text-slate-500">Nenhuma aresta disponível para marcação.</div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-[10px] text-slate-400">Transformador</div>
+          {selectedTransformer ? (
+            <button
+              onClick={() => updateTransformerVerified(selectedTransformer.id, !selectedTransformer.verified)}
+              className="rounded border border-cyan-500/30 px-3 py-1 text-[10px] text-cyan-100 hover:bg-cyan-500/10"
+            >
+              {selectedTransformer.verified ? 'Marcar trafo como não verificado' : 'Marcar trafo como verificado'}
+            </button>
+          ) : (
+            <div className="text-[10px] text-slate-500">Nenhum transformador disponível para marcação.</div>
+          )}
+        </div>
+      </div>
 
       <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/50 p-3">
         <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Transformador ({btNetworkScenario === 'asis' ? 'leituras AS-IS' : 'base de projeto'})</div>
@@ -515,6 +531,27 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     </span>
                   </div>
                 </div>
+                {(() => {
+                  const toPoleEntry = accumulatedByPole.find((a) => a.poleId === selectedEdge.toPoleId);
+                  const demandKva = toPoleEntry?.accumulatedDemandKva ?? 0;
+                  const requiredAmps = demandKva > 0 ? Math.round((demandKva * 1000) / 220) : 0;
+                  const capacityAmps = selectedEdge.conductors.reduce(
+                    (sum, c) => sum + c.quantity * getWireAmpacity(c.wireGaugeMm2), 0
+                  );
+                  if (requiredAmps === 0 || capacityAmps === 0) return null;
+                  const ratio = requiredAmps / capacityAmps;
+                  const statusColor = ratio < 0.8 ? '#22c55e' : ratio < 1 ? '#f59e0b' : '#ef4444';
+                  const statusText = ratio < 0.8 ? 'OK' : ratio < 1 ? 'Atenção' : 'Sobrecarga';
+                  return (
+                    <div className="rounded border border-white/10 bg-slate-900 p-2 text-[10px] text-slate-300">
+                      <div className="flex items-center justify-between">
+                        <span>Cap. condutores: {capacityAmps} A</span>
+                        <span style={{ color: statusColor, fontWeight: 700 }}>{statusText}</span>
+                      </div>
+                      <div>Corrente est. (220 V mono): {requiredAmps} A</div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </>

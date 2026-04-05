@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Circle, useMapEvents, GeoJSON, Polygon, Polyline, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Circle, useMapEvents, GeoJSON, Polygon, Polyline, Popup, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { GeoJsonObject, FeatureCollection } from 'geojson';
@@ -30,6 +30,8 @@ interface MapSelectorProps {
     onBtDeletePole?: (id: string) => void;
     onBtDeleteEdge?: (id: string) => void;
     onBtDeleteTransformer?: (id: string) => void;
+    onBtDragPole?: (poleId: string, lat: number, lng: number) => void;
+    onBtDragTransformer?: (transformerId: string, lat: number, lng: number) => void;
     criticalPoleId?: string | null;
     accumulatedByPole?: { poleId: string; accumulatedClients: number; accumulatedDemandKva: number }[];
     onKmlDrop?: (file: File) => void;
@@ -190,6 +192,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     onBtDeletePole,
     onBtDeleteEdge,
     onBtDeleteTransformer,
+    onBtDragPole,
+    onBtDragTransformer,
     criticalPoleId,
     accumulatedByPole = [],
     onKmlDrop,
@@ -326,7 +330,21 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                 })}
 
                 {(topology.poles || []).map((pole) => (
-                    <Marker key={`${pole.id}-${pole.verified ? 'v' : 'u'}-${pole.id === criticalPoleId ? 'c' : 'n'}-${pole.id === pendingBtEdgeStartPoleId ? 'p' : 'x'}`} position={[pole.lat, pole.lng]} icon={makePoleIcon(pole.id, !!pole.verified)}>
+                    <Marker
+                        key={`${pole.id}-${pole.verified ? 'v' : 'u'}-${pole.id === criticalPoleId ? 'c' : 'n'}-${pole.id === pendingBtEdgeStartPoleId ? 'p' : 'x'}`}
+                        position={[pole.lat, pole.lng]}
+                        icon={makePoleIcon(pole.id, !!pole.verified)}
+                        draggable={btEditorMode === 'none'}
+                        eventHandlers={{
+                            dragend: (e) => {
+                                const { lat, lng } = (e.target as L.Marker).getLatLng();
+                                onBtDragPole?.(pole.id, lat, lng);
+                            }
+                        }}
+                    >
+                        <Tooltip permanent direction="top" offset={[0, -8]} opacity={0.85}>
+                            <span style={{fontSize: 10, fontWeight: 600}}>{pole.title}</span>
+                        </Tooltip>
                         <Popup>
                             <div className="text-xs">
                                 <strong>{pole.title}</strong>
@@ -353,7 +371,21 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                 ))}
 
                 {(topology.transformers || []).map((transformer) => (
-                    <Marker key={`${transformer.id}-${transformer.verified ? 'v' : 'u'}`} position={[transformer.lat, transformer.lng]} icon={makeTransformerIcon(!!transformer.verified)}>
+                    <Marker
+                        key={`${transformer.id}-${transformer.verified ? 'v' : 'u'}`}
+                        position={[transformer.lat, transformer.lng]}
+                        icon={makeTransformerIcon(!!transformer.verified)}
+                        draggable={btEditorMode === 'none'}
+                        eventHandlers={{
+                            dragend: (e) => {
+                                const { lat, lng } = (e.target as L.Marker).getLatLng();
+                                onBtDragTransformer?.(transformer.id, lat, lng);
+                            }
+                        }}
+                    >
+                        <Tooltip permanent direction="bottom" offset={[0, 8]} opacity={0.85}>
+                            <span style={{fontSize: 10, fontWeight: 600}}>{transformer.title}</span>
+                        </Tooltip>
                         <Popup>
                             <div className="text-xs">
                                 <strong>{transformer.title}</strong>

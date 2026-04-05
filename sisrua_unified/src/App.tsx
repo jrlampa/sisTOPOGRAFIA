@@ -574,6 +574,42 @@ function App() {
     showToast(`Transformador ${transformerId} removido`, 'info');
   };
 
+  const handleBtDragPole = (poleId: string, lat: number, lng: number) => {
+    const updatedPoles = btTopology.poles.map((p) =>
+      p.id === poleId ? { ...p, lat, lng } : p
+    );
+    const updatedEdges = btTopology.edges.map((edge) => {
+      const from = updatedPoles.find((p) => p.id === edge.fromPoleId);
+      const to = updatedPoles.find((p) => p.id === edge.toPoleId);
+      if (!from || !to) return edge;
+      const newLength = Math.round(distanceMeters({ lat: from.lat, lng: from.lng }, { lat: to.lat, lng: to.lng }));
+      return { ...edge, lengthMeters: newLength };
+    });
+    setAppState({ ...appState, btTopology: { ...btTopology, poles: updatedPoles, edges: updatedEdges } }, true);
+  };
+
+  const handleBtDragTransformer = (transformerId: string, lat: number, lng: number) => {
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        transformers: btTopology.transformers.map((t) =>
+          t.id === transformerId ? { ...t, lat, lng } : t
+        )
+      }
+    }, true);
+  };
+
+  const handleBtRenamePole = (poleId: string, title: string) => {
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        poles: btTopology.poles.map((p) => p.id === poleId ? { ...p, title } : p)
+      }
+    }, true);
+  };
+
   const handleMapClick = (newCenter: GeoLocation) => {
     setAppState({ ...appState, center: newCenter }, true);
     clearData();
@@ -999,6 +1035,7 @@ function App() {
             btNetworkScenario={btNetworkScenario}
             clandestinoAreaM2={settings.clandestinoAreaM2 ?? 0}
             onTopologyChange={updateBtTopology}
+            onBtRenamePole={handleBtRenamePole}
           />
 
           {/* Control Section */}
@@ -1171,6 +1208,8 @@ function App() {
             onBtDeletePole={handleBtDeletePole}
             onBtDeleteEdge={handleBtDeleteEdge}
             onBtDeleteTransformer={handleBtDeleteTransformer}
+            onBtDragPole={handleBtDragPole}
+            onBtDragTransformer={handleBtDragTransformer}
             criticalPoleId={btCriticalPoleId}
             accumulatedByPole={btAccumulatedByPole}
             onPolygonChange={(points) => {
