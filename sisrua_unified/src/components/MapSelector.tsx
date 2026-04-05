@@ -336,6 +336,15 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         icon={makePoleIcon(pole.id, !!pole.verified)}
                         draggable={btEditorMode === 'none'}
                         eventHandlers={{
+                            click: () => {
+                                if (btEditorMode === 'add-edge' && onBtMapClick) {
+                                    onBtMapClick({
+                                        lat: pole.lat,
+                                        lng: pole.lng,
+                                        label: pole.title
+                                    });
+                                }
+                            },
                             dragend: (e) => {
                                 const { lat, lng } = (e.target as L.Marker).getLatLng();
                                 onBtDragPole?.(pole.id, lat, lng);
