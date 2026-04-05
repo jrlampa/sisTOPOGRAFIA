@@ -1,4 +1,12 @@
 import { BtTransformerReading, BtTopology } from '../types';
+import {
+  CLANDESTINO_AREA_TO_KVA,
+  CLANDESTINO_CLIENT_TO_DIVERSIF_FACTOR,
+  CLANDESTINO_MAX_AREA_M2,
+  CLANDESTINO_MAX_CLIENTS,
+  CLANDESTINO_MIN_AREA_M2,
+  CLANDESTINO_MIN_CLIENTS
+} from '../constants/clandestinoWorkbookRules';
 
 const HOURS_PER_MONTH_REFERENCE = 720;
 
@@ -23,13 +31,51 @@ export const calculateTransformerMonthlyBill = (readings: BtTransformerReading[]
   return readings.reduce((acc, reading) => acc + reading.billedBrl, 0);
 };
 
+const parseInteger = (value: number): number | null => {
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+
+  const normalized = Math.round(value);
+  return normalized === value ? normalized : null;
+};
+
+export const getClandestinoAreaRange = () => ({
+  min: CLANDESTINO_MIN_AREA_M2,
+  max: CLANDESTINO_MAX_AREA_M2
+});
+
+export const getClandestinoClientsRange = () => ({
+  min: CLANDESTINO_MIN_CLIENTS,
+  max: CLANDESTINO_MAX_CLIENTS
+});
+
+export const getClandestinoKvaByArea = (areaM2: number): number | null => {
+  const areaKey = parseInteger(areaM2);
+  if (areaKey === null) {
+    return null;
+  }
+
+  return CLANDESTINO_AREA_TO_KVA[areaKey] ?? null;
+};
+
+export const getClandestinoDemandKvaByClients = (clients: number): number | null => {
+  const clientsKey = parseInteger(clients);
+  if (clientsKey === null) {
+    return null;
+  }
+
+  return CLANDESTINO_CLIENT_TO_DIVERSIF_FACTOR[clientsKey] ?? null;
+};
+
 export const calculateClandestinoDemandKw = (areaM2: number): number => {
-  if (areaM2 <= 0) {
+  const demandKva = getClandestinoKvaByArea(areaM2);
+  if (demandKva === null) {
     return 0;
   }
 
-  // Operational rule used in the BT module until workbook formulas are fully integrated.
-  return areaM2 * 0.012;
+  // Workbook table values are in kVA; app keeps demand field in kW for UI consistency.
+  return demandKva;
 };
 
 export const calculateBtSummary = (topology: BtTopology) => {

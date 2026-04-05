@@ -20,6 +20,12 @@ import { useDxfExport } from './hooks/useDxfExport';
 import { useKmlImport } from './hooks/useKmlImport';
 import { useFileOperations } from './hooks/useFileOperations';
 import { useElevationProfile } from './hooks/useElevationProfile';
+import {
+  getClandestinoAreaRange,
+  getClandestinoClientsRange,
+  getClandestinoDemandKvaByClients,
+  getClandestinoKvaByArea
+} from './utils/btCalculations';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const EMPTY_BT_TOPOLOGY: BtTopology = {
@@ -177,9 +183,33 @@ function App() {
       return true;
     }
 
-    if (settings.projectType === 'clandestino' && (settings.clandestinoAreaM2 ?? 0) <= 0) {
-      showToast('Informe a área de clandestinos (m²) antes de exportar o DXF.', 'error');
-      return false;
+    if (settings.projectType === 'clandestino') {
+      const area = settings.clandestinoAreaM2 ?? 0;
+      const areaRange = getClandestinoAreaRange();
+      const clientsRange = getClandestinoClientsRange();
+
+      if (!Number.isInteger(area)) {
+        showToast('A área clandestina deve ser inteira para casar com a tabela da planilha.', 'error');
+        return false;
+      }
+
+      if (getClandestinoKvaByArea(area) === null) {
+        showToast(`Área clandestina fora da tabela (${areaRange.min}-${areaRange.max} m²).`, 'error');
+        return false;
+      }
+
+      const totalClandestinoClients = btTopology.edges.reduce(
+        (acc, edge) => acc + edge.conductors.reduce((sum, ramal) => sum + ramal.quantity, 0),
+        0
+      );
+
+      if (getClandestinoDemandKvaByClients(totalClandestinoClients) === null) {
+        showToast(
+          `Total de clientes/ramais fora da tabela (${clientsRange.min}-${clientsRange.max}). Atual: ${totalClandestinoClients}.`,
+          'error'
+        );
+        return false;
+      }
     }
 
     const edgeWithoutConductors = btTopology.edges.find((edge) => edge.conductors.length === 0);

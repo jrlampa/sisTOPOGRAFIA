@@ -5,7 +5,9 @@ import {
   calculateBtSummary,
   calculateTransformerDemandKw,
   calculateTransformerMonthlyBill,
-  calculateClandestinoDemandKw
+  calculateClandestinoDemandKw,
+  getClandestinoAreaRange,
+  getClandestinoKvaByArea
 } from '../utils/btCalculations';
 
 interface BtTopologyPanelProps {
@@ -95,6 +97,10 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   const clandestinoDemandKw = projectType === 'clandestino'
     ? calculateClandestinoDemandKw(clandestinoAreaM2)
     : 0;
+  const clandestinoAreaRange = getClandestinoAreaRange();
+  const clandestinoDemandKva = projectType === 'clandestino'
+    ? getClandestinoKvaByArea(clandestinoAreaM2)
+    : null;
 
   return (
     <div className="space-y-4 rounded-2xl border border-white/10 bg-slate-900/40 p-4">
@@ -119,7 +125,9 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
       {projectType === 'clandestino' && (
         <div className="rounded-lg border border-amber-500/20 bg-amber-950/20 p-2 text-[10px] text-amber-200">
-          Carga clandestinos ({clandestinoAreaM2} m²): {clandestinoDemandKw.toFixed(2)} kW
+          {clandestinoDemandKva === null
+            ? `Área clandestina inválida (${clandestinoAreaM2} m²). Faixa da planilha: ${clandestinoAreaRange.min}-${clandestinoAreaRange.max} m² (inteiros).`
+            : `Carga clandestinos (${clandestinoAreaM2} m²): ${clandestinoDemandKw.toFixed(2)} kVA`}
         </div>
       )}
 
