@@ -94,6 +94,14 @@ interface CalculateAccumulatedDemandKvaInput {
   totalTrechoKva: number;
 }
 
+export interface BtPoleAccumulatedDemand {
+  poleId: string;
+  localClients: number;
+  accumulatedClients: number;
+  localTrechoDemandKva: number;
+  accumulatedDemandKva: number;
+}
+
 export const calculatePointDemandKva = ({
   projectType,
   transformerDemandKw,
@@ -143,4 +151,90 @@ export const calculateBtSummary = (topology: BtTopology) => {
     totalLengthMeters,
     transformerDemandKw
   };
+};
+
+export const calculateAccumulatedDemandByPole = (
+  topology: BtTopology,
+  projectType: BtProjectType,
+  clandestinoAreaM2: number
+): BtPoleAccumulatedDemand[] => {
+  const allPoleIds = new Set(topology.poles.map((pole) => pole.id));
+  for (const edge of topology.edges) {
+    allPoleIds.add(edge.fromPoleId);
+    allPoleIds.add(edge.toPoleId);
+  }
+
+  const outgoingByPole = new Map<string, BtTopology['edges']>();
+  const incomingClientByPole = new Map<string, number>();
+
+  for (const edge of topology.edges) {
+    const outgoing = outgoingByPole.get(edge.fromPoleId) ?? [];
+    outgoing.push(edge);
+    outgoingByPole.set(edge.fromPoleId, outgoing);
+
+    const edgeClients = edge.conductors.reduce((sum, item) => sum + item.quantity, 0);
+    incomingClientByPole.set(edge.toPoleId, (incomingClientByPole.get(edge.toPoleId) ?? 0) + edgeClients);
+  }
+
+  const totalClients = Array.from(incomingClientByPole.values()).reduce((sum, value) => sum + value, 0);
+  const transformerDemandKva = topology.transformers.reduce((sum, transformer) => sum + transformer.demandKw, 0);
+  const avgDemandPerClient = totalClients > 0 ? transformerDemandKva / totalClients : 0;
+
+  const memo = new Map<string, BtPoleAccumulatedDemand>();
+
+  const visit = (poleId: string, activePath: Set<string>): BtPoleAccumulatedDemand => {
+    const cached = memo.get(poleId);
+    if (cached) {
+      return cached;
+    }
+
+    if (activePath.has(poleId)) {
+      const cycleFallback: BtPoleAccumulatedDemand = {
+        poleId,
+        localClients: incomingClientByPole.get(poleId) ?? 0,
+        accumulatedClients: incomingClientByPole.get(poleId) ?? 0,
+        localTrechoDemandKva: 0,
+        accumulatedDemandKva: 0
+      };
+      memo.set(poleId, cycleFallback);
+      return cycleFallback;
+    }
+
+    const nextPath = new Set(activePath);
+    nextPath.add(poleId);
+
+    const localClients = incomingClientByPole.get(poleId) ?? 0;
+    const children = outgoingByPole.get(poleId) ?? [];
+
+    const childrenResults = children.map((edge) => visit(edge.toPoleId, nextPath));
+    const downstreamClients = childrenResults.reduce((sum, child) => sum + child.accumulatedClients, 0);
+    const accumulatedClients = localClients + downstreamClients;
+
+    const localTrechoDemandKva = projectType === 'clandestino'
+      ? calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, localClients)
+      : Number((localClients * avgDemandPerClient).toFixed(2));
+
+    const downstreamAccumulatedKva = childrenResults.reduce((sum, child) => sum + child.accumulatedDemandKva, 0);
+    const accumulatedDemandKva = calculateAccumulatedDemandKva({
+      projectType,
+      clandestinoAreaM2,
+      accumulatedClients,
+      downstreamAccumulatedKva,
+      totalTrechoKva: localTrechoDemandKva
+    });
+
+    const result: BtPoleAccumulatedDemand = {
+      poleId,
+      localClients,
+      accumulatedClients,
+      localTrechoDemandKva,
+      accumulatedDemandKva
+    };
+
+    memo.set(poleId, result);
+    return result;
+  };
+
+  const results = Array.from(allPoleIds).map((poleId) => visit(poleId, new Set()));
+  return results.sort((a, b) => b.accumulatedDemandKva - a.accumulatedDemandKva);
 };

@@ -2,6 +2,7 @@ import React from 'react';
 import { Activity, Plus, Trash2, Sigma } from 'lucide-react';
 import { BtTopology, BtTransformerReading } from '../types';
 import {
+  calculateAccumulatedDemandByPole,
   calculateAccumulatedDemandKva,
   calculateBtSummary,
   calculateClandestinoDemandKvaByAreaAndClients,
@@ -128,6 +129,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     downstreamAccumulatedKva: 0,
     totalTrechoKva: summary.transformerDemandKw
   });
+  const accumulatedByPole = calculateAccumulatedDemandByPole(btTopology, projectType, clandestinoAreaM2);
+  const criticalPole = accumulatedByPole[0] ?? null;
 
   return (
     <div className="space-y-4 rounded-2xl border border-white/10 bg-slate-900/40 p-4">
@@ -156,7 +159,26 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         {projectType === 'clandestino'
           ? `ACUMULADA (GERAL!I, clandestino): ${accumulatedDemandKva.toFixed(2)} kVA`
           : `ACUMULADA (GERAL!I, normal): ${accumulatedDemandKva.toFixed(2)} kW`}
+        {criticalPole && (
+          <div className="mt-1 text-cyan-100">
+            Ponto crítico: {criticalPole.poleId} | CLT acum.: {criticalPole.accumulatedClients} | Demanda acum.: {criticalPole.accumulatedDemandKva.toFixed(2)} {projectType === 'clandestino' ? 'kVA' : 'kW'}
+          </div>
+        )}
       </div>
+
+      {accumulatedByPole.length > 0 && (
+        <div className="rounded-lg border border-cyan-500/20 bg-slate-950/40 p-2 text-[10px] text-cyan-100">
+          <div className="mb-1 font-semibold uppercase tracking-wide text-cyan-300">Ranking Acumulada (Top 5)</div>
+          {accumulatedByPole.slice(0, 5).map((item) => (
+            <div key={item.poleId} className="flex items-center justify-between border-b border-cyan-500/10 py-0.5 last:border-b-0">
+              <span>{item.poleId}</span>
+              <span>
+                CLT {item.accumulatedClients} | {item.accumulatedDemandKva.toFixed(2)} {projectType === 'clandestino' ? 'kVA' : 'kW'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {projectType === 'clandestino' && (
         <div className="rounded-lg border border-amber-500/20 bg-amber-950/20 p-2 text-[10px] text-amber-200">
