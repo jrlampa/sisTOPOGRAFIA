@@ -111,6 +111,7 @@ function App() {
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
   const btExportSummary = appState.btExportSummary ?? null;
   const btExportHistory = appState.btExportHistory ?? [];
+  const latestBtExport = btExportSummary ?? btExportHistory[0] ?? null;
   const isDark = settings.theme === 'dark';
   const btEditorMode: BtEditorMode = settings.btEditorMode ?? 'none';
   const [pendingBtEdgeStartPoleId, setPendingBtEdgeStartPoleId] = useState<string | null>(null);
@@ -215,6 +216,11 @@ function App() {
 
   const updateBtTopology = (nextTopology: BtTopology) => {
     setAppState({ ...appState, btTopology: nextTopology }, true);
+  };
+
+  const clearBtExportHistory = () => {
+    setAppState({ ...appState, btExportSummary: null, btExportHistory: [] }, true);
+    showToast('Histórico BT limpo.', 'info');
   };
 
   const validateBtBeforeExport = (): boolean => {
@@ -535,24 +541,37 @@ function App() {
         </div>
       )}
 
-      {btExportSummary && (
+      {(latestBtExport || btExportHistory.length > 0) && (
         <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-cyan-500/30 bg-slate-950/95 px-4 py-3 text-xs text-cyan-100 shadow-xl">
-          <div className="font-semibold uppercase tracking-wide text-cyan-300">Resumo BT Exportado</div>
-          <div className="mt-1">
-            Ponto crítico: {btExportSummary.criticalPoleId} | CLT acum.: {btExportSummary.criticalAccumulatedClients} | Demanda acum.: {btExportSummary.criticalAccumulatedDemandKva.toFixed(2)}
+          <div className="flex items-center justify-between gap-4">
+            <div className="font-semibold uppercase tracking-wide text-cyan-300">Resumo BT Exportado</div>
+            <button
+              onClick={clearBtExportHistory}
+              className="rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/10"
+            >
+              Limpar histórico
+            </button>
           </div>
-          <a
-            href={btExportSummary.btContextUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-2 inline-block text-cyan-300 underline underline-offset-2 hover:text-cyan-200"
-          >
-            Abrir metadata BT (JSON)
-          </a>
+
+          {latestBtExport && (
+            <>
+              <div className="mt-1">
+                Ponto crítico: {latestBtExport.criticalPoleId} | CLT acum.: {latestBtExport.criticalAccumulatedClients} | Demanda acum.: {latestBtExport.criticalAccumulatedDemandKva.toFixed(2)}
+              </div>
+              <a
+                href={latestBtExport.btContextUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block text-cyan-300 underline underline-offset-2 hover:text-cyan-200"
+              >
+                Abrir metadata BT (JSON)
+              </a>
+            </>
+          )}
 
           {btExportHistory.length > 0 && (
             <div className="mt-3 border-t border-cyan-500/20 pt-2">
-              <div className="mb-1 font-semibold uppercase tracking-wide text-cyan-300">Histórico (últimas 5)</div>
+              <div className="mb-1 font-semibold uppercase tracking-wide text-cyan-300">Histórico (últimas 5 de {btExportHistory.length})</div>
               {btExportHistory.slice(0, 5).map((entry, index) => (
                 <div key={`${entry.exportedAt}-${entry.criticalPoleId}-${index}`} className="text-[11px] text-cyan-100/90">
                   {new Date(entry.exportedAt).toLocaleString('pt-BR')} | {entry.projectType.toUpperCase()} | {entry.criticalPoleId} | {entry.criticalAccumulatedDemandKva.toFixed(2)}
