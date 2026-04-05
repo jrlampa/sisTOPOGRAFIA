@@ -7,13 +7,14 @@ type ContourRenderMode = 'spline' | 'polyline';
 interface UseDxfExportProps {
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
+  onBtContextLoaded?: (payload: { btContextUrl: string; btContext: Record<string, unknown> }) => void;
 }
 
 interface BtContextPayload {
   [key: string]: unknown;
 }
 
-export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
+export function useDxfExport({ onSuccess, onError, onBtContextLoaded }: UseDxfExportProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState('idle');
@@ -28,6 +29,28 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
+  };
+
+  const tryLoadBtContext = async (btContextUrl?: string) => {
+    if (!btContextUrl) {
+      return;
+    }
+
+    try {
+      const response = await fetch(btContextUrl);
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = await response.json() as { btContext?: Record<string, unknown> };
+      if (!payload.btContext || typeof payload.btContext !== 'object') {
+        return;
+      }
+
+      onBtContextLoaded?.({ btContextUrl, btContext: payload.btContext });
+    } catch {
+      // Silent fail: DXF download must not be blocked by optional BT metadata retrieval.
+    }
   };
 
   const downloadDxf = async (
@@ -62,6 +85,7 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
       }
 
       if ('url' in result && result.url) {
+        await tryLoadBtContext(result.btContextUrl);
         triggerDownload(result.url, center);
         onSuccess('DXF Downloaded');
         setIsDownloading(false);
@@ -111,6 +135,7 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
           }
 
           const center = downloadCenter || { lat: 0, lng: 0, label: '' };
+          await tryLoadBtContext(statusResponse.result?.btContextUrl);
           triggerDownload(url, center);
           onSuccess('DXF Downloaded');
           clearInterval(intervalId);
@@ -149,7 +174,7 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
       isActive = false;
       clearInterval(intervalId);
     };
-  }, [jobId, downloadCenter, onError, onSuccess]);
+  }, [jobId, downloadCenter, onBtContextLoaded, onError, onSuccess]);
 
   return {
     downloadDxf,

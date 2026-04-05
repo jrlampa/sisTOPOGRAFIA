@@ -12,11 +12,13 @@ type DxfCachedResponse = {
   status: 'success';
   url: string;
   message?: string;
+  btContextUrl?: string;
 };
 
 type DxfJobResult = {
   url: string;
   filename?: string;
+  btContextUrl?: string;
 };
 
 type DxfJobStatus = {

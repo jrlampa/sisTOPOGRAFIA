@@ -35,6 +35,13 @@ const EMPTY_BT_TOPOLOGY: BtTopology = {
   edges: []
 };
 
+interface BtExportSummary {
+  btContextUrl: string;
+  criticalPoleId: string;
+  criticalAccumulatedClients: number;
+  criticalAccumulatedDemandKva: number;
+}
+
 const distanceMeters = (a: GeoLocation, b: GeoLocation) => {
   const earthRadius = 6371000;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
@@ -127,6 +134,7 @@ function App() {
 
   // Toast notifications
   const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null);
+  const [btExportSummary, setBtExportSummary] = useState<BtExportSummary | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
   const showToast = (message: string, type: ToastType) => {
@@ -145,7 +153,30 @@ function App() {
 
   const { downloadDxf, isDownloading, jobId, jobStatus, jobProgress } = useDxfExport({
     onSuccess: (message) => showToast(message, 'success'),
-    onError: (message) => showToast(message, 'error')
+    onError: (message) => showToast(message, 'error'),
+    onBtContextLoaded: ({ btContextUrl, btContext }) => {
+      const criticalPoleRaw = btContext.criticalPole;
+      if (!criticalPoleRaw || typeof criticalPoleRaw !== 'object') {
+        return;
+      }
+
+      const criticalPole = criticalPoleRaw as Record<string, unknown>;
+      const poleId = typeof criticalPole.poleId === 'string' ? criticalPole.poleId : '';
+      const accumulatedClients = typeof criticalPole.accumulatedClients === 'number' ? criticalPole.accumulatedClients : 0;
+      const accumulatedDemandKva = typeof criticalPole.accumulatedDemandKva === 'number' ? criticalPole.accumulatedDemandKva : 0;
+
+      if (!poleId) {
+        return;
+      }
+
+      setBtExportSummary({
+        btContextUrl,
+        criticalPoleId: poleId,
+        criticalAccumulatedClients: accumulatedClients,
+        criticalAccumulatedDemandKva: accumulatedDemandKva
+      });
+      showToast(`Resumo BT: ponto crítico ${poleId} (${accumulatedDemandKva.toFixed(2)}).`, 'info');
+    }
   });
 
   const { importKml } = useKmlImport({
@@ -494,6 +525,23 @@ function App() {
       {showDxfProgress && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-2 text-sm text-slate-100 shadow-lg">
           {dxfProgressLabel}
+        </div>
+      )}
+
+      {btExportSummary && (
+        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-cyan-500/30 bg-slate-950/95 px-4 py-3 text-xs text-cyan-100 shadow-xl">
+          <div className="font-semibold uppercase tracking-wide text-cyan-300">Resumo BT Exportado</div>
+          <div className="mt-1">
+            Ponto crítico: {btExportSummary.criticalPoleId} | CLT acum.: {btExportSummary.criticalAccumulatedClients} | Demanda acum.: {btExportSummary.criticalAccumulatedDemandKva.toFixed(2)}
+          </div>
+          <a
+            href={btExportSummary.btContextUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-block text-cyan-300 underline underline-offset-2 hover:text-cyan-200"
+          >
+            Abrir metadata BT (JSON)
+          </a>
         </div>
       )}
 
