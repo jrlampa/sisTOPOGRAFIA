@@ -33,6 +33,7 @@ const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
 const MAX_JOB_AGE = 60 * 60 * 1000; // 1 hour
 
 let cleanupIntervalId: NodeJS.Timeout | null = null;
+let initializationStarted = false;
 
 async function initializeFirestore(): Promise<void> {
     if (!USE_FIRESTORE || firestoreAvailable) {
@@ -132,15 +133,28 @@ export function stopCleanupInterval() {
     }
 }
 
-// Initialize on module load
-initializeFirestore().then(() => {
-    startCleanupInterval();
-}).catch(err => {
-    logger.error('Failed to initialize Firestore for job status', { error: err });
-    startCleanupInterval();
-});
+function ensureInitialized(): void {
+    if (initializationStarted) {
+        return;
+    }
+
+    if (process.env.NODE_ENV === 'test') {
+        initializationStarted = true;
+        return;
+    }
+
+    initializationStarted = true;
+    initializeFirestore().then(() => {
+        startCleanupInterval();
+    }).catch(err => {
+        logger.error('Failed to initialize Firestore for job status', { error: err });
+        startCleanupInterval();
+    });
+}
 
 export function createJob(id: string): JobInfo {
+    ensureInitialized();
+
     const job: JobInfo = {
         id,
         status: 'queued',
@@ -159,10 +173,13 @@ export function createJob(id: string): JobInfo {
 }
 
 export function getJob(id: string): JobInfo | null {
+    ensureInitialized();
     return jobs.get(id) || null;
 }
 
 export async function updateJobStatus(id: string, status: JobStatus, progress?: number): Promise<void> {
+    ensureInitialized();
+
     const job = jobs.get(id);
     if (job) {
         job.status = status;
@@ -180,6 +197,8 @@ export async function updateJobStatus(id: string, status: JobStatus, progress?: 
 }
 
 export async function completeJob(id: string, result: { url: string; filename: string }): Promise<void> {
+    ensureInitialized();
+
     const job = jobs.get(id);
     if (job) {
         job.status = 'completed';
@@ -196,6 +215,8 @@ export async function completeJob(id: string, result: { url: string; filename: s
 }
 
 export async function failJob(id: string, error: string): Promise<void> {
+    ensureInitialized();
+
     const job = jobs.get(id);
     if (job) {
         job.status = 'failed';
@@ -213,6 +234,8 @@ export async function failJob(id: string, error: string): Promise<void> {
 
 // Idempotency check - returns true if job should be processed
 export function shouldProcessJob(id: string): boolean {
+    ensureInitialized();
+
     const job = jobs.get(id);
     if (!job) {
         return true; // New job

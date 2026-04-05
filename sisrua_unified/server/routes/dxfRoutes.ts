@@ -42,6 +42,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
             lon,
             radius,
             mode: resolvedMode,
+            contourRenderMode: resolvedContourRenderMode,
             polygon: typeof polygon === 'string' ? polygon : polygon ?? null,
             layers: layers ?? {}
         });

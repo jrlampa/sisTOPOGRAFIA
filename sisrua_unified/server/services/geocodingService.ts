@@ -7,6 +7,14 @@ export interface GeoLocation {
 }
 
 export class GeocodingService {
+    private static normalizeText(value: string): string {
+        return value
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+    }
+
     private static parseLatLng(query: string): GeoLocation | null {
         const normalized = query
             .replace(/\(([^)]+)\)/g, '$1')
@@ -148,6 +156,22 @@ export class GeocodingService {
         const municipio = await IbgeService.findMunicipioByName(municipioName, ufHint);
         
         if (municipio) {
+            // Avoid false positives from fuzzy search (e.g. malformed text matching random city)
+            const normalizedQuery = this.normalizeText(municipioName);
+            const normalizedMunicipio = this.normalizeText(municipio.nome || '');
+            const queryTokens = normalizedQuery
+                .split(/[^a-z]+/)
+                .filter(token => token.length >= 3);
+
+            if (queryTokens.length === 0) {
+                return null;
+            }
+
+            const hasRelevantToken = queryTokens.some(token => normalizedMunicipio.includes(token));
+            if (!hasRelevantToken) {
+                return null;
+            }
+
             const uf = municipio.microrregiao?.mesorregiao?.UF?.sigla || 
                        municipio.microrregiao?.mesorregiao?.UF?.sigla || 'SP';
             

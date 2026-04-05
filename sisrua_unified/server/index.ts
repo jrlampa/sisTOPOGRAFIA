@@ -9,6 +9,7 @@ import swaggerUi from 'swagger-ui-express';
 
 import { OllamaService } from './services/ollamaService.js';
 import { startFirestoreMonitoring, stopFirestoreMonitoring } from './services/firestoreService.js';
+import { initializeDxfCleanup, markDxfDownloaded, stopDxfCleanup } from './services/dxfCleanupService.js';
 import { logger } from './utils/logger.js';
 import { generalRateLimiter } from './middleware/rateLimiter.js';
 import { specs } from './swagger.js';
@@ -62,6 +63,8 @@ if (!fs.existsSync(dxfDirectory)) {
     fs.mkdirSync(dxfDirectory, { recursive: true });
 }
 
+initializeDxfCleanup(dxfDirectory);
+
 // Ollama management
 async function isOllamaRunning(): Promise<boolean> {
     try {
@@ -88,7 +91,30 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
 app.use(generalRateLimiter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
-app.use('/downloads', express.static(dxfDirectory));
+
+// Controlled DXF download: stream file and delete it immediately after successful download.
+app.get('/downloads/:filename', (req: Request, res: Response) => {
+    const requested = req.params.filename || '';
+    const safeName = path.basename(requested);
+
+    if (!safeName || safeName !== requested) {
+        return res.status(400).json({ error: 'Invalid filename' });
+    }
+
+    const filePath = path.join(dxfDirectory, safeName);
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'File not found' });
+    }
+
+    res.download(filePath, safeName, (err) => {
+        if (err) {
+            logger.warn('DXF download failed', { filePath, error: err.message });
+            return;
+        }
+
+        markDxfDownloaded(filePath);
+    });
+});
 
 // Health Check
 app.get('/health', async (_req: Request, res: Response) => {
@@ -134,5 +160,5 @@ app.listen(port, async () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => { stopOllama(); stopFirestoreMonitoring(); process.exit(0); });
-process.on('SIGINT', () => { stopOllama(); stopFirestoreMonitoring(); process.exit(0); });
+process.on('SIGTERM', () => { stopDxfCleanup(); stopOllama(); stopFirestoreMonitoring(); process.exit(0); });
+process.on('SIGINT', () => { stopDxfCleanup(); stopOllama(); stopFirestoreMonitoring(); process.exit(0); });

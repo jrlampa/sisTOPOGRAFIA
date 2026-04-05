@@ -10,6 +10,7 @@ type DxfCachePayload = {
     lon: number;
     radius: number;
     mode: string;
+    contourRenderMode?: 'spline' | 'polyline';
     polygon: unknown;
     layers: unknown;
 };
@@ -46,6 +47,7 @@ const createCacheKey = (payload: DxfCachePayload): string => {
         lon: payload.lon,
         radius: payload.radius,
         mode: payload.mode,
+        contourRenderMode: payload.contourRenderMode || 'spline',
         polygon: payload.polygon ?? null,
         layers: payload.layers ?? {}
     };
