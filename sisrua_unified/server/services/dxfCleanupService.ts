@@ -1,13 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import { logger } from '../utils/logger.js';
+import { config } from '../config.js';
 
 // Cleanup policy:
 // 1) Prefer fast cleanup (default 10 min)
 // 2) Hard safety limit: never keep DXF files for more than 2 hours
-const DXF_FILE_TTL_MS = 10 * 60 * 1000; // 10 minutes
-const MAX_DXF_AGE_MS = 2 * 60 * 60 * 1000; // 2 hours
-const CLEANUP_CHECK_INTERVAL = 2 * 60 * 1000; // Check every 2 minutes
+const DXF_FILE_TTL_MS = config.DXF_FILE_TTL_MS;
+const MAX_DXF_AGE_MS = config.DXF_MAX_AGE_MS;
+const CLEANUP_CHECK_INTERVAL = config.DXF_CLEANUP_INTERVAL_MS;
 
 interface ScheduledFile {
     filePath: string;
@@ -26,7 +27,7 @@ function getDxfDirectory(): string {
     if (configuredDxfDirectory) {
         return configuredDxfDirectory;
     }
-    return process.env.DXF_DIRECTORY || './public/dxf';
+    return config.DXF_DIRECTORY;
 }
 
 function companionFilesFor(dxfPath: string): string[] {

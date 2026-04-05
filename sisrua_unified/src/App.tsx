@@ -20,6 +20,7 @@ import { useDxfExport } from './hooks/useDxfExport';
 import { useKmlImport } from './hooks/useKmlImport';
 import { useFileOperations } from './hooks/useFileOperations';
 import { useElevationProfile } from './hooks/useElevationProfile';
+import { useAutoSave, loadSessionDraft, clearSessionDraft } from './hooks/useAutoSave';
 import {
   calculateAccumulatedDemandByPole,
   getClandestinoAreaRange,
@@ -163,9 +164,36 @@ function App() {
   // Toast notifications
   const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [sessionDraft, setSessionDraft] = useState<GlobalState | null>(null);
+
+  // Auto-save: persist appState to localStorage with debounce
+  useAutoSave(appState);
+
+  // On mount: check for a recoverable session (only if there's BT topology work)
+  useEffect(() => {
+    const draft = loadSessionDraft();
+    if (draft && (draft.state.btTopology?.poles.length ?? 0) > 0) {
+      setSessionDraft(draft.state);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const showToast = (message: string, type: ToastType) => {
     setToast({ message, type });
+  };
+
+  const handleRestoreSession = () => {
+    if (sessionDraft) {
+      setAppState(sessionDraft, false);
+      setSessionDraft(null);
+      clearSessionDraft();
+      showToast('Sessão anterior restaurada.', 'success');
+    }
+  };
+
+  const handleDismissSession = () => {
+    setSessionDraft(null);
+    clearSessionDraft();
   };
 
   // Custom hooks for feature modules
@@ -677,6 +705,33 @@ function App() {
             onClose={() => setToast(null)}
             duration={toast.type === 'error' ? 8000 : 4000}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Session recovery banner — shown only when a previous BT session is found */}
+      <AnimatePresence>
+        {sessionDraft && (
+          <motion.div
+            key="session-recovery"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="fixed top-4 left-1/2 z-[990] -translate-x-1/2 flex items-center gap-3 rounded-xl border border-blue-500/30 bg-slate-900/95 px-4 py-3 text-xs text-slate-100 shadow-2xl backdrop-blur-sm"
+          >
+            <span className="text-blue-300 font-semibold">Sessão anterior encontrada ({(sessionDraft.btTopology?.poles.length ?? 0)} postes).</span>
+            <button
+              onClick={handleRestoreSession}
+              className="rounded border border-blue-500/40 px-2 py-1 text-blue-200 hover:bg-blue-500/20 transition-colors"
+            >
+              Restaurar
+            </button>
+            <button
+              onClick={handleDismissSession}
+              className="rounded border border-slate-600/60 px-2 py-1 text-slate-400 hover:bg-slate-700/40 transition-colors"
+            >
+              Descartar
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
 

@@ -1,6 +1,7 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { Request } from 'express';
 import { logger } from '../utils/logger.js';
+import { config } from '../config.js';
 
 /**
  * Custom key generator that uses the client IP address
@@ -13,8 +14,8 @@ const keyGenerator = (req: Request): string => {
 };
 
 const dxfRateLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000,
-    limit: 10,
+    windowMs: config.RATE_LIMIT_DXF_WINDOW_MS,
+    limit: config.RATE_LIMIT_DXF_MAX,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     keyGenerator,
@@ -31,8 +32,8 @@ const dxfRateLimiter = rateLimit({
 });
 
 const generalRateLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 100,
+    windowMs: config.RATE_LIMIT_GENERAL_WINDOW_MS,
+    limit: config.RATE_LIMIT_GENERAL_MAX,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     keyGenerator,

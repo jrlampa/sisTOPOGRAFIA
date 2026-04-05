@@ -1,4 +1,6 @@
 import crypto from 'crypto';
+import { config } from '../config.js';
+import { metricsService } from './metricsService.js';
 
 type CacheEntry = {
     filename: string;
@@ -16,7 +18,8 @@ type DxfCachePayload = {
     btContext?: unknown;
 };
 
-const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
+// Re-exported for backward-compat with tests that import DEFAULT_TTL_MS directly.
+export const DEFAULT_TTL_MS = config.CACHE_TTL_MS;
 const cacheStore = new Map<string, CacheEntry>();
 
 const stableSerialize = (value: unknown): string => {
@@ -61,14 +64,17 @@ const createCacheKey = (payload: DxfCachePayload): string => {
 const getCachedFilename = (key: string): string | null => {
     const entry = cacheStore.get(key);
     if (!entry) {
+        metricsService.recordCacheOperation('miss');
         return null;
     }
 
     if (entry.expiresAt <= Date.now()) {
         cacheStore.delete(key);
+        metricsService.recordCacheOperation('miss');
         return null;
     }
 
+    metricsService.recordCacheOperation('hit');
     return entry.filename;
 };
 
@@ -77,10 +83,12 @@ const setCachedFilename = (key: string, filename: string, ttlMs: number = DEFAUL
         filename,
         expiresAt: Date.now() + ttlMs
     });
+    metricsService.recordCacheOperation('set');
 };
 
 const deleteCachedFilename = (key: string): void => {
     cacheStore.delete(key);
+    metricsService.recordCacheOperation('delete');
 };
 
 export {

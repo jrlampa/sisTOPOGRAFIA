@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { logger } from './utils/logger.js';
+import { config } from './config.js';
 
 /**
  * Python Bridge for DXF Generation
@@ -67,7 +68,7 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
         const scriptPath = path.join(__dirname, '../py_engine/main.py');
         
         // Allow customization via environment variable and fallback executables for Windows/Linux.
-        const envPythonCommand = process.env.PYTHON_COMMAND;
+        const envPythonCommand = config.PYTHON_COMMAND;
         const fallbackCommands = process.platform === 'win32'
             ? ['python', 'py', 'python3']
             : ['python3', 'python'];
@@ -104,8 +105,8 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
         logger.info('Spawning Python process for DXF generation', {
             commandCandidates,
             args: args.join(' '),
-            environment: process.env.NODE_ENV || 'development',
-            dockerized: process.env.DOCKER_ENV === 'true',
+            environment: config.NODE_ENV,
+            dockerized: config.isDocker,
             timestamp: new Date().toISOString()
         });
 

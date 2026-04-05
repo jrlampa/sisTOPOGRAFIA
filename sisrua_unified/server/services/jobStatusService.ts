@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger.js';
 import { FirestoreService } from './firestoreService.js';
+import { config } from '../config.js';
 
 export type JobStatus = 'queued' | 'processing' | 'completed' | 'failed';
 
@@ -22,7 +23,7 @@ export interface JobInfo {
 const jobs = new Map<string, JobInfo>();
 
 // Firestore integration
-const USE_FIRESTORE = process.env.NODE_ENV === 'production' || process.env.USE_FIRESTORE === 'true';
+const USE_FIRESTORE = config.useFirestore;
 const firestoreService = new FirestoreService();
 const JOBS_COLLECTION = 'jobs';
 
@@ -30,8 +31,8 @@ const JOBS_COLLECTION = 'jobs';
 let firestoreAvailable = false;
 
 // Auto-cleanup old jobs after 1 hour
-const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
-const MAX_JOB_AGE = 60 * 60 * 1000; // 1 hour
+const CLEANUP_INTERVAL = config.JOB_CLEANUP_INTERVAL_MS;
+const MAX_JOB_AGE = config.JOB_MAX_AGE_MS;
 
 let cleanupIntervalId: NodeJS.Timeout | null = null;
 let initializationStarted = false;
@@ -57,7 +58,7 @@ async function initializeFirestore(): Promise<void> {
 async function loadJobsFromFirestore(): Promise<void> {
     try {
         const { Firestore } = await import('@google-cloud/firestore');
-        const db = new Firestore({ projectId: process.env.GCP_PROJECT });
+        const db = new Firestore({ projectId: config.GCP_PROJECT });
         
         const snapshot = await db.collection(JOBS_COLLECTION)
             .where('updatedAt', '>', new Date(Date.now() - MAX_JOB_AGE))
@@ -90,7 +91,7 @@ async function persistJob(job: JobInfo): Promise<void> {
     
     try {
         const { Firestore, FieldValue } = await import('@google-cloud/firestore');
-        const db = new Firestore({ projectId: process.env.GCP_PROJECT });
+        const db = new Firestore({ projectId: config.GCP_PROJECT });
         
         await db.collection(JOBS_COLLECTION).doc(job.id).set({
             status: job.status,

@@ -7,11 +7,13 @@ import path from 'path';
 import fs from 'fs';
 import swaggerUi from 'swagger-ui-express';
 
+import { config } from './config.js';
 import { OllamaService } from './services/ollamaService.js';
 import { startFirestoreMonitoring, stopFirestoreMonitoring } from './services/firestoreService.js';
 import { initializeDxfCleanup, markDxfDownloaded, stopDxfCleanup } from './services/dxfCleanupService.js';
 import { logger } from './utils/logger.js';
 import { generalRateLimiter } from './middleware/rateLimiter.js';
+import { requestMetrics } from './middleware/requestMetrics.js';
 import { specs } from './swagger.js';
 
 // Import Routes
@@ -23,16 +25,17 @@ import analysisRoutes from './routes/analysisRoutes.js';
 import jobRoutes from './routes/jobRoutes.js';
 import firestoreRoutes from './routes/firestoreRoutes.js';
 import dxfRoutes from './routes/dxfRoutes.js';
+import metricsRoutes from './routes/metricsRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app: Express = express();
-const port = process.env.PORT || 3001;
+const port = config.PORT;
 
 // Ollama process management
 let ollamaProcess: ReturnType<typeof spawn> | null = null;
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
+const OLLAMA_MODEL = config.OLLAMA_MODEL;
 
 // Directory resolution
 function resolveDxfDirectory(): string {
@@ -68,7 +71,7 @@ initializeDxfCleanup(dxfDirectory);
 // Ollama management
 async function isOllamaRunning(): Promise<boolean> {
     try {
-        const response = await fetch('http://localhost:11434/api/tags', { signal: AbortSignal.timeout(2000) });
+        const response = await fetch(`${config.OLLAMA_HOST}/api/tags`, { signal: AbortSignal.timeout(config.OLLAMA_CHECK_TIMEOUT_MS) });
         return response.ok;
     } catch { return false; }
 }
@@ -78,7 +81,7 @@ async function startOllama(): Promise<void> {
     try {
         ollamaProcess = spawn('ollama', ['serve'], { detached: false, stdio: 'pipe' });
         ollamaProcess.stdout?.on('data', (d) => logger.info(`Ollama: ${d.toString().trim()}`));
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, config.OLLAMA_STARTUP_WAIT_MS));
     } catch (e) { logger.error('Ollama start failed', e); }
 }
 
@@ -88,7 +91,8 @@ function stopOllama(): void {
 
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: config.BODY_LIMIT }));
+app.use(requestMetrics);
 app.use(generalRateLimiter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
@@ -121,8 +125,8 @@ app.get('/health', async (_req: Request, res: Response) => {
     res.json({
         status: 'online',
         service: 'sisRUA Unified Backend',
-        version: '1.2.0',
-        environment: process.env.NODE_ENV || 'development'
+        version: config.APP_VERSION,
+        environment: config.NODE_ENV
     });
 });
 
@@ -135,6 +139,7 @@ app.use('/api/analyze', analysisRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/firestore', firestoreRoutes);
 app.use('/api/dxf', dxfRoutes);
+app.use('/metrics', metricsRoutes);
 
 // Static files
 app.use(express.static(frontendDistDirectory));
@@ -152,8 +157,8 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 
 // Start server
 app.listen(port, async () => {
-    logger.info('Backend online', { service: 'sisRUA', version: '1.2.0', port });
-    if (process.env.NODE_ENV === 'production') {
+    logger.info('Backend online', { service: 'sisRUA', version: config.APP_VERSION, port });
+    if (config.NODE_ENV === 'production') {
         await startFirestoreMonitoring().catch(e => logger.error('Firestore monitor failed', e));
     }
     await startOllama();

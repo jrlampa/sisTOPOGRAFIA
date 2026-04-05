@@ -9,6 +9,8 @@ import {
 import { logger } from '../utils/logger.js';
 import { dxfRequestSchema } from '../schemas/dxfRequest.js';
 import { dxfRateLimiter } from '../middleware/rateLimiter.js';
+import { metricsService } from '../services/metricsService.js';
+import { config } from '../config.js';
 import path from 'path';
 import fs from 'fs';
 
@@ -50,12 +52,13 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
 
         const cachedFilename = getCachedFilename(cacheKey);
         if (cachedFilename) {
-            const dxfDirectory = process.env.DXF_DIRECTORY || './public/dxf';
+            const dxfDirectory = config.DXF_DIRECTORY;
             const cachedFilePath = path.join(dxfDirectory, cachedFilename);
             if (fs.existsSync(cachedFilePath)) {
                 const baseUrl = getBaseUrl(req);
                 const cachedUrl = `${baseUrl}/downloads/${cachedFilename}`;
                 logger.info('DXF cache hit', { cacheKey, filename: cachedFilename, ip: req.ip });
+                metricsService.recordDxfRequest('cache_hit');
                 return res.json({
                     status: 'success',
                     message: 'DXF Generated',
@@ -70,7 +73,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
 
         const baseUrl = getBaseUrl(req);
         const filename = `dxf_${Date.now()}.dxf`;
-        const dxfDirectory = process.env.DXF_DIRECTORY || './public/dxf';
+        const dxfDirectory = config.DXF_DIRECTORY;
         fs.mkdirSync(dxfDirectory, { recursive: true });
         const outputFile = path.join(dxfDirectory, filename);
         const downloadUrl = `${baseUrl}/downloads/${filename}`;
@@ -99,6 +102,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
         }
 
         const responseStatus = alreadyCompleted ? 'success' : 'queued';
+        metricsService.recordDxfRequest('generated');
         return res.status(alreadyCompleted ? 200 : 202).json({
             status: responseStatus,
             jobId: taskId,
@@ -110,6 +114,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
 
     } catch (err: any) {
         logger.error('DXF generation error', { error: err });
+        metricsService.recordDxfRequest('failed');
         return res.status(500).json({ error: 'Generation failed', details: err.message });
     }
 });
