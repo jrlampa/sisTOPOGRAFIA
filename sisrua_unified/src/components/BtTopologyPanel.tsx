@@ -214,18 +214,18 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           <Activity size={16} />
           <h3 className="text-[11px] font-black uppercase tracking-[0.16em]">Topologia BT</h3>
         </div>
-        <span className="text-[10px] font-semibold text-slate-400 uppercase">{projectType} / {btNetworkScenario === 'asis' ? 'AS-IS' : 'PROJETO'}</span>
+        <span className="text-[10px] font-semibold text-slate-400 uppercase">{projectType} / {btNetworkScenario === 'asis' ? 'ATUAL' : 'PROJETO'}</span>
       </div>
 
       <div className={`rounded-lg border p-2 text-[10px] ${btNetworkScenario === 'asis' ? 'border-cyan-500/20 bg-cyan-950/20 text-cyan-100' : 'border-indigo-500/20 bg-indigo-950/20 text-indigo-100'}`}>
         {btNetworkScenario === 'asis'
-          ? 'Cenário AS-IS: painel voltado para leitura, conferência e cálculo sobre rede existente.'
+          ? 'Cenário REDE ATUAL: painel voltado para leitura, conferência e cálculo sobre rede existente.'
           : 'Cenário REDE NOVA: painel voltado para projeto, lançamento e dimensionamento da nova topologia.'}
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-[10px]">
         <div className="rounded-lg border border-white/10 bg-slate-900 p-2 text-slate-300">Postes: {summary.poles}</div>
-        <div className="rounded-lg border border-white/10 bg-slate-900 p-2 text-slate-300">Arestas: {summary.edges}</div>
+        <div className="rounded-lg border border-white/10 bg-slate-900 p-2 text-slate-300">Condutores: {summary.edges}</div>
         <div className="rounded-lg border border-white/10 bg-slate-900 p-2 text-slate-300">Trafos: {summary.transformers}</div>
         <div className="rounded-lg border border-white/10 bg-slate-900 p-2 text-slate-300">Rede: {Math.round(summary.totalLengthMeters)} m</div>
       </div>
@@ -233,7 +233,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
       {btNetworkScenario === 'asis' && (
         <div className="grid grid-cols-3 gap-2 text-[10px]">
           <div className="rounded-lg border border-cyan-500/20 bg-slate-900 p-2 text-cyan-100">Postes verificados: {verifiedPoles}/{summary.poles}</div>
-          <div className="rounded-lg border border-cyan-500/20 bg-slate-900 p-2 text-cyan-100">Arestas verificadas: {verifiedEdges}/{summary.edges}</div>
+          <div className="rounded-lg border border-cyan-500/20 bg-slate-900 p-2 text-cyan-100">Condutores verificados: {verifiedEdges}/{summary.edges}</div>
           <div className="rounded-lg border border-cyan-500/20 bg-slate-900 p-2 text-cyan-100">Trafos verificados: {verifiedTransformers}/{summary.transformers}</div>
         </div>
       )}
@@ -322,16 +322,16 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         </div>
 
         <div className="space-y-2">
-          <div className="text-[10px] text-slate-400">Aresta</div>
+          <div className="text-[10px] text-slate-400">Condutor</div>
           {selectedEdge ? (
             <button
               onClick={() => updateEdgeVerified(selectedEdge.id, !selectedEdge.verified)}
               className="rounded border border-cyan-500/30 px-3 py-1 text-[10px] text-cyan-100 hover:bg-cyan-500/10"
             >
-              {selectedEdge.verified ? 'Marcar aresta como não verificada' : 'Marcar aresta como verificada'}
+              {selectedEdge.verified ? 'Marcar condutor como não verificado' : 'Marcar condutor como verificado'}
             </button>
           ) : (
-            <div className="text-[10px] text-slate-500">Nenhuma aresta disponível para marcação.</div>
+            <div className="text-[10px] text-slate-500">Nenhum condutor disponível para marcação.</div>
           )}
         </div>
 
@@ -351,7 +351,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
       </div>
 
       <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/50 p-3">
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Transformador ({btNetworkScenario === 'asis' ? 'leituras AS-IS' : 'base de projeto'})</div>
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Transformador ({btNetworkScenario === 'asis' ? 'leituras da rede atual' : 'base de projeto'})</div>
         {btTopology.transformers.length === 0 ? (
           <div className="text-[10px] text-slate-500">
             {btNetworkScenario === 'asis'
@@ -471,12 +471,12 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
       </div>
 
       <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/50 p-3">
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Aresta ({btNetworkScenario === 'asis' ? 'ramais existentes' : 'ramais de projeto'})</div>
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Condutor ({btNetworkScenario === 'asis' ? 'ramais existentes' : 'ramais de projeto'})</div>
         {btTopology.edges.length === 0 ? (
           <div className="text-[10px] text-slate-500">
             {btNetworkScenario === 'asis'
-              ? 'Sem arestas cadastradas para representar os ramais existentes.'
-              : 'Insira arestas no mapa para lançar os ramais da rede nova.'}
+              ? 'Sem condutores cadastrados para representar os ramais existentes.'
+              : 'Insira condutores no mapa para lançar os ramais da rede nova.'}
           </div>
         ) : (
           <>

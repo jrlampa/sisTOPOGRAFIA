@@ -320,7 +320,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                             onClick={() => onBtDeleteEdge(edge.id)}
                                             style={{marginTop: 4, padding: '2px 8px', background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer', fontSize: 11}}
                                         >
-                                            Deletar aresta
+                                            Deletar condutor
                                         </button>
                                     )}
                                 </div>

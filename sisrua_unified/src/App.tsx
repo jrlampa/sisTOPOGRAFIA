@@ -395,7 +395,7 @@ function App() {
 
     const edgeWithoutConductors = btTopology.edges.find((edge) => edge.conductors.length === 0);
     if (edgeWithoutConductors) {
-      showToast(`Aresta ${edgeWithoutConductors.id} sem condutores definidos.`, 'error');
+      showToast(`Trecho ${edgeWithoutConductors.id} sem condutores definidos.`, 'error');
       return false;
     }
 
@@ -436,11 +436,6 @@ function App() {
 
   const handleBtMapClick = (location: GeoLocation) => {
     if (btEditorMode === 'none') {
-      return;
-    }
-
-    if (btNetworkScenario === 'asis') {
-      showToast('Modo AS-IS: criação de novos elementos BT desativada. Use PROJETO para desenhar rede nova.', 'info');
       return;
     }
 
@@ -501,7 +496,7 @@ function App() {
       }
 
       if (pendingBtEdgeStartPoleId === nearestPole.id) {
-        showToast('Selecione um segundo poste para concluir a aresta', 'info');
+        showToast('Selecione um segundo poste para concluir o condutor', 'info');
         return;
       }
 
@@ -536,7 +531,7 @@ function App() {
       }, true);
 
       setPendingBtEdgeStartPoleId(null);
-      showToast(`Aresta ${edgeId} criada (${lengthMeters}m)`, 'success');
+      showToast(`Condutor ${edgeId} criado (${lengthMeters}m)`, 'success');
     }
   };
 
@@ -560,7 +555,7 @@ function App() {
         edges: btTopology.edges.filter((e) => e.id !== edgeId)
       }
     }, true);
-    showToast(`Aresta ${edgeId} removida`, 'info');
+    showToast(`Condutor ${edgeId} removido`, 'info');
   };
 
   const handleBtDeleteTransformer = (transformerId: string) => {
@@ -816,7 +811,7 @@ function App() {
               </div>
               {((latestBtExport.totalPoles ?? 0) > 0 || (latestBtExport.totalEdges ?? 0) > 0 || (latestBtExport.totalTransformers ?? 0) > 0) && (
                 <div className="mt-1 text-cyan-100/90">
-                  Verificação AS-IS: Postes {latestBtExport.verifiedPoles ?? 0}/{latestBtExport.totalPoles ?? 0} | Arestas {latestBtExport.verifiedEdges ?? 0}/{latestBtExport.totalEdges ?? 0} | Trafos {latestBtExport.verifiedTransformers ?? 0}/{latestBtExport.totalTransformers ?? 0}
+                  Verificação Atual: Postes {latestBtExport.verifiedPoles ?? 0}/{latestBtExport.totalPoles ?? 0} | Condutores {latestBtExport.verifiedEdges ?? 0}/{latestBtExport.totalEdges ?? 0} | Trafos {latestBtExport.verifiedTransformers ?? 0}/{latestBtExport.totalTransformers ?? 0}
                 </div>
               )}
               <a
@@ -967,14 +962,14 @@ function App() {
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Editor BT</label>
-              <span className="text-[9px] text-slate-500 uppercase">{(settings.projectType ?? 'ramais').toUpperCase()} / {btNetworkScenario === 'asis' ? 'AS-IS' : 'PROJETO'}</span>
+              <span className="text-[9px] text-slate-500 uppercase">{(settings.projectType ?? 'ramais').toUpperCase()} / {btNetworkScenario === 'asis' ? 'ATUAL' : 'PROJETO'}</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => updateSettings({ ...settings, btNetworkScenario: 'asis', btEditorMode: 'none' })}
                 className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btNetworkScenario === 'asis' ? 'bg-cyan-700 text-white border-cyan-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
               >
-                REDE AS-IS
+                REDE ATUAL
               </button>
               <button
                 onClick={() => updateSettings({ ...settings, btNetworkScenario: 'projeto' })}
@@ -991,33 +986,30 @@ function App() {
                 NAVEGAR
               </button>
               <button
-                disabled={btNetworkScenario === 'asis'}
                 onClick={() => updateSettings({ ...settings, btEditorMode: 'add-pole' })}
-                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-pole' ? 'bg-blue-600 text-white border-blue-500' : 'text-slate-500 border-white/5 hover:text-slate-300'} ${btNetworkScenario === 'asis' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-pole' ? 'bg-blue-600 text-white border-blue-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
               >
                 + POSTE
               </button>
               <button
-                disabled={btNetworkScenario === 'asis'}
                 onClick={() => {
                   setPendingBtEdgeStartPoleId(null);
                   updateSettings({ ...settings, btEditorMode: 'add-edge' });
                 }}
-                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-edge' ? 'bg-emerald-600 text-white border-emerald-500' : 'text-slate-500 border-white/5 hover:text-slate-300'} ${btNetworkScenario === 'asis' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-edge' ? 'bg-emerald-600 text-white border-emerald-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
               >
-                + ARESTA
+                + CONDUTOR
               </button>
               <button
-                disabled={btNetworkScenario === 'asis'}
                 onClick={() => updateSettings({ ...settings, btEditorMode: 'add-transformer' })}
-                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-transformer' ? 'bg-violet-600 text-white border-violet-500' : 'text-slate-500 border-white/5 hover:text-slate-300'} ${btNetworkScenario === 'asis' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-transformer' ? 'bg-violet-600 text-white border-violet-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
               >
                 + TRAFO
               </button>
             </div>
             {btNetworkScenario === 'asis' && (
               <div className="text-[10px] text-cyan-200 bg-cyan-900/20 border border-cyan-500/20 rounded-lg p-2">
-                AS-IS ativo: use para análise de rede existente. Para projetar rede nova, altere para REDE NOVA.
+                Rede Atual ativa: você pode navegar e lançar poste, condutor e trafo na topologia existente.
               </div>
             )}
             {settings.projectType === 'clandestino' && (

@@ -95,6 +95,5 @@ export {
     createCacheKey,
     getCachedFilename,
     setCachedFilename,
-    deleteCachedFilename,
-    DEFAULT_TTL_MS
+    deleteCachedFilename
 };

@@ -275,7 +275,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       {([
                         { value: 'none', label: 'Navegar' },
                         { value: 'add-pole', label: 'Inserir Poste' },
-                        { value: 'add-edge', label: 'Inserir Aresta' },
+                        { value: 'add-edge', label: 'Inserir Condutor' },
                         { value: 'add-transformer', label: 'Inserir Trafo' }
                       ] as { value: BtEditorMode; label: string }[]).map((option) => (
                         <button
