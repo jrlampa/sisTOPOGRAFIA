@@ -10,6 +10,7 @@ export interface JobInfo {
     result?: {
         url: string;
         filename: string;
+        btContextUrl?: string;
     };
     error?: string;
     createdAt: Date;
@@ -196,7 +197,7 @@ export async function updateJobStatus(id: string, status: JobStatus, progress?: 
     }
 }
 
-export async function completeJob(id: string, result: { url: string; filename: string }): Promise<void> {
+export async function completeJob(id: string, result: { url: string; filename: string; btContextUrl?: string }): Promise<void> {
     ensureInitialized();
 
     const job = jobs.get(id);

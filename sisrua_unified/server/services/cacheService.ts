@@ -13,6 +13,7 @@ type DxfCachePayload = {
     contourRenderMode?: 'spline' | 'polyline';
     polygon: unknown;
     layers: unknown;
+    btContext?: unknown;
 };
 
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
@@ -49,7 +50,8 @@ const createCacheKey = (payload: DxfCachePayload): string => {
         mode: payload.mode,
         contourRenderMode: payload.contourRenderMode || 'spline',
         polygon: payload.polygon ?? null,
-        layers: payload.layers ?? {}
+        layers: payload.layers ?? {},
+        btContext: payload.btContext ?? null
     };
 
     const serializedPayload = stableSerialize(normalizedPayload);

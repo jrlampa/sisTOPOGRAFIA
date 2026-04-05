@@ -38,7 +38,8 @@ function companionFilesFor(dxfPath: string): string[] {
     return [
         dxfPath,
         `${base}_metadata.csv`,
-        `${base}_elevation_metadata.csv`
+        `${base}_elevation_metadata.csv`,
+        `${base}_bt_context.json`
     ];
 }
 
@@ -78,7 +79,7 @@ function sweepStaleDxfFromDisk(): void {
             const stat = fs.statSync(fullPath);
             const fileAgeMs = now - stat.mtimeMs;
             const lower = entry.name.toLowerCase();
-            const isDxfOrSidecar = lower.endsWith('.dxf') || lower.endsWith('_metadata.csv') || lower.endsWith('_elevation_metadata.csv');
+            const isDxfOrSidecar = lower.endsWith('.dxf') || lower.endsWith('_metadata.csv') || lower.endsWith('_elevation_metadata.csv') || lower.endsWith('_bt_context.json');
 
             if (!isDxfOrSidecar) {
                 continue;

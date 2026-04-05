@@ -44,7 +44,8 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
             mode: resolvedMode,
             contourRenderMode: resolvedContourRenderMode,
             polygon: typeof polygon === 'string' ? polygon : polygon ?? null,
-            layers: layers ?? {}
+            layers: layers ?? {},
+            btContext: btContext ?? null
         });
 
         const cachedFilename = getCachedFilename(cacheKey);

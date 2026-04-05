@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { generateDxf } from '../pythonBridge.js';
 import { completeJob, failJob, updateJobStatus, createJob } from './jobStatusService.js';
 import { scheduleDxfDeletion } from './dxfCleanupService.js';
+import fs from 'fs';
+import path from 'path';
 
 // Environment variables
 const GCP_PROJECT = process.env.GCP_PROJECT || '';
@@ -54,6 +56,24 @@ export interface DxfTaskPayload {
     downloadUrl: string;
 }
 
+function persistBtContextSidecar(outputFile: string, btContext: Record<string, unknown> | null | undefined): string | null {
+    if (!btContext || Object.keys(btContext).length === 0) {
+        return null;
+    }
+
+    const ext = path.extname(outputFile);
+    const base = ext ? outputFile.slice(0, -ext.length) : outputFile;
+    const sidecarPath = `${base}_bt_context.json`;
+
+    const payload = {
+        generatedAt: new Date().toISOString(),
+        btContext
+    };
+
+    fs.writeFileSync(sidecarPath, JSON.stringify(payload, null, 2), 'utf-8');
+    return sidecarPath;
+}
+
 export interface TaskCreationResult {
     taskId: string;
     taskName: string;
@@ -94,18 +114,25 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
             contourRenderMode: payload.contourRenderMode,
             outputFile: payload.outputFile
         }).then(() => {
+            const btContextSidecarPath = persistBtContextSidecar(payload.outputFile, payload.btContext);
+            const btContextUrl = btContextSidecarPath
+                ? payload.downloadUrl.replace(/\.dxf$/i, '_bt_context.json')
+                : undefined;
+
             // Schedule DXF file for deletion after 10 minutes
             scheduleDxfDeletion(payload.outputFile);
 
             // Mark job as completed
             completeJob(taskId, {
                 url: payload.downloadUrl,
-                filename: payload.filename
+                filename: payload.filename,
+                btContextUrl
             });
 
             logger.info('DXF generation completed (dev mode)', {
                 taskId,
                 filename: payload.filename,
+                btContextSidecarPath,
                 cacheKey: payload.cacheKey
             });
         }).catch((error: any) => {
