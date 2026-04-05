@@ -477,6 +477,9 @@ function App() {
       totalTransformers: btTopology.transformers.length,
       totalPoles: btTopology.poles.length,
       totalEdges: btTopology.edges.length,
+      verifiedTransformers: btTopology.transformers.filter((item) => item.verified).length,
+      verifiedPoles: btTopology.poles.filter((item) => item.verified).length,
+      verifiedEdges: btTopology.edges.filter((item) => item.verified).length,
       accumulatedByPole: btAccumulated,
       criticalPole: btAccumulated[0] ?? null
     };

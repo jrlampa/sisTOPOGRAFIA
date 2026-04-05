@@ -123,6 +123,7 @@ export interface BtPoleNode {
   lat: number;
   lng: number;
   title: string;
+  verified?: boolean;
 }
 
 export interface BtTransformerReading {
@@ -140,6 +141,7 @@ export interface BtTransformer {
   monthlyBillBrl: number;
   demandKw: number;
   readings: BtTransformerReading[];
+  verified?: boolean;
 }
 
 export interface BtEdge {
@@ -148,6 +150,7 @@ export interface BtEdge {
   toPoleId: string;
   lengthMeters?: number;
   conductors: BtRamalEntry[];
+  verified?: boolean;
 }
 
 export interface BtTopology {

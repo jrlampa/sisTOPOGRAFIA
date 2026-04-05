@@ -38,8 +38,19 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   onTopologyChange
 }) => {
   const summary = calculateBtSummary(btTopology);
+  const [selectedPoleId, setSelectedPoleId] = React.useState<string>('');
   const [selectedTransformerId, setSelectedTransformerId] = React.useState<string>('');
   const [selectedEdgeId, setSelectedEdgeId] = React.useState<string>('');
+
+  React.useEffect(() => {
+    if (!selectedPoleId && btTopology.poles.length > 0) {
+      setSelectedPoleId(btTopology.poles[0].id);
+    }
+
+    if (selectedPoleId && !btTopology.poles.some((pole) => pole.id === selectedPoleId)) {
+      setSelectedPoleId(btTopology.poles[0]?.id || '');
+    }
+  }, [btTopology.poles, selectedPoleId]);
 
   React.useEffect(() => {
     if (!selectedTransformerId && btTopology.transformers.length > 0) {
@@ -63,6 +74,32 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
   const selectedTransformer = btTopology.transformers.find((transformer) => transformer.id === selectedTransformerId) || null;
   const selectedEdge = btTopology.edges.find((edge) => edge.id === selectedEdgeId) || null;
+  const selectedPole = btTopology.poles.find((pole) => pole.id === selectedPoleId) || null;
+
+  const verifiedPoles = btTopology.poles.filter((pole) => pole.verified).length;
+  const verifiedEdges = btTopology.edges.filter((edge) => edge.verified).length;
+  const verifiedTransformers = btTopology.transformers.filter((transformer) => transformer.verified).length;
+
+  const updatePoleVerified = (poleId: string, verified: boolean) => {
+    onTopologyChange({
+      ...btTopology,
+      poles: btTopology.poles.map((pole) => pole.id === poleId ? { ...pole, verified } : pole)
+    });
+  };
+
+  const updateTransformerVerified = (transformerId: string, verified: boolean) => {
+    onTopologyChange({
+      ...btTopology,
+      transformers: btTopology.transformers.map((transformer) => transformer.id === transformerId ? { ...transformer, verified } : transformer)
+    });
+  };
+
+  const updateEdgeVerified = (edgeId: string, verified: boolean) => {
+    onTopologyChange({
+      ...btTopology,
+      edges: btTopology.edges.map((edge) => edge.id === edgeId ? { ...edge, verified } : edge)
+    });
+  };
 
   const updateTransformerReadings = (transformerId: string, readings: BtTransformerReading[]) => {
     const monthlyBillBrl = calculateTransformerMonthlyBill(readings);
@@ -157,6 +194,14 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         <div className="rounded-lg border border-white/10 bg-slate-900 p-2 text-slate-300">Rede: {Math.round(summary.totalLengthMeters)} m</div>
       </div>
 
+      {btNetworkScenario === 'asis' && (
+        <div className="grid grid-cols-3 gap-2 text-[10px]">
+          <div className="rounded-lg border border-cyan-500/20 bg-slate-900 p-2 text-cyan-100">Postes verificados: {verifiedPoles}/{summary.poles}</div>
+          <div className="rounded-lg border border-cyan-500/20 bg-slate-900 p-2 text-cyan-100">Arestas verificadas: {verifiedEdges}/{summary.edges}</div>
+          <div className="rounded-lg border border-cyan-500/20 bg-slate-900 p-2 text-cyan-100">Trafos verificados: {verifiedTransformers}/{summary.transformers}</div>
+        </div>
+      )}
+
       <div className="rounded-lg border border-emerald-500/20 bg-emerald-950/20 p-2 text-[10px] text-emerald-200">
         {projectType === 'clandestino'
           ? `Demanda por ponto (regra clandestino): ${pointDemandKva.toFixed(2)} kVA`
@@ -198,6 +243,67 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
               Clientes: {totalClandestinoClients} | Fator: {clandestinoDiversificationFactor?.toFixed(2) ?? 'inválido'} | Demanda final: {clandestinoFinalDemandKva.toFixed(2)} kVA
             </div>
           )}
+        </div>
+      )}
+
+      {btNetworkScenario === 'asis' && (
+        <div className="space-y-3 rounded-lg border border-cyan-500/20 bg-slate-950/50 p-3">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-300">Verificação AS-IS</div>
+
+          <div className="space-y-2">
+            <div className="text-[10px] text-slate-400">Poste existente</div>
+            {btTopology.poles.length === 0 ? (
+              <div className="text-[10px] text-slate-500">Nenhum poste disponível para marcação.</div>
+            ) : (
+              <>
+                <select
+                  className="w-full rounded border border-white/10 bg-slate-900 p-2 text-xs text-slate-200"
+                  value={selectedPoleId}
+                  onChange={(e) => setSelectedPoleId(e.target.value)}
+                >
+                  {btTopology.poles.map((pole) => (
+                    <option key={pole.id} value={pole.id}>{pole.title}</option>
+                  ))}
+                </select>
+                {selectedPole && (
+                  <button
+                    onClick={() => updatePoleVerified(selectedPole.id, !selectedPole.verified)}
+                    className="rounded border border-cyan-500/30 px-3 py-1 text-[10px] text-cyan-100 hover:bg-cyan-500/10"
+                  >
+                    {selectedPole.verified ? 'Marcar como não verificado' : 'Marcar poste como verificado'}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-[10px] text-slate-400">Aresta existente</div>
+            {selectedEdge ? (
+              <button
+                onClick={() => updateEdgeVerified(selectedEdge.id, !selectedEdge.verified)}
+                className="rounded border border-cyan-500/30 px-3 py-1 text-[10px] text-cyan-100 hover:bg-cyan-500/10"
+              >
+                {selectedEdge.verified ? 'Marcar aresta como não verificada' : 'Marcar aresta como verificada'}
+              </button>
+            ) : (
+              <div className="text-[10px] text-slate-500">Nenhuma aresta disponível para marcação.</div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-[10px] text-slate-400">Transformador existente</div>
+            {selectedTransformer ? (
+              <button
+                onClick={() => updateTransformerVerified(selectedTransformer.id, !selectedTransformer.verified)}
+                className="rounded border border-cyan-500/30 px-3 py-1 text-[10px] text-cyan-100 hover:bg-cyan-500/10"
+              >
+                {selectedTransformer.verified ? 'Marcar trafo como não verificado' : 'Marcar trafo como verificado'}
+              </button>
+            ) : (
+              <div className="text-[10px] text-slate-500">Nenhum transformador disponível para marcação.</div>
+            )}
+          </div>
         </div>
       )}
 
