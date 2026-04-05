@@ -24,12 +24,39 @@ interface BtTopologyPanelProps {
   onBtRenamePole?: (poleId: string, title: string) => void;
 }
 
-const WIRE_AMPACITY: Record<number, number> = {
-  1.5: 15, 2.5: 21, 4: 27, 6: 34, 10: 46, 16: 61,
-  25: 80, 35: 99, 50: 119, 70: 151, 95: 182, 120: 210,
-  150: 240, 185: 273, 240: 325
+// Ampacity values extracted from the CABOS table (DB sheet) of the project workbook.
+// Column B "(A)" = rated ampacity in Amperes; 0 = not rated in this dataset.
+const CABOS_AMPACITY: Record<string, number> = {
+  '25 Al - Arm':    0,
+  '50 Al - Arm':    0,
+  '95 Al - Arm':  237,
+  '150 Al - Arm':   0,
+  '240 Al - Arm': 395,
+  '25 Al':          0,
+  '35 Cu':          0,
+  '70 Cu':          0,
+  '95 Al':          0,
+  '120 Cu':         0,
+  '240 Al':       476,
+  '240 Cu':       430,
+  '500 Cu':         0,
+  '10 Cu_CONC_bi':  63,
+  '10 Cu_CONC_Tri': 63,
+  '16 Al_CONC_bi':  63,
+  '16 Al_CONC_Tri': 63,
+  '13 Al - DX':     63,
+  '13 Al - TX':     63,
+  '13 Al - QX':     63,
+  '21 Al - QX':     63,
+  '53 Al - QX':     63,
+  '70 Al - MX':   202,
+  '185 Al - MX':  355,
+  '240 Al - MX':  473,
 };
-const getWireAmpacity = (mm2: number): number => WIRE_AMPACITY[mm2] ?? Math.round(mm2 * 1.4);
+// T_LINHA_MONO = DB!M14 = T_LINHA_TRF / √3 = 220 / √3 ≈ 127 V (monophasic phase voltage).
+const T_LINHA_MONO = 127;
+const CONDUCTOR_NAMES = Object.keys(CABOS_AMPACITY);
+const getConductorAmpacity = (name: string): number => CABOS_AMPACITY[name] ?? 0;
 
 const numberFromInput = (value: string): number => {
   const parsed = Number(value);
@@ -471,7 +498,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     onClick={() => {
                       updateEdgeConductors(selectedEdge.id, [
                         ...selectedEdge.conductors,
-                        { id: nextId('C'), quantity: 1, wireGaugeMm2: 16 }
+                        { id: nextId('C'), quantity: 1, conductorName: '95 Al - Arm' }
                       ]);
                     }}
                     className="inline-flex items-center gap-1 rounded border border-white/10 px-2 py-1 text-slate-300 hover:text-white"
@@ -495,19 +522,21 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                       }}
                       className="rounded border border-white/10 bg-slate-900 p-1.5 text-[11px] text-slate-200"
                     />
-                    <input
-                      type="number"
-                      min={1}
-                      value={entry.wireGaugeMm2}
+                    <select
+                      value={entry.conductorName}
                       onChange={(e) => {
-                        const wireGaugeMm2 = Math.max(1, numberFromInput(e.target.value));
+                        const conductorName = e.target.value;
                         updateEdgeConductors(
                           selectedEdge.id,
-                          selectedEdge.conductors.map((item) => item.id === entry.id ? { ...item, wireGaugeMm2 } : item)
+                          selectedEdge.conductors.map((item) => item.id === entry.id ? { ...item, conductorName } : item)
                         );
                       }}
                       className="rounded border border-white/10 bg-slate-900 p-1.5 text-[11px] text-slate-200"
-                    />
+                    >
+                      {CONDUCTOR_NAMES.map((name) => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
                     <button
                       onClick={() => {
                         updateEdgeConductors(
@@ -527,16 +556,16 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                   <div className="flex items-center gap-2">
                     <Sigma size={12} />
                     <span>
-                      Soma Qtd x Bitola: {selectedEdge.conductors.reduce((acc, entry) => acc + (entry.quantity * entry.wireGaugeMm2), 0).toFixed(2)}
+                      Total condutores: {selectedEdge.conductors.reduce((acc, entry) => acc + entry.quantity, 0)}
                     </span>
                   </div>
                 </div>
                 {(() => {
                   const toPoleEntry = accumulatedByPole.find((a) => a.poleId === selectedEdge.toPoleId);
                   const demandKva = toPoleEntry?.accumulatedDemandKva ?? 0;
-                  const requiredAmps = demandKva > 0 ? Math.round((demandKva * 1000) / 220) : 0;
+                  const requiredAmps = demandKva > 0 ? Math.round((demandKva * 1000) / T_LINHA_MONO) : 0;
                   const capacityAmps = selectedEdge.conductors.reduce(
-                    (sum, c) => sum + c.quantity * getWireAmpacity(c.wireGaugeMm2), 0
+                    (sum, c) => sum + c.quantity * getConductorAmpacity(c.conductorName), 0
                   );
                   if (requiredAmps === 0 || capacityAmps === 0) return null;
                   const ratio = requiredAmps / capacityAmps;
@@ -548,7 +577,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                         <span>Cap. condutores: {capacityAmps} A</span>
                         <span style={{ color: statusColor, fontWeight: 700 }}>{statusText}</span>
                       </div>
-                      <div>Corrente est. (220 V mono): {requiredAmps} A</div>
+                      <div>Corrente est. ({T_LINHA_MONO} V mono): {requiredAmps} A</div>
                     </div>
                   );
                 })()}

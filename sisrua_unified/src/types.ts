@@ -115,7 +115,7 @@ export type BtNetworkScenario = 'asis' | 'projeto';
 export interface BtRamalEntry {
   id: string;
   quantity: number;
-  wireGaugeMm2: number;
+  conductorName: string;
 }
 
 export interface BtPoleNode {
