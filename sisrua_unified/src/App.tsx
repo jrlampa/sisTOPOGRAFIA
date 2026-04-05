@@ -507,6 +507,17 @@ function App() {
         return;
       }
 
+      const alreadyConnected = btTopology.edges.some((edge) =>
+        (edge.fromPoleId === fromPole.id && edge.toPoleId === nearestPole.id) ||
+        (edge.fromPoleId === nearestPole.id && edge.toPoleId === fromPole.id)
+      );
+
+      if (alreadyConnected) {
+        setPendingBtEdgeStartPoleId(null);
+        showToast(`Já existe condutor entre ${fromPole.id} <-> ${nearestPole.id}`, 'info');
+        return;
+      }
+
       const edgeId = `E${btTopology.edges.length + 1}`;
       const lengthMeters = Math.round(distanceMeters(
         { lat: fromPole.lat, lng: fromPole.lng },

@@ -486,7 +486,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
               onChange={(e) => setSelectedEdgeId(e.target.value)}
             >
               {btTopology.edges.map((edge) => (
-                <option key={edge.id} value={edge.id}>{edge.id} ({edge.fromPoleId}{' -> '}{edge.toPoleId})</option>
+                <option key={edge.id} value={edge.id}>{edge.id} ({edge.fromPoleId}{' <-> '}{edge.toPoleId})</option>
               ))}
             </select>
 

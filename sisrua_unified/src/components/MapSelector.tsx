@@ -312,7 +312,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                             <Popup>
                                 <div className="text-xs">
                                     <div><strong>{edge.id}</strong></div>
-                                    <div>{edge.fromPoleId}{' -> '}{edge.toPoleId}</div>
+                                    <div>{edge.fromPoleId}{' <-> '}{edge.toPoleId}</div>
                                     {typeof edge.lengthMeters === 'number' && <div>{edge.lengthMeters} m</div>}
                                     <div style={{color: edge.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{edge.verified ? '✓ Verificado' : '○ Não verificado'}</div>
                                     {onBtDeleteEdge && (
