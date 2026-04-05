@@ -11,6 +11,7 @@ import sys
 import argparse
 import json
 from pathlib import Path
+import os
 
 try:
     import rasterio
@@ -18,6 +19,36 @@ try:
     HAS_RASTERIO = True
 except ImportError:
     HAS_RASTERIO = False
+
+# ── Compat helpers used by warmup_topodata_cache.py ─────────────────────────
+
+TILE_CACHE_DIR = Path(__file__).parent / "cache" / "topodata"
+
+
+def get_cache_path(lat: float, lng: float) -> Path:
+    """Return the expected cache path for the SRTM tile covering (lat, lng)."""
+    TILE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    tile_lat = int(lat // 1) * (1 if lat >= 0 else 1)
+    tile_lng = int(lng // 1) * (1 if lng >= 0 else 1)
+    ns = "N" if tile_lat >= 0 else "S"
+    ew = "E" if tile_lng >= 0 else "W"
+    name = f"{ns}{abs(tile_lat):02d}{ew}{abs(tile_lng):03d}.hgt"
+    return TILE_CACHE_DIR / name
+
+
+def download_tile(lat: float, lng: float) -> dict:
+    """
+    Download the SRTM tile for the given coordinate using srtm.py.
+    The library auto-downloads and caches tiles on first use.
+    Returns dict with 'success' key.
+    """
+    try:
+        import srtm
+        data = srtm.get_data()
+        elev = data.get_elevation(lat, lng)
+        return {"success": elev is not None, "elevation": elev, "lat": lat, "lng": lng}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 def read_elevation(tiff_path: str, lat: float, lng: float) -> dict:
     """

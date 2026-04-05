@@ -9,6 +9,19 @@ from utils.logger import Logger
 
 BATCH_SIZE = 100
 
+# Lazy-loaded srtm data object (shared across calls to avoid re-loading tile index)
+_srtm_data = None
+
+def _get_srtm():
+    global _srtm_data
+    if _srtm_data is None:
+        try:
+            import srtm
+            _srtm_data = srtm.get_data()
+        except ImportError:
+            _srtm_data = False  # mark as unavailable
+    return _srtm_data if _srtm_data is not False else None
+
 # Brazil bounding box (approximate)
 BRAZIL_BOUNDS = {
     'north': 5.3,
@@ -64,41 +77,45 @@ def fetch_elevation_grid(north, south, east, west, resolution=50):
         return _fetch_elevation_grid_open_elevation(north, south, east, west, resolution)
 
 def _fetch_elevation_grid_topodata(north, south, east, west, resolution):
-    """Fetch elevation using TOPODATA service"""
-    Logger.info("Generating terrain grid for Brazil...")
-    
-    # TOPODATA resolution is ~30m (0.00027 degrees)
-    step = max(0.0003, (resolution / 111000.0))
-    
-    rows = min(50, int(np.ceil((north - south) / step)))
-    cols = min(50, int(np.ceil((east - west) / step)))
-    
+    """
+    Fetch elevation for Brazil using the srtm.py library (NASA SRTM tiles).
+    Tiles are downloaded on first use (~5 MB each) and cached locally.
+    Falls back to Open-Elevation API if srtm.py is unavailable.
+    """
+    srtm_data = _get_srtm()
+    if srtm_data is None:
+        Logger.warning("srtm.py not available — falling back to Open-Elevation for Brazil")
+        return _fetch_elevation_grid_open_elevation(north, south, east, west, resolution)
+
+    Logger.info("Generating terrain grid for Brazil via SRTM tiles...")
+
+    # ~90m grid step (SRTM3 resolution); use more cells for higher resolution requests
+    step = max(0.0008, (resolution / 111000.0))
+    rows = min(50, max(4, int(np.ceil((north - south) / step))))
+    cols = min(50, max(4, int(np.ceil((east - west) / step))))
+
     lats = np.linspace(south, north, rows)
     lons = np.linspace(west, east, cols)
-    
-    locations = []
-    for lat in lats:
-        for lon in lons:
-            locations.append((float(lat), float(lon)))
-    
-    total_points = len(locations)
-    Logger.info(f"Querying TOPODATA elevation for {total_points} points ({rows}x{cols} grid)...")
-    
+
+    total_points = rows * cols
+    Logger.info(f"Querying SRTM elevation for {total_points} points ({rows}x{cols} grid)...")
+
     elevations = []
     success_count = 0
-    
-    for i, (lat, lon) in enumerate(locations):
-        elev = fetch_elevation_topodata(lat, lon)
-        if elev is not None:
-            elevations.append((lat, lon, elev))
-            success_count += 1
-        else:
-            elevations.append((lat, lon, 0))
-        
-        if (i + 1) % 10 == 0:
-            Logger.info(f"TOPODATA progress: {i+1}/{total_points}")
-    
-    Logger.info(f"TOPODATA: {success_count}/{total_points} elevation points retrieved")
+
+    for lat in lats:
+        for lon in lons:
+            try:
+                elev = srtm_data.get_elevation(float(lat), float(lon))
+                if elev is not None:
+                    elevations.append((float(lat), float(lon), float(elev)))
+                    success_count += 1
+                else:
+                    elevations.append((float(lat), float(lon), 0.0))
+            except Exception:
+                elevations.append((float(lat), float(lon), 0.0))
+
+    Logger.info(f"SRTM: {success_count}/{total_points} elevation points retrieved")
     return elevations, rows, cols
 
 def _fetch_elevation_grid_open_elevation(north, south, east, west, resolution):

@@ -45,7 +45,12 @@ class OSMController:
         Logger.info("Step 1/5: Fetching OSM features...", progress=10)
         gdf = self._fetch_features(tags)
         if gdf is None or gdf.empty:
-            Logger.info("No architectural features found in radius.", "warning")
+            Logger.info("No architectural features found in area.", "warning")
+            # Always write a valid (empty) DXF so the download URL is not a 404
+            import ezdxf
+            empty_doc = ezdxf.new('R2013')
+            empty_doc.saveas(self.output_file)
+            Logger.success(f"Empty DXF saved (no features): {self.output_file}")
             return
 
         # 3. Spatial GIS Audit (Authoritative Logic)
@@ -214,7 +219,11 @@ class OSMController:
             tags['landuse'] = ['forest', 'grass', 'park']
         if self.layers_config.get('furniture', False):
             tags['amenity'] = ['bench', 'waste_basket', 'bicycle_parking', 'fountain', 'bus_station']
-            tags['highway'] = ['street_lamp']
+            # Only set highway to street_lamp if roads layer did NOT already request all highways.
+            # Setting highway=True fetches everything (including street_lamps). Overwriting with
+            # ['street_lamp'] would discard all road ways from the result.
+            if 'highway' not in tags:
+                tags['highway'] = ['street_lamp']
         return tags
 
     def _send_geojson_preview(self, gdf, analysis_gdf=None):

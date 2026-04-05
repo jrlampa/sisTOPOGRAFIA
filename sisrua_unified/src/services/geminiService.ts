@@ -4,6 +4,35 @@ import { API_BASE_URL } from '../config/api';
 
 const API_URL = API_BASE_URL;
 
+type ParsedApiResponse = {
+  data: unknown | null;
+  rawText: string;
+  status: number;
+};
+
+const parseApiResponse = async (response: Response): Promise<ParsedApiResponse> => {
+  const rawText = await response.text();
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+
+  if (!rawText || rawText.trim().length === 0) {
+    return { data: null, rawText, status: response.status };
+  }
+
+  if (!contentType.includes('application/json')) {
+    return { data: null, rawText, status: response.status };
+  }
+
+  try {
+    return { data: JSON.parse(rawText), rawText, status: response.status };
+  } catch {
+    return { data: null, rawText, status: response.status };
+  }
+};
+
+const ollamaHelpText = () => {
+  return "**Erro na análise**: Serviço de análise indisponível no momento.\n\nUse o Ollama local:\n1. Verifique se está instalado: `ollama --version`\n2. Inicie o serviço: `ollama serve`\n3. Baixe o modelo: `ollama pull llama3.2`\n4. Reinicie o backend.";
+};
+
 export const findLocationWithGemini = async (query: string, enableAI: boolean): Promise<GeoLocation | null> => {
   if (!enableAI) {
     Logger.warn("Analysis is disabled. Cannot perform fuzzy search.");
@@ -36,31 +65,50 @@ export const analyzeArea = async (stats: any, locationName: string, enableAI: bo
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ stats, locationName })
     });
+
+    const parsed = await parseApiResponse(response);
     
     // Handle error responses
     if (!response.ok) {
-      try {
-        const errorData = await response.json();
-        Logger.warn("Analysis request failed", { status: response.status, error: errorData });
-        
-        // If the backend provides an analysis message (e.g., for missing API key), use it
-        if (errorData.analysis) {
+      Logger.warn("Analysis request failed", { status: response.status, body: parsed.data || parsed.rawText });
+
+      if (parsed.data && typeof parsed.data === 'object') {
+        const errorData = parsed.data as Record<string, unknown>;
+        if (typeof errorData.analysis === 'string' && errorData.analysis.trim().length > 0) {
           return errorData.analysis;
         }
-        
-        // Otherwise provide a helpful error message
-        const errorMsg = errorData.message || errorData.error || 'Analysis failed';
+
+        const errorMsg =
+          (typeof errorData.message === 'string' && errorData.message) ||
+          (typeof errorData.error === 'string' && errorData.error) ||
+          'Analysis failed';
         return `**Erro na análise**: ${errorMsg}`;
-      } catch {
-        return "**Erro na análise**: Não foi possível processar a resposta do servidor.";
+      }
+
+      if (response.status === 503 || response.status === 500) {
+        return ollamaHelpText();
+      }
+
+      return `**Erro na análise**: Resposta inválida do servidor (HTTP ${response.status}).`;
+    }
+
+    if (parsed.data && typeof parsed.data === 'object') {
+      const data = parsed.data as Record<string, unknown>;
+      if (typeof data.analysis === 'string' && data.analysis.trim().length > 0) {
+        Logger.info("Analysis completed");
+        return data.analysis;
       }
     }
-    
-    const data = await response.json();
+
+    if (parsed.rawText.trim().length > 0) {
+      Logger.info("Analysis completed with plain text response");
+      return parsed.rawText;
+    }
+
     Logger.info("Analysis completed");
-    return data.analysis;
+    return "**Erro na análise**: O servidor não retornou conteúdo de análise.";
   } catch (error) {
     Logger.error("Analysis error:", error);
-    return "**Erro de conexão**: Não foi possível contatar o servidor de análise. Verifique se o backend está em execução na porta 3001.";
+    return "**Erro de conexão**: Não foi possível contatar o servidor de análise. Verifique se o backend está em execução na porta 3001 e com Ollama ativo.";
   }
 };

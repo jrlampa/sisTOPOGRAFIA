@@ -1,4 +1,4 @@
-import express, { Express, Request, Response } from 'express';
+import express, { Express, NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import 'dotenv/config';
 import { spawn } from 'child_process';
@@ -119,7 +119,7 @@ app.get('*', (_req: Request, res: Response) => {
 });
 
 // Error handler
-app.use((err: Error, _req: Request, res: Response) => {
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     logger.error('Error', { error: err.message });
     res.status(500).json({ error: 'Internal server error' });
 });

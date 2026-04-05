@@ -35,6 +35,15 @@ def main():
         if args.no_preview:
             Logger.SKIP_GEOJSON = True
 
+        raw_polygon = json.loads(args.polygon)
+        # Normalize polygon: accept both [[lat,lon],...] arrays and [{lat,lng},...] objects
+        # (frontend sends GeoLocation objects with {lat, lng} keys)
+        def _normalize_point(p):
+            if isinstance(p, dict):
+                return [p.get('lat', p.get('latitude', 0)), p.get('lng', p.get('lon', p.get('longitude', 0)))]
+            return list(p)  # already [lat, lon]
+        polygon = [_normalize_point(p) for p in raw_polygon] if raw_polygon else []
+
         controller = OSMController(
             lat=args.lat,
             lon=args.lon,
@@ -44,7 +53,7 @@ def main():
             crs=args.crs,
             export_format=args.format,
             selection_mode=args.selection_mode,
-            polygon=json.loads(args.polygon)
+            polygon=polygon
         )
         controller.project_metadata = {
             'client': args.client_name,

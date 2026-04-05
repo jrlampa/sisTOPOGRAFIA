@@ -68,6 +68,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
         const baseUrl = getBaseUrl(req);
         const filename = `dxf_${Date.now()}.dxf`;
         const dxfDirectory = process.env.DXF_DIRECTORY || './public/dxf';
+        fs.mkdirSync(dxfDirectory, { recursive: true });
         const outputFile = path.join(dxfDirectory, filename);
         const downloadUrl = `${baseUrl}/downloads/${filename}`;
 

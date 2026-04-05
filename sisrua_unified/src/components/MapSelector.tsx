@@ -45,7 +45,7 @@ const SelectionManager = ({
                 onLocationChange({
                     lat: e.latlng.lat,
                     lng: e.latlng.lng,
-                    label: `Selected (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`
+                    label: `Selecionado (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`
                 });
             } else if (selectionMode === 'polygon') {
                 onPolygonChange([...polygonPoints, [e.latlng.lat, e.latlng.lng]]);
@@ -234,7 +234,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
 
             {/* Overlay Controls could go here */}
             <div className="absolute bottom-4 left-4 z-[400] bg-slate-900/80 backdrop-blur text-xs p-2 rounded text-slate-400 border border-slate-700">
-                {selectionMode === 'circle' ? 'Click to set center' : 'Click to add polygon points'}
+                {selectionMode === 'circle' ? 'Clique para definir o centro' : 'Clique para adicionar pontos ao polígono'}
             </div>
         </div>
     );

@@ -416,12 +416,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       <button
                         key={level}
                         onClick={() => setSimplification(level)}
-                        className={`flex-1 py-1.5 text-xs font-medium rounded border transition-all capitalize ${settings.simplificationLevel === level
+                        className={`flex-1 py-1.5 text-xs font-medium rounded border transition-all ${settings.simplificationLevel === level
                           ? 'bg-blue-600 border-blue-500 text-white'
                           : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
                           }`}
                       >
-                        {level}
+                        {({'off':'Des.','low':'Baixa','medium':'Média','high':'Alta'} as Record<string,string>)[level]}
                       </button>
                     ))}
                   </div>
@@ -433,7 +433,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   >
                     <div className="flex items-center gap-2">
                       <ArrowLeftRight size={14} className={settings.orthogonalize ? 'text-indigo-400' : 'text-slate-600'} />
-                      <span>Forçar Ângulos Retos (Squaring)</span>
+                      <span>Forçar Ângulos Retos (Ortogonalizar)</span>
                     </div>
                     <div className={`w-3 h-3 rounded-full ${settings.orthogonalize ? 'bg-indigo-500' : 'bg-slate-700'}`} />
                   </button>
