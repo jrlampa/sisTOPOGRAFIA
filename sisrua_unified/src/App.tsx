@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Map as MapIcon, Layers, Search, Loader2, AlertCircle, Settings, Mountain, TrendingUp } from 'lucide-react';
-import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary, BtExportHistoryEntry } from './types';
+import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
 import MapSelector from './components/MapSelector';
 import Dashboard from './components/Dashboard';
@@ -76,6 +76,7 @@ function App() {
       mapProvider: 'vector',
       contourInterval: 5,
       projectType: 'ramais',
+      btNetworkScenario: 'asis',
       btEditorMode: 'none',
       clandestinoAreaM2: 0,
       layers: {
@@ -112,6 +113,7 @@ function App() {
   const btExportSummary = appState.btExportSummary ?? null;
   const btExportHistory = appState.btExportHistory ?? [];
   const latestBtExport = btExportSummary ?? btExportHistory[0] ?? null;
+  const btNetworkScenario: BtNetworkScenario = settings.btNetworkScenario ?? 'asis';
   const isDark = settings.theme === 'dark';
   const btEditorMode: BtEditorMode = settings.btEditorMode ?? 'none';
   const [pendingBtEdgeStartPoleId, setPendingBtEdgeStartPoleId] = useState<string | null>(null);
@@ -330,6 +332,11 @@ function App() {
       return;
     }
 
+    if (btNetworkScenario === 'asis') {
+      showToast('Modo AS-IS: criação de novos elementos BT desativada. Use PROJETO para desenhar rede nova.', 'info');
+      return;
+    }
+
     if (btEditorMode === 'add-pole') {
       const nextId = `P${btTopology.poles.length + 1}`;
       const nextPole: BtPoleNode = {
@@ -465,6 +472,7 @@ function App() {
 
     const btContext = {
       projectType: settings.projectType ?? 'ramais',
+      btNetworkScenario,
       clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
       totalTransformers: btTopology.transformers.length,
       totalPoles: btTopology.poles.length,
@@ -738,7 +746,21 @@ function App() {
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Editor BT</label>
-              <span className="text-[9px] text-slate-500 uppercase">{(settings.projectType ?? 'ramais').toUpperCase()}</span>
+              <span className="text-[9px] text-slate-500 uppercase">{(settings.projectType ?? 'ramais').toUpperCase()} / {btNetworkScenario === 'asis' ? 'AS-IS' : 'PROJETO'}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => updateSettings({ ...settings, btNetworkScenario: 'asis', btEditorMode: 'none' })}
+                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btNetworkScenario === 'asis' ? 'bg-cyan-700 text-white border-cyan-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
+              >
+                REDE AS-IS
+              </button>
+              <button
+                onClick={() => updateSettings({ ...settings, btNetworkScenario: 'projeto' })}
+                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btNetworkScenario === 'projeto' ? 'bg-indigo-700 text-white border-indigo-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
+              >
+                REDE NOVA
+              </button>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -748,27 +770,35 @@ function App() {
                 NAVEGAR
               </button>
               <button
+                disabled={btNetworkScenario === 'asis'}
                 onClick={() => updateSettings({ ...settings, btEditorMode: 'add-pole' })}
-                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-pole' ? 'bg-blue-600 text-white border-blue-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
+                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-pole' ? 'bg-blue-600 text-white border-blue-500' : 'text-slate-500 border-white/5 hover:text-slate-300'} ${btNetworkScenario === 'asis' ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 + POSTE
               </button>
               <button
+                disabled={btNetworkScenario === 'asis'}
                 onClick={() => {
                   setPendingBtEdgeStartPoleId(null);
                   updateSettings({ ...settings, btEditorMode: 'add-edge' });
                 }}
-                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-edge' ? 'bg-emerald-600 text-white border-emerald-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
+                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-edge' ? 'bg-emerald-600 text-white border-emerald-500' : 'text-slate-500 border-white/5 hover:text-slate-300'} ${btNetworkScenario === 'asis' ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 + ARESTA
               </button>
               <button
+                disabled={btNetworkScenario === 'asis'}
                 onClick={() => updateSettings({ ...settings, btEditorMode: 'add-transformer' })}
-                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-transformer' ? 'bg-violet-600 text-white border-violet-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
+                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-transformer' ? 'bg-violet-600 text-white border-violet-500' : 'text-slate-500 border-white/5 hover:text-slate-300'} ${btNetworkScenario === 'asis' ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 + TRAFO
               </button>
             </div>
+            {btNetworkScenario === 'asis' && (
+              <div className="text-[10px] text-cyan-200 bg-cyan-900/20 border border-cyan-500/20 rounded-lg p-2">
+                AS-IS ativo: use para análise de rede existente. Para projetar rede nova, altere para REDE NOVA.
+              </div>
+            )}
             {settings.projectType === 'clandestino' && (
               <div className="text-[10px] text-amber-300 bg-amber-900/20 border border-amber-500/20 rounded-lg p-2">
                 Área clandestina: {settings.clandestinoAreaM2 ?? 0} m²

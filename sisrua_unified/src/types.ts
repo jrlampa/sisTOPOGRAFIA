@@ -110,6 +110,7 @@ export type SimplificationLevel = 'off' | 'low' | 'medium' | 'high';
 export type ContourRenderMode = 'spline' | 'polyline';
 export type BtProjectType = 'ramais' | 'geral' | 'clandestino';
 export type BtEditorMode = 'none' | 'add-pole' | 'add-transformer' | 'add-edge';
+export type BtNetworkScenario = 'asis' | 'projeto';
 
 export interface BtRamalEntry {
   id: string;
@@ -179,6 +180,7 @@ export interface AppSettings {
   projectMetadata: ProjectMetadata;
   contourInterval: number;
   projectType?: BtProjectType;
+  btNetworkScenario?: BtNetworkScenario;
   btEditorMode?: BtEditorMode;
   clandestinoAreaM2?: number;
 }

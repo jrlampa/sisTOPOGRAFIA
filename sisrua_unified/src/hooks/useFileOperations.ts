@@ -70,6 +70,9 @@ export function useFileOperations({
         if (!loadedState.settings.projectType) {
           loadedState.settings.projectType = 'ramais';
         }
+        if (!loadedState.settings.btNetworkScenario) {
+          loadedState.settings.btNetworkScenario = 'asis';
+        }
         if (!loadedState.settings.btEditorMode) {
           loadedState.settings.btEditorMode = 'none';
         }
