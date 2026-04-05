@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { GeoJsonObject, FeatureCollection } from 'geojson';
 import { BtEditorMode, BtTopology, SelectionMode } from '../types';
+import { Trash2, Triangle } from 'lucide-react';
 
 // Fix for default marker icon in React Leaflet
 // @ts-ignore
@@ -211,6 +212,22 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         return new Map(accumulatedByPole.map((entry) => [entry.poleId, entry]));
     }, [accumulatedByPole]);
 
+    const poleHasTransformer = React.useMemo(() => {
+        const byPole = new Map<string, boolean>();
+        const distanceThresholdMeters = 6;
+
+        for (const pole of topology.poles || []) {
+            const hasTransformer = (topology.transformers || []).some((transformer) => {
+                const polePoint = L.latLng(pole.lat, pole.lng);
+                const transformerPoint = L.latLng(transformer.lat, transformer.lng);
+                return polePoint.distanceTo(transformerPoint) <= distanceThresholdMeters;
+            });
+            byPole.set(pole.id, hasTransformer);
+        }
+
+        return byPole;
+    }, [topology.poles, topology.transformers]);
+
     const makePoleIcon = (poleId: string, verified: boolean) => {
         const isCritical = poleId === criticalPoleId;
         const isPending = poleId === pendingBtEdgeStartPoleId;
@@ -377,12 +394,23 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                 )}
                                 <div style={{color: pole.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{pole.verified ? '✓ Verificado' : '○ Não verificado'}</div>
                                 {onBtDeletePole && (
-                                    <button
-                                        onClick={() => onBtDeletePole(pole.id)}
-                                        style={{marginTop: 4, padding: '2px 8px', background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer', fontSize: 11}}
-                                    >
-                                        Deletar poste
-                                    </button>
+                                    <div style={{marginTop: 6, display: 'flex', gap: 8, alignItems: 'center'}}>
+                                        <button
+                                            onClick={() => onBtDeletePole(pole.id)}
+                                            style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer'}}
+                                            title="Deletar poste"
+                                            aria-label="Deletar poste"
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                        <span
+                                            title={poleHasTransformer.get(pole.id) ? 'Poste com transformador' : 'Poste sem transformador'}
+                                            aria-label={poleHasTransformer.get(pole.id) ? 'Poste com transformador' : 'Poste sem transformador'}
+                                            style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: `1px solid ${poleHasTransformer.get(pole.id) ? '#7c3aed' : '#94a3b8'}`, borderRadius: 4, color: poleHasTransformer.get(pole.id) ? '#7c3aed' : '#94a3b8', background: poleHasTransformer.get(pole.id) ? '#7c3aed14' : '#f8fafc'}}
+                                        >
+                                            <Triangle size={12} style={{ transform: 'rotate(180deg)' }} />
+                                        </span>
+                                    </div>
                                 )}
                             </div>
                         </Popup>
