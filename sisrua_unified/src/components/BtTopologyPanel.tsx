@@ -619,20 +619,6 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         </div>
 
         <div className="space-y-2">
-          <div className="text-[10px] text-slate-400">Condutor</div>
-          {selectedEdge ? (
-            <button
-              onClick={() => updateEdgeVerified(selectedEdge.id, !selectedEdge.verified)}
-              className="rounded border border-cyan-400 px-3 py-1 text-[10px] text-cyan-900 hover:bg-cyan-100"
-            >
-              {selectedEdge.verified ? 'Marcar condutor como não verificado' : 'Marcar condutor como verificado'}
-            </button>
-          ) : (
-            <div className="text-[10px] text-slate-500">Nenhum condutor disponível para marcação.</div>
-          )}
-        </div>
-
-        <div className="space-y-2">
           <div className="text-[10px] text-slate-400">Transformador</div>
           {selectedTransformer ? (
             <button
@@ -780,17 +766,25 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-[10px] text-slate-400">
                   <span>Condutores do trecho</span>
-                  <button
-                    onClick={() => {
-                      updateEdgeConductors(selectedEdge.id, [
-                        ...selectedEdge.conductors,
-                        { id: nextId('C'), quantity: 1, conductorName: CONDUCTOR_NAMES[0] }
-                      ]);
-                    }}
-                    className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-slate-700 hover:bg-slate-100"
-                  >
-                    <Plus size={12} /> Condutor
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => updateEdgeVerified(selectedEdge.id, !selectedEdge.verified)}
+                      className="rounded border border-cyan-400 px-2 py-1 text-[10px] text-cyan-900 hover:bg-cyan-100"
+                    >
+                      {selectedEdge.verified ? 'Condutor verificado' : 'Marcar verificado'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        updateEdgeConductors(selectedEdge.id, [
+                          ...selectedEdge.conductors,
+                          { id: nextId('C'), quantity: 1, conductorName: CONDUCTOR_NAMES[0] }
+                        ]);
+                      }}
+                      className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-slate-700 hover:bg-slate-100"
+                    >
+                      <Plus size={12} /> Condutor
+                    </button>
+                  </div>
                 </div>
 
                 {selectedEdge.conductors.map((entry) => (
