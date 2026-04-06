@@ -502,24 +502,38 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             <div className="text-[10px] text-slate-500">Nenhum poste cadastrado.</div>
           ) : (
             <>
-              <select
-                className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
-                value={selectedPoleId}
-                onChange={(e) => setSelectedPoleId(e.target.value)}
-              >
-                {btTopology.poles.map((pole) => (
-                  <option key={pole.id} value={pole.id}>{pole.title}</option>
-                ))}
-              </select>
+              {btTopology.poles.length === 1 && selectedPole && onBtRenamePole ? (
+                <input
+                  type="text"
+                  value={selectedPole.title}
+                  onChange={(e) => onBtRenamePole(selectedPole.id, e.target.value)}
+                  title="Nome do poste"
+                  className="w-full rounded border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 focus:border-cyan-500/60 outline-none"
+                />
+              ) : (
+                <select
+                  className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
+                  value={selectedPoleId}
+                  onChange={(e) => setSelectedPoleId(e.target.value)}
+                  title="Selecionar poste"
+                >
+                  {btTopology.poles.map((pole) => (
+                    <option key={pole.id} value={pole.id}>{pole.title}</option>
+                  ))}
+                </select>
+              )}
               {selectedPole && (
                 <>
-                  <input
-                    type="text"
-                    value={selectedPole.title}
-                    onChange={(e) => onBtRenamePole?.(selectedPole.id, e.target.value)}
-                    placeholder="Nome do poste"
-                    className="w-full rounded border border-slate-300 bg-white p-1.5 text-xs text-slate-800 focus:border-cyan-500/60 outline-none"
-                  />
+                  {btTopology.poles.length > 1 && (
+                    <input
+                      type="text"
+                      value={selectedPole.title}
+                      onChange={(e) => onBtRenamePole?.(selectedPole.id, e.target.value)}
+                      placeholder="Nome do poste"
+                      title="Nome do poste"
+                      className="w-full rounded border border-slate-300 bg-white p-1.5 text-xs text-slate-800 focus:border-cyan-500/60 outline-none"
+                    />
+                  )}
                   <button
                     onClick={() => updatePoleVerified(selectedPole.id, !selectedPole.verified)}
                     className="rounded border border-cyan-400 px-3 py-1 text-[10px] text-cyan-900 hover:bg-cyan-100"
