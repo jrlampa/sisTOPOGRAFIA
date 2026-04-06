@@ -6,6 +6,39 @@ import { GeoJsonObject, FeatureCollection } from 'geojson';
 import { BtEditorMode, BtTopology, SelectionMode } from '../types';
 import { Plus, Trash2, Triangle } from 'lucide-react';
 
+const CONDUCTOR_OPTIONS = [
+    '70 Al - MX',
+    '185 Al - MX',
+    '240 Al - MX',
+    '25 Al - Arm',
+    '50 Al - Arm',
+    '95 Al - Arm',
+    '150 Al - Arm',
+    '240 Al - Arm',
+    '25 Al',
+    '35 Cu',
+    '70 Cu',
+    '95 Al',
+    '120 Cu',
+    '240 Al',
+    '240 Cu',
+    '500 Cu',
+    '10 Cu_CONC_bi',
+    '10 Cu_CONC_Tri',
+    '16 Al_CONC_bi',
+    '16 Al_CONC_Tri',
+    '13 Al - DX',
+    '13 Al - TX',
+    '13 Al - QX',
+    '21 Al - QX',
+    '53 Al - QX',
+    '6 AWG',
+    '2 AWG',
+    '1/0 AWG',
+    '3/0 AWG',
+    '4/0 AWG'
+];
+
 // Fix for default marker icon in React Leaflet
 // @ts-ignore
 delete L.Icon.Default.prototype._getIconUrl;
@@ -34,6 +67,8 @@ interface MapSelectorProps {
     onBtToggleTransformerOnPole?: (poleId: string) => void;
     onBtQuickAddPoleRamal?: (poleId: string) => void;
     onBtQuickRemovePoleRamal?: (poleId: string) => void;
+    onBtQuickAddEdgeConductor?: (edgeId: string, conductorName: string) => void;
+    onBtQuickRemoveEdgeConductor?: (edgeId: string, conductorName: string) => void;
     onBtRenamePole?: (poleId: string, title: string) => void;
     onBtSetPoleVerified?: (poleId: string, verified: boolean) => void;
     onBtDragPole?: (poleId: string, lat: number, lng: number) => void;
@@ -250,6 +285,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     onBtToggleTransformerOnPole,
     onBtQuickAddPoleRamal,
     onBtQuickRemovePoleRamal,
+    onBtQuickAddEdgeConductor,
+    onBtQuickRemoveEdgeConductor,
     onBtRenamePole,
     onBtSetPoleVerified,
     onBtDragPole,
@@ -270,6 +307,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     const accumulatedByPoleMap = React.useMemo(() => {
         return new Map(accumulatedByPole.map((entry) => [entry.poleId, entry]));
     }, [accumulatedByPole]);
+
+    const [edgeConductorSelection, setEdgeConductorSelection] = React.useState<Record<string, string>>({});
 
     const poleHasTransformer = React.useMemo(() => {
         const byPole = new Map<string, boolean>();
@@ -414,25 +453,86 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         return null;
                     }
 
+                    const selectedConductor = edgeConductorSelection[edge.id]
+                        ?? edge.conductors[edge.conductors.length - 1]?.conductorName
+                        ?? CONDUCTOR_OPTIONS[0];
+
                     const edgePopup = (
                         <Popup>
                             <div className="text-xs">
                                 <div><strong>{edge.id}</strong></div>
-                                <div>{edge.fromPoleId}{' <-> '}{edge.toPoleId}</div>
+                                <div>{from.title}{' <-> '}{to.title}</div>
+                                <div style={{ color: '#64748b' }}>{edge.fromPoleId}{' <-> '}{edge.toPoleId}</div>
                                 {typeof edge.lengthMeters === 'number' && <div>{edge.lengthMeters} m</div>}
-                                <div style={{color: edge.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{edge.verified ? '✓ Verificado' : '○ Não verificado'}</div>
-                                {onBtDeleteEdge && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            onBtDeleteEdge(edge.id);
-                                        }}
-                                        style={{marginTop: 4, padding: '2px 8px', background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer', fontSize: 11}}
-                                    >
-                                        Deletar condutor
-                                    </button>
+                                {edge.conductors.length > 0 ? (
+                                    <div style={{marginTop: 2, color: '#374151'}}>
+                                        {edge.conductors.map((entry) => (
+                                            <div key={entry.id}>{entry.quantity} x {entry.conductorName}</div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{marginTop: 2, color: '#6b7280'}}>Sem condutor informado</div>
                                 )}
+                                <div style={{marginTop: 6}}>
+                                    <select
+                                        value={selectedConductor}
+                                        onChange={(e) => {
+                                            const conductorName = e.target.value;
+                                            setEdgeConductorSelection((current) => ({
+                                                ...current,
+                                                [edge.id]: conductorName
+                                            }));
+                                        }}
+                                        style={{width: '100%', border: '1px solid #cbd5e1', borderRadius: 4, padding: '2px 6px', fontSize: 11, color: '#334155', background: '#ffffff'}}
+                                    >
+                                        {CONDUCTOR_OPTIONS.map((name) => (
+                                            <option key={name} value={name}>{name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div style={{color: edge.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{edge.verified ? '✓ Verificado' : '○ Não verificado'}</div>
+                                <div style={{marginTop: 6, display: 'flex', gap: 8, alignItems: 'center'}}>
+                                    {onBtDeleteEdge && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onBtDeleteEdge(edge.id);
+                                            }}
+                                            style={{padding: '2px 8px', background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer', fontSize: 11}}
+                                        >
+                                            Deletar condutor
+                                        </button>
+                                    )}
+                                    {onBtQuickAddEdgeConductor && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onBtQuickAddEdgeConductor(edge.id, selectedConductor);
+                                            }}
+                                            title="Informar condutor"
+                                            aria-label="Informar condutor"
+                                            style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #0ea5e9', borderRadius: 4, color: '#0284c7', background: '#0ea5e914', cursor: 'pointer'}}
+                                        >
+                                            <Plus size={12} />
+                                        </button>
+                                    )}
+                                    {onBtQuickRemoveEdgeConductor && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onBtQuickRemoveEdgeConductor(edge.id, selectedConductor);
+                                            }}
+                                            title="Retirar condutor"
+                                            aria-label="Retirar condutor"
+                                            style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #64748b', borderRadius: 4, color: '#334155', background: '#f1f5f9', cursor: 'pointer', fontSize: 14, fontWeight: 700}}
+                                        >
+                                            -
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </Popup>
                     );

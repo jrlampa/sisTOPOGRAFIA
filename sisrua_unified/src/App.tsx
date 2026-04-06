@@ -60,6 +60,7 @@ const NORMAL_CLIENT_RAMAL_TYPES = [
   '185 MMX'
 ];
 const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
+const DEFAULT_EDGE_CONDUCTOR = '70 Al - MX';
 
 type PendingNormalClassificationPole = {
   poleId: string;
@@ -1102,6 +1103,84 @@ function App() {
     showToast(`-1 ramal em ${pole.title}.`, 'success');
   };
 
+  const handleBtQuickAddEdgeConductor = (edgeId: string, conductorName: string) => {
+    const edge = btTopology.edges.find((candidate) => candidate.id === edgeId);
+    if (!edge) {
+      showToast('Condutor não encontrado', 'error');
+      return;
+    }
+
+    const selectedConductor = conductorName || DEFAULT_EDGE_CONDUCTOR;
+    const conductors = [...edge.conductors];
+    const existingIndex = conductors.findIndex((entry) => entry.conductorName === selectedConductor);
+    if (existingIndex === -1) {
+      conductors.push({
+        id: `C${Date.now()}${Math.floor(Math.random() * 1000)}`,
+        quantity: 1,
+        conductorName: selectedConductor
+      });
+    } else {
+      const target = conductors[existingIndex];
+      conductors[existingIndex] = { ...target, quantity: target.quantity + 1 };
+    }
+
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        edges: btTopology.edges.map((candidate) =>
+          candidate.id === edgeId ? { ...candidate, conductors } : candidate
+        )
+      }
+    }, true);
+
+    showToast(`+1 ${selectedConductor} no trecho ${edgeId}.`, 'success');
+  };
+
+  const handleBtQuickRemoveEdgeConductor = (edgeId: string, conductorName: string) => {
+    const edge = btTopology.edges.find((candidate) => candidate.id === edgeId);
+    if (!edge) {
+      showToast('Condutor não encontrado', 'error');
+      return;
+    }
+
+    const selectedConductor = conductorName || DEFAULT_EDGE_CONDUCTOR;
+    const conductors = [...edge.conductors];
+    if (conductors.length === 0) {
+      showToast(`Trecho ${edgeId} sem condutor para reduzir.`, 'info');
+      return;
+    }
+
+    const targetIndex = [...conductors]
+      .map((entry, index) => ({ entry, index }))
+      .reverse()
+      .find(({ entry }) => entry.conductorName === selectedConductor)?.index;
+
+    if (targetIndex === undefined) {
+      showToast(`Trecho ${edgeId} sem ${selectedConductor} para reduzir.`, 'info');
+      return;
+    }
+
+    const target = conductors[targetIndex];
+    if (target.quantity > 1) {
+      conductors[targetIndex] = { ...target, quantity: target.quantity - 1 };
+    } else {
+      conductors.splice(targetIndex, 1);
+    }
+
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        edges: btTopology.edges.map((candidate) =>
+          candidate.id === edgeId ? { ...candidate, conductors } : candidate
+        )
+      }
+    }, true);
+
+    showToast(`-1 ${selectedConductor} no trecho ${edgeId}.`, 'success');
+  };
+
   const handleConfirmNormalRamalModal = () => {
     if (!normalRamalModal) {
       return;
@@ -1788,6 +1867,8 @@ function App() {
             onBtToggleTransformerOnPole={handleBtToggleTransformerOnPole}
             onBtQuickAddPoleRamal={handleBtQuickAddPoleRamal}
             onBtQuickRemovePoleRamal={handleBtQuickRemovePoleRamal}
+            onBtQuickAddEdgeConductor={handleBtQuickAddEdgeConductor}
+            onBtQuickRemoveEdgeConductor={handleBtQuickRemoveEdgeConductor}
             onBtRenamePole={handleBtRenamePole}
             onBtSetPoleVerified={handleBtSetPoleVerified}
             onBtDragPole={handleBtDragPole}
