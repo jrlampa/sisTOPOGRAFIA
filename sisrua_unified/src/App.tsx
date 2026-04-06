@@ -705,6 +705,10 @@ function App() {
       return;
     }
 
+    if (btEditorMode === 'move-pole') {
+      return;
+    }
+
     if (btEditorMode === 'add-pole') {
       insertBtPoleAtLocation(location);
       return;
@@ -1481,12 +1485,18 @@ function App() {
                 REDE NOVA
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => updateSettings({ ...settings, btEditorMode: 'none' })}
                 className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'none' ? 'bg-slate-800 text-slate-100 border-white/10' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
               >
                 NAVEGAR
+              </button>
+              <button
+                onClick={() => updateSettings({ ...settings, btEditorMode: 'move-pole' })}
+                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'move-pole' ? 'bg-amber-600 text-white border-amber-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
+              >
+                MOVER
               </button>
               <button
                 onClick={() => updateSettings({ ...settings, btEditorMode: 'add-pole' })}
@@ -1534,6 +1544,11 @@ function App() {
                   INSERIR POR COORDENADA
                 </button>
               </form>
+            )}
+            {btEditorMode === 'move-pole' && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[10px] text-amber-100">
+                Clique e segure no poste para arrastar e ajustar a posição no mapa.
+              </div>
             )}
             {btNetworkScenario === 'asis' && (
               <div className="text-[10px] text-cyan-900 bg-cyan-50 border border-cyan-300 rounded-lg p-2">

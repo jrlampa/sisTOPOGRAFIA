@@ -581,7 +581,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         key={`${transformer.id}-${transformer.verified ? 'v' : 'u'}`}
                         position={[transformer.lat, transformer.lng]}
                         icon={makeTransformerIcon(!!transformer.verified)}
-                        draggable={btEditorMode !== 'add-edge' && btEditorMode !== 'add-transformer'}
+                        draggable={false}
                         eventHandlers={{
                             click: () => {
                                 if ((btEditorMode === 'add-edge' || btEditorMode === 'add-transformer') && onBtMapClick) {
