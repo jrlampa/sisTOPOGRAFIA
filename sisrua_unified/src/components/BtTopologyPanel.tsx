@@ -753,9 +753,13 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
               value={selectedEdgeId}
               onChange={(e) => setSelectedEdgeId(e.target.value)}
             >
-              {btTopology.edges.map((edge) => (
-                <option key={edge.id} value={edge.id}>{edge.id} ({edge.fromPoleId}{' <-> '}{edge.toPoleId})</option>
-              ))}
+              {btTopology.edges.map((edge) => {
+                const fromTitle = btTopology.poles.find((pole) => pole.id === edge.fromPoleId)?.title ?? edge.fromPoleId;
+                const toTitle = btTopology.poles.find((pole) => pole.id === edge.toPoleId)?.title ?? edge.toPoleId;
+                return (
+                  <option key={edge.id} value={edge.id}>{edge.id} ({fromTitle}{' <-> '}{toTitle})</option>
+                );
+              })}
             </select>
 
             {selectedEdge && (

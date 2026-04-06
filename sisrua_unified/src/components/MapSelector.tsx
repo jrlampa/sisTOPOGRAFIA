@@ -463,6 +463,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         <Popup>
                             <div className="text-xs">
                                 <div><strong>{edge.id}</strong></div>
+                                <div style={{marginTop: 2, color: '#334155'}}>{from.title} {'<->'} {to.title}</div>
                                 <div style={{marginTop: 4, color: '#334155'}}>Condutor</div>
                                 <div style={{marginTop: 2}}>
                                     <select
