@@ -813,7 +813,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                 </div>
 
                 {selectedEdge.conductors.map((entry) => (
-                  <div key={entry.id} className="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-2">
+                  <div key={entry.id} className="grid max-w-full grid-cols-[64px_minmax(0,1fr)_28px] items-center gap-2">
                     <input
                       type="number"
                       min={1}
@@ -825,7 +825,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                           selectedEdge.conductors.map((item) => item.id === entry.id ? { ...item, quantity } : item)
                         );
                       }}
-                      className="min-w-0 rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
+                      className="w-full min-w-0 rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
                     />
                     <select
                       value={entry.conductorName}
@@ -849,7 +849,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                           selectedEdge.conductors.filter((item) => item.id !== entry.id)
                         );
                       }}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded border border-rose-500/30 text-rose-300 hover:bg-rose-500/10"
+                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center justify-self-end rounded border border-rose-500/30 text-rose-300 hover:bg-rose-500/10"
                       title="Remover condutor"
                     >
                       <Trash2 size={12} />
