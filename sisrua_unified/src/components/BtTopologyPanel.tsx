@@ -618,19 +618,6 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           )}
         </div>
 
-        <div className="space-y-2">
-          <div className="text-[10px] text-slate-400">Transformador</div>
-          {selectedTransformer ? (
-            <button
-              onClick={() => updateTransformerVerified(selectedTransformer.id, !selectedTransformer.verified)}
-              className="rounded border border-cyan-400 px-3 py-1 text-[10px] text-cyan-900 hover:bg-cyan-100"
-            >
-              {selectedTransformer.verified ? 'Marcar trafo como não verificado' : 'Marcar trafo como verificado'}
-            </button>
-          ) : (
-            <div className="text-[10px] text-slate-500">Nenhum transformador disponível para marcação.</div>
-          )}
-        </div>
       </div>
 
       <div className="space-y-2 rounded-lg border border-slate-300 bg-slate-50 p-3">
@@ -665,6 +652,15 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                   <option key={transformer.id} value={transformer.id}>{transformer.title}</option>
                 ))}
               </select>
+            )}
+
+            {selectedTransformer && (
+              <button
+                onClick={() => updateTransformerVerified(selectedTransformer.id, !selectedTransformer.verified)}
+                className="rounded border border-cyan-400 px-3 py-1 text-[10px] text-cyan-900 hover:bg-cyan-100"
+              >
+                {selectedTransformer.verified ? 'Marcar trafo como não verificado' : 'Marcar trafo como verificado'}
+              </button>
             )}
 
             {selectedTransformer && (
