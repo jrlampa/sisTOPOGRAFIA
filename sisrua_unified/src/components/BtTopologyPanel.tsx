@@ -695,17 +695,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           </div>
         ) : (
           <>
-            <select
-              className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
-              value={selectedTransformerId}
-              onChange={(e) => setSelectedTransformerId(e.target.value)}
-            >
-              {btTopology.transformers.map((transformer) => (
-                <option key={transformer.id} value={transformer.id}>{transformer.title}</option>
-              ))}
-            </select>
-
-            {selectedTransformer && onBtRenameTransformer && (
+            {btTopology.transformers.length === 1 && selectedTransformer && onBtRenameTransformer ? (
               <div className="space-y-1">
                 <div className="text-[10px] text-slate-500">Nome do transformador</div>
                 <input
@@ -716,6 +706,17 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                   className="w-full rounded border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800"
                 />
               </div>
+            ) : (
+              <select
+                className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
+                value={selectedTransformerId}
+                onChange={(e) => setSelectedTransformerId(e.target.value)}
+                title="Selecionar transformador"
+              >
+                {btTopology.transformers.map((transformer) => (
+                  <option key={transformer.id} value={transformer.id}>{transformer.title}</option>
+                ))}
+              </select>
             )}
 
             {selectedTransformer && (
