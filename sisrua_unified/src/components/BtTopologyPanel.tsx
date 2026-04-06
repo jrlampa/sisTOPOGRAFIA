@@ -21,6 +21,8 @@ interface BtTopologyPanelProps {
   btNetworkScenario: BtNetworkScenario;
   clandestinoAreaM2: number;
   onTopologyChange: (next: BtTopology) => void;
+  onProjectTypeChange?: (next: 'ramais' | 'clandestino') => void;
+  onClandestinoAreaChange?: (nextAreaM2: number) => void;
   onBtRenamePole?: (poleId: string, title: string) => void;
 }
 
@@ -71,6 +73,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   btNetworkScenario,
   clandestinoAreaM2,
   onTopologyChange,
+  onProjectTypeChange,
+  onClandestinoAreaChange,
   onBtRenamePole,
 }) => {
   const summary = calculateBtSummary(btTopology);
@@ -204,6 +208,25 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     clandestinoAreaM2,
     clandestinoClients: totalClandestinoClients
   });
+  const isNormalProject = projectType !== 'clandestino';
+  const transformersWithReadings = btTopology.transformers.filter((transformer) => transformer.readings.length > 0).length;
+  const transformersWithoutReadings = Math.max(0, btTopology.transformers.length - transformersWithReadings);
+  const pointDemandCardClass = projectType === 'clandestino'
+    ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
+    : btTopology.transformers.length === 0 || transformersWithReadings === 0
+      ? 'border-amber-300 bg-amber-50 text-amber-900'
+      : transformersWithoutReadings > 0
+        ? 'border-yellow-300 bg-yellow-50 text-yellow-900'
+        : 'border-emerald-300 bg-emerald-50 text-emerald-900';
+  const pointDemandStatus = !isNormalProject
+    ? null
+    : btTopology.transformers.length === 0
+      ? 'Sem transformador cadastrado. A demanda ficará zerada até inserir ao menos 1 trafo.'
+      : transformersWithReadings === 0
+        ? 'Sem leituras de trafo. Preencha as leituras para calcular a demanda por ponto.'
+        : transformersWithoutReadings > 0
+          ? `Demanda parcial: ${transformersWithReadings}/${btTopology.transformers.length} trafo(s) com leituras.`
+          : 'Demanda consolidada com leituras em todos os trafos.';
   const accumulatedDemandKva = calculateAccumulatedDemandKva({
     projectType,
     clandestinoAreaM2,
@@ -230,6 +253,46 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           : 'Cenário REDE NOVA: painel voltado para projeto, lançamento e dimensionamento da nova topologia.'}
       </div>
 
+      <div className="space-y-2 rounded-lg border border-slate-300 bg-slate-50 p-3 text-[10px] text-slate-700">
+        <div className="font-semibold uppercase tracking-wide text-slate-800">Fluxo de Lançamento BT</div>
+        <div>0. Defina se o projeto é Normal ou Clandestino (m² obrigatório no clandestino).</div>
+        <div>1. Informe a localização dos postes (ponto no mapa ou coordenadas).</div>
+        <div>2/3. Trace os condutores e marque os postes com trafo (ordem livre).</div>
+        <div>4. Informe os ramais (clientes) em cada poste.</div>
+      </div>
+
+      <div className="space-y-2 rounded-lg border border-cyan-300 bg-cyan-50 p-3 text-[10px] text-cyan-900">
+        <div className="font-semibold uppercase tracking-wide">Passo 0 · Tipo de Projeto</div>
+        <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+          <div className="space-y-1">
+            <label className="text-[10px] font-semibold text-cyan-900">Modo de cálculo</label>
+            <select
+              value={projectType === 'clandestino' ? 'clandestino' : 'ramais'}
+              onChange={(e) => onProjectTypeChange?.(e.target.value as 'ramais' | 'clandestino')}
+              className="w-full rounded border border-cyan-300 bg-white p-2 text-xs text-slate-800"
+            >
+              <option value="ramais">Normal</option>
+              <option value="clandestino">Clandestino</option>
+            </select>
+          </div>
+          {projectType === 'clandestino' && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold text-cyan-900">Área (m²)</label>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={clandestinoAreaM2}
+                onFocus={(e) => e.target.select()}
+                onClick={(e) => e.currentTarget.select()}
+                onChange={(e) => onClandestinoAreaChange?.(Math.max(0, Math.round(numberFromInput(e.target.value))))}
+                className="w-28 rounded border border-cyan-300 bg-white p-2 text-xs text-slate-800"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-2 text-[10px]">
         <div className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700">Postes: {summary.poles}</div>
         <div className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700">Condutores: {summary.edges}</div>
@@ -245,19 +308,24 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         </div>
       )}
 
-      <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-2 text-[10px] text-emerald-900">
+      <div className={`rounded-lg border p-2 text-[10px] ${pointDemandCardClass}`}>
         {projectType === 'clandestino'
           ? `Demanda por ponto (regra clandestino): ${pointDemandKva.toFixed(2)} kVA`
-          : `Demanda por ponto (leituras de trafo): ${pointDemandKva.toFixed(2)} kW`}
+          : `Demanda por ponto (leituras de trafo): ${pointDemandKva.toFixed(2)} kVA`}
+        {pointDemandStatus && (
+          <div className="mt-1">
+            {pointDemandStatus}
+          </div>
+        )}
       </div>
 
       <div className="rounded-lg border border-cyan-300 bg-cyan-50 p-2 text-[10px] text-cyan-900">
         {projectType === 'clandestino'
           ? `ACUMULADA (GERAL!I, clandestino): ${accumulatedDemandKva.toFixed(2)} kVA`
-          : `ACUMULADA (GERAL!I, normal): ${accumulatedDemandKva.toFixed(2)} kW`}
+          : `ACUMULADA (GERAL!I, normal): ${accumulatedDemandKva.toFixed(2)} kVA`}
         {criticalPole && (
           <div className="mt-1 text-cyan-900">
-            Ponto crítico: {criticalPole.poleId} | CLT acum.: {criticalPole.accumulatedClients} | Demanda acum.: {criticalPole.accumulatedDemandKva.toFixed(2)} {projectType === 'clandestino' ? 'kVA' : 'kW'}
+            Ponto crítico: {criticalPole.poleId} | CLT acum.: {criticalPole.accumulatedClients} | Demanda acum.: {criticalPole.accumulatedDemandKva.toFixed(2)} kVA
           </div>
         )}
       </div>
@@ -269,7 +337,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             <div key={item.poleId} className="flex items-center justify-between border-b border-cyan-200 py-0.5 last:border-b-0">
               <span>{item.poleId}</span>
               <span>
-                CLT {item.accumulatedClients} | {item.accumulatedDemandKva.toFixed(2)} {projectType === 'clandestino' ? 'kVA' : 'kW'}
+                CLT {item.accumulatedClients} | {item.accumulatedDemandKva.toFixed(2)} kVA
               </span>
             </div>
           ))}
@@ -349,6 +417,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                               type="number"
                               min={1}
                               value={ramal.quantity}
+                              onFocus={(e) => e.target.select()}
+                              onClick={(e) => e.currentTarget.select()}
                               onChange={(e) => {
                                 const quantity = Math.max(1, numberFromInput(e.target.value));
                                 updatePoleRamais(

@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { GeoJsonObject, FeatureCollection } from 'geojson';
 import { BtEditorMode, BtTopology, SelectionMode } from '../types';
-import { Trash2, Triangle } from 'lucide-react';
+import { Plus, Trash2, Triangle } from 'lucide-react';
 
 // Fix for default marker icon in React Leaflet
 // @ts-ignore
@@ -32,6 +32,10 @@ interface MapSelectorProps {
     onBtDeleteEdge?: (id: string) => void;
     onBtDeleteTransformer?: (id: string) => void;
     onBtToggleTransformerOnPole?: (poleId: string) => void;
+    onBtQuickAddPoleRamal?: (poleId: string) => void;
+    onBtQuickRemovePoleRamal?: (poleId: string) => void;
+    onBtRenamePole?: (poleId: string, title: string) => void;
+    onBtSetPoleVerified?: (poleId: string, verified: boolean) => void;
     onBtDragPole?: (poleId: string, lat: number, lng: number) => void;
     onBtDragTransformer?: (transformerId: string, lat: number, lng: number) => void;
     criticalPoleId?: string | null;
@@ -55,9 +59,19 @@ const SelectionManager = ({
     btEditorMode = 'none',
     onBtMapClick
 }: any) => {
+    const middlePanActiveRef = React.useRef(false);
+    const middlePanMovedRef = React.useRef(false);
+    const suppressNextClickRef = React.useRef(false);
+    const middlePanLastPointRef = React.useRef<L.Point | null>(null);
+
     const map = useMapEvents({
         click(e) {
-            if (btEditorMode !== 'none' && onBtMapClick) {
+            if (suppressNextClickRef.current) {
+                suppressNextClickRef.current = false;
+                return;
+            }
+
+            if (btEditorMode !== 'none' && btEditorMode !== 'move-pole' && onBtMapClick) {
                 onBtMapClick({
                     lat: e.latlng.lat,
                     lng: e.latlng.lng,
@@ -83,6 +97,45 @@ const SelectionManager = ({
                 }
             }
         },
+        mousedown(e) {
+            if (e.originalEvent.button !== 1) {
+                return;
+            }
+
+            e.originalEvent.preventDefault();
+            middlePanActiveRef.current = true;
+            middlePanMovedRef.current = false;
+            middlePanLastPointRef.current = e.containerPoint;
+        },
+        mousemove(e) {
+            if (!middlePanActiveRef.current || !middlePanLastPointRef.current) {
+                return;
+            }
+
+            e.originalEvent.preventDefault();
+            const dx = e.containerPoint.x - middlePanLastPointRef.current.x;
+            const dy = e.containerPoint.y - middlePanLastPointRef.current.y;
+
+            if (dx !== 0 || dy !== 0) {
+                middlePanMovedRef.current = true;
+                map.panBy([-dx, -dy], { animate: false });
+                middlePanLastPointRef.current = e.containerPoint;
+            }
+        },
+        mouseup(e) {
+            if (e.originalEvent.button !== 1) {
+                return;
+            }
+
+            e.originalEvent.preventDefault();
+            middlePanActiveRef.current = false;
+            middlePanLastPointRef.current = null;
+
+            if (middlePanMovedRef.current) {
+                suppressNextClickRef.current = true;
+                middlePanMovedRef.current = false;
+            }
+        }
     });
 
     const flyToCenter = (target: { lat: number; lng: number }) => {
@@ -195,6 +248,10 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     onBtDeleteEdge,
     onBtDeleteTransformer,
     onBtToggleTransformerOnPole,
+    onBtQuickAddPoleRamal,
+    onBtQuickRemovePoleRamal,
+    onBtRenamePole,
+    onBtSetPoleVerified,
     onBtDragPole,
     onBtDragTransformer,
     criticalPoleId,
@@ -286,6 +343,24 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         }
     };
 
+    const tileConfig = React.useMemo(() => {
+        if (mapStyle === 'satellite') {
+            return {
+                key: 'satellite',
+                attribution: '&copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                maxNativeZoom: 19
+            };
+        }
+
+        return {
+            key: 'vector',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            maxNativeZoom: 19
+        };
+    }, [mapStyle]);
+
     return (
         <div
             className="w-full h-full rounded-xl overflow-hidden shadow-2xl border border-slate-700 relative z-0"
@@ -304,10 +379,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                 }}
             >
                 <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                    key={tileConfig.key}
+                    attribution={tileConfig.attribution}
+                    url={tileConfig.url}
                     maxZoom={24}
-                    maxNativeZoom={19}
+                    maxNativeZoom={tileConfig.maxNativeZoom}
                     eventHandlers={{
                         tileerror: (error: any) => {
                             // Tile load error (expected for some tiles)
@@ -347,7 +423,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                 <div style={{color: edge.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{edge.verified ? '✓ Verificado' : '○ Não verificado'}</div>
                                 {onBtDeleteEdge && (
                                     <button
-                                        onClick={() => onBtDeleteEdge(edge.id)}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            onBtDeleteEdge(edge.id);
+                                        }}
                                         style={{marginTop: 4, padding: '2px 8px', background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer', fontSize: 11}}
                                     >
                                         Deletar condutor
@@ -379,7 +459,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         key={`${pole.id}-${pole.verified ? 'v' : 'u'}-${pole.id === criticalPoleId ? 'c' : 'n'}-${pole.id === pendingBtEdgeStartPoleId ? 'p' : 'x'}-${poleHasTransformer.get(pole.id) ? 't' : 'nt'}`}
                         position={[pole.lat, pole.lng]}
                         icon={makePoleIcon(pole.id, !!pole.verified)}
-                        draggable={btEditorMode === 'none'}
+                        draggable={btEditorMode !== 'add-edge' && btEditorMode !== 'add-transformer'}
                         eventHandlers={{
                             click: () => {
                                 if ((btEditorMode === 'add-edge' || btEditorMode === 'add-transformer') && onBtMapClick) {
@@ -403,6 +483,18 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                             <div className="text-xs">
                                 <strong>{pole.title}</strong>
                                 <div>{pole.id}</div>
+                                {onBtRenamePole && (
+                                    <input
+                                        type="text"
+                                        value={pole.title}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                        }}
+                                        onChange={(e) => onBtRenamePole(pole.id, e.target.value)}
+                                        className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
+                                    />
+                                )}
                                 {pole.id === criticalPoleId && <div style={{color:'#ef4444', fontWeight:700, marginTop:2}}>⚠ Ponto crítico</div>}
                                 {accumulatedByPoleMap.has(pole.id) && (
                                     <div style={{marginTop: 3, color: '#374151'}}>
@@ -411,10 +503,26 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                     </div>
                                 )}
                                 <div style={{color: pole.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{pole.verified ? '✓ Verificado' : '○ Não verificado'}</div>
+                                {onBtSetPoleVerified && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            onBtSetPoleVerified(pole.id, !pole.verified);
+                                        }}
+                                        style={{marginTop: 4, padding: '2px 8px', background: '#0ea5e920', border: '1px solid #0ea5e9', borderRadius: 4, color: '#0369a1', cursor: 'pointer', fontSize: 11}}
+                                    >
+                                        {pole.verified ? 'Marcar não verificado' : 'Marcar verificado'}
+                                    </button>
+                                )}
                                 {onBtDeletePole && (
                                     <div style={{marginTop: 6, display: 'flex', gap: 8, alignItems: 'center'}}>
                                         <button
-                                            onClick={() => onBtDeletePole(pole.id)}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onBtDeletePole(pole.id);
+                                            }}
                                             style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer'}}
                                             title="Deletar poste"
                                             aria-label="Deletar poste"
@@ -422,13 +530,45 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                             <Trash2 size={12} />
                                         </button>
                                         <button
-                                            onClick={() => onBtToggleTransformerOnPole?.(pole.id)}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onBtToggleTransformerOnPole?.(pole.id);
+                                            }}
                                             title={poleHasTransformer.get(pole.id) ? 'Remover transformador do poste' : 'Adicionar transformador ao poste'}
                                             aria-label={poleHasTransformer.get(pole.id) ? 'Remover transformador do poste' : 'Adicionar transformador ao poste'}
                                             style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: `1px solid ${poleHasTransformer.get(pole.id) ? '#7c3aed' : '#64748b'}`, borderRadius: 4, color: poleHasTransformer.get(pole.id) ? '#7c3aed' : '#475569', background: poleHasTransformer.get(pole.id) ? '#7c3aed14' : '#f1f5f9', cursor: 'pointer'}}
                                         >
                                             <Triangle size={12} style={{ transform: 'rotate(180deg)', fill: 'currentColor' }} />
                                         </button>
+                                        {onBtQuickAddPoleRamal && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    onBtQuickAddPoleRamal(pole.id);
+                                                }}
+                                                title="Informar ramais"
+                                                aria-label="Informar ramais"
+                                                style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #0ea5e9', borderRadius: 4, color: '#0284c7', background: '#0ea5e914', cursor: 'pointer'}}
+                                            >
+                                                <Plus size={12} />
+                                            </button>
+                                        )}
+                                        {onBtQuickRemovePoleRamal && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    onBtQuickRemovePoleRamal(pole.id);
+                                                }}
+                                                title="Reduzir ramais"
+                                                aria-label="Reduzir ramais"
+                                                style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #64748b', borderRadius: 4, color: '#334155', background: '#f1f5f9', cursor: 'pointer', fontSize: 14, fontWeight: 700}}
+                                            >
+                                                -
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -441,7 +581,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         key={`${transformer.id}-${transformer.verified ? 'v' : 'u'}`}
                         position={[transformer.lat, transformer.lng]}
                         icon={makeTransformerIcon(!!transformer.verified)}
-                        draggable={btEditorMode === 'none'}
+                        draggable={btEditorMode !== 'add-edge' && btEditorMode !== 'add-transformer'}
                         eventHandlers={{
                             click: () => {
                                 if ((btEditorMode === 'add-edge' || btEditorMode === 'add-transformer') && onBtMapClick) {
@@ -479,7 +619,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                 <div style={{color: transformer.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{transformer.verified ? '✓ Verificado' : '○ Não verificado'}</div>
                                 {onBtDeleteTransformer && (
                                     <button
-                                        onClick={() => onBtDeleteTransformer(transformer.id)}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            onBtDeleteTransformer(transformer.id);
+                                        }}
                                         style={{marginTop: 4, padding: '2px 8px', background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer', fontSize: 11}}
                                     >
                                         Deletar trafo

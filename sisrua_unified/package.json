@@ -52,6 +52,7 @@
     "framer-motion": "^12.34.0",
     "google-auth-library": "^10.5.0",
     "groq-sdk": "^0.37.0",
+    "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.564.0",
     "multer": "^2.0.2",

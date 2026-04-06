@@ -28,6 +28,7 @@ import {
   getClandestinoDiversificationFactorByClients,
   getClandestinoKvaByArea
 } from './utils/btCalculations';
+import { parseLatLngQuery, parseUtmQuery } from './utils/geo';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const EMPTY_BT_TOPOLOGY: BtTopology = {
@@ -36,6 +37,14 @@ const EMPTY_BT_TOPOLOGY: BtTopology = {
   edges: []
 };
 const MAX_BT_EXPORT_HISTORY = 20;
+const NORMAL_CLIENT_RAMAL_TYPES = ['Ramal Monofasico', 'Ramal Bifasico', 'Ramal Trifasico'];
+const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
+
+type PendingNormalClassificationPole = {
+  poleId: string;
+  poleTitle: string;
+  clandestinoClients: number;
+};
 
 const downloadBlob = (content: string, type: string, filename: string) => {
   const blob = new Blob([content], { type });
@@ -70,6 +79,25 @@ const distanceMeters = (a: GeoLocation, b: GeoLocation) => {
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
 
   return 2 * earthRadius * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+};
+
+const nextSequentialId = (ids: string[], prefix: string): string => {
+  const matcher = new RegExp(`^${prefix}(\\d+)$`);
+  let maxSuffix = 0;
+
+  for (const id of ids) {
+    const match = id.match(matcher);
+    if (!match) {
+      continue;
+    }
+
+    const suffix = Number.parseInt(match[1], 10);
+    if (Number.isFinite(suffix) && suffix > maxSuffix) {
+      maxSuffix = suffix;
+    }
+  }
+
+  return `${prefix}${maxSuffix + 1}`;
 };
 
 function App() {
@@ -165,6 +193,20 @@ function App() {
   const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [sessionDraft, setSessionDraft] = useState<GlobalState | null>(null);
+  const [normalRamalModal, setNormalRamalModal] = useState<{
+    poleId: string;
+    poleTitle: string;
+    ramalType: string;
+    quantity: number;
+  } | null>(null);
+  const [pendingNormalClassificationPoles, setPendingNormalClassificationPoles] = useState<PendingNormalClassificationPole[]>([]);
+  const [clandestinoToNormalModal, setClandestinoToNormalModal] = useState<{
+    poles: PendingNormalClassificationPole[];
+  } | null>(null);
+  const [normalToClandestinoModal, setNormalToClandestinoModal] = useState<{
+    totalNormalClients: number;
+  } | null>(null);
+  const [btPoleCoordinateInput, setBtPoleCoordinateInput] = useState('');
 
   // Auto-save: persist appState to localStorage with debounce
   useAutoSave(appState);
@@ -181,6 +223,38 @@ function App() {
   const showToast = (message: string, type: ToastType) => {
     setToast({ message, type });
   };
+
+  const getPoleClandestinoClients = (pole: BtPoleNode) =>
+    (pole.ramais ?? []).reduce((acc, ramal) => {
+      const isClandestino = (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE;
+      return isClandestino ? acc + ramal.quantity : acc;
+    }, 0);
+
+  const getPoleNormalClients = (pole: BtPoleNode) =>
+    (pole.ramais ?? []).reduce((acc, ramal) => {
+      const isClandestino = (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE;
+      return isClandestino ? acc : acc + ramal.quantity;
+    }, 0);
+
+  const getPolesPendingNormalClassification = (topology: BtTopology): PendingNormalClassificationPole[] =>
+    topology.poles
+      .map((pole) => ({
+        poleId: pole.id,
+        poleTitle: pole.title,
+        clandestinoClients: getPoleClandestinoClients(pole)
+      }))
+      .filter((entry) => entry.clandestinoClients > 0);
+
+  const migrateClandestinoToDefaultNormalType = (topology: BtTopology, normalType: string): BtTopology => ({
+    ...topology,
+    poles: topology.poles.map((pole) => {
+      const ramais = (pole.ramais ?? []).map((ramal) => {
+        const isClandestino = (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE;
+        return isClandestino ? { ...ramal, ramalType: normalType } : ramal;
+      });
+      return { ...pole, ramais };
+    })
+  });
 
   const handleRestoreSession = () => {
     if (sessionDraft) {
@@ -257,15 +331,43 @@ function App() {
   });
 
   const { importKml } = useKmlImport({
-    onImportSuccess: (geoPoints, filename) => {
-      setAppState({
-        ...appState,
-        selectionMode: 'polygon',
-        polygon: geoPoints,
-        center: { ...geoPoints[0], label: filename }
-      }, true);
-      clearData();
-      showToast('KML Imported', 'success');
+    onImportSuccess: (result, filename) => {
+      if (result.type === 'polygon') {
+        // Area boundary → set as polygon selection (existing behavior)
+        setAppState({
+          ...appState,
+          selectionMode: 'polygon' as const,
+          polygon: result.points,
+          center: { ...result.points[0], label: filename }
+        }, true);
+        clearData();
+        showToast('KML/KMZ importado com sucesso', 'success');
+      } else {
+        // Point placemarks → bulk insert as BT poles
+        let runningIds = btTopology.poles.map((p) => p.id);
+        const newPoles: BtPoleNode[] = result.points.map((pt, i) => {
+          const id = nextSequentialId(runningIds, 'P');
+          runningIds = [...runningIds, id];
+          const name = result.names?.[i];
+          return {
+            id,
+            lat: pt.lat,
+            lng: pt.lng,
+            title: name ?? `Poste ${id}`,
+            ramais: []
+          };
+        });
+
+        setAppState({
+          ...appState,
+          center: { ...result.points[0], label: filename },
+          btTopology: {
+            ...btTopology,
+            poles: [...btTopology.poles, ...newPoles]
+          }
+        }, true);
+        showToast(`${newPoles.length} poste(s) importado(s) do KMZ`, 'success');
+      }
     },
     onError: (message) => showToast(message, 'error')
   });
@@ -285,6 +387,129 @@ function App() {
 
   const updateBtTopology = (nextTopology: BtTopology) => {
     setAppState({ ...appState, btTopology: nextTopology }, true);
+  };
+
+  const updateProjectType = (nextProjectType: 'ramais' | 'clandestino') => {
+    const currentProjectType = settings.projectType ?? 'ramais';
+    if (currentProjectType === nextProjectType) {
+      return;
+    }
+
+    if (currentProjectType === 'clandestino' && nextProjectType === 'ramais') {
+      const pendingPoles = getPolesPendingNormalClassification(btTopology);
+      if (pendingPoles.length > 0) {
+        setClandestinoToNormalModal({ poles: pendingPoles });
+        return;
+      }
+    }
+
+    if (currentProjectType === 'ramais' && nextProjectType === 'clandestino') {
+      const totalNormalClients = btTopology.poles.reduce((acc, pole) => acc + getPoleNormalClients(pole), 0);
+      if (totalNormalClients > 0) {
+        setNormalToClandestinoModal({ totalNormalClients });
+        return;
+      }
+    }
+
+    setPendingNormalClassificationPoles([]);
+    setAppState({
+      ...appState,
+      settings: {
+        ...settings,
+        projectType: nextProjectType
+      }
+    }, true);
+  };
+
+  const updateClandestinoAreaM2 = (nextAreaM2: number) => {
+    setAppState({
+      ...appState,
+      settings: {
+        ...settings,
+        clandestinoAreaM2: nextAreaM2
+      }
+    }, true);
+  };
+
+  const applyProjectTypeSwitch = (nextProjectType: 'ramais' | 'clandestino', nextTopology: BtTopology = btTopology) => {
+    setAppState({
+      ...appState,
+      btTopology: nextTopology,
+      settings: {
+        ...settings,
+        projectType: nextProjectType
+      }
+    }, true);
+  };
+
+  const handleClandestinoToNormalClassifyLater = () => {
+    if (!clandestinoToNormalModal) {
+      return;
+    }
+
+    setPendingNormalClassificationPoles(clandestinoToNormalModal.poles);
+    applyProjectTypeSwitch('ramais');
+    setClandestinoToNormalModal(null);
+    showToast('Projeto mudou para Normal. Classificação de ramais pendente (DXF bloqueado).', 'info');
+  };
+
+  const handleClandestinoToNormalConvertNow = () => {
+    if (!clandestinoToNormalModal) {
+      return;
+    }
+
+    const migratedTopology = migrateClandestinoToDefaultNormalType(btTopology, NORMAL_CLIENT_RAMAL_TYPES[0]);
+    setPendingNormalClassificationPoles([]);
+    applyProjectTypeSwitch('ramais', migratedTopology);
+    setClandestinoToNormalModal(null);
+    showToast('Ramais clandestinos migrados para Ramal Monofasico.', 'success');
+  };
+
+  const handleNormalToClandestinoKeepClients = () => {
+    setPendingNormalClassificationPoles([]);
+    applyProjectTypeSwitch('clandestino');
+    setNormalToClandestinoModal(null);
+    showToast('Mudança para Clandestino mantendo clientes normais para possível retorno.', 'info');
+  };
+
+  const handleNormalToClandestinoZeroNormalClients = () => {
+    const cleanedTopology: BtTopology = {
+      ...btTopology,
+      poles: btTopology.poles.map((pole) => ({
+        ...pole,
+        ramais: (pole.ramais ?? []).filter((ramal) => (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE)
+      }))
+    };
+
+    setPendingNormalClassificationPoles([]);
+    applyProjectTypeSwitch('clandestino', cleanedTopology);
+    setNormalToClandestinoModal(null);
+    showToast('Clientes normais zerados. Apenas ramais clandestinos foram mantidos.', 'success');
+  };
+
+  const handleResetBtTopology = () => {
+    const hasBtData = btTopology.poles.length > 0 || btTopology.edges.length > 0 || btTopology.transformers.length > 0;
+    if (!hasBtData && (btExportSummary === null) && btExportHistory.length === 0) {
+      showToast('Topologia BT já está vazia.', 'info');
+      return;
+    }
+
+    const confirmed = window.confirm('Zerar toda a topologia BT? Isso removerá postes, condutores, trafos e histórico BT.');
+    if (!confirmed) {
+      return;
+    }
+
+    setPendingBtEdgeStartPoleId(null);
+    setPendingNormalClassificationPoles([]);
+    setClandestinoToNormalModal(null);
+    setNormalToClandestinoModal(null);
+    setAppState({
+      ...appState,
+      btTopology: EMPTY_BT_TOPOLOGY,
+      btExportSummary: null,
+      btExportHistory: []
+    }, true);
+    showToast('Topologia BT zerada.', 'success');
   };
 
   const clearBtExportHistory = () => {
@@ -379,10 +604,7 @@ function App() {
         return false;
       }
 
-      const totalClandestinoClients = btTopology.poles.reduce(
-        (acc, pole) => acc + (pole.ramais ?? []).reduce((sum, ramal) => sum + ramal.quantity, 0),
-        0
-      );
+      const totalClandestinoClients = btTopology.poles.reduce((acc, pole) => acc + getPoleClandestinoClients(pole), 0);
 
       if (getClandestinoDiversificationFactorByClients(totalClandestinoClients) === null) {
         showToast(
@@ -400,6 +622,11 @@ function App() {
     }
 
     if (settings.projectType !== 'clandestino') {
+      if (pendingNormalClassificationPoles.length > 0) {
+        showToast('Existem postes com classificação de ramal pendente. Conclua antes de gerar DXF.', 'error');
+        return false;
+      }
+
       if (btTopology.transformers.length === 0) {
         showToast('Adicione ao menos um transformador com leituras para calcular demanda de clientes normais.', 'error');
         return false;
@@ -434,29 +661,52 @@ function App() {
     return nearestDistance <= maxDistanceMeters ? nearest : null;
   };
 
+  const insertBtPoleAtLocation = (location: GeoLocation) => {
+    const nextId = nextSequentialId(btTopology.poles.map((pole) => pole.id), 'P');
+    const nextPole: BtPoleNode = {
+      id: nextId,
+      lat: location.lat,
+      lng: location.lng,
+      title: `Poste ${nextId}`,
+      ramais: []
+    };
+
+    setAppState({
+      ...appState,
+      center: { lat: location.lat, lng: location.lng, label: location.label ?? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` },
+      btTopology: {
+        ...btTopology,
+        poles: [...btTopology.poles, nextPole]
+      }
+    }, true);
+
+    showToast(`${nextPole.title} inserido`, 'success');
+  };
+
+  const handleBtInsertPoleByCoordinates = () => {
+    const query = btPoleCoordinateInput.trim();
+    if (!query) {
+      showToast('Informe as coordenadas do poste.', 'info');
+      return;
+    }
+
+    const parsed = parseLatLngQuery(query) ?? parseUtmQuery(query);
+    if (!parsed) {
+      showToast('Formato inválido. Use: -22.9068 -43.1729 ou 23K 635806 7462003.', 'error');
+      return;
+    }
+
+    insertBtPoleAtLocation(parsed);
+    setBtPoleCoordinateInput('');
+  };
+
   const handleBtMapClick = (location: GeoLocation) => {
     if (btEditorMode === 'none') {
       return;
     }
 
     if (btEditorMode === 'add-pole') {
-      const nextId = `P${btTopology.poles.length + 1}`;
-      const nextPole: BtPoleNode = {
-        id: nextId,
-        lat: location.lat,
-        lng: location.lng,
-        title: `Poste ${nextId}`,
-        ramais: []
-      };
-
-      setAppState({
-        ...appState,
-        btTopology: {
-          ...btTopology,
-          poles: [...btTopology.poles, nextPole]
-        }
-      }, true);
-      showToast(`${nextPole.title} inserido`, 'success');
+      insertBtPoleAtLocation(location);
       return;
     }
 
@@ -483,7 +733,7 @@ function App() {
           return;
         }
 
-      const nextId = `TR${btTopology.transformers.length + 1}`;
+      const nextId = nextSequentialId(btTopology.transformers.map((transformer) => transformer.id), 'TR');
       const nextTransformer: BtTransformer = {
         id: nextId,
           poleId: nearestPole.id,
@@ -542,7 +792,7 @@ function App() {
         return;
       }
 
-      const edgeId = `E${btTopology.edges.length + 1}`;
+      const edgeId = nextSequentialId(btTopology.edges.map((edge) => edge.id), 'E');
       const lengthMeters = Math.round(distanceMeters(
         { lat: fromPole.lat, lng: fromPole.lng },
         { lat: nearestPole.lat, lng: nearestPole.lng }
@@ -644,7 +894,7 @@ function App() {
     });
 
     if (transformersOnPole.length === 0) {
-      const nextId = `TR${btTopology.transformers.length + 1}`;
+      const nextId = nextSequentialId(btTopology.transformers.map((transformer) => transformer.id), 'TR');
       const nextTransformer: BtTransformer = {
         id: nextId,
         poleId,
@@ -723,6 +973,139 @@ function App() {
         poles: btTopology.poles.map((p) => p.id === poleId ? { ...p, title } : p)
       }
     }, true);
+  };
+
+  const handleBtSetPoleVerified = (poleId: string, verified: boolean) => {
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        poles: btTopology.poles.map((pole) => pole.id === poleId ? { ...pole, verified } : pole)
+      }
+    }, true);
+  };
+
+  const handleBtQuickAddPoleRamal = (poleId: string) => {
+    const pole = btTopology.poles.find((candidate) => candidate.id === poleId);
+    if (!pole) {
+      showToast('Poste não encontrado', 'error');
+      return;
+    }
+
+    if ((settings.projectType ?? 'ramais') !== 'clandestino') {
+      setNormalRamalModal({
+        poleId,
+        poleTitle: pole.title,
+        ramalType: NORMAL_CLIENT_RAMAL_TYPES[0],
+        quantity: 1
+      });
+      return;
+    }
+
+    const quantity = 1;
+
+    const nextRamalId = `RP${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        poles: btTopology.poles.map((candidate) =>
+          candidate.id === poleId
+            ? {
+                ...candidate,
+                ramais: [...(candidate.ramais ?? []), { id: nextRamalId, quantity, ramalType: CLANDESTINO_RAMAL_TYPE }]
+              }
+            : candidate
+        )
+      }
+    }, true);
+
+    showToast(`+${quantity} ramal em ${pole.title}.`, 'success');
+  };
+
+  const handleBtQuickRemovePoleRamal = (poleId: string) => {
+    const pole = btTopology.poles.find((candidate) => candidate.id === poleId);
+    if (!pole) {
+      showToast('Poste não encontrado', 'error');
+      return;
+    }
+
+    const ramais = [...(pole.ramais ?? [])];
+    if (ramais.length === 0) {
+      showToast(`${pole.title} sem ramais para reduzir.`, 'info');
+      return;
+    }
+
+    const isClandestinoMode = (settings.projectType ?? 'ramais') === 'clandestino';
+    const targetIndex = [...ramais]
+      .map((ramal, index) => ({ ramal, index }))
+      .reverse()
+      .find(({ ramal }) => {
+        const isClandestinoRamal = (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE;
+        return isClandestinoMode ? isClandestinoRamal : !isClandestinoRamal;
+      })?.index;
+
+    if (targetIndex === undefined) {
+      showToast(
+        isClandestinoMode
+          ? `${pole.title} não possui ramais clandestinos para reduzir.`
+          : `${pole.title} não possui ramais normais para reduzir.`,
+        'info'
+      );
+      return;
+    }
+
+    const targetRamal = ramais[targetIndex];
+    if (targetRamal.quantity > 1) {
+      ramais[targetIndex] = { ...targetRamal, quantity: targetRamal.quantity - 1 };
+    } else {
+      ramais.splice(targetIndex, 1);
+    }
+
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        poles: btTopology.poles.map((candidate) =>
+          candidate.id === poleId ? { ...candidate, ramais } : candidate
+        )
+      }
+    }, true);
+
+    showToast(`-1 ramal em ${pole.title}.`, 'success');
+  };
+
+  const handleConfirmNormalRamalModal = () => {
+    if (!normalRamalModal) {
+      return;
+    }
+
+    const quantity = Math.max(1, Math.round(normalRamalModal.quantity));
+    const nextRamalId = `RP${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        poles: btTopology.poles.map((candidate) =>
+          candidate.id === normalRamalModal.poleId
+            ? {
+                ...candidate,
+                ramais: [
+                  ...(candidate.ramais ?? []),
+                  { id: nextRamalId, quantity, ramalType: normalRamalModal.ramalType }
+                ]
+              }
+            : candidate
+        )
+      }
+    }, true);
+
+    setPendingNormalClassificationPoles((current) =>
+      current.filter((entry) => entry.poleId !== normalRamalModal.poleId)
+    );
+
+    showToast(`${quantity} ramal(is) ${normalRamalModal.ramalType} em ${normalRamalModal.poleTitle}.`, 'success');
+    setNormalRamalModal(null);
   };
 
   const handleMapClick = (newCenter: GeoLocation) => {
@@ -1127,6 +1510,31 @@ function App() {
                 + TRAFO
               </button>
             </div>
+            {btEditorMode === 'add-pole' && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleBtInsertPoleByCoordinates();
+                }}
+                className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2 space-y-2"
+              >
+                <div className="text-[10px] font-semibold text-blue-200">Inserir poste por coordenadas</div>
+                <input
+                  type="text"
+                  value={btPoleCoordinateInput}
+                  onChange={(e) => setBtPoleCoordinateInput(e.target.value)}
+                  placeholder="-22.9068 -43.1729 ou 23K 635806 7462003"
+                  aria-label="Coordenadas do poste"
+                  className="w-full rounded border border-blue-500/40 bg-slate-900 p-2 text-[11px] text-blue-100 placeholder:text-slate-500"
+                />
+                <button
+                  type="submit"
+                  className="w-full rounded border border-blue-500 bg-blue-600 px-2 py-1.5 text-[10px] font-bold text-white hover:bg-blue-500"
+                >
+                  INSERIR POR COORDENADA
+                </button>
+              </form>
+            )}
             {btNetworkScenario === 'asis' && (
               <div className="text-[10px] text-cyan-900 bg-cyan-50 border border-cyan-300 rounded-lg p-2">
                 Rede Atual ativa: você pode navegar e lançar poste, condutor e trafo na topologia existente.
@@ -1137,6 +1545,18 @@ function App() {
                 Área clandestina: {settings.clandestinoAreaM2 ?? 0} m²
               </div>
             )}
+            {settings.projectType !== 'clandestino' && pendingNormalClassificationPoles.length > 0 && (
+              <div className="text-[10px] text-rose-300 bg-rose-900/20 border border-rose-500/30 rounded-lg p-2">
+                Classificação pendente em {pendingNormalClassificationPoles.length} poste(s). DXF bloqueado até classificar.
+              </div>
+            )}
+            <button
+              onClick={handleResetBtTopology}
+              className="w-full text-[10px] font-bold py-2 rounded-lg border border-rose-500/40 text-rose-300 hover:bg-rose-500/10 transition-all"
+              title="Remover toda a topologia BT"
+            >
+              ZERAR BT (LIMPAR TUDO)
+            </button>
           </div>
 
           <div className="h-px bg-white/5 mx-2"></div>
@@ -1147,6 +1567,8 @@ function App() {
             btNetworkScenario={btNetworkScenario}
             clandestinoAreaM2={settings.clandestinoAreaM2 ?? 0}
             onTopologyChange={updateBtTopology}
+            onProjectTypeChange={updateProjectType}
+            onClandestinoAreaChange={updateClandestinoAreaM2}
             onBtRenamePole={handleBtRenamePole}
           />
 
@@ -1195,6 +1617,7 @@ function App() {
                 <div className="relative pt-1">
                   <input
                     type="range"
+                    aria-label="Raio da região"
                     min={MIN_RADIUS}
                     max={MAX_RADIUS}
                     step={10}
@@ -1321,6 +1744,10 @@ function App() {
             onBtDeleteEdge={handleBtDeleteEdge}
             onBtDeleteTransformer={handleBtDeleteTransformer}
             onBtToggleTransformerOnPole={handleBtToggleTransformerOnPole}
+            onBtQuickAddPoleRamal={handleBtQuickAddPoleRamal}
+            onBtQuickRemovePoleRamal={handleBtQuickRemovePoleRamal}
+            onBtRenamePole={handleBtRenamePole}
+            onBtSetPoleVerified={handleBtSetPoleVerified}
             onBtDragPole={handleBtDragPole}
             onBtDragTransformer={handleBtDragTransformer}
             criticalPoleId={btCriticalPoleId}
@@ -1351,6 +1778,175 @@ function App() {
                 }}
                 isDark={isDark}
               />
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {normalRamalModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[980] flex items-center justify-center bg-black/40 p-4"
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                  className="w-full max-w-sm rounded-xl border border-slate-300 bg-white p-4 shadow-2xl"
+                >
+                  <div className="text-sm font-semibold text-slate-800">Ramal do cliente</div>
+                  <div className="mt-1 text-xs text-slate-500">{normalRamalModal.poleTitle}</div>
+
+                  <div className="mt-3 space-y-2">
+                    <label className="text-xs text-slate-600 block">Tipo de ramal</label>
+                    <select
+                      aria-label="Tipo de ramal"
+                      value={normalRamalModal.ramalType}
+                      onChange={(e) => setNormalRamalModal({ ...normalRamalModal, ramalType: e.target.value })}
+                      className="w-full rounded border border-slate-300 bg-white p-2 text-sm text-slate-800"
+                    >
+                      {NORMAL_CLIENT_RAMAL_TYPES.map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+
+                    <label className="text-xs text-slate-600 block">Quantidade</label>
+                    <input
+                      type="number"
+                      aria-label="Quantidade de ramais"
+                      min={1}
+                      value={normalRamalModal.quantity}
+                      onFocus={(e) => e.target.select()}
+                      onClick={(e) => e.currentTarget.select()}
+                      onChange={(e) => setNormalRamalModal({ ...normalRamalModal, quantity: Math.max(1, Number(e.target.value) || 1) })}
+                      className="w-full rounded border border-slate-300 bg-white p-2 text-sm text-slate-800"
+                    />
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => setNormalRamalModal(null)}
+                      className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleConfirmNormalRamalModal}
+                      className="rounded border border-blue-500 bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500"
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {clandestinoToNormalModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[985] flex items-center justify-center bg-black/50 p-4"
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                  className="w-full max-w-2xl rounded-xl border border-amber-300 bg-white p-5 shadow-2xl"
+                >
+                  <div className="text-base font-semibold text-slate-900">Atenção: mudança Clandestino → Normal</div>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Identifique os tipos de ramal dos postes abaixo para cálculo normal. Você pode migrar tudo agora como Monofásico ou fazer depois.
+                  </p>
+
+                  <div className="mt-3 max-h-60 overflow-y-auto rounded-lg border border-slate-200">
+                    <table className="w-full text-left text-xs">
+                      <thead className="sticky top-0 bg-slate-50 text-slate-600">
+                        <tr>
+                          <th className="px-3 py-2 font-semibold">Poste</th>
+                          <th className="px-3 py-2 font-semibold">Clientes clandestinos</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {clandestinoToNormalModal.poles.map((entry) => (
+                          <tr key={entry.poleId} className="border-t border-slate-100">
+                            <td className="px-3 py-2 text-slate-800">{entry.poleTitle}</td>
+                            <td className="px-3 py-2 text-slate-700">{entry.clandestinoClients}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      onClick={() => setClandestinoToNormalModal(null)}
+                      className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleClandestinoToNormalClassifyLater}
+                      className="rounded border border-amber-500 bg-amber-500 px-3 py-1.5 text-xs text-white hover:bg-amber-400"
+                    >
+                      Fazer Depois (Bloquear DXF)
+                    </button>
+                    <button
+                      onClick={handleClandestinoToNormalConvertNow}
+                      className="rounded border border-blue-500 bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500"
+                    >
+                      Migrar Agora como Monofásico
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {normalToClandestinoModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[985] flex items-center justify-center bg-black/50 p-4"
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                  className="w-full max-w-lg rounded-xl border border-slate-300 bg-white p-5 shadow-2xl"
+                >
+                  <div className="text-base font-semibold text-slate-900">Mudança Normal → Clandestino</div>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Há {normalToClandestinoModal.totalNormalClients} cliente(s) normal(is) cadastrados. Deseja manter para possível retorno ou zerar somente os normais?
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      onClick={() => setNormalToClandestinoModal(null)}
+                      className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleNormalToClandestinoKeepClients}
+                      className="rounded border border-indigo-500 bg-indigo-600 px-3 py-1.5 text-xs text-white hover:bg-indigo-500"
+                    >
+                      Manter Clientes
+                    </button>
+                    <button
+                      onClick={handleNormalToClandestinoZeroNormalClients}
+                      className="rounded border border-rose-500 bg-rose-600 px-3 py-1.5 text-xs text-white hover:bg-rose-500"
+                    >
+                      Zerar Só Normais
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
             )}
           </AnimatePresence>
         </div>

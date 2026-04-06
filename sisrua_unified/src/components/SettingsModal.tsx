@@ -262,6 +262,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         type="number"
                         min={0}
                         value={settings.clandestinoAreaM2 ?? 0}
+                        onFocus={(e) => e.target.select()}
+                        onClick={(e) => e.currentTarget.select()}
                         onChange={(e) => setClandestinoAreaM2(Number(e.target.value) || 0)}
                         className="w-full glass-panel border border-white/30 rounded p-2 text-sm text-slate-800 focus:border-blue-400 outline-none"
                       />

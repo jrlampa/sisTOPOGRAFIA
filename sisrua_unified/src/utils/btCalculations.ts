@@ -9,6 +9,25 @@ import {
 } from '../constants/clandestinoWorkbookRules';
 
 const HOURS_PER_MONTH_REFERENCE = 720;
+const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
+
+const getPoleClientsByProjectType = (projectType: BtProjectType, topology: BtTopology, poleId: string): number => {
+  const pole = topology.poles.find((item) => item.id === poleId);
+  if (!pole) {
+    return 0;
+  }
+
+  const ramais = pole.ramais ?? [];
+  if (projectType === 'clandestino') {
+    return ramais
+      .filter((ramal) => (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE)
+      .reduce((sum, ramal) => sum + ramal.quantity, 0);
+  }
+
+  return ramais
+    .filter((ramal) => (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) !== CLANDESTINO_RAMAL_TYPE)
+    .reduce((sum, ramal) => sum + ramal.quantity, 0);
+};
 
 export const calculateTransformerEnergyKwh = (readings: BtTransformerReading[]): number => {
   return readings.reduce((acc, reading) => {
@@ -168,8 +187,7 @@ export const calculateAccumulatedDemandByPole = (
   const localClientByPole = new Map<string, number>();
 
   for (const pole of topology.poles) {
-    const localRamais = pole.ramais ?? [];
-    const localClients = localRamais.reduce((sum, item) => sum + item.quantity, 0);
+    const localClients = getPoleClientsByProjectType(projectType, topology, pole.id);
     localClientByPole.set(pole.id, localClients);
   }
 

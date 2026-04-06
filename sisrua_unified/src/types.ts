@@ -109,7 +109,7 @@ export type MapProvider = 'vector' | 'satellite';
 export type SimplificationLevel = 'off' | 'low' | 'medium' | 'high';
 export type ContourRenderMode = 'spline' | 'polyline';
 export type BtProjectType = 'ramais' | 'geral' | 'clandestino';
-export type BtEditorMode = 'none' | 'add-pole' | 'add-transformer' | 'add-edge';
+export type BtEditorMode = 'none' | 'move-pole' | 'add-pole' | 'add-transformer' | 'add-edge';
 export type BtNetworkScenario = 'asis' | 'projeto';
 
 export interface BtRamalEntry {
@@ -121,6 +121,7 @@ export interface BtRamalEntry {
 export interface BtPoleRamalEntry {
   id: string;
   quantity: number;
+  ramalType?: string;
 }
 
 export interface BtPoleNode {
