@@ -37,7 +37,28 @@ const EMPTY_BT_TOPOLOGY: BtTopology = {
   edges: []
 };
 const MAX_BT_EXPORT_HISTORY = 20;
-const NORMAL_CLIENT_RAMAL_TYPES = ['Ramal Monofasico', 'Ramal Bifasico', 'Ramal Trifasico'];
+const NORMAL_CLIENT_RAMAL_TYPES = [
+  '5 CC',
+  '8 CC',
+  '13 CC',
+  '21 CC',
+  '33 CC',
+  '53 CC',
+  '67 CC',
+  '85 CC',
+  '107 CC',
+  '127 CC',
+  '253 CC',
+  '13 DX 6 AWG',
+  '13 TX 6 AWG',
+  '13 QX 6 AWG',
+  '21 QX 4 AWG',
+  '53 QX 1/0',
+  '85 QX 3/0',
+  '107 QX 4/0',
+  '70 MMX',
+  '185 MMX'
+];
 const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
 
 type PendingNormalClassificationPole = {
@@ -744,6 +765,7 @@ function App() {
           lat: nearestPole.lat,
           lng: nearestPole.lng,
         title: `Transformador ${nextId}`,
+        projectPowerKva: 0,
         monthlyBillBrl: 0,
         demandKw: 0,
         readings: []
@@ -905,6 +927,7 @@ function App() {
         lat: pole.lat,
         lng: pole.lng,
         title: `Transformador ${nextId}`,
+        projectPowerKva: 0,
         monthlyBillBrl: 0,
         demandKw: 0,
         readings: []
@@ -1111,6 +1134,8 @@ function App() {
     showToast(`${quantity} ramal(is) ${normalRamalModal.ramalType} em ${normalRamalModal.poleTitle}.`, 'success');
     setNormalRamalModal(null);
   };
+
+  const isSidebarDockedForRamalModal = Boolean(normalRamalModal);
 
   const handleMapClick = (newCenter: GeoLocation) => {
     setAppState({ ...appState, center: newCenter }, true);
@@ -1415,7 +1440,8 @@ function App() {
         <motion.aside
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          className={`w-[400px] border-r flex flex-col p-8 gap-8 overflow-y-auto z-20 shadow-2xl transition-all scrollbar-hide ${isDark ? 'bg-[#020617] border-white/5' : 'bg-white border-slate-200'}`}
+          className={`border-r flex flex-col gap-8 overflow-y-auto z-20 shadow-2xl transition-all duration-300 scrollbar-hide ${isSidebarDockedForRamalModal ? 'w-0 p-0 opacity-0 pointer-events-none border-r-0' : 'w-[400px] p-8 opacity-100'} ${isDark ? 'bg-[#020617] border-white/5' : 'bg-white border-slate-200'}`}
+          aria-hidden={isSidebarDockedForRamalModal}
         >
           {/* Search Card */}
           <div className="space-y-3">
@@ -1546,8 +1572,9 @@ function App() {
               </form>
             )}
             {btEditorMode === 'move-pole' && (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[10px] text-amber-100">
-                Clique e segure no poste para arrastar e ajustar a posição no mapa.
+              <div className="rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-xs font-medium leading-snug text-amber-900 shadow-sm">
+                <div>Arraste fino de poste:</div>
+                <div>Clique e segure no poste para ajustar a posicao no mapa.</div>
               </div>
             )}
             {btNetworkScenario === 'asis' && (
@@ -1828,13 +1855,17 @@ function App() {
 
                     <label className="text-xs text-slate-600 block">Quantidade</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       aria-label="Quantidade de ramais"
-                      min={1}
-                      value={normalRamalModal.quantity}
+                      value={normalRamalModal.quantity === 0 ? '' : String(normalRamalModal.quantity)}
                       onFocus={(e) => e.target.select()}
                       onClick={(e) => e.currentTarget.select()}
-                      onChange={(e) => setNormalRamalModal({ ...normalRamalModal, quantity: Math.max(1, Number(e.target.value) || 1) })}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                        const n = parseInt(raw, 10);
+                        setNormalRamalModal({ ...normalRamalModal, quantity: Number.isFinite(n) && n > 0 ? n : 0 });
+                      }}
                       className="w-full rounded border border-slate-300 bg-white p-2 text-sm text-slate-800"
                     />
                   </div>

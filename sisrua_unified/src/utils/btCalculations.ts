@@ -10,6 +10,7 @@ import {
 
 const HOURS_PER_MONTH_REFERENCE = 720;
 const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
+const CURRENT_TO_DEMAND_CONVERSION = 0.375;
 
 const getPoleClientsByProjectType = (projectType: BtProjectType, topology: BtTopology, poleId: string): number => {
   const pole = topology.poles.find((item) => item.id === poleId);
@@ -20,18 +21,19 @@ const getPoleClientsByProjectType = (projectType: BtProjectType, topology: BtTop
   const ramais = pole.ramais ?? [];
   if (projectType === 'clandestino') {
     return ramais
-      .filter((ramal) => (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE)
+      .filter((ramal) => ramal.ramalType === CLANDESTINO_RAMAL_TYPE)
       .reduce((sum, ramal) => sum + ramal.quantity, 0);
   }
 
   return ramais
-    .filter((ramal) => (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) !== CLANDESTINO_RAMAL_TYPE)
+    // Backward compatibility: legacy ramais without `ramalType` are considered normal.
+    .filter((ramal) => ramal.ramalType !== CLANDESTINO_RAMAL_TYPE)
     .reduce((sum, ramal) => sum + ramal.quantity, 0);
 };
 
 export const calculateTransformerEnergyKwh = (readings: BtTransformerReading[]): number => {
   return readings.reduce((acc, reading) => {
-    if (reading.unitRateBrlPerKwh <= 0) {
+    if (!reading.unitRateBrlPerKwh || reading.unitRateBrlPerKwh <= 0 || !reading.billedBrl) {
       return acc;
     }
     return acc + reading.billedBrl / reading.unitRateBrlPerKwh;
@@ -39,15 +41,25 @@ export const calculateTransformerEnergyKwh = (readings: BtTransformerReading[]):
 };
 
 export const calculateTransformerDemandKw = (readings: BtTransformerReading[]): number => {
-  const energyKwh = calculateTransformerEnergyKwh(readings);
-  if (energyKwh <= 0) {
+  if (readings.length === 0) {
     return 0;
   }
-  return energyKwh / HOURS_PER_MONTH_REFERENCE;
+
+  // Workbook parity: DEMANDA_MAX = CORRENTE_MAX * 0.375
+  // DEMANDA_CORRIGIDA = DEMANDA_MAX * FATOR_TEMPERATURA
+  const correctedDemands = readings.map((reading) => {
+    const currentMaxA = reading.currentMaxA ?? 0;
+    const temperatureFactor = reading.temperatureFactor ?? 1;
+    const maxDemandKw = currentMaxA * CURRENT_TO_DEMAND_CONVERSION;
+    return maxDemandKw * temperatureFactor;
+  });
+
+  // Use the highest corrected demand among informed readings.
+  return Number((Math.max(...correctedDemands, 0)).toFixed(2));
 };
 
 export const calculateTransformerMonthlyBill = (readings: BtTransformerReading[]): number => {
-  return readings.reduce((acc, reading) => acc + reading.billedBrl, 0);
+  return readings.reduce((acc, reading) => acc + (reading.billedBrl ?? 0), 0);
 };
 
 const parseInteger = (value: number): number | null => {
@@ -183,7 +195,7 @@ export const calculateAccumulatedDemandByPole = (
     allPoleIds.add(edge.toPoleId);
   }
 
-  const outgoingByPole = new Map<string, BtTopology['edges']>();
+  const adjacentPoles = new Map<string, string[]>();
   const localClientByPole = new Map<string, number>();
 
   for (const pole of topology.poles) {
@@ -191,10 +203,48 @@ export const calculateAccumulatedDemandByPole = (
     localClientByPole.set(pole.id, localClients);
   }
 
+  for (const poleId of allPoleIds) {
+    adjacentPoles.set(poleId, []);
+  }
+
   for (const edge of topology.edges) {
-    const outgoing = outgoingByPole.get(edge.fromPoleId) ?? [];
-    outgoing.push(edge);
-    outgoingByPole.set(edge.fromPoleId, outgoing);
+    adjacentPoles.get(edge.fromPoleId)?.push(edge.toPoleId);
+    adjacentPoles.get(edge.toPoleId)?.push(edge.fromPoleId);
+  }
+
+  const transformerPoleIds = new Set(
+    topology.transformers
+      .map((transformer) => transformer.poleId)
+      .filter((poleId): poleId is string => poleId !== undefined && allPoleIds.has(poleId))
+  );
+
+  const distanceToTransformer = new Map<string, number>();
+  for (const poleId of allPoleIds) {
+    distanceToTransformer.set(poleId, Number.POSITIVE_INFINITY);
+  }
+
+  const queue: string[] = [];
+  for (const poleId of transformerPoleIds) {
+    distanceToTransformer.set(poleId, 0);
+    queue.push(poleId);
+  }
+
+  // Multi-source BFS from all transformer poles to orient the flow from leaves to nearest transformer.
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) {
+      continue;
+    }
+
+    const currentDistance = distanceToTransformer.get(current) ?? Number.POSITIVE_INFINITY;
+    const neighbors = adjacentPoles.get(current) ?? [];
+    for (const neighbor of neighbors) {
+      const knownDistance = distanceToTransformer.get(neighbor) ?? Number.POSITIVE_INFINITY;
+      if (knownDistance > currentDistance + 1) {
+        distanceToTransformer.set(neighbor, currentDistance + 1);
+        queue.push(neighbor);
+      }
+    }
   }
 
   const totalClients = Array.from(localClientByPole.values()).reduce((sum, value) => sum + value, 0);
@@ -225,9 +275,22 @@ export const calculateAccumulatedDemandByPole = (
     nextPath.add(poleId);
 
     const localClients = localClientByPole.get(poleId) ?? 0;
-    const children = outgoingByPole.get(poleId) ?? [];
+    const currentDistance = distanceToTransformer.get(poleId) ?? Number.POSITIVE_INFINITY;
 
-    const childrenResults = children.map((edge) => visit(edge.toPoleId, nextPath));
+    // Children are poles farther from the transformer than the current pole.
+    // This makes accumulation run from the network ends toward the transformer.
+    const children = (adjacentPoles.get(poleId) ?? []).filter((neighborId) => {
+      const neighborDistance = distanceToTransformer.get(neighborId) ?? Number.POSITIVE_INFINITY;
+      if (Number.isFinite(currentDistance) && Number.isFinite(neighborDistance)) {
+        return neighborDistance > currentDistance;
+      }
+
+      // If no transformer is reachable in this component, avoid arbitrary cycles by
+      // not traversing sideways in unknown direction.
+      return false;
+    });
+
+    const childrenResults = children.map((childPoleId) => visit(childPoleId, nextPath));
     const downstreamClients = childrenResults.reduce((sum, child) => sum + child.accumulatedClients, 0);
     const accumulatedClients = localClients + downstreamClients;
 

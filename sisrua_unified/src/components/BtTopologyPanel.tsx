@@ -57,15 +57,140 @@ const CABOS_AMPACITY: Record<string, number> = {
 };
 // T_LINHA_MONO = DB!M14 = T_LINHA_TRF / √3 = 220 / √3 ≈ 127 V (monophasic phase voltage).
 const T_LINHA_MONO = 127;
+const CURRENT_TO_DEMAND_CONVERSION = 0.375;
+const NORMAL_CLIENT_RAMAL_TYPES = [
+  '5 CC',
+  '8 CC',
+  '13 CC',
+  '21 CC',
+  '33 CC',
+  '53 CC',
+  '67 CC',
+  '85 CC',
+  '107 CC',
+  '127 CC',
+  '253 CC',
+  '13 DX 6 AWG',
+  '13 TX 6 AWG',
+  '13 QX 6 AWG',
+  '21 QX 4 AWG',
+  '53 QX 1/0',
+  '85 QX 3/0',
+  '107 QX 4/0',
+  '70 MMX',
+  '185 MMX'
+];
+const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
 const CONDUCTOR_NAMES = Object.keys(CABOS_AMPACITY);
 const getConductorAmpacity = (name: string): number => CABOS_AMPACITY[name] ?? 0;
 
-const numberFromInput = (value: string): number => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
+const numberFromInput = (value: string, decimals?: number): number => {
+  const normalized = value.replace(',', '.');
+  const parsed = Number(normalized);
+
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+
+  if (decimals === undefined) {
+    return parsed;
+  }
+
+  const factor = 10 ** decimals;
+  return Math.round(parsed * factor) / factor;
+};
+
+const selectAllInputText = (e: React.FocusEvent<HTMLInputElement> | React.MouseEvent<HTMLInputElement>) => {
+  e.currentTarget.select();
+};
+
+const normalizeNumericClipboardText = (raw: string): string => {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  // Keep only digits, sign and separators commonly found in spreadsheets/emails.
+  const cleaned = trimmed.replace(/\s+/g, '').replace(/[^0-9,.-]/g, '');
+  if (!cleaned) {
+    return '';
+  }
+
+  const lastComma = cleaned.lastIndexOf(',');
+  const lastDot = cleaned.lastIndexOf('.');
+
+  // If both separators exist, the rightmost one is treated as decimal separator.
+  if (lastComma !== -1 && lastDot !== -1) {
+    const decimalSeparator = lastComma > lastDot ? ',' : '.';
+    const thousandSeparator = decimalSeparator === ',' ? '.' : ',';
+    const withoutThousands = cleaned.split(thousandSeparator).join('');
+    return decimalSeparator === ','
+      ? withoutThousands.replace(',', '.')
+      : withoutThousands;
+  }
+
+  // Single separator case: comma is decimal in pt-BR user flow.
+  if (lastComma !== -1) {
+    return cleaned.replace(',', '.');
+  }
+
+  return cleaned;
+};
+
+const formatBr = (n: number, decimals = 2): string =>
+  n.toFixed(decimals).replace('.', ',');
+
+const parseBr = (s: string): number => {
+  const normalized = normalizeNumericClipboardText(s.trim());
+  return parseFloat(normalized);
 };
 
 const nextId = (prefix: string): string => `${prefix}${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
+function NumericTextInput({
+  value,
+  decimals = 2,
+  onChange,
+  className,
+}: {
+  value: number;
+  decimals?: number;
+  onChange: (val: number) => void;
+  className?: string;
+}) {
+  const [editing, setEditing] = React.useState(false);
+  const [editDisplay, setEditDisplay] = React.useState('');
+
+  // While not editing, always derive display from parent value (always comma-formatted).
+  // While editing, display exactly what the user typed.
+  const display = editing ? editDisplay : formatBr(value, decimals);
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={display}
+      onFocus={(e) => {
+        setEditing(true);
+        setEditDisplay(formatBr(value, decimals));
+        e.target.select();
+      }}
+      onBlur={() => {
+        setEditing(false);
+      }}
+      onClick={(e) => e.currentTarget.select()}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setEditDisplay(raw);
+        const parsed = parseBr(raw);
+        if (Number.isFinite(parsed)) {
+          onChange(parsed);
+        }
+      }}
+      className={className}
+    />
+  );
+}
 
 const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   btTopology,
@@ -169,6 +294,35 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     });
   };
 
+  const updateTransformerProjectPower = (transformerId: string, projectPowerKva: number) => {
+    onTopologyChange({
+      ...btTopology,
+      transformers: btTopology.transformers.map((transformer) =>
+        transformer.id === transformerId ? { ...transformer, projectPowerKva } : transformer
+      )
+    });
+  };
+
+  const handleEditablePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (!(target instanceof HTMLInputElement) || target.type !== 'number') {
+      return;
+    }
+
+    const rawText = e.clipboardData.getData('text');
+    const normalized = normalizeNumericClipboardText(rawText);
+    if (!normalized) {
+      return;
+    }
+
+    e.preventDefault();
+    const start = target.selectionStart ?? target.value.length;
+    const end = target.selectionEnd ?? target.value.length;
+    const nextValue = `${target.value.slice(0, start)}${normalized}${target.value.slice(end)}`;
+    target.value = nextValue;
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
   const updateEdgeConductors = (edgeId: string, conductors: BtTopology['edges'][number]['conductors']) => {
     onTopologyChange({
       ...btTopology,
@@ -236,9 +390,11 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   });
   const accumulatedByPole = calculateAccumulatedDemandByPole(btTopology, projectType, clandestinoAreaM2);
   const criticalPole = accumulatedByPole[0] ?? null;
+  const clientDemandByPole = [...accumulatedByPole]
+    .sort((a, b) => b.localTrechoDemandKva - a.localTrechoDemandKva);
 
   return (
-    <div className="space-y-4 rounded-2xl border border-slate-300 bg-white p-4 shadow-sm">
+    <div className="space-y-4 rounded-2xl border border-slate-300 bg-white p-4 shadow-sm" onPasteCapture={handleEditablePaste}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-700">
           <Activity size={16} />
@@ -321,23 +477,23 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
       <div className="rounded-lg border border-cyan-300 bg-cyan-50 p-2 text-[10px] text-cyan-900">
         {projectType === 'clandestino'
-          ? `ACUMULADA (GERAL!I, clandestino): ${accumulatedDemandKva.toFixed(2)} kVA`
-          : `ACUMULADA (GERAL!I, normal): ${accumulatedDemandKva.toFixed(2)} kVA`}
+          ? `Demanda acumulada da rede (GERAL!I, clandestino): ${accumulatedDemandKva.toFixed(2)} kVA`
+          : `Demanda acumulada da rede (GERAL!I, normal): ${accumulatedDemandKva.toFixed(2)} kVA`}
         {criticalPole && (
           <div className="mt-1 text-cyan-900">
-            Ponto crítico: {criticalPole.poleId} | CLT acum.: {criticalPole.accumulatedClients} | Demanda acum.: {criticalPole.accumulatedDemandKva.toFixed(2)} kVA
+            Ponto crítico da acumulada: {criticalPole.poleId} | CLT acum.: {criticalPole.accumulatedClients} | Demanda acum.: {criticalPole.accumulatedDemandKva.toFixed(2)} kVA
           </div>
         )}
       </div>
 
-      {accumulatedByPole.length > 0 && (
+      {clientDemandByPole.length > 0 && (
         <div className="rounded-lg border border-cyan-200 bg-slate-50 p-2 text-[10px] text-slate-700">
-          <div className="mb-1 font-semibold uppercase tracking-wide text-cyan-800">Ranking Acumulada (Top 5)</div>
-          {accumulatedByPole.slice(0, 5).map((item) => (
+          <div className="mb-1 font-semibold uppercase tracking-wide text-cyan-800">Ranking Demanda de Clientes (Top 5)</div>
+          {clientDemandByPole.slice(0, 5).map((item) => (
             <div key={item.poleId} className="flex items-center justify-between border-b border-cyan-200 py-0.5 last:border-b-0">
               <span>{item.poleId}</span>
               <span>
-                CLT {item.accumulatedClients} | {item.accumulatedDemandKva.toFixed(2)} kVA
+                CLT {item.localClients} | {item.localTrechoDemandKva.toFixed(2)} kVA
               </span>
             </div>
           ))}
@@ -396,9 +552,12 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                       <span>Ramais do poste</span>
                       <button
                         onClick={() => {
+                          const defaultRamalType = projectType === 'clandestino'
+                            ? CLANDESTINO_RAMAL_TYPE
+                            : NORMAL_CLIENT_RAMAL_TYPES[0];
                           updatePoleRamais(selectedPole.id, [
                             ...(selectedPole.ramais ?? []),
-                            { id: nextId('RP'), quantity: 1 }
+                            { id: nextId('RP'), quantity: 1, ramalType: defaultRamalType }
                           ]);
                         }}
                         className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-slate-700 hover:bg-slate-100"
@@ -411,8 +570,18 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                       <div className="text-[10px] text-slate-500">Sem ramais cadastrados neste poste.</div>
                     ) : (
                       <div className="space-y-1.5">
+                        <div className="rounded border border-slate-200 bg-slate-50 p-1.5 text-[10px] text-slate-600">
+                          {(selectedPole.ramais ?? []).map((ramal) => {
+                            const ramalType = ramal.ramalType ?? (projectType === 'clandestino' ? CLANDESTINO_RAMAL_TYPE : NORMAL_CLIENT_RAMAL_TYPES[0]);
+                            return (
+                              <div key={`summary-${ramal.id}`}>
+                                {ramal.quantity} x {ramalType}
+                              </div>
+                            );
+                          })}
+                        </div>
                         {(selectedPole.ramais ?? []).map((ramal) => (
-                          <div key={ramal.id} className="grid grid-cols-[1fr_auto] gap-2">
+                          <div key={ramal.id} className="grid grid-cols-[84px_1fr_auto] gap-2">
                             <input
                               type="number"
                               min={1}
@@ -428,6 +597,24 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                               }}
                               className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
                             />
+                            <select
+                              value={ramal.ramalType ?? (projectType === 'clandestino' ? CLANDESTINO_RAMAL_TYPE : NORMAL_CLIENT_RAMAL_TYPES[0])}
+                              onChange={(e) => {
+                                const ramalType = e.target.value;
+                                updatePoleRamais(
+                                  selectedPole.id,
+                                  (selectedPole.ramais ?? []).map((item) => item.id === ramal.id ? { ...item, ramalType } : item)
+                                );
+                              }}
+                              className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
+                            >
+                              {(projectType === 'clandestino'
+                                ? [CLANDESTINO_RAMAL_TYPE]
+                                : NORMAL_CLIENT_RAMAL_TYPES
+                              ).map((type) => (
+                                <option key={type} value={type}>{type}</option>
+                              ))}
+                            </select>
                             <button
                               onClick={() => {
                                 updatePoleRamais(
@@ -502,98 +689,70 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
             {selectedTransformer && (
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-[10px] text-slate-400">
-                  <span>Faturas</span>
-                  <button
-                    onClick={() => {
-                      const newReading: BtTransformerReading = {
-                        id: nextId('R'),
-                        kwhMonth: 0,
-                        unitRateBrlPerKwh: 0.95,
-                        billedBrl: 0
-                      };
+                {(() => {
+                  const baseReading = selectedTransformer.readings[0] ?? {
+                    id: nextId('R'),
+                    currentMaxA: 0,
+                    temperatureFactor: 1
+                  };
+                  const currentMaxA = baseReading.currentMaxA ?? 0;
+                  const temperatureFactor = baseReading.temperatureFactor ?? 1;
+                  const demandMaxKw = currentMaxA * CURRENT_TO_DEMAND_CONVERSION;
+                  const correctedDemandKw = demandMaxKw * temperatureFactor;
+                  const projectPowerKva = selectedTransformer.projectPowerKva ?? 0;
+                  const loadingPct = projectPowerKva > 0 ? (correctedDemandKw / projectPowerKva) * 100 : null;
+                  const totalClients = btTopology.poles.reduce(
+                    (acc, pole) => acc + (pole.ramais ?? []).reduce((sum, ramal) => sum + ramal.quantity, 0),
+                    0
+                  );
+                  const dmdi = totalClients > 0 ? demandMaxKw / totalClients : null;
 
-                      updateTransformerReadings(selectedTransformer.id, [...selectedTransformer.readings, newReading]);
-                    }}
-                    className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-slate-700 hover:bg-slate-100"
-                  >
-                    <Plus size={12} /> Leitura
-                  </button>
-                </div>
+                  return (
+                    <>
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="text-[10px] text-slate-500">Corrente maxima (A)</div>
+                        <div className="text-[10px] text-slate-500">Demanda maxima (kVA)</div>
+                        <div className="text-[10px] text-slate-500">Fator temperatura</div>
+                        <div className="text-[10px] text-slate-500">Trafo proj (kVA)</div>
+                        <NumericTextInput
+                          value={currentMaxA}
+                          onChange={(next) => {
+                            updateTransformerReadings(selectedTransformer.id, [{ ...baseReading, currentMaxA: next }]);
+                          }}
+                          className="rounded border border-emerald-300 bg-emerald-50 p-1.5 text-[11px] font-medium text-emerald-900"
+                        />
+                        <NumericTextInput
+                          value={demandMaxKw}
+                          onChange={(nextDemandMaxKva) => {
+                            const inferredCurrent = Math.round((nextDemandMaxKva / CURRENT_TO_DEMAND_CONVERSION) * 100) / 100;
+                            updateTransformerReadings(selectedTransformer.id, [{ ...baseReading, currentMaxA: inferredCurrent }]);
+                          }}
+                          className="rounded border border-emerald-300 bg-emerald-50 p-1.5 text-[11px] font-medium text-emerald-900"
+                        />
+                        <NumericTextInput
+                          value={temperatureFactor}
+                          onChange={(next) => {
+                            updateTransformerReadings(selectedTransformer.id, [{ ...baseReading, temperatureFactor: next }]);
+                          }}
+                          className="rounded border border-emerald-300 bg-emerald-50 p-1.5 text-[11px] font-medium text-emerald-900"
+                        />
+                        <NumericTextInput
+                          value={projectPowerKva}
+                          onChange={(next) => updateTransformerProjectPower(selectedTransformer.id, next)}
+                          className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
+                        />
+                      </div>
 
-                {selectedTransformer.readings.map((reading) => (
-                  <div key={reading.id} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
-                    <input
-                      type="number"
-                      placeholder="kWh"
-                      value={reading.kwhMonth}
-                      onChange={(e) => {
-                        const kwhMonth = numberFromInput(e.target.value);
-                        const billedBrl = Number((kwhMonth * reading.unitRateBrlPerKwh).toFixed(2));
-
-                        updateTransformerReadings(
-                          selectedTransformer.id,
-                          selectedTransformer.readings.map((item) => item.id === reading.id
-                            ? { ...item, kwhMonth, billedBrl }
-                            : item)
-                        );
-                      }}
-                      className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
-                    />
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="R$/kWh"
-                      value={reading.unitRateBrlPerKwh}
-                      onChange={(e) => {
-                        const unitRateBrlPerKwh = numberFromInput(e.target.value);
-                        const billedBrl = Number((reading.kwhMonth * unitRateBrlPerKwh).toFixed(2));
-
-                        updateTransformerReadings(
-                          selectedTransformer.id,
-                          selectedTransformer.readings.map((item) => item.id === reading.id
-                            ? { ...item, unitRateBrlPerKwh, billedBrl }
-                            : item)
-                        );
-                      }}
-                      className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
-                    />
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Fatura"
-                      value={reading.billedBrl}
-                      onChange={(e) => {
-                        const billedBrl = numberFromInput(e.target.value);
-
-                        updateTransformerReadings(
-                          selectedTransformer.id,
-                          selectedTransformer.readings.map((item) => item.id === reading.id
-                            ? { ...item, billedBrl }
-                            : item)
-                        );
-                      }}
-                      className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
-                    />
-                    <button
-                      onClick={() => {
-                        updateTransformerReadings(
-                          selectedTransformer.id,
-                          selectedTransformer.readings.filter((item) => item.id !== reading.id)
-                        );
-                      }}
-                      className="rounded border border-rose-500/30 p-1.5 text-rose-300 hover:bg-rose-500/10"
-                      title="Remover leitura"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                ))}
-
-                <div className="rounded border border-slate-300 bg-white p-2 text-[10px] text-slate-700">
-                  <div>Fatura mensal: R$ {selectedTransformer.monthlyBillBrl.toFixed(2)}</div>
-                  <div>Demanda estimada: {selectedTransformer.demandKw.toFixed(2)} kW</div>
-                </div>
+                      <div className="rounded border border-slate-300 bg-white p-2 text-[10px] text-slate-700 space-y-1">
+                        <div>Demanda maxima: {formatBr(demandMaxKw)} kVA</div>
+                        <div>Demanda corrigida: {formatBr(correctedDemandKw)} kVA</div>
+                        <div>Carregamento atual: {loadingPct === null ? '#DIV/0!' : `${loadingPct.toFixed(2)}%`}</div>
+                        <div>DMDI (ramal): {dmdi === null ? '#DIV/0!' : dmdi.toFixed(2)}</div>
+                        <div>Total clientes: {totalClients}</div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             )}
           </>

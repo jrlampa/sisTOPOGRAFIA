@@ -135,9 +135,13 @@ export interface BtPoleNode {
 
 export interface BtTransformerReading {
   id: string;
-  kwhMonth: number;
-  unitRateBrlPerKwh: number;
-  billedBrl: number;
+  // Legacy billing fields (kept optional for backward compatibility)
+  kwhMonth?: number;
+  unitRateBrlPerKwh?: number;
+  billedBrl?: number;
+  // Workbook-aligned demand inputs
+  currentMaxA?: number;
+  temperatureFactor?: number;
 }
 
 export interface BtTransformer {
@@ -146,6 +150,7 @@ export interface BtTransformer {
   lat: number;
   lng: number;
   title: string;
+  projectPowerKva?: number;
   monthlyBillBrl: number;
   demandKw: number;
   readings: BtTransformerReading[];
