@@ -31,6 +31,7 @@ interface MapSelectorProps {
     onBtDeletePole?: (id: string) => void;
     onBtDeleteEdge?: (id: string) => void;
     onBtDeleteTransformer?: (id: string) => void;
+    onBtToggleTransformerOnPole?: (poleId: string) => void;
     onBtDragPole?: (poleId: string, lat: number, lng: number) => void;
     onBtDragTransformer?: (transformerId: string, lat: number, lng: number) => void;
     criticalPoleId?: string | null;
@@ -193,6 +194,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     onBtDeletePole,
     onBtDeleteEdge,
     onBtDeleteTransformer,
+    onBtToggleTransformerOnPole,
     onBtDragPole,
     onBtDragTransformer,
     criticalPoleId,
@@ -218,6 +220,9 @@ const MapSelector: React.FC<MapSelectorProps> = ({
 
         for (const pole of topology.poles || []) {
             const hasTransformer = (topology.transformers || []).some((transformer) => {
+                if (transformer.poleId) {
+                    return transformer.poleId === pole.id;
+                }
                 const polePoint = L.latLng(pole.lat, pole.lng);
                 const transformerPoint = L.latLng(transformer.lat, transformer.lng);
                 return polePoint.distanceTo(transformerPoint) <= distanceThresholdMeters;
@@ -229,8 +234,21 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     }, [topology.poles, topology.transformers]);
 
     const makePoleIcon = (poleId: string, verified: boolean) => {
+        const hasTransformer = !!poleHasTransformer.get(poleId);
         const isCritical = poleId === criticalPoleId;
         const isPending = poleId === pendingBtEdgeStartPoleId;
+
+        if (hasTransformer) {
+            const bg = verified ? '#15803d' : '#7c3aed';
+            const size = isCritical ? 18 : isPending ? 16 : 14;
+            return L.divIcon({
+                className: 'bt-pole-transformer-icon',
+                html: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="filter: drop-shadow(0 0 0 ${bg}66);"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
+                iconSize: [size, size],
+                iconAnchor: [size / 2, size / 2]
+            });
+        }
+
         let bg = '#2563eb';
         let size = 12;
         if (isCritical) { bg = '#ef4444'; size = 16; }
@@ -248,7 +266,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         const bg = verified ? '#15803d' : '#7c3aed';
         return L.divIcon({
             className: 'bt-transformer-icon',
-            html: `<div style="background:${bg};border:2px solid #ffffff;width:14px;height:14px;transform:rotate(45deg);"></div>`,
+            html: `<svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
             iconSize: [14, 14],
             iconAnchor: [7, 7]
         });
@@ -358,13 +376,13 @@ const MapSelector: React.FC<MapSelectorProps> = ({
 
                 {(topology.poles || []).map((pole) => (
                     <Marker
-                        key={`${pole.id}-${pole.verified ? 'v' : 'u'}-${pole.id === criticalPoleId ? 'c' : 'n'}-${pole.id === pendingBtEdgeStartPoleId ? 'p' : 'x'}`}
+                        key={`${pole.id}-${pole.verified ? 'v' : 'u'}-${pole.id === criticalPoleId ? 'c' : 'n'}-${pole.id === pendingBtEdgeStartPoleId ? 'p' : 'x'}-${poleHasTransformer.get(pole.id) ? 't' : 'nt'}`}
                         position={[pole.lat, pole.lng]}
                         icon={makePoleIcon(pole.id, !!pole.verified)}
                         draggable={btEditorMode === 'none'}
                         eventHandlers={{
                             click: () => {
-                                if (btEditorMode === 'add-edge' && onBtMapClick) {
+                                if ((btEditorMode === 'add-edge' || btEditorMode === 'add-transformer') && onBtMapClick) {
                                     onBtMapClick({
                                         lat: pole.lat,
                                         lng: pole.lng,
@@ -403,13 +421,14 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                         >
                                             <Trash2 size={12} />
                                         </button>
-                                        <span
-                                            title={poleHasTransformer.get(pole.id) ? 'Poste com transformador' : 'Poste sem transformador'}
-                                            aria-label={poleHasTransformer.get(pole.id) ? 'Poste com transformador' : 'Poste sem transformador'}
-                                            style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: `1px solid ${poleHasTransformer.get(pole.id) ? '#7c3aed' : '#94a3b8'}`, borderRadius: 4, color: poleHasTransformer.get(pole.id) ? '#7c3aed' : '#94a3b8', background: poleHasTransformer.get(pole.id) ? '#7c3aed14' : '#f8fafc'}}
+                                        <button
+                                            onClick={() => onBtToggleTransformerOnPole?.(pole.id)}
+                                            title={poleHasTransformer.get(pole.id) ? 'Remover transformador do poste' : 'Adicionar transformador ao poste'}
+                                            aria-label={poleHasTransformer.get(pole.id) ? 'Remover transformador do poste' : 'Adicionar transformador ao poste'}
+                                            style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: `1px solid ${poleHasTransformer.get(pole.id) ? '#7c3aed' : '#64748b'}`, borderRadius: 4, color: poleHasTransformer.get(pole.id) ? '#7c3aed' : '#475569', background: poleHasTransformer.get(pole.id) ? '#7c3aed14' : '#f1f5f9', cursor: 'pointer'}}
                                         >
-                                            <Triangle size={12} style={{ transform: 'rotate(180deg)' }} />
-                                        </span>
+                                            <Triangle size={12} style={{ transform: 'rotate(180deg)', fill: 'currentColor' }} />
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -424,6 +443,25 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         icon={makeTransformerIcon(!!transformer.verified)}
                         draggable={btEditorMode === 'none'}
                         eventHandlers={{
+                            click: () => {
+                                if ((btEditorMode === 'add-edge' || btEditorMode === 'add-transformer') && onBtMapClick) {
+                                    const linkedPole = transformer.poleId ? polesById.get(transformer.poleId) : null;
+                                    if (linkedPole) {
+                                        onBtMapClick({
+                                            lat: linkedPole.lat,
+                                            lng: linkedPole.lng,
+                                            label: linkedPole.title
+                                        });
+                                        return;
+                                    }
+
+                                    onBtMapClick({
+                                        lat: transformer.lat,
+                                        lng: transformer.lng,
+                                        label: transformer.title
+                                    });
+                                }
+                            },
                             dragend: (e) => {
                                 const { lat, lng } = (e.target as L.Marker).getLatLng();
                                 onBtDragTransformer?.(transformer.id, lat, lng);

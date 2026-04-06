@@ -141,6 +141,7 @@ export interface BtTransformerReading {
 
 export interface BtTransformer {
   id: string;
+  poleId?: string;
   lat: number;
   lng: number;
   title: string;

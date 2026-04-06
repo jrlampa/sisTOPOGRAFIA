@@ -461,11 +461,34 @@ function App() {
     }
 
     if (btEditorMode === 'add-transformer') {
+        const nearestPole = findNearestPole(location);
+        if (!nearestPole) {
+          showToast('Trafo deve ser atrelado a um poste (clique em um poste)', 'error');
+          return;
+        }
+
+        const existingOnPole = btTopology.transformers.find((transformer) => {
+          if (transformer.poleId) {
+            return transformer.poleId === nearestPole.id;
+          }
+
+          return distanceMeters(
+            { lat: transformer.lat, lng: transformer.lng },
+            { lat: nearestPole.lat, lng: nearestPole.lng }
+          ) <= 6;
+        });
+
+        if (existingOnPole) {
+          showToast(`${nearestPole.title} já possui transformador`, 'info');
+          return;
+        }
+
       const nextId = `TR${btTopology.transformers.length + 1}`;
       const nextTransformer: BtTransformer = {
         id: nextId,
-        lat: location.lat,
-        lng: location.lng,
+          poleId: nearestPole.id,
+          lat: nearestPole.lat,
+          lng: nearestPole.lng,
         title: `Transformador ${nextId}`,
         monthlyBillBrl: 0,
         demandKw: 0,
@@ -479,7 +502,7 @@ function App() {
           transformers: [...btTopology.transformers, nextTransformer]
         }
       }, true);
-      showToast(`${nextTransformer.title} inserido`, 'success');
+      showToast(`${nextTransformer.title} inserido em ${nearestPole.title}`, 'success');
       return;
     }
 
@@ -514,8 +537,8 @@ function App() {
       );
 
       if (alreadyConnected) {
-        setPendingBtEdgeStartPoleId(null);
-        showToast(`Já existe condutor entre ${fromPole.id} <-> ${nearestPole.id}`, 'info');
+        setPendingBtEdgeStartPoleId(nearestPole.id);
+        showToast(`Já existe condutor entre ${fromPole.id} <-> ${nearestPole.id}. Nova origem: ${nearestPole.id}`, 'info');
         return;
       }
 
@@ -542,18 +565,39 @@ function App() {
         }
       }, true);
 
-      setPendingBtEdgeStartPoleId(null);
-      showToast(`Condutor ${edgeId} criado (${lengthMeters}m)`, 'success');
+      setPendingBtEdgeStartPoleId(nearestPole.id);
+      showToast(`Condutor ${edgeId} criado (${lengthMeters}m). Nova origem: ${nearestPole.id}`, 'success');
     }
   };
 
   const handleBtDeletePole = (poleId: string) => {
+    const pole = btTopology.poles.find((candidate) => candidate.id === poleId);
+    const transformerIdsToRemove = new Set(
+      btTopology.transformers
+        .filter((transformer) => {
+          if (transformer.poleId) {
+            return transformer.poleId === poleId;
+          }
+
+          if (!pole) {
+            return false;
+          }
+
+          return distanceMeters(
+            { lat: transformer.lat, lng: transformer.lng },
+            { lat: pole.lat, lng: pole.lng }
+          ) <= 6;
+        })
+        .map((transformer) => transformer.id)
+    );
+
     setAppState({
       ...appState,
       btTopology: {
         ...btTopology,
         poles: btTopology.poles.filter((p) => p.id !== poleId),
-        edges: btTopology.edges.filter((e) => e.fromPoleId !== poleId && e.toPoleId !== poleId)
+        edges: btTopology.edges.filter((e) => e.fromPoleId !== poleId && e.toPoleId !== poleId),
+        transformers: btTopology.transformers.filter((transformer) => !transformerIdsToRemove.has(transformer.id))
       }
     }, true);
     showToast(`Poste ${poleId} removido`, 'info');
@@ -581,9 +625,67 @@ function App() {
     showToast(`Transformador ${transformerId} removido`, 'info');
   };
 
+  const handleBtToggleTransformerOnPole = (poleId: string) => {
+    const pole = btTopology.poles.find((candidate) => candidate.id === poleId);
+    if (!pole) {
+      showToast('Poste não encontrado', 'error');
+      return;
+    }
+
+    const transformersOnPole = btTopology.transformers.filter((transformer) => {
+      if (transformer.poleId) {
+        return transformer.poleId === poleId;
+      }
+
+      return distanceMeters(
+        { lat: transformer.lat, lng: transformer.lng },
+        { lat: pole.lat, lng: pole.lng }
+      ) <= 6;
+    });
+
+    if (transformersOnPole.length === 0) {
+      const nextId = `TR${btTopology.transformers.length + 1}`;
+      const nextTransformer: BtTransformer = {
+        id: nextId,
+        poleId,
+        lat: pole.lat,
+        lng: pole.lng,
+        title: `Transformador ${nextId}`,
+        monthlyBillBrl: 0,
+        demandKw: 0,
+        readings: []
+      };
+
+      setAppState({
+        ...appState,
+        btTopology: {
+          ...btTopology,
+          transformers: [...btTopology.transformers, nextTransformer]
+        }
+      }, true);
+
+      showToast(`Transformador adicionado em ${pole.title}`, 'success');
+      return;
+    }
+
+    const removeIds = new Set(transformersOnPole.map((transformer) => transformer.id));
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        transformers: btTopology.transformers.filter((transformer) => !removeIds.has(transformer.id))
+      }
+    }, true);
+
+    showToast(`Transformador removido de ${pole.title}`, 'success');
+  };
+
   const handleBtDragPole = (poleId: string, lat: number, lng: number) => {
     const updatedPoles = btTopology.poles.map((p) =>
       p.id === poleId ? { ...p, lat, lng } : p
+    );
+    const updatedTransformers = btTopology.transformers.map((transformer) =>
+      transformer.poleId === poleId ? { ...transformer, lat, lng } : transformer
     );
     const updatedEdges = btTopology.edges.map((edge) => {
       const from = updatedPoles.find((p) => p.id === edge.fromPoleId);
@@ -592,16 +694,22 @@ function App() {
       const newLength = Math.round(distanceMeters({ lat: from.lat, lng: from.lng }, { lat: to.lat, lng: to.lng }));
       return { ...edge, lengthMeters: newLength };
     });
-    setAppState({ ...appState, btTopology: { ...btTopology, poles: updatedPoles, edges: updatedEdges } }, true);
+    setAppState({ ...appState, btTopology: { ...btTopology, poles: updatedPoles, transformers: updatedTransformers, edges: updatedEdges } }, true);
   };
 
   const handleBtDragTransformer = (transformerId: string, lat: number, lng: number) => {
+    const nearestPole = findNearestPole({ lat, lng });
+    if (!nearestPole) {
+      showToast('Trafo deve permanecer atrelado a um poste', 'error');
+      return;
+    }
+
     setAppState({
       ...appState,
       btTopology: {
         ...btTopology,
         transformers: btTopology.transformers.map((t) =>
-          t.id === transformerId ? { ...t, lat, lng } : t
+          t.id === transformerId ? { ...t, poleId: nearestPole.id, lat: nearestPole.lat, lng: nearestPole.lng } : t
         )
       }
     }, true);
@@ -1212,6 +1320,7 @@ function App() {
             onBtDeletePole={handleBtDeletePole}
             onBtDeleteEdge={handleBtDeleteEdge}
             onBtDeleteTransformer={handleBtDeleteTransformer}
+            onBtToggleTransformerOnPole={handleBtToggleTransformerOnPole}
             onBtDragPole={handleBtDragPole}
             onBtDragTransformer={handleBtDragTransformer}
             criticalPoleId={btCriticalPoleId}
