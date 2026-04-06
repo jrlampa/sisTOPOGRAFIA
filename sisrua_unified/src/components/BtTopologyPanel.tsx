@@ -524,16 +524,6 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
               )}
               {selectedPole && (
                 <>
-                  {btTopology.poles.length > 1 && (
-                    <input
-                      type="text"
-                      value={selectedPole.title}
-                      onChange={(e) => onBtRenamePole?.(selectedPole.id, e.target.value)}
-                      placeholder="Nome do poste"
-                      title="Nome do poste"
-                      className="w-full rounded border border-slate-300 bg-white p-1.5 text-xs text-slate-800 focus:border-cyan-500/60 outline-none"
-                    />
-                  )}
                   <button
                     onClick={() => updatePoleVerified(selectedPole.id, !selectedPole.verified)}
                     className="rounded border border-cyan-400 px-3 py-1 text-[10px] text-cyan-900 hover:bg-cyan-100"
