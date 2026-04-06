@@ -461,19 +461,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         <Popup>
                             <div className="text-xs">
                                 <div><strong>{edge.id}</strong></div>
-                                <div>{from.title}{' <-> '}{to.title}</div>
-                                <div style={{ color: '#64748b' }}>{edge.fromPoleId}{' <-> '}{edge.toPoleId}</div>
-                                {typeof edge.lengthMeters === 'number' && <div>{edge.lengthMeters} m</div>}
-                                {edge.conductors.length > 0 ? (
-                                    <div style={{marginTop: 2, color: '#374151'}}>
-                                        {edge.conductors.map((entry) => (
-                                            <div key={entry.id}>{entry.quantity} x {entry.conductorName}</div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div style={{marginTop: 2, color: '#6b7280'}}>Sem condutor informado</div>
-                                )}
-                                <div style={{marginTop: 6}}>
+                                <div style={{marginTop: 4, color: '#334155'}}>Condutor</div>
+                                <div style={{marginTop: 2}}>
                                     <select
                                         value={selectedConductor}
                                         onChange={(e) => {
@@ -490,6 +479,18 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                         ))}
                                     </select>
                                 </div>
+                                <div style={{marginTop: 6, color: '#334155'}}>
+                                    Metragem: {typeof edge.lengthMeters === 'number' ? `${edge.lengthMeters} m` : '-'}
+                                </div>
+                                {edge.conductors.length > 0 ? (
+                                    <div style={{marginTop: 2, color: '#374151'}}>
+                                        {edge.conductors.map((entry) => (
+                                            <div key={entry.id}>{entry.quantity} x {entry.conductorName}</div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{marginTop: 2, color: '#6b7280'}}>Sem condutor informado</div>
+                                )}
                                 <div style={{color: edge.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{edge.verified ? '✓ Verificado' : '○ Não verificado'}</div>
                                 <div style={{marginTop: 6, display: 'flex', gap: 8, alignItems: 'center'}}>
                                     {onBtDeleteEdge && (
@@ -499,9 +500,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                                 e.stopPropagation();
                                                 onBtDeleteEdge(edge.id);
                                             }}
-                                            style={{padding: '2px 8px', background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer', fontSize: 11}}
+                                            title="Deletar condutor"
+                                            aria-label="Deletar condutor"
+                                            style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', background: '#ef444420', cursor: 'pointer'}}
                                         >
-                                            Deletar condutor
+                                            <Trash2 size={12} />
                                         </button>
                                     )}
                                     {onBtQuickAddEdgeConductor && (
