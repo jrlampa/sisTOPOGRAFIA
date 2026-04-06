@@ -26,42 +26,6 @@ interface BtTopologyPanelProps {
   onBtRenameTransformer?: (transformerId: string, title: string) => void;
 }
 
-// Ampacity values extracted from the CABOS table (DB sheet) of the project workbook.
-// Column B "(A)" = rated ampacity in Amperes; 0 = not rated in this dataset.
-const CABOS_AMPACITY: Record<string, number> = {
-  '25 Al - Arm':    0,
-  '50 Al - Arm':    0,
-  '95 Al - Arm':  237,
-  '150 Al - Arm':   0,
-  '240 Al - Arm': 395,
-  '25 Al':          0,
-  '35 Cu':          0,
-  '70 Cu':          0,
-  '95 Al':          0,
-  '120 Cu':         0,
-  '240 Al':       476,
-  '240 Cu':       430,
-  '500 Cu':         0,
-  '10 Cu_CONC_bi':  63,
-  '10 Cu_CONC_Tri': 63,
-  '16 Al_CONC_bi':  63,
-  '16 Al_CONC_Tri': 63,
-  '13 Al - DX':     63,
-  '13 Al - TX':     63,
-  '13 Al - QX':     63,
-  '21 Al - QX':     63,
-  '53 Al - QX':     63,
-  '70 Al - MX':   202,
-  '185 Al - MX':  355,
-  '240 Al - MX':  473,
-  '6 AWG':        65,
-  '2 AWG':       100,
-  '1/0 AWG':     150,
-  '3/0 AWG':     200,
-  '4/0 AWG':     230,
-};
-// T_LINHA_MONO = DB!M14 = T_LINHA_TRF / √3 = 220 / √3 ≈ 127 V (monophasic phase voltage).
-const T_LINHA_MONO = 127;
 const CURRENT_TO_DEMAND_CONVERSION = 0.375;
 const NORMAL_CLIENT_RAMAL_TYPES = [
   '5 CC',
@@ -118,8 +82,6 @@ const CONDUCTOR_NAMES = [
   '3/0 AWG',
   '4/0 AWG'
 ];
-const getConductorAmpacity = (name: string): number => CABOS_AMPACITY[name] ?? 0;
-
 const numberFromInput = (value: string, decimals?: number): number => {
   const normalized = value.replace(',', '.');
   const parsed = Number(normalized);
@@ -884,27 +846,6 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     </span>
                   </div>
                 </div>
-                {(() => {
-                  const toPoleEntry = accumulatedByPole.find((a) => a.poleId === selectedEdge.toPoleId);
-                  const demandKva = toPoleEntry?.accumulatedDemandKva ?? 0;
-                  const requiredAmps = demandKva > 0 ? Math.round((demandKva * 1000) / T_LINHA_MONO) : 0;
-                  const capacityAmps = selectedEdge.conductors.reduce(
-                    (sum, c) => sum + c.quantity * getConductorAmpacity(c.conductorName), 0
-                  );
-                  if (requiredAmps === 0 || capacityAmps === 0) return null;
-                  const ratio = requiredAmps / capacityAmps;
-                  const statusColor = ratio < 0.8 ? '#22c55e' : ratio < 1 ? '#f59e0b' : '#ef4444';
-                  const statusText = ratio < 0.8 ? 'OK' : ratio < 1 ? 'Atenção' : 'Sobrecarga';
-                  return (
-                    <div className="rounded border border-slate-300 bg-white p-2 text-[10px] text-slate-700">
-                      <div className="flex items-center justify-between">
-                        <span>Cap. condutores: {capacityAmps} A</span>
-                        <span style={{ color: statusColor, fontWeight: 700 }}>{statusText}</span>
-                      </div>
-                      <div>Corrente est. ({T_LINHA_MONO} V mono): {requiredAmps} A</div>
-                    </div>
-                  );
-                })()}
               </div>
             )}
           </>
