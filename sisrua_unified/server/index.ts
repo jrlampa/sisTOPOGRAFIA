@@ -19,6 +19,7 @@ import { specs } from './swagger.js';
 // Import Routes
 import elevationRoutes from './routes/elevationRoutes.js';
 import searchRoutes from './routes/searchRoutes.js';
+import osmRoutes from './routes/osmRoutes.js';
 import ibgeRoutes from './routes/ibgeRoutes.js';
 import indeRoutes from './routes/indeRoutes.js';
 import analysisRoutes from './routes/analysisRoutes.js';
@@ -133,6 +134,7 @@ app.get('/health', async (_req: Request, res: Response) => {
 // API Routes (Modular)
 app.use('/api/elevation', elevationRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/osm', osmRoutes);
 app.use('/api/ibge', ibgeRoutes);
 app.use('/api/inde', indeRoutes);
 app.use('/api/analyze', analysisRoutes);
