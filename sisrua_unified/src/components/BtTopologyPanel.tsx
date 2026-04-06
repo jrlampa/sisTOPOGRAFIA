@@ -53,6 +53,10 @@ const CABOS_AMPACITY: Record<string, number> = {
   '70 Al - MX':   202,
   '185 Al - MX':  355,
   '240 Al - MX':  473,
+  '6 AWG':         0,
+  '1/0 AWG':       0,
+  '3/0 AWG':       0,
+  '4/0 AWG':       0,
 };
 // T_LINHA_MONO = DB!M14 = T_LINHA_TRF / √3 = 220 / √3 ≈ 127 V (monophasic phase voltage).
 const T_LINHA_MONO = 127;
@@ -105,7 +109,11 @@ const CONDUCTOR_NAMES = [
   '13 Al - TX',
   '13 Al - QX',
   '21 Al - QX',
-  '53 Al - QX'
+  '53 Al - QX',
+  '6 AWG',
+  '1/0 AWG',
+  '3/0 AWG',
+  '4/0 AWG'
 ];
 const getConductorAmpacity = (name: string): number => CABOS_AMPACITY[name] ?? 0;
 
