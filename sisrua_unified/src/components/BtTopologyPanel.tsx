@@ -835,10 +835,9 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                 <div className="rounded border border-slate-300 bg-white p-2 text-[10px] text-slate-700">
                   <div className="flex items-center gap-2">
                     <Sigma size={12} />
-                    <span>
-                      Total condutores: {selectedEdge.conductors.reduce((acc, entry) => acc + entry.quantity, 0)}
-                    </span>
+                    <span>Total de trechos no projeto: {btTopology.edges.length}</span>
                   </div>
+                  <div className="mt-1">Total de trechos com condutores: {btTopology.edges.filter((edge) => edge.conductors.length > 0).length}</div>
                 </div>
               </div>
             )}
