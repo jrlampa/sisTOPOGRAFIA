@@ -739,7 +739,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
       </div>
 
       <div className="space-y-2 rounded-lg border border-slate-300 bg-slate-50 p-3">
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Condutor ({btNetworkScenario === 'asis' ? 'ramais existentes' : 'ramais de projeto'})</div>
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Condutor</div>
         {btTopology.edges.length === 0 ? (
           <div className="text-[10px] text-slate-500">
             {btNetworkScenario === 'asis'
