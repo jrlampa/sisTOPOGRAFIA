@@ -1003,6 +1003,16 @@ function App() {
     }, true);
   };
 
+  const handleBtRenameTransformer = (transformerId: string, title: string) => {
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        transformers: btTopology.transformers.map((t) => t.id === transformerId ? { ...t, title } : t)
+      }
+    }, true);
+  };
+
   const handleBtSetPoleVerified = (poleId: string, verified: boolean) => {
     setAppState({
       ...appState,
@@ -1691,6 +1701,7 @@ function App() {
             onProjectTypeChange={updateProjectType}
             onClandestinoAreaChange={updateClandestinoAreaM2}
             onBtRenamePole={handleBtRenamePole}
+            onBtRenameTransformer={handleBtRenameTransformer}
           />
 
           {/* Control Section */}
@@ -1870,6 +1881,7 @@ function App() {
             onBtQuickAddEdgeConductor={handleBtQuickAddEdgeConductor}
             onBtQuickRemoveEdgeConductor={handleBtQuickRemoveEdgeConductor}
             onBtRenamePole={handleBtRenamePole}
+            onBtRenameTransformer={handleBtRenameTransformer}
             onBtSetPoleVerified={handleBtSetPoleVerified}
             onBtDragPole={handleBtDragPole}
             onBtDragTransformer={handleBtDragTransformer}

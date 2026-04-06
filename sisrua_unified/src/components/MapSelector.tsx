@@ -70,6 +70,7 @@ interface MapSelectorProps {
     onBtQuickAddEdgeConductor?: (edgeId: string, conductorName: string) => void;
     onBtQuickRemoveEdgeConductor?: (edgeId: string, conductorName: string) => void;
     onBtRenamePole?: (poleId: string, title: string) => void;
+    onBtRenameTransformer?: (transformerId: string, title: string) => void;
     onBtSetPoleVerified?: (poleId: string, verified: boolean) => void;
     onBtDragPole?: (poleId: string, lat: number, lng: number) => void;
     onBtDragTransformer?: (transformerId: string, lat: number, lng: number) => void;
@@ -288,6 +289,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     onBtQuickAddEdgeConductor,
     onBtQuickRemoveEdgeConductor,
     onBtRenamePole,
+    onBtRenameTransformer,
     onBtSetPoleVerified,
     onBtDragPole,
     onBtDragTransformer,
@@ -702,6 +704,15 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                             <div className="text-xs">
                                 <strong>{transformer.title}</strong>
                                 <div>{transformer.id}</div>
+                                {onBtRenameTransformer && (
+                                    <input
+                                        type="text"
+                                        value={transformer.title}
+                                        onChange={(e) => onBtRenameTransformer(transformer.id, e.target.value)}
+                                        title="Nome do transformador"
+                                        className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
+                                    />
+                                )}
                                 <div>Demanda: {transformer.demandKw} kW</div>
                                 <div style={{color: transformer.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{transformer.verified ? '✓ Verificado' : '○ Não verificado'}</div>
                                 {onBtDeleteTransformer && (

@@ -23,6 +23,7 @@ interface BtTopologyPanelProps {
   onProjectTypeChange?: (next: 'ramais' | 'clandestino') => void;
   onClandestinoAreaChange?: (nextAreaM2: number) => void;
   onBtRenamePole?: (poleId: string, title: string) => void;
+  onBtRenameTransformer?: (transformerId: string, title: string) => void;
 }
 
 // Ampacity values extracted from the CABOS table (DB sheet) of the project workbook.
@@ -236,6 +237,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   onProjectTypeChange,
   onClandestinoAreaChange,
   onBtRenamePole,
+  onBtRenameTransformer,
 }) => {
   const summary = calculateBtSummary(btTopology);
   const [selectedPoleId, setSelectedPoleId] = React.useState<string>('');
@@ -702,6 +704,16 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                 <option key={transformer.id} value={transformer.id}>{transformer.title}</option>
               ))}
             </select>
+
+            {selectedTransformer && onBtRenameTransformer && (
+              <input
+                type="text"
+                value={selectedTransformer.title}
+                onChange={(e) => onBtRenameTransformer(selectedTransformer.id, e.target.value)}
+                title="Nome do transformador"
+                className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
+              />
+            )}
 
             {selectedTransformer && (
               <div className="space-y-2">
