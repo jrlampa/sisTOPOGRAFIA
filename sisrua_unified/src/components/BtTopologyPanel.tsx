@@ -3,7 +3,6 @@ import { Activity, Plus, Trash2, Sigma } from 'lucide-react';
 import { BtNetworkScenario, BtPoleRamalEntry, BtTopology, BtTransformerReading } from '../types';
 import {
   calculateAccumulatedDemandByPole,
-  calculateAccumulatedDemandKva,
   calculateBtSummary,
   calculateClandestinoDemandKvaByAreaAndClients,
   calculatePointDemandKva,
@@ -81,7 +80,33 @@ const NORMAL_CLIENT_RAMAL_TYPES = [
   '185 MMX'
 ];
 const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
-const CONDUCTOR_NAMES = Object.keys(CABOS_AMPACITY);
+const CONDUCTOR_NAMES = [
+  '70 Al - MX',
+  '185 Al - MX',
+  '240 Al - MX',
+  '25 Al - Arm',
+  '50 Al - Arm',
+  '95 Al - Arm',
+  '150 Al - Arm',
+  '240 Al - Arm',
+  '25 Al',
+  '35 Cu',
+  '70 Cu',
+  '95 Al',
+  '120 Cu',
+  '240 Al',
+  '240 Cu',
+  '500 Cu',
+  '10 Cu_CONC_bi',
+  '10 Cu_CONC_Tri',
+  '16 Al_CONC_bi',
+  '16 Al_CONC_Tri',
+  '13 Al - DX',
+  '13 Al - TX',
+  '13 Al - QX',
+  '21 Al - QX',
+  '53 Al - QX'
+];
 const getConductorAmpacity = (name: string): number => CABOS_AMPACITY[name] ?? 0;
 
 const numberFromInput = (value: string, decimals?: number): number => {
@@ -381,15 +406,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         : transformersWithoutReadings > 0
           ? `Demanda parcial: ${transformersWithReadings}/${btTopology.transformers.length} trafo(s) com leituras.`
           : 'Demanda consolidada com leituras em todos os trafos.';
-  const accumulatedDemandKva = calculateAccumulatedDemandKva({
-    projectType,
-    clandestinoAreaM2,
-    accumulatedClients: totalClandestinoClients,
-    downstreamAccumulatedKva: 0,
-    totalTrechoKva: summary.transformerDemandKw
-  });
   const accumulatedByPole = calculateAccumulatedDemandByPole(btTopology, projectType, clandestinoAreaM2);
-  const criticalPole = accumulatedByPole[0] ?? null;
   const clientDemandByPole = [...accumulatedByPole]
     .sort((a, b) => b.localTrechoDemandKva - a.localTrechoDemandKva);
 
@@ -471,17 +488,6 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         {pointDemandStatus && (
           <div className="mt-1">
             {pointDemandStatus}
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-lg border border-cyan-300 bg-cyan-50 p-2 text-[10px] text-cyan-900">
-        {projectType === 'clandestino'
-          ? `Demanda acumulada da rede (GERAL!I, clandestino): ${accumulatedDemandKva.toFixed(2)} kVA`
-          : `Demanda acumulada da rede (GERAL!I, normal): ${accumulatedDemandKva.toFixed(2)} kVA`}
-        {criticalPole && (
-          <div className="mt-1 text-cyan-900">
-            Ponto crítico da acumulada: {criticalPole.poleId} | CLT acum.: {criticalPole.accumulatedClients} | Demanda acum.: {criticalPole.accumulatedDemandKva.toFixed(2)} kVA
           </div>
         )}
       </div>
@@ -711,7 +717,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     <>
                       <div className="grid grid-cols-4 gap-2">
                         <div className="text-[10px] text-slate-500">Corrente maxima (A)</div>
-                        <div className="text-[10px] text-slate-500">Demanda maxima (kVA)</div>
+                        <div className="text-[10px] text-slate-500">Demanda corrigida (kVA)</div>
                         <div className="text-[10px] text-slate-500">Fator temperatura</div>
                         <div className="text-[10px] text-slate-500">Trafo proj (kVA)</div>
                         <NumericTextInput
@@ -722,9 +728,10 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                           className="rounded border border-emerald-300 bg-emerald-50 p-1.5 text-[11px] font-medium text-emerald-900"
                         />
                         <NumericTextInput
-                          value={demandMaxKw}
-                          onChange={(nextDemandMaxKva) => {
-                            const inferredCurrent = Math.round((nextDemandMaxKva / CURRENT_TO_DEMAND_CONVERSION) * 100) / 100;
+                          value={correctedDemandKw}
+                          onChange={(nextCorrectedDemandKva) => {
+                            const temperatureBase = temperatureFactor > 0 ? temperatureFactor : 1;
+                            const inferredCurrent = Math.round((nextCorrectedDemandKva / (CURRENT_TO_DEMAND_CONVERSION * temperatureBase)) * 100) / 100;
                             updateTransformerReadings(selectedTransformer.id, [{ ...baseReading, currentMaxA: inferredCurrent }]);
                           }}
                           className="rounded border border-emerald-300 bg-emerald-50 p-1.5 text-[11px] font-medium text-emerald-900"
@@ -787,7 +794,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     onClick={() => {
                       updateEdgeConductors(selectedEdge.id, [
                         ...selectedEdge.conductors,
-                        { id: nextId('C'), quantity: 1, conductorName: '95 Al - Arm' }
+                        { id: nextId('C'), quantity: 1, conductorName: CONDUCTOR_NAMES[0] }
                       ]);
                     }}
                     className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-slate-700 hover:bg-slate-100"
