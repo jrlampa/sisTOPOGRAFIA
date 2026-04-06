@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { GeoJsonObject, FeatureCollection } from 'geojson';
 import { BtEditorMode, BtTopology, SelectionMode } from '../types';
-import { Plus, Trash2, Triangle } from 'lucide-react';
+import { Minus, Plus, Trash2, Triangle } from 'lucide-react';
 
 const CONDUCTOR_OPTIONS = [
     '70 Al - MX',
@@ -500,8 +500,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                                 e.stopPropagation();
                                                 onBtDeleteEdge(edge.id);
                                             }}
-                                            title="Deletar condutor"
-                                            aria-label="Deletar condutor"
+                                            title="Deletar trecho"
+                                            aria-label="Deletar trecho"
                                             style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', background: '#ef444420', cursor: 'pointer'}}
                                         >
                                             <Trash2 size={12} />
@@ -530,9 +530,9 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                             }}
                                             title="Retirar condutor"
                                             aria-label="Retirar condutor"
-                                            style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #64748b', borderRadius: 4, color: '#334155', background: '#f1f5f9', cursor: 'pointer', fontSize: 14, fontWeight: 700}}
+                                            style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #64748b', borderRadius: 4, color: '#334155', background: '#f1f5f9', cursor: 'pointer'}}
                                         >
-                                            -
+                                            <Minus size={12} />
                                         </button>
                                     )}
                                 </div>
@@ -580,7 +580,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         }}
                     >
                         <Tooltip permanent direction="top" offset={[0, -8]} opacity={0.85}>
-                            <span style={{fontSize: 10, fontWeight: 600}}>{pole.title}</span>
+                            <span style={{ fontSize: 10, fontWeight: 600 }}>{pole.title}</span>
                         </Tooltip>
                         <Popup>
                             <div className="text-xs">
@@ -590,91 +590,74 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                     <input
                                         type="text"
                                         value={pole.title}
-                                            <div style={{ marginTop: 4, color: '#334155' }}>Condutor</div>
-                                            <div style={{ marginTop: 2 }}>
-                                                <select
-                                                    value={selectedConductor}
-                                                    onChange={(e) => {
-                                                        const conductorName = e.target.value;
-                                                        setEdgeConductorSelection((current) => ({
-                                                            ...current,
-                                                            [edge.id]: conductorName
-                                                        }));
-                                                    }}
-                                                    style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: 4, padding: '2px 6px', fontSize: 11, color: '#334155', background: '#ffffff' }}
-                                                >
-                                                    {CONDUCTOR_OPTIONS.map((name) => (
-                                                        <option key={name} value={name}>{name}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div style={{ marginTop: 6, color: '#334155' }}>
-                                                Metragem: {typeof edge.lengthMeters === 'number' ? `${edge.lengthMeters} m` : '-'}
-                                            </div>
-                                        }}
                                         onChange={(e) => onBtRenamePole(pole.id, e.target.value)}
                                         className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
                                     />
                                 )}
-                                {pole.id === criticalPoleId && <div style={{color:'#ef4444', fontWeight:700, marginTop:2}}>⚠ Ponto crítico</div>}
+                                {pole.id === criticalPoleId && <div style={{ color: '#ef4444', fontWeight: 700, marginTop: 2 }}>⚠ Ponto crítico</div>}
                                 {accumulatedByPoleMap.has(pole.id) && (
-                                    <div style={{marginTop: 3, color: '#374151'}}>
+                                    <div style={{ marginTop: 3, color: '#374151' }}>
                                         <div>CLT acum.: {accumulatedByPoleMap.get(pole.id)!.accumulatedClients}</div>
-                                    <div style={{marginTop: 6, display: 'flex', gap: 8, alignItems: 'center'}}>
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                onBtDeletePole(pole.id);
-                                            }}
-                                            style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer'}}
-                                            title="Deletar poste"
-                                            aria-label="Deletar poste"
-                                        >
-                                            <Trash2 size={12} />
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                onBtToggleTransformerOnPole?.(pole.id);
-                                            }}
-                                            title={poleHasTransformer.get(pole.id) ? 'Remover transformador do poste' : 'Adicionar transformador ao poste'}
-                                            aria-label={poleHasTransformer.get(pole.id) ? 'Remover transformador do poste' : 'Adicionar transformador ao poste'}
-                                            style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: `1px solid ${poleHasTransformer.get(pole.id) ? '#7c3aed' : '#64748b'}`, borderRadius: 4, color: poleHasTransformer.get(pole.id) ? '#7c3aed' : '#475569', background: poleHasTransformer.get(pole.id) ? '#7c3aed14' : '#f1f5f9', cursor: 'pointer'}}
-                                        >
-                                            <Triangle size={12} style={{ transform: 'rotate(180deg)', fill: 'currentColor' }} />
-                                        </button>
-                                        {onBtQuickAddPoleRamal && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    onBtQuickAddPoleRamal(pole.id);
-                                                }}
-                                                title="Informar ramais"
-                                                aria-label="Informar ramais"
-                                                style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #0ea5e9', borderRadius: 4, color: '#0284c7', background: '#0ea5e914', cursor: 'pointer'}}
-                                            >
-                                                <Plus size={12} />
-                                            </button>
-                                        )}
-                                        {onBtQuickRemovePoleRamal && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    onBtQuickRemovePoleRamal(pole.id);
-                                                }}
-                                                title="Reduzir ramais"
-                                                aria-label="Reduzir ramais"
-                                                style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #64748b', borderRadius: 4, color: '#334155', background: '#f1f5f9', cursor: 'pointer', fontSize: 14, fontWeight: 700}}
-                                            >
-                                                -
-                                            </button>
-                                        )}
+                                        <div>Demanda acum.: {accumulatedByPoleMap.get(pole.id)!.accumulatedDemandKva.toFixed(2)} kVA</div>
                                     </div>
                                 )}
+                                <div style={{ color: pole.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2 }}>
+                                    {pole.verified ? '✓ Verificado' : '○ Não verificado'}
+                                </div>
+                                <div style={{ marginTop: 6, display: 'flex', gap: 8, alignItems: 'center' }}>
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            onBtDeletePole?.(pole.id);
+                                        }}
+                                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer' }}
+                                        title="Deletar poste"
+                                        aria-label="Deletar poste"
+                                    >
+                                        <Trash2 size={12} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            onBtToggleTransformerOnPole?.(pole.id);
+                                        }}
+                                        title={poleHasTransformer.get(pole.id) ? 'Remover transformador do poste' : 'Adicionar transformador ao poste'}
+                                        aria-label={poleHasTransformer.get(pole.id) ? 'Remover transformador do poste' : 'Adicionar transformador ao poste'}
+                                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: `1px solid ${poleHasTransformer.get(pole.id) ? '#7c3aed' : '#64748b'}`, borderRadius: 4, color: poleHasTransformer.get(pole.id) ? '#7c3aed' : '#475569', background: poleHasTransformer.get(pole.id) ? '#7c3aed14' : '#f1f5f9', cursor: 'pointer' }}
+                                    >
+                                        <Triangle size={12} style={{ transform: 'rotate(180deg)', fill: 'currentColor' }} />
+                                    </button>
+                                    {onBtQuickAddPoleRamal && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onBtQuickAddPoleRamal(pole.id);
+                                            }}
+                                            title="Informar ramais"
+                                            aria-label="Informar ramais"
+                                            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #0ea5e9', borderRadius: 4, color: '#0284c7', background: '#0ea5e914', cursor: 'pointer' }}
+                                        >
+                                            <Plus size={12} />
+                                        </button>
+                                    )}
+                                    {onBtQuickRemovePoleRamal && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onBtQuickRemovePoleRamal(pole.id);
+                                            }}
+                                            title="Reduzir ramais"
+                                            aria-label="Reduzir ramais"
+                                            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #64748b', borderRadius: 4, color: '#334155', background: '#f1f5f9', cursor: 'pointer' }}
+                                        >
+                                            <Minus size={12} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </Popup>
                     </Marker>

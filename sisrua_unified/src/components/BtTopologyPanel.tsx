@@ -727,7 +727,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     <>
                       <div className="grid grid-cols-4 gap-2">
                         <div className="text-[10px] text-slate-500">Corrente maxima (A)</div>
-                        <div className="text-[10px] text-slate-500">Demanda corrigida (kVA)</div>
+                        <div className="text-[10px] text-slate-500">Demanda maxima (kVA)</div>
                         <div className="text-[10px] text-slate-500">Fator temperatura</div>
                         <div className="text-[10px] text-slate-500">Trafo proj (kVA)</div>
                         <NumericTextInput
@@ -738,10 +738,9 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                           className="rounded border border-emerald-300 bg-emerald-50 p-1.5 text-[11px] font-medium text-emerald-900"
                         />
                         <NumericTextInput
-                          value={correctedDemandKw}
-                          onChange={(nextCorrectedDemandKva) => {
-                            const temperatureBase = temperatureFactor > 0 ? temperatureFactor : 1;
-                            const inferredCurrent = Math.round((nextCorrectedDemandKva / (CURRENT_TO_DEMAND_CONVERSION * temperatureBase)) * 100) / 100;
+                          value={demandMaxKw}
+                          onChange={(nextDemandMaxKva) => {
+                            const inferredCurrent = Math.round((nextDemandMaxKva / CURRENT_TO_DEMAND_CONVERSION) * 100) / 100;
                             updateTransformerReadings(selectedTransformer.id, [{ ...baseReading, currentMaxA: inferredCurrent }]);
                           }}
                           className="rounded border border-emerald-300 bg-emerald-50 p-1.5 text-[11px] font-medium text-emerald-900"
@@ -814,7 +813,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                 </div>
 
                 {selectedEdge.conductors.map((entry) => (
-                  <div key={entry.id} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                  <div key={entry.id} className="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-2">
                     <input
                       type="number"
                       min={1}
@@ -826,7 +825,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                           selectedEdge.conductors.map((item) => item.id === entry.id ? { ...item, quantity } : item)
                         );
                       }}
-                      className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
+                      className="min-w-0 rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
                     />
                     <select
                       value={entry.conductorName}
@@ -837,7 +836,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                           selectedEdge.conductors.map((item) => item.id === entry.id ? { ...item, conductorName } : item)
                         );
                       }}
-                      className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
+                      className="min-w-0 w-full rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
                     >
                       {CONDUCTOR_NAMES.map((name) => (
                         <option key={name} value={name}>{name}</option>
@@ -850,7 +849,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                           selectedEdge.conductors.filter((item) => item.id !== entry.id)
                         );
                       }}
-                      className="rounded border border-rose-500/30 p-1.5 text-rose-300 hover:bg-rose-500/10"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded border border-rose-500/30 text-rose-300 hover:bg-rose-500/10"
                       title="Remover condutor"
                     >
                       <Trash2 size={12} />
