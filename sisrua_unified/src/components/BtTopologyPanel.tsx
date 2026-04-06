@@ -706,13 +706,16 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             </select>
 
             {selectedTransformer && onBtRenameTransformer && (
-              <input
-                type="text"
-                value={selectedTransformer.title}
-                onChange={(e) => onBtRenameTransformer(selectedTransformer.id, e.target.value)}
-                title="Nome do transformador"
-                className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
-              />
+              <div className="space-y-1">
+                <div className="text-[10px] text-slate-500">Nome do transformador</div>
+                <input
+                  type="text"
+                  value={selectedTransformer.title}
+                  onChange={(e) => onBtRenameTransformer(selectedTransformer.id, e.target.value)}
+                  title="Nome do transformador"
+                  className="w-full rounded border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800"
+                />
+              </div>
             )}
 
             {selectedTransformer && (
@@ -737,9 +740,10 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
                   return (
                     <>
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="rounded border border-slate-200 bg-white p-2">
+                        <div className="grid grid-cols-4 gap-2">
                         <div className="text-[10px] text-slate-500">Corrente maxima (A)</div>
-                        <div className="text-[10px] text-slate-500">Demanda maxima (kVA)</div>
+                        <div className="text-[10px] text-slate-500">Demanda corrigida (kVA)</div>
                         <div className="text-[10px] text-slate-500">Fator temperatura</div>
                         <div className="text-[10px] text-slate-500">Trafo proj (kVA)</div>
                         <NumericTextInput
@@ -750,9 +754,10 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                           className="rounded border border-emerald-300 bg-emerald-50 p-1.5 text-[11px] font-medium text-emerald-900"
                         />
                         <NumericTextInput
-                          value={demandMaxKw}
-                          onChange={(nextDemandMaxKva) => {
-                            const inferredCurrent = Math.round((nextDemandMaxKva / CURRENT_TO_DEMAND_CONVERSION) * 100) / 100;
+                          value={correctedDemandKw}
+                          onChange={(nextCorrectedDemandKva) => {
+                            const temperatureBase = temperatureFactor > 0 ? temperatureFactor : 1;
+                            const inferredCurrent = Math.round((nextCorrectedDemandKva / (CURRENT_TO_DEMAND_CONVERSION * temperatureBase)) * 100) / 100;
                             updateTransformerReadings(selectedTransformer.id, [{ ...baseReading, currentMaxA: inferredCurrent }]);
                           }}
                           className="rounded border border-emerald-300 bg-emerald-50 p-1.5 text-[11px] font-medium text-emerald-900"
@@ -770,10 +775,11 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                           className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
                         />
                       </div>
+                      </div>
 
                       <div className="rounded border border-slate-300 bg-white p-2 text-[10px] text-slate-700 space-y-1">
-                        <div>Demanda maxima: {formatBr(demandMaxKw)} kVA</div>
                         <div>Demanda corrigida: {formatBr(correctedDemandKw)} kVA</div>
+                        <div>Demanda maxima: {formatBr(demandMaxKw)} kVA</div>
                         <div>Carregamento atual: {loadingPct === null ? '#DIV/0!' : `${loadingPct.toFixed(2)}%`}</div>
                         <div>DMDI (ramal): {dmdi === null ? '#DIV/0!' : dmdi.toFixed(2)}</div>
                         <div>Total clientes: {totalClients}</div>
