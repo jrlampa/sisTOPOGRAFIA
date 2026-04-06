@@ -590,9 +590,27 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                     <input
                                         type="text"
                                         value={pole.title}
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
+                                            <div style={{ marginTop: 4, color: '#334155' }}>Condutor</div>
+                                            <div style={{ marginTop: 2 }}>
+                                                <select
+                                                    value={selectedConductor}
+                                                    onChange={(e) => {
+                                                        const conductorName = e.target.value;
+                                                        setEdgeConductorSelection((current) => ({
+                                                            ...current,
+                                                            [edge.id]: conductorName
+                                                        }));
+                                                    }}
+                                                    style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: 4, padding: '2px 6px', fontSize: 11, color: '#334155', background: '#ffffff' }}
+                                                >
+                                                    {CONDUCTOR_OPTIONS.map((name) => (
+                                                        <option key={name} value={name}>{name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div style={{ marginTop: 6, color: '#334155' }}>
+                                                Metragem: {typeof edge.lengthMeters === 'number' ? `${edge.lengthMeters} m` : '-'}
+                                            </div>
                                         }}
                                         onChange={(e) => onBtRenamePole(pole.id, e.target.value)}
                                         className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
@@ -602,23 +620,6 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                 {accumulatedByPoleMap.has(pole.id) && (
                                     <div style={{marginTop: 3, color: '#374151'}}>
                                         <div>CLT acum.: {accumulatedByPoleMap.get(pole.id)!.accumulatedClients}</div>
-                                        <div>Dem. acum.: {accumulatedByPoleMap.get(pole.id)!.accumulatedDemandKva.toFixed(2)} kVA</div>
-                                    </div>
-                                )}
-                                <div style={{color: pole.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{pole.verified ? '✓ Verificado' : '○ Não verificado'}</div>
-                                {onBtSetPoleVerified && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            onBtSetPoleVerified(pole.id, !pole.verified);
-                                        }}
-                                        style={{marginTop: 4, padding: '2px 8px', background: '#0ea5e920', border: '1px solid #0ea5e9', borderRadius: 4, color: '#0369a1', cursor: 'pointer', fontSize: 11}}
-                                    >
-                                        {pole.verified ? 'Marcar não verificado' : 'Marcar verificado'}
-                                    </button>
-                                )}
-                                {onBtDeletePole && (
                                     <div style={{marginTop: 6, display: 'flex', gap: 8, alignItems: 'center'}}>
                                         <button
                                             onClick={(e) => {
