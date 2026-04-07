@@ -53,5 +53,5 @@
 
 | Cell | Expected | Actual | Abs Diff | Within Tolerance |
 | --- | ---: | ---: | ---: | :---: |
-| GERAL PROJ2!P31 | 127 | 127 | 0 | YES |
-| GERAL PROJ2!P32 | 127 | 127 | 0 | YES |
+| GERAL PROJ2!P31 | 118.38572483277098 | 118.38572483277098 | 0 | YES |
+| GERAL PROJ2!P32 | 118.38572483277098 | 118.38572483277098 | 0 | YES |

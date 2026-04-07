@@ -47,7 +47,7 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
         expect(report.failed).toBe(0);
     });
 
-    it('reports proj2 expected cells with nominal 127V (empty workbook state)', () => {
+    it('reports proj2 expected cells with analytically computed values (QT_MTTR3 basis)', () => {
         const report = buildCqtParityReport('proj2', CQT_PARITY_WORKBOOK_FIXTURE.proj2);
 
         expect(report.referenceCells).toBe(2);
