@@ -1,19 +1,20 @@
 import { useState, useMemo } from 'react';
 import {
-  GlobalState, BtTopology, BtPoleNode, BtTransformer, BtExportSummary,
-  BtExportHistoryEntry, GeoLocation, BtNetworkScenario, BtEditorMode, BtCqtComputationInputs
+  GlobalState, BtTopology, BtPoleNode, BtTransformer,
+  GeoLocation, BtNetworkScenario, BtEditorMode
 } from '../types';
 import { ToastType } from '../components/Toast';
 import {
   EMPTY_BT_TOPOLOGY, MAX_BT_EXPORT_HISTORY, NORMAL_CLIENT_RAMAL_TYPES,
   CLANDESTINO_RAMAL_TYPE, DEFAULT_EDGE_CONDUCTOR, PendingNormalClassificationPole
 } from '../constants/btConstants';
-import { distanceMeters, inferBranchSide, nextSequentialId, downloadBlob } from '../utils/appUtils';
+import { distanceMeters, nextSequentialId } from '../utils/appUtils';
 import { downloadBtHistoryCsv, downloadBtHistoryJson } from '../utils/btCsvExport';
+import { buildBtContext as buildBtContext_ } from '../utils/btContextBuilder';
+import { parseBtExportSummary, buildBtHistoryEntry } from '../utils/btExportParser';
+import { validateBtTopologyForExport } from '../utils/btValidation';
 import {
-  calculateAccumulatedDemandByPole, calculateClandestinoDemandKvaByAreaAndClients,
-  getClandestinoAreaRange, getClandestinoClientsRange,
-  getClandestinoDiversificationFactorByClients, getClandestinoKvaByArea
+  calculateAccumulatedDemandByPole
 } from '../utils/btCalculations';
 import { parseLatLngQuery, parseUtmQuery } from '../utils/geo';
 
@@ -221,52 +222,8 @@ export function useBtTopology({ appState, setAppState, showToast }: UseBtTopolog
   };
 
   const validateBtBeforeExport = (): boolean => {
-    if (!settings.layers.btNetwork) return true;
-
-    if (settings.projectType === 'clandestino') {
-      const area = settings.clandestinoAreaM2 ?? 0;
-      const areaRange = getClandestinoAreaRange();
-      const clientsRange = getClandestinoClientsRange();
-      if (!Number.isInteger(area)) {
-        showToast('A área clandestina deve ser inteira para casar com a tabela da planilha.', 'error');
-        return false;
-      }
-      if (getClandestinoKvaByArea(area) === null) {
-        showToast(`Área clandestina fora da tabela (${areaRange.min}-${areaRange.max} m²).`, 'error');
-        return false;
-      }
-      const totalClandestinoClients = btTopology.poles.reduce((acc, pole) => acc + getPoleClandestinoClients(pole), 0);
-      if (getClandestinoDiversificationFactorByClients(totalClandestinoClients) === null) {
-        showToast(
-          `Total de clientes/ramais fora da tabela (${clientsRange.min}-${clientsRange.max}). Atual: ${totalClandestinoClients}.`,
-          'error'
-        );
-        return false;
-      }
-    }
-
-    const edgeWithoutConductors = btTopology.edges.find((edge) => edge.conductors.length === 0);
-    if (edgeWithoutConductors) {
-      showToast(`Trecho ${edgeWithoutConductors.id} sem condutores definidos.`, 'error');
-      return false;
-    }
-
-    if (settings.projectType !== 'clandestino') {
-      if (pendingNormalClassificationPoles.length > 0) {
-        showToast('Existem postes com classificação de ramal pendente. Conclua antes de gerar DXF.', 'error');
-        return false;
-      }
-      if (btTopology.transformers.length === 0) {
-        showToast('Adicione ao menos um transformador com leituras para calcular demanda de clientes normais.', 'error');
-        return false;
-      }
-      const transformerWithoutReadings = btTopology.transformers.find((t) => t.readings.length === 0);
-      if (transformerWithoutReadings) {
-        showToast(`Transformador ${transformerWithoutReadings.id} sem leituras.`, 'error');
-        return false;
-      }
-    }
-
+    const error = validateBtTopologyForExport(btTopology, settings, pendingNormalClassificationPoles, getPoleClandestinoClients);
+    if (error) { showToast(error.message, error.type); return false; }
     return true;
   };
 
@@ -591,134 +548,24 @@ export function useBtTopology({ appState, setAppState, showToast }: UseBtTopolog
     btContext: Record<string, unknown>;
     cqtSummary: unknown;
   }) => {
-    const criticalPoleRaw = btContext.criticalPole;
-    if (!criticalPoleRaw || typeof criticalPoleRaw !== 'object') return;
-    const criticalPole = criticalPoleRaw as Record<string, unknown>;
-    const poleId = typeof criticalPole.poleId === 'string' ? criticalPole.poleId : '';
-    if (!poleId) return;
-    const accumulatedClients = typeof criticalPole.accumulatedClients === 'number' ? criticalPole.accumulatedClients : 0;
-    const accumulatedDemandKva = typeof criticalPole.accumulatedDemandKva === 'number' ? criticalPole.accumulatedDemandKva : 0;
-    const verifiedPoles = typeof btContext.verifiedPoles === 'number' ? btContext.verifiedPoles : 0;
-    const totalPoles = typeof btContext.totalPoles === 'number' ? btContext.totalPoles : 0;
-    const verifiedEdges = typeof btContext.verifiedEdges === 'number' ? btContext.verifiedEdges : 0;
-    const totalEdges = typeof btContext.totalEdges === 'number' ? btContext.totalEdges : 0;
-    const verifiedTransformers = typeof btContext.verifiedTransformers === 'number' ? btContext.verifiedTransformers : 0;
-    const totalTransformers = typeof btContext.totalTransformers === 'number' ? btContext.totalTransformers : 0;
-    const cqtSnapshotRaw = btContext.cqtSnapshot;
-    const cqtSnapshot = cqtSnapshotRaw && typeof cqtSnapshotRaw === 'object' ? cqtSnapshotRaw as Record<string, unknown> : null;
-    const cqtGeral = cqtSnapshot?.geral && typeof cqtSnapshot.geral === 'object' ? cqtSnapshot.geral as Record<string, unknown> : null;
-    const cqtDb = cqtSnapshot?.db && typeof cqtSnapshot.db === 'object' ? cqtSnapshot.db as Record<string, unknown> : null;
-    const cqtDmdi = cqtSnapshot?.dmdi && typeof cqtSnapshot.dmdi === 'object' ? cqtSnapshot.dmdi as Record<string, unknown> : null;
-    const cqtParity = cqtSnapshot?.parity && typeof cqtSnapshot.parity === 'object' ? cqtSnapshot.parity as Record<string, unknown> : null;
-    const cqtSummaryFromResponse = cqtSummaryRaw && typeof cqtSummaryRaw === 'object' ? cqtSummaryRaw as Record<string, unknown> : null;
-    const cqtSummaryFromSnapshot = cqtSnapshot ? {
-      scenario: typeof cqtSnapshot.scenario === 'string' ? cqtSnapshot.scenario as 'atual' | 'proj1' | 'proj2' : undefined,
-      dmdi: typeof cqtDmdi?.dmdi === 'number' ? cqtDmdi.dmdi : undefined,
-      p31: typeof cqtGeral?.p31CqtNoPonto === 'number' ? cqtGeral.p31CqtNoPonto : undefined,
-      p32: typeof cqtGeral?.p32CqtNoPonto === 'number' ? cqtGeral.p32CqtNoPonto : undefined,
-      k10QtMttr: typeof cqtDb?.k10QtMttr === 'number' ? cqtDb.k10QtMttr : undefined,
-      parityStatus: typeof cqtParity?.referenceStatus === 'string' ? cqtParity.referenceStatus as 'complete' | 'partial' | 'missing' : undefined,
-      parityPassed: typeof cqtParity?.passed === 'number' ? cqtParity.passed : undefined,
-      parityFailed: typeof cqtParity?.failed === 'number' ? cqtParity.failed : undefined
-    } : undefined;
-    const cqtSummary = cqtSnapshot || cqtSummaryFromResponse ? {
-      scenario: cqtSummaryFromSnapshot?.scenario ?? (typeof cqtSummaryFromResponse?.scenario === 'string' ? cqtSummaryFromResponse.scenario as 'atual' | 'proj1' | 'proj2' : undefined),
-      dmdi: cqtSummaryFromSnapshot?.dmdi ?? (typeof cqtSummaryFromResponse?.dmdi === 'number' ? cqtSummaryFromResponse.dmdi : undefined),
-      p31: cqtSummaryFromSnapshot?.p31 ?? (typeof cqtSummaryFromResponse?.p31 === 'number' ? cqtSummaryFromResponse.p31 : undefined),
-      p32: cqtSummaryFromSnapshot?.p32 ?? (typeof cqtSummaryFromResponse?.p32 === 'number' ? cqtSummaryFromResponse.p32 : undefined),
-      k10QtMttr: cqtSummaryFromSnapshot?.k10QtMttr ?? (typeof cqtSummaryFromResponse?.k10QtMttr === 'number' ? cqtSummaryFromResponse.k10QtMttr : undefined),
-      parityStatus: cqtSummaryFromSnapshot?.parityStatus ?? (typeof cqtSummaryFromResponse?.parityStatus === 'string' ? cqtSummaryFromResponse.parityStatus as 'complete' | 'partial' | 'missing' : undefined),
-      parityPassed: cqtSummaryFromSnapshot?.parityPassed ?? (typeof cqtSummaryFromResponse?.parityPassed === 'number' ? cqtSummaryFromResponse.parityPassed : undefined),
-      parityFailed: cqtSummaryFromSnapshot?.parityFailed ?? (typeof cqtSummaryFromResponse?.parityFailed === 'number' ? cqtSummaryFromResponse.parityFailed : undefined)
-    } : undefined;
-    const nextBtExportSummary: BtExportSummary = {
-      btContextUrl, criticalPoleId: poleId, criticalAccumulatedClients: accumulatedClients,
-      criticalAccumulatedDemandKva: accumulatedDemandKva, cqt: cqtSummary,
-      verifiedPoles, totalPoles, verifiedEdges, totalEdges, verifiedTransformers, totalTransformers
-    };
-    const historyEntry: BtExportHistoryEntry = {
-      ...nextBtExportSummary,
-      exportedAt: new Date().toISOString(),
-      projectType: settings.projectType ?? 'ramais'
-    };
+    const parsed = parseBtExportSummary(btContextUrl, btContext);
+    if (!parsed) return;
+    const { summary: nextBtExportSummary, historyEntry } = buildBtHistoryEntry(
+      parsed, settings.projectType ?? 'ramais', cqtSummaryRaw, appState.btExportSummary ?? null
+    );
     const nextHistory = [historyEntry, ...(appState.btExportHistory ?? [])].slice(0, MAX_BT_EXPORT_HISTORY);
     setAppState({ ...appState, btExportSummary: nextBtExportSummary, btExportHistory: nextHistory }, false);
-    const cqtScenarioLabel = cqtSummary?.scenario ? ` | CQT ${cqtSummary.scenario.toUpperCase()}` : '';
-    showToast(`Resumo BT: ponto crítico ${poleId} (${accumulatedDemandKva.toFixed(2)})${cqtScenarioLabel}.`, 'info');
+    const cqtScenarioLabel = nextBtExportSummary.cqt?.scenario ? ` | CQT ${nextBtExportSummary.cqt.scenario.toUpperCase()}` : '';
+    showToast(`Resumo BT: ponto crítico ${parsed.criticalPoleId} (${parsed.criticalAccumulatedDemandKva.toFixed(2)})${cqtScenarioLabel}.`, 'info');
   };
 
-  const buildBtContext = () => {
-    const btAccumulated = calculateAccumulatedDemandByPole(btTopology, settings.projectType ?? 'ramais', settings.clandestinoAreaM2 ?? 0);
-    const totalClientsX = btTopology.poles.reduce((sum, pole) => {
-      const poleClients = (pole.ramais ?? []).reduce((poleSum, ramal) => {
-        const isClandestino = (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE;
-        if ((settings.projectType ?? 'ramais') === 'clandestino') return isClandestino ? poleSum + ramal.quantity : poleSum;
-        return isClandestino ? poleSum : poleSum + ramal.quantity;
-      }, 0);
-      return sum + poleClients;
-    }, 0);
-    const aa24DemandBase = btTopology.transformers.reduce((sum, t) => sum + (t.demandKw ?? 0), 0);
-    const ab35LookupDmdi = calculateClandestinoDemandKvaByAreaAndClients(settings.clandestinoAreaM2 ?? 0, totalClientsX);
-    const cqtScenario = btNetworkScenario === 'proj1' || btNetworkScenario === 'proj2' ? btNetworkScenario : 'atual';
-    const accumulatedByPoleMap = new Map(btAccumulated.map((item) => [item.poleId, item.accumulatedDemandKva]));
-    const polesById = new Map(btTopology.poles.map((pole) => [pole.id, pole]));
-    const cqtBranches = btTopology.edges
-      .map((edge) => {
-        const conductorName = edge.conductors[0]?.conductorName;
-        if (!conductorName) return null;
-        const fromAccumulatedKva = accumulatedByPoleMap.get(edge.fromPoleId) ?? 0;
-        const toAccumulatedKva = accumulatedByPoleMap.get(edge.toPoleId) ?? 0;
-        const acumuladaKva = Math.max(fromAccumulatedKva, toAccumulatedKva, 0);
-        const fromPoleTitle = polesById.get(edge.fromPoleId)?.title ?? '';
-        const toPoleTitle = polesById.get(edge.toPoleId)?.title ?? '';
-        const inferredSide = inferBranchSide(edge.id) ?? inferBranchSide(fromPoleTitle) ?? inferBranchSide(toPoleTitle);
-        return {
-          trechoId: edge.id, ponto: edge.toPoleId, lado: inferredSide, fase: 'TRI' as const,
-          acumuladaKva, eta: 1, tensaoTrifasicaV: 127, conductorName,
-          lengthMeters: edge.lengthMeters ?? 0, temperatureC: 30
-        };
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
-    const cqtComputationInputs: BtCqtComputationInputs = {
-      scenario: cqtScenario,
-      dmdi: { clandestinoEnabled: (settings.projectType ?? 'ramais') === 'clandestino', aa24DemandBase, sumClientsX: totalClientsX, ab35LookupDmdi },
-      db: { trAtual: btTopology.transformers.reduce((sum, t) => sum + (t.projectPowerKva ?? 0), 0), demAtual: aa24DemandBase, qtMt: 0 },
-      branches: cqtBranches
-    };
-    return {
-      projectType: settings.projectType ?? 'ramais',
-      btNetworkScenario,
-      clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
-      totalTransformers: btTopology.transformers.length,
-      totalPoles: btTopology.poles.length,
-      totalEdges: btTopology.edges.length,
-      verifiedTransformers: btTopology.transformers.filter((item) => item.verified).length,
-      verifiedPoles: btTopology.poles.filter((item) => item.verified).length,
-      verifiedEdges: btTopology.edges.filter((item) => item.verified).length,
-      accumulatedByPole: btAccumulated,
-      criticalPole: btAccumulated[0] ?? null,
-      cqtComputationInputs,
-      topology: settings.layers.btNetwork ? {
-        poles: btTopology.poles.map((pole) => ({
-          id: pole.id, lat: pole.lat, lng: pole.lng, title: pole.title,
-          verified: pole.verified ?? false,
-          ramais: (pole.ramais ?? []).map((ramal) => ({ id: ramal.id, quantity: ramal.quantity, ramalType: ramal.ramalType ?? '' }))
-        })),
-        transformers: btTopology.transformers.map((t) => ({
-          id: t.id, poleId: t.poleId ?? '', lat: t.lat, lng: t.lng, title: t.title,
-          projectPowerKva: t.projectPowerKva ?? 0, demandKw: t.demandKw, verified: t.verified ?? false
-        })),
-        edges: btTopology.edges.map((edge) => ({
-          id: edge.id, fromPoleId: edge.fromPoleId, toPoleId: edge.toPoleId,
-          lengthMeters: edge.lengthMeters ?? 0, verified: edge.verified ?? false,
-          conductors: edge.conductors.map((c) => ({ id: c.id, quantity: c.quantity, conductorName: c.conductorName }))
-        }))
-      } : null
-    };
-  };
-
-  // Expose downloadBlob for use in App.tsx handleDownloadGeoJSON if needed
-  void downloadBlob;
+  const buildBtContext = () => buildBtContext_({
+    btTopology,
+    projectType: settings.projectType ?? 'ramais',
+    clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
+    btNetworkScenario,
+    includeLayers: settings.layers.btNetwork
+  });
 
   return {
     btTopology, btExportSummary, btExportHistory, latestBtExport,
