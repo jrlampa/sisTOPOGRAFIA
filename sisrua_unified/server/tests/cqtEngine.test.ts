@@ -2,10 +2,12 @@ import { CQT_BASELINE_TARGETS } from '../constants/cqtBaselineTargets';
 import { CABOS_BASELINE, DISJUNTORES_BASELINE, TRAFOS_Z_BASELINE } from '../constants/cqtLookupTables';
 import {
     calculateDbIndicators,
+    calculateCorrectedResistance,
     calculateDmdi,
     calculateDmdiWithMetadata,
     calculateGeralCqtNoPonto,
     calculateIb,
+    calculateQtPonto,
     evaluateProtection,
     lookupCaboElectricalData,
     lookupDisjuntorIn
@@ -207,5 +209,29 @@ describe('cqtEngine protection layer', () => {
 
         expect(ok.status).toBe('OK');
         expect(fail.status).toBe('VERIFICAR');
+    });
+
+    it('calculates corrected resistance from workbook formula', () => {
+        const rcorr = calculateCorrectedResistance({
+            resistance: 0.5697,
+            alpha: 0.00403,
+            divisorR: 1.2821,
+            temperatureC: 30
+        });
+
+        expect(rcorr).toBeCloseTo((0.5697 / 1.2821) * (1 + 0.00403 * 10), 10);
+    });
+
+    it('calculates QT-PONTO approximation for branch telemetry', () => {
+        const qt = calculateQtPonto({
+            fase: 'TRI',
+            acumuladaKva: 12,
+            correctedResistance: 0.46,
+            reactance: 0.12,
+            tensaoTrifasicaV: 127,
+            lengthMeters: 35
+        });
+
+        expect(qt).toBeGreaterThan(0);
     });
 });

@@ -1305,7 +1305,9 @@ function App() {
           acumuladaKva,
           eta: 1,
           tensaoTrifasicaV: 127,
-          conductorName
+          conductorName,
+          lengthMeters: edge.lengthMeters ?? 0,
+          temperatureC: 30
         };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);

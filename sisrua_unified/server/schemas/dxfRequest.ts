@@ -84,7 +84,9 @@ const cqtBranchInputSchema = z.object({
     acumuladaKva: z.coerce.number(),
     eta: z.coerce.number().positive(),
     tensaoTrifasicaV: z.coerce.number().positive(),
-    conductorName: z.string().min(1)
+    conductorName: z.string().min(1),
+    lengthMeters: z.coerce.number().min(0).optional(),
+    temperatureC: z.coerce.number().optional()
 });
 
 const cqtComputationInputsSchema = z.object({

@@ -3,6 +3,8 @@ import {
     calculateDmdiWithMetadata,
     calculateGeralCqtNoPonto,
     calculateIb,
+    calculateCorrectedResistance,
+    calculateQtPonto,
     evaluateProtection,
     lookupCaboElectricalData,
     lookupDisjuntorIn
@@ -38,6 +40,8 @@ interface CqtComputationInputs {
         eta: number;
         tensaoTrifasicaV: number;
         conductorName: string;
+        lengthMeters?: number;
+        temperatureC?: number;
     }>;
 }
 
@@ -111,6 +115,20 @@ export const attachCqtSnapshotToBtContext = (btContext: unknown): UnknownRecord 
             const inBreaker = lookupDisjuntorIn(ib, disjuntores);
             const cableData = lookupCaboElectricalData(branch.conductorName, cabos);
             const protection = evaluateProtection(ib, inBreaker, cableData.iz);
+            const correctedResistance = calculateCorrectedResistance({
+                resistance: cableData.resistance,
+                alpha: cableData.alpha,
+                divisorR: cableData.divisorR,
+                temperatureC: branch.temperatureC ?? 30
+            });
+            const qtPonto = calculateQtPonto({
+                fase: branch.fase,
+                acumuladaKva: branch.acumuladaKva,
+                correctedResistance,
+                reactance: cableData.reactance,
+                tensaoTrifasicaV: branch.tensaoTrifasicaV,
+                lengthMeters: branch.lengthMeters ?? 0
+            });
 
             return {
                 trechoId: branch.trechoId,
@@ -119,6 +137,8 @@ export const attachCqtSnapshotToBtContext = (btContext: unknown): UnknownRecord 
                 ib,
                 inBreaker,
                 izCable: cableData.iz,
+                correctedResistance,
+                qtPonto,
                 status: protection.status
             };
         });

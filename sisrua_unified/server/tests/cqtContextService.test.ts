@@ -108,7 +108,9 @@ describe('cqtContextService.attachCqtSnapshotToBtContext', () => {
                         acumuladaKva: 5,
                         eta: 1,
                         tensaoTrifasicaV: 127,
-                        conductorName: '70 Al - MX'
+                        conductorName: '70 Al - MX',
+                        lengthMeters: 20,
+                        temperatureC: 30
                     },
                     {
                         trechoId: 'TR-002',
@@ -116,7 +118,9 @@ describe('cqtContextService.attachCqtSnapshotToBtContext', () => {
                         acumuladaKva: 30,
                         eta: 1,
                         tensaoTrifasicaV: 127,
-                        conductorName: '16 Al_CONC_Tri'
+                        conductorName: '16 Al_CONC_Tri',
+                        lengthMeters: 15,
+                        temperatureC: 35
                     }
                 ]
             }
@@ -128,5 +132,7 @@ describe('cqtContextService.attachCqtSnapshotToBtContext', () => {
         expect(enriched.cqtSnapshot.branches.okCount).toBe(0);
         expect(enriched.cqtSnapshot.branches.verificarCount).toBe(2);
         expect(enriched.cqtSnapshot.branches.items[0]).toHaveProperty('status');
+        expect(enriched.cqtSnapshot.branches.items[0]).toHaveProperty('correctedResistance');
+        expect(enriched.cqtSnapshot.branches.items[0]).toHaveProperty('qtPonto');
     });
 });

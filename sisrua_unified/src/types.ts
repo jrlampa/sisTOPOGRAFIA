@@ -136,6 +136,8 @@ export interface BtCqtComputationInputs {
     eta: number;
     tensaoTrifasicaV: number;
     conductorName: string;
+    lengthMeters?: number;
+    temperatureC?: number;
   }>;
 }
 

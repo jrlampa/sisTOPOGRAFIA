@@ -241,3 +241,49 @@ export const evaluateProtection = (
     return { inBreaker, izCable, status };
 };
 
+export interface CorrectedResistanceInput {
+    resistance: number;
+    alpha: number;
+    divisorR: number;
+    temperatureC: number;
+}
+
+/**
+ * Workbook parity (R CORR):
+ * (R / DIVISOR_R) * (1 + alpha * (T - 20))
+ */
+export const calculateCorrectedResistance = (input: CorrectedResistanceInput): number => {
+    return excelIfError(() => {
+        if (!Number.isFinite(input.divisorR) || input.divisorR === 0) {
+            throw new Error('Invalid divisorR');
+        }
+
+        return (input.resistance / input.divisorR) * (1 + input.alpha * (input.temperatureC - 20));
+    }, 0);
+};
+
+export interface QtPontoInput {
+    fase: CqtFase;
+    acumuladaKva: number;
+    correctedResistance: number;
+    reactance: number;
+    tensaoTrifasicaV: number;
+    lengthMeters: number;
+}
+
+/**
+ * Aproximação alinhada ao workbook (QT-PONTO) para telemetria de paridade.
+ */
+export const calculateQtPonto = (input: QtPontoInput): number => {
+    return excelIfError(() => {
+        const phaseFactor = input.fase === 'MONO' ? 6 : input.fase === 'BIF' ? 2 : 1;
+        const impedance = Math.sqrt((input.correctedResistance ** 2) + (input.reactance ** 2));
+        const voltageFactor = (input.tensaoTrifasicaV ** 2) / 100;
+        if (voltageFactor === 0) {
+            throw new Error('Invalid voltageFactor');
+        }
+
+        return phaseFactor * input.acumuladaKva * (impedance / voltageFactor) * input.lengthMeters * 127 / 100;
+    }, 0);
+};
+
