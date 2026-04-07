@@ -28,6 +28,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:all": "npm run test:backend && npm run test:frontend && npm run test:e2e",
     "cqt:parity-report": "tsx scripts/generate-cqt-parity-report.ts",
+    "cqt:parity-check": "tsx scripts/generate-cqt-parity-report.ts --check",
     "security:audit": "npm audit --audit-level=moderate",
     "security:audit:fix": "npm audit fix",
     "security:check": "npm run security:audit && echo '\n--- Security audit complete ---'",

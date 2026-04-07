@@ -46,6 +46,18 @@ export interface CqtParityReportSuite {
     };
 }
 
+export const isCqtParitySuiteComplete = (suite: CqtParityReportSuite): boolean => {
+    if (suite.totals.failed > 0) {
+        return false;
+    }
+
+    if (suite.totals.partial > 0 || suite.totals.missing > 0) {
+        return false;
+    }
+
+    return true;
+};
+
 const CQT_SCENARIOS: CqtScenario[] = ['atual', 'proj1', 'proj2'];
 
 const EXPECTED_BY_SCENARIO: Record<CqtScenario, Partial<Record<string, number | null>>> = {

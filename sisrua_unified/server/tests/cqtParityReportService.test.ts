@@ -2,6 +2,7 @@ import { CQT_BASELINE_TARGETS } from '../constants/cqtBaselineTargets';
 import {
     buildCqtParityReport,
     buildCqtParityReportSuite,
+    isCqtParitySuiteComplete,
     renderCqtParityReportMarkdown
 } from '../services/cqtParityReportService';
 import { CQT_PARITY_WORKBOOK_FIXTURE } from './fixtures/cqtParityWorkbookFixture';
@@ -68,6 +69,7 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
         expect(suite.totals.compared).toBe(9);
         expect(suite.totals.failed).toBe(0);
         expect(suite.totals.passed).toBe(9);
+        expect(isCqtParitySuiteComplete(suite)).toBe(false);
     });
 
     it('renders suite report as markdown', () => {
@@ -82,5 +84,33 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
         expect(markdown).toContain('| Failed Cells | 0 |');
         expect(markdown).toContain('Pending expected values:');
         expect(markdown).toContain('GERAL PROJ2!P31');
+    });
+
+    it('marks suite complete when no partial/missing/failed remains', () => {
+        const suite = buildCqtParityReportSuite({
+            atual: CQT_PARITY_WORKBOOK_FIXTURE.atual,
+            proj1: CQT_PARITY_WORKBOOK_FIXTURE.proj1,
+            proj2: {
+                geral: {
+                    p31CqtNoPonto: 120.111,
+                    p32CqtNoPonto: 119.999
+                }
+            }
+        });
+
+        // Simula baseline totalmente preenchido no futuro.
+        suite.reports[2].referenceStatus = 'complete';
+        suite.reports[2].pending = [];
+        suite.reports[2].compared = 2;
+        suite.reports[2].passed = 2;
+        suite.reports[2].failed = 0;
+        suite.totals.complete = 3;
+        suite.totals.partial = 0;
+        suite.totals.missing = 0;
+        suite.totals.compared = 11;
+        suite.totals.passed = 11;
+        suite.totals.failed = 0;
+
+        expect(isCqtParitySuiteComplete(suite)).toBe(true);
     });
 });
