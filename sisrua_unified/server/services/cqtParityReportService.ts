@@ -171,3 +171,54 @@ export const buildCqtParityReportSuite = (
         totals
     };
 };
+
+export const renderCqtParityReportMarkdown = (suite: CqtParityReportSuite): string => {
+    const lines: string[] = [
+        '# CQT Parity Report',
+        '',
+        '## Summary',
+        '',
+        '| Metric | Value |',
+        '| --- | ---: |',
+        `| Scenarios | ${suite.totals.scenarios} |`,
+        `| Complete | ${suite.totals.complete} |`,
+        `| Partial | ${suite.totals.partial} |`,
+        `| Missing | ${suite.totals.missing} |`,
+        `| Compared Cells | ${suite.totals.compared} |`,
+        `| Passed Cells | ${suite.totals.passed} |`,
+        `| Failed Cells | ${suite.totals.failed} |`,
+        ''
+    ];
+
+    for (const report of suite.reports) {
+        lines.push(`## Scenario: ${report.scenario}`);
+        lines.push('');
+        lines.push(`- Reference status: ${report.referenceStatus}`);
+        lines.push(`- Reference cells: ${report.referenceCells}`);
+        lines.push(`- Compared: ${report.compared}`);
+        lines.push(`- Passed: ${report.passed}`);
+        lines.push(`- Failed: ${report.failed}`);
+        lines.push('');
+
+        if (report.skipped.length > 0) {
+            lines.push('Skipped cells:');
+            for (const cell of report.skipped) {
+                lines.push(`- ${cell}`);
+            }
+            lines.push('');
+        }
+
+        if (report.diffs.length > 0) {
+            lines.push('| Cell | Expected | Actual | Abs Diff | Within Tolerance |');
+            lines.push('| --- | ---: | ---: | ---: | :---: |');
+            for (const diff of report.diffs) {
+                lines.push(
+                    `| ${diff.cell} | ${diff.expected} | ${diff.actual} | ${diff.absDiff} | ${diff.withinTolerance ? 'YES' : 'NO'} |`
+                );
+            }
+            lines.push('');
+        }
+    }
+
+    return lines.join('\n').trimEnd() + '\n';
+};

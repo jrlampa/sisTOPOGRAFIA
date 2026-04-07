@@ -1,5 +1,9 @@
 import { CQT_BASELINE_TARGETS } from '../constants/cqtBaselineTargets';
-import { buildCqtParityReport, buildCqtParityReportSuite } from '../services/cqtParityReportService';
+import {
+    buildCqtParityReport,
+    buildCqtParityReportSuite,
+    renderCqtParityReportMarkdown
+} from '../services/cqtParityReportService';
 import { CQT_PARITY_WORKBOOK_FIXTURE } from './fixtures/cqtParityWorkbookFixture';
 
 describe('cqtParityReportService.buildCqtParityReport', () => {
@@ -60,5 +64,17 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
         expect(suite.totals.compared).toBe(9);
         expect(suite.totals.failed).toBe(0);
         expect(suite.totals.passed).toBe(9);
+    });
+
+    it('renders suite report as markdown', () => {
+        const suite = buildCqtParityReportSuite(CQT_PARITY_WORKBOOK_FIXTURE);
+        const markdown = renderCqtParityReportMarkdown(suite);
+
+        expect(markdown).toContain('# CQT Parity Report');
+        expect(markdown).toContain('## Summary');
+        expect(markdown).toContain('## Scenario: atual');
+        expect(markdown).toContain('## Scenario: proj1');
+        expect(markdown).toContain('## Scenario: proj2');
+        expect(markdown).toContain('| Failed Cells | 0 |');
     });
 });
