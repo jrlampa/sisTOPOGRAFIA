@@ -9,9 +9,9 @@ describe('Constants', () => {
       expect(DEFAULT_LOCATION.label).toBeTypeOf('string');
     });
 
-    it('should be São Paulo coordinates', () => {
-      expect(DEFAULT_LOCATION.lat).toBeCloseTo(-23.5505, 2);
-      expect(DEFAULT_LOCATION.lng).toBeCloseTo(-46.6333, 2);
+    it('should be Rio de Janeiro coordinates', () => {
+      expect(DEFAULT_LOCATION.lat).toBeCloseTo(-22.9068, 2);
+      expect(DEFAULT_LOCATION.lng).toBeCloseTo(-43.1729, 2);
     });
   });
 

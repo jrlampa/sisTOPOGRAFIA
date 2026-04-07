@@ -37,7 +37,10 @@ describe('useKmlImport', () => {
       [-23.5525, -46.6353]
     ];
 
-    (parseKml as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockPoints);
+    (parseKml as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      type: 'polygon',
+      points: mockPoints
+    });
 
     const mockFile = new File(['<kml></kml>'], 'test.kml', {
       type: 'application/vnd.google-earth.kml+xml'
@@ -56,8 +59,8 @@ describe('useKmlImport', () => {
 
     await waitFor(() => {
       expect(mockOnImportSuccess).toHaveBeenCalled();
-      const [points, filename] = mockOnImportSuccess.mock.calls[0];
-      expect(points).toHaveLength(3);
+      const [importResult, filename] = mockOnImportSuccess.mock.calls[0];
+      expect(importResult.points).toHaveLength(3);
       expect(filename).toBe('test');
     });
   });
@@ -88,7 +91,7 @@ describe('useKmlImport', () => {
   });
 
   it('should handle empty KML file', async () => {
-    (parseKml as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
+    (parseKml as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ type: 'polygon', points: [] });
 
     const mockFile = new File(['<kml></kml>'], 'empty.kml', {
       type: 'application/vnd.google-earth.kml+xml'

@@ -60,9 +60,10 @@ describe('calculateTransformerDemandKw', () => {
     expect(calculateTransformerDemandKw([])).toBe(0);
   });
 
-  it('returns energy divided by 720 hours reference', () => {
-    // 720 BRL / 1.0 BRL/kWh = 720 kWh / 720 = 1.0 kW
-    expect(calculateTransformerDemandKw([makeReading(720, 1.0)])).toBe(1.0);
+  it('returns max corrected demand from currentMaxA * conversion factor', () => {
+    // DEMANDA_MAX = CORRENTE_MAX * 0.375; for currentMaxA=4, demand=1.5 kW
+    const reading: BtTransformerReading = { id: 'r1', currentMaxA: 4 };
+    expect(calculateTransformerDemandKw([reading])).toBeCloseTo(1.5, 2);
   });
 });
 
@@ -248,31 +249,22 @@ describe('calculateAccumulatedDemandByPole', () => {
   });
 
   it('computes star topology with clear critical hub (ramais)', () => {
-    // Hub P1 → spokes P2 (3 clients), P3 (5 clients), P4 (2 clients)
+    // Hub P1 (transformer pole) → spokes P2 (3 clients), P3 (5 clients), P4 (2 clients)
     // Transformer demand 10 kW, totalClients = 10 → avgDemandPerClient = 1.0
     const topology: BtTopology = {
       poles: [
         { id: 'P1', lat: 0, lng: 0, title: 'P1' },
-        { id: 'P2', lat: 0, lng: 0, title: 'P2' },
-        { id: 'P3', lat: 0, lng: 0, title: 'P3' },
-        { id: 'P4', lat: 0, lng: 0, title: 'P4' }
+        { id: 'P2', lat: 0, lng: 0, title: 'P2', ramais: [{ id: 'r1', quantity: 3 }] },
+        { id: 'P3', lat: 0, lng: 0, title: 'P3', ramais: [{ id: 'r2', quantity: 5 }] },
+        { id: 'P4', lat: 0, lng: 0, title: 'P4', ramais: [{ id: 'r3', quantity: 2 }] }
       ],
       transformers: [
-        { id: 'T1', lat: 0, lng: 0, title: 'T1', monthlyBillBrl: 0, demandKw: 10.0, readings: [] }
+        { id: 'T1', poleId: 'P1', lat: 0, lng: 0, title: 'T1', monthlyBillBrl: 0, demandKw: 10.0, readings: [] }
       ],
       edges: [
-        {
-          id: 'E1', fromPoleId: 'P1', toPoleId: 'P2',
-          conductors: [{ id: 'c1', quantity: 3, wireGaugeMm2: 16 }]
-        },
-        {
-          id: 'E2', fromPoleId: 'P1', toPoleId: 'P3',
-          conductors: [{ id: 'c2', quantity: 5, wireGaugeMm2: 16 }]
-        },
-        {
-          id: 'E3', fromPoleId: 'P1', toPoleId: 'P4',
-          conductors: [{ id: 'c3', quantity: 2, wireGaugeMm2: 16 }]
-        }
+        { id: 'E1', fromPoleId: 'P1', toPoleId: 'P2', conductors: [{ id: 'c1', quantity: 3, conductorName: '16mm²' }] },
+        { id: 'E2', fromPoleId: 'P1', toPoleId: 'P3', conductors: [{ id: 'c2', quantity: 5, conductorName: '16mm²' }] },
+        { id: 'E3', fromPoleId: 'P1', toPoleId: 'P4', conductors: [{ id: 'c3', quantity: 2, conductorName: '16mm²' }] }
       ]
     };
 
@@ -290,25 +282,25 @@ describe('calculateAccumulatedDemandByPole', () => {
   });
 
   it('computes linear chain correctly (ramais)', () => {
-    // P1→P2 (3 clients), P2→P3 (2 clients)
+    // P1 (transformer pole) → P2 (3 clients) → P3 (2 clients)
     // Transformer 5 kW, totalClients=5, avgPerClient=1.0
     const topology: BtTopology = {
       poles: [
         { id: 'P1', lat: 0, lng: 0, title: 'P1' },
-        { id: 'P2', lat: 0, lng: 0, title: 'P2' },
-        { id: 'P3', lat: 0, lng: 0, title: 'P3' }
+        { id: 'P2', lat: 0, lng: 0, title: 'P2', ramais: [{ id: 'r1', quantity: 3 }] },
+        { id: 'P3', lat: 0, lng: 0, title: 'P3', ramais: [{ id: 'r2', quantity: 2 }] }
       ],
       transformers: [
-        { id: 'T1', lat: 0, lng: 0, title: 'T1', monthlyBillBrl: 0, demandKw: 5.0, readings: [] }
+        { id: 'T1', poleId: 'P1', lat: 0, lng: 0, title: 'T1', monthlyBillBrl: 0, demandKw: 5.0, readings: [] }
       ],
       edges: [
         {
           id: 'E1', fromPoleId: 'P1', toPoleId: 'P2',
-          conductors: [{ id: 'c1', quantity: 3, wireGaugeMm2: 16 }]
+          conductors: [{ id: 'c1', quantity: 3, conductorName: "16mm²" }]
         },
         {
           id: 'E2', fromPoleId: 'P2', toPoleId: 'P3',
-          conductors: [{ id: 'c2', quantity: 2, wireGaugeMm2: 16 }]
+          conductors: [{ id: 'c2', quantity: 2, conductorName: "16mm²" }]
         }
       ]
     };
@@ -338,8 +330,8 @@ describe('calculateAccumulatedDemandByPole', () => {
       ],
       transformers: [],
       edges: [
-        { id: 'E1', fromPoleId: 'P1', toPoleId: 'P2', conductors: [{ id: 'c1', quantity: 2, wireGaugeMm2: 16 }] },
-        { id: 'E2', fromPoleId: 'P2', toPoleId: 'P1', conductors: [{ id: 'c2', quantity: 1, wireGaugeMm2: 16 }] }
+        { id: 'E1', fromPoleId: 'P1', toPoleId: 'P2', conductors: [{ id: 'c1', quantity: 2, conductorName: "16mm²" }] },
+        { id: 'E2', fromPoleId: 'P2', toPoleId: 'P1', conductors: [{ id: 'c2', quantity: 1, conductorName: "16mm²" }] }
       ]
     };
 
@@ -359,8 +351,8 @@ describe('calculateAccumulatedDemandByPole', () => {
         { id: 'T1', lat: 0, lng: 0, title: 'T1', monthlyBillBrl: 0, demandKw: 6.0, readings: [] }
       ],
       edges: [
-        { id: 'E1', fromPoleId: 'P1', toPoleId: 'P2', conductors: [{ id: 'c1', quantity: 4, wireGaugeMm2: 16 }] },
-        { id: 'E2', fromPoleId: 'P1', toPoleId: 'P3', conductors: [{ id: 'c2', quantity: 2, wireGaugeMm2: 16 }] }
+        { id: 'E1', fromPoleId: 'P1', toPoleId: 'P2', conductors: [{ id: 'c1', quantity: 4, conductorName: "16mm²" }] },
+        { id: 'E2', fromPoleId: 'P1', toPoleId: 'P3', conductors: [{ id: 'c2', quantity: 2, conductorName: "16mm²" }] }
       ]
     };
 
