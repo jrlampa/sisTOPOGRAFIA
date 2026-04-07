@@ -1,5 +1,13 @@
-import { calculateDbIndicators, calculateDmdiWithMetadata, calculateGeralCqtNoPonto } from './cqtEngine.js';
-import { getTrafosZByScenario } from '../constants/cqtLookupTables.js';
+import {
+    calculateDbIndicators,
+    calculateDmdiWithMetadata,
+    calculateGeralCqtNoPonto,
+    calculateIb,
+    evaluateProtection,
+    lookupCaboElectricalData,
+    lookupDisjuntorIn
+} from './cqtEngine.js';
+import { getCabosByScenario, getDisjuntoresByScenario, getTrafosZByScenario } from '../constants/cqtLookupTables.js';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -23,6 +31,14 @@ interface CqtComputationInputs {
         qtMt: number;
         trafosZ?: { trafoKva: number; qtFactor: number }[];
     };
+    branches?: Array<{
+        trechoId: string;
+        fase: 'MONO' | 'BIF' | 'TRI';
+        acumuladaKva: number;
+        eta: number;
+        tensaoTrifasicaV: number;
+        conductorName: string;
+    }>;
 }
 
 const isObject = (value: unknown): value is UnknownRecord =>
@@ -80,7 +96,41 @@ export const attachCqtSnapshotToBtContext = (btContext: unknown): UnknownRecord 
         });
     }
 
-    const hasComputedSection = Boolean(snapshot.dmdi || snapshot.geral || snapshot.db);
+    if (inputs.branches && inputs.branches.length > 0) {
+        const scenario = inputs.scenario ?? 'atual';
+        const cabos = getCabosByScenario(scenario);
+        const disjuntores = getDisjuntoresByScenario(scenario);
+
+        const calculatedBranches = inputs.branches.map((branch) => {
+            const ib = calculateIb({
+                fase: branch.fase,
+                acumuladaKva: branch.acumuladaKva,
+                eta: branch.eta,
+                tensaoTrifasicaV: branch.tensaoTrifasicaV
+            });
+            const inBreaker = lookupDisjuntorIn(ib, disjuntores);
+            const cableData = lookupCaboElectricalData(branch.conductorName, cabos);
+            const protection = evaluateProtection(ib, inBreaker, cableData.iz);
+
+            return {
+                trechoId: branch.trechoId,
+                conductorName: branch.conductorName,
+                fase: branch.fase,
+                ib,
+                inBreaker,
+                izCable: cableData.iz,
+                status: protection.status
+            };
+        });
+
+        snapshot.branches = {
+            items: calculatedBranches,
+            okCount: calculatedBranches.filter((item) => item.status === 'OK').length,
+            verificarCount: calculatedBranches.filter((item) => item.status === 'VERIFICAR').length
+        };
+    }
+
+    const hasComputedSection = Boolean(snapshot.dmdi || snapshot.geral || snapshot.db || snapshot.branches);
     if (!hasComputedSection) {
         return btContext;
     }

@@ -95,4 +95,38 @@ describe('cqtContextService.attachCqtSnapshotToBtContext', () => {
         expect(enriched.cqtSnapshot.db.k8QtTr).toBeCloseTo(CQT_BASELINE_TARGETS.db.k8QtTr, 12);
         expect(enriched.cqtSnapshot.db.k10QtMttr).toBeCloseTo(CQT_BASELINE_TARGETS.db.k10QtMttr, 12);
     });
+
+    it('computes branch protection snapshot when branches input is provided', () => {
+        const btContext = {
+            projectType: 'ramais',
+            cqtComputationInputs: {
+                scenario: 'atual',
+                branches: [
+                    {
+                        trechoId: 'TR-001',
+                        fase: 'TRI',
+                        acumuladaKva: 5,
+                        eta: 1,
+                        tensaoTrifasicaV: 127,
+                        conductorName: '70 Al - MX'
+                    },
+                    {
+                        trechoId: 'TR-002',
+                        fase: 'MONO',
+                        acumuladaKva: 30,
+                        eta: 1,
+                        tensaoTrifasicaV: 127,
+                        conductorName: '16 Al_CONC_Tri'
+                    }
+                ]
+            }
+        };
+
+        const enriched = attachCqtSnapshotToBtContext(btContext) as Record<string, any>;
+        expect(enriched.cqtSnapshot.branches).toBeDefined();
+        expect(enriched.cqtSnapshot.branches.items).toHaveLength(2);
+        expect(enriched.cqtSnapshot.branches.okCount).toBe(0);
+        expect(enriched.cqtSnapshot.branches.verificarCount).toBe(2);
+        expect(enriched.cqtSnapshot.branches.items[0]).toHaveProperty('status');
+    });
 });

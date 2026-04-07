@@ -78,11 +78,21 @@ const cqtDbInputSchema = z.object({
     })).optional()
 });
 
+const cqtBranchInputSchema = z.object({
+    trechoId: z.string().min(1),
+    fase: z.enum(['MONO', 'BIF', 'TRI']),
+    acumuladaKva: z.coerce.number(),
+    eta: z.coerce.number().positive(),
+    tensaoTrifasicaV: z.coerce.number().positive(),
+    conductorName: z.string().min(1)
+});
+
 const cqtComputationInputsSchema = z.object({
     scenario: z.enum(['atual', 'proj1', 'proj2']).optional(),
     dmdi: cqtDmdiInputSchema.optional(),
     geral: cqtGeralInputSchema.optional(),
-    db: cqtDbInputSchema.optional()
+    db: cqtDbInputSchema.optional(),
+    branches: z.array(cqtBranchInputSchema).optional()
 });
 
 const btContextSchema = z.object({
