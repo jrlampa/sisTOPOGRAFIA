@@ -9,6 +9,7 @@ import {
     lookupCaboElectricalData,
     lookupDisjuntorIn
 } from './cqtEngine.js';
+import { buildCqtParityReport } from './cqtParityReportService.js';
 import { getCabosByScenario, getDisjuntoresByScenario, getTrafosZByScenario } from '../constants/cqtLookupTables.js';
 
 type UnknownRecord = Record<string, unknown>;
@@ -210,6 +211,20 @@ export const attachCqtSnapshotToBtContext = (btContext: unknown): UnknownRecord 
     if (!hasComputedSection) {
         return btContext;
     }
+
+    snapshot.parity = buildCqtParityReport(
+        (inputs.scenario ?? 'atual') as 'atual' | 'proj1' | 'proj2',
+        {
+            dmdi: snapshot.dmdi as { dmdi?: number } | undefined,
+            geral: snapshot.geral as { p31CqtNoPonto?: number; p32CqtNoPonto?: number } | undefined,
+            db: snapshot.db as {
+                k6TrAtual?: number;
+                k7DemAtual?: number;
+                k8QtTr?: number;
+                k10QtMttr?: number;
+            } | undefined
+        }
+    );
 
     return {
         ...btContext,

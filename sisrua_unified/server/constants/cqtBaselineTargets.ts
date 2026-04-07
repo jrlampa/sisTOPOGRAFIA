@@ -9,6 +9,10 @@ export const CQT_BASELINE_TARGETS = {
         p31CqtNoPonto: 118.69775108855391,
         p32CqtNoPonto: 117.04688712724072
     },
+    geralProj1: {
+        p31CqtNoPonto: 120.83736598928087,
+        p32CqtNoPonto: 120.72752247511889
+    },
     db: {
         k6TrAtual: 225,
         k7DemAtual: 101.95599999999999,

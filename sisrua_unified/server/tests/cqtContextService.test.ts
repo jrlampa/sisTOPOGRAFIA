@@ -74,6 +74,9 @@ describe('cqtContextService.attachCqtSnapshotToBtContext', () => {
         expect(snapshot.db.k8QtTr).toBeCloseTo(CQT_BASELINE_TARGETS.db.k8QtTr, 12);
         expect(snapshot.db.k10QtMttr).toBeCloseTo(CQT_BASELINE_TARGETS.db.k10QtMttr, 12);
         expect(typeof snapshot.generatedAt).toBe('string');
+        expect(snapshot.parity).toBeDefined();
+        expect(snapshot.parity.scenario).toBe('atual');
+        expect(snapshot.parity.failed).toBe(0);
     });
 
     it('uses scenario lookup fallback when db.trafosZ is omitted', () => {
@@ -94,6 +97,8 @@ describe('cqtContextService.attachCqtSnapshotToBtContext', () => {
         expect(enriched.cqtSnapshot.scenario).toBe('proj2');
         expect(enriched.cqtSnapshot.db.k8QtTr).toBeCloseTo(CQT_BASELINE_TARGETS.db.k8QtTr, 12);
         expect(enriched.cqtSnapshot.db.k10QtMttr).toBeCloseTo(CQT_BASELINE_TARGETS.db.k10QtMttr, 12);
+        expect(enriched.cqtSnapshot.parity).toBeDefined();
+        expect(enriched.cqtSnapshot.parity.scenario).toBe('proj2');
     });
 
     it('computes branch protection snapshot when branches input is provided', () => {
