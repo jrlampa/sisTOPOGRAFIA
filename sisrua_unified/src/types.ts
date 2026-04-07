@@ -129,6 +129,14 @@ export interface BtCqtComputationInputs {
     qtMt: number;
     trafosZ?: Array<{ trafoKva: number; qtFactor: number }>;
   };
+  branches?: Array<{
+    trechoId: string;
+    fase: 'MONO' | 'BIF' | 'TRI';
+    acumuladaKva: number;
+    eta: number;
+    tensaoTrifasicaV: number;
+    conductorName: string;
+  }>;
 }
 
 export interface BtRamalEntry {

@@ -1284,6 +1284,32 @@ function App() {
     );
 
     const cqtScenario = btNetworkScenario === 'proj1' || btNetworkScenario === 'proj2' ? btNetworkScenario : 'atual';
+    const accumulatedByPoleMap = new Map(
+      btAccumulated.map((item) => [item.poleId, item.accumulatedDemandKva])
+    );
+
+    const cqtBranches = btTopology.edges
+      .map((edge) => {
+        const conductorName = edge.conductors[0]?.conductorName;
+        if (!conductorName) {
+          return null;
+        }
+
+        const fromAccumulatedKva = accumulatedByPoleMap.get(edge.fromPoleId) ?? 0;
+        const toAccumulatedKva = accumulatedByPoleMap.get(edge.toPoleId) ?? 0;
+        const acumuladaKva = Math.max(fromAccumulatedKva, toAccumulatedKva, 0);
+
+        return {
+          trechoId: edge.id,
+          fase: 'TRI' as const,
+          acumuladaKva,
+          eta: 1,
+          tensaoTrifasicaV: 127,
+          conductorName
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+
     const cqtComputationInputs: BtCqtComputationInputs = {
       scenario: cqtScenario,
       dmdi: {
@@ -1296,7 +1322,8 @@ function App() {
         trAtual: btTopology.transformers.reduce((sum, transformer) => sum + (transformer.projectPowerKva ?? 0), 0),
         demAtual: aa24DemandBase,
         qtMt: 0
-      }
+      },
+      branches: cqtBranches
     };
 
     const btContext = {
