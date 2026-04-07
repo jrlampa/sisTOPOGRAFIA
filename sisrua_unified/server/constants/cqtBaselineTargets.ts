@@ -13,6 +13,11 @@ export const CQT_BASELINE_TARGETS = {
         p31CqtNoPonto: 120.83736598928087,
         p32CqtNoPonto: 120.72752247511889
     },
+    // proj2 scenario: branches not yet configured in workbook; QT_MTTR3=#VALUE! -> IFERROR->0 -> QT%=0 -> V=127V nominal
+    geralProj2: {
+        p31CqtNoPonto: 127,
+        p32CqtNoPonto: 127
+    },
     db: {
         k6TrAtual: 225,
         k7DemAtual: 101.95599999999999,

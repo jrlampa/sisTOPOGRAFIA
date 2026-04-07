@@ -5,11 +5,11 @@
 | Metric | Value |
 | --- | ---: |
 | Scenarios | 3 |
-| Complete | 2 |
-| Partial | 1 |
+| Complete | 3 |
+| Partial | 0 |
 | Missing | 0 |
-| Compared Cells | 9 |
-| Passed Cells | 9 |
+| Compared Cells | 11 |
+| Passed Cells | 11 |
 | Failed Cells | 0 |
 
 ## Scenario: atual
@@ -45,12 +45,13 @@
 
 ## Scenario: proj2
 
-- Reference status: partial
+- Reference status: complete
 - Reference cells: 2
-- Compared: 0
-- Passed: 0
+- Compared: 2
+- Passed: 2
 - Failed: 0
 
-Pending expected values:
-- GERAL PROJ2!P31
-- GERAL PROJ2!P32
+| Cell | Expected | Actual | Abs Diff | Within Tolerance |
+| --- | ---: | ---: | ---: | :---: |
+| GERAL PROJ2!P31 | 127 | 127 | 0 | YES |
+| GERAL PROJ2!P32 | 127 | 127 | 0 | YES |

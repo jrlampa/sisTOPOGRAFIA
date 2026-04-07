@@ -47,16 +47,17 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
         expect(report.failed).toBe(0);
     });
 
-    it('marks proj2 as partial with pending expected values', () => {
+    it('reports proj2 expected cells with nominal 127V (empty workbook state)', () => {
         const report = buildCqtParityReport('proj2', CQT_PARITY_WORKBOOK_FIXTURE.proj2);
 
         expect(report.referenceCells).toBe(2);
-        expect(report.referenceStatus).toBe('partial');
-        expect(report.pending).toEqual(['GERAL PROJ2!P31', 'GERAL PROJ2!P32']);
-        expect(report.compared).toBe(0);
+        expect(report.referenceStatus).toBe('complete');
+        expect(report.pending).toHaveLength(0);
+        expect(report.compared).toBe(2);
         expect(report.failed).toBe(0);
-        expect(report.passed).toBe(0);
+        expect(report.passed).toBe(2);
         expect(report.skipped).toHaveLength(0);
+        expect(report.diffs.map((item) => item.cell)).toEqual(['GERAL PROJ2!P31', 'GERAL PROJ2!P32']);
     });
 
     it('builds consolidated suite report across atual/proj1/proj2', () => {
@@ -64,13 +65,13 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
 
         expect(suite.reports).toHaveLength(3);
         expect(suite.totals.scenarios).toBe(3);
-        expect(suite.totals.complete).toBe(2);
-        expect(suite.totals.partial).toBe(1);
+        expect(suite.totals.complete).toBe(3);
+        expect(suite.totals.partial).toBe(0);
         expect(suite.totals.missing).toBe(0);
-        expect(suite.totals.compared).toBe(9);
+        expect(suite.totals.compared).toBe(11);
         expect(suite.totals.failed).toBe(0);
-        expect(suite.totals.passed).toBe(9);
-        expect(isCqtParitySuiteComplete(suite)).toBe(false);
+        expect(suite.totals.passed).toBe(11);
+        expect(isCqtParitySuiteComplete(suite)).toBe(true);
     });
 
     it('renders suite report as markdown', () => {
@@ -83,7 +84,6 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
         expect(markdown).toContain('## Scenario: proj1');
         expect(markdown).toContain('## Scenario: proj2');
         expect(markdown).toContain('| Failed Cells | 0 |');
-        expect(markdown).toContain('Pending expected values:');
         expect(markdown).toContain('GERAL PROJ2!P31');
     });
 

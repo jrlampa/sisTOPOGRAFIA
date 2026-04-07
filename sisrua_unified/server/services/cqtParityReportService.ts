@@ -77,9 +77,9 @@ const DEFAULT_EXPECTED_BY_SCENARIO: Record<CqtScenario, Partial<Record<string, n
         'GERAL PROJ!P32': CQT_BASELINE_TARGETS.geralProj1.p32CqtNoPonto
     },
     proj2: {
-        // Valores esperados ainda pendentes de extração/paridade final do workbook.
-        'GERAL PROJ2!P31': null,
-        'GERAL PROJ2!P32': null
+        // Workbook state: branches empty, QT_MTTR3=#VALUE! -> IFERROR->0 -> QT%=0 -> 127V nominal (no drop)
+        'GERAL PROJ2!P31': CQT_BASELINE_TARGETS.geralProj2.p31CqtNoPonto,
+        'GERAL PROJ2!P32': CQT_BASELINE_TARGETS.geralProj2.p32CqtNoPonto
     }
 };
 

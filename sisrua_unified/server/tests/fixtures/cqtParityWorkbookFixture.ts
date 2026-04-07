@@ -21,5 +21,10 @@ export const CQT_PARITY_WORKBOOK_FIXTURE: Record<CqtScenario, CqtSnapshotCompara
             p32CqtNoPonto: CQT_BASELINE_TARGETS.geralProj1.p32CqtNoPonto
         }
     },
-    proj2: {}
+    proj2: {
+        geral: {
+            p31CqtNoPonto: CQT_BASELINE_TARGETS.geralProj2.p31CqtNoPonto,
+            p32CqtNoPonto: CQT_BASELINE_TARGETS.geralProj2.p32CqtNoPonto
+        }
+    }
 };
