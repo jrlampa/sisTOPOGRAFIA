@@ -76,6 +76,7 @@ describe('cqtContextService.attachCqtSnapshotToBtContext', () => {
         expect(typeof snapshot.generatedAt).toBe('string');
         expect(snapshot.parity).toBeDefined();
         expect(snapshot.parity.scenario).toBe('atual');
+        expect(snapshot.parity.referenceStatus).toBe('complete');
         expect(snapshot.parity.failed).toBe(0);
     });
 
@@ -99,6 +100,7 @@ describe('cqtContextService.attachCqtSnapshotToBtContext', () => {
         expect(enriched.cqtSnapshot.db.k10QtMttr).toBeCloseTo(CQT_BASELINE_TARGETS.db.k10QtMttr, 12);
         expect(enriched.cqtSnapshot.parity).toBeDefined();
         expect(enriched.cqtSnapshot.parity.scenario).toBe('proj2');
+        expect(enriched.cqtSnapshot.parity.referenceStatus).toBe('missing');
     });
 
     it('computes branch protection snapshot when branches input is provided', () => {

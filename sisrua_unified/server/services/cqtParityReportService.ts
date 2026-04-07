@@ -23,6 +23,8 @@ export interface CqtCellDiff {
 
 export interface CqtScenarioParityReport {
     scenario: CqtScenario;
+    referenceCells: number;
+    referenceStatus: 'complete' | 'partial' | 'missing';
     compared: number;
     passed: number;
     failed: number;
@@ -65,6 +67,7 @@ export const buildCqtParityReport = (
     tolerance = CQT_BASELINE_TARGETS.tolerance
 ): CqtScenarioParityReport => {
     const expectedCells = EXPECTED_BY_SCENARIO[scenario];
+    const referenceCells = Object.keys(expectedCells).length;
     const diffs: CqtCellDiff[] = [];
     const skipped: string[] = [];
 
@@ -93,9 +96,17 @@ export const buildCqtParityReport = (
 
     const passed = diffs.filter((item) => item.withinTolerance).length;
     const failed = diffs.length - passed;
+    const referenceStatus: 'complete' | 'partial' | 'missing' =
+        referenceCells === 0
+            ? 'missing'
+            : skipped.length > 0
+                ? 'partial'
+                : 'complete';
 
     return {
         scenario,
+        referenceCells,
+        referenceStatus,
         compared: diffs.length,
         passed,
         failed,
