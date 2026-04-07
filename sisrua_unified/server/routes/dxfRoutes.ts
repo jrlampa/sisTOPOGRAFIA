@@ -24,6 +24,32 @@ function getBaseUrl(req: Request): string {
     return `${protocol}://${host}`;
 }
 
+function extractCqtSummary(btContext: unknown): Record<string, unknown> | null {
+    if (!btContext || typeof btContext !== 'object') {
+        return null;
+    }
+
+    const context = btContext as Record<string, unknown>;
+    const cqtSnapshotRaw = context.cqtSnapshot;
+    if (!cqtSnapshotRaw || typeof cqtSnapshotRaw !== 'object') {
+        return null;
+    }
+
+    const cqtSnapshot = cqtSnapshotRaw as Record<string, any>;
+    const parity = cqtSnapshot.parity as Record<string, any> | undefined;
+
+    return {
+        scenario: typeof cqtSnapshot.scenario === 'string' ? cqtSnapshot.scenario : undefined,
+        dmdi: typeof cqtSnapshot.dmdi?.dmdi === 'number' ? cqtSnapshot.dmdi.dmdi : undefined,
+        p31: typeof cqtSnapshot.geral?.p31CqtNoPonto === 'number' ? cqtSnapshot.geral.p31CqtNoPonto : undefined,
+        p32: typeof cqtSnapshot.geral?.p32CqtNoPonto === 'number' ? cqtSnapshot.geral.p32CqtNoPonto : undefined,
+        k10QtMttr: typeof cqtSnapshot.db?.k10QtMttr === 'number' ? cqtSnapshot.db.k10QtMttr : undefined,
+        parityStatus: typeof parity?.referenceStatus === 'string' ? parity.referenceStatus : undefined,
+        parityPassed: typeof parity?.passed === 'number' ? parity.passed : undefined,
+        parityFailed: typeof parity?.failed === 'number' ? parity.failed : undefined
+    };
+}
+
 // DXF Generation Endpoint
 router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
     try {
@@ -39,6 +65,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
         const { lat, lon, radius, mode, btContext: validatedBtContext } = validation.data;
         const { polygon, layers, projection, contourRenderMode } = req.body;
         const btContext = attachCqtSnapshotToBtContext(validatedBtContext ?? req.body.btContext);
+        const cqtSummary = extractCqtSummary(btContext);
         const resolvedContourRenderMode = contourRenderMode === 'polyline' ? 'polyline' : 'spline';
         const resolvedMode = mode || 'circle';
         const cacheKey = createCacheKey({
@@ -64,7 +91,8 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
                 return res.json({
                     status: 'success',
                     message: 'DXF Generated',
-                    url: cachedUrl
+                    url: cachedUrl,
+                    ...(cqtSummary && { cqtSummary })
                 });
             }
             deleteCachedFilename(cacheKey);
@@ -109,6 +137,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
         return res.status(alreadyCompleted ? 200 : 202).json({
             status: responseStatus,
             jobId: taskId,
+            ...(cqtSummary && { cqtSummary }),
             ...(alreadyCompleted && {
                 url: downloadUrl,
                 message: 'DXF generated immediately in development mode'

@@ -336,6 +336,40 @@ function App() {
       const verifiedTransformers = typeof btContext.verifiedTransformers === 'number' ? btContext.verifiedTransformers : 0;
       const totalTransformers = typeof btContext.totalTransformers === 'number' ? btContext.totalTransformers : 0;
 
+      const cqtSnapshotRaw = btContext.cqtSnapshot;
+      const cqtSnapshot = cqtSnapshotRaw && typeof cqtSnapshotRaw === 'object'
+        ? cqtSnapshotRaw as Record<string, unknown>
+        : null;
+      const cqtGeral = cqtSnapshot?.geral && typeof cqtSnapshot.geral === 'object'
+        ? cqtSnapshot.geral as Record<string, unknown>
+        : null;
+      const cqtDb = cqtSnapshot?.db && typeof cqtSnapshot.db === 'object'
+        ? cqtSnapshot.db as Record<string, unknown>
+        : null;
+      const cqtDmdi = cqtSnapshot?.dmdi && typeof cqtSnapshot.dmdi === 'object'
+        ? cqtSnapshot.dmdi as Record<string, unknown>
+        : null;
+      const cqtParity = cqtSnapshot?.parity && typeof cqtSnapshot.parity === 'object'
+        ? cqtSnapshot.parity as Record<string, unknown>
+        : null;
+
+      const cqtSummary = cqtSnapshot
+        ? {
+            scenario: typeof cqtSnapshot.scenario === 'string'
+              ? cqtSnapshot.scenario as 'atual' | 'proj1' | 'proj2'
+              : undefined,
+            dmdi: typeof cqtDmdi?.dmdi === 'number' ? cqtDmdi.dmdi : undefined,
+            p31: typeof cqtGeral?.p31CqtNoPonto === 'number' ? cqtGeral.p31CqtNoPonto : undefined,
+            p32: typeof cqtGeral?.p32CqtNoPonto === 'number' ? cqtGeral.p32CqtNoPonto : undefined,
+            k10QtMttr: typeof cqtDb?.k10QtMttr === 'number' ? cqtDb.k10QtMttr : undefined,
+            parityStatus: typeof cqtParity?.referenceStatus === 'string'
+              ? cqtParity.referenceStatus as 'complete' | 'partial' | 'missing'
+              : undefined,
+            parityPassed: typeof cqtParity?.passed === 'number' ? cqtParity.passed : undefined,
+            parityFailed: typeof cqtParity?.failed === 'number' ? cqtParity.failed : undefined
+          }
+        : undefined;
+
       if (!poleId) {
         return;
       }
@@ -345,6 +379,7 @@ function App() {
         criticalPoleId: poleId,
         criticalAccumulatedClients: accumulatedClients,
         criticalAccumulatedDemandKva: accumulatedDemandKva,
+        cqt: cqtSummary,
         verifiedPoles,
         totalPoles,
         verifiedEdges,
@@ -362,7 +397,8 @@ function App() {
       const nextHistory = [historyEntry, ...(appState.btExportHistory ?? [])].slice(0, MAX_BT_EXPORT_HISTORY);
 
       setAppState({ ...appState, btExportSummary: nextBtExportSummary, btExportHistory: nextHistory }, false);
-      showToast(`Resumo BT: ponto crítico ${poleId} (${accumulatedDemandKva.toFixed(2)}).`, 'info');
+      const cqtScenarioLabel = cqtSummary?.scenario ? ` | CQT ${cqtSummary.scenario.toUpperCase()}` : '';
+      showToast(`Resumo BT: ponto crítico ${poleId} (${accumulatedDemandKva.toFixed(2)})${cqtScenarioLabel}.`, 'info');
     }
   });
 
@@ -588,6 +624,14 @@ function App() {
       'criticalPoleId',
       'criticalAccumulatedClients',
       'criticalAccumulatedDemandKva',
+      'cqtScenario',
+      'cqtDmdi',
+      'cqtP31',
+      'cqtP32',
+      'cqtK10QtMttr',
+      'cqtParityStatus',
+      'cqtParityPassed',
+      'cqtParityFailed',
       'btContextUrl',
       'verifiedPoles',
       'totalPoles',
@@ -603,6 +647,14 @@ function App() {
       entry.criticalPoleId,
       entry.criticalAccumulatedClients,
       entry.criticalAccumulatedDemandKva.toFixed(2),
+      entry.cqt?.scenario ?? '',
+      entry.cqt?.dmdi?.toFixed(6) ?? '',
+      entry.cqt?.p31?.toFixed(6) ?? '',
+      entry.cqt?.p32?.toFixed(6) ?? '',
+      entry.cqt?.k10QtMttr?.toFixed(9) ?? '',
+      entry.cqt?.parityStatus ?? '',
+      entry.cqt?.parityPassed ?? '',
+      entry.cqt?.parityFailed ?? '',
       entry.btContextUrl,
       entry.verifiedPoles ?? 0,
       entry.totalPoles ?? 0,
@@ -1559,6 +1611,14 @@ function App() {
               {((latestBtExport.totalPoles ?? 0) > 0 || (latestBtExport.totalEdges ?? 0) > 0 || (latestBtExport.totalTransformers ?? 0) > 0) && (
                 <div className="mt-1 text-cyan-100/90">
                   Verificação Atual: Postes {latestBtExport.verifiedPoles ?? 0}/{latestBtExport.totalPoles ?? 0} | Condutores {latestBtExport.verifiedEdges ?? 0}/{latestBtExport.totalEdges ?? 0} | Trafos {latestBtExport.verifiedTransformers ?? 0}/{latestBtExport.totalTransformers ?? 0}
+                </div>
+              )}
+              {latestBtExport.cqt && (
+                <div className="mt-1 text-cyan-100/90">
+                  CQT {latestBtExport.cqt.scenario?.toUpperCase() ?? '-'}: DMDI {latestBtExport.cqt.dmdi?.toFixed(3) ?? '-'} | P31 {latestBtExport.cqt.p31?.toFixed(3) ?? '-'} | P32 {latestBtExport.cqt.p32?.toFixed(3) ?? '-'} | K10 {latestBtExport.cqt.k10QtMttr?.toFixed(6) ?? '-'}
+                  {typeof latestBtExport.cqt.parityPassed === 'number' && typeof latestBtExport.cqt.parityFailed === 'number'
+                    ? ` | Paridade ${latestBtExport.cqt.parityPassed} OK / ${latestBtExport.cqt.parityFailed} falhas`
+                    : ''}
                 </div>
               )}
               <a

@@ -214,6 +214,16 @@ export interface BtExportSummary {
   criticalPoleId: string;
   criticalAccumulatedClients: number;
   criticalAccumulatedDemandKva: number;
+  cqt?: {
+    scenario?: BtCqtScenario;
+    dmdi?: number;
+    p31?: number;
+    p32?: number;
+    k10QtMttr?: number;
+    parityStatus?: 'complete' | 'partial' | 'missing';
+    parityPassed?: number;
+    parityFailed?: number;
+  };
   verifiedPoles?: number;
   totalPoles?: number;
   verifiedEdges?: number;

@@ -114,4 +114,34 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
 
         expect(isCqtParitySuiteComplete(suite)).toBe(true);
     });
+
+    it('supports error-state parity comparison when expected override declares an error class', () => {
+        const report = buildCqtParityReport('atual', {
+            dmdi: { dmdi: CQT_BASELINE_TARGETS.ramal.aa30Dmdi },
+            errorByCell: {
+                'DB!K8': '#VALUE!'
+            }
+        }, undefined, {
+            atual: {
+                'DB!K8': { error: '#VALUE!' }
+            }
+        });
+
+        expect(report.referenceStatus).toBe('partial');
+        expect(report.compared).toBe(2);
+        const errorDiff = report.diffs.find((item) => item.cell === 'DB!K8');
+        expect(errorDiff).toBeDefined();
+        expect(errorDiff?.expectedState).toBe('error');
+        expect(errorDiff?.actualState).toBe('error');
+        expect(errorDiff?.withinTolerance).toBe(true);
+    });
+
+    it('includes lineage details for critical cells in markdown output', () => {
+        const suite = buildCqtParityReportSuite(CQT_PARITY_WORKBOOK_FIXTURE);
+        const markdown = renderCqtParityReportMarkdown(suite);
+
+        expect(markdown).toContain('Critical lineage:');
+        expect(markdown).toContain('GERAL!P31');
+        expect(markdown).toContain('DB!K10');
+    });
 });
