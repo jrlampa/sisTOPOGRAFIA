@@ -123,6 +123,12 @@ export interface BtCqtDmdiInputs {
 export interface BtCqtComputationInputs {
   scenario: BtCqtScenario;
   dmdi?: BtCqtDmdiInputs;
+  geral?: {
+    pontoRamal: string;
+    qtMttr: number;
+    esqCqtByPonto: Record<string, number>;
+    dirCqtByPonto: Record<string, number>;
+  };
   db?: {
     trAtual: number;
     demAtual: number;
@@ -138,6 +144,8 @@ export interface BtCqtComputationInputs {
     conductorName: string;
     lengthMeters?: number;
     temperatureC?: number;
+    ponto?: string;
+    lado?: 'ESQUERDO' | 'DIREITO';
   }>;
 }
 

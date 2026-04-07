@@ -104,6 +104,19 @@ const distanceMeters = (a: GeoLocation, b: GeoLocation) => {
   return 2 * earthRadius * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 };
 
+const inferBranchSide = (rawLabel: string): 'ESQUERDO' | 'DIREITO' | undefined => {
+  const label = rawLabel.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  if (label.includes('ESQ') || label.includes('ESQUER')) {
+    return 'ESQUERDO';
+  }
+
+  if (label.includes('DIR') || label.includes('DIREIT')) {
+    return 'DIREITO';
+  }
+
+  return undefined;
+};
+
 const nextSequentialId = (ids: string[], prefix: string): string => {
   const matcher = new RegExp(`^${prefix}(\\d+)$`);
   let maxSuffix = 0;
@@ -1287,6 +1300,7 @@ function App() {
     const accumulatedByPoleMap = new Map(
       btAccumulated.map((item) => [item.poleId, item.accumulatedDemandKva])
     );
+    const polesById = new Map(btTopology.poles.map((pole) => [pole.id, pole]));
 
     const cqtBranches = btTopology.edges
       .map((edge) => {
@@ -1298,9 +1312,17 @@ function App() {
         const fromAccumulatedKva = accumulatedByPoleMap.get(edge.fromPoleId) ?? 0;
         const toAccumulatedKva = accumulatedByPoleMap.get(edge.toPoleId) ?? 0;
         const acumuladaKva = Math.max(fromAccumulatedKva, toAccumulatedKva, 0);
+        const fromPoleTitle = polesById.get(edge.fromPoleId)?.title ?? '';
+        const toPoleTitle = polesById.get(edge.toPoleId)?.title ?? '';
+        const inferredSide =
+          inferBranchSide(edge.id) ??
+          inferBranchSide(fromPoleTitle) ??
+          inferBranchSide(toPoleTitle);
 
         return {
           trechoId: edge.id,
+          ponto: edge.toPoleId,
+          lado: inferredSide,
           fase: 'TRI' as const,
           acumuladaKva,
           eta: 1,

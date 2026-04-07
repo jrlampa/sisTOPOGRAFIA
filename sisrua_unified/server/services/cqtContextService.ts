@@ -42,6 +42,8 @@ interface CqtComputationInputs {
         conductorName: string;
         lengthMeters?: number;
         temperatureC?: number;
+        ponto?: string;
+        lado?: 'ESQUERDO' | 'DIREITO';
     }>;
 }
 
@@ -132,6 +134,8 @@ export const attachCqtSnapshotToBtContext = (btContext: unknown): UnknownRecord 
 
             return {
                 trechoId: branch.trechoId,
+                ponto: branch.ponto,
+                lado: branch.lado,
                 conductorName: branch.conductorName,
                 fase: branch.fase,
                 ib,
@@ -148,6 +152,58 @@ export const attachCqtSnapshotToBtContext = (btContext: unknown): UnknownRecord 
             okCount: calculatedBranches.filter((item) => item.status === 'OK').length,
             verificarCount: calculatedBranches.filter((item) => item.status === 'VERIFICAR').length
         };
+
+        if (!snapshot.geral) {
+            const sideRows = calculatedBranches.filter(
+                (item): item is typeof item & { lado: 'ESQUERDO' | 'DIREITO'; ponto: string } =>
+                    (item.lado === 'ESQUERDO' || item.lado === 'DIREITO') &&
+                    typeof item.ponto === 'string' &&
+                    item.ponto.length > 0
+            );
+
+            if (sideRows.length > 0) {
+                const qtMttr =
+                    (snapshot.db as { k10QtMttr?: number } | undefined)?.k10QtMttr ??
+                    inputs.geral?.qtMttr ??
+                    0;
+                const baseVoltage = 127 - (127 * qtMttr);
+                const esqCqtByPonto: Record<string, number> = {};
+                const dirCqtByPonto: Record<string, number> = {};
+
+                for (const row of sideRows) {
+                    const cqtValue = baseVoltage - row.qtPonto;
+                    if (row.lado === 'ESQUERDO') {
+                        esqCqtByPonto[row.ponto] = cqtValue;
+                    } else {
+                        dirCqtByPonto[row.ponto] = cqtValue;
+                    }
+                }
+
+                const fallbackPoint = sideRows[0].ponto;
+                const pointCandidates = ['RAMAL', fallbackPoint];
+                const pontoRamal = pointCandidates.find(
+                    (point) => point in esqCqtByPonto || point in dirCqtByPonto
+                ) ?? fallbackPoint;
+
+                snapshot.geral = {
+                    p31CqtNoPonto: calculateGeralCqtNoPonto({
+                        lado: 'ESQUERDO',
+                        ponto: pontoRamal,
+                        qtMttr,
+                        esqCqtByPonto,
+                        dirCqtByPonto
+                    }),
+                    p32CqtNoPonto: calculateGeralCqtNoPonto({
+                        lado: 'DIREITO',
+                        ponto: pontoRamal,
+                        qtMttr,
+                        esqCqtByPonto,
+                        dirCqtByPonto
+                    }),
+                    source: 'branches-derived'
+                };
+            }
+        }
     }
 
     const hasComputedSection = Boolean(snapshot.dmdi || snapshot.geral || snapshot.db || snapshot.branches);

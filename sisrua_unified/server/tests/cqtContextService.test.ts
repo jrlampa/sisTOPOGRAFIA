@@ -135,4 +135,51 @@ describe('cqtContextService.attachCqtSnapshotToBtContext', () => {
         expect(enriched.cqtSnapshot.branches.items[0]).toHaveProperty('correctedResistance');
         expect(enriched.cqtSnapshot.branches.items[0]).toHaveProperty('qtPonto');
     });
+
+    it('derives geral snapshot from branches and db when geral is not provided', () => {
+        const btContext = {
+            projectType: 'ramais',
+            cqtComputationInputs: {
+                scenario: 'atual',
+                db: {
+                    trAtual: CQT_BASELINE_TARGETS.db.k6TrAtual,
+                    demAtual: CQT_BASELINE_TARGETS.db.k7DemAtual,
+                    qtMt: CQT_BASELINE_TARGETS.db.k10QtMttr - CQT_BASELINE_TARGETS.db.k8QtTr,
+                    trafosZ: TRAFOS_Z_BASELINE
+                },
+                branches: [
+                    {
+                        trechoId: 'ESQ-001',
+                        ponto: 'RAMAL',
+                        lado: 'ESQUERDO',
+                        fase: 'TRI',
+                        acumuladaKva: 6,
+                        eta: 1,
+                        tensaoTrifasicaV: 127,
+                        conductorName: '70 Al - MX',
+                        lengthMeters: 20,
+                        temperatureC: 30
+                    },
+                    {
+                        trechoId: 'DIR-001',
+                        ponto: 'RAMAL',
+                        lado: 'DIREITO',
+                        fase: 'TRI',
+                        acumuladaKva: 6,
+                        eta: 1,
+                        tensaoTrifasicaV: 127,
+                        conductorName: '70 Al - MX',
+                        lengthMeters: 25,
+                        temperatureC: 30
+                    }
+                ]
+            }
+        };
+
+        const enriched = attachCqtSnapshotToBtContext(btContext) as Record<string, any>;
+        expect(enriched.cqtSnapshot.geral).toBeDefined();
+        expect(enriched.cqtSnapshot.geral.source).toBe('branches-derived');
+        expect(enriched.cqtSnapshot.geral.p31CqtNoPonto).toBeGreaterThan(0);
+        expect(enriched.cqtSnapshot.geral.p32CqtNoPonto).toBeGreaterThan(0);
+    });
 });
