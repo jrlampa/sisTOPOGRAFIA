@@ -100,7 +100,8 @@ describe('cqtContextService.attachCqtSnapshotToBtContext', () => {
         expect(enriched.cqtSnapshot.db.k10QtMttr).toBeCloseTo(CQT_BASELINE_TARGETS.db.k10QtMttr, 12);
         expect(enriched.cqtSnapshot.parity).toBeDefined();
         expect(enriched.cqtSnapshot.parity.scenario).toBe('proj2');
-        expect(enriched.cqtSnapshot.parity.referenceStatus).toBe('missing');
+        expect(enriched.cqtSnapshot.parity.referenceStatus).toBe('partial');
+        expect(enriched.cqtSnapshot.parity.pending).toEqual(['GERAL PROJ2!P31', 'GERAL PROJ2!P32']);
     });
 
     it('computes branch protection snapshot when branches input is provided', () => {

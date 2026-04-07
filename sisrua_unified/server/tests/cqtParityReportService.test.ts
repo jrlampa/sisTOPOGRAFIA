@@ -13,6 +13,7 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
         expect(report.scenario).toBe('atual');
         expect(report.referenceCells).toBe(7);
         expect(report.referenceStatus).toBe('complete');
+        expect(report.pending).toHaveLength(0);
         expect(report.compared).toBe(7);
         expect(report.failed).toBe(0);
         expect(report.passed).toBe(7);
@@ -25,6 +26,7 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
         expect(report.scenario).toBe('proj1');
         expect(report.referenceCells).toBe(2);
         expect(report.referenceStatus).toBe('complete');
+        expect(report.pending).toHaveLength(0);
         expect(report.compared).toBe(2);
         expect(report.failed).toBe(0);
         expect(report.passed).toBe(2);
@@ -37,16 +39,18 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
         });
 
         expect(report.referenceStatus).toBe('partial');
+        expect(report.pending).toHaveLength(0);
         expect(report.compared).toBe(1);
         expect(report.skipped).toHaveLength(6);
         expect(report.failed).toBe(0);
     });
 
-    it('marks proj2 as missing reference while no baseline cells are mapped', () => {
+    it('marks proj2 as partial with pending expected values', () => {
         const report = buildCqtParityReport('proj2', CQT_PARITY_WORKBOOK_FIXTURE.proj2);
 
-        expect(report.referenceCells).toBe(0);
-        expect(report.referenceStatus).toBe('missing');
+        expect(report.referenceCells).toBe(2);
+        expect(report.referenceStatus).toBe('partial');
+        expect(report.pending).toEqual(['GERAL PROJ2!P31', 'GERAL PROJ2!P32']);
         expect(report.compared).toBe(0);
         expect(report.failed).toBe(0);
         expect(report.passed).toBe(0);
@@ -59,8 +63,8 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
         expect(suite.reports).toHaveLength(3);
         expect(suite.totals.scenarios).toBe(3);
         expect(suite.totals.complete).toBe(2);
-        expect(suite.totals.partial).toBe(0);
-        expect(suite.totals.missing).toBe(1);
+        expect(suite.totals.partial).toBe(1);
+        expect(suite.totals.missing).toBe(0);
         expect(suite.totals.compared).toBe(9);
         expect(suite.totals.failed).toBe(0);
         expect(suite.totals.passed).toBe(9);
@@ -76,5 +80,7 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
         expect(markdown).toContain('## Scenario: proj1');
         expect(markdown).toContain('## Scenario: proj2');
         expect(markdown).toContain('| Failed Cells | 0 |');
+        expect(markdown).toContain('Pending expected values:');
+        expect(markdown).toContain('GERAL PROJ2!P31');
     });
 });

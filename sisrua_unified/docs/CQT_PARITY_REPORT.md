@@ -6,8 +6,8 @@
 | --- | ---: |
 | Scenarios | 3 |
 | Complete | 2 |
-| Partial | 0 |
-| Missing | 1 |
+| Partial | 1 |
+| Missing | 0 |
 | Compared Cells | 9 |
 | Passed Cells | 9 |
 | Failed Cells | 0 |
@@ -45,8 +45,12 @@
 
 ## Scenario: proj2
 
-- Reference status: missing
-- Reference cells: 0
+- Reference status: partial
+- Reference cells: 2
 - Compared: 0
 - Passed: 0
 - Failed: 0
+
+Pending expected values:
+- GERAL PROJ2!P31
+- GERAL PROJ2!P32

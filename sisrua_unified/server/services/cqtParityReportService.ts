@@ -25,6 +25,7 @@ export interface CqtScenarioParityReport {
     scenario: CqtScenario;
     referenceCells: number;
     referenceStatus: 'complete' | 'partial' | 'missing';
+    pending: string[];
     compared: number;
     passed: number;
     failed: number;
@@ -47,7 +48,7 @@ export interface CqtParityReportSuite {
 
 const CQT_SCENARIOS: CqtScenario[] = ['atual', 'proj1', 'proj2'];
 
-const EXPECTED_BY_SCENARIO: Record<CqtScenario, Partial<Record<string, number>>> = {
+const EXPECTED_BY_SCENARIO: Record<CqtScenario, Partial<Record<string, number | null>>> = {
     atual: {
         'RAMAL!AA30': CQT_BASELINE_TARGETS.ramal.aa30Dmdi,
         'GERAL!P31': CQT_BASELINE_TARGETS.geralAtual.p31CqtNoPonto,
@@ -61,7 +62,11 @@ const EXPECTED_BY_SCENARIO: Record<CqtScenario, Partial<Record<string, number>>>
         'GERAL PROJ!P31': CQT_BASELINE_TARGETS.geralProj1.p31CqtNoPonto,
         'GERAL PROJ!P32': CQT_BASELINE_TARGETS.geralProj1.p32CqtNoPonto
     },
-    proj2: {}
+    proj2: {
+        // Valores esperados ainda pendentes de extração/paridade final do workbook.
+        'GERAL PROJ2!P31': null,
+        'GERAL PROJ2!P32': null
+    }
 };
 
 const ACTUAL_GETTERS: Record<string, (snapshot: CqtSnapshotComparable) => number | undefined> = {
@@ -70,6 +75,8 @@ const ACTUAL_GETTERS: Record<string, (snapshot: CqtSnapshotComparable) => number
     'GERAL!P32': (snapshot) => snapshot.geral?.p32CqtNoPonto,
     'GERAL PROJ!P31': (snapshot) => snapshot.geral?.p31CqtNoPonto,
     'GERAL PROJ!P32': (snapshot) => snapshot.geral?.p32CqtNoPonto,
+    'GERAL PROJ2!P31': (snapshot) => snapshot.geral?.p31CqtNoPonto,
+    'GERAL PROJ2!P32': (snapshot) => snapshot.geral?.p32CqtNoPonto,
     'DB!K6': (snapshot) => snapshot.db?.k6TrAtual,
     'DB!K7': (snapshot) => snapshot.db?.k7DemAtual,
     'DB!K8': (snapshot) => snapshot.db?.k8QtTr,
@@ -85,8 +92,14 @@ export const buildCqtParityReport = (
     const referenceCells = Object.keys(expectedCells).length;
     const diffs: CqtCellDiff[] = [];
     const skipped: string[] = [];
+    const pending: string[] = [];
 
     for (const [cell, expected] of Object.entries(expectedCells)) {
+        if (expected === null) {
+            pending.push(cell);
+            continue;
+        }
+
         const getter = ACTUAL_GETTERS[cell];
         if (!getter) {
             skipped.push(cell);
@@ -114,7 +127,7 @@ export const buildCqtParityReport = (
     const referenceStatus: 'complete' | 'partial' | 'missing' =
         referenceCells === 0
             ? 'missing'
-            : skipped.length > 0
+            : (pending.length > 0 || skipped.length > 0)
                 ? 'partial'
                 : 'complete';
 
@@ -122,6 +135,7 @@ export const buildCqtParityReport = (
         scenario,
         referenceCells,
         referenceStatus,
+        pending,
         compared: diffs.length,
         passed,
         failed,
@@ -199,6 +213,14 @@ export const renderCqtParityReportMarkdown = (suite: CqtParityReportSuite): stri
         lines.push(`- Passed: ${report.passed}`);
         lines.push(`- Failed: ${report.failed}`);
         lines.push('');
+
+        if (report.pending.length > 0) {
+            lines.push('Pending expected values:');
+            for (const cell of report.pending) {
+                lines.push(`- ${cell}`);
+            }
+            lines.push('');
+        }
 
         if (report.skipped.length > 0) {
             lines.push('Skipped cells:');
