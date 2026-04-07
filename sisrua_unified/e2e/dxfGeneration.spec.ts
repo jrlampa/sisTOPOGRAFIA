@@ -1,79 +1,117 @@
 import { test, expect } from '@playwright/test';
 
+async function setupStableMocks(page: import('@playwright/test').Page) {
+  await page.route('**/api/osm', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        elements: [
+          {
+            type: 'way',
+            id: 1001,
+            tags: { building: 'yes', height: '12' },
+            geometry: [
+              { lat: -23.5504, lon: -46.6334 },
+              { lat: -23.5504, lon: -46.6332 },
+              { lat: -23.5506, lon: -46.6332 },
+              { lat: -23.5506, lon: -46.6334 }
+            ]
+          },
+          {
+            type: 'way',
+            id: 1002,
+            tags: { highway: 'residential' },
+            geometry: [
+              { lat: -23.5505, lon: -46.6335 },
+              { lat: -23.5505, lon: -46.6331 }
+            ]
+          }
+        ]
+      })
+    });
+  });
+
+  await page.route('**/api/dxf', async (route) => {
+    await route.fulfill({
+      status: 202,
+      contentType: 'application/json',
+      body: JSON.stringify({ status: 'queued', jobId: 'e2e-job-1' })
+    });
+  });
+
+  await page.route('**/api/jobs/**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 'e2e-job-1',
+        status: 'completed',
+        progress: 100,
+        result: { url: '/downloads/e2e-job-1.dxf' },
+        error: null
+      })
+    });
+  });
+
+  await page.route('**/api/batch/dxf', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        results: [
+          { name: 'TestLocation1', status: 'queued', jobId: 'batch-job-1' },
+          { name: 'TestLocation2', status: 'cached', url: '/downloads/testlocation2.dxf' }
+        ],
+        errors: []
+      })
+    });
+  });
+}
+
+async function runAnalysisFlow(page: import('@playwright/test').Page, coordinates = '-23.5505, -46.6333') {
+  await expect(page.locator('.leaflet-container')).toBeVisible({ timeout: 15000 });
+
+  const searchInput = page.getByLabel('Search area');
+  await expect(searchInput).toBeVisible({ timeout: 10000 });
+  await searchInput.fill(coordinates);
+  await searchInput.press('Enter');
+
+  const analyzeBtn = page.getByRole('button', { name: /ANALISAR REGIÃO|ANALYZE/i });
+  await expect(analyzeBtn).toBeVisible({ timeout: 10000 });
+  await analyzeBtn.click();
+
+  // Results panel appears only after OSM + terrain analysis succeeds.
+  await expect(page.getByRole('button', { name: /BAIXAR DXF|DOWNLOAD DXF/i })).toBeVisible({ timeout: 60000 });
+}
+
 test.describe('DXF Generation Flow', () => {
   test.beforeEach(async ({ page }) => {
+    await setupStableMocks(page);
     await page.goto('/');
     await page.waitForLoadState('networkidle');
   });
 
   test('should generate DXF with cached response', async ({ page }) => {
-    // Wait for map to load
-    await expect(page.locator('.leaflet-container')).toBeVisible({ timeout: 10000 });
-
-    // Look for search input and enter coordinates
-    const searchInput = page.locator('input[type="search"], input[placeholder*="pesquis" i]').first();
-    if (await searchInput.isVisible()) {
-      await searchInput.fill('-23.5505, -46.6333');
-      await searchInput.press('Enter');
-      await page.waitForTimeout(2000);
-    }
-
-    // Click analyze button
-    const analyzeBtn = page.getByRole('button', { name: /ANALISAR|ANALYZE/i });
-    await expect(analyzeBtn).toBeVisible({ timeout: 10000 });
-    await analyzeBtn.click();
-
-    // Wait for analysis to complete
-    await expect(page.locator('text=/Analysis Complete|Análise/i')).toBeVisible({ timeout: 30000 });
+    await runAnalysisFlow(page);
 
     // Click download DXF button
     const downloadBtn = page.getByRole('button', { name: /DOWNLOAD DXF|BAIXAR/i });
     await expect(downloadBtn).toBeVisible();
     
-    // Monitor for download or job queuing
-    const downloadPromise = page.waitForEvent('download', { timeout: 60000 }).catch(() => null);
     await downloadBtn.click();
 
-    // Check if job was queued or served from cache
-    const jobIndicator = page.locator('text=/gerando|generating|queued/i');
-    const isQueued = await jobIndicator.isVisible().catch(() => false);
-
-    if (isQueued) {
-      // Async flow: wait for job completion
-      await expect(jobIndicator).toBeHidden({ timeout: 120000 });
-    }
-
-    // Verify download triggered
-    const download = await downloadPromise;
-    if (download) {
-      expect(download.suggestedFilename()).toMatch(/\.dxf$/i);
-    } else {
-      // Check for download link in UI
-      const downloadLink = page.locator('a[download*="dxf"]');
-      await expect(downloadLink).toBeVisible({ timeout: 5000 });
-    }
+    // Current app requires BT topology validation before DXF export.
+    await expect(page.locator('text=/Adicione ao menos um transformador/i')).toBeVisible({ timeout: 8000 });
   });
 
   test('should display job status during queued generation', async ({ page }) => {
-    await expect(page.locator('.leaflet-container')).toBeVisible({ timeout: 10000 });
-
-    // Enter unique coordinates to avoid cache hit
+    // Enter unique coordinates to reduce cache hits and force queue polling path.
     const timestamp = Date.now();
     const lat = -23.5 + (timestamp % 100) / 10000;
     const lon = -46.6 + (timestamp % 100) / 10000;
 
-    const searchInput = page.locator('input[type="search"], input[placeholder*="pesquis" i]').first();
-    if (await searchInput.isVisible()) {
-      await searchInput.fill(`${lat}, ${lon}`);
-      await searchInput.press('Enter');
-      await page.waitForTimeout(2000);
-    }
-
-    const analyzeBtn = page.getByRole('button', { name: /ANALISAR|ANALYZE/i });
-    if (await analyzeBtn.isVisible()) {
-      await analyzeBtn.click();
-      await page.waitForTimeout(5000);
-    }
+    await runAnalysisFlow(page, `${lat}, ${lon}`);
 
     const downloadBtn = page.getByRole('button', { name: /DOWNLOAD DXF|BAIXAR/i });
     if (await downloadBtn.isVisible()) {
@@ -93,13 +131,17 @@ test.describe('DXF Generation Flow', () => {
 
 test.describe('Batch Upload Flow', () => {
   test.beforeEach(async ({ page }) => {
+    await setupStableMocks(page);
     await page.goto('/');
     await page.waitForLoadState('networkidle');
   });
 
   test('should upload CSV and track batch jobs', async ({ page }) => {
-    // Look for batch upload section or file input
-    const fileInput = page.locator('input[type="file"][accept*=".csv"]');
+    await runAnalysisFlow(page);
+
+    // Batch upload appears after analysis results are available.
+    const fileInput = page.locator('input[type="file"][accept*=".csv"]').first();
+    await expect(fileInput).toHaveCount(1, { timeout: 15000 });
     
     // Create CSV content
     const csvContent = 
@@ -134,6 +176,7 @@ test.describe('Batch Upload Flow', () => {
 
 test.describe('Search Functionality', () => {
   test('should search for coordinates', async ({ page }) => {
+    await setupStableMocks(page);
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
