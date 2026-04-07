@@ -6,6 +6,18 @@ const API_URL = API_BASE_URL;
 type DxfQueueResponse = {
   status: 'queued';
   jobId: string | number;
+  cqtSummary?: DxfCqtSummary;
+};
+
+export type DxfCqtSummary = {
+  scenario?: 'atual' | 'proj1' | 'proj2';
+  dmdi?: number;
+  p31?: number;
+  p32?: number;
+  k10QtMttr?: number;
+  parityStatus?: 'complete' | 'partial' | 'missing';
+  parityPassed?: number;
+  parityFailed?: number;
 };
 
 type DxfCachedResponse = {
@@ -13,12 +25,14 @@ type DxfCachedResponse = {
   url: string;
   message?: string;
   btContextUrl?: string;
+  cqtSummary?: DxfCqtSummary;
 };
 
 type DxfJobResult = {
   url: string;
   filename?: string;
   btContextUrl?: string;
+  cqtSummary?: DxfCqtSummary;
 };
 
 type DxfJobStatus = {

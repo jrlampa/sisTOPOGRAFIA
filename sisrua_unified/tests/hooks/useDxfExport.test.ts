@@ -1,41 +1,82 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// Mock the service
-vi.mock('../../src/services/dxfService', () => ({
-  generateDXF: vi.fn()
-}));
-
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
+import { useDxfExport } from '../../src/hooks/useDxfExport';
 import { generateDXF } from '../../src/services/dxfService';
 
-describe('useDxfExport - Unit Tests', () => {
+vi.mock('../../src/services/dxfService', () => ({
+  generateDXF: vi.fn(),
+  getDxfJobStatus: vi.fn()
+}));
+
+describe('useDxfExport', () => {
+  const onSuccess = vi.fn();
+  const onError = vi.fn();
+  const onBtContextLoaded = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
   });
 
-  it('should mock DXF service correctly', () => {
-    expect(generateDXF).toBeDefined();
-    expect(typeof generateDXF).toBe('function');
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it('should handle successful DXF generation response', async () => {
-    const mockResult = {
-      url: 'http://localhost:3001/downloads/test.dxf'
-    };
+  it('loads btContext and forwards cqtSummary when DXF is returned immediately', async () => {
+    vi.mocked(generateDXF).mockResolvedValueOnce({
+      status: 'success',
+      url: 'http://localhost:3001/downloads/test.dxf',
+      btContextUrl: 'http://localhost:3001/api/bt-context/test',
+      cqtSummary: {
+        scenario: 'proj2',
+        p31: 118.385,
+        p32: 118.385,
+        parityStatus: 'complete',
+        parityPassed: 8,
+        parityFailed: 0
+      }
+    });
 
-    (generateDXF as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResult);
-
-    const result = await generateDXF(-23.5505, -46.6333, 500, 'circle', [], {});
-    
-    expect(result.url).toBe('http://localhost:3001/downloads/test.dxf');
-  });
-
-  it('should handle DXF generation error', async () => {
-    (generateDXF as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-      new Error('Generation failed')
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          btContext: {
+            criticalPole: { poleId: 'P-1' },
+            cqtSnapshot: { scenario: 'proj2' }
+          }
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      )
     );
 
-    await expect(
-      generateDXF(-23.5505, -46.6333, 500, 'circle', [], {})
-    ).rejects.toThrow('Generation failed');
+    const { result } = renderHook(() => useDxfExport({ onSuccess, onError, onBtContextLoaded }));
+
+    await act(async () => {
+      await result.current.downloadDxf(
+        { lat: -23.55, lng: -46.63, label: 'Centro' },
+        300,
+        'circle',
+        [],
+        {},
+        'utm',
+        'spline'
+      );
+    });
+
+    expect(onError).not.toHaveBeenCalled();
+    expect(onSuccess).toHaveBeenCalledWith('DXF Downloaded');
+    expect(onBtContextLoaded).toHaveBeenCalledWith({
+      btContextUrl: 'http://localhost:3001/api/bt-context/test',
+      btContext: {
+        criticalPole: { poleId: 'P-1' },
+        cqtSnapshot: { scenario: 'proj2' }
+      },
+      cqtSummary: expect.objectContaining({
+        scenario: 'proj2',
+        parityStatus: 'complete',
+        parityPassed: 8,
+        parityFailed: 0
+      })
+    });
   });
 });

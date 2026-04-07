@@ -319,7 +319,7 @@ function App() {
   const { downloadDxf, isDownloading, jobId, jobStatus, jobProgress } = useDxfExport({
     onSuccess: (message) => showToast(message, 'success'),
     onError: (message) => showToast(message, 'error'),
-    onBtContextLoaded: ({ btContextUrl, btContext }) => {
+    onBtContextLoaded: ({ btContextUrl, btContext, cqtSummary: cqtSummaryRaw }) => {
       const criticalPoleRaw = btContext.criticalPole;
       if (!criticalPoleRaw || typeof criticalPoleRaw !== 'object') {
         return;
@@ -352,8 +352,11 @@ function App() {
       const cqtParity = cqtSnapshot?.parity && typeof cqtSnapshot.parity === 'object'
         ? cqtSnapshot.parity as Record<string, unknown>
         : null;
+      const cqtSummaryFromResponse = cqtSummaryRaw && typeof cqtSummaryRaw === 'object'
+        ? cqtSummaryRaw as Record<string, unknown>
+        : null;
 
-      const cqtSummary = cqtSnapshot
+      const cqtSummaryFromSnapshot = cqtSnapshot
         ? {
             scenario: typeof cqtSnapshot.scenario === 'string'
               ? cqtSnapshot.scenario as 'atual' | 'proj1' | 'proj2'
@@ -367,6 +370,30 @@ function App() {
               : undefined,
             parityPassed: typeof cqtParity?.passed === 'number' ? cqtParity.passed : undefined,
             parityFailed: typeof cqtParity?.failed === 'number' ? cqtParity.failed : undefined
+          }
+        : undefined;
+      const cqtSummary = cqtSnapshot || cqtSummaryFromResponse
+        ? {
+            scenario: cqtSummaryFromSnapshot?.scenario
+              ?? (typeof cqtSummaryFromResponse?.scenario === 'string'
+                ? cqtSummaryFromResponse.scenario as 'atual' | 'proj1' | 'proj2'
+                : undefined),
+            dmdi: cqtSummaryFromSnapshot?.dmdi
+              ?? (typeof cqtSummaryFromResponse?.dmdi === 'number' ? cqtSummaryFromResponse.dmdi : undefined),
+            p31: cqtSummaryFromSnapshot?.p31
+              ?? (typeof cqtSummaryFromResponse?.p31 === 'number' ? cqtSummaryFromResponse.p31 : undefined),
+            p32: cqtSummaryFromSnapshot?.p32
+              ?? (typeof cqtSummaryFromResponse?.p32 === 'number' ? cqtSummaryFromResponse.p32 : undefined),
+            k10QtMttr: cqtSummaryFromSnapshot?.k10QtMttr
+              ?? (typeof cqtSummaryFromResponse?.k10QtMttr === 'number' ? cqtSummaryFromResponse.k10QtMttr : undefined),
+            parityStatus: cqtSummaryFromSnapshot?.parityStatus
+              ?? (typeof cqtSummaryFromResponse?.parityStatus === 'string'
+                ? cqtSummaryFromResponse.parityStatus as 'complete' | 'partial' | 'missing'
+                : undefined),
+            parityPassed: cqtSummaryFromSnapshot?.parityPassed
+              ?? (typeof cqtSummaryFromResponse?.parityPassed === 'number' ? cqtSummaryFromResponse.parityPassed : undefined),
+            parityFailed: cqtSummaryFromSnapshot?.parityFailed
+              ?? (typeof cqtSummaryFromResponse?.parityFailed === 'number' ? cqtSummaryFromResponse.parityFailed : undefined)
           }
         : undefined;
 

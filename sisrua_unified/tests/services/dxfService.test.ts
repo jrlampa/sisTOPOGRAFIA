@@ -19,6 +19,40 @@ describe('dxfService response parsing', () => {
     expect(result).toEqual({ status: 'queued', jobId: 'job-1' });
   });
 
+  it('preserves cqtSummary from successful DXF response payload', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        status: 'success',
+        url: 'http://localhost:3001/downloads/test.dxf',
+        cqtSummary: {
+          scenario: 'proj2',
+          p31: 118.38,
+          p32: 118.38,
+          k10QtMttr: 4,
+          parityStatus: 'complete',
+          parityPassed: 8,
+          parityFailed: 0
+        }
+      }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' }
+      })
+    );
+
+    const result = await generateDXF(-23.55, -46.63, 500, 'circle', [], {}, 'utm');
+
+    expect(result).toMatchObject({
+      status: 'success',
+      cqtSummary: {
+        scenario: 'proj2',
+        p31: 118.38,
+        parityStatus: 'complete',
+        parityPassed: 8,
+        parityFailed: 0
+      }
+    });
+  });
+
   it('throws descriptive error when backend returns empty error body', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response('', {

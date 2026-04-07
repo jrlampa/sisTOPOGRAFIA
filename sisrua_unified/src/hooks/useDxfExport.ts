@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { generateDXF, getDxfJobStatus } from '../services/dxfService';
+import { generateDXF, getDxfJobStatus, type DxfCqtSummary } from '../services/dxfService';
 import { SelectionMode, GeoLocation, LayerConfig } from '../types';
 
 type ContourRenderMode = 'spline' | 'polyline';
@@ -7,7 +7,11 @@ type ContourRenderMode = 'spline' | 'polyline';
 interface UseDxfExportProps {
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
-  onBtContextLoaded?: (payload: { btContextUrl: string; btContext: Record<string, unknown> }) => void;
+  onBtContextLoaded?: (payload: {
+    btContextUrl: string;
+    btContext: Record<string, unknown>;
+    cqtSummary?: DxfCqtSummary;
+  }) => void;
 }
 
 interface BtContextPayload {
@@ -31,7 +35,7 @@ export function useDxfExport({ onSuccess, onError, onBtContextLoaded }: UseDxfEx
     document.body.removeChild(anchor);
   };
 
-  const tryLoadBtContext = async (btContextUrl?: string) => {
+  const tryLoadBtContext = async (btContextUrl?: string, cqtSummary?: DxfCqtSummary) => {
     if (!btContextUrl) {
       return;
     }
@@ -47,7 +51,7 @@ export function useDxfExport({ onSuccess, onError, onBtContextLoaded }: UseDxfEx
         return;
       }
 
-      onBtContextLoaded?.({ btContextUrl, btContext: payload.btContext });
+      onBtContextLoaded?.({ btContextUrl, btContext: payload.btContext, cqtSummary });
     } catch {
       // Silent fail: DXF download must not be blocked by optional BT metadata retrieval.
     }
@@ -85,7 +89,7 @@ export function useDxfExport({ onSuccess, onError, onBtContextLoaded }: UseDxfEx
       }
 
       if ('url' in result && result.url) {
-        await tryLoadBtContext(result.btContextUrl);
+        await tryLoadBtContext(result.btContextUrl, result.cqtSummary);
         triggerDownload(result.url, center);
         onSuccess('DXF Downloaded');
         setIsDownloading(false);
@@ -135,7 +139,7 @@ export function useDxfExport({ onSuccess, onError, onBtContextLoaded }: UseDxfEx
           }
 
           const center = downloadCenter || { lat: 0, lng: 0, label: '' };
-          await tryLoadBtContext(statusResponse.result?.btContextUrl);
+          await tryLoadBtContext(statusResponse.result?.btContextUrl, statusResponse.result?.cqtSummary);
           triggerDownload(url, center);
           onSuccess('DXF Downloaded');
           clearInterval(intervalId);
