@@ -11,6 +11,7 @@ import { config } from './config.js';
 import { OllamaService } from './services/ollamaService.js';
 import { startFirestoreMonitoring, stopFirestoreMonitoring } from './services/firestoreService.js';
 import { initializeDxfCleanup, markDxfDownloaded, stopDxfCleanup } from './services/dxfCleanupService.js';
+import { stopTaskWorker } from './services/cloudTasksService.js';
 import { logger } from './utils/logger.js';
 import { generalRateLimiter } from './middleware/rateLimiter.js';
 import { requestMetrics } from './middleware/requestMetrics.js';
@@ -27,6 +28,7 @@ import jobRoutes from './routes/jobRoutes.js';
 import firestoreRoutes from './routes/firestoreRoutes.js';
 import dxfRoutes from './routes/dxfRoutes.js';
 import metricsRoutes from './routes/metricsRoutes.js';
+import storageRoutes from './routes/storageRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -139,7 +141,10 @@ app.use('/api/ibge', ibgeRoutes);
 app.use('/api/inde', indeRoutes);
 app.use('/api/analyze', analysisRoutes);
 app.use('/api/jobs', jobRoutes);
-app.use('/api/firestore', firestoreRoutes);
+if (config.useFirestore) {
+    app.use('/api/firestore', firestoreRoutes);
+}
+app.use('/api/storage', storageRoutes);
 app.use('/api/dxf', dxfRoutes);
 app.use('/metrics', metricsRoutes);
 
@@ -160,12 +165,15 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 // Start server
 app.listen(port, async () => {
     logger.info('Backend online', { service: 'sisRUA', version: config.APP_VERSION, port });
-    if (config.NODE_ENV === 'production') {
+    if (config.useSupabaseJobs) {
+        logger.info('Supabase/Postgres jobs persistence is enabled');
+    }
+    if (config.NODE_ENV === 'production' && config.useFirestore) {
         await startFirestoreMonitoring().catch(e => logger.error('Firestore monitor failed', e));
     }
     await startOllama();
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => { stopDxfCleanup(); stopOllama(); stopFirestoreMonitoring(); process.exit(0); });
-process.on('SIGINT', () => { stopDxfCleanup(); stopOllama(); stopFirestoreMonitoring(); process.exit(0); });
+process.on('SIGTERM', () => { stopTaskWorker(); stopDxfCleanup(); stopOllama(); stopFirestoreMonitoring(); process.exit(0); });
+process.on('SIGINT', () => { stopTaskWorker(); stopDxfCleanup(); stopOllama(); stopFirestoreMonitoring(); process.exit(0); });

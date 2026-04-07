@@ -57,6 +57,12 @@ const EnvSchema = z.object({
     USE_FIRESTORE: z.string().optional(),
     GCP_PROJECT: z.string().optional(),
 
+    // ── Supabase / Postgres jobs persistence ─────────────────────────────────
+    /** Connection URL used for Supabase/Postgres persistence when enabled. */
+    DATABASE_URL: z.string().optional(),
+    /** Explicit opt-in/out for Supabase jobs persistence. Defaults to true when DATABASE_URL exists. */
+    USE_SUPABASE_JOBS: z.string().optional(),
+
     // ── Observability ─────────────────────────────────────────────────────────
     METRICS_ENABLED: z.coerce.boolean().default(true),
     /** Prefix for all Prometheus metric names */
@@ -77,14 +83,19 @@ function loadConfig() {
     const raw: RawConfig = result.data;
 
     // Derived values — computed once at startup, never recalculated.
+    const useSupabaseJobs: boolean =
+        raw.USE_SUPABASE_JOBS !== undefined
+            ? raw.USE_SUPABASE_JOBS === 'true'
+            : !!raw.DATABASE_URL;
+
     const useFirestore: boolean =
         raw.USE_FIRESTORE !== undefined
             ? raw.USE_FIRESTORE === 'true'
-            : raw.NODE_ENV === 'production';
+            : (raw.NODE_ENV === 'production' && !useSupabaseJobs);
 
     const isDocker: boolean = raw.DOCKER_ENV === 'true';
 
-    return { ...raw, useFirestore, isDocker } as const;
+    return { ...raw, useFirestore, useSupabaseJobs, isDocker } as const;
 }
 
 export const config = loadConfig();

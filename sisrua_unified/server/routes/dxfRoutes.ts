@@ -1,6 +1,5 @@
 import { Router, Request, Response } from 'express';
 import { createDxfTask } from '../services/cloudTasksService.js';
-import { createJob } from '../services/jobStatusService.js';
 import {
     createCacheKey,
     deleteCachedFilename,
@@ -62,9 +61,8 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Invalid request body', details: validation.error.issues });
         }
 
-        const { lat, lon, radius, mode, btContext: validatedBtContext } = validation.data;
-        const { polygon, layers, projection, contourRenderMode } = req.body;
-        const btContext = attachCqtSnapshotToBtContext(validatedBtContext ?? req.body.btContext);
+        const { lat, lon, radius, mode, polygon, layers, projection, contourRenderMode, btContext: validatedBtContext } = validation.data;
+        const btContext = attachCqtSnapshotToBtContext(validatedBtContext ?? undefined);
         const cqtSummary = extractCqtSummary(btContext);
         const resolvedContourRenderMode = contourRenderMode === 'polyline' ? 'polyline' : 'spline';
         const resolvedMode = mode || 'circle';
@@ -127,10 +125,6 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
             btContext: btContext ?? null,
             outputFile, filename, cacheKey, downloadUrl
         });
-
-        if (!alreadyCompleted) {
-            createJob(taskId);
-        }
 
         const responseStatus = alreadyCompleted ? 'success' : 'queued';
         metricsService.recordDxfRequest('generated');

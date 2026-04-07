@@ -7,6 +7,19 @@ export interface GeoLocation {
 }
 
 export class GeocodingService {
+    private static isSingleNumericInput(query: string): boolean {
+        const normalized = query
+            .trim()
+            .replace(/\(([^)]+)\)/g, '$1')
+            .replace(/(\d),(\d)/g, '$1.$2')
+            .replace(/;/g, ' ')
+            .replace(/,/g, ' ')
+            .replace(/\s+/g, ' ');
+
+        const numbers = normalized.match(/[-+]?\d+(?:\.\d+)?/g) ?? [];
+        return numbers.length === 1 && /^[-+]?\d+(?:\.\d+)?$/.test(normalized);
+    }
+
     private static normalizeText(value: string): string {
         return value
             .normalize('NFD')
@@ -182,6 +195,10 @@ export class GeocodingService {
      * Resolves a query string into coordinates using explicit parsing only.
      */
     static async resolveLocation(query: string): Promise<GeoLocation | null> {
+        if (this.isSingleNumericInput(query)) {
+            return null;
+        }
+
         // 0. Try direct lat/lng
         const latLng = this.parseLatLng(query);
         if (latLng) {

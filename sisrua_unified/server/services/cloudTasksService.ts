@@ -1,274 +1,354 @@
-import { CloudTasksClient } from '@google-cloud/tasks';
-import { logger } from '../utils/logger.js';
+import postgres from 'postgres';
 import { v4 as uuidv4 } from 'uuid';
-import { generateDxf } from '../pythonBridge.js';
-import { completeJob, failJob, updateJobStatus, createJob } from './jobStatusService.js';
-import { scheduleDxfDeletion } from './dxfCleanupService.js';
 import fs from 'fs';
 import path from 'path';
-
-// Environment variables
-const GCP_PROJECT = process.env.GCP_PROJECT || '';
-// Prefer explicit project number envs (GCP_PROJECT_NUMBER > GOOGLE_CLOUD_PROJECT_NUMBER > PROJECT_NUMBER)
-const GCP_PROJECT_NUMBER = process.env.GCP_PROJECT_NUMBER || process.env.GOOGLE_CLOUD_PROJECT_NUMBER || process.env.PROJECT_NUMBER || '';
-const CLOUD_TASKS_LOCATION = process.env.CLOUD_TASKS_LOCATION || 'southamerica-east1';
-const CLOUD_TASKS_QUEUE = process.env.CLOUD_TASKS_QUEUE || 'sisrua-queue';
-const CLOUD_RUN_BASE_URL = process.env.CLOUD_RUN_BASE_URL || 'http://localhost:3001';
-const NODE_ENV = process.env.NODE_ENV || 'development';
-const IS_DEVELOPMENT = NODE_ENV === 'development' || !GCP_PROJECT;
-/*
- * Default service account patterns:
- * - Compute Engine default ({PROJECT_NUMBER}-compute@developer.gserviceaccount.com) used by Cloud Run when not customized
- * - App Engine default ({PROJECT_ID}@appspot.gserviceaccount.com) kept for legacy deployments
- */
-const DEFAULT_COMPUTE_SERVICE_ACCOUNT = GCP_PROJECT_NUMBER ? `${GCP_PROJECT_NUMBER}-compute@developer.gserviceaccount.com` : '';
-const DEFAULT_APPSPOT_SERVICE_ACCOUNT = GCP_PROJECT ? `${GCP_PROJECT}@appspot.gserviceaccount.com` : '';
-// Priority: explicit override > Cloud Run service account > compute default (preferred) > appspot legacy
-const RESOLVED_SERVICE_ACCOUNT_EMAIL = [
-    process.env.CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL,
-    process.env.CLOUD_RUN_SERVICE_ACCOUNT,
-    DEFAULT_COMPUTE_SERVICE_ACCOUNT,
-    DEFAULT_APPSPOT_SERVICE_ACCOUNT
-].find(Boolean) || '';
-// Validation happens in createDxfTask to keep development mode (without GCP vars) working.
-
-// gRPC error codes
-const GRPC_NOT_FOUND_CODE = 5;
-const GRPC_PERMISSION_DENIED_CODE = 7;
-
-// Initialize Cloud Tasks client
-const tasksClient = new CloudTasksClient();
+import { logger } from '../utils/logger.js';
+import { generateDxf } from '../pythonBridge.js';
+import { completeJob, createJob, failJob, updateJobStatus } from './jobStatusService.js';
+import { scheduleDxfDeletion } from './dxfCleanupService.js';
+import { config } from '../config.js';
 
 export interface DxfTaskPayload {
-    taskId: string;
-    lat: number;
-    lon: number;
-    radius: number;
-    mode: string;
-    polygon: string;
-    layers: Record<string, unknown>;
-    projection: string;
-    contourRenderMode: 'spline' | 'polyline';
-    btContext?: Record<string, unknown> | null;
-    outputFile: string;
-    filename: string;
-    cacheKey: string;
-    downloadUrl: string;
-}
-
-function persistBtContextSidecar(outputFile: string, btContext: Record<string, unknown> | null | undefined): string | null {
-    if (!btContext || Object.keys(btContext).length === 0) {
-        return null;
-    }
-
-    const ext = path.extname(outputFile);
-    const base = ext ? outputFile.slice(0, -ext.length) : outputFile;
-    const sidecarPath = `${base}_bt_context.json`;
-
-    const payload = {
-        generatedAt: new Date().toISOString(),
-        btContext
-    };
-
-    fs.writeFileSync(sidecarPath, JSON.stringify(payload, null, 2), 'utf-8');
-    return sidecarPath;
+  taskId: string;
+  lat: number;
+  lon: number;
+  radius: number;
+  mode: string;
+  polygon: string;
+  layers: Record<string, unknown>;
+  projection: string;
+  contourRenderMode: 'spline' | 'polyline';
+  btContext?: Record<string, unknown> | null;
+  outputFile: string;
+  filename: string;
+  cacheKey: string;
+  downloadUrl: string;
 }
 
 export interface TaskCreationResult {
-    taskId: string;
-    taskName: string;
-    alreadyCompleted?: boolean;  // For dev mode where DXF is generated immediately
+  taskId: string;
+  taskName: string;
+  alreadyCompleted?: boolean;
 }
 
-/**
- * Creates a Cloud Task to process DXF generation
- * In development mode (when GCP_PROJECT is not set), generates DXF directly
- */
-export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Promise<TaskCreationResult> {
-    const taskId = uuidv4();
-    const fullPayload: DxfTaskPayload = {
-        taskId,
-        ...payload
-    };
+type QueueRow = {
+  task_id: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  payload: DxfTaskPayload;
+  attempts: number;
+};
 
-    // Development mode: Generate DXF asynchronously (background)
-    if (IS_DEVELOPMENT) {
-        logger.info('Development mode: Starting async DXF generation', {
-            taskId,
-            cacheKey: payload.cacheKey
-        });
+const MAX_ATTEMPTS = 3;
+const WORKER_INTERVAL_MS = 2_000;
 
-        // Create job for tracking
-        createJob(taskId);
-        updateJobStatus(taskId, 'processing', 10);
+let sqlClient: ReturnType<typeof postgres> | null = null;
+let postgresAvailable = false;
+let queueInitialized = false;
+let workerStarted = false;
+let workerInterval: NodeJS.Timeout | null = null;
+let workerBusy = false;
 
-        // Run DXF generation in background (don't await)
-        generateDxf({
-            lat: payload.lat,
-            lon: payload.lon,
-            radius: payload.radius,
-            mode: payload.mode,
-            polygon: payload.polygon,
-            layers: payload.layers as Record<string, boolean>,
-            projection: payload.projection,
-            contourRenderMode: payload.contourRenderMode,
-            btContext: payload.btContext ?? null,
-            outputFile: payload.outputFile
-        }).then(() => {
-            const btContextSidecarPath = persistBtContextSidecar(payload.outputFile, payload.btContext);
-            const btContextUrl = btContextSidecarPath
-                ? payload.downloadUrl.replace(/\.dxf$/i, '_bt_context.json')
-                : undefined;
+function persistBtContextSidecar(outputFile: string, btContext: Record<string, unknown> | null | undefined): string | null {
+  if (!btContext || Object.keys(btContext).length === 0) {
+    return null;
+  }
 
-            // Schedule DXF file for deletion after 10 minutes
-            scheduleDxfDeletion(payload.outputFile);
+  const ext = path.extname(outputFile);
+  const base = ext ? outputFile.slice(0, -ext.length) : outputFile;
+  const sidecarPath = `${base}_bt_context.json`;
+  const payload = {
+    generatedAt: new Date().toISOString(),
+    btContext
+  };
 
-            // Mark job as completed
-            completeJob(taskId, {
-                url: payload.downloadUrl,
-                filename: payload.filename,
-                btContextUrl
-            });
+  fs.writeFileSync(sidecarPath, JSON.stringify(payload, null, 2), 'utf-8');
+  return sidecarPath;
+}
 
-            logger.info('DXF generation completed (dev mode)', {
-                taskId,
-                filename: payload.filename,
-                btContextSidecarPath,
-                cacheKey: payload.cacheKey
-            });
-        }).catch((error: any) => {
-            logger.error('DXF generation failed in dev mode', {
-                taskId,
-                error: error.message,
-                stack: error.stack
-            });
-            failJob(taskId, error.message);
-        });
+async function initializeQueuePersistence(): Promise<void> {
+  if (queueInitialized) {
+    return;
+  }
+  queueInitialized = true;
 
-        // Return immediately with taskId (DXF is being generated in background)
-        return {
-            taskId,
-            taskName: `dev-task-${taskId}`,
-            alreadyCompleted: false
-        };
+  if (!config.DATABASE_URL) {
+    logger.warn('Queue persistence disabled: DATABASE_URL not configured');
+    return;
+  }
+
+  try {
+    sqlClient = postgres(config.DATABASE_URL, {
+      ssl: 'require',
+      max: 2,
+      connect_timeout: 8,
+      idle_timeout: 10
+    });
+
+    await sqlClient.unsafe(`
+      create table if not exists dxf_tasks (
+        task_id text primary key,
+        status text not null,
+        payload jsonb not null,
+        attempts integer not null default 0,
+        error text,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now(),
+        started_at timestamptz,
+        finished_at timestamptz
+      )
+    `);
+
+    postgresAvailable = true;
+    logger.info('DXF queue persistence enabled (Supabase/Postgres)');
+  } catch (error) {
+    postgresAvailable = false;
+    logger.warn('DXF queue persistence unavailable, using local async fallback', { error });
+    if (sqlClient) {
+      await sqlClient.end({ timeout: 3 }).catch(() => undefined);
+      sqlClient = null;
     }
+  }
+}
 
-    // Production mode: Use Cloud Tasks
-    if (!RESOLVED_SERVICE_ACCOUNT_EMAIL) {
-        const errorMsg = 'Cloud Tasks service account email not configured. Set CLOUD_TASKS_SERVICE_ACCOUNT_EMAIL, CLOUD_RUN_SERVICE_ACCOUNT, or provide GCP_PROJECT_NUMBER/GCP_PROJECT for defaults.';
-        logger.error('Missing Cloud Tasks service account email', { error: errorMsg });
-        throw new Error(errorMsg);
+async function markTaskState(taskId: string, status: QueueRow['status'], error?: string): Promise<void> {
+  if (!postgresAvailable || !sqlClient) {
+    return;
+  }
+
+  await sqlClient.unsafe(
+    `
+      update dxf_tasks
+      set status = $2,
+          error = $3,
+          updated_at = now(),
+          finished_at = case when $2 in ('completed','failed') then now() else finished_at end
+      where task_id = $1
+    `,
+    [taskId, status, error ?? null]
+  );
+}
+
+async function processPayload(payload: DxfTaskPayload): Promise<void> {
+  await updateJobStatus(payload.taskId, 'processing', 15);
+
+  await generateDxf({
+    lat: payload.lat,
+    lon: payload.lon,
+    radius: payload.radius,
+    mode: payload.mode,
+    polygon: payload.polygon,
+    layers: payload.layers as Record<string, boolean>,
+    projection: payload.projection,
+    contourRenderMode: payload.contourRenderMode,
+    btContext: payload.btContext ?? null,
+    outputFile: payload.outputFile
+  });
+
+  const btContextSidecarPath = persistBtContextSidecar(payload.outputFile, payload.btContext);
+  const btContextUrl = btContextSidecarPath
+    ? payload.downloadUrl.replace(/\.dxf$/i, '_bt_context.json')
+    : undefined;
+
+  scheduleDxfDeletion(payload.outputFile);
+
+  await completeJob(payload.taskId, {
+    url: payload.downloadUrl,
+    filename: payload.filename,
+    btContextUrl
+  });
+}
+
+async function pickNextTask(): Promise<QueueRow | null> {
+  if (!postgresAvailable || !sqlClient) {
+    return null;
+  }
+
+  const rows = await sqlClient.unsafe(
+    `
+      with next_task as (
+        select task_id
+        from dxf_tasks
+        where status = 'queued'
+        order by created_at asc
+        limit 1
+      )
+      update dxf_tasks t
+      set status = 'processing',
+          updated_at = now(),
+          started_at = now(),
+          attempts = attempts + 1
+      from next_task
+      where t.task_id = next_task.task_id
+      returning t.task_id, t.status, t.payload, t.attempts
+    `
+  ) as QueueRow[];
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return rows[0];
+}
+
+async function processNextTask(): Promise<void> {
+  if (!postgresAvailable || !sqlClient || workerBusy) {
+    return;
+  }
+
+  workerBusy = true;
+  try {
+    const task = await pickNextTask();
+    if (!task) {
+      return;
     }
-
-    const parent = tasksClient.queuePath(GCP_PROJECT, CLOUD_TASKS_LOCATION, CLOUD_TASKS_QUEUE);
-    
-    // Construct the webhook URL
-    const url = `${CLOUD_RUN_BASE_URL}/api/tasks/process-dxf`;
-    
-    // Prepare the task
-    // Note: We omit serviceAccountEmail to use the Cloud Run service's default compute service account
-    // This is the recommended approach and avoids hardcoding service account emails
-    const task = {
-        httpRequest: {
-            httpMethod: 'POST' as const,
-            url,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: Buffer.from(JSON.stringify(fullPayload)).toString('base64'),
-            oidcToken: {
-                serviceAccountEmail: RESOLVED_SERVICE_ACCOUNT_EMAIL
-            },
-        },
-    };
 
     try {
-        logger.info('Creating Cloud Task for DXF generation', {
-            taskId,
-            queueName: parent,
-            url,
-            cacheKey: payload.cacheKey
-        });
-
-        const [response] = await tasksClient.createTask({ parent, task });
-        const taskName = response.name || '';
-
-        logger.info('Cloud Task created successfully', {
-            taskId,
-            taskName,
-            cacheKey: payload.cacheKey
-        });
-
-        return {
-            taskId,
-            taskName
-        };
+      await processPayload(task.payload);
+      await markTaskState(task.task_id, 'completed');
+      logger.info('DXF task processed', { taskId: task.task_id, cacheKey: task.payload.cacheKey });
     } catch (error: any) {
-        logger.error('Failed to create Cloud Task', {
-            taskId,
-            error: error.message,
-            errorCode: error.code,
-            stack: error.stack,
-            queueName: parent,
-            gcpProject: GCP_PROJECT,
-            location: CLOUD_TASKS_LOCATION,
-            queue: CLOUD_TASKS_QUEUE
-        });
-        
-        // Check for permission denied errors (check code first for efficiency)
-        if (error.code === GRPC_PERMISSION_DENIED_CODE || error.message?.includes('PERMISSION_DENIED')) {
-            // Cloud Run uses the default compute service account
-            // Format: {PROJECT_NUMBER}-compute@developer.gserviceaccount.com
-            const errorMsg = `Permission denied to access Cloud Tasks queue '${CLOUD_TASKS_QUEUE}'. ` +
-                           `The Cloud Run service account (default compute service account) needs the following roles:\n` +
-                           `1. roles/cloudtasks.enqueuer - To create tasks in the queue\n` +
-                           `2. roles/run.invoker - To invoke the Cloud Run webhook\n\n` +
-                           `To find your service account:\n` +
-                           `gcloud projects describe ${GCP_PROJECT} --format="value(projectNumber)"\n\n` +
-                           `The service account format is: {PROJECT_NUMBER}-compute@developer.gserviceaccount.com\n\n` +
-                           `Grant permissions using:\n` +
-                           `gcloud projects add-iam-policy-binding ${GCP_PROJECT} --member="serviceAccount:{PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --role="roles/cloudtasks.enqueuer"\n` +
-                           `gcloud run services add-iam-policy-binding sisrua-app --region=${CLOUD_TASKS_LOCATION} --member="serviceAccount:{PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --role="roles/run.invoker"\n\n` +
-                           `See .github/IAM_SETUP_REQUIRED.md for detailed instructions.`;
-            logger.error('Cloud Tasks permission denied', { 
-                queue: parent,
-                expectedServiceAccountFormat: '{PROJECT_NUMBER}-compute@developer.gserviceaccount.com',
-                suggestion: errorMsg 
-            });
-            throw new Error(errorMsg);
-        }
-        
-        // Provide more specific error message for missing queue
-        if (error.message?.includes('NOT_FOUND') || error.code === GRPC_NOT_FOUND_CODE) {
-            const errorMsg = `Cloud Tasks queue '${CLOUD_TASKS_QUEUE}' not found in project '${GCP_PROJECT}' at location '${CLOUD_TASKS_LOCATION}'. ` +
-                           `Please verify that:\n` +
-                           `1. The queue exists: gcloud tasks queues describe ${CLOUD_TASKS_QUEUE} --location=${CLOUD_TASKS_LOCATION} --project=${GCP_PROJECT}\n` +
-                           `2. The GCP_PROJECT environment variable is set correctly (current value: '${GCP_PROJECT}')\n` +
-                           `3. The service account has permission to access the queue\n\n` +
-                           `If the queue doesn't exist, create it using:\n` +
-                           `gcloud tasks queues create ${CLOUD_TASKS_QUEUE} --location=${CLOUD_TASKS_LOCATION} --project=${GCP_PROJECT}`;
-            logger.error('Cloud Tasks queue does not exist', { 
-                queue: parent,
-                suggestion: errorMsg 
-            });
-            throw new Error(errorMsg);
-        }
-        
-        throw new Error(`Failed to create Cloud Task: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      await failJob(task.task_id, message);
+
+      const nextState: QueueRow['status'] = task.attempts >= MAX_ATTEMPTS ? 'failed' : 'queued';
+      if (nextState === 'queued') {
+        await sqlClient.unsafe(
+          `
+            update dxf_tasks
+            set status = 'queued', error = $2, updated_at = now()
+            where task_id = $1
+          `,
+          [task.task_id, message]
+        );
+      } else {
+        await markTaskState(task.task_id, 'failed', message);
+      }
+
+      logger.error('DXF task processing failed', {
+        taskId: task.task_id,
+        attempts: task.attempts,
+        error: message,
+        nextState
+      });
     }
+  } finally {
+    workerBusy = false;
+  }
+}
+
+function startWorkerIfNeeded(): void {
+  if (workerStarted || process.env.NODE_ENV === 'test') {
+    return;
+  }
+
+  workerStarted = true;
+  workerInterval = setInterval(() => {
+    processNextTask().catch((error) => {
+      logger.error('DXF queue worker cycle failed', { error });
+    });
+  }, WORKER_INTERVAL_MS);
+
+  logger.info('DXF queue worker started', { intervalMs: WORKER_INTERVAL_MS });
+}
+
+export function stopTaskWorker(): void {
+  if (workerInterval) {
+    clearInterval(workerInterval);
+    workerInterval = null;
+  }
+  workerStarted = false;
+
+  if (sqlClient) {
+    sqlClient.end({ timeout: 3 }).catch(() => undefined);
+    sqlClient = null;
+  }
+
+  postgresAvailable = false;
+  queueInitialized = false;
 }
 
 /**
- * Get task status (for compatibility with old job status endpoint)
- * Note: Cloud Tasks doesn't provide easy status checking after task is dispatched,
- * so we'll need to implement our own tracking mechanism
+ * Creates a queued DXF task.
+ * Uses Supabase/Postgres persistence when available.
+ * Falls back to local async processing when DB is unavailable.
  */
-export async function getTaskStatus(taskId: string): Promise<any> {
-    // This is a placeholder - we'll implement proper status tracking
-    // using an in-memory store or database
+export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Promise<TaskCreationResult> {
+  const taskId = uuidv4();
+  const fullPayload: DxfTaskPayload = {
+    taskId,
+    ...payload
+  };
+
+  // Create the job as close as possible to queueing to avoid state races.
+  createJob(taskId);
+
+  await initializeQueuePersistence();
+  startWorkerIfNeeded();
+
+  if (postgresAvailable && sqlClient) {
+    await sqlClient.unsafe(
+      `
+        insert into dxf_tasks (task_id, status, payload, attempts, updated_at)
+        values ($1, 'queued', $2::jsonb, 0, now())
+      `,
+      [taskId, JSON.stringify(fullPayload)]
+    );
+
+    logger.info('DXF task queued in Supabase/Postgres', {
+      taskId,
+      cacheKey: payload.cacheKey
+    });
+
     return {
-        taskId,
-        status: 'unknown',
-        message: 'Task status tracking not yet implemented'
+      taskId,
+      taskName: `pg-task-${taskId}`,
+      alreadyCompleted: false
     };
+  }
+
+  // Local fallback keeps the API alive without hard dependency on Cloud Tasks/GCP.
+  setTimeout(() => {
+    processPayload(fullPayload).catch(async (error: any) => {
+      const message = error instanceof Error ? error.message : String(error);
+      await failJob(taskId, message);
+      logger.error('Local fallback DXF task failed', { taskId, error: message });
+    });
+  }, 0);
+
+  logger.warn('DXF task queued with local async fallback', { taskId, cacheKey: payload.cacheKey });
+
+  return {
+    taskId,
+    taskName: `local-task-${taskId}`,
+    alreadyCompleted: false
+  };
+}
+
+export async function getTaskStatus(taskId: string): Promise<{ taskId: string; status: string; message?: string }> {
+  if (!postgresAvailable || !sqlClient) {
+    return {
+      taskId,
+      status: 'unknown',
+      message: 'Queue persistence unavailable'
+    };
+  }
+
+  const rows = await sqlClient.unsafe(
+    `select status, error from dxf_tasks where task_id = $1 limit 1`,
+    [taskId]
+  ) as Array<{ status: string; error: string | null }>;
+
+  if (rows.length === 0) {
+    return {
+      taskId,
+      status: 'not_found',
+      message: 'Task not found'
+    };
+  }
+
+  return {
+    taskId,
+    status: rows[0].status,
+    ...(rows[0].error ? { message: rows[0].error } : {})
+  };
 }

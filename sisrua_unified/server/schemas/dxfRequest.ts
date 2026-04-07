@@ -115,11 +115,28 @@ const btContextSchema = z.object({
     cqtComputationInputs: cqtComputationInputsSchema.optional()
 });
 
+// polygon: accepts a JSON string or a coordinate array; max 500 points to prevent DoS
+const polygonSchema = z
+    .union([
+        z.string().max(50_000),                        // serialized JSON string
+        z.array(z.tuple([z.number(), z.number()])).max(500)  // [[lon,lat], ...]
+    ])
+    .nullish();
+
+// layers: keys must be plain identifiers, values coerced to bool/unknown
+const layersSchema = z
+    .record(z.string().max(64).regex(/^[\w-]+$/), z.unknown())
+    .nullish();
+
 const dxfRequestSchema = z.object({
     lat: z.coerce.number().min(-90).max(90),
     lon: z.coerce.number().min(-180).max(180),
     radius: z.coerce.number().min(10).max(5000),
     mode: z.enum(['circle', 'polygon', 'bbox']),
+    projection: z.string().max(32).regex(/^[\w-]+$/).optional(),
+    contourRenderMode: z.enum(['spline', 'polyline']).optional(),
+    polygon: polygonSchema,
+    layers: layersSchema,
     btContext: btContextSchema.nullish()
 });
 
