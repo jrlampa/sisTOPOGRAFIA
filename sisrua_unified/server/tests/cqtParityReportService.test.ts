@@ -1,21 +1,10 @@
 import { CQT_BASELINE_TARGETS } from '../constants/cqtBaselineTargets';
-import { buildCqtParityReport } from '../services/cqtParityReportService';
+import { buildCqtParityReport, buildCqtParityReportSuite } from '../services/cqtParityReportService';
+import { CQT_PARITY_WORKBOOK_FIXTURE } from './fixtures/cqtParityWorkbookFixture';
 
 describe('cqtParityReportService.buildCqtParityReport', () => {
     it('reports all baseline cells as pass for scenario atual', () => {
-        const report = buildCqtParityReport('atual', {
-            dmdi: { dmdi: CQT_BASELINE_TARGETS.ramal.aa30Dmdi },
-            geral: {
-                p31CqtNoPonto: CQT_BASELINE_TARGETS.geralAtual.p31CqtNoPonto,
-                p32CqtNoPonto: CQT_BASELINE_TARGETS.geralAtual.p32CqtNoPonto
-            },
-            db: {
-                k6TrAtual: CQT_BASELINE_TARGETS.db.k6TrAtual,
-                k7DemAtual: CQT_BASELINE_TARGETS.db.k7DemAtual,
-                k8QtTr: CQT_BASELINE_TARGETS.db.k8QtTr,
-                k10QtMttr: CQT_BASELINE_TARGETS.db.k10QtMttr
-            }
-        });
+        const report = buildCqtParityReport('atual', CQT_PARITY_WORKBOOK_FIXTURE.atual);
 
         expect(report.scenario).toBe('atual');
         expect(report.referenceCells).toBe(7);
@@ -27,12 +16,7 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
     });
 
     it('reports proj1 expected cells for GERAL PROJ targets', () => {
-        const report = buildCqtParityReport('proj1', {
-            geral: {
-                p31CqtNoPonto: CQT_BASELINE_TARGETS.geralProj1.p31CqtNoPonto,
-                p32CqtNoPonto: CQT_BASELINE_TARGETS.geralProj1.p32CqtNoPonto
-            }
-        });
+        const report = buildCqtParityReport('proj1', CQT_PARITY_WORKBOOK_FIXTURE.proj1);
 
         expect(report.scenario).toBe('proj1');
         expect(report.referenceCells).toBe(2);
@@ -55,12 +39,7 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
     });
 
     it('marks proj2 as missing reference while no baseline cells are mapped', () => {
-        const report = buildCqtParityReport('proj2', {
-            geral: {
-                p31CqtNoPonto: 120,
-                p32CqtNoPonto: 119
-            }
-        });
+        const report = buildCqtParityReport('proj2', CQT_PARITY_WORKBOOK_FIXTURE.proj2);
 
         expect(report.referenceCells).toBe(0);
         expect(report.referenceStatus).toBe('missing');
@@ -68,5 +47,18 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
         expect(report.failed).toBe(0);
         expect(report.passed).toBe(0);
         expect(report.skipped).toHaveLength(0);
+    });
+
+    it('builds consolidated suite report across atual/proj1/proj2', () => {
+        const suite = buildCqtParityReportSuite(CQT_PARITY_WORKBOOK_FIXTURE);
+
+        expect(suite.reports).toHaveLength(3);
+        expect(suite.totals.scenarios).toBe(3);
+        expect(suite.totals.complete).toBe(2);
+        expect(suite.totals.partial).toBe(0);
+        expect(suite.totals.missing).toBe(1);
+        expect(suite.totals.compared).toBe(9);
+        expect(suite.totals.failed).toBe(0);
+        expect(suite.totals.passed).toBe(9);
     });
 });

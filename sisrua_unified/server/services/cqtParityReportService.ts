@@ -32,6 +32,21 @@ export interface CqtScenarioParityReport {
     diffs: CqtCellDiff[];
 }
 
+export interface CqtParityReportSuite {
+    reports: CqtScenarioParityReport[];
+    totals: {
+        scenarios: number;
+        complete: number;
+        partial: number;
+        missing: number;
+        compared: number;
+        passed: number;
+        failed: number;
+    };
+}
+
+const CQT_SCENARIOS: CqtScenario[] = ['atual', 'proj1', 'proj2'];
+
 const EXPECTED_BY_SCENARIO: Record<CqtScenario, Partial<Record<string, number>>> = {
     atual: {
         'RAMAL!AA30': CQT_BASELINE_TARGETS.ramal.aa30Dmdi,
@@ -112,5 +127,47 @@ export const buildCqtParityReport = (
         failed,
         skipped,
         diffs
+    };
+};
+
+export const buildCqtParityReportSuite = (
+    snapshotsByScenario: Partial<Record<CqtScenario, CqtSnapshotComparable>>,
+    tolerance = CQT_BASELINE_TARGETS.tolerance
+): CqtParityReportSuite => {
+    const reports = CQT_SCENARIOS.map((scenario) =>
+        buildCqtParityReport(scenario, snapshotsByScenario[scenario] ?? {}, tolerance)
+    );
+
+    const totals = reports.reduce(
+        (acc, report) => {
+            acc.scenarios += 1;
+            acc.compared += report.compared;
+            acc.passed += report.passed;
+            acc.failed += report.failed;
+
+            if (report.referenceStatus === 'complete') {
+                acc.complete += 1;
+            } else if (report.referenceStatus === 'partial') {
+                acc.partial += 1;
+            } else {
+                acc.missing += 1;
+            }
+
+            return acc;
+        },
+        {
+            scenarios: 0,
+            complete: 0,
+            partial: 0,
+            missing: 0,
+            compared: 0,
+            passed: 0,
+            failed: 0
+        }
+    );
+
+    return {
+        reports,
+        totals
     };
 };
