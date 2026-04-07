@@ -1,4 +1,4 @@
-import { excelIfError, excelVLookupExact } from './cqtLookupService.js';
+import { excelIfError, excelVLookupApprox, excelVLookupExact } from './cqtLookupService.js';
 
 export interface DmdiInput {
     clandestinoEnabled: boolean;
@@ -129,5 +129,115 @@ export const calculateDbIndicators = (input: DbIndicatorsInput): DbIndicatorsRes
         k8QtTr,
         k10QtMttr: input.qtMt + k8QtTr
     };
+};
+
+export type CqtFase = 'MONO' | 'BIF' | 'TRI';
+
+export interface IbInput {
+    fase: CqtFase;
+    acumuladaKva: number;
+    eta: number;
+    tensaoTrifasicaV: number;
+}
+
+/**
+ * Workbook parity (ESQ/DIR coluna Ib):
+ * MONO: ACUMULADA*1000/(220*ETA)
+ * BIF/TRI: ACUMULADA*1000/(SQRT(3)*V*ETA)
+ */
+export const calculateIb = (input: IbInput): number => {
+    return excelIfError(() => {
+        if (input.eta <= 0) {
+            throw new Error('Invalid ETA');
+        }
+
+        if (input.fase === 'MONO') {
+            return (input.acumuladaKva * 1000) / (220 * input.eta);
+        }
+
+        return (input.acumuladaKva * 1000) / (Math.sqrt(3) * input.tensaoTrifasicaV * input.eta);
+    }, 0);
+};
+
+export interface DisjuntorLookupRow {
+    ib: number;
+    disjuntor: number;
+}
+
+export const lookupDisjuntorIn = (ib: number, table: DisjuntorLookupRow[]): number => {
+    return excelIfError(() => {
+        const result = excelVLookupApprox(table, ib, 'ib', 'disjuntor');
+        if (typeof result !== 'number' || !Number.isFinite(result)) {
+            throw new Error('Invalid disjuntor value');
+        }
+
+        return result;
+    }, 0);
+};
+
+export interface CaboLookupRow {
+    name: string;
+    ampacity: number;
+    resistance: number;
+    reactance: number;
+    alpha: number;
+    divisorR: number;
+}
+
+export interface CaboElectricalData {
+    iz: number;
+    resistance: number;
+    reactance: number;
+    alpha: number;
+    divisorR: number;
+}
+
+export const lookupCaboElectricalData = (
+    conductorName: string,
+    table: CaboLookupRow[]
+): CaboElectricalData => {
+    return excelIfError(() => {
+        const row = excelVLookupExact(table, conductorName, 'name', 'name');
+        if (typeof row !== 'string') {
+            throw new Error('Invalid cable lookup row');
+        }
+
+        const found = table.find((item) => item.name === row);
+        if (!found) {
+            throw new Error('Cable row missing after lookup');
+        }
+
+        return {
+            iz: found.ampacity,
+            resistance: found.resistance,
+            reactance: found.reactance,
+            alpha: found.alpha,
+            divisorR: found.divisorR
+        };
+    }, {
+        iz: 0,
+        resistance: 0,
+        reactance: 0,
+        alpha: 0,
+        divisorR: 0
+    });
+};
+
+export interface ProtectionResult {
+    inBreaker: number;
+    izCable: number;
+    status: 'OK' | 'VERIFICAR';
+}
+
+/**
+ * Workbook parity (PROTECAO): IF(AND(Ib<=In, In<=Iz),"OK","VERIFICAR")
+ */
+export const evaluateProtection = (
+    ib: number,
+    inBreaker: number,
+    izCable: number
+): ProtectionResult => {
+    const status = ib <= inBreaker && inBreaker <= izCable ? 'OK' : 'VERIFICAR';
+    return { inBreaker, izCable, status };
 };
 
