@@ -11,6 +11,7 @@ import { dxfRequestSchema } from '../schemas/dxfRequest.js';
 import { dxfRateLimiter } from '../middleware/rateLimiter.js';
 import { metricsService } from '../services/metricsService.js';
 import { config } from '../config.js';
+import { attachCqtSnapshotToBtContext } from '../services/cqtContextService.js';
 import path from 'path';
 import fs from 'fs';
 
@@ -35,8 +36,9 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Invalid request body', details: validation.error.issues });
         }
 
-        const { lat, lon, radius, mode } = validation.data;
-        const { polygon, layers, projection, contourRenderMode, btContext } = req.body;
+        const { lat, lon, radius, mode, btContext: validatedBtContext } = validation.data;
+        const { polygon, layers, projection, contourRenderMode } = req.body;
+        const btContext = attachCqtSnapshotToBtContext(validatedBtContext ?? req.body.btContext);
         const resolvedContourRenderMode = contourRenderMode === 'polyline' ? 'polyline' : 'spline';
         const resolvedMode = mode || 'circle';
         const cacheKey = createCacheKey({
@@ -83,6 +85,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
             projection: projection || 'local',
             contourRenderMode: resolvedContourRenderMode,
             hasBtContext: !!btContext,
+            hasCqtSnapshot: !!(btContext && typeof btContext === 'object' && 'cqtSnapshot' in btContext),
             cacheKey
         });
 

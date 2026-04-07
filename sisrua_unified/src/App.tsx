@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Map as MapIcon, Layers, Search, Loader2, AlertCircle, Settings, Mountain, TrendingUp } from 'lucide-react';
-import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario } from './types';
+import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario, BtCqtComputationInputs } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
 import MapSelector from './components/MapSelector';
 import Dashboard from './components/Dashboard';
@@ -23,6 +23,7 @@ import { useElevationProfile } from './hooks/useElevationProfile';
 import { useAutoSave, loadSessionDraft, clearSessionDraft } from './hooks/useAutoSave';
 import {
   calculateAccumulatedDemandByPole,
+  calculateClandestinoDemandKvaByAreaAndClients,
   getClandestinoAreaRange,
   getClandestinoClientsRange,
   getClandestinoDiversificationFactorByClients,
@@ -1263,6 +1264,36 @@ function App() {
       settings.clandestinoAreaM2 ?? 0
     );
 
+    const totalClientsX = btTopology.poles.reduce((sum, pole) => {
+      const poleClients = (pole.ramais ?? []).reduce((poleSum, ramal) => {
+        const isClandestino = (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE;
+        if ((settings.projectType ?? 'ramais') === 'clandestino') {
+          return isClandestino ? poleSum + ramal.quantity : poleSum;
+        }
+
+        return isClandestino ? poleSum : poleSum + ramal.quantity;
+      }, 0);
+
+      return sum + poleClients;
+    }, 0);
+
+    const aa24DemandBase = btTopology.transformers.reduce((sum, transformer) => sum + (transformer.demandKw ?? 0), 0);
+    const ab35LookupDmdi = calculateClandestinoDemandKvaByAreaAndClients(
+      settings.clandestinoAreaM2 ?? 0,
+      totalClientsX
+    );
+
+    const cqtScenario = btNetworkScenario === 'proj1' || btNetworkScenario === 'proj2' ? btNetworkScenario : 'atual';
+    const cqtComputationInputs: BtCqtComputationInputs = {
+      scenario: cqtScenario,
+      dmdi: {
+        clandestinoEnabled: (settings.projectType ?? 'ramais') === 'clandestino',
+        aa24DemandBase,
+        sumClientsX: totalClientsX,
+        ab35LookupDmdi
+      }
+    };
+
     const btContext = {
       projectType: settings.projectType ?? 'ramais',
       btNetworkScenario,
@@ -1275,6 +1306,7 @@ function App() {
       verifiedEdges: btTopology.edges.filter((item) => item.verified).length,
       accumulatedByPole: btAccumulated,
       criticalPole: btAccumulated[0] ?? null,
+      cqtComputationInputs,
       topology: settings.layers.btNetwork
         ? {
             poles: btTopology.poles.map((pole) => ({

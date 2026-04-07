@@ -110,7 +110,20 @@ export type SimplificationLevel = 'off' | 'low' | 'medium' | 'high';
 export type ContourRenderMode = 'spline' | 'polyline';
 export type BtProjectType = 'ramais' | 'geral' | 'clandestino';
 export type BtEditorMode = 'none' | 'move-pole' | 'add-pole' | 'add-transformer' | 'add-edge';
-export type BtNetworkScenario = 'asis' | 'projeto';
+export type BtNetworkScenario = 'asis' | 'projeto' | 'proj1' | 'proj2';
+export type BtCqtScenario = 'atual' | 'proj1' | 'proj2';
+
+export interface BtCqtDmdiInputs {
+  clandestinoEnabled: boolean;
+  aa24DemandBase: number;
+  sumClientsX: number;
+  ab35LookupDmdi: number;
+}
+
+export interface BtCqtComputationInputs {
+  scenario: BtCqtScenario;
+  dmdi?: BtCqtDmdiInputs;
+}
 
 export interface BtRamalEntry {
   id: string;
