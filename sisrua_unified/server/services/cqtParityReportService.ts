@@ -46,6 +46,8 @@ export interface CqtParityReportSuite {
     };
 }
 
+export type CqtExpectedByScenario = Partial<Record<CqtScenario, Partial<Record<string, number | null>>>>;
+
 export const isCqtParitySuiteComplete = (suite: CqtParityReportSuite): boolean => {
     if (suite.totals.failed > 0) {
         return false;
@@ -60,7 +62,7 @@ export const isCqtParitySuiteComplete = (suite: CqtParityReportSuite): boolean =
 
 const CQT_SCENARIOS: CqtScenario[] = ['atual', 'proj1', 'proj2'];
 
-const EXPECTED_BY_SCENARIO: Record<CqtScenario, Partial<Record<string, number | null>>> = {
+const DEFAULT_EXPECTED_BY_SCENARIO: Record<CqtScenario, Partial<Record<string, number | null>>> = {
     atual: {
         'RAMAL!AA30': CQT_BASELINE_TARGETS.ramal.aa30Dmdi,
         'GERAL!P31': CQT_BASELINE_TARGETS.geralAtual.p31CqtNoPonto,
@@ -81,6 +83,35 @@ const EXPECTED_BY_SCENARIO: Record<CqtScenario, Partial<Record<string, number | 
     }
 };
 
+const mergeExpectedByScenario = (
+    overrides?: CqtExpectedByScenario
+): Record<CqtScenario, Partial<Record<string, number | null>>> => {
+    if (!overrides) {
+        return DEFAULT_EXPECTED_BY_SCENARIO;
+    }
+
+    return {
+        atual: {
+            ...DEFAULT_EXPECTED_BY_SCENARIO.atual,
+            ...(overrides.atual ?? {})
+        },
+        proj1: {
+            ...DEFAULT_EXPECTED_BY_SCENARIO.proj1,
+            ...(overrides.proj1 ?? {})
+        },
+        proj2: {
+            ...DEFAULT_EXPECTED_BY_SCENARIO.proj2,
+            ...(overrides.proj2 ?? {})
+        }
+    };
+};
+
+export const getDefaultCqtExpectedByScenario = (): Record<CqtScenario, Partial<Record<string, number | null>>> => ({
+    atual: { ...DEFAULT_EXPECTED_BY_SCENARIO.atual },
+    proj1: { ...DEFAULT_EXPECTED_BY_SCENARIO.proj1 },
+    proj2: { ...DEFAULT_EXPECTED_BY_SCENARIO.proj2 }
+});
+
 const ACTUAL_GETTERS: Record<string, (snapshot: CqtSnapshotComparable) => number | undefined> = {
     'RAMAL!AA30': (snapshot) => snapshot.dmdi?.dmdi,
     'GERAL!P31': (snapshot) => snapshot.geral?.p31CqtNoPonto,
@@ -98,9 +129,11 @@ const ACTUAL_GETTERS: Record<string, (snapshot: CqtSnapshotComparable) => number
 export const buildCqtParityReport = (
     scenario: CqtScenario,
     snapshot: CqtSnapshotComparable,
-    tolerance = CQT_BASELINE_TARGETS.tolerance
+    tolerance = CQT_BASELINE_TARGETS.tolerance,
+    expectedOverrides?: CqtExpectedByScenario
 ): CqtScenarioParityReport => {
-    const expectedCells = EXPECTED_BY_SCENARIO[scenario];
+    const expectedByScenario = mergeExpectedByScenario(expectedOverrides);
+    const expectedCells = expectedByScenario[scenario];
     const referenceCells = Object.keys(expectedCells).length;
     const diffs: CqtCellDiff[] = [];
     const skipped: string[] = [];
@@ -158,10 +191,11 @@ export const buildCqtParityReport = (
 
 export const buildCqtParityReportSuite = (
     snapshotsByScenario: Partial<Record<CqtScenario, CqtSnapshotComparable>>,
-    tolerance = CQT_BASELINE_TARGETS.tolerance
+    tolerance = CQT_BASELINE_TARGETS.tolerance,
+    expectedOverrides?: CqtExpectedByScenario
 ): CqtParityReportSuite => {
     const reports = CQT_SCENARIOS.map((scenario) =>
-        buildCqtParityReport(scenario, snapshotsByScenario[scenario] ?? {}, tolerance)
+        buildCqtParityReport(scenario, snapshotsByScenario[scenario] ?? {}, tolerance, expectedOverrides)
     );
 
     const totals = reports.reduce(

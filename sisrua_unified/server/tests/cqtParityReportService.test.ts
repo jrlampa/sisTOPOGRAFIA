@@ -2,6 +2,7 @@ import { CQT_BASELINE_TARGETS } from '../constants/cqtBaselineTargets';
 import {
     buildCqtParityReport,
     buildCqtParityReportSuite,
+    CqtExpectedByScenario,
     isCqtParitySuiteComplete,
     renderCqtParityReportMarkdown
 } from '../services/cqtParityReportService';
@@ -86,7 +87,14 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
         expect(markdown).toContain('GERAL PROJ2!P31');
     });
 
-    it('marks suite complete when no partial/missing/failed remains', () => {
+    it('marks suite complete when proj2 expected overrides are provided', () => {
+        const expectedOverrides: CqtExpectedByScenario = {
+            proj2: {
+                'GERAL PROJ2!P31': 120.111,
+                'GERAL PROJ2!P32': 119.999
+            }
+        };
+
         const suite = buildCqtParityReportSuite({
             atual: CQT_PARITY_WORKBOOK_FIXTURE.atual,
             proj1: CQT_PARITY_WORKBOOK_FIXTURE.proj1,
@@ -96,20 +104,13 @@ describe('cqtParityReportService.buildCqtParityReport', () => {
                     p32CqtNoPonto: 119.999
                 }
             }
-        });
+        }, undefined, expectedOverrides);
 
-        // Simula baseline totalmente preenchido no futuro.
-        suite.reports[2].referenceStatus = 'complete';
-        suite.reports[2].pending = [];
-        suite.reports[2].compared = 2;
-        suite.reports[2].passed = 2;
-        suite.reports[2].failed = 0;
-        suite.totals.complete = 3;
-        suite.totals.partial = 0;
-        suite.totals.missing = 0;
-        suite.totals.compared = 11;
-        suite.totals.passed = 11;
-        suite.totals.failed = 0;
+        expect(suite.totals.complete).toBe(3);
+        expect(suite.totals.partial).toBe(0);
+        expect(suite.totals.missing).toBe(0);
+        expect(suite.totals.failed).toBe(0);
+        expect(suite.totals.passed).toBe(11);
 
         expect(isCqtParitySuiteComplete(suite)).toBe(true);
     });
