@@ -1,4 +1,5 @@
 import { calculateDbIndicators, calculateDmdiWithMetadata, calculateGeralCqtNoPonto } from './cqtEngine.js';
+import { getTrafosZByScenario } from '../constants/cqtLookupTables.js';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -20,7 +21,7 @@ interface CqtComputationInputs {
         trAtual: number;
         demAtual: number;
         qtMt: number;
-        trafosZ: { trafoKva: number; qtFactor: number }[];
+        trafosZ?: { trafoKva: number; qtFactor: number }[];
     };
 }
 
@@ -71,7 +72,12 @@ export const attachCqtSnapshotToBtContext = (btContext: unknown): UnknownRecord 
     }
 
     if (inputs.db) {
-        snapshot.db = calculateDbIndicators(inputs.db);
+        const scenario = inputs.scenario ?? 'atual';
+        const trafosZ = inputs.db.trafosZ ?? getTrafosZByScenario(scenario);
+        snapshot.db = calculateDbIndicators({
+            ...inputs.db,
+            trafosZ
+        });
     }
 
     const hasComputedSection = Boolean(snapshot.dmdi || snapshot.geral || snapshot.db);

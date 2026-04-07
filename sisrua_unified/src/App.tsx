@@ -1291,6 +1291,11 @@ function App() {
         aa24DemandBase,
         sumClientsX: totalClientsX,
         ab35LookupDmdi
+      },
+      db: {
+        trAtual: btTopology.transformers.reduce((sum, transformer) => sum + (transformer.projectPowerKva ?? 0), 0),
+        demAtual: aa24DemandBase,
+        qtMt: 0
       }
     };
 

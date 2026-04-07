@@ -116,4 +116,31 @@ describe('dxfRequestSchema', () => {
         const parsed = dxfRequestSchema.safeParse(payload);
         expect(parsed.success).toBe(false);
     });
+
+    it('accepts cqt db inputs without trafosZ (backend fallback)', () => {
+        const payload = {
+            ...basePayload,
+            btContext: {
+                projectType: 'ramais',
+                totalTransformers: 1,
+                totalPoles: 1,
+                totalEdges: 0,
+                verifiedTransformers: 1,
+                verifiedPoles: 1,
+                verifiedEdges: 0,
+                accumulatedByPole: [],
+                cqtComputationInputs: {
+                    scenario: 'atual',
+                    db: {
+                        trAtual: 225,
+                        demAtual: 101.9,
+                        qtMt: 0.0183
+                    }
+                }
+            }
+        };
+
+        const parsed = dxfRequestSchema.safeParse(payload);
+        expect(parsed.success).toBe(true);
+    });
 });

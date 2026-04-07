@@ -75,4 +75,24 @@ describe('cqtContextService.attachCqtSnapshotToBtContext', () => {
         expect(snapshot.db.k10QtMttr).toBeCloseTo(CQT_BASELINE_TARGETS.db.k10QtMttr, 12);
         expect(typeof snapshot.generatedAt).toBe('string');
     });
+
+    it('uses scenario lookup fallback when db.trafosZ is omitted', () => {
+        const btContext = {
+            projectType: 'ramais',
+            cqtComputationInputs: {
+                scenario: 'proj2',
+                db: {
+                    trAtual: 225,
+                    demAtual: 101.95599999999999,
+                    qtMt: 0.018299999999999997
+                }
+            }
+        };
+
+        const enriched = attachCqtSnapshotToBtContext(btContext) as Record<string, any>;
+        expect(enriched.cqtSnapshot).toBeDefined();
+        expect(enriched.cqtSnapshot.scenario).toBe('proj2');
+        expect(enriched.cqtSnapshot.db.k8QtTr).toBeCloseTo(CQT_BASELINE_TARGETS.db.k8QtTr, 12);
+        expect(enriched.cqtSnapshot.db.k10QtMttr).toBeCloseTo(CQT_BASELINE_TARGETS.db.k10QtMttr, 12);
+    });
 });

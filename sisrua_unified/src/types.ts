@@ -123,6 +123,12 @@ export interface BtCqtDmdiInputs {
 export interface BtCqtComputationInputs {
   scenario: BtCqtScenario;
   dmdi?: BtCqtDmdiInputs;
+  db?: {
+    trAtual: number;
+    demAtual: number;
+    qtMt: number;
+    trafosZ?: Array<{ trafoKva: number; qtFactor: number }>;
+  };
 }
 
 export interface BtRamalEntry {

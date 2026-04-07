@@ -75,7 +75,7 @@ const cqtDbInputSchema = z.object({
     trafosZ: z.array(z.object({
         trafoKva: z.coerce.number(),
         qtFactor: z.coerce.number()
-    }))
+    })).optional()
 });
 
 const cqtComputationInputsSchema = z.object({
