@@ -239,6 +239,11 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   const selectedTransformer = btTopology.transformers.find((transformer) => transformer.id === selectedTransformerId) || null;
   const selectedEdge = btTopology.edges.find((edge) => edge.id === selectedEdgeId) || null;
   const selectedPole = btTopology.poles.find((pole) => pole.id === selectedPoleId) || null;
+  const selectedEdgeLengthLabel =
+    typeof selectedEdge?.lengthMeters === 'number'
+      ? `${Math.round(selectedEdge.lengthMeters)} m`
+      : '-';
+  const totalNetworkLengthLabel = `${Math.round(summary.totalLengthMeters)} m`;
 
   const verifiedPoles = btTopology.poles.filter((pole) => pole.verified).length;
   const verifiedEdges = btTopology.edges.filter((edge) => edge.verified).length;
@@ -841,6 +846,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     <Sigma size={12} />
                     <span>Total de trechos no projeto: {btTopology.edges.length}</span>
                   </div>
+                  <div className="mt-1">Metragem do trecho selecionado: {selectedEdgeLengthLabel}</div>
+                  <div>Metragem total da rede: {totalNetworkLengthLabel}</div>
                 </div>
               </div>
             )}

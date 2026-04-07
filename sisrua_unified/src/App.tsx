@@ -1274,7 +1274,45 @@ function App() {
       verifiedPoles: btTopology.poles.filter((item) => item.verified).length,
       verifiedEdges: btTopology.edges.filter((item) => item.verified).length,
       accumulatedByPole: btAccumulated,
-      criticalPole: btAccumulated[0] ?? null
+      criticalPole: btAccumulated[0] ?? null,
+      topology: settings.layers.btNetwork
+        ? {
+            poles: btTopology.poles.map((pole) => ({
+              id: pole.id,
+              lat: pole.lat,
+              lng: pole.lng,
+              title: pole.title,
+              verified: pole.verified ?? false,
+              ramais: (pole.ramais ?? []).map((ramal) => ({
+                id: ramal.id,
+                quantity: ramal.quantity,
+                ramalType: ramal.ramalType ?? ''
+              }))
+            })),
+            transformers: btTopology.transformers.map((transformer) => ({
+              id: transformer.id,
+              poleId: transformer.poleId ?? '',
+              lat: transformer.lat,
+              lng: transformer.lng,
+              title: transformer.title,
+              projectPowerKva: transformer.projectPowerKva ?? 0,
+              demandKw: transformer.demandKw,
+              verified: transformer.verified ?? false
+            })),
+            edges: btTopology.edges.map((edge) => ({
+              id: edge.id,
+              fromPoleId: edge.fromPoleId,
+              toPoleId: edge.toPoleId,
+              lengthMeters: edge.lengthMeters ?? 0,
+              verified: edge.verified ?? false,
+              conductors: edge.conductors.map((conductor) => ({
+                id: conductor.id,
+                quantity: conductor.quantity,
+                conductorName: conductor.conductorName
+              }))
+            }))
+          }
+        : null
     };
 
     await downloadDxf(
