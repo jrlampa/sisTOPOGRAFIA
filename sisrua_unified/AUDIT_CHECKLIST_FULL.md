@@ -1,6 +1,6 @@
 # Audit Checklist Completo - 30 itens
 
-## ✅ JÁ IMPLEMENTADO (18 itens)
+## ✅ JÁ IMPLEMENTADO (23 itens)
 
 | # | Item | Arquivo | Status | Prioridade | Commit |
 |---|------|---------|--------|------------|--------|
@@ -14,14 +14,20 @@
 | 4 | Verificação de Integridade em Autosave | `useAutoSave.ts:37-52` | ✅ | P1 | `76c137d` |
 | 24 | CORS Permissivo Demais | `server/index.ts:96-113` | ✅ | P1 | `76c137d` |
 | 25 | Importação com @ts-ignore | `MapSelector.tsx:38-50` | ✅ | P0 | `bd3ce06` |
-| **16** | **Constantes Mágicas Não Tipadas** | **magicNumbers.ts (novo)** | **✅** | **P1** | **0fee0e2** |
-| **14** | **Tipos `any` Não Justificados** | **MapSelector.tsx interface** | **✅** | **P1** | **0fee0e2** |
-| **13** | **Ausência de Debounce em Coordenadas** | **SidebarBtEditorSection.tsx** | **✅** | **P1** | **0fee0e2** |
-| **1** | **Mutabilidade do Estado Global** | **immutability.ts (novo)** | **✅** | **P1** | **0fee0e2** |
-| **18** | **Tratamento de Erro Genérico** | **errorHandler.ts (novo)** | **✅** | **P1** | **380cf6a** |
-| **17** | **Risco de XSS em downloadBlob** | **downloads.ts (novo)** | **✅** | **P1** | **380cf6a** |
-| **8** | **Verificação de Tipo Runtime Insuficiente** | **validation.ts integrado** | **✅** | **P1** | **380cf6a** |
-| **6** | **Prop Drilling Excessivo** | **BtContext.tsx (novo)** | **✅** | **P1** | **217fdd2** |
+| 16 | Constantes Mágicas Não Tipadas | `magicNumbers.ts (novo)` | ✅ | P1 | `0fee0e2` |
+| 14 | Tipos `any` Não Justificados | `MapSelector.tsx interface` | ✅ | P1 | `0fee0e2` |
+| 13 | Ausência de Debounce em Coordenadas | `SidebarBtEditorSection.tsx` | ✅ | P1 | `0fee0e2` |
+| 1 | Mutabilidade do Estado Global | `immutability.ts (novo)` | ✅ | P1 | `0fee0e2` |
+| 18 | Tratamento de Erro Genérico | `errorHandler.ts (novo)` | ✅ | P1 | `380cf6a` |
+| 17 | Risco de XSS em downloadBlob | `downloads.ts (novo)` | ✅ | P1 | `380cf6a` |
+| 8 | Verificação de Tipo Runtime Insuficiente | `validation.ts integrado` | ✅ | P1 | `380cf6a` |
+| 6 | Prop Drilling Excessivo | `BtContext.tsx (novo)` | ✅ | P1 | `217fdd2` |
+| **9** | **Cálculo de Distância sem Memoização** | **useMemoizedDistance.ts (novo)** | **✅** | **P2** | **NOVO** |
+| **10** | **Validação de Entrada Numérica Inconsistente** | **numericValidation.ts (novo)** | **✅** | **P2** | **NOVO** |
+| **20** | **Ausência de Feature Flags** | **featureFlags.ts (novo)** | **✅** | **P3** | **NOVO** |
+| **22** | **Logger Expõe Stack Traces** | **logger.ts (sanitização)** | **✅** | **P3** | **NOVO** |
+| **27** | **Versão Hardcoded em Múltiplos Lugares** | **config/version.ts (novo)** | **✅** | **P3** | **NOVO** |
+| **26** | **Comentários Português/Inglês Misturados** | **COMMENT_STANDARDS_PT_BR.md** | **✅** | **P3** | **NOVO** |
 
 ---
 
@@ -31,16 +37,7 @@
 
 | # | Item | Arquivo | Prioridade | Risco | Esforço |
 |---|------|---------|------------|-------|---------|
-| 15 | Lógica de Negócio Misturada com UI | `useBtCrudHandlers.ts` (1222 linhas) | P1 | Alto: Violação SRP | Alto |
-
-### P2 - Medium Priority
-
-| # | Item | Arquivo | Prioridade | Risco | Esforço |
-|---|------|---------|------------|-------|---------|
-| 6 | Prop Drilling Excessivo | `App.tsx:1000-1030` | P2 | Médio: Acoplamento alto | Alto |
-| 8 | Verificação de Tipo Runtime Insuficiente | `App.tsx:251-329` | P2 | Médio: Dados malformados | Médio |
-| 9 | Cálculo de Distância sem Memoização | `useBtCrudHandlers.ts:134-151` | P2 | Baixo: Performance | Baixo |
-| 10 | Validação de Entrada Numérica Inconsistente | `App.tsx:1077-1091` | P2 | Baixo: UX | Baixo |
+| 15 | Lógica de Negócio Misturada com UI | `useBtCrudHandlers.ts` (1087 linhas) | P1 | Alto: Violação SRP | Alto |
 
 ### P3 - Low Priority
 
@@ -60,26 +57,23 @@
 
 ## 🎯 PRÓXIMAS AÇÕES (Recomendadas)
 
-### Batch 2 (P1 - Quick Wins)
-1. **Item 16** (Constantes Mágicas) - 5 min - Criar arquivo `constants.ts`
-2. **Item 14** (Remover `any` types) - 10 min - Mapear tipos em MapSelector
-3. **Item 13** (Debounce coordenadas) - 15 min - Wired em `debounce.ts` (já criado)
-4. **Item 1** (Mutabilidade) - 20 min - Adicionar Immer ou Object.freeze()
+### Batch 1 (P1 - Refactoring Pesado) 
+1. **Item 15** (Refatorar `useBtCrudHandlers`) - Dividir em 3 hooks especializados
+   - `useBtPoleOperations.ts` - operações de polos
+   - `useBtEdgeOperations.ts` - operações de arestas
+   - `useBtTransformerOperations.ts` - operações de transformadores
 
-### Batch 3 (P1 - Medium Effort)
-5. **Item 18** (Tratamento de Erro) - 25 min - Criar ErrorHandler centralizado
-6. **Item 17** (XSS em downloadBlob) - 20 min - Validate filename + DOMPurify
-7. **Item 8** (Runtime Type Check) - 30 min - Integrar Zod validation runtime
-
-### Batch 4 (P1 - Heavy Refactoring)
-8. **Item 15** (Refatorar useBtCrudHandlers) - 2-3h - Dividir em 3 hooks especializados
+### Batch 2 (P3 - Melhorias)
+2. **Item 21** (E2E Tests) - Revisar e estabilizar testes crashes
+3. **Item 23** (Paginação Histórico) - Implementar paginação de histórico BT
+4. **Item 28** (Nomenclatura) - Padronizar BT vs Bt em toda codebase
+5. **Item 30** (Scripts Build) - Adicionar equivalente bash para CI/CD cross-platform
 
 ---
 
 ## Estatísticas
 - **Total**: 30 itens
-- **Concluído**: 18 (60%) ✅
-- **Restante**: 12 (40%) 🔲
+- **Concluído**: 23 (77%) ✅
+- **Restante**: 7 (23%) 🔲
   - P1: 1 item (refactoring pesado)
-  - P2: 4 itens
-  - P3: 7 itens
+  - P3: 6 itens
