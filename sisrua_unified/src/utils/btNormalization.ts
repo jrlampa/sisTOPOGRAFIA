@@ -1,4 +1,8 @@
 import { BtTopology, BtPoleNode, BtTransformer, BtEdge, GeoLocation } from '../types';
+import {
+  LEGACY_ID_ENTROPY,
+  ENTITY_ID_PREFIXES,
+} from '../constants/magicNumbers';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -81,10 +85,10 @@ export const normalizeBtEdge = (edge: BtEdge): BtEdge => {
     edgeChangeFlag,
     removeOnExecution: edgeChangeFlag === 'remove',
     conductors: mustHaveConductor && !hasConductors
-      ? [{ id: `C${Date.now()}${Math.floor(Math.random() * 1000)}`, quantity: 1, conductorName: DEFAULT_EDGE_CONDUCTOR }]
+      ? [{ id: `${ENTITY_ID_PREFIXES.CONDUCTOR}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`, quantity: 1, conductorName: DEFAULT_EDGE_CONDUCTOR }]
       : edge.conductors,
     replacementFromConductors: mustHaveConductor && !hasReplacementFrom
-      ? [{ id: `RC${Date.now()}${Math.floor(Math.random() * 1000)}`, quantity: 1, conductorName: DEFAULT_EDGE_CONDUCTOR }]
+      ? [{ id: `${ENTITY_ID_PREFIXES.CONDUCTOR_REPLACEMENT}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`, quantity: 1, conductorName: DEFAULT_EDGE_CONDUCTOR }]
       : replacementFromConductors
   };
 };

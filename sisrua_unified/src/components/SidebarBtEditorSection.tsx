@@ -3,6 +3,8 @@ import { Loader2 } from 'lucide-react';
 import type { AppSettings, BtEditorMode, BtNetworkScenario, BtTopology } from '../types';
 import type { PendingNormalClassificationPole } from '../utils/btNormalization';
 import type { BtEdgeChangeFlag, BtPoleChangeFlag, BtTransformerChangeFlag } from '../utils/btNormalization';
+import { useDebounce } from '../utils/debounce';
+import { DEBOUNCE_COORDINATE_INPUT_MS } from '../constants/magicNumbers';
 
 const BtTopologyPanel = React.lazy(() => import('./BtTopologyPanel'));
 
@@ -68,6 +70,12 @@ export function SidebarBtEditorSection({
   handleBtTogglePoleCircuitBreak,
   handleBtSetTransformerChangeFlag,
 }: SidebarBtEditorSectionProps) {
+  // Debounce coordinate input to reduce state updates while typing
+  const debouncedSetCoordinateInput = useDebounce(
+    (value: string) => setBtPoleCoordinateInput(value),
+    DEBOUNCE_COORDINATE_INPUT_MS
+  );
+
   return (
     <>
       <div className="space-y-3">
@@ -141,7 +149,13 @@ export function SidebarBtEditorSection({
             <input
               type="text"
               value={btPoleCoordinateInput}
-              onChange={(e) => setBtPoleCoordinateInput(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Update UI immediately for responsiveness
+                setBtPoleCoordinateInput(value);
+                // Debounce the processing/validation if needed (for future use)
+                debouncedSetCoordinateInput(value);
+              }}
               placeholder="-22.9068 -43.1729 ou 23K 635806 7462003"
               aria-label="Coordenadas do poste"
               className="w-full rounded border border-blue-500/40 bg-slate-900 p-2 text-[11px] text-blue-100 placeholder:text-slate-500"

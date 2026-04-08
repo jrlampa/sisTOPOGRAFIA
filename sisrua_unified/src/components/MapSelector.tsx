@@ -3,8 +3,9 @@ import { MapContainer, TileLayer, Marker, Circle, useMapEvents, GeoJSON, Polygon
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { GeoJsonObject, FeatureCollection } from 'geojson';
-import { BtEditorMode, BtEdge, BtPoleNode, BtRamalEntry, BtTopology, BtTransformer, SelectionMode } from '../types';
+import { BtEditorMode, BtEdge, BtPoleNode, BtRamalEntry, BtTopology, BtTransformer, SelectionMode, GeoLocation } from '../types';
 import { Minus, Plus, Trash2, Triangle } from 'lucide-react';
+import { LEGACY_ID_ENTROPY, ENTITY_ID_PREFIXES } from '../constants/magicNumbers';
 
 const CONDUCTOR_OPTIONS = [
     'FLY2',
@@ -141,6 +142,22 @@ const getFlagColor = (flag: 'existing' | 'new' | 'remove' | 'replace', fallback:
     return fallback;
 };
 
+interface SelectionManagerProps {
+    center: GeoLocation;
+    flyToEdgeTarget?: {lat: number; lng: number; token: number} | null;
+    flyToPoleTarget?: {lat: number; lng: number; token: number} | null;
+    flyToTransformerTarget?: {lat: number; lng: number; token: number} | null;
+    radius: number;
+    selectionMode: SelectionMode;
+    polygonPoints: Array<[number, number]>;
+    onLocationChange: (location: GeoLocation) => void;
+    onPolygonChange: (points: Array<[number, number]>) => void;
+    measurePath?: Array<[number, number]>;
+    onMeasurePathChange?: (path: Array<[number, number]>) => void;
+    btEditorMode?: BtEditorMode;
+    onBtMapClick?: (location: GeoLocation) => void;
+}
+
 const SelectionManager = ({
     center,
     flyToEdgeTarget,
@@ -155,7 +172,7 @@ const SelectionManager = ({
     onMeasurePathChange,
     btEditorMode = 'none',
     onBtMapClick
-}: any) => {
+}: SelectionManagerProps) => {
     const middlePanActiveRef = React.useRef(false);
     const middlePanMovedRef = React.useRef(false);
     const suppressNextClickRef = React.useRef(false);
@@ -346,7 +363,7 @@ const SelectionManager = ({
             )}
             {selectionMode === 'polygon' && polygonPoints.length > 0 && (
                 <>
-                    {polygonPoints.map((point: any, i: number) => (
+                    {polygonPoints.map((point: [number, number], i: number) => (
                         <Marker key={i} position={point} />
                     ))}
                     {polygonPoints.length > 1 && (
@@ -370,7 +387,7 @@ const SelectionManager = ({
             )}
             {selectionMode === 'measure' && measurePath.length > 0 && (
                 <>
-                    {measurePath.map((point: any, i: number) => (
+                    {measurePath.map((point: [number, number], i: number) => (
                         <Marker key={`measure-${i}`} position={point} />
                     ))}
                     {measurePath.length > 1 && (
@@ -576,9 +593,9 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                     maxZoom={24}
                     maxNativeZoom={tileConfig.maxNativeZoom}
                     eventHandlers={{
-                        tileerror: (error: any) => {
+                        tileerror: ((error: L.TileErrorEvent) => {
                             // Tile load error (expected for some tiles)
-                        },
+                        }) as L.TileErrorEventHandlerFn,
                         tileload: () => {
                             // Tile loaded successfully
                         }
@@ -679,7 +696,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                                     e.preventDefault();
                                                     e.stopPropagation();
                                                     onBtSetEdgeReplacementFromConductors(edge.id, [{
-                                                        id: `RC${Date.now()}${Math.floor(Math.random() * 1000)}`,
+                                                        id: `${ENTITY_ID_PREFIXES.CONDUCTOR_REPLACEMENT}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`,
                                                         quantity: 1,
                                                         conductorName: selectedReplacementFromConductor
                                                     }]);

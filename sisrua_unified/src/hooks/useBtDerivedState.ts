@@ -10,6 +10,10 @@ import {
   DEFAULT_TEMPERATURE_FACTOR,
   EMPTY_BT_TOPOLOGY,
 } from '../utils/btNormalization';
+import {
+  LEGACY_ID_ENTROPY,
+  ENTITY_ID_PREFIXES,
+} from '../constants/magicNumbers';
 
 interface UseBtDerivedStateParams {
   appState: GlobalState;
@@ -103,7 +107,7 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
       }
 
       const baseReading = transformer.readings[0] ?? {
-        id: `R${Date.now()}${Math.floor(Math.random() * 1000)}`,
+        id: `${ENTITY_ID_PREFIXES.REGULATOR}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`,
         currentMaxA: 0,
         temperatureFactor: DEFAULT_TEMPERATURE_FACTOR,
         autoCalculated: true,

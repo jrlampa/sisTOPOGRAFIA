@@ -14,6 +14,7 @@ import {
   getClandestinoAreaRange,
   getClandestinoKvaByArea
 } from '../utils/btCalculations';
+import { LEGACY_ID_ENTROPY } from '../constants/magicNumbers';
 
 interface BtTopologyPanelProps {
   btTopology: BtTopology;
@@ -170,7 +171,7 @@ const parseBr = (s: string): number => {
   return parseFloat(normalized);
 };
 
-const nextId = (prefix: string): string => `${prefix}${Date.now()}${Math.floor(Math.random() * 1000)}`;
+const nextId = (prefix: string): string => `${prefix}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`;
 
 function NumericTextInput({
   value,

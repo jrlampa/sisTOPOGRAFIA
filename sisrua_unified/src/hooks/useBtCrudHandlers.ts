@@ -32,6 +32,11 @@ import {
   nextSequentialId
 } from '../utils/btNormalization';
 import { generateEntityId, ID_PREFIX } from '../utils/idGenerator';
+import { debounce } from '../utils/debounce';
+import {
+  LEGACY_ID_ENTROPY,
+  ENTITY_ID_PREFIXES,
+} from '../constants/magicNumbers';
 import {
   calculateSectioningImpact,
   getClandestinoAreaRange,
@@ -822,7 +827,7 @@ export function useBtCrudHandlers({ appState, setAppState, showToast }: Params) 
     const existingIndex = conductors.findIndex((entry) => entry.conductorName === selectedConductor);
     if (existingIndex === -1) {
       conductors.push({
-        id: `C${Date.now()}${Math.floor(Math.random() * 1000)}`,
+        id: `${ENTITY_ID_PREFIXES.CONDUCTOR}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`,
         quantity: 1,
         conductorName: selectedConductor
       });
