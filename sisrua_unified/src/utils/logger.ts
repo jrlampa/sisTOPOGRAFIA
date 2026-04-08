@@ -17,7 +17,8 @@ interface LogEntry {
 // Check if we're in development mode
 const isDevelopment = () => {
   try {
-    return !process.env.NODE_ENV || process.env.NODE_ENV === 'development';
+    const env = (import.meta as { env?: Record<string, string | boolean | undefined> }).env ?? {};
+    return env.DEV === true || !env.MODE || env.MODE === 'development';
   } catch {
     return true; // Default to development if we can't determine
   }

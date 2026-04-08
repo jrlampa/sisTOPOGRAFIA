@@ -3,6 +3,10 @@
  * Helps enforce functional programming patterns and catch bugs early
  */
 
+const IS_DEVELOPMENT =
+  ((import.meta as { env?: Record<string, string | boolean | undefined> }).env?.DEV === true) ||
+  ((import.meta as { env?: Record<string, string | boolean | undefined> }).env?.MODE === 'development');
+
 /**
  * Deep freeze an object to make it fully immutable (in development/testing)
  * Note: This is expensive for large objects; use judiciously or only in dev mode
@@ -46,7 +50,7 @@ export function shallowFreeze<T extends Record<string, any>>(obj: T): T {
  * @throws Error if object is not frozen in development mode
  */
 export function assertImmutable<T>(obj: T, description = 'state object'): void {
-  if (process.env.NODE_ENV === 'development') {
+  if (IS_DEVELOPMENT) {
     if (typeof obj === 'object' && obj !== null && !Object.isFrozen(obj)) {
       console.warn(`[Immutability Warning] ${description} should be frozen but is mutable:`, obj);
     }
@@ -67,7 +71,7 @@ export function createImmutableNext<T extends Record<string, any>>(
   const next = { ...original, ...updates };
   
   // Freeze in development to catch accidental mutations
-  if (process.env.NODE_ENV === 'development') {
+  if (IS_DEVELOPMENT) {
     Object.freeze(next);
   }
   

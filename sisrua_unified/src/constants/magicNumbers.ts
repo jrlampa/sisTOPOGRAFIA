@@ -91,13 +91,16 @@ export const MAX_NUMERIC_VALUE = Number.MAX_SAFE_INTEGER;
 // ============================================================================
 
 /** Enable CQT (Configuração Topológica) feature */
-export const FEATURE_CQT_ENABLED = process.env.REACT_APP_FEATURE_CQT === 'true';
+const APP_ENV = (import.meta as { env?: Record<string, string | boolean | undefined> }).env ?? {};
+
+/** Enable CQT (Configuração Topológica) feature */
+export const FEATURE_CQT_ENABLED = String(APP_ENV.VITE_FEATURE_CQT ?? APP_ENV.REACT_APP_FEATURE_CQT ?? '') === 'true';
 
 /** Enable BT (Barramento Topológico) feature */
-export const FEATURE_BT_ENABLED = process.env.REACT_APP_FEATURE_BT === 'true';
+export const FEATURE_BT_ENABLED = String(APP_ENV.VITE_FEATURE_BT ?? APP_ENV.REACT_APP_FEATURE_BT ?? '') === 'true';
 
 /** Enable debug logging */
-export const DEBUG_MODE_ENABLED = process.env.NODE_ENV === 'development';
+export const DEBUG_MODE_ENABLED = APP_ENV.DEV === true || APP_ENV.MODE === 'development';
 
 // ============================================================================
 // API & Backend Configuration

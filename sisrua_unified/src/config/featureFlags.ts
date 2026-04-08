@@ -37,6 +37,10 @@ export enum FeatureFlag {
 
 type FeatureFlagConfig = Record<FeatureFlag, boolean>;
 
+const APP_ENV = (import.meta as { env?: Record<string, string | boolean | undefined> }).env ?? {};
+const IS_PRODUCTION = APP_ENV.PROD === true || APP_ENV.MODE === 'production';
+const IS_DEVELOPMENT = APP_ENV.DEV === true || APP_ENV.MODE === 'development';
+
 /**
  * Configuração padrão para desenvolvimento.
  * Todos os features habilitados.
@@ -49,7 +53,7 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlagConfig = {
   [FeatureFlag.ELEVATION_PROFILE]: true,
   [FeatureFlag.AI_CLANDESTINO_ANALYSIS]: true,
   [FeatureFlag.MULTI_SCENARIO_SUPPORT]: true,
-  [FeatureFlag.DEBUG_MODE]: process.env.NODE_ENV === 'development',
+  [FeatureFlag.DEBUG_MODE]: IS_DEVELOPMENT,
 };
 
 /**
@@ -72,7 +76,7 @@ const PRODUCTION_FEATURE_FLAGS: FeatureFlagConfig = {
  * Em produção, deve ser read-only e carregado de env/config.
  */
 let runtimeFlags: FeatureFlagConfig = {
-  ...(process.env.NODE_ENV === 'production'
+  ...(IS_PRODUCTION
     ? PRODUCTION_FEATURE_FLAGS
     : DEFAULT_FEATURE_FLAGS),
 };
@@ -86,7 +90,7 @@ let runtimeFlags: FeatureFlagConfig = {
  * })
  */
 export function loadFeatureFlags(customFlags: Partial<Record<FeatureFlag, boolean>>): void {
-  if (process.env.NODE_ENV === 'production' && Object.keys(customFlags).length > 0) {
+  if (IS_PRODUCTION && Object.keys(customFlags).length > 0) {
     console.warn(
       'Feature flags customizadas não devem ser alteradas em produção. Use env vars.'
     );
@@ -126,7 +130,7 @@ export function getAllFeatureFlags(): Readonly<FeatureFlagConfig> {
  * NÃO deve ser chamado em produção.
  */
 export function toggleFeatureFlag(flag: FeatureFlag): boolean {
-  if (process.env.NODE_ENV === 'production') {
+  if (IS_PRODUCTION) {
     throw new Error(
       'Feature flags não podem ser alterados em produção. Configure via env vars.'
     );
@@ -146,7 +150,7 @@ export function toggleFeatureFlag(flag: FeatureFlag): boolean {
  */
 export function resetFeatureFlags(): void {
   runtimeFlags =
-    process.env.NODE_ENV === 'production'
+    IS_PRODUCTION
       ? { ...PRODUCTION_FEATURE_FLAGS }
       : { ...DEFAULT_FEATURE_FLAGS };
 }
