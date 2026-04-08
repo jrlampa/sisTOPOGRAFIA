@@ -2,8 +2,6 @@ import React, { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { GlobalState, BtEditorMode, BtNetworkScenario } from './types';
 import { DEFAULT_LOCATION } from './constants';
-import Toast from './components/Toast';
-import ProgressIndicator from './components/ProgressIndicator';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useOsmEngine } from './hooks/useOsmEngine';
 import { useElevationProfile } from './hooks/useElevationProfile';
@@ -25,10 +23,8 @@ import { SidebarBtEditorSection } from './components/SidebarBtEditorSection';
 import { SidebarAnalysisResults } from './components/SidebarAnalysisResults';
 import { SidebarSelectionControls } from './components/SidebarSelectionControls';
 import { BtModalStack } from './components/BtModalStack';
-import { SessionRecoveryBanner } from './components/SessionRecoveryBanner';
-import { DxfProgressBadge } from './components/DxfProgressBadge';
 import { AppSettingsOverlay } from './components/AppSettingsOverlay';
-import { BtExportSummaryBanner } from './components/BtExportSummaryBanner';
+import { AppStatusStack } from './components/AppStatusStack';
 
 const MapSelector = React.lazy(() => import('./components/MapSelector'));
 const FloatingLayerPanel = React.lazy(() => import('./components/FloatingLayerPanel'));
@@ -297,46 +293,33 @@ function App() {
   return (
     <div className={`flex flex-col h-screen w-full font-sans transition-colors duration-500 overflow-hidden ${isDark ? 'bg-[#020617] text-slate-200' : 'bg-slate-50 text-slate-900'}`}>
 
-      <AnimatePresence>
-        {toast && (
-          <Toast
-            key="toast"
-            message={toast.message}
-            type={toast.type}
-            onClose={closeToast}
-            duration={toast.type === 'error' ? 8000 : 4000}
-          />
-        )}
-      </AnimatePresence>
-
-      <SessionRecoveryBanner
+      <AppStatusStack
+        toast={toast}
+        closeToast={closeToast}
         sessionDraft={sessionDraft}
-        onRestore={handleRestoreSession}
-        onDismiss={handleDismissSession}
-      />
-
-      <ProgressIndicator
-        isVisible={isProcessing || isDownloading}
-        progress={progressValue}
-        message={statusMessage}
-      />
-
-      <DxfProgressBadge visible={showDxfProgress} label={dxfProgressLabel} />
-
-      <BtExportSummaryBanner
-        latestBtExport={latestBtExport}
-        btExportHistory={btExportHistory}
-        exportBtHistoryJson={exportBtHistoryJson}
-        exportBtHistoryCsv={exportBtHistoryCsv}
-        clearBtExportHistory={handleClearBtExportHistory}
-        btHistoryTotal={btHistoryTotal}
-        btHistoryLoading={btHistoryLoading}
-        btHistoryCanLoadMore={btHistoryCanLoadMore}
-        onLoadMoreBtHistory={handleLoadMoreBtHistory}
-        historyProjectTypeFilter={btHistoryProjectTypeFilter}
-        onHistoryProjectTypeFilterChange={setBtHistoryProjectTypeFilter}
-        historyCqtScenarioFilter={btHistoryCqtScenarioFilter}
-        onHistoryCqtScenarioFilterChange={setBtHistoryCqtScenarioFilter}
+        handleRestoreSession={handleRestoreSession}
+        handleDismissSession={handleDismissSession}
+        isProcessing={isProcessing}
+        isDownloading={isDownloading}
+        progressValue={progressValue}
+        statusMessage={statusMessage}
+        showDxfProgress={showDxfProgress}
+        dxfProgressLabel={dxfProgressLabel}
+        btExportSummaryProps={{
+          latestBtExport,
+          btExportHistory,
+          exportBtHistoryJson,
+          exportBtHistoryCsv,
+          clearBtExportHistory: handleClearBtExportHistory,
+          btHistoryTotal,
+          btHistoryLoading,
+          btHistoryCanLoadMore,
+          onLoadMoreBtHistory: handleLoadMoreBtHistory,
+          historyProjectTypeFilter: btHistoryProjectTypeFilter,
+          onHistoryProjectTypeFilterChange: setBtHistoryProjectTypeFilter,
+          historyCqtScenarioFilter: btHistoryCqtScenarioFilter,
+          onHistoryCqtScenarioFilterChange: setBtHistoryCqtScenarioFilter,
+        }}
       />
 
       <AppSettingsOverlay
