@@ -1,5 +1,4 @@
-import React, { Suspense } from 'react';
-import { Loader2 } from 'lucide-react';
+import React from 'react';
 import { GlobalState, BtEditorMode, BtNetworkScenario } from './types';
 import { DEFAULT_LOCATION } from './constants';
 import { useUndoRedo } from './hooks/useUndoRedo';
@@ -25,28 +24,7 @@ import { SidebarSelectionControls } from './components/SidebarSelectionControls'
 import { BtModalStack } from './components/BtModalStack';
 import { AppSettingsOverlay } from './components/AppSettingsOverlay';
 import { AppStatusStack } from './components/AppStatusStack';
-
-const MapSelector = React.lazy(() => import('./components/MapSelector'));
-const FloatingLayerPanel = React.lazy(() => import('./components/FloatingLayerPanel'));
-const ElevationProfile = React.lazy(() => import('./components/ElevationProfile'));
-
-
-
-const InlineSuspenseFallback = ({ label }: { label: string }) => (
-  <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-    <Loader2 size={14} className="animate-spin" />
-    {label}
-  </div>
-);
-
-const MapSuspenseFallback = () => (
-  <div className="absolute inset-0 flex items-center justify-center bg-slate-950 text-slate-300">
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 px-5 py-4 text-sm font-semibold">
-      <Loader2 size={18} className="animate-spin" />
-      Carregando mapa 2.5D...
-    </div>
-  </div>
-);
+import { MainMapWorkspace } from './components/MainMapWorkspace';
 
 function App() {
   const {
@@ -290,6 +268,63 @@ function App() {
     jobProgress,
   });
 
+  const mapSelectorProps = {
+    center,
+    flyToEdgeTarget: btEdgeFlyToTarget,
+    flyToPoleTarget: btPoleFlyToTarget,
+    flyToTransformerTarget: btTransformerFlyToTarget,
+    radius,
+    selectionMode,
+    polygonPoints,
+    onLocationChange: handleMapClick,
+    btEditorMode,
+    btTopology,
+    onBtMapClick: handleBtMapClick,
+    pendingBtEdgeStartPoleId,
+    onBtDeletePole: handleBtDeletePole,
+    onBtDeleteEdge: handleBtDeleteEdge,
+    onBtDeleteTransformer: handleBtDeleteTransformer,
+    onBtSetEdgeChangeFlag: handleBtSetEdgeChangeFlag,
+    onBtToggleTransformerOnPole: handleBtToggleTransformerOnPole,
+    onBtQuickAddPoleRamal: handleBtQuickAddPoleRamal,
+    onBtQuickRemovePoleRamal: handleBtQuickRemovePoleRamal,
+    onBtQuickAddEdgeConductor: handleBtQuickAddEdgeConductor,
+    onBtQuickRemoveEdgeConductor: handleBtQuickRemoveEdgeConductor,
+    onBtSetEdgeReplacementFromConductors: handleBtSetEdgeReplacementFromConductors,
+    onBtRenamePole: handleBtRenamePole,
+    onBtRenameTransformer: handleBtRenameTransformer,
+    onBtSetPoleVerified: handleBtSetPoleVerified,
+    onBtSetPoleChangeFlag: handleBtSetPoleChangeFlag,
+    onBtTogglePoleCircuitBreak: handleBtTogglePoleCircuitBreak,
+    onBtSetTransformerChangeFlag: handleBtSetTransformerChangeFlag,
+    onBtDragPole: handleBtDragPole,
+    onBtDragTransformer: handleBtDragTransformer,
+    criticalPoleId: btCriticalPoleId,
+    accumulatedByPole: btAccumulatedByPole,
+    onPolygonChange: handlePolygonChange,
+    measurePath: measurePathPoints,
+    onMeasurePathChange: handleMeasurePathChange,
+    onKmlDrop: handleKmlDrop,
+    mapStyle: settings.mapProvider === 'satellite' ? 'satellite' : 'dark',
+  };
+
+  const btModalStackProps: React.ComponentProps<typeof BtModalStack> = {
+    normalRamalModal,
+    setNormalRamalModal,
+    handleConfirmNormalRamalModal,
+    clandestinoToNormalModal,
+    setClandestinoToNormalModal,
+    handleClandestinoToNormalClassifyLater,
+    handleClandestinoToNormalConvertNow,
+    normalToClandestinoModal,
+    setNormalToClandestinoModal,
+    handleNormalToClandestinoKeepClients,
+    handleNormalToClandestinoZeroNormalClients,
+    resetConfirmOpen,
+    handleConfirmResetBtTopology,
+    setResetConfirmOpen,
+  };
+
   return (
     <div className={`flex flex-col h-screen w-full font-sans transition-colors duration-500 overflow-hidden ${isDark ? 'bg-[#020617] text-slate-200' : 'bg-slate-50 text-slate-900'}`}>
 
@@ -417,88 +452,21 @@ function App() {
           />
         </motion.aside>
 
-        {/* Map Viewport */}
-        <div className="flex-1 relative z-10">
-          <Suspense fallback={<MapSuspenseFallback />}>
-            <MapSelector
-              center={center}
-              flyToEdgeTarget={btEdgeFlyToTarget}
-              flyToPoleTarget={btPoleFlyToTarget}
-              flyToTransformerTarget={btTransformerFlyToTarget}
-              radius={radius}
-              selectionMode={selectionMode}
-              polygonPoints={polygonPoints}
-              onLocationChange={handleMapClick}
-              btEditorMode={btEditorMode}
-              btTopology={btTopology}
-              onBtMapClick={handleBtMapClick}
-              pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId}
-              onBtDeletePole={handleBtDeletePole}
-              onBtDeleteEdge={handleBtDeleteEdge}
-              onBtDeleteTransformer={handleBtDeleteTransformer}
-              onBtSetEdgeChangeFlag={handleBtSetEdgeChangeFlag}
-              onBtToggleTransformerOnPole={handleBtToggleTransformerOnPole}
-              onBtQuickAddPoleRamal={handleBtQuickAddPoleRamal}
-              onBtQuickRemovePoleRamal={handleBtQuickRemovePoleRamal}
-              onBtQuickAddEdgeConductor={handleBtQuickAddEdgeConductor}
-              onBtQuickRemoveEdgeConductor={handleBtQuickRemoveEdgeConductor}
-              onBtSetEdgeReplacementFromConductors={handleBtSetEdgeReplacementFromConductors}
-              onBtRenamePole={handleBtRenamePole}
-              onBtRenameTransformer={handleBtRenameTransformer}
-              onBtSetPoleVerified={handleBtSetPoleVerified}
-              onBtSetPoleChangeFlag={handleBtSetPoleChangeFlag}
-              onBtTogglePoleCircuitBreak={handleBtTogglePoleCircuitBreak}
-              onBtSetTransformerChangeFlag={handleBtSetTransformerChangeFlag}
-              onBtDragPole={handleBtDragPole}
-              onBtDragTransformer={handleBtDragTransformer}
-              criticalPoleId={btCriticalPoleId}
-              accumulatedByPole={btAccumulatedByPole}
-              onPolygonChange={handlePolygonChange}
-              measurePath={measurePathPoints}
-              onMeasurePathChange={handleMeasurePathChange}
-              onKmlDrop={handleKmlDrop}
-              mapStyle={settings.mapProvider === 'satellite' ? 'satellite' : 'dark'}
-            />
-
-            <FloatingLayerPanel
-              settings={settings}
-              onUpdateSettings={updateSettings}
-              isDark={isDark}
-            />
-          </Suspense>
-
-          <AnimatePresence>
-            {elevationProfileData.length > 0 && (
-              <Suspense fallback={<InlineSuspenseFallback label="Carregando perfil altimétrico" />}>
-                <ElevationProfile
-                  data={elevationProfileData}
-                  onClose={() => { 
-                    clearProfile(); 
-                    handleSelectionModeChange('circle'); 
-                  }}
-                  isDark={isDark}
-                />
-              </Suspense>
-            )}
-          </AnimatePresence>
-
-          <BtModalStack
-            normalRamalModal={normalRamalModal}
-            setNormalRamalModal={setNormalRamalModal}
-            handleConfirmNormalRamalModal={handleConfirmNormalRamalModal}
-            clandestinoToNormalModal={clandestinoToNormalModal}
-            setClandestinoToNormalModal={setClandestinoToNormalModal}
-            handleClandestinoToNormalClassifyLater={handleClandestinoToNormalClassifyLater}
-            handleClandestinoToNormalConvertNow={handleClandestinoToNormalConvertNow}
-            normalToClandestinoModal={normalToClandestinoModal}
-            setNormalToClandestinoModal={setNormalToClandestinoModal}
-            handleNormalToClandestinoKeepClients={handleNormalToClandestinoKeepClients}
-            handleNormalToClandestinoZeroNormalClients={handleNormalToClandestinoZeroNormalClients}
-            resetConfirmOpen={resetConfirmOpen}
-            handleConfirmResetBtTopology={handleConfirmResetBtTopology}
-            setResetConfirmOpen={setResetConfirmOpen}
-          />
-        </div>
+        <MainMapWorkspace
+          mapSelectorProps={mapSelectorProps}
+          floatingLayerPanelProps={{
+            settings,
+            onUpdateSettings: updateSettings,
+            isDark,
+          }}
+          elevationProfileData={elevationProfileData}
+          onCloseElevationProfile={() => {
+            clearProfile();
+            handleSelectionModeChange('circle');
+          }}
+          isDark={isDark}
+          btModalStackProps={btModalStackProps}
+        />
       </main>
     </div>
   );
