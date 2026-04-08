@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { GeoLocation } from '../types';
-import { parseLatLngQuery, parseUtmQuery } from '../utils/geo';
 import { API_BASE_URL } from '../config/api';
 
 interface UseSearchProps {
@@ -13,19 +12,9 @@ export function useSearch({ onLocationFound, onError }: UseSearchProps) {
   const [isSearching, setIsSearching] = useState(false);
 
   const executeSearch = async (query: string) => {
-    if (!query.trim()) {
-      return;
-    }
+    const sanitizedQuery = query.trim();
 
-    const directLocation = parseLatLngQuery(query.trim());
-    if (directLocation) {
-      onLocationFound(directLocation);
-      return;
-    }
-
-    const utmLocation = parseUtmQuery(query.trim());
-    if (utmLocation) {
-      onLocationFound(utmLocation);
+    if (!sanitizedQuery) {
       return;
     }
 
@@ -34,11 +23,25 @@ export function useSearch({ onLocationFound, onError }: UseSearchProps) {
       const response = await fetch(`${API_BASE_URL}/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({ query: sanitizedQuery })
       });
 
       if (!response.ok) {
-        throw new Error('Location not found');
+        let apiErrorMessage = 'Location not found';
+
+        try {
+          const errorPayload = await response.json() as {
+            details?: string;
+            error?: string;
+            message?: string;
+          };
+
+          apiErrorMessage = errorPayload.details || errorPayload.error || errorPayload.message || apiErrorMessage;
+        } catch {
+          // Keep fallback message when response body is not JSON.
+        }
+
+        throw new Error(apiErrorMessage);
       }
 
       const location: GeoLocation = await response.json();
