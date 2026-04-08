@@ -13,6 +13,7 @@ import { config } from '../config.js';
 import { attachCqtSnapshotToBtContext } from '../services/cqtContextService.js';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 
 const router = Router();
 
@@ -100,7 +101,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
         }
 
         const baseUrl = getBaseUrl(req);
-        const filename = `dxf_${Date.now()}.dxf`;
+        const filename = `dxf_${Date.now()}_${crypto.randomUUID()}.dxf`;
         const dxfDirectory = config.DXF_DIRECTORY;
         fs.mkdirSync(dxfDirectory, { recursive: true });
         const outputFile = path.join(dxfDirectory, filename);

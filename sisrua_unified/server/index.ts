@@ -27,6 +27,7 @@ import ibgeRoutes from './routes/ibgeRoutes.js';
 import indeRoutes from './routes/indeRoutes.js';
 import analysisRoutes from './routes/analysisRoutes.js';
 import constantsRoutes from './routes/constantsRoutes.js';
+import btHistoryRoutes from './routes/btHistoryRoutes.js';
 import jobRoutes from './routes/jobRoutes.js';
 import firestoreRoutes from './routes/firestoreRoutes.js';
 import dxfRoutes from './routes/dxfRoutes.js';
@@ -182,6 +183,7 @@ app.use('/api/ibge', ibgeRoutes);
 app.use('/api/inde', indeRoutes);
 app.use('/api/analyze', analysisRoutes);
 app.use('/api/constants', constantsRoutes);
+app.use('/api/bt-history', btHistoryRoutes);
 app.use('/api/jobs', jobRoutes);
 if (config.useFirestore) {
     app.use('/api/firestore', firestoreRoutes);

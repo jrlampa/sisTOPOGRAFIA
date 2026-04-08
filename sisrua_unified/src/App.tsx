@@ -1,4 +1,5 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Map as MapIcon, Search, Loader2, TrendingUp } from 'lucide-react';
 import { AnalysisStats, GlobalState, BtTopology, BtPoleNode, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
@@ -28,6 +29,7 @@ import { SidebarBtEditorSection } from './components/SidebarBtEditorSection';
 import { SidebarAnalysisResults } from './components/SidebarAnalysisResults';
 import { BtExportSummaryBanner } from './components/BtExportSummaryBanner';
 import { NormalRamalModal, ClandestinoToNormalModal, NormalToClandestinoModal, ResetBtTopologyModal } from './components/BtModals';
+import { clearBtExportHistoryRemote, createBtExportHistory, listBtExportHistory } from './services/btExportHistoryService';
 
 const MapSelector = React.lazy(() => import('./components/MapSelector'));
 const SettingsModal = React.lazy(() => import('./components/SettingsModal'));
@@ -53,6 +55,12 @@ const MapSuspenseFallback = () => (
 );
 
 function App() {
+  const btHistoryHydratedRef = useRef(false);
+  const [btHistoryTotal, setBtHistoryTotal] = useState(0);
+  const [btHistoryLoading, setBtHistoryLoading] = useState(false);
+  const [btHistoryProjectTypeFilter, setBtHistoryProjectTypeFilter] = useState<'all' | 'ramais' | 'clandestino'>('all');
+  const [btHistoryCqtScenarioFilter, setBtHistoryCqtScenarioFilter] = useState<'all' | 'atual' | 'proj1' | 'proj2'>('all');
+
   const {
     state: appState,
     setState: setAppState,
@@ -119,12 +127,96 @@ function App() {
   const isDark = settings.theme === 'dark';
   const btEditorMode: BtEditorMode = settings.btEditorMode ?? 'none';
 
+  const btHistoryCanLoadMore = btExportHistory.length < btHistoryTotal;
+
+  const resolveBtHistoryFilters = () => ({
+    projectType: btHistoryProjectTypeFilter === 'all' ? undefined : btHistoryProjectTypeFilter,
+    cqtScenario: btHistoryCqtScenarioFilter === 'all' ? undefined : btHistoryCqtScenarioFilter,
+  });
+
+  const loadBtHistoryPage = async (offset: number, append: boolean) => {
+    setBtHistoryLoading(true);
+    try {
+      const page = await listBtExportHistory(MAX_BT_EXPORT_HISTORY, offset, resolveBtHistoryFilters());
+      setBtHistoryTotal(page.total);
+
+      const nextEntries = append
+        ? [...(appState.btExportHistory ?? []), ...page.entries]
+        : page.entries;
+
+      const latestFromDb = nextEntries[0] ?? null;
+      setAppState(
+        {
+          ...appState,
+          btExportSummary: appState.btExportSummary ?? latestFromDb,
+          btExportHistory: nextEntries,
+        },
+        false,
+      );
+    } catch {
+      // Falha de hidratação/paginação não bloqueia fluxo local.
+    } finally {
+      setBtHistoryLoading(false);
+    }
+  };
+
+  const handleLoadMoreBtHistory = () => {
+    if (btHistoryLoading || !btHistoryCanLoadMore) {
+      return;
+    }
+
+    void loadBtHistoryPage(btExportHistory.length, true);
+  };
+
+  const handleClearBtExportHistory = async () => {
+    try {
+      const result = await clearBtExportHistoryRemote(resolveBtHistoryFilters());
+      await loadBtHistoryPage(0, false);
+
+      if (result.deletedCount > 0) {
+        showToast(`Histórico BT limpo no servidor (${result.deletedCount} registro(s)).`, 'success');
+      } else {
+        showToast('Nenhum registro BT correspondente ao filtro para limpar.', 'info');
+      }
+    } catch {
+      showToast('Falha ao limpar histórico BT no servidor.', 'error');
+    }
+  };
+
   const {
     btAccumulatedByPole,
     btEstimatedByTransformer,
     btTransformerDebugById,
     btCriticalPoleId,
   } = useBtDerivedState({ appState, setAppState });
+
+  useEffect(() => {
+    if (btHistoryHydratedRef.current) {
+      return;
+    }
+
+    if ((appState.btExportHistory ?? []).length > 0) {
+      btHistoryHydratedRef.current = true;
+      return;
+    }
+
+    btHistoryHydratedRef.current = true;
+
+    const hydrateBtHistory = async () => {
+      await loadBtHistoryPage(0, false);
+    };
+
+    void hydrateBtHistory();
+  }, [appState, setAppState]);
+
+  useEffect(() => {
+    if (!btHistoryHydratedRef.current) {
+      return;
+    }
+
+    void loadBtHistoryPage(0, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [btHistoryProjectTypeFilter, btHistoryCqtScenarioFilter]);
 
   // Core analysis engine
   const {
@@ -216,7 +308,6 @@ function App() {
     resetConfirmOpen,
     setResetConfirmOpen,
     handleConfirmResetBtTopology,
-    clearBtExportHistory,
     exportBtHistoryJson,
     exportBtHistoryCsv,
     validateBtBeforeExport,
@@ -326,6 +417,7 @@ function App() {
       const nextHistory = [historyEntry, ...(appState.btExportHistory ?? [])].slice(0, MAX_BT_EXPORT_HISTORY);
 
       setAppState({ ...appState, btExportSummary: nextBtExportSummary, btExportHistory: nextHistory }, false);
+      void createBtExportHistory(historyEntry);
       const cqtScenarioLabel = cqtSummary?.scenario ? ` | CQT ${cqtSummary.scenario.toUpperCase()}` : '';
       showToast(`Resumo BT: ponto crítico ${poleId} (${accumulatedDemandKva.toFixed(2)})${cqtScenarioLabel}.`, 'info');
     }
@@ -497,7 +589,15 @@ function App() {
         btExportHistory={btExportHistory}
         exportBtHistoryJson={exportBtHistoryJson}
         exportBtHistoryCsv={exportBtHistoryCsv}
-        clearBtExportHistory={clearBtExportHistory}
+        clearBtExportHistory={handleClearBtExportHistory}
+        btHistoryTotal={btHistoryTotal}
+        btHistoryLoading={btHistoryLoading}
+        btHistoryCanLoadMore={btHistoryCanLoadMore}
+        onLoadMoreBtHistory={handleLoadMoreBtHistory}
+        historyProjectTypeFilter={btHistoryProjectTypeFilter}
+        onHistoryProjectTypeFilterChange={setBtHistoryProjectTypeFilter}
+        historyCqtScenarioFilter={btHistoryCqtScenarioFilter}
+        onHistoryCqtScenarioFilterChange={setBtHistoryCqtScenarioFilter}
       />
 
       <AnimatePresence>

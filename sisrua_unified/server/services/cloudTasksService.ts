@@ -5,6 +5,7 @@ import path from 'path';
 import { logger } from '../utils/logger.js';
 import { generateDxf } from '../pythonBridge.js';
 import { completeJob, createJob, failJob, updateJobStatus } from './jobStatusService.js';
+import { setCachedFilename } from './cacheService.js';
 import { scheduleDxfDeletion } from './dxfCleanupService.js';
 import { config } from '../config.js';
 
@@ -148,6 +149,9 @@ async function processPayload(payload: DxfTaskPayload): Promise<void> {
   const btContextUrl = btContextSidecarPath
     ? payload.downloadUrl.replace(/\.dxf$/i, '_bt_context.json')
     : undefined;
+
+  // Re-enable cache population for the async pipeline.
+  setCachedFilename(payload.cacheKey, payload.filename);
 
   scheduleDxfDeletion(payload.outputFile);
 

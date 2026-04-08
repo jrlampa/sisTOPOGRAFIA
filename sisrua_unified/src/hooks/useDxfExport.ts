@@ -5,6 +5,9 @@ import { validateDxfExportInputs } from '../utils/validation';
 
 type ContourRenderMode = 'spline' | 'polyline';
 
+const JOB_POLL_INTERVAL_MS = 2000;
+const MAX_JOB_POLL_ATTEMPTS = 90;
+
 interface UseDxfExportProps {
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
@@ -123,7 +126,19 @@ export function useDxfExport({ onSuccess, onError, onBtContextLoaded }: UseDxfEx
     }
 
     let isActive = true;
+    let attempts = 0;
     const intervalId = window.setInterval(async () => {
+      attempts += 1;
+      if (attempts > MAX_JOB_POLL_ATTEMPTS) {
+        onError('DXF Error: timeout aguardando processamento do job');
+        clearInterval(intervalId);
+        setJobId(null);
+        setIsDownloading(false);
+        setJobStatus('failed');
+        setDownloadCenter(null);
+        return;
+      }
+
       try {
         const statusResponse = await getDxfJobStatus(jobId);
         if (!isActive) {
@@ -181,7 +196,7 @@ export function useDxfExport({ onSuccess, onError, onBtContextLoaded }: UseDxfEx
         setJobStatus('failed');
         setDownloadCenter(null);
       }
-    }, 2000);
+    }, JOB_POLL_INTERVAL_MS);
 
     return () => {
       isActive = false;

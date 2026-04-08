@@ -8,6 +8,14 @@ interface BtExportSummaryBannerProps {
   exportBtHistoryJson: () => void;
   exportBtHistoryCsv: () => void;
   clearBtExportHistory: () => void;
+  btHistoryTotal?: number;
+  btHistoryLoading?: boolean;
+  btHistoryCanLoadMore?: boolean;
+  onLoadMoreBtHistory?: () => void;
+  historyProjectTypeFilter?: 'all' | 'ramais' | 'clandestino';
+  onHistoryProjectTypeFilterChange?: (value: 'all' | 'ramais' | 'clandestino') => void;
+  historyCqtScenarioFilter?: 'all' | 'atual' | 'proj1' | 'proj2';
+  onHistoryCqtScenarioFilterChange?: (value: 'all' | 'atual' | 'proj1' | 'proj2') => void;
 }
 
 export function BtExportSummaryBanner({
@@ -16,6 +24,14 @@ export function BtExportSummaryBanner({
   exportBtHistoryJson,
   exportBtHistoryCsv,
   clearBtExportHistory,
+  btHistoryTotal = 0,
+  btHistoryLoading = false,
+  btHistoryCanLoadMore = false,
+  onLoadMoreBtHistory,
+  historyProjectTypeFilter = 'all',
+  onHistoryProjectTypeFilterChange,
+  historyCqtScenarioFilter = 'all',
+  onHistoryCqtScenarioFilterChange,
 }: BtExportSummaryBannerProps) {
   // Item 23: Paginação de histórico BT
   const historyPagination = usePagination(btExportHistory, 5);
@@ -81,8 +97,35 @@ export function BtExportSummaryBanner({
 
       {btExportHistory.length > 0 && (
         <div className="mt-3 border-t border-cyan-500/20 pt-2">
-          <div className="mb-1 font-semibold uppercase tracking-wide text-cyan-300">
-            Histórico ({historyPagination.totalItems} entradas)
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <div className="font-semibold uppercase tracking-wide text-cyan-300">
+              Histórico ({historyPagination.totalItems}/{btHistoryTotal > 0 ? btHistoryTotal : historyPagination.totalItems})
+            </div>
+            <div className="flex items-center gap-2 text-[10px]">
+              <select
+                value={historyProjectTypeFilter}
+                onChange={(event) => onHistoryProjectTypeFilterChange?.(event.target.value as 'all' | 'ramais' | 'clandestino')}
+                aria-label="Filtro de tipo de projeto do histórico BT"
+                title="Filtrar histórico por tipo de projeto"
+                className="rounded border border-cyan-500/30 bg-slate-900 px-1 py-0.5 text-cyan-100"
+              >
+                <option value="all">Todos os tipos</option>
+                <option value="ramais">Ramais</option>
+                <option value="clandestino">Clandestino</option>
+              </select>
+              <select
+                value={historyCqtScenarioFilter}
+                onChange={(event) => onHistoryCqtScenarioFilterChange?.(event.target.value as 'all' | 'atual' | 'proj1' | 'proj2')}
+                aria-label="Filtro de cenário CQT do histórico BT"
+                title="Filtrar histórico por cenário CQT"
+                className="rounded border border-cyan-500/30 bg-slate-900 px-1 py-0.5 text-cyan-100"
+              >
+                <option value="all">CQT: todos</option>
+                <option value="atual">CQT atual</option>
+                <option value="proj1">CQT proj1</option>
+                <option value="proj2">CQT proj2</option>
+              </select>
+            </div>
           </div>
           {historyPagination.items.map((entry, index) => (
             <div key={`${entry.exportedAt}-${entry.criticalPoleId}-${index}`} className="text-[11px] text-cyan-100/90">
@@ -101,6 +144,15 @@ export function BtExportSummaryBanner({
             onGoToPage={historyPagination.goToPage}
             className="text-cyan-300 border-cyan-500/40"
           />
+          {onLoadMoreBtHistory && btHistoryCanLoadMore && (
+            <button
+              onClick={onLoadMoreBtHistory}
+              disabled={btHistoryLoading}
+              className="mt-2 w-full rounded border border-cyan-500/40 px-2 py-1 text-[10px] uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {btHistoryLoading ? 'Carregando...' : 'Carregar mais do servidor'}
+            </button>
+          )}
         </div>
       )}
     </div>
