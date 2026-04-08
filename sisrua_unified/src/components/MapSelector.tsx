@@ -8,8 +8,6 @@ import { Minus, Plus, Trash2, Triangle } from 'lucide-react';
 import { LEGACY_ID_ENTROPY, ENTITY_ID_PREFIXES } from '../constants/magicNumbers';
 
 const CONDUCTOR_OPTIONS = [
-    'FLY2',
-    'FLY 2',
     '70 Al - MX',
     '185 Al - MX',
     '240 Al - MX',

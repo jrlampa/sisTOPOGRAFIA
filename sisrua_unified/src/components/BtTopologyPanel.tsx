@@ -77,8 +77,6 @@ const NORMAL_CLIENT_RAMAL_TYPES = [
 ];
 const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
 const CONDUCTOR_NAMES = [
-  'FLY2',
-  'FLY 2',
   '70 Al - MX',
   '185 Al - MX',
   '240 Al - MX',
