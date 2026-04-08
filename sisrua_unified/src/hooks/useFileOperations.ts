@@ -23,6 +23,9 @@ export function useFileOperations({
   const saveProject = () => {
     try {
       setIsLoading(true);
+      const rawProjectName = (appState.settings.projectMetadata.projectName || '').trim();
+      const normalizedProjectName = rawProjectName.replace(/\.(srua|osmpro|json)$/i, '') || 'projeto';
+
       const projectData = {
         state: appState,
         timestamp: new Date().toISOString(),
@@ -35,7 +38,7 @@ export function useFileOperations({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${appState.settings.projectMetadata.projectName}.osmpro`;
+      a.download = `${normalizedProjectName}.srua`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -63,7 +66,7 @@ export function useFileOperations({
         }
         
         const loadedState = data.state as GlobalState;
-        // Backward compatibility for older .osmpro files created before contour mode existed
+        // Backward compatibility for older .osmpro/.json files created before contour mode existed
         if (!loadedState.settings.contourRenderMode) {
           loadedState.settings.contourRenderMode = 'spline';
         }

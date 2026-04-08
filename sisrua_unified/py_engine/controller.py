@@ -353,6 +353,8 @@ class OSMController:
                     "fromPoleId": from_pole_id,
                     "toPoleId": to_pole_id,
                     "verified": bool(raw_edge.get("verified", False)),
+                    "edgeChangeFlag": str(raw_edge.get("edgeChangeFlag", "") or ""),
+                    "removeOnExecution": bool(raw_edge.get("removeOnExecution", False)),
                     "lengthMeters": _to_float(raw_edge.get("lengthMeters"), 0.0) or 0.0,
                     "fromX": from_pole["x"],
                     "fromY": from_pole["y"],
@@ -361,6 +363,11 @@ class OSMController:
                     "conductors": (
                         raw_edge.get("conductors", [])
                         if isinstance(raw_edge.get("conductors"), list)
+                        else []
+                    ),
+                    "replacementFromConductors": (
+                        raw_edge.get("replacementFromConductors", [])
+                        if isinstance(raw_edge.get("replacementFromConductors"), list)
                         else []
                     ),
                 }

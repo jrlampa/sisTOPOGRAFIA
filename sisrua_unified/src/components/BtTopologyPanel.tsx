@@ -1,6 +1,6 @@
 import React from 'react';
 import { Activity, Plus, Trash2, Sigma } from 'lucide-react';
-import { BtEdge, BtNetworkScenario, BtPoleRamalEntry, BtTopology, BtTransformerReading } from '../types';
+import { BtEdge, BtNetworkScenario, BtPoleNode, BtPoleRamalEntry, BtTopology, BtTransformer, BtTransformerReading } from '../types';
 import {
   calculateAccumulatedDemandByPole,
   calculateBtSummary,
@@ -20,7 +20,10 @@ interface BtTopologyPanelProps {
   btNetworkScenario: BtNetworkScenario;
   clandestinoAreaM2: number;
   onTopologyChange: (next: BtTopology) => void;
+  onSelectedEdgeChange?: (edgeId: string) => void;
   onBtSetEdgeChangeFlag?: (edgeId: string, edgeChangeFlag: 'existing' | 'new' | 'remove' | 'replace') => void;
+  onBtSetPoleChangeFlag?: (poleId: string, nodeChangeFlag: 'existing' | 'new' | 'remove' | 'replace') => void;
+  onBtSetTransformerChangeFlag?: (transformerId: string, transformerChangeFlag: 'existing' | 'new' | 'remove' | 'replace') => void;
   onProjectTypeChange?: (next: 'ramais' | 'clandestino') => void;
   onClandestinoAreaChange?: (nextAreaM2: number) => void;
   onBtRenamePole?: (poleId: string, title: string) => void;
@@ -28,6 +31,8 @@ interface BtTopologyPanelProps {
 }
 
 type BtEdgeChangeFlag = NonNullable<BtEdge['edgeChangeFlag']>;
+type BtPoleChangeFlag = NonNullable<BtPoleNode['nodeChangeFlag']>;
+type BtTransformerChangeFlag = NonNullable<BtTransformer['transformerChangeFlag']>;
 
 const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
   if (edge.edgeChangeFlag) {
@@ -36,6 +41,9 @@ const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
 
   return edge.removeOnExecution ? 'remove' : 'existing';
 };
+
+const getPoleChangeFlag = (pole: BtPoleNode): BtPoleChangeFlag => pole.nodeChangeFlag ?? 'existing';
+const getTransformerChangeFlag = (transformer: BtTransformer): BtTransformerChangeFlag => transformer.transformerChangeFlag ?? 'existing';
 
 const CURRENT_TO_DEMAND_CONVERSION = 0.375;
 const NORMAL_CLIENT_RAMAL_TYPES = [
@@ -207,7 +215,10 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   btNetworkScenario,
   clandestinoAreaM2,
   onTopologyChange,
+  onSelectedEdgeChange,
   onBtSetEdgeChangeFlag,
+  onBtSetPoleChangeFlag,
+  onBtSetTransformerChangeFlag,
   onProjectTypeChange,
   onClandestinoAreaChange,
   onBtRenamePole,
@@ -350,6 +361,22 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         return {
           ...edge,
           conductors
+        };
+      })
+    });
+  };
+
+  const updateEdgeReplacementFromConductors = (edgeId: string, replacementFromConductors: BtTopology['edges'][number]['conductors']) => {
+    onTopologyChange({
+      ...btTopology,
+      edges: btTopology.edges.map((edge) => {
+        if (edge.id !== edgeId) {
+          return edge;
+        }
+
+        return {
+          ...edge,
+          replacementFromConductors
         };
       })
     });
@@ -548,6 +575,35 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     {selectedPole.verified ? 'Marcar como não verificado' : 'Marcar poste como verificado'}
                   </button>
 
+                  {onBtSetPoleChangeFlag && (
+                    <div className="flex flex-wrap gap-2 rounded border border-slate-200 bg-slate-100/70 p-2">
+                      <button
+                        onClick={() => onBtSetPoleChangeFlag(selectedPole.id, 'remove')}
+                        className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === 'remove' ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-300 bg-white text-slate-700'}`}
+                      >
+                        Remoção
+                      </button>
+                      <button
+                        onClick={() => onBtSetPoleChangeFlag(selectedPole.id, 'new')}
+                        className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === 'new' ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-300 bg-white text-slate-700'}`}
+                      >
+                        Novo
+                      </button>
+                      <button
+                        onClick={() => onBtSetPoleChangeFlag(selectedPole.id, 'replace')}
+                        className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === 'replace' ? 'border-yellow-400 bg-yellow-50 text-yellow-700' : 'border-slate-300 bg-white text-slate-700'}`}
+                      >
+                        Substituição
+                      </button>
+                      <button
+                        onClick={() => onBtSetPoleChangeFlag(selectedPole.id, 'existing')}
+                        className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === 'existing' ? 'border-fuchsia-400 bg-fuchsia-50 text-fuchsia-700' : 'border-slate-300 bg-white text-slate-700'}`}
+                      >
+                        Existente
+                      </button>
+                    </div>
+                  )}
+
                   <div className="rounded border border-slate-300 bg-white p-2">
                     <div className="mb-2 flex items-center justify-between text-[10px] text-slate-600">
                       <span>Ramais do poste</span>
@@ -684,6 +740,35 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
               </button>
             )}
 
+            {selectedTransformer && onBtSetTransformerChangeFlag && (
+              <div className="flex flex-wrap gap-2 rounded border border-slate-200 bg-slate-100/70 p-2">
+                <button
+                  onClick={() => onBtSetTransformerChangeFlag(selectedTransformer.id, 'remove')}
+                  className={`rounded border px-2 py-1 text-[10px] ${getTransformerChangeFlag(selectedTransformer) === 'remove' ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-300 bg-white text-slate-700'}`}
+                >
+                  Remoção
+                </button>
+                <button
+                  onClick={() => onBtSetTransformerChangeFlag(selectedTransformer.id, 'new')}
+                  className={`rounded border px-2 py-1 text-[10px] ${getTransformerChangeFlag(selectedTransformer) === 'new' ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-300 bg-white text-slate-700'}`}
+                >
+                  Novo
+                </button>
+                <button
+                  onClick={() => onBtSetTransformerChangeFlag(selectedTransformer.id, 'replace')}
+                  className={`rounded border px-2 py-1 text-[10px] ${getTransformerChangeFlag(selectedTransformer) === 'replace' ? 'border-yellow-400 bg-yellow-50 text-yellow-700' : 'border-slate-300 bg-white text-slate-700'}`}
+                >
+                  Substituição
+                </button>
+                <button
+                  onClick={() => onBtSetTransformerChangeFlag(selectedTransformer.id, 'existing')}
+                  className={`rounded border px-2 py-1 text-[10px] ${getTransformerChangeFlag(selectedTransformer) === 'existing' ? 'border-fuchsia-400 bg-fuchsia-50 text-fuchsia-700' : 'border-slate-300 bg-white text-slate-700'}`}
+                >
+                  Existente
+                </button>
+              </div>
+            )}
+
             {selectedTransformer && (
               <div className="space-y-2">
                 {(() => {
@@ -772,7 +857,11 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             <select
               className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
               value={selectedEdgeId}
-              onChange={(e) => setSelectedEdgeId(e.target.value)}
+              onChange={(e) => {
+                const nextEdgeId = e.target.value;
+                setSelectedEdgeId(nextEdgeId);
+                onSelectedEdgeChange?.(nextEdgeId);
+              }}
             >
               {btTopology.edges.map((edge) => {
                 const fromTitle = btTopology.poles.find((pole) => pole.id === edge.fromPoleId)?.title ?? edge.fromPoleId;
@@ -864,12 +953,19 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                       }}
                       className="inline-flex h-8 items-center gap-1 rounded border border-slate-300 bg-white px-2 text-xs text-slate-700 hover:bg-slate-100"
                     >
-                      <Plus size={12} /> Condutor
+                      <Plus size={12} /> {selectedEdgeFlag === 'replace' ? 'Condutor que entra' : 'Condutor'}
                     </button>
                   </div>
                 </div>
                   );
                 })()}
+
+                {getEdgeChangeFlag(selectedEdge) === 'replace' && (
+                  <div className="rounded border border-cyan-300 bg-cyan-50 p-2 text-[10px] text-cyan-900">
+                    <div className="font-semibold uppercase tracking-wide">Condutor que entra</div>
+                    <div className="mt-1">Este bloco define o novo condutor que ficará no trecho após a substituição.</div>
+                  </div>
+                )}
 
                 {selectedEdge.conductors.map((entry) => (
                   <div key={entry.id} className="grid max-w-full grid-cols-[64px_minmax(0,1fr)_28px] items-center gap-2">
@@ -916,6 +1012,69 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                   </div>
                 ))}
 
+                {getEdgeChangeFlag(selectedEdge) === 'replace' && (
+                  <div className="rounded border border-amber-300 bg-amber-50 p-2">
+                    <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-amber-700">Condutor que sai</div>
+                    {(selectedEdge.replacementFromConductors ?? []).length === 0 && (
+                      <button
+                        onClick={() => {
+                          updateEdgeReplacementFromConductors(selectedEdge.id, [
+                            { id: nextId('RC'), quantity: 1, conductorName: CONDUCTOR_NAMES[0] }
+                          ]);
+                        }}
+                        className="inline-flex h-7 items-center gap-1 rounded border border-amber-400 bg-white px-2 text-[11px] text-amber-800 hover:bg-amber-100"
+                      >
+                        <Plus size={12} /> Inserir condutor que sai
+                      </button>
+                    )}
+
+                    {(selectedEdge.replacementFromConductors ?? []).map((entry) => (
+                      <div key={entry.id} className="mt-2 grid max-w-full grid-cols-[64px_minmax(0,1fr)_28px] items-center gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          value={entry.quantity}
+                          onChange={(e) => {
+                            const quantity = Math.max(1, numberFromInput(e.target.value));
+                            updateEdgeReplacementFromConductors(
+                              selectedEdge.id,
+                              (selectedEdge.replacementFromConductors ?? []).map((item) => item.id === entry.id ? { ...item, quantity } : item)
+                            );
+                          }}
+                          className="w-full min-w-0 rounded border border-amber-300 bg-white p-1.5 text-[11px] text-slate-800"
+                        />
+                        <select
+                          value={entry.conductorName}
+                          onChange={(e) => {
+                            const conductorName = e.target.value;
+                            updateEdgeReplacementFromConductors(
+                              selectedEdge.id,
+                              (selectedEdge.replacementFromConductors ?? []).map((item) => item.id === entry.id ? { ...item, conductorName } : item)
+                            );
+                          }}
+                          className="min-w-0 w-full rounded border border-amber-300 bg-white p-1.5 text-[11px] text-slate-800"
+                        >
+                          {CONDUCTOR_NAMES.map((name) => (
+                            <option key={name} value={name}>{name}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => {
+                            updateEdgeReplacementFromConductors(
+                              selectedEdge.id,
+                              (selectedEdge.replacementFromConductors ?? []).filter((item) => item.id !== entry.id)
+                            );
+                          }}
+                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center justify-self-end rounded border border-rose-500/30 text-rose-400 hover:bg-rose-500/10"
+                          title="Remover condutor de saída"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="rounded border border-slate-300 bg-white p-2 text-[10px] text-slate-700">
                   {getEdgeChangeFlag(selectedEdge) === 'remove' && (
                     <div className="mb-1 rounded border border-rose-300 bg-rose-50 px-2 py-1 text-rose-700">
@@ -924,7 +1083,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                   )}
                   {getEdgeChangeFlag(selectedEdge) === 'replace' && (
                     <div className="mb-1 rounded border border-yellow-300 bg-yellow-50 px-2 py-1 text-yellow-800">
-                      Substituição: o condutor informado será mantido no local do trecho substituído.
+                      Substituição: no DXF serão enviados condutor que entra e condutor que sai.
                     </div>
                   )}
                   <div className="flex items-center gap-2">

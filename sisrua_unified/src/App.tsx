@@ -64,6 +64,8 @@ const NORMAL_CLIENT_RAMAL_TYPES = [
 const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
 const DEFAULT_EDGE_CONDUCTOR = '70 Al - MX';
 type BtEdgeChangeFlag = NonNullable<BtEdge['edgeChangeFlag']>;
+type BtPoleChangeFlag = NonNullable<BtPoleNode['nodeChangeFlag']>;
+type BtTransformerChangeFlag = NonNullable<BtTransformer['transformerChangeFlag']>;
 
 const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
   if (edge.edgeChangeFlag) {
@@ -75,8 +77,12 @@ const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
 
 const normalizeBtEdge = (edge: BtEdge): BtEdge => {
   const edgeChangeFlag = getEdgeChangeFlag(edge);
-  const mustHaveConductor = edgeChangeFlag === 'replace';
+  const mustHaveConductor = edgeChangeFlag === 'replace' || edgeChangeFlag === 'new';
   const hasConductors = edge.conductors.length > 0;
+  const replacementFromConductors = Array.isArray(edge.replacementFromConductors)
+    ? edge.replacementFromConductors
+    : [];
+  const hasReplacementFrom = replacementFromConductors.length > 0;
 
   return {
     ...edge,
@@ -84,11 +90,28 @@ const normalizeBtEdge = (edge: BtEdge): BtEdge => {
     removeOnExecution: edgeChangeFlag === 'remove',
     conductors: mustHaveConductor && !hasConductors
       ? [{ id: `C${Date.now()}${Math.floor(Math.random() * 1000)}`, quantity: 1, conductorName: DEFAULT_EDGE_CONDUCTOR }]
-      : edge.conductors
+      : edge.conductors,
+    replacementFromConductors: mustHaveConductor && !hasReplacementFrom
+      ? [{ id: `RC${Date.now()}${Math.floor(Math.random() * 1000)}`, quantity: 1, conductorName: DEFAULT_EDGE_CONDUCTOR }]
+      : replacementFromConductors
   };
 };
 
 const normalizeBtEdges = (edges: BtEdge[]): BtEdge[] => edges.map(normalizeBtEdge);
+
+const getPoleChangeFlag = (pole: BtPoleNode): BtPoleChangeFlag => pole.nodeChangeFlag ?? 'existing';
+const normalizeBtPole = (pole: BtPoleNode): BtPoleNode => ({
+  ...pole,
+  nodeChangeFlag: getPoleChangeFlag(pole)
+});
+const normalizeBtPoles = (poles: BtPoleNode[]): BtPoleNode[] => poles.map(normalizeBtPole);
+
+const getTransformerChangeFlag = (transformer: BtTransformer): BtTransformerChangeFlag => transformer.transformerChangeFlag ?? 'existing';
+const normalizeBtTransformer = (transformer: BtTransformer): BtTransformer => ({
+  ...transformer,
+  transformerChangeFlag: getTransformerChangeFlag(transformer)
+});
+const normalizeBtTransformers = (transformers: BtTransformer[]): BtTransformer[] => transformers.map(normalizeBtTransformer);
 
 type PendingNormalClassificationPole = {
   poleId: string;
@@ -277,6 +300,7 @@ function App() {
     ramalType: string;
     quantity: number;
   } | null>(null);
+  const [btEdgeFlyToTarget, setBtEdgeFlyToTarget] = useState<{ lat: number; lng: number; token: number } | null>(null);
   const [pendingNormalClassificationPoles, setPendingNormalClassificationPoles] = useState<PendingNormalClassificationPole[]>([]);
   const [clandestinoToNormalModal, setClandestinoToNormalModal] = useState<{
     poles: PendingNormalClassificationPole[];
@@ -504,6 +528,8 @@ function App() {
       ...appState,
       btTopology: {
         ...nextTopology,
+        poles: normalizeBtPoles(nextTopology.poles),
+        transformers: normalizeBtTransformers(nextTopology.transformers),
         edges: normalizeBtEdges(nextTopology.edges)
       }
     }, true);
@@ -757,6 +783,14 @@ function App() {
       return false;
     }
 
+    const replacementWithoutOutgoing = btTopology.edges.find((edge) =>
+      getEdgeChangeFlag(edge) === 'replace' && (!edge.replacementFromConductors || edge.replacementFromConductors.length === 0)
+    );
+    if (replacementWithoutOutgoing) {
+      showToast(`Trecho ${replacementWithoutOutgoing.id} em substituição sem condutor de saída definido.`, 'error');
+      return false;
+    }
+
     if (settings.projectType !== 'clandestino') {
       if (pendingNormalClassificationPoles.length > 0) {
         showToast('Existem postes com classificação de ramal pendente. Conclua antes de gerar DXF.', 'error');
@@ -804,7 +838,8 @@ function App() {
       lat: location.lat,
       lng: location.lng,
       title: `Poste ${nextId}`,
-      ramais: []
+      ramais: [],
+      nodeChangeFlag: 'existing'
     };
 
     setAppState({
@@ -883,7 +918,8 @@ function App() {
         projectPowerKva: 0,
         monthlyBillBrl: 0,
         demandKw: 0,
-        readings: []
+        readings: [],
+        transformerChangeFlag: 'existing'
       };
 
       setAppState({
@@ -951,6 +987,7 @@ function App() {
               toPoleId: nearestPole.id,
               lengthMeters,
               conductors: [],
+              replacementFromConductors: [],
               removeOnExecution: false,
               edgeChangeFlag: 'existing'
             }
@@ -1040,8 +1077,51 @@ function App() {
     showToast(`Trecho ${edgeId} marcado como ${statusLabel}.`, 'info');
   };
 
+  const handleBtSetPoleChangeFlag = (poleId: string, nodeChangeFlag: BtPoleChangeFlag) => {
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        poles: btTopology.poles.map((pole) =>
+          pole.id === poleId ? normalizeBtPole({ ...pole, nodeChangeFlag }) : pole
+        )
+      }
+    }, true);
+  };
+
+  const handleBtSetTransformerChangeFlag = (transformerId: string, transformerChangeFlag: BtTransformerChangeFlag) => {
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        transformers: btTopology.transformers.map((transformer) =>
+          transformer.id === transformerId ? normalizeBtTransformer({ ...transformer, transformerChangeFlag }) : transformer
+        )
+      }
+    }, true);
+  };
+
   const handleBtToggleEdgeRemoval = (edgeId: string, removeOnExecution: boolean) => {
     handleBtSetEdgeChangeFlag(edgeId, removeOnExecution ? 'remove' : 'existing');
+  };
+
+  const handleBtSetEdgeReplacementFromConductors = (edgeId: string, conductors: BtEdge['conductors']) => {
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        edges: btTopology.edges.map((edge) => {
+          if (edge.id !== edgeId) {
+            return edge;
+          }
+
+          return normalizeBtEdge({
+            ...edge,
+            replacementFromConductors: conductors
+          });
+        })
+      }
+    }, true);
   };
 
   const handleBtDeleteTransformer = (transformerId: string) => {
@@ -1084,7 +1164,8 @@ function App() {
         projectPowerKva: 0,
         monthlyBillBrl: 0,
         demandKw: 0,
-        readings: []
+        readings: [],
+        transformerChangeFlag: 'existing'
       };
 
       setAppState({
@@ -1174,6 +1255,25 @@ function App() {
         poles: btTopology.poles.map((pole) => pole.id === poleId ? { ...pole, verified } : pole)
       }
     }, true);
+  };
+
+  const handleBtSelectedEdgeChange = (edgeId: string) => {
+    const edge = btTopology.edges.find((candidate) => candidate.id === edgeId);
+    if (!edge) {
+      return;
+    }
+
+    const fromPole = btTopology.poles.find((pole) => pole.id === edge.fromPoleId);
+    const toPole = btTopology.poles.find((pole) => pole.id === edge.toPoleId);
+    if (!fromPole || !toPole) {
+      return;
+    }
+
+    setBtEdgeFlyToTarget({
+      lat: (fromPole.lat + toPole.lat) / 2,
+      lng: (fromPole.lng + toPole.lng) / 2,
+      token: Date.now(),
+    });
   };
 
   const handleBtQuickAddPoleRamal = (poleId: string) => {
@@ -1510,6 +1610,7 @@ function App() {
               lat: pole.lat,
               lng: pole.lng,
               title: pole.title,
+              nodeChangeFlag: getPoleChangeFlag(pole),
               verified: pole.verified ?? false,
               ramais: (pole.ramais ?? []).map((ramal) => ({
                 id: ramal.id,
@@ -1523,6 +1624,7 @@ function App() {
               lat: transformer.lat,
               lng: transformer.lng,
               title: transformer.title,
+              transformerChangeFlag: getTransformerChangeFlag(transformer),
               projectPowerKva: transformer.projectPowerKva ?? 0,
               demandKw: transformer.demandKw,
               verified: transformer.verified ?? false
@@ -1535,6 +1637,11 @@ function App() {
               verified: edge.verified ?? false,
               edgeChangeFlag: getEdgeChangeFlag(edge),
               removeOnExecution: getEdgeChangeFlag(edge) === 'remove',
+              replacementFromConductors: (edge.replacementFromConductors ?? []).map((conductor) => ({
+                id: conductor.id,
+                quantity: conductor.quantity,
+                conductorName: conductor.conductorName
+              })),
               conductors: edge.conductors.map((conductor) => ({
                 id: conductor.id,
                 quantity: conductor.quantity,
@@ -1974,11 +2081,14 @@ function App() {
             btNetworkScenario={btNetworkScenario}
             clandestinoAreaM2={settings.clandestinoAreaM2 ?? 0}
             onTopologyChange={updateBtTopology}
+            onSelectedEdgeChange={handleBtSelectedEdgeChange}
             onProjectTypeChange={updateProjectType}
             onClandestinoAreaChange={updateClandestinoAreaM2}
             onBtRenamePole={handleBtRenamePole}
             onBtRenameTransformer={handleBtRenameTransformer}
             onBtSetEdgeChangeFlag={handleBtSetEdgeChangeFlag}
+            onBtSetPoleChangeFlag={handleBtSetPoleChangeFlag}
+            onBtSetTransformerChangeFlag={handleBtSetTransformerChangeFlag}
           />
 
           {/* Control Section */}
@@ -2141,6 +2251,7 @@ function App() {
         <div className="flex-1 relative z-10">
           <MapSelector
             center={center}
+            flyToEdgeTarget={btEdgeFlyToTarget}
             radius={radius}
             selectionMode={selectionMode}
             polygonPoints={polygonPoints}
@@ -2158,9 +2269,12 @@ function App() {
             onBtQuickRemovePoleRamal={handleBtQuickRemovePoleRamal}
             onBtQuickAddEdgeConductor={handleBtQuickAddEdgeConductor}
             onBtQuickRemoveEdgeConductor={handleBtQuickRemoveEdgeConductor}
+            onBtSetEdgeReplacementFromConductors={handleBtSetEdgeReplacementFromConductors}
             onBtRenamePole={handleBtRenamePole}
             onBtRenameTransformer={handleBtRenameTransformer}
             onBtSetPoleVerified={handleBtSetPoleVerified}
+            onBtSetPoleChangeFlag={handleBtSetPoleChangeFlag}
+            onBtSetTransformerChangeFlag={handleBtSetTransformerChangeFlag}
             onBtDragPole={handleBtDragPole}
             onBtDragTransformer={handleBtDragTransformer}
             criticalPoleId={btCriticalPoleId}

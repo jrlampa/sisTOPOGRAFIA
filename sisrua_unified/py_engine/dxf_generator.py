@@ -123,6 +123,41 @@ class DXFGenerator:
             labels.append(f"{quantity}-{name}" if quantity > 1 else name)
         return " + ".join(labels)
 
+    def _draw_boxed_text(
+        self, text, point, layer, color=6, height=2.0, padding_x=1.2, padding_y=0.8
+    ):
+        self._add_text(text, point, layer=layer, height=height, color=color)
+        text_width = max(8.0, len(str(text)) * (height * 0.75))
+        rect_left = point[0] - padding_x
+        rect_bottom = point[1] - padding_y
+        rect_right = rect_left + text_width + (padding_x * 2)
+        rect_top = rect_bottom + height + (padding_y * 2)
+        self.msp.add_lwpolyline(
+            [
+                (rect_left, rect_bottom),
+                (rect_right, rect_bottom),
+                (rect_right, rect_top),
+                (rect_left, rect_top),
+            ],
+            close=True,
+            dxfattribs={"layer": layer, "color": color},
+        )
+
+    def _draw_crossed_text(self, text, point, layer, color=6, height=2.0):
+        self._add_text(text, point, layer=layer, height=height, color=color)
+        text_width = max(8.0, len(str(text)) * (height * 0.75))
+        left = point[0] - 0.6
+        right = left + text_width + 1.2
+        base = point[1] + (height * 0.2)
+        top = base + (height * 1.4)
+
+        self.msp.add_line(
+            (left, base), (right, top), dxfattribs={"layer": layer, "color": color}
+        )
+        self.msp.add_line(
+            (left, top), (right, base), dxfattribs={"layer": layer, "color": color}
+        )
+
     def _format_ramal_summary(self, ramais):
         if not isinstance(ramais, list) or not ramais:
             return []
@@ -193,7 +228,12 @@ class DXFGenerator:
         )
 
         label = self._format_conductor_label(edge.get("conductors", []))
-        if label:
+        edge_change_flag = str(edge.get("edgeChangeFlag", "") or "").lower()
+        replacement_from_label = self._format_conductor_label(
+            edge.get("replacementFromConductors", [])
+        )
+
+        if label or replacement_from_label:
             mid_x = (points[0][0] + points[1][0]) / 2
             mid_y = (points[0][1] + points[1][1]) / 2
             dx = points[1][0] - points[0][0]
@@ -215,14 +255,37 @@ class DXFGenerator:
             rotation = np.degrees(np.arctan2(dy, dx))
             if rotation > 90 or rotation < -90:
                 rotation += 180
-            self._add_text(
-                label,
-                label_point,
-                layer="BT_CONDUTORES",
-                height=2.0,
-                color=6,
-                rotation=rotation,
-            )
+
+            if edge_change_flag == "replace":
+                incoming_point = (label_point[0], label_point[1] + 4.5)
+                outgoing_point = (label_point[0], label_point[1] - 0.8)
+
+                if label:
+                    self._draw_boxed_text(
+                        label,
+                        incoming_point,
+                        layer="BT_CONDUTORES",
+                        color=6,
+                        height=2.0,
+                    )
+
+                if replacement_from_label:
+                    self._draw_crossed_text(
+                        replacement_from_label,
+                        outgoing_point,
+                        layer="BT_CONDUTORES",
+                        color=6,
+                        height=2.0,
+                    )
+            elif label:
+                self._add_text(
+                    label,
+                    label_point,
+                    layer="BT_CONDUTORES",
+                    height=2.0,
+                    color=6,
+                    rotation=rotation,
+                )
 
     def _draw_bt_transformer_callout(self, origin, title, kva_label):
         origin_x, origin_y = origin

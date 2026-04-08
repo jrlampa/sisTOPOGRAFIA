@@ -168,6 +168,7 @@ export interface BtPoleNode {
   title: string;
   ramais?: BtPoleRamalEntry[];
   verified?: boolean;
+  nodeChangeFlag?: 'existing' | 'new' | 'remove' | 'replace';
 }
 
 export interface BtTransformerReading {
@@ -192,6 +193,7 @@ export interface BtTransformer {
   demandKw: number;
   readings: BtTransformerReading[];
   verified?: boolean;
+  transformerChangeFlag?: 'existing' | 'new' | 'remove' | 'replace';
 }
 
 export interface BtEdge {
@@ -200,6 +202,7 @@ export interface BtEdge {
   toPoleId: string;
   lengthMeters?: number;
   conductors: BtRamalEntry[];
+  replacementFromConductors?: BtRamalEntry[];
   verified?: boolean;
   removeOnExecution?: boolean;
   edgeChangeFlag?: 'existing' | 'new' | 'remove' | 'replace';

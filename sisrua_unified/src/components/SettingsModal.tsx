@@ -160,7 +160,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   disabled={!onSaveProject}
                   className="btn-enterprise flex items-center justify-center gap-2 p-3 rounded-lg border border-white/30 text-slate-700 hover:text-slate-900 transition-all disabled:opacity-50"
                 >
-                  <Save size={16} /> Salvar Projeto (.osmpro)
+                  <Save size={16} /> Salvar Projeto
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -173,7 +173,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileChange}
-                  accept=".osmpro,.json"
+                  accept=".srua,.osmpro,.json"
                   className="hidden"
                 />
               </div>

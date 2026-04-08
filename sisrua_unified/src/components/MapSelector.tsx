@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Circle, useMapEvents, GeoJSON, Polygon
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { GeoJsonObject, FeatureCollection } from 'geojson';
-import { BtEditorMode, BtEdge, BtTopology, SelectionMode } from '../types';
+import { BtEditorMode, BtEdge, BtPoleNode, BtRamalEntry, BtTopology, BtTransformer, SelectionMode } from '../types';
 import { Minus, Plus, Trash2, Triangle } from 'lucide-react';
 
 const CONDUCTOR_OPTIONS = [
@@ -39,6 +39,8 @@ const CONDUCTOR_OPTIONS = [
     '4/0 AWG'
 ];
 
+const EDGE_HIT_AREA_WEIGHT = 28;
+
 // Fix for default marker icon in React Leaflet
 // @ts-ignore
 delete L.Icon.Default.prototype._getIconUrl;
@@ -50,6 +52,7 @@ L.Icon.Default.mergeOptions({
 
 interface MapSelectorProps {
     center: { lat: number; lng: number; label?: string };
+    flyToEdgeTarget?: { lat: number; lng: number; token: number } | null;
     radius: number;
     selectionMode: SelectionMode;
     polygonPoints: [number, number][];
@@ -70,9 +73,12 @@ interface MapSelectorProps {
     onBtQuickRemovePoleRamal?: (poleId: string) => void;
     onBtQuickAddEdgeConductor?: (edgeId: string, conductorName: string) => void;
     onBtQuickRemoveEdgeConductor?: (edgeId: string, conductorName: string) => void;
+    onBtSetEdgeReplacementFromConductors?: (edgeId: string, conductors: BtRamalEntry[]) => void;
     onBtRenamePole?: (poleId: string, title: string) => void;
     onBtRenameTransformer?: (transformerId: string, title: string) => void;
     onBtSetPoleVerified?: (poleId: string, verified: boolean) => void;
+    onBtSetPoleChangeFlag?: (poleId: string, nodeChangeFlag: 'existing' | 'new' | 'remove' | 'replace') => void;
+    onBtSetTransformerChangeFlag?: (transformerId: string, transformerChangeFlag: 'existing' | 'new' | 'remove' | 'replace') => void;
     onBtDragPole?: (poleId: string, lat: number, lng: number) => void;
     onBtDragTransformer?: (transformerId: string, lat: number, lng: number) => void;
     criticalPoleId?: string | null;
@@ -85,6 +91,8 @@ interface MapSelectorProps {
 }
 
 type BtEdgeChangeFlag = NonNullable<BtEdge['edgeChangeFlag']>;
+type BtPoleChangeFlag = NonNullable<BtPoleNode['nodeChangeFlag']>;
+type BtTransformerChangeFlag = NonNullable<BtTransformer['transformerChangeFlag']>;
 
 const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
     if (edge.edgeChangeFlag) {
@@ -112,8 +120,19 @@ const getEdgeVisualConfig = (edge: BtEdge) => {
     return { color: '#d946ef', dashArray: undefined as string | undefined, weight: 3 };
 };
 
+const getPoleChangeFlag = (pole: BtPoleNode): BtPoleChangeFlag => pole.nodeChangeFlag ?? 'existing';
+const getTransformerChangeFlag = (transformer: BtTransformer): BtTransformerChangeFlag => transformer.transformerChangeFlag ?? 'existing';
+
+const getFlagColor = (flag: 'existing' | 'new' | 'remove' | 'replace', fallback: string) => {
+    if (flag === 'new') return '#22c55e';
+    if (flag === 'remove') return '#ef4444';
+    if (flag === 'replace') return '#facc15';
+    return fallback;
+};
+
 const SelectionManager = ({
     center,
+    flyToEdgeTarget,
     radius,
     selectionMode,
     polygonPoints,
@@ -223,6 +242,25 @@ const SelectionManager = ({
         flyToCenter(center);
     }, [center.lat, center.lng, map]);
 
+    React.useEffect(() => {
+        if (!flyToEdgeTarget) {
+            return;
+        }
+
+        const next = L.latLng(flyToEdgeTarget.lat, flyToEdgeTarget.lng);
+        const current = map.getCenter();
+        const distance = current.distanceTo(next);
+        const zoom = map.getZoom();
+
+        if (distance < 1) {
+            map.setView(next, zoom, { animate: false });
+            return;
+        }
+
+        const duration = distance > 5000 ? 1.8 : distance > 1000 ? 1.3 : 0.9;
+        map.flyTo(next, zoom, { duration, easeLinearity: 0.2, noMoveStart: true });
+    }, [flyToEdgeTarget?.token, map]);
+
     // Fix map size on mount and when window resizes
     React.useEffect(() => {
         const handleResize = () => {
@@ -298,6 +336,7 @@ const SelectionManager = ({
 
 const MapSelector: React.FC<MapSelectorProps> = ({
     center,
+    flyToEdgeTarget,
     radius,
     selectionMode,
     polygonPoints,
@@ -318,9 +357,12 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     onBtQuickRemovePoleRamal,
     onBtQuickAddEdgeConductor,
     onBtQuickRemoveEdgeConductor,
+    onBtSetEdgeReplacementFromConductors,
     onBtRenamePole,
     onBtRenameTransformer,
     onBtSetPoleVerified,
+    onBtSetPoleChangeFlag,
+    onBtSetTransformerChangeFlag,
     onBtDragPole,
     onBtDragTransformer,
     criticalPoleId,
@@ -341,6 +383,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     }, [accumulatedByPole]);
 
     const [edgeConductorSelection, setEdgeConductorSelection] = React.useState<Record<string, string>>({});
+    const [edgeReplacementFromSelection, setEdgeReplacementFromSelection] = React.useState<Record<string, string>>({});
 
     const poleHasTransformer = React.useMemo(() => {
         const byPole = new Map<string, boolean>();
@@ -365,9 +408,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         const hasTransformer = !!poleHasTransformer.get(poleId);
         const isCritical = poleId === criticalPoleId;
         const isPending = poleId === pendingBtEdgeStartPoleId;
+        const pole = topology.poles.find((item) => item.id === poleId);
+        const poleFlag = pole ? getPoleChangeFlag(pole) : 'existing';
 
         if (hasTransformer) {
-            const bg = verified ? '#15803d' : '#7c3aed';
+            const bg = getFlagColor(poleFlag, verified ? '#15803d' : '#7c3aed');
             const size = isCritical ? 18 : isPending ? 16 : 14;
             return L.divIcon({
                 className: 'bt-pole-transformer-icon',
@@ -381,7 +426,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         let size = 12;
         if (isCritical) { bg = '#ef4444'; size = 16; }
         else if (isPending) { bg = '#f59e0b'; size = 14; }
-        else if (verified) { bg = '#16a34a'; }
+        else { bg = getFlagColor(poleFlag, verified ? '#16a34a' : '#2563eb'); }
         return L.divIcon({
             className: 'bt-pole-icon',
             html: `<div style="background:${bg};border:2px solid #ffffff;width:${size}px;height:${size}px;border-radius:9999px;box-shadow:0 0 0 2px ${bg}40;"></div>`,
@@ -390,8 +435,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         });
     };
 
-    const makeTransformerIcon = (verified: boolean) => {
-        const bg = verified ? '#15803d' : '#7c3aed';
+    const makeTransformerIcon = (verified: boolean, transformerFlag: BtTransformerChangeFlag) => {
+        const bg = getFlagColor(transformerFlag, verified ? '#15803d' : '#7c3aed');
         return L.divIcon({
             className: 'bt-transformer-icon',
             html: `<svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
@@ -488,6 +533,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
 
                 <SelectionManager
                     center={center}
+                    flyToEdgeTarget={flyToEdgeTarget}
                     radius={radius}
                     selectionMode={selectionMode}
                     polygonPoints={polygonPoints}
@@ -520,6 +566,9 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                     const selectedConductor = edgeConductorSelection[edge.id]
                         ?? edge.conductors[edge.conductors.length - 1]?.conductorName
                         ?? CONDUCTOR_OPTIONS[0];
+                    const selectedReplacementFromConductor = edgeReplacementFromSelection[edge.id]
+                        ?? edge.replacementFromConductors?.[edge.replacementFromConductors.length - 1]?.conductorName
+                        ?? CONDUCTOR_OPTIONS[0];
 
                     const edgePopup = (
                         <Popup>
@@ -548,6 +597,44 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                 <div style={{marginTop: 6, color: '#334155'}}>
                                     Metragem: {typeof edge.lengthMeters === 'number' ? `${edge.lengthMeters} m` : '-'}
                                 </div>
+                                {edgeChangeFlag === 'replace' && (
+                                    <>
+                                        <div style={{marginTop: 6, color: '#334155'}}>Condutor que sai</div>
+                                        <div style={{marginTop: 2}}>
+                                            <select
+                                                value={selectedReplacementFromConductor}
+                                                onChange={(e) => {
+                                                    const conductorName = e.target.value;
+                                                    setEdgeReplacementFromSelection((current) => ({
+                                                        ...current,
+                                                        [edge.id]: conductorName
+                                                    }));
+                                                }}
+                                                style={{width: '100%', border: '1px solid #cbd5e1', borderRadius: 4, padding: '2px 6px', fontSize: 11, color: '#334155', background: '#ffffff'}}
+                                            >
+                                                {CONDUCTOR_OPTIONS.map((name) => (
+                                                    <option key={name} value={name}>{name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        {onBtSetEdgeReplacementFromConductors && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    onBtSetEdgeReplacementFromConductors(edge.id, [{
+                                                        id: `RC${Date.now()}${Math.floor(Math.random() * 1000)}`,
+                                                        quantity: 1,
+                                                        conductorName: selectedReplacementFromConductor
+                                                    }]);
+                                                }}
+                                                style={{marginTop: 6, height: 24, width: '100%', border: '1px solid #f59e0b', borderRadius: 4, color: '#92400e', background: '#fffbeb', cursor: 'pointer', fontSize: 11, fontWeight: 700}}
+                                            >
+                                                Definir condutor que sai
+                                            </button>
+                                        )}
+                                    </>
+                                )}
                                 {edge.conductors.length > 0 ? (
                                     <div style={{marginTop: 2, color: '#374151'}}>
                                         {edge.conductors.map((entry) => (
@@ -556,6 +643,15 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                     </div>
                                 ) : (
                                     <div style={{marginTop: 2, color: '#6b7280'}}>Sem condutor informado</div>
+                                )}
+                                {edgeChangeFlag === 'replace' && (
+                                    <div style={{marginTop: 2, color: '#7c2d12'}}>
+                                        {(edge.replacementFromConductors ?? []).length > 0
+                                            ? (edge.replacementFromConductors ?? []).map((entry) => (
+                                                <div key={entry.id}>Sai: {entry.quantity} x {entry.conductorName}</div>
+                                            ))
+                                            : <div>Sem condutor de saída definido</div>}
+                                    </div>
                                 )}
                                 <div style={{color: edge.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{edge.verified ? '✓ Verificado' : '○ Não verificado'}</div>
                                 {onBtSetEdgeChangeFlag && (
@@ -655,7 +751,14 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                             {/* Invisible hit-area to make conductor selection easy on dense maps */}
                             <Polyline
                                 positions={[[from.lat, from.lng], [to.lat, to.lng]]}
-                                pathOptions={{ color: '#000000', weight: 16, opacity: 0, lineCap: 'round' }}
+                                pathOptions={{
+                                    color: '#000000',
+                                    weight: EDGE_HIT_AREA_WEIGHT,
+                                    // Keep it practically invisible but still reliably clickable in Leaflet.
+                                    opacity: 0.01,
+                                    lineCap: 'round',
+                                    lineJoin: 'round'
+                                }}
                             >
                                 {edgePopup}
                             </Polyline>
@@ -737,6 +840,17 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                 <div style={{ color: pole.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2 }}>
                                     {pole.verified ? '✓ Verificado' : '○ Não verificado'}
                                 </div>
+                                <div style={{ marginTop: 2, color: '#334155' }}>
+                                    Flag: <strong>{getPoleChangeFlag(pole) === 'new' ? 'Novo' : getPoleChangeFlag(pole) === 'remove' ? 'Remoção' : getPoleChangeFlag(pole) === 'replace' ? 'Substituição' : 'Existente'}</strong>
+                                </div>
+                                {onBtSetPoleChangeFlag && (
+                                    <div style={{ marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'existing'); }} style={{ height: 22, border: '1px solid #d946ef', borderRadius: 4, color: '#a21caf', background: getPoleChangeFlag(pole) === 'existing' ? '#fae8ff' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Existente</button>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'new'); }} style={{ height: 22, border: '1px solid #22c55e', borderRadius: 4, color: '#15803d', background: getPoleChangeFlag(pole) === 'new' ? '#dcfce7' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Novo</button>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'replace'); }} style={{ height: 22, border: '1px solid #facc15', borderRadius: 4, color: '#a16207', background: getPoleChangeFlag(pole) === 'replace' ? '#fef9c3' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Substituição</button>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'remove'); }} style={{ height: 22, border: '1px solid #ef4444', borderRadius: 4, color: '#b91c1c', background: getPoleChangeFlag(pole) === 'remove' ? '#fee2e2' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Remoção</button>
+                                    </div>
+                                )}
                                 <div style={{ marginTop: 6, display: 'flex', gap: 8, alignItems: 'center' }}>
                                     <button
                                         onClick={(e) => {
@@ -800,7 +914,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                     <Marker
                         key={`${transformer.id}-${transformer.verified ? 'v' : 'u'}`}
                         position={[transformer.lat, transformer.lng]}
-                        icon={makeTransformerIcon(!!transformer.verified)}
+                        icon={makeTransformerIcon(!!transformer.verified, getTransformerChangeFlag(transformer))}
                         draggable={false}
                         eventHandlers={{
                             click: () => {
@@ -846,6 +960,17 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                 )}
                                 <div>Demanda: {transformer.demandKw} kW</div>
                                 <div style={{color: transformer.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{transformer.verified ? '✓ Verificado' : '○ Não verificado'}</div>
+                                <div style={{ marginTop: 2, color: '#334155' }}>
+                                    Flag: <strong>{getTransformerChangeFlag(transformer) === 'new' ? 'Novo' : getTransformerChangeFlag(transformer) === 'remove' ? 'Remoção' : getTransformerChangeFlag(transformer) === 'replace' ? 'Substituição' : 'Existente'}</strong>
+                                </div>
+                                {onBtSetTransformerChangeFlag && (
+                                    <div style={{ marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetTransformerChangeFlag(transformer.id, 'existing'); }} style={{ height: 22, border: '1px solid #d946ef', borderRadius: 4, color: '#a21caf', background: getTransformerChangeFlag(transformer) === 'existing' ? '#fae8ff' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Existente</button>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetTransformerChangeFlag(transformer.id, 'new'); }} style={{ height: 22, border: '1px solid #22c55e', borderRadius: 4, color: '#15803d', background: getTransformerChangeFlag(transformer) === 'new' ? '#dcfce7' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Novo</button>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetTransformerChangeFlag(transformer.id, 'replace'); }} style={{ height: 22, border: '1px solid #facc15', borderRadius: 4, color: '#a16207', background: getTransformerChangeFlag(transformer) === 'replace' ? '#fef9c3' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Substituição</button>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetTransformerChangeFlag(transformer.id, 'remove'); }} style={{ height: 22, border: '1px solid #ef4444', borderRadius: 4, color: '#b91c1c', background: getTransformerChangeFlag(transformer) === 'remove' ? '#fee2e2' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Remoção</button>
+                                    </div>
+                                )}
                                 {onBtDeleteTransformer && (
                                     <button
                                         onClick={(e) => {
