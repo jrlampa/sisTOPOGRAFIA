@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { X, Cpu, Zap, Layers, TreeDeciduous, Car, Building2, Mountain, LampFloor, Globe, Circle, Hexagon, Square, Eraser, Download, FileJson, Loader2, Moon, Sun, Map as MapIcon, Satellite, Type, Briefcase, Activity, Upload, Save, FolderOpen, PencilRuler, ArrowLeftRight, Grid3X3, AlertTriangle } from 'lucide-react';
-import { AppSettings, LayerConfig, ProjectionType, SelectionMode, GeoLocation, MapProvider, SimplificationLevel, ProjectMetadata, ContourRenderMode, BtProjectType, BtEditorMode } from '../types';
+import { AppSettings, LayerConfig, ProjectionType, SelectionMode, GeoLocation, MapProvider, SimplificationLevel, ProjectMetadata, ContourRenderMode, BtProjectType, BtEditorMode, BtTransformerCalculationMode } from '../types';
 import { MAX_RADIUS, MIN_RADIUS } from '../constants';
 import ConstantsCatalogOps from './ConstantsCatalogOps';
 
@@ -60,6 +60,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const setContourRenderMode = (mode: ContourRenderMode) => onUpdateSettings({ ...settings, contourRenderMode: mode });
   const setBtProjectType = (projectType: BtProjectType) => onUpdateSettings({ ...settings, projectType });
   const setBtEditorMode = (btEditorMode: BtEditorMode) => onUpdateSettings({ ...settings, btEditorMode });
+  const setBtTransformerCalculationMode = (btTransformerCalculationMode: BtTransformerCalculationMode) => onUpdateSettings({ ...settings, btTransformerCalculationMode });
   const setClandestinoAreaM2 = (clandestinoAreaM2: number) => onUpdateSettings({ ...settings, clandestinoAreaM2 });
 
   const toggleLayer = (key: keyof LayerConfig) => {
@@ -293,6 +294,30 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-600 block mb-2">Cálculo dos Transformadores</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        { value: 'automatic', label: 'Automático' },
+                        { value: 'manual', label: 'Manual' }
+                      ] as { value: BtTransformerCalculationMode; label: string }[]).map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setBtTransformerCalculationMode(option.value)}
+                          className={`py-2 text-xs font-semibold rounded border transition-all ${(settings.btTransformerCalculationMode ?? 'automatic') === option.value
+                            ? 'bg-indigo-600 border-indigo-500 text-white'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                            }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Automático: recalcula demanda/corrente conforme topologia. Manual: preserva o que for informado no card.
+                    </p>
                   </div>
                 </div>
               </div>

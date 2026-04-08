@@ -7,6 +7,8 @@ import { BtEditorMode, BtEdge, BtPoleNode, BtRamalEntry, BtTopology, BtTransform
 import { Minus, Plus, Trash2, Triangle } from 'lucide-react';
 
 const CONDUCTOR_OPTIONS = [
+    'FLY2',
+    'FLY 2',
     '70 Al - MX',
     '185 Al - MX',
     '240 Al - MX',
@@ -53,6 +55,8 @@ L.Icon.Default.mergeOptions({
 interface MapSelectorProps {
     center: { lat: number; lng: number; label?: string };
     flyToEdgeTarget?: { lat: number; lng: number; token: number } | null;
+    flyToPoleTarget?: { lat: number; lng: number; token: number } | null;
+    flyToTransformerTarget?: { lat: number; lng: number; token: number } | null;
     radius: number;
     selectionMode: SelectionMode;
     polygonPoints: [number, number][];
@@ -134,6 +138,8 @@ const getFlagColor = (flag: 'existing' | 'new' | 'remove' | 'replace', fallback:
 const SelectionManager = ({
     center,
     flyToEdgeTarget,
+    flyToPoleTarget,
+    flyToTransformerTarget,
     radius,
     selectionMode,
     polygonPoints,
@@ -262,6 +268,44 @@ const SelectionManager = ({
         map.flyTo(next, zoom, { duration, easeLinearity: 0.2, noMoveStart: true });
     }, [flyToEdgeTarget?.token, map]);
 
+    React.useEffect(() => {
+        if (!flyToPoleTarget) {
+            return;
+        }
+
+        const next = L.latLng(flyToPoleTarget.lat, flyToPoleTarget.lng);
+        const current = map.getCenter();
+        const distance = current.distanceTo(next);
+        const zoom = map.getZoom();
+
+        if (distance < 1) {
+            map.setView(next, zoom, { animate: false });
+            return;
+        }
+
+        const duration = distance > 5000 ? 1.8 : distance > 1000 ? 1.3 : 0.9;
+        map.flyTo(next, zoom, { duration, easeLinearity: 0.2, noMoveStart: true });
+    }, [flyToPoleTarget?.token, map]);
+
+    React.useEffect(() => {
+        if (!flyToTransformerTarget) {
+            return;
+        }
+
+        const next = L.latLng(flyToTransformerTarget.lat, flyToTransformerTarget.lng);
+        const current = map.getCenter();
+        const distance = current.distanceTo(next);
+        const zoom = map.getZoom();
+
+        if (distance < 1) {
+            map.setView(next, zoom, { animate: false });
+            return;
+        }
+
+        const duration = distance > 5000 ? 1.8 : distance > 1000 ? 1.3 : 0.9;
+        map.flyTo(next, zoom, { duration, easeLinearity: 0.2, noMoveStart: true });
+    }, [flyToTransformerTarget?.token, map]);
+
     // Fix map size on mount and when window resizes
     React.useEffect(() => {
         const handleResize = () => {
@@ -338,6 +382,8 @@ const SelectionManager = ({
 const MapSelector: React.FC<MapSelectorProps> = ({
     center,
     flyToEdgeTarget,
+    flyToPoleTarget,
+    flyToTransformerTarget,
     radius,
     selectionMode,
     polygonPoints,
@@ -536,6 +582,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                 <SelectionManager
                     center={center}
                     flyToEdgeTarget={flyToEdgeTarget}
+                    flyToPoleTarget={flyToPoleTarget}
+                    flyToTransformerTarget={flyToTransformerTarget}
                     radius={radius}
                     selectionMode={selectionMode}
                     polygonPoints={polygonPoints}

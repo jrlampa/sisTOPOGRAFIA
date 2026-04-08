@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Download, Map as MapIcon, Layers, Search, Loader2, AlertCircle, Settings, Mountain, TrendingUp } from 'lucide-react';
 import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario, BtCqtComputationInputs, BtEdge } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
@@ -23,6 +23,9 @@ import { useElevationProfile } from './hooks/useElevationProfile';
 import { useAutoSave, loadSessionDraft, clearSessionDraft } from './hooks/useAutoSave';
 import {
   calculateAccumulatedDemandByPole,
+  calculateEstimatedDemandByTransformer,
+  calculateSectioningImpact,
+  findTransformerConflictsWithoutSectioning,
   calculateClandestinoDemandKvaByAreaAndClients,
   getClandestinoAreaRange,
   getClandestinoClientsRange,
@@ -63,6 +66,8 @@ const NORMAL_CLIENT_RAMAL_TYPES = [
 ];
 const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
 const DEFAULT_EDGE_CONDUCTOR = '70 Al - MX';
+const CURRENT_TO_DEMAND_CONVERSION = 0.375;
+const DEFAULT_TEMPERATURE_FACTOR = 1.2;
 type BtEdgeChangeFlag = NonNullable<BtEdge['edgeChangeFlag']>;
 type BtPoleChangeFlag = NonNullable<BtPoleNode['nodeChangeFlag']>;
 type BtTransformerChangeFlag = NonNullable<BtTransformer['transformerChangeFlag']>;
@@ -216,6 +221,7 @@ function App() {
       projectType: 'ramais',
       btNetworkScenario: 'asis',
       btEditorMode: 'none',
+      btTransformerCalculationMode: 'automatic',
       clandestinoAreaM2: 0,
       layers: {
         buildings: true,
@@ -274,7 +280,104 @@ function App() {
     () => calculateAccumulatedDemandByPole(btTopology, settings.projectType ?? 'ramais', settings.clandestinoAreaM2 ?? 0),
     [btTopology, settings.projectType, settings.clandestinoAreaM2]
   );
+  const btEstimatedByTransformer = React.useMemo(
+    () => calculateEstimatedDemandByTransformer(btTopology, settings.projectType ?? 'ramais', settings.clandestinoAreaM2 ?? 0),
+    [btTopology, settings.projectType, settings.clandestinoAreaM2]
+  );
+  const btTransformerDebugById = React.useMemo(
+    () => Object.fromEntries(
+      btEstimatedByTransformer.map((entry) => [
+        entry.transformerId,
+        {
+          assignedClients: entry.assignedClients,
+          estimatedDemandKw: entry.estimatedDemandKw
+        }
+      ])
+    ) as Record<string, { assignedClients: number; estimatedDemandKw: number }>,
+    [btEstimatedByTransformer]
+  );
   const btCriticalPoleId = btAccumulatedByPole[0]?.poleId ?? null;
+
+  useEffect(() => {
+    if ((settings.btTransformerCalculationMode ?? 'automatic') !== 'automatic') {
+      return;
+    }
+
+    if (btTopology.transformers.length === 0) {
+      return;
+    }
+
+    const estimatedByTransformerId = new Map(
+      btEstimatedByTransformer.map((entry) => [entry.transformerId, entry.estimatedDemandKw])
+    );
+
+    let hasChanges = false;
+    const nextTransformers = btTopology.transformers.map((transformer) => {
+      const estimatedDemandKw = Number((estimatedByTransformerId.get(transformer.id) ?? 0).toFixed(2));
+      const hasReadings = transformer.readings.length > 0;
+      const isAutoReading = hasReadings && transformer.readings.every((reading) => reading.autoCalculated === true);
+
+      if (hasReadings && !isAutoReading) {
+        return transformer;
+      }
+
+      if (!isAutoReading) {
+        if (Math.abs((transformer.demandKw ?? 0) - estimatedDemandKw) < 0.01) {
+          return transformer;
+        }
+
+        hasChanges = true;
+        return {
+          ...transformer,
+          demandKw: estimatedDemandKw
+        };
+      }
+
+      const baseReading = transformer.readings[0] ?? {
+        id: `R${Date.now()}${Math.floor(Math.random() * 1000)}`,
+        currentMaxA: 0,
+        temperatureFactor: DEFAULT_TEMPERATURE_FACTOR,
+        autoCalculated: true
+      };
+      const temperatureFactor = (baseReading.temperatureFactor ?? DEFAULT_TEMPERATURE_FACTOR) > 0
+        ? (baseReading.temperatureFactor ?? DEFAULT_TEMPERATURE_FACTOR)
+        : DEFAULT_TEMPERATURE_FACTOR;
+      const inferredCurrent = Math.round((estimatedDemandKw / (CURRENT_TO_DEMAND_CONVERSION * temperatureFactor)) * 100) / 100;
+
+      const previousCurrent = baseReading.currentMaxA ?? 0;
+      const previousDemand = transformer.demandKw ?? 0;
+      if (
+        Math.abs(previousCurrent - inferredCurrent) < 0.01 &&
+        Math.abs(previousDemand - estimatedDemandKw) < 0.01
+      ) {
+        return transformer;
+      }
+
+      hasChanges = true;
+      return {
+        ...transformer,
+        demandKw: estimatedDemandKw,
+        readings: [{
+          ...baseReading,
+          currentMaxA: inferredCurrent,
+          temperatureFactor,
+          autoCalculated: true
+        }]
+      };
+    });
+
+    if (!hasChanges) {
+      return;
+    }
+
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        transformers: nextTransformers
+      }
+    }, false);
+  }, [appState, btEstimatedByTransformer, btTopology, setAppState, settings.btTransformerCalculationMode]);
 
   // Core analysis engine
   const {
@@ -310,9 +413,44 @@ function App() {
     totalNormalClients: number;
   } | null>(null);
   const [btPoleCoordinateInput, setBtPoleCoordinateInput] = useState('');
+  const [btPoleFlyToTarget, setBtPoleFlyToTarget] = useState<{ lat: number; lng: number; token: number } | null>(null);
+  const [btTransformerFlyToTarget, setBtTransformerFlyToTarget] = useState<{ lat: number; lng: number; token: number } | null>(null);
+  const lastTransformerConflictSignatureRef = useRef<string | null>(null);
 
   // Auto-save: persist appState to localStorage with debounce
   useAutoSave(appState);
+
+  useEffect(() => {
+    const conflictGroups = findTransformerConflictsWithoutSectioning(btTopology);
+    if (conflictGroups.length === 0) {
+      lastTransformerConflictSignatureRef.current = null;
+      return;
+    }
+
+    const signature = conflictGroups
+      .map((group) => group.transformerIds.join(','))
+      .sort((a, b) => a.localeCompare(b))
+      .join('|');
+
+    if (signature === lastTransformerConflictSignatureRef.current) {
+      return;
+    }
+
+    lastTransformerConflictSignatureRef.current = signature;
+
+    const firstConflict = conflictGroups[0];
+    const transformerLabels = firstConflict.transformerIds
+      .map((transformerId) => btTopology.transformers.find((item) => item.id === transformerId)?.title ?? transformerId)
+      .join(', ');
+    const extraConflictLabel = conflictGroups.length > 1
+      ? ` Há mais ${conflictGroups.length - 1} rede(s) BT em conflito.`
+      : '';
+
+    showToast(
+      `Alerta BT: dois ou mais transformadores na mesma rede sem separação física (${transformerLabels}).${extraConflictLabel}`,
+      'error'
+    );
+  }, [btTopology]);
 
   // On mount: check for a recoverable session (only if there's BT topology work)
   useEffect(() => {
@@ -1091,22 +1229,51 @@ function App() {
   };
 
   const handleBtTogglePoleCircuitBreak = (poleId: string, circuitBreakPoint: boolean) => {
+    const nextTopology: BtTopology = {
+      ...btTopology,
+      poles: btTopology.poles.map((pole) =>
+        pole.id === poleId ? normalizeBtPole({ ...pole, circuitBreakPoint }) : pole
+      )
+    };
+
+    const sectioningImpact = circuitBreakPoint
+      ? calculateSectioningImpact(nextTopology, settings.projectType ?? 'ramais', settings.clandestinoAreaM2 ?? 0)
+      : null;
+    const suggestedPole = sectioningImpact?.suggestedPoleId
+      ? nextTopology.poles.find((pole) => pole.id === sectioningImpact.suggestedPoleId)
+      : null;
+
     setAppState({
       ...appState,
+      center: suggestedPole
+        ? {
+            lat: suggestedPole.lat,
+            lng: suggestedPole.lng,
+            label: `Poste sugerido para novo trafo: ${suggestedPole.title}`
+          }
+        : appState.center,
       btTopology: {
-        ...btTopology,
-        poles: btTopology.poles.map((pole) =>
-          pole.id === poleId ? normalizeBtPole({ ...pole, circuitBreakPoint }) : pole
-        )
+        ...nextTopology
       }
     }, true);
 
-    showToast(
-      circuitBreakPoint
-        ? `Poste ${poleId} marcado com separação física do circuito.`
-        : `Separação física removida do poste ${poleId}.`,
-      'info'
-    );
+    if (!circuitBreakPoint) {
+      showToast(`Separação física removida do poste ${poleId}.`, 'info');
+      return;
+    }
+
+    if (sectioningImpact && sectioningImpact.unservedPoleIds.length > 0) {
+      const suggestedLabel = suggestedPole ? `${suggestedPole.title} (${suggestedPole.id})` : 'não encontrado';
+      showToast(
+        `Seccionamento BT: ${sectioningImpact.unservedPoleIds.length} poste(s) sem trafo atendendo. ` +
+          `Carga sobrante estimada: ${sectioningImpact.estimatedDemandKw.toFixed(2)} kVA para ${sectioningImpact.unservedClients} cliente(s). ` +
+          `Poste sugerido: ${suggestedLabel}.`,
+        'error'
+      );
+      return;
+    }
+
+    showToast(`Poste ${poleId} marcado com separação física do circuito.`, 'info');
   };
 
   const handleBtSetTransformerChangeFlag = (transformerId: string, transformerChangeFlag: BtTransformerChangeFlag) => {
@@ -1292,6 +1459,32 @@ function App() {
     setBtEdgeFlyToTarget({
       lat: (fromPole.lat + toPole.lat) / 2,
       lng: (fromPole.lng + toPole.lng) / 2,
+      token: Date.now(),
+    });
+  };
+
+  const handleBtSelectedPoleChange = (poleId: string) => {
+    const pole = btTopology.poles.find((candidate) => candidate.id === poleId);
+    if (!pole) {
+      return;
+    }
+
+    setBtPoleFlyToTarget({
+      lat: pole.lat,
+      lng: pole.lng,
+      token: Date.now(),
+    });
+  };
+
+  const handleBtSelectedTransformerChange = (transformerId: string) => {
+    const transformer = btTopology.transformers.find((candidate) => candidate.id === transformerId);
+    if (!transformer) {
+      return;
+    }
+
+    setBtTransformerFlyToTarget({
+      lat: transformer.lat,
+      lng: transformer.lng,
       token: Date.now(),
     });
   };
@@ -2101,7 +2294,10 @@ function App() {
             projectType={settings.projectType ?? 'ramais'}
             btNetworkScenario={btNetworkScenario}
             clandestinoAreaM2={settings.clandestinoAreaM2 ?? 0}
+            transformerDebugById={btTransformerDebugById}
             onTopologyChange={updateBtTopology}
+            onSelectedPoleChange={handleBtSelectedPoleChange}
+            onSelectedTransformerChange={handleBtSelectedTransformerChange}
             onSelectedEdgeChange={handleBtSelectedEdgeChange}
             onProjectTypeChange={updateProjectType}
             onClandestinoAreaChange={updateClandestinoAreaM2}
@@ -2274,6 +2470,8 @@ function App() {
           <MapSelector
             center={center}
             flyToEdgeTarget={btEdgeFlyToTarget}
+            flyToPoleTarget={btPoleFlyToTarget}
+            flyToTransformerTarget={btTransformerFlyToTarget}
             radius={radius}
             selectionMode={selectionMode}
             polygonPoints={polygonPoints}

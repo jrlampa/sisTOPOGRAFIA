@@ -111,6 +111,7 @@ export type ContourRenderMode = 'spline' | 'polyline';
 export type BtProjectType = 'ramais' | 'geral' | 'clandestino';
 export type BtEditorMode = 'none' | 'move-pole' | 'add-pole' | 'add-transformer' | 'add-edge';
 export type BtNetworkScenario = 'asis' | 'projeto' | 'proj1' | 'proj2';
+export type BtTransformerCalculationMode = 'automatic' | 'manual';
 export type BtCqtScenario = 'atual' | 'proj1' | 'proj2';
 
 export interface BtCqtDmdiInputs {
@@ -181,6 +182,7 @@ export interface BtTransformerReading {
   // Workbook-aligned demand inputs
   currentMaxA?: number;
   temperatureFactor?: number;
+  autoCalculated?: boolean;
 }
 
 export interface BtTransformer {
@@ -257,6 +259,7 @@ export interface AppSettings {
   projectType?: BtProjectType;
   btNetworkScenario?: BtNetworkScenario;
   btEditorMode?: BtEditorMode;
+  btTransformerCalculationMode?: BtTransformerCalculationMode;
   clandestinoAreaM2?: number;
 }
 

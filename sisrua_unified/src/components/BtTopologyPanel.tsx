@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Plus, Trash2, Sigma } from 'lucide-react';
+import { Activity, Plus, Trash2, Sigma, ChevronDown } from 'lucide-react';
 import { BtEdge, BtNetworkScenario, BtPoleNode, BtPoleRamalEntry, BtTopology, BtTransformer, BtTransformerReading } from '../types';
 import {
   calculateAccumulatedDemandByPole,
@@ -19,7 +19,10 @@ interface BtTopologyPanelProps {
   projectType: 'ramais' | 'geral' | 'clandestino';
   btNetworkScenario: BtNetworkScenario;
   clandestinoAreaM2: number;
+  transformerDebugById?: Record<string, { assignedClients: number; estimatedDemandKw: number }>;
   onTopologyChange: (next: BtTopology) => void;
+  onSelectedPoleChange?: (poleId: string) => void;
+  onSelectedTransformerChange?: (transformerId: string) => void;
   onSelectedEdgeChange?: (edgeId: string) => void;
   onBtSetEdgeChangeFlag?: (edgeId: string, edgeChangeFlag: 'existing' | 'new' | 'remove' | 'replace') => void;
   onBtSetPoleChangeFlag?: (poleId: string, nodeChangeFlag: 'existing' | 'new' | 'remove' | 'replace') => void;
@@ -47,6 +50,7 @@ const getPoleChangeFlag = (pole: BtPoleNode): BtPoleChangeFlag => pole.nodeChang
 const getTransformerChangeFlag = (transformer: BtTransformer): BtTransformerChangeFlag => transformer.transformerChangeFlag ?? 'existing';
 
 const CURRENT_TO_DEMAND_CONVERSION = 0.375;
+const DEFAULT_TEMPERATURE_FACTOR = 1.2;
 const NORMAL_CLIENT_RAMAL_TYPES = [
   '5 CC',
   '8 CC',
@@ -71,6 +75,8 @@ const NORMAL_CLIENT_RAMAL_TYPES = [
 ];
 const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
 const CONDUCTOR_NAMES = [
+  'FLY2',
+  'FLY 2',
   '70 Al - MX',
   '185 Al - MX',
   '240 Al - MX',
@@ -215,7 +221,10 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   projectType,
   btNetworkScenario,
   clandestinoAreaM2,
+  transformerDebugById = {},
   onTopologyChange,
+  onSelectedPoleChange,
+  onSelectedTransformerChange,
   onSelectedEdgeChange,
   onBtSetEdgeChangeFlag,
   onBtSetPoleChangeFlag,
@@ -230,6 +239,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   const [selectedPoleId, setSelectedPoleId] = React.useState<string>('');
   const [selectedTransformerId, setSelectedTransformerId] = React.useState<string>('');
   const [selectedEdgeId, setSelectedEdgeId] = React.useState<string>('');
+  const [isPoleDropdownOpen, setIsPoleDropdownOpen] = React.useState(false);
+  const [isTransformerDropdownOpen, setIsTransformerDropdownOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!selectedPoleId && btTopology.poles.length > 0) {
@@ -239,6 +250,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     if (selectedPoleId && !btTopology.poles.some((pole) => pole.id === selectedPoleId)) {
       setSelectedPoleId(btTopology.poles[0]?.id || '');
     }
+
+    setIsPoleDropdownOpen(false);
   }, [btTopology.poles, selectedPoleId]);
 
   React.useEffect(() => {
@@ -249,6 +262,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     if (selectedTransformerId && !btTopology.transformers.some((t) => t.id === selectedTransformerId)) {
       setSelectedTransformerId(btTopology.transformers[0]?.id || '');
     }
+
+    setIsTransformerDropdownOpen(false);
   }, [btTopology.transformers, selectedTransformerId]);
 
   React.useEffect(() => {
@@ -548,32 +563,57 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             <div className="text-[10px] text-slate-500">Nenhum poste cadastrado.</div>
           ) : (
             <>
-              <input
-                type="text"
-                list="bt-poles-list"
-                value={selectedPole?.title ?? ''}
-                onChange={(e) => {
-                  if (!selectedPole) {
-                    return;
-                  }
+              <div className="relative">
+                <input
+                  type="text"
+                  value={selectedPole?.title ?? ''}
+                  spellCheck={false}
+                  onChange={(e) => {
+                    if (!selectedPole) {
+                      return;
+                    }
 
-                  const nextTitle = e.target.value;
-                  const selectedOtherPole = btTopology.poles.find((pole) => pole.id !== selectedPole.id && pole.title === nextTitle);
-                  if (selectedOtherPole) {
-                    setSelectedPoleId(selectedOtherPole.id);
-                    return;
-                  }
+                    const nextTitle = e.target.value;
+                    const selectedOtherPole = btTopology.poles.find((pole) => pole.id !== selectedPole.id && pole.title === nextTitle);
+                    if (selectedOtherPole) {
+                      setSelectedPoleId(selectedOtherPole.id);
+                      onSelectedPoleChange?.(selectedOtherPole.id);
+                      setIsPoleDropdownOpen(false);
+                      return;
+                    }
 
-                  onBtRenamePole?.(selectedPole.id, nextTitle);
-                }}
-                title="Nome/seleção do poste"
-                className="w-full rounded border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 focus:border-cyan-500/60 outline-none"
-              />
-              <datalist id="bt-poles-list">
-                {btTopology.poles.map((pole) => (
-                  <option key={pole.id} value={pole.title} />
-                ))}
-              </datalist>
+                    onBtRenamePole?.(selectedPole.id, nextTitle);
+                  }}
+                  title="Nome/seleção do poste"
+                  className="w-full rounded border border-slate-300 bg-white p-2 pr-8 text-xs font-medium text-slate-800 focus:border-cyan-500/60 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsPoleDropdownOpen((current) => !current)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                  title="Selecionar poste"
+                >
+                  <ChevronDown size={14} />
+                </button>
+                {isPoleDropdownOpen && (
+                  <div className="absolute z-20 mt-1 max-h-44 w-full overflow-auto rounded border border-slate-300 bg-white shadow-lg">
+                    {btTopology.poles.map((pole) => (
+                      <button
+                        key={pole.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPoleId(pole.id);
+                          onSelectedPoleChange?.(pole.id);
+                          setIsPoleDropdownOpen(false);
+                        }}
+                        className={`w-full px-2 py-1.5 text-left text-xs hover:bg-slate-100 ${selectedPoleId === pole.id ? 'bg-slate-100 font-semibold text-slate-900' : 'text-slate-700'}`}
+                      >
+                        {pole.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               {selectedPole && (
                 <>
                   <button
@@ -728,34 +768,59 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           </div>
         ) : (
           <>
-            <input
-              type="text"
-              list="bt-transformers-list"
-              value={selectedTransformer?.title ?? ''}
-              onChange={(e) => {
-                if (!selectedTransformer) {
-                  return;
-                }
+            <div className="relative">
+              <input
+                type="text"
+                value={selectedTransformer?.title ?? ''}
+                spellCheck={false}
+                onChange={(e) => {
+                  if (!selectedTransformer) {
+                    return;
+                  }
 
-                const nextTitle = e.target.value;
-                const selectedOtherTransformer = btTopology.transformers.find(
-                  (transformer) => transformer.id !== selectedTransformer.id && transformer.title === nextTitle
-                );
-                if (selectedOtherTransformer) {
-                  setSelectedTransformerId(selectedOtherTransformer.id);
-                  return;
-                }
+                  const nextTitle = e.target.value;
+                  const selectedOtherTransformer = btTopology.transformers.find(
+                    (transformer) => transformer.id !== selectedTransformer.id && transformer.title === nextTitle
+                  );
+                  if (selectedOtherTransformer) {
+                    setSelectedTransformerId(selectedOtherTransformer.id);
+                    onSelectedTransformerChange?.(selectedOtherTransformer.id);
+                    setIsTransformerDropdownOpen(false);
+                    return;
+                  }
 
-                onBtRenameTransformer?.(selectedTransformer.id, nextTitle);
-              }}
-              title="Nome/seleção do transformador"
-              className="w-full rounded border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800"
-            />
-            <datalist id="bt-transformers-list">
-              {btTopology.transformers.map((transformer) => (
-                <option key={transformer.id} value={transformer.title} />
-              ))}
-            </datalist>
+                  onBtRenameTransformer?.(selectedTransformer.id, nextTitle);
+                }}
+                title="Nome/seleção do transformador"
+                className="w-full rounded border border-slate-300 bg-white p-2 pr-8 text-xs font-medium text-slate-800"
+              />
+              <button
+                type="button"
+                onClick={() => setIsTransformerDropdownOpen((current) => !current)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                title="Selecionar transformador"
+              >
+                <ChevronDown size={14} />
+              </button>
+              {isTransformerDropdownOpen && (
+                <div className="absolute z-20 mt-1 max-h-44 w-full overflow-auto rounded border border-slate-300 bg-white shadow-lg">
+                  {btTopology.transformers.map((transformer) => (
+                    <button
+                      key={transformer.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTransformerId(transformer.id);
+                        onSelectedTransformerChange?.(transformer.id);
+                        setIsTransformerDropdownOpen(false);
+                      }}
+                      className={`w-full px-2 py-1.5 text-left text-xs hover:bg-slate-100 ${selectedTransformerId === transformer.id ? 'bg-slate-100 font-semibold text-slate-900' : 'text-slate-700'}`}
+                    >
+                      {transformer.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {selectedTransformer && (
               <button
@@ -798,22 +863,26 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             {selectedTransformer && (
               <div className="space-y-2">
                 {(() => {
+                  const transformerDebug = transformerDebugById[selectedTransformer.id];
                   const baseReading = selectedTransformer.readings[0] ?? {
                     id: nextId('R'),
                     currentMaxA: 0,
-                    temperatureFactor: 1
+                    temperatureFactor: DEFAULT_TEMPERATURE_FACTOR,
+                    autoCalculated: false
                   };
                   const currentMaxA = baseReading.currentMaxA ?? 0;
-                  const temperatureFactor = baseReading.temperatureFactor ?? 1;
+                  const temperatureFactor = baseReading.temperatureFactor ?? DEFAULT_TEMPERATURE_FACTOR;
+                  const hasReadings = selectedTransformer.readings.length > 0;
                   const demandMaxKw = currentMaxA * CURRENT_TO_DEMAND_CONVERSION;
                   const correctedDemandKw = demandMaxKw * temperatureFactor;
+                  const effectiveDemandKw = hasReadings ? correctedDemandKw : (selectedTransformer.demandKw ?? 0);
                   const projectPowerKva = selectedTransformer.projectPowerKva ?? 0;
-                  const loadingPct = projectPowerKva > 0 ? (correctedDemandKw / projectPowerKva) * 100 : null;
+                  const loadingPct = projectPowerKva > 0 ? (effectiveDemandKw / projectPowerKva) * 100 : null;
                   const totalClients = btTopology.poles.reduce(
                     (acc, pole) => acc + (pole.ramais ?? []).reduce((sum, ramal) => sum + ramal.quantity, 0),
                     0
                   );
-                  const dmdi = totalClients > 0 ? demandMaxKw / totalClients : null;
+                  const dmdi = totalClients > 0 ? effectiveDemandKw / totalClients : null;
 
                   return (
                     <>
@@ -826,23 +895,27 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                         <NumericTextInput
                           value={currentMaxA}
                           onChange={(next) => {
-                            updateTransformerReadings(selectedTransformer.id, [{ ...baseReading, currentMaxA: next }]);
+                            updateTransformerReadings(selectedTransformer.id, [{ ...baseReading, currentMaxA: next, autoCalculated: false }]);
                           }}
                           className="rounded border border-emerald-300 bg-emerald-50 p-1.5 text-[11px] font-medium text-emerald-900"
                         />
                         <NumericTextInput
-                          value={correctedDemandKw}
+                          value={effectiveDemandKw}
                           onChange={(nextCorrectedDemandKva) => {
-                            const temperatureBase = temperatureFactor > 0 ? temperatureFactor : 1;
+                            if (!hasReadings) {
+                              return;
+                            }
+
+                            const temperatureBase = temperatureFactor > 0 ? temperatureFactor : DEFAULT_TEMPERATURE_FACTOR;
                             const inferredCurrent = Math.round((nextCorrectedDemandKva / (CURRENT_TO_DEMAND_CONVERSION * temperatureBase)) * 100) / 100;
-                            updateTransformerReadings(selectedTransformer.id, [{ ...baseReading, currentMaxA: inferredCurrent }]);
+                            updateTransformerReadings(selectedTransformer.id, [{ ...baseReading, currentMaxA: inferredCurrent, autoCalculated: false }]);
                           }}
                           className="rounded border border-emerald-300 bg-emerald-50 p-1.5 text-[11px] font-medium text-emerald-900"
                         />
                         <NumericTextInput
                           value={temperatureFactor}
                           onChange={(next) => {
-                            updateTransformerReadings(selectedTransformer.id, [{ ...baseReading, temperatureFactor: next }]);
+                            updateTransformerReadings(selectedTransformer.id, [{ ...baseReading, temperatureFactor: next, autoCalculated: false }]);
                           }}
                           className="rounded border border-emerald-300 bg-emerald-50 p-1.5 text-[11px] font-medium text-emerald-900"
                         />
@@ -854,13 +927,42 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                       </div>
                       </div>
 
+                      <button
+                        onClick={() => {
+                          const demandTargetKw = transformerDebug?.estimatedDemandKw ?? selectedTransformer.demandKw ?? 0;
+                          const temperatureBase = temperatureFactor > 0 ? temperatureFactor : DEFAULT_TEMPERATURE_FACTOR;
+                          const inferredCurrent = temperatureBase > 0
+                            ? Math.round((demandTargetKw / (CURRENT_TO_DEMAND_CONVERSION * temperatureBase)) * 100) / 100
+                            : 0;
+
+                          updateTransformerReadings(selectedTransformer.id, [{
+                            ...baseReading,
+                            currentMaxA: inferredCurrent,
+                            temperatureFactor: temperatureBase,
+                            autoCalculated: true
+                          }]);
+                        }}
+                        className="w-full rounded border border-blue-400 bg-blue-50 px-3 py-1.5 text-[10px] font-semibold text-blue-800 hover:bg-blue-100"
+                      >
+                        Recalcular corrente maxima automaticamente
+                      </button>
+
                       <div className="rounded border border-slate-300 bg-white p-2 text-[10px] text-slate-700 space-y-1">
-                        <div>Demanda corrigida: {formatBr(correctedDemandKw)} kVA</div>
-                        <div>Demanda maxima: {formatBr(demandMaxKw)} kVA</div>
+                        <div>Demanda corrigida: {formatBr(effectiveDemandKw)} kVA</div>
+                        <div>Demanda maxima: {formatBr(hasReadings ? demandMaxKw : effectiveDemandKw)} kVA</div>
                         <div>Carregamento atual: {loadingPct === null ? '#DIV/0!' : `${loadingPct.toFixed(2)}%`}</div>
                         <div>DMDI (ramal): {dmdi === null ? '#DIV/0!' : dmdi.toFixed(2)}</div>
                         <div>Total clientes: {totalClients}</div>
                       </div>
+
+                      {transformerDebug && (
+                        <div className="rounded border border-indigo-300 bg-indigo-50 p-2 text-[10px] text-indigo-900 space-y-1">
+                          <div className="font-semibold uppercase tracking-wide">Atribuicao automatica</div>
+                          <div>Clientes atribuidos ao trafo: {transformerDebug.assignedClients}</div>
+                          <div>Demanda estimada automatica: {formatBr(transformerDebug.estimatedDemandKw)} kVA</div>
+                          <div>Fonte: particao eletrica da rede considerando seccionamentos BT.</div>
+                        </div>
+                      )}
                     </>
                   );
                 })()}

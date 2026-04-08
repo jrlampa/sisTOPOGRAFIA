@@ -79,6 +79,9 @@ export function useFileOperations({
         if (!loadedState.settings.btEditorMode) {
           loadedState.settings.btEditorMode = 'none';
         }
+        if (!loadedState.settings.btTransformerCalculationMode) {
+          loadedState.settings.btTransformerCalculationMode = 'automatic';
+        }
         if (typeof loadedState.settings.clandestinoAreaM2 !== 'number') {
           loadedState.settings.clandestinoAreaM2 = 0;
         }
