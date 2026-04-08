@@ -17,6 +17,7 @@ import { logger } from './utils/logger.js';
 import { generalRateLimiter, refreshRateLimitersFromCatalog } from './middleware/rateLimiter.js';
 import { requestMetrics } from './middleware/requestMetrics.js';
 import { specs } from './swagger.js';
+import { errorHandler, createError, asyncHandler } from './errorHandler.js';
 
 // Import Routes
 import elevationRoutes from './routes/elevationRoutes.js';
@@ -118,18 +119,18 @@ app.use(generalRateLimiter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // Controlled DXF download: stream file and delete it immediately after successful download.
-app.get('/downloads/:filename', (req: Request, res: Response) => {
+app.get('/downloads/:filename', (req: Request, res: Response, next: NextFunction) => {
     const requested = req.params.filename || '';
     
     // Sanitize: allow only alphanumeric, dash, underscore, and dot
     if (!/^[\w\-\.]+$/.test(requested)) {
-        return res.status(400).json({ error: 'Invalid filename format' });
+        return next(createError.validation('Invalid filename format', { received: requested }));
     }
     
     // Path traversal protection
     const safeName = path.basename(requested);
     if (!safeName || safeName !== requested) {
-        return res.status(400).json({ error: 'Invalid filename' });
+        return next(createError.validation('Invalid filename'));
     }
 
     const filePath = path.join(dxfDirectory, safeName);
@@ -138,11 +139,11 @@ app.get('/downloads/:filename', (req: Request, res: Response) => {
     const resolvedPath = path.resolve(filePath);
     const resolvedDir = path.resolve(dxfDirectory);
     if (!resolvedPath.startsWith(resolvedDir)) {
-        return res.status(400).json({ error: 'Access denied' });
+        return next(createError.authorization('Access denied', { reason: 'path traversal detected' }));
     }
     
     if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ error: 'File not found' });
+        return next(createError.notFound('DXF file'));
     }
 
     res.download(filePath, safeName, (err) => {
@@ -197,11 +198,8 @@ app.get('*', (_req: Request, res: Response) => {
     else res.status(404).json({ error: 'Frontend not found' });
 });
 
-// Error handler
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-    logger.error('Error', { error: err.message });
-    res.status(500).json({ error: 'Internal server error' });
-});
+// Error handler - must be last middleware
+app.use(errorHandler);
 
 // Start server
 app.listen(port, async () => {

@@ -46,22 +46,14 @@ import {
   calculateClandestinoDemandKvaByAreaAndClients
 } from '../utils/btCalculations';
 import { parseLatLngQuery, parseUtmQuery } from '../utils/geo';
+import { downloadCsv, downloadJson, downloadDxf } from '../utils/downloads';
 
 export type { PendingNormalClassificationPole };
 
 // ─── Internal helpers (file-private) ─────────────────────────────────────────
 
-const downloadBlob = (content: string, type: string, filename: string) => {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
-};
+// Note: downloadBlob, downloadCsv, downloadJson, downloadDxf are now in utils/downloads.ts
+// for better testing, security validation, and reusability
 
 const escapeCsvCell = (value: string | number) => {
   const normalized = String(value).replace(/\r?\n/g, ' ');
@@ -977,10 +969,10 @@ export function useBtCrudHandlers({ appState, setAppState, showToast }: Params) 
       entries: btExportHistory
     };
 
-    downloadBlob(
-      JSON.stringify(payload, null, 2),
-      'application/json',
-      `${settings.projectMetadata.projectName}_bt_history.json`
+    downloadJson(
+      payload,
+      `${settings.projectMetadata.projectName}_bt_history.json`,
+      true
     );
     showToast('Histórico BT exportado em JSON.', 'success');
   };
@@ -1041,7 +1033,7 @@ export function useBtCrudHandlers({ appState, setAppState, showToast }: Params) 
       .map((row) => row.map((value) => escapeCsvCell(value)).join(';'))
       .join('\n');
 
-    downloadBlob(csv, 'text/csv;charset=utf-8', `${settings.projectMetadata.projectName}_bt_history.csv`);
+    downloadCsv(csv, `${settings.projectMetadata.projectName}_bt_history.csv`);
     showToast('Histórico BT exportado em CSV.', 'success');
   };
 
