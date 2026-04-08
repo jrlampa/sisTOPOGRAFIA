@@ -25,6 +25,8 @@ import { SidebarBtEditorSection } from './components/SidebarBtEditorSection';
 import { SidebarAnalysisResults } from './components/SidebarAnalysisResults';
 import { SidebarSelectionControls } from './components/SidebarSelectionControls';
 import { BtModalStack } from './components/BtModalStack';
+import { SessionRecoveryBanner } from './components/SessionRecoveryBanner';
+import { DxfProgressBadge } from './components/DxfProgressBadge';
 import { BtExportSummaryBanner } from './components/BtExportSummaryBanner';
 
 const MapSelector = React.lazy(() => import('./components/MapSelector'));
@@ -307,32 +309,11 @@ function App() {
         )}
       </AnimatePresence>
 
-      {/* Session recovery banner — shown only when a previous BT session is found */}
-      <AnimatePresence>
-        {sessionDraft && (
-          <motion.div
-            key="session-recovery"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="fixed top-4 left-1/2 z-[990] -translate-x-1/2 flex items-center gap-3 rounded-xl border border-blue-500/30 bg-slate-900/95 px-4 py-3 text-xs text-slate-100 shadow-2xl backdrop-blur-sm"
-          >
-            <span className="text-blue-300 font-semibold">Sessão anterior encontrada ({(sessionDraft.btTopology?.poles.length ?? 0)} postes).</span>
-            <button
-              onClick={handleRestoreSession}
-              className="rounded border border-blue-500/40 px-2 py-1 text-blue-200 hover:bg-blue-500/20 transition-colors"
-            >
-              Restaurar
-            </button>
-            <button
-              onClick={handleDismissSession}
-              className="rounded border border-slate-600/60 px-2 py-1 text-slate-400 hover:bg-slate-700/40 transition-colors"
-            >
-              Descartar
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <SessionRecoveryBanner
+        sessionDraft={sessionDraft}
+        onRestore={handleRestoreSession}
+        onDismiss={handleDismissSession}
+      />
 
       <ProgressIndicator
         isVisible={isProcessing || isDownloading}
@@ -340,11 +321,7 @@ function App() {
         message={statusMessage}
       />
 
-      {showDxfProgress && (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-2 text-sm text-slate-100 shadow-lg">
-          {dxfProgressLabel}
-        </div>
-      )}
+      <DxfProgressBadge visible={showDxfProgress} label={dxfProgressLabel} />
 
       <BtExportSummaryBanner
         latestBtExport={latestBtExport}
