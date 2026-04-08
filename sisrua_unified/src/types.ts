@@ -169,6 +169,7 @@ export interface BtPoleNode {
   ramais?: BtPoleRamalEntry[];
   verified?: boolean;
   nodeChangeFlag?: 'existing' | 'new' | 'remove' | 'replace';
+  circuitBreakPoint?: boolean;
 }
 
 export interface BtTransformerReading {

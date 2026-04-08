@@ -102,7 +102,8 @@ const normalizeBtEdges = (edges: BtEdge[]): BtEdge[] => edges.map(normalizeBtEdg
 const getPoleChangeFlag = (pole: BtPoleNode): BtPoleChangeFlag => pole.nodeChangeFlag ?? 'existing';
 const normalizeBtPole = (pole: BtPoleNode): BtPoleNode => ({
   ...pole,
-  nodeChangeFlag: getPoleChangeFlag(pole)
+  nodeChangeFlag: getPoleChangeFlag(pole),
+  circuitBreakPoint: pole.circuitBreakPoint ?? false
 });
 const normalizeBtPoles = (poles: BtPoleNode[]): BtPoleNode[] => poles.map(normalizeBtPole);
 
@@ -1089,6 +1090,25 @@ function App() {
     }, true);
   };
 
+  const handleBtTogglePoleCircuitBreak = (poleId: string, circuitBreakPoint: boolean) => {
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        poles: btTopology.poles.map((pole) =>
+          pole.id === poleId ? normalizeBtPole({ ...pole, circuitBreakPoint }) : pole
+        )
+      }
+    }, true);
+
+    showToast(
+      circuitBreakPoint
+        ? `Poste ${poleId} marcado com separação física do circuito.`
+        : `Separação física removida do poste ${poleId}.`,
+      'info'
+    );
+  };
+
   const handleBtSetTransformerChangeFlag = (transformerId: string, transformerChangeFlag: BtTransformerChangeFlag) => {
     setAppState({
       ...appState,
@@ -1611,6 +1631,7 @@ function App() {
               lng: pole.lng,
               title: pole.title,
               nodeChangeFlag: getPoleChangeFlag(pole),
+              circuitBreakPoint: pole.circuitBreakPoint ?? false,
               verified: pole.verified ?? false,
               ramais: (pole.ramais ?? []).map((ramal) => ({
                 id: ramal.id,
@@ -2088,6 +2109,7 @@ function App() {
             onBtRenameTransformer={handleBtRenameTransformer}
             onBtSetEdgeChangeFlag={handleBtSetEdgeChangeFlag}
             onBtSetPoleChangeFlag={handleBtSetPoleChangeFlag}
+            onBtTogglePoleCircuitBreak={handleBtTogglePoleCircuitBreak}
             onBtSetTransformerChangeFlag={handleBtSetTransformerChangeFlag}
           />
 
@@ -2274,6 +2296,7 @@ function App() {
             onBtRenameTransformer={handleBtRenameTransformer}
             onBtSetPoleVerified={handleBtSetPoleVerified}
             onBtSetPoleChangeFlag={handleBtSetPoleChangeFlag}
+            onBtTogglePoleCircuitBreak={handleBtTogglePoleCircuitBreak}
             onBtSetTransformerChangeFlag={handleBtSetTransformerChangeFlag}
             onBtDragPole={handleBtDragPole}
             onBtDragTransformer={handleBtDragTransformer}

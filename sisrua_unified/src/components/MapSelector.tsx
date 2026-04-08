@@ -78,6 +78,7 @@ interface MapSelectorProps {
     onBtRenameTransformer?: (transformerId: string, title: string) => void;
     onBtSetPoleVerified?: (poleId: string, verified: boolean) => void;
     onBtSetPoleChangeFlag?: (poleId: string, nodeChangeFlag: 'existing' | 'new' | 'remove' | 'replace') => void;
+    onBtTogglePoleCircuitBreak?: (poleId: string, circuitBreakPoint: boolean) => void;
     onBtSetTransformerChangeFlag?: (transformerId: string, transformerChangeFlag: 'existing' | 'new' | 'remove' | 'replace') => void;
     onBtDragPole?: (poleId: string, lat: number, lng: number) => void;
     onBtDragTransformer?: (transformerId: string, lat: number, lng: number) => void;
@@ -362,6 +363,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     onBtRenameTransformer,
     onBtSetPoleVerified,
     onBtSetPoleChangeFlag,
+    onBtTogglePoleCircuitBreak,
     onBtSetTransformerChangeFlag,
     onBtDragPole,
     onBtDragTransformer,
@@ -843,12 +845,39 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                 <div style={{ marginTop: 2, color: '#334155' }}>
                                     Flag: <strong>{getPoleChangeFlag(pole) === 'new' ? 'Novo' : getPoleChangeFlag(pole) === 'remove' ? 'Remoção' : getPoleChangeFlag(pole) === 'replace' ? 'Substituição' : 'Existente'}</strong>
                                 </div>
+                                {(pole.circuitBreakPoint ?? false) && (
+                                    <div style={{ marginTop: 2, color: '#0369a1', fontWeight: 700 }}>
+                                        Separação física ativa: circuito interrompido neste poste.
+                                    </div>
+                                )}
                                 {onBtSetPoleChangeFlag && (
                                     <div style={{ marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                                         <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'existing'); }} style={{ height: 22, border: '1px solid #d946ef', borderRadius: 4, color: '#a21caf', background: getPoleChangeFlag(pole) === 'existing' ? '#fae8ff' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Existente</button>
                                         <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'new'); }} style={{ height: 22, border: '1px solid #22c55e', borderRadius: 4, color: '#15803d', background: getPoleChangeFlag(pole) === 'new' ? '#dcfce7' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Novo</button>
                                         <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'replace'); }} style={{ height: 22, border: '1px solid #facc15', borderRadius: 4, color: '#a16207', background: getPoleChangeFlag(pole) === 'replace' ? '#fef9c3' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Substituição</button>
                                         <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'remove'); }} style={{ height: 22, border: '1px solid #ef4444', borderRadius: 4, color: '#b91c1c', background: getPoleChangeFlag(pole) === 'remove' ? '#fee2e2' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Remoção</button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onBtTogglePoleCircuitBreak?.(pole.id, !(pole.circuitBreakPoint ?? false));
+                                            }}
+                                            title="Separa fisicamente o circuito neste poste"
+                                            style={{
+                                                height: 22,
+                                                border: `1px solid ${(pole.circuitBreakPoint ?? false) ? '#38bdf8' : '#94a3b8'}`,
+                                                borderRadius: 4,
+                                                color: (pole.circuitBreakPoint ?? false) ? '#0369a1' : '#475569',
+                                                background: (pole.circuitBreakPoint ?? false) ? '#e0f2fe' : '#ffffff',
+                                                cursor: 'pointer',
+                                                fontSize: 10,
+                                                fontWeight: 700,
+                                                fontFamily: 'monospace',
+                                                letterSpacing: '-0.2px'
+                                            }}
+                                        >
+                                            -| |-
+                                        </button>
                                     </div>
                                 )}
                                 <div style={{ marginTop: 6, display: 'flex', gap: 8, alignItems: 'center' }}>

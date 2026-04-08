@@ -23,6 +23,7 @@ interface BtTopologyPanelProps {
   onSelectedEdgeChange?: (edgeId: string) => void;
   onBtSetEdgeChangeFlag?: (edgeId: string, edgeChangeFlag: 'existing' | 'new' | 'remove' | 'replace') => void;
   onBtSetPoleChangeFlag?: (poleId: string, nodeChangeFlag: 'existing' | 'new' | 'remove' | 'replace') => void;
+  onBtTogglePoleCircuitBreak?: (poleId: string, circuitBreakPoint: boolean) => void;
   onBtSetTransformerChangeFlag?: (transformerId: string, transformerChangeFlag: 'existing' | 'new' | 'remove' | 'replace') => void;
   onProjectTypeChange?: (next: 'ramais' | 'clandestino') => void;
   onClandestinoAreaChange?: (nextAreaM2: number) => void;
@@ -218,6 +219,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   onSelectedEdgeChange,
   onBtSetEdgeChangeFlag,
   onBtSetPoleChangeFlag,
+  onBtTogglePoleCircuitBreak,
   onBtSetTransformerChangeFlag,
   onProjectTypeChange,
   onClandestinoAreaChange,
@@ -546,26 +548,32 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             <div className="text-[10px] text-slate-500">Nenhum poste cadastrado.</div>
           ) : (
             <>
-              {btTopology.poles.length === 1 && selectedPole && onBtRenamePole ? (
-                <input
-                  type="text"
-                  value={selectedPole.title}
-                  onChange={(e) => onBtRenamePole(selectedPole.id, e.target.value)}
-                  title="Nome do poste"
-                  className="w-full rounded border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 focus:border-cyan-500/60 outline-none"
-                />
-              ) : (
-                <select
-                  className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
-                  value={selectedPoleId}
-                  onChange={(e) => setSelectedPoleId(e.target.value)}
-                  title="Selecionar poste"
-                >
-                  {btTopology.poles.map((pole) => (
-                    <option key={pole.id} value={pole.id}>{pole.title}</option>
-                  ))}
-                </select>
-              )}
+              <input
+                type="text"
+                list="bt-poles-list"
+                value={selectedPole?.title ?? ''}
+                onChange={(e) => {
+                  if (!selectedPole) {
+                    return;
+                  }
+
+                  const nextTitle = e.target.value;
+                  const selectedOtherPole = btTopology.poles.find((pole) => pole.id !== selectedPole.id && pole.title === nextTitle);
+                  if (selectedOtherPole) {
+                    setSelectedPoleId(selectedOtherPole.id);
+                    return;
+                  }
+
+                  onBtRenamePole?.(selectedPole.id, nextTitle);
+                }}
+                title="Nome/seleção do poste"
+                className="w-full rounded border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 focus:border-cyan-500/60 outline-none"
+              />
+              <datalist id="bt-poles-list">
+                {btTopology.poles.map((pole) => (
+                  <option key={pole.id} value={pole.title} />
+                ))}
+              </datalist>
               {selectedPole && (
                 <>
                   <button
@@ -596,11 +604,24 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                         Substituição
                       </button>
                       <button
+                        onClick={() => onBtTogglePoleCircuitBreak?.(selectedPole.id, !(selectedPole.circuitBreakPoint ?? false))}
+                        title="Separa fisicamente o circuito neste poste"
+                        className={`rounded border px-2 py-1 text-[10px] font-mono tracking-tight ${(selectedPole.circuitBreakPoint ?? false) ? 'border-sky-400 bg-sky-50 text-sky-700' : 'border-slate-300 bg-white text-slate-700'}`}
+                      >
+                        -| |-
+                      </button>
+                      <button
                         onClick={() => onBtSetPoleChangeFlag(selectedPole.id, 'existing')}
                         className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === 'existing' ? 'border-fuchsia-400 bg-fuchsia-50 text-fuchsia-700' : 'border-slate-300 bg-white text-slate-700'}`}
                       >
                         Existente
                       </button>
+                    </div>
+                  )}
+
+                  {(selectedPole.circuitBreakPoint ?? false) && (
+                    <div className="rounded border border-sky-300 bg-sky-50 px-2 py-1 text-[10px] text-sky-800">
+                      Separacao fisica ativa: o circuito do trafo para neste poste.
                     </div>
                   )}
 
@@ -707,29 +728,34 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           </div>
         ) : (
           <>
-            {btTopology.transformers.length === 1 && selectedTransformer && onBtRenameTransformer ? (
-              <div className="space-y-1">
-                <div className="text-[10px] text-slate-500">Nome do transformador</div>
-                <input
-                  type="text"
-                  value={selectedTransformer.title}
-                  onChange={(e) => onBtRenameTransformer(selectedTransformer.id, e.target.value)}
-                  title="Nome do transformador"
-                  className="w-full rounded border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800"
-                />
-              </div>
-            ) : (
-              <select
-                className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
-                value={selectedTransformerId}
-                onChange={(e) => setSelectedTransformerId(e.target.value)}
-                title="Selecionar transformador"
-              >
-                {btTopology.transformers.map((transformer) => (
-                  <option key={transformer.id} value={transformer.id}>{transformer.title}</option>
-                ))}
-              </select>
-            )}
+            <input
+              type="text"
+              list="bt-transformers-list"
+              value={selectedTransformer?.title ?? ''}
+              onChange={(e) => {
+                if (!selectedTransformer) {
+                  return;
+                }
+
+                const nextTitle = e.target.value;
+                const selectedOtherTransformer = btTopology.transformers.find(
+                  (transformer) => transformer.id !== selectedTransformer.id && transformer.title === nextTitle
+                );
+                if (selectedOtherTransformer) {
+                  setSelectedTransformerId(selectedOtherTransformer.id);
+                  return;
+                }
+
+                onBtRenameTransformer?.(selectedTransformer.id, nextTitle);
+              }}
+              title="Nome/seleção do transformador"
+              className="w-full rounded border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800"
+            />
+            <datalist id="bt-transformers-list">
+              {btTopology.transformers.map((transformer) => (
+                <option key={transformer.id} value={transformer.title} />
+              ))}
+            </datalist>
 
             {selectedTransformer && (
               <button

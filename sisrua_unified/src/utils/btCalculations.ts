@@ -269,6 +269,12 @@ export const calculateAccumulatedDemandByPole = (
     adjacentPoles.get(edge.toPoleId)?.push(edge.fromPoleId);
   }
 
+  const circuitBreakPoleIds = new Set(
+    topology.poles
+      .filter((pole) => pole.circuitBreakPoint)
+      .map((pole) => pole.id)
+  );
+
   const transformerPoleIds = new Set(
     topology.transformers
       .map((transformer) => transformer.poleId)
@@ -290,6 +296,12 @@ export const calculateAccumulatedDemandByPole = (
   while (queue.length > 0) {
     const current = queue.shift();
     if (!current) {
+      continue;
+    }
+
+    // A pole marked as circuit break is an electrical endpoint: traversal can reach
+    // it, but cannot continue beyond it.
+    if (circuitBreakPoleIds.has(current)) {
       continue;
     }
 
@@ -333,19 +345,22 @@ export const calculateAccumulatedDemandByPole = (
 
     const localClients = localClientByPole.get(poleId) ?? 0;
     const currentDistance = distanceToTransformer.get(poleId) ?? Number.POSITIVE_INFINITY;
+    const isCircuitBreakPole = circuitBreakPoleIds.has(poleId);
 
     // Children are poles farther from the transformer than the current pole.
     // This makes accumulation run from the network ends toward the transformer.
-    const children = (adjacentPoles.get(poleId) ?? []).filter((neighborId) => {
-      const neighborDistance = distanceToTransformer.get(neighborId) ?? Number.POSITIVE_INFINITY;
-      if (Number.isFinite(currentDistance) && Number.isFinite(neighborDistance)) {
-        return neighborDistance > currentDistance;
-      }
+    const children = isCircuitBreakPole
+      ? []
+      : (adjacentPoles.get(poleId) ?? []).filter((neighborId) => {
+          const neighborDistance = distanceToTransformer.get(neighborId) ?? Number.POSITIVE_INFINITY;
+          if (Number.isFinite(currentDistance) && Number.isFinite(neighborDistance)) {
+            return neighborDistance > currentDistance;
+          }
 
-      // If no transformer is reachable in this component, avoid arbitrary cycles by
-      // not traversing sideways in unknown direction.
-      return false;
-    });
+          // If no transformer is reachable in this component, avoid arbitrary cycles by
+          // not traversing sideways in unknown direction.
+          return false;
+        });
 
     const childrenResults = children.map((childPoleId) => visit(childPoleId, nextPath));
     const downstreamClients = childrenResults.reduce((sum, child) => sum + child.accumulatedClients, 0);
