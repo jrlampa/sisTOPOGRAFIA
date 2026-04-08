@@ -7,7 +7,6 @@ import ProgressIndicator from './components/ProgressIndicator';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useOsmEngine } from './hooks/useOsmEngine';
 import { useSearch } from './hooks/useSearch';
-import { useDxfExport } from './hooks/useDxfExport';
 import { useKmlImport } from './hooks/useKmlImport';
 import { useFileOperations } from './hooks/useFileOperations';
 import { useElevationProfile } from './hooks/useElevationProfile';
@@ -17,11 +16,11 @@ import { useBtNavigationState } from './hooks/useBtNavigationState';
 import { useBtCrudHandlers } from './hooks/useBtCrudHandlers';
 import { useBtDerivedState } from './hooks/useBtDerivedState';
 import { useBtExportHistory } from './hooks/useBtExportHistory';
+import { useBtDxfWorkflow } from './hooks/useBtDxfWorkflow';
 import {
   nextSequentialId,
   EMPTY_BT_TOPOLOGY,
 } from './utils/btNormalization';
-import { buildBtDxfContext } from './utils/btDxfContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppHeader } from './components/AppHeader';
 import { SidebarBtEditorSection } from './components/SidebarBtEditorSection';
@@ -261,12 +260,18 @@ function App() {
     onError: (message) => showToast(message, 'error')
   });
 
-  const { downloadDxf, isDownloading, jobId, jobStatus, jobProgress } = useDxfExport({
-    onSuccess: (message) => showToast(message, 'success'),
-    onError: (message) => showToast(message, 'error'),
-    onBtContextLoaded: ({ btContextUrl, btContext }) => {
-      void ingestBtContextHistory(btContextUrl, btContext);
-    }
+  const { handleDownloadDxf, handleDownloadGeoJSON, isDownloading, jobId, jobStatus, jobProgress } = useBtDxfWorkflow({
+    center,
+    radius,
+    selectionMode,
+    polygon,
+    settings,
+    btTopology,
+    btNetworkScenario,
+    hasOsmData: !!osmData,
+    validateBtBeforeExport,
+    showToast,
+    ingestBtContextHistory,
   });
 
   const { importKml } = useKmlImport({
@@ -327,34 +332,6 @@ function App() {
     const success = await runAnalysis(center, radius, settings.enableAI);
     if (success) showToast("Analysis Complete!", 'success');
     else showToast("Audit failed. Check backend logs.", 'error');
-  };
-
-  const handleDownloadDxf = async () => {
-    if (!osmData) return;
-    if (!validateBtBeforeExport()) return;
-
-    const btContext = buildBtDxfContext({
-      btTopology,
-      settings,
-      btNetworkScenario,
-      includeTopology: settings.layers.btNetwork,
-    });
-
-    await downloadDxf(
-      center,
-      radius,
-      selectionMode,
-      polygon,
-      settings.layers,
-      settings.projection,
-      settings.contourRenderMode,
-      btContext
-    );
-  };
-
-  const handleDownloadGeoJSON = async () => {
-    if (!osmData) return;
-    showToast("GeoJSON export not implemented in client yet.", 'info');
   };
 
   const handleKmlDrop = async (file: File) => {
