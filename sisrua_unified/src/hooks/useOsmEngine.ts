@@ -54,16 +54,16 @@ export function useOsmEngine() {
 
             setProgressValue(100);
             setStatusMessage('');
+            setIsProcessing(false);
             return true;
         } catch (err: any) {
-            setError(err.message || "Audit failed.");
+            const errorMessage = err.message || "Audit failed.";
+            setError(errorMessage);
             setStatusMessage('');
+            // Reset loading state immediately on error, don't wait
+            setIsProcessing(false);
+            setProgressValue(0);
             return false;
-        } finally {
-            setTimeout(() => {
-                setIsProcessing(false);
-                setProgressValue(0);
-            }, 800);
         }
     };
 

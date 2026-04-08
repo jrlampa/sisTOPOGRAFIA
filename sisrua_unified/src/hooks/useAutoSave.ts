@@ -39,9 +39,19 @@ export function useAutoSave(state: GlobalState, enabled = true): void {
             version: DRAFT_VERSION,
         };
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-        } catch {
-            // localStorage unavailable or quota exceeded — tolerate silently
+            const serialized = JSON.stringify(draft);
+            // Verify serialization roundtrip to catch data corruption
+            const verified = JSON.parse(serialized) as SessionDraft;
+            if (verified.version !== DRAFT_VERSION) {
+                console.warn('[AutoSave] Serialization version mismatch, skipping save');
+                return;
+            }
+            localStorage.setItem(STORAGE_KEY, serialized);
+        } catch (error) {
+            // localStorage unavailable, quota exceeded, or serialization failed
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`[AutoSave] Failed to persist state: ${message}`);
+            // Silently fail — don't interrupt user workflow, but log for debugging
         }
     }, []);
 

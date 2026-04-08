@@ -93,7 +93,25 @@ function stopOllama(): void {
 }
 
 // Middleware
-app.use(cors({ origin: true, credentials: true }));
+
+// CORS configuration: restrict to specific origins based on environment
+const allowedOrigins =
+  config.NODE_ENV === 'production'
+    ? ['https://sisrua.example.com'] // Replace with actual production domain
+    : ['http://localhost:5173', 'http://localhost:4173', 'http://127.0.0.1:5173']; // Vite dev/preview
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS policy: origin ${origin} not allowed`));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json({ limit: config.BODY_LIMIT }));
 app.use(requestMetrics);
 app.use(generalRateLimiter);

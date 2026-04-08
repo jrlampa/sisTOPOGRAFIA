@@ -31,6 +31,7 @@ import {
   distanceMeters,
   nextSequentialId
 } from '../utils/btNormalization';
+import { generateEntityId, ID_PREFIX } from '../utils/idGenerator';
 import {
   calculateSectioningImpact,
   getClandestinoAreaRange,
@@ -731,7 +732,7 @@ export function useBtCrudHandlers({ appState, setAppState, showToast }: Params) 
       return;
     }
 
-    const nextRamalId = `RP${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    const nextRamalId = generateEntityId(ID_PREFIX.RAMAL_POLE);
     setAppState(
       {
         ...appState,
@@ -897,7 +898,7 @@ export function useBtCrudHandlers({ appState, setAppState, showToast }: Params) 
     }
 
     const quantity = Math.max(1, Math.round(normalRamalModal.quantity));
-    const nextRamalId = `RP${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    const nextRamalId = generateEntityId(ID_PREFIX.RAMAL_POLE);
     setAppState(
       {
         ...appState,
