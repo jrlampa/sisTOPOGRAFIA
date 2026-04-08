@@ -16,7 +16,6 @@ import { useAppAnalysisWorkflow } from './hooks/useAppAnalysisWorkflow';
 import {
   EMPTY_BT_TOPOLOGY,
 } from './utils/btNormalization';
-import { motion, AnimatePresence } from 'framer-motion';
 import { AppHeader } from './components/AppHeader';
 import { SidebarBtEditorSection } from './components/SidebarBtEditorSection';
 import { SidebarAnalysisResults } from './components/SidebarAnalysisResults';
@@ -25,6 +24,7 @@ import { BtModalStack } from './components/BtModalStack';
 import { AppSettingsOverlay } from './components/AppSettingsOverlay';
 import { AppStatusStack } from './components/AppStatusStack';
 import { MainMapWorkspace } from './components/MainMapWorkspace';
+import { SidebarWorkspace } from './components/SidebarWorkspace';
 
 function App() {
   const {
@@ -325,6 +325,60 @@ function App() {
     setResetConfirmOpen,
   };
 
+  const sidebarSelectionControlsProps: React.ComponentProps<typeof SidebarSelectionControls> = {
+    center,
+    searchQuery,
+    setSearchQuery,
+    isSearching,
+    handleSearch,
+    selectionMode,
+    onSelectionModeChange: handleSelectionModeChange,
+    radius,
+    onRadiusChange: handleRadiusChange,
+    saveSnapshot,
+    onAnalyze: handleFetchAndAnalyze,
+    isProcessing,
+    isPolygonValid,
+  };
+
+  const sidebarBtEditorSectionProps: React.ComponentProps<typeof SidebarBtEditorSection> = {
+    settings,
+    updateSettings,
+    btNetworkScenario,
+    btEditorMode,
+    btTopology,
+    btTransformerDebugById,
+    btPoleCoordinateInput,
+    setBtPoleCoordinateInput,
+    handleBtInsertPoleByCoordinates,
+    clearPendingBtEdge,
+    pendingNormalClassificationPoles,
+    handleResetBtTopology,
+    updateBtTopology,
+    updateProjectType,
+    updateClandestinoAreaM2,
+    handleBtSelectedPoleChange,
+    handleBtSelectedTransformerChange,
+    handleBtSelectedEdgeChange,
+    handleBtRenamePole,
+    handleBtRenameTransformer,
+    handleBtSetEdgeChangeFlag,
+    handleBtSetPoleChangeFlag,
+    handleBtTogglePoleCircuitBreak,
+    handleBtSetTransformerChangeFlag,
+  };
+
+  const sidebarAnalysisResultsProps: React.ComponentProps<typeof SidebarAnalysisResults> = {
+    osmData,
+    stats,
+    analysisText,
+    terrainData,
+    error,
+    handleDownloadDxf,
+    isDownloading,
+    showToast,
+  };
+
   return (
     <div className={`flex flex-col h-screen w-full font-sans transition-colors duration-500 overflow-hidden ${isDark ? 'bg-[#020617] text-slate-200' : 'bg-slate-50 text-slate-900'}`}>
 
@@ -389,68 +443,13 @@ function App() {
       {/* Main Content Area */}
       <main className="flex-1 flex overflow-hidden relative">
 
-        {/* Animated Sidebar */}
-        <motion.aside
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          className={`border-r flex flex-col gap-8 overflow-y-auto z-20 shadow-2xl transition-all duration-300 scrollbar-hide ${isSidebarDockedForRamalModal ? 'w-0 p-0 opacity-0 pointer-events-none border-r-0' : 'w-[400px] p-8 opacity-100'} ${isDark ? 'bg-[#020617] border-white/5' : 'bg-white border-slate-200'}`}
-          aria-hidden={isSidebarDockedForRamalModal}
-        >
-          <SidebarSelectionControls
-            center={center}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            isSearching={isSearching}
-            handleSearch={handleSearch}
-            selectionMode={selectionMode}
-            onSelectionModeChange={handleSelectionModeChange}
-            radius={radius}
-            onRadiusChange={handleRadiusChange}
-            saveSnapshot={saveSnapshot}
-            onAnalyze={handleFetchAndAnalyze}
-            isProcessing={isProcessing}
-            isPolygonValid={isPolygonValid}
-          />
-
-          <SidebarBtEditorSection
-            settings={settings}
-            updateSettings={updateSettings}
-            btNetworkScenario={btNetworkScenario}
-            btEditorMode={btEditorMode}
-            btTopology={btTopology}
-            btTransformerDebugById={btTransformerDebugById}
-            btPoleCoordinateInput={btPoleCoordinateInput}
-            setBtPoleCoordinateInput={setBtPoleCoordinateInput}
-            handleBtInsertPoleByCoordinates={handleBtInsertPoleByCoordinates}
-            clearPendingBtEdge={clearPendingBtEdge}
-            pendingNormalClassificationPoles={pendingNormalClassificationPoles}
-            handleResetBtTopology={handleResetBtTopology}
-            updateBtTopology={updateBtTopology}
-            updateProjectType={updateProjectType}
-            updateClandestinoAreaM2={updateClandestinoAreaM2}
-            handleBtSelectedPoleChange={handleBtSelectedPoleChange}
-            handleBtSelectedTransformerChange={handleBtSelectedTransformerChange}
-            handleBtSelectedEdgeChange={handleBtSelectedEdgeChange}
-            handleBtRenamePole={handleBtRenamePole}
-            handleBtRenameTransformer={handleBtRenameTransformer}
-            handleBtSetEdgeChangeFlag={handleBtSetEdgeChangeFlag}
-            handleBtSetPoleChangeFlag={handleBtSetPoleChangeFlag}
-            handleBtTogglePoleCircuitBreak={handleBtTogglePoleCircuitBreak}
-            handleBtSetTransformerChangeFlag={handleBtSetTransformerChangeFlag}
-          />
-
-          {/* Error Display */}
-          <SidebarAnalysisResults
-            osmData={osmData}
-            stats={stats}
-            analysisText={analysisText}
-            terrainData={terrainData}
-            error={error}
-            handleDownloadDxf={handleDownloadDxf}
-            isDownloading={isDownloading}
-            showToast={showToast}
-          />
-        </motion.aside>
+        <SidebarWorkspace
+          isSidebarDockedForRamalModal={isSidebarDockedForRamalModal}
+          isDark={isDark}
+          selectionControlsProps={sidebarSelectionControlsProps}
+          btEditorSectionProps={sidebarBtEditorSectionProps}
+          analysisResultsProps={sidebarAnalysisResultsProps}
+        />
 
         <MainMapWorkspace
           mapSelectorProps={mapSelectorProps}
