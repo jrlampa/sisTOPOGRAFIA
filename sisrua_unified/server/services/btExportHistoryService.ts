@@ -43,6 +43,18 @@ export interface BtExportHistoryListFilters {
     cqtScenario?: 'atual' | 'proj1' | 'proj2';
 }
 
+export interface BtExportHistoryIngestPayload {
+    projectType: 'ramais' | 'clandestino';
+    btContextUrl: string;
+    btContext: unknown;
+    exportedAt?: string;
+}
+
+export interface BtExportHistoryIngestResult {
+    stored: boolean;
+    entry: BtExportHistoryPayload | null;
+}
+
 type SqlClient = ReturnType<typeof postgres>;
 
 interface BtExportHistoryRow {
@@ -67,6 +79,31 @@ interface BtExportHistoryRow {
     cqt_parity_passed: number | null;
     cqt_parity_failed: number | null;
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const toNumberOrUndefined = (value: unknown): number | undefined =>
+    typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+
+const toNonEmptyStringOrUndefined = (value: unknown): string | undefined =>
+    typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+
+const toScenarioOrUndefined = (value: unknown): 'atual' | 'proj1' | 'proj2' | undefined => {
+    if (value === 'atual' || value === 'proj1' || value === 'proj2') {
+        return value;
+    }
+
+    return undefined;
+};
+
+const toParityStatusOrUndefined = (value: unknown): 'complete' | 'partial' | 'missing' | undefined => {
+    if (value === 'complete' || value === 'partial' || value === 'missing') {
+        return value;
+    }
+
+    return undefined;
+};
 
 class BtExportHistoryService {
     private sql: SqlClient | null = null;
@@ -124,6 +161,55 @@ class BtExportHistoryService {
                       parityFailed: row.cqt_parity_failed ?? undefined,
                   }
                 : undefined,
+        };
+    }
+
+    private buildEntryFromContext(payload: BtExportHistoryIngestPayload): BtExportHistoryPayload | null {
+        if (!isRecord(payload.btContext)) {
+            return null;
+        }
+
+        const criticalPole = isRecord(payload.btContext.criticalPole) ? payload.btContext.criticalPole : null;
+        const poleId = toNonEmptyStringOrUndefined(criticalPole?.poleId);
+        if (!poleId) {
+            return null;
+        }
+
+        const cqtSnapshot = isRecord(payload.btContext.cqtSnapshot) ? payload.btContext.cqtSnapshot : null;
+        const cqtGeral = isRecord(cqtSnapshot?.geral) ? cqtSnapshot.geral : null;
+        const cqtDb = isRecord(cqtSnapshot?.db) ? cqtSnapshot.db : null;
+        const cqtDmdi = isRecord(cqtSnapshot?.dmdi) ? cqtSnapshot.dmdi : null;
+        const cqtParity = isRecord(cqtSnapshot?.parity) ? cqtSnapshot.parity : null;
+
+        const cqtSummary = cqtSnapshot
+            ? {
+                  scenario: toScenarioOrUndefined(cqtSnapshot.scenario),
+                  dmdi: toNumberOrUndefined(cqtDmdi?.dmdi),
+                  p31: toNumberOrUndefined(cqtGeral?.p31CqtNoPonto),
+                  p32: toNumberOrUndefined(cqtGeral?.p32CqtNoPonto),
+                  k10QtMttr: toNumberOrUndefined(cqtDb?.k10QtMttr),
+                  parityStatus: toParityStatusOrUndefined(cqtParity?.referenceStatus),
+                  parityPassed: toNumberOrUndefined(cqtParity?.passed),
+                  parityFailed: toNumberOrUndefined(cqtParity?.failed),
+              }
+            : undefined;
+
+        return {
+            exportedAt: payload.exportedAt && !Number.isNaN(Date.parse(payload.exportedAt))
+                ? payload.exportedAt
+                : new Date().toISOString(),
+            projectType: payload.projectType,
+            btContextUrl: payload.btContextUrl,
+            criticalPoleId: poleId,
+            criticalAccumulatedClients: toNumberOrUndefined(criticalPole?.accumulatedClients) ?? 0,
+            criticalAccumulatedDemandKva: toNumberOrUndefined(criticalPole?.accumulatedDemandKva) ?? 0,
+            verifiedPoles: toNumberOrUndefined(payload.btContext.verifiedPoles),
+            totalPoles: toNumberOrUndefined(payload.btContext.totalPoles),
+            verifiedEdges: toNumberOrUndefined(payload.btContext.verifiedEdges),
+            totalEdges: toNumberOrUndefined(payload.btContext.totalEdges),
+            verifiedTransformers: toNumberOrUndefined(payload.btContext.verifiedTransformers),
+            totalTransformers: toNumberOrUndefined(payload.btContext.totalTransformers),
+            cqt: cqtSummary,
         };
     }
 
@@ -187,6 +273,16 @@ class BtExportHistoryService {
             });
             return false;
         }
+    }
+
+    async ingestFromContext(payload: BtExportHistoryIngestPayload): Promise<BtExportHistoryIngestResult> {
+        const entry = this.buildEntryFromContext(payload);
+        if (!entry) {
+            return { stored: false, entry: null };
+        }
+
+        const stored = await this.create(entry);
+        return { stored, entry };
     }
 
     async list(limit: number, offset: number, filters: BtExportHistoryListFilters = {}): Promise<BtExportHistoryListResult> {

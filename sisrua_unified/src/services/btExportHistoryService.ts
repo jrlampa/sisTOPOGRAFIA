@@ -1,35 +1,3 @@
-export interface BtExportHistoryClearResponse {
-  deletedCount: number;
-}
-
-
-export async function clearBtExportHistoryRemote(options: {
-  projectType?: BtExportHistoryFilters['projectType'];
-  cqtScenario?: BtExportHistoryFilters['cqtScenario'];
-} = {}): Promise<BtExportHistoryClearResponse> {
-  const params = new URLSearchParams();
-  if (options.projectType) params.set('projectType', options.projectType);
-  if (options.cqtScenario) params.set('cqtScenario', options.cqtScenario);
-
-  const query = params.toString();
-  const endpoint = query ? `/api/bt-history?${query}` : '/api/bt-history';
-  const response = await fetch(endpoint, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-  });
-
-  const payload = (await response.json().catch(() => ({}))) as {
-    ok?: boolean;
-    error?: string;
-    deletedCount?: number;
-  };
-
-  if (!response.ok || payload.ok !== true) {
-    throw new Error(payload.error || `Falha ao limpar historico BT remoto (${response.status})`);
-  }
-
-  return { deletedCount: payload.deletedCount ?? 0 };
-}
 import type { BtExportHistoryEntry } from '../types';
 
 export interface BtExportHistoryPage {
@@ -42,6 +10,22 @@ export interface BtExportHistoryPage {
 export interface BtExportHistoryFilters {
   projectType?: 'ramais' | 'clandestino';
   cqtScenario?: 'atual' | 'proj1' | 'proj2';
+}
+
+export interface BtExportHistoryClearResponse {
+  deletedCount: number;
+}
+
+export interface BtExportHistoryIngestPayload {
+  projectType: 'ramais' | 'clandestino';
+  btContextUrl: string;
+  btContext: unknown;
+  exportedAt?: string;
+}
+
+export interface BtExportHistoryIngestResponse {
+  stored: boolean;
+  entry: BtExportHistoryEntry | null;
 }
 
 const buildUrl = (limit: number, offset: number, filters?: BtExportHistoryFilters): string => {
@@ -96,3 +80,57 @@ export const createBtExportHistory = async (entry: BtExportHistoryEntry): Promis
   const payload = (await response.json()) as { stored?: boolean };
   return payload.stored === true;
 };
+
+export const ingestBtExportHistory = async (payload: BtExportHistoryIngestPayload): Promise<BtExportHistoryIngestResponse> => {
+  const response = await fetch('/api/bt-history/ingest', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const parsed = (await response.json().catch(() => ({}))) as {
+    ok?: boolean;
+    error?: string;
+    stored?: boolean;
+    entry?: BtExportHistoryEntry | null;
+  };
+
+  if (!response.ok || parsed.ok !== true) {
+    throw new Error(parsed.error || `Falha ao ingerir histórico BT (${response.status})`);
+  }
+
+  return {
+    stored: parsed.stored === true,
+    entry: parsed.entry ?? null,
+  };
+};
+
+export async function clearBtExportHistoryRemote(options: {
+  projectType?: BtExportHistoryFilters['projectType'];
+  cqtScenario?: BtExportHistoryFilters['cqtScenario'];
+} = {}): Promise<BtExportHistoryClearResponse> {
+  const params = new URLSearchParams();
+  if (options.projectType) params.set('projectType', options.projectType);
+  if (options.cqtScenario) params.set('cqtScenario', options.cqtScenario);
+
+  const query = params.toString();
+  const endpoint = query ? `/api/bt-history?${query}` : '/api/bt-history';
+  const response = await fetch(endpoint, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  const payload = (await response.json().catch(() => ({}))) as {
+    ok?: boolean;
+    error?: string;
+    deletedCount?: number;
+  };
+
+  if (!response.ok || payload.ok !== true) {
+    throw new Error(payload.error || `Falha ao limpar historico BT remoto (${response.status})`);
+  }
+
+  return { deletedCount: payload.deletedCount ?? 0 };
+}

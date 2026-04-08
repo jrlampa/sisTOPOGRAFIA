@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express';
-import { btExportHistoryService, BtExportHistoryPayload } from '../services/btExportHistoryService.js';
+import { btExportHistoryService, BtExportHistoryPayload, BtExportHistoryIngestPayload } from '../services/btExportHistoryService.js';
 
 const router = Router();
 
@@ -70,6 +70,35 @@ const validateCreatePayload = (body: unknown): { ok: true; value: BtExportHistor
     };
 };
 
+const validateIngestPayload = (body: unknown): { ok: true; value: BtExportHistoryIngestPayload } | { ok: false; error: string } => {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return { ok: false, error: 'Payload inválido' };
+    }
+
+    const payload = body as Partial<BtExportHistoryIngestPayload>;
+    if (!isProjectType(payload.projectType)) {
+        return { ok: false, error: 'projectType inválido' };
+    }
+
+    if (typeof payload.btContextUrl !== 'string' || payload.btContextUrl.trim().length === 0) {
+        return { ok: false, error: 'btContextUrl obrigatório' };
+    }
+
+    if (!payload.btContext || typeof payload.btContext !== 'object' || Array.isArray(payload.btContext)) {
+        return { ok: false, error: 'btContext inválido' };
+    }
+
+    return {
+        ok: true,
+        value: {
+            projectType: payload.projectType,
+            btContextUrl: payload.btContextUrl,
+            btContext: payload.btContext,
+            exportedAt: typeof payload.exportedAt === 'string' ? payload.exportedAt : undefined,
+        },
+    };
+};
+
 router.get('/', async (req: Request, res: Response) => {
     const limit = parsePositiveInt(req.query.limit, 50);
     const offset = parsePositiveInt(req.query.offset, 0);
@@ -92,6 +121,20 @@ router.post('/', async (req: Request, res: Response) => {
     return res.status(201).json({ ok: true, stored });
 });
 
+router.post('/ingest', async (req: Request, res: Response) => {
+    const validated = validateIngestPayload(req.body);
+    if (!validated.ok) {
+        return res.status(400).json({ error: validated.error });
+    }
+
+    const result = await btExportHistoryService.ingestFromContext(validated.value);
+    if (!result.entry) {
+        return res.status(422).json({ ok: false, error: 'Nao foi possivel extrair resumo BT do contexto informado' });
+    }
+
+    return res.status(201).json({ ok: true, ...result });
+});
+
 router.delete('/', async (req: Request, res: Response) => {
     const projectTypeRaw = req.query.projectType;
     const projectType = isProjectType(projectTypeRaw) ? projectTypeRaw : undefined;
@@ -99,7 +142,7 @@ router.delete('/', async (req: Request, res: Response) => {
     const cqtScenario = isCqtScenario(cqtScenarioRaw) ? cqtScenarioRaw : undefined;
 
     const result = await btExportHistoryService.clear({ projectType, cqtScenario });
-    return res.json({ ok: true, ...result });
+    return res.json({ ok: true, deletedCount: result.deleted });
 });
 
 export default router;

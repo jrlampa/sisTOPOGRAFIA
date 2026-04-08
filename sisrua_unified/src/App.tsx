@@ -29,7 +29,7 @@ import { SidebarBtEditorSection } from './components/SidebarBtEditorSection';
 import { SidebarAnalysisResults } from './components/SidebarAnalysisResults';
 import { BtExportSummaryBanner } from './components/BtExportSummaryBanner';
 import { NormalRamalModal, ClandestinoToNormalModal, NormalToClandestinoModal, ResetBtTopologyModal } from './components/BtModals';
-import { clearBtExportHistoryRemote, createBtExportHistory, listBtExportHistory } from './services/btExportHistoryService';
+import { clearBtExportHistoryRemote, ingestBtExportHistory, listBtExportHistory } from './services/btExportHistoryService';
 
 const MapSelector = React.lazy(() => import('./components/MapSelector'));
 const SettingsModal = React.lazy(() => import('./components/SettingsModal'));
@@ -166,6 +166,28 @@ function App() {
     }
 
     void loadBtHistoryPage(btExportHistory.length, true);
+  };
+
+  const appendBtHistoryEntry = (entry: BtExportHistoryEntry) => {
+    const nextBtExportSummary: BtExportSummary = {
+      btContextUrl: entry.btContextUrl,
+      criticalPoleId: entry.criticalPoleId,
+      criticalAccumulatedClients: entry.criticalAccumulatedClients,
+      criticalAccumulatedDemandKva: entry.criticalAccumulatedDemandKva,
+      cqt: entry.cqt,
+      verifiedPoles: entry.verifiedPoles,
+      totalPoles: entry.totalPoles,
+      verifiedEdges: entry.verifiedEdges,
+      totalEdges: entry.totalEdges,
+      verifiedTransformers: entry.verifiedTransformers,
+      totalTransformers: entry.totalTransformers,
+    };
+
+    const nextHistory = [entry, ...(appState.btExportHistory ?? [])].slice(0, MAX_BT_EXPORT_HISTORY);
+    setAppState({ ...appState, btExportSummary: nextBtExportSummary, btExportHistory: nextHistory }, false);
+
+    const cqtScenarioLabel = entry.cqt?.scenario ? ` | CQT ${entry.cqt.scenario.toUpperCase()}` : '';
+    showToast(`Resumo BT: ponto crítico ${entry.criticalPoleId} (${entry.criticalAccumulatedDemandKva.toFixed(2)})${cqtScenarioLabel}.`, 'info');
   };
 
   const handleClearBtExportHistory = async () => {
@@ -340,86 +362,23 @@ function App() {
     onSuccess: (message) => showToast(message, 'success'),
     onError: (message) => showToast(message, 'error'),
     onBtContextLoaded: ({ btContextUrl, btContext }) => {
-      const criticalPoleRaw = btContext.criticalPole;
-      if (!criticalPoleRaw || typeof criticalPoleRaw !== 'object') {
-        return;
-      }
+      void (async () => {
+        try {
+          const result = await ingestBtExportHistory({
+            btContextUrl,
+            btContext,
+            projectType: settings.projectType === 'clandestino' ? 'clandestino' : 'ramais',
+          });
 
-      const criticalPole = criticalPoleRaw as Record<string, unknown>;
-      const poleId = typeof criticalPole.poleId === 'string' ? criticalPole.poleId : '';
-      const accumulatedClients = typeof criticalPole.accumulatedClients === 'number' ? criticalPole.accumulatedClients : 0;
-      const accumulatedDemandKva = typeof criticalPole.accumulatedDemandKva === 'number' ? criticalPole.accumulatedDemandKva : 0;
-      const verifiedPoles = typeof btContext.verifiedPoles === 'number' ? btContext.verifiedPoles : 0;
-      const totalPoles = typeof btContext.totalPoles === 'number' ? btContext.totalPoles : 0;
-      const verifiedEdges = typeof btContext.verifiedEdges === 'number' ? btContext.verifiedEdges : 0;
-      const totalEdges = typeof btContext.totalEdges === 'number' ? btContext.totalEdges : 0;
-      const verifiedTransformers = typeof btContext.verifiedTransformers === 'number' ? btContext.verifiedTransformers : 0;
-      const totalTransformers = typeof btContext.totalTransformers === 'number' ? btContext.totalTransformers : 0;
-
-      const cqtSnapshotRaw = btContext.cqtSnapshot;
-      const cqtSnapshot = cqtSnapshotRaw && typeof cqtSnapshotRaw === 'object'
-        ? cqtSnapshotRaw as Record<string, unknown>
-        : null;
-      const cqtGeral = cqtSnapshot?.geral && typeof cqtSnapshot.geral === 'object'
-        ? cqtSnapshot.geral as Record<string, unknown>
-        : null;
-      const cqtDb = cqtSnapshot?.db && typeof cqtSnapshot.db === 'object'
-        ? cqtSnapshot.db as Record<string, unknown>
-        : null;
-      const cqtDmdi = cqtSnapshot?.dmdi && typeof cqtSnapshot.dmdi === 'object'
-        ? cqtSnapshot.dmdi as Record<string, unknown>
-        : null;
-      const cqtParity = cqtSnapshot?.parity && typeof cqtSnapshot.parity === 'object'
-        ? cqtSnapshot.parity as Record<string, unknown>
-        : null;
-
-      const cqtSummary = cqtSnapshot
-        ? {
-            scenario: typeof cqtSnapshot.scenario === 'string'
-              ? cqtSnapshot.scenario as 'atual' | 'proj1' | 'proj2'
-              : undefined,
-            dmdi: typeof cqtDmdi?.dmdi === 'number' ? cqtDmdi.dmdi : undefined,
-            p31: typeof cqtGeral?.p31CqtNoPonto === 'number' ? cqtGeral.p31CqtNoPonto : undefined,
-            p32: typeof cqtGeral?.p32CqtNoPonto === 'number' ? cqtGeral.p32CqtNoPonto : undefined,
-            k10QtMttr: typeof cqtDb?.k10QtMttr === 'number' ? cqtDb.k10QtMttr : undefined,
-            parityStatus: typeof cqtParity?.referenceStatus === 'string'
-              ? cqtParity.referenceStatus as 'complete' | 'partial' | 'missing'
-              : undefined,
-            parityPassed: typeof cqtParity?.passed === 'number' ? cqtParity.passed : undefined,
-            parityFailed: typeof cqtParity?.failed === 'number' ? cqtParity.failed : undefined
+          if (!result.entry) {
+            return;
           }
-        : undefined;
 
-      if (!poleId) {
-        return;
-      }
-
-      const nextBtExportSummary: BtExportSummary = {
-        btContextUrl,
-        criticalPoleId: poleId,
-        criticalAccumulatedClients: accumulatedClients,
-        criticalAccumulatedDemandKva: accumulatedDemandKva,
-        cqt: cqtSummary,
-        verifiedPoles,
-        totalPoles,
-        verifiedEdges,
-        totalEdges,
-        verifiedTransformers,
-        totalTransformers
-      };
-
-      const historyEntry: BtExportHistoryEntry = {
-        ...nextBtExportSummary,
-        exportedAt: new Date().toISOString(),
-        projectType: settings.projectType ?? 'ramais'
-      };
-
-      const nextHistory = [historyEntry, ...(appState.btExportHistory ?? [])].slice(0, MAX_BT_EXPORT_HISTORY);
-
-      setAppState({ ...appState, btExportSummary: nextBtExportSummary, btExportHistory: nextHistory }, false);
-      void createBtExportHistory(historyEntry);
-      const cqtScenarioLabel = cqtSummary?.scenario ? ` | CQT ${cqtSummary.scenario.toUpperCase()}` : '';
-      showToast(`Resumo BT: ponto crítico ${poleId} (${accumulatedDemandKva.toFixed(2)})${cqtScenarioLabel}.`, 'info');
+          appendBtHistoryEntry(result.entry);
+        } catch {
+          showToast('Falha ao consolidar resumo BT no backend.', 'error');
+        }
+      })();
     }
   });
 
