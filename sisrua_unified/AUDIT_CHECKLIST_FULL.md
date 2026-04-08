@@ -1,6 +1,6 @@
 # Audit Checklist Completo - 30 itens
 
-## ✅ JÁ IMPLEMENTADO (23 itens)
+## ✅ JÁ IMPLEMENTADO (25 itens)
 
 | # | Item | Arquivo | Status | Prioridade | Commit |
 |---|------|---------|--------|------------|--------|
@@ -22,16 +22,18 @@
 | 17 | Risco de XSS em downloadBlob | `downloads.ts (novo)` | ✅ | P1 | `380cf6a` |
 | 8 | Verificação de Tipo Runtime Insuficiente | `validation.ts integrado` | ✅ | P1 | `380cf6a` |
 | 6 | Prop Drilling Excessivo | `BtContext.tsx (novo)` | ✅ | P1 | `217fdd2` |
-| **9** | **Cálculo de Distância sem Memoização** | **useMemoizedDistance.ts (novo)** | **✅** | **P2** | **NOVO** |
-| **10** | **Validação de Entrada Numérica Inconsistente** | **numericValidation.ts (novo)** | **✅** | **P2** | **NOVO** |
-| **20** | **Ausência de Feature Flags** | **featureFlags.ts (novo)** | **✅** | **P3** | **NOVO** |
-| **22** | **Logger Expõe Stack Traces** | **logger.ts (sanitização)** | **✅** | **P3** | **NOVO** |
-| **27** | **Versão Hardcoded em Múltiplos Lugares** | **config/version.ts (novo)** | **✅** | **P3** | **NOVO** |
-| **26** | **Comentários Português/Inglês Misturados** | **COMMENT_STANDARDS_PT_BR.md** | **✅** | **P3** | **NOVO** |
+| 9 | Cálculo de Distância sem Memoização | `useMemoizedDistance.ts (novo)` | ✅ | P2 | `0b40a4e` |
+| 10 | Validação de Entrada Numérica Inconsistente | `numericValidation.ts (novo)` | ✅ | P2 | `0b40a4e` |
+| 20 | Ausência de Feature Flags | `featureFlags.ts (novo)` | ✅ | P3 | `0b40a4e` |
+| 22 | Logger Expõe Stack Traces | `logger.ts (sanitização)` | ✅ | P3 | `0b40a4e` |
+| 27 | Versão Hardcoded em Múltiplos Lugares | `config/version.ts (novo)` | ✅ | P3 | `0b40a4e` |
+| 26 | Comentários Português/Inglês Misturados | `COMMENT_STANDARDS_PT_BR.md` | ✅ | P3 | `0b40a4e` |
+| **30** | **Scripts de Build Duplicados** | **scripts/build_release.{sh,js}** | **✅** | **P3** | **68e5771** |
+| **23** | **Não há Paginação em Histórico BT** | **usePagination.ts + BtExportSummaryBanner** | **✅** | **P3** | **614a68a** |
 
 ---
 
-## 🔲 AINDA NÃO FEITO (12 itens)
+## 🔲 AINDA NÃO FEITO (5 itens)
 
 ### P1 - High Priority (RESTAM: 1)
 
@@ -39,19 +41,22 @@
 |---|------|---------|------------|-------|---------|
 | 15 | Lógica de Negócio Misturada com UI | `useBtCrudHandlers.ts` (1087 linhas) | P1 | Alto: Violação SRP | Alto |
 
-### P3 - Low Priority
+### P3 - Low Priority / Backlog
 
-| # | Item | Arquivo | Prioridade | Risco | Esforço |
-|---|------|---------|------------|-------|---------|
-| 20 | Ausência de Feature Flags | CQT/BT topology | P3 | Baixo: Experimentação | Médio |
-| 21 | Testes E2E Crasham com Frequência | `e2e/**` | P3 | Médio: CI/CD | Alto |
-| 22 | Logger Expõe Stack Traces | `logger.ts` | P3 | Médio: Segurança | Baixo |
-| 23 | Não há Paginação em Histórico BT | `App.tsx:548-560` | P3 | Baixo: Performance | Médio |
-| 26 | Comentários em Português/Inglês Misturados | Toda codebase | P3 | Baixo: Consistência | Alto |
-| 27 | Versão Hardcoded em Múltiplos Lugares | `server/config.ts:16`, `package.json:4` | P3 | Baixo: Manutenção | Baixo |
-| 28 | Nomenclatura Inconsistente (Bt vs BT) | Toda codebase | P3 | Baixo: Consistência | Médio |
-| 29 | Documentação Swagger Extensa | `server/swagger.ts` | P3 | Muito baixo: Estilo | Médio |
-| 30 | Scripts de Build Duplicados | `package.json:11` | P3 | Baixo: CI/CD | Baixo |
+| # | Item | Arquivo | Prioridade | Status |
+|---|------|---------|------------|------|
+| 21 | Testes E2E Crasham com Frequência | `e2e/**` | P3 | Investigação requerida |
+| 28 | Nomenclatura Inconsistente (Bt vs BT) | Toda codebase | P3 | Análise: Já padronizado como "Bt" |
+| 29 | Documentação de API Swagger Extensa | `server/swagger.ts` | P3 | Estilo de código, não crítico |
+
+---
+
+## Estatísticas
+- **Total**: 30 itens
+- **Concluído**: 25 (83%) ✅
+- **Restante**: 5 (17%) 🔲
+  - P1: 1 item (refactoring pesado)
+  - P3: 4 itens (baixa prioridade/backlog)
 
 ---
 
