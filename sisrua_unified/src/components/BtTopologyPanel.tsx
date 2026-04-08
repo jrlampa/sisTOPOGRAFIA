@@ -177,11 +177,15 @@ function NumericTextInput({
   decimals = 2,
   onChange,
   className,
+  title,
+  placeholder,
 }: {
   value: number;
   decimals?: number;
   onChange: (val: number) => void;
   className?: string;
+  title?: string;
+  placeholder?: string;
 }) {
   const [editing, setEditing] = React.useState(false);
   const [editDisplay, setEditDisplay] = React.useState('');
@@ -195,6 +199,9 @@ function NumericTextInput({
       type="text"
       inputMode="decimal"
       value={display}
+      title={title}
+      aria-label={title}
+      placeholder={placeholder}
       onFocus={(e) => {
         setEditing(true);
         setEditDisplay(formatBr(value, decimals));
@@ -455,6 +462,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             <select
               value={projectType === 'clandestino' ? 'clandestino' : 'ramais'}
               onChange={(e) => onProjectTypeChange?.(e.target.value as 'ramais' | 'clandestino')}
+              title="Modo de cálculo do projeto BT"
               className="w-full rounded border border-cyan-300 bg-white p-2 text-xs text-slate-800"
             >
               <option value="ramais">Normal</option>
@@ -469,6 +477,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                 min={0}
                 step={1}
                 value={clandestinoAreaM2}
+                title="Área de clandestinos em metros quadrados"
                 onFocus={(e) => e.target.select()}
                 onClick={(e) => e.currentTarget.select()}
                 onChange={(e) => onClandestinoAreaChange?.(Math.max(0, Math.round(numberFromInput(e.target.value))))}
@@ -676,6 +685,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                               type="number"
                               min={1}
                               value={ramal.quantity}
+                              title={`Quantidade do ramal ${ramal.id}`}
                               onFocus={(e) => e.target.select()}
                               onClick={(e) => e.currentTarget.select()}
                               onChange={(e) => {
@@ -689,6 +699,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                             />
                             <select
                               value={ramal.ramalType ?? (projectType === 'clandestino' ? CLANDESTINO_RAMAL_TYPE : NORMAL_CLIENT_RAMAL_TYPES[0])}
+                              title={`Tipo do ramal ${ramal.id}`}
                               onChange={(e) => {
                                 const ramalType = e.target.value;
                                 updatePoleRamais(
@@ -865,6 +876,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                         <div className="text-[10px] text-slate-500">Trafo proj (kVA)</div>
                         <NumericTextInput
                           value={currentMaxA}
+                          title="Corrente máxima do transformador em ampères"
+                          placeholder="Corrente máxima"
                           onChange={(next) => {
                             updateTransformerReadings(selectedTransformer.id, [{ ...baseReading, currentMaxA: next, autoCalculated: false }]);
                           }}
@@ -872,6 +885,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                         />
                         <NumericTextInput
                           value={effectiveDemandKw}
+                          title="Demanda corrigida do transformador em kVA"
+                          placeholder="Demanda corrigida"
                           onChange={(nextCorrectedDemandKva) => {
                             if (!hasReadings) {
                               return;
@@ -885,6 +900,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                         />
                         <NumericTextInput
                           value={temperatureFactor}
+                          title="Fator de temperatura do transformador"
+                          placeholder="Fator de temperatura"
                           onChange={(next) => {
                             updateTransformerReadings(selectedTransformer.id, [{ ...baseReading, temperatureFactor: next, autoCalculated: false }]);
                           }}
@@ -892,6 +909,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                         />
                         <NumericTextInput
                           value={projectPowerKva}
+                          title="Potência de projeto do transformador em kVA"
+                          placeholder="Potência de projeto"
                           onChange={(next) => updateTransformerProjectPower(selectedTransformer.id, next)}
                           className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
                         />
@@ -956,6 +975,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             <select
               className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
               value={selectedEdgeId}
+              title="Selecionar trecho BT"
               onChange={(e) => selectEdge(e.target.value)}
             >
               {btTopology.edges.map((edge) => {
@@ -1068,6 +1088,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                       type="number"
                       min={1}
                       value={entry.quantity}
+                      title={`Quantidade do condutor ${entry.id}`}
                       onChange={(e) => {
                         const quantity = Math.max(1, numberFromInput(e.target.value));
                         updateEdgeConductors(
@@ -1079,6 +1100,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     />
                     <select
                       value={entry.conductorName}
+                      title={`Tipo do condutor ${entry.id}`}
                       onChange={(e) => {
                         const conductorName = e.target.value;
                         updateEdgeConductors(
@@ -1129,6 +1151,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                           type="number"
                           min={1}
                           value={entry.quantity}
+                          title={`Quantidade do condutor de saída ${entry.id}`}
                           onChange={(e) => {
                             const quantity = Math.max(1, numberFromInput(e.target.value));
                             updateEdgeReplacementFromConductors(
@@ -1140,6 +1163,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                         />
                         <select
                           value={entry.conductorName}
+                          title={`Tipo do condutor de saída ${entry.id}`}
                           onChange={(e) => {
                             const conductorName = e.target.value;
                             updateEdgeReplacementFromConductors(

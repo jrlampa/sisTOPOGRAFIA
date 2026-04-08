@@ -41,21 +41,61 @@ const CONDUCTOR_OPTIONS = [
 ];
 
 const EDGE_HIT_AREA_WEIGHT = 28;
+const LEAFLET_ICON_BASE_URL = import.meta.env.BASE_URL;
+const POPUP_SELECT_CLASS = 'w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[11px] text-slate-700';
+const POPUP_TOOLBAR_CLASS = 'mt-1.5 flex items-center gap-2';
+const POPUP_FLAG_GRID_CLASS = 'mt-1.5 grid grid-cols-2 gap-1.5';
+
+const getFlagButtonClass = (isActive: boolean, variant: 'existing' | 'new' | 'replace' | 'remove') => {
+    const baseClass = 'h-6 rounded border bg-white text-[10px] font-bold transition-colors';
+
+    if (variant === 'new') {
+        return `${baseClass} border-green-500 text-green-700 ${isActive ? 'bg-green-100' : 'hover:bg-green-50'}`;
+    }
+
+    if (variant === 'replace') {
+        return `${baseClass} border-yellow-400 text-yellow-700 ${isActive ? 'bg-yellow-100' : 'hover:bg-yellow-50'}`;
+    }
+
+    if (variant === 'remove') {
+        return `${baseClass} border-red-500 text-red-700 ${isActive ? 'bg-red-100' : 'hover:bg-red-50'}`;
+    }
+
+    return `${baseClass} border-fuchsia-500 text-fuchsia-700 ${isActive ? 'bg-fuchsia-100' : 'hover:bg-fuchsia-50'}`;
+};
+
+const getIconActionButtonClass = (variant: 'danger' | 'sky' | 'slate' | 'violet', active = false) => {
+    const baseClass = 'inline-flex h-6 w-7 items-center justify-center rounded border transition-colors';
+
+    if (variant === 'danger') {
+        return `${baseClass} border-red-500 text-red-500 ${active ? 'bg-red-100' : 'bg-red-500/10 hover:bg-red-100'}`;
+    }
+
+    if (variant === 'sky') {
+        return `${baseClass} border-sky-500 text-sky-600 bg-sky-500/10 hover:bg-sky-100`;
+    }
+
+    if (variant === 'violet') {
+        return `${baseClass} ${active ? 'border-violet-700 text-violet-700 bg-violet-100' : 'border-slate-500 text-slate-600 bg-slate-100 hover:bg-slate-200'}`;
+    }
+
+    return `${baseClass} border-slate-500 text-slate-700 bg-slate-100 hover:bg-slate-200`;
+};
 
 // Fix for default marker icon in React Leaflet
 // We need to set the marker icon paths because Leaflet doesn't handle them well in bundled apps.
 // Using public/ static resources to avoid external CDN dependency and improve CSP compliance.
 const DefaultIcon = L.icon({
-  iconRetinaUrl: '/leaflet-marker-icon-2x.png',
-  iconUrl: '/leaflet-marker-icon.png',
-  shadowUrl: '/leaflet-marker-shadow.png',
+  iconRetinaUrl: `${LEAFLET_ICON_BASE_URL}marker-icon-2x.png`,
+  iconUrl: `${LEAFLET_ICON_BASE_URL}marker-icon.png`,
+  shadowUrl: `${LEAFLET_ICON_BASE_URL}marker-shadow.png`,
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41],
 });
 
-L.Marker.prototype.setIcon(DefaultIcon);
+L.Marker.prototype.options.icon = DefaultIcon;
 
 interface MapSelectorProps {
     center: { lat: number; lng: number; label?: string };
@@ -569,17 +609,16 @@ const MapSelector: React.FC<MapSelectorProps> = ({
 
     return (
         <div
-            className="w-full h-full rounded-xl overflow-hidden shadow-2xl border border-slate-700 relative z-0"
+            className="relative z-0 h-full min-h-[400px] w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-100 shadow-2xl"
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            style={{ minHeight: '400px', backgroundColor: '#f1f5f9' }}
         >
             <MapContainer
                 center={[center.lat, center.lng]}
                 zoom={15}
                 scrollWheelZoom={true}
                 maxZoom={24}
-                style={{ height: '100%', width: '100%', minHeight: '400px' }}
+                className="h-full min-h-[400px] w-full"
                 whenReady={() => {
                     // Map ready
                 }}
@@ -645,12 +684,14 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         <Popup>
                             <div className="text-xs">
                                 <div><strong>{edge.id}</strong></div>
-                                <div style={{marginTop: 2, color: '#334155'}}>{from.title} {'<->'} {to.title}</div>
-                                <div style={{marginTop: 4, color: '#334155'}}>Flag: <strong>{edgeFlagLabel}</strong></div>
-                                <div style={{marginTop: 4, color: '#334155'}}>Condutor</div>
-                                <div style={{marginTop: 2}}>
+                                <div className="mt-0.5 text-slate-700">{from.title} {'<->'} {to.title}</div>
+                                <div className="mt-1 text-slate-700">Flag: <strong>{edgeFlagLabel}</strong></div>
+                                <div className="mt-1 text-slate-700">Condutor</div>
+                                <div className="mt-0.5">
                                     <select
                                         value={selectedConductor}
+                                        aria-label={`Condutor do trecho ${edge.id}`}
+                                        title={`Condutor do trecho ${edge.id}`}
                                         onChange={(e) => {
                                             const conductorName = e.target.value;
                                             setEdgeConductorSelection((current) => ({
@@ -658,22 +699,24 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                                 [edge.id]: conductorName
                                             }));
                                         }}
-                                        style={{width: '100%', border: '1px solid #cbd5e1', borderRadius: 4, padding: '2px 6px', fontSize: 11, color: '#334155', background: '#ffffff'}}
+                                        className={POPUP_SELECT_CLASS}
                                     >
                                         {CONDUCTOR_OPTIONS.map((name) => (
                                             <option key={name} value={name}>{name}</option>
                                         ))}
                                     </select>
                                 </div>
-                                <div style={{marginTop: 6, color: '#334155'}}>
+                                <div className="mt-1.5 text-slate-700">
                                     Metragem: {typeof edge.lengthMeters === 'number' ? `${edge.lengthMeters} m` : '-'}
                                 </div>
                                 {edgeChangeFlag === 'replace' && (
                                     <>
-                                        <div style={{marginTop: 6, color: '#334155'}}>Condutor que sai</div>
-                                        <div style={{marginTop: 2}}>
+                                        <div className="mt-1.5 text-slate-700">Condutor que sai</div>
+                                        <div className="mt-0.5">
                                             <select
                                                 value={selectedReplacementFromConductor}
+                                                aria-label={`Condutor de saída do trecho ${edge.id}`}
+                                                title={`Condutor de saída do trecho ${edge.id}`}
                                                 onChange={(e) => {
                                                     const conductorName = e.target.value;
                                                     setEdgeReplacementFromSelection((current) => ({
@@ -681,7 +724,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                                         [edge.id]: conductorName
                                                     }));
                                                 }}
-                                                style={{width: '100%', border: '1px solid #cbd5e1', borderRadius: 4, padding: '2px 6px', fontSize: 11, color: '#334155', background: '#ffffff'}}
+                                                className={POPUP_SELECT_CLASS}
                                             >
                                                 {CONDUCTOR_OPTIONS.map((name) => (
                                                     <option key={name} value={name}>{name}</option>
@@ -699,7 +742,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                                         conductorName: selectedReplacementFromConductor
                                                     }]);
                                                 }}
-                                                style={{marginTop: 6, height: 24, width: '100%', border: '1px solid #f59e0b', borderRadius: 4, color: '#92400e', background: '#fffbeb', cursor: 'pointer', fontSize: 11, fontWeight: 700}}
+                                                className="mt-1.5 h-6 w-full rounded border border-amber-500 bg-amber-50 text-[11px] font-bold text-amber-800 transition-colors hover:bg-amber-100"
                                             >
                                                 Definir condutor que sai
                                             </button>
@@ -707,16 +750,16 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                     </>
                                 )}
                                 {edge.conductors.length > 0 ? (
-                                    <div style={{marginTop: 2, color: '#374151'}}>
+                                    <div className="mt-0.5 text-slate-700">
                                         {edge.conductors.map((entry) => (
                                             <div key={entry.id}>{entry.quantity} x {entry.conductorName}</div>
                                         ))}
                                     </div>
                                 ) : (
-                                    <div style={{marginTop: 2, color: '#6b7280'}}>Sem condutor informado</div>
+                                    <div className="mt-0.5 text-slate-500">Sem condutor informado</div>
                                 )}
                                 {edgeChangeFlag === 'replace' && (
-                                    <div style={{marginTop: 2, color: '#7c2d12'}}>
+                                    <div className="mt-0.5 text-amber-900">
                                         {(edge.replacementFromConductors ?? []).length > 0
                                             ? (edge.replacementFromConductors ?? []).map((entry) => (
                                                 <div key={entry.id}>Sai: {entry.quantity} x {entry.conductorName}</div>
@@ -724,16 +767,16 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                             : <div>Sem condutor de saída definido</div>}
                                     </div>
                                 )}
-                                <div style={{color: edge.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{edge.verified ? '✓ Verificado' : '○ Não verificado'}</div>
+                                <div className={`mt-0.5 font-semibold ${edge.verified ? 'text-green-600' : 'text-amber-600'}`}>{edge.verified ? '✓ Verificado' : '○ Não verificado'}</div>
                                 {onBtSetEdgeChangeFlag && (
-                                    <div style={{marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6}}>
+                                    <div className={POPUP_FLAG_GRID_CLASS}>
                                         <button
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
                                                 onBtSetEdgeChangeFlag(edge.id, 'existing');
                                             }}
-                                            style={{height: 24, border: '1px solid #d946ef', borderRadius: 4, color: '#a21caf', background: edgeChangeFlag === 'existing' ? '#fae8ff' : '#ffffff', cursor: 'pointer', fontSize: 11, fontWeight: 700}}
+                                            className={getFlagButtonClass(edgeChangeFlag === 'existing', 'existing')}
                                         >
                                             Existente
                                         </button>
@@ -743,7 +786,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                                 e.stopPropagation();
                                                 onBtSetEdgeChangeFlag(edge.id, 'new');
                                             }}
-                                            style={{height: 24, border: '1px solid #22c55e', borderRadius: 4, color: '#15803d', background: edgeChangeFlag === 'new' ? '#dcfce7' : '#ffffff', cursor: 'pointer', fontSize: 11, fontWeight: 700}}
+                                            className={getFlagButtonClass(edgeChangeFlag === 'new', 'new')}
                                         >
                                             Novo
                                         </button>
@@ -753,7 +796,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                                 e.stopPropagation();
                                                 onBtSetEdgeChangeFlag(edge.id, 'replace');
                                             }}
-                                            style={{height: 24, border: '1px solid #facc15', borderRadius: 4, color: '#a16207', background: edgeChangeFlag === 'replace' ? '#fef9c3' : '#ffffff', cursor: 'pointer', fontSize: 11, fontWeight: 700}}
+                                            className={getFlagButtonClass(edgeChangeFlag === 'replace', 'replace')}
                                         >
                                             Substituição
                                         </button>
@@ -763,13 +806,13 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                                 e.stopPropagation();
                                                 onBtSetEdgeChangeFlag(edge.id, 'remove');
                                             }}
-                                            style={{height: 24, border: '1px solid #ef4444', borderRadius: 4, color: '#b91c1c', background: edgeChangeFlag === 'remove' ? '#fee2e2' : '#ffffff', cursor: 'pointer', fontSize: 11, fontWeight: 700}}
+                                            className={getFlagButtonClass(edgeChangeFlag === 'remove', 'remove')}
                                         >
                                             Remoção
                                         </button>
                                     </div>
                                 )}
-                                <div style={{marginTop: 6, display: 'flex', gap: 8, alignItems: 'center'}}>
+                                <div className={POPUP_TOOLBAR_CLASS}>
                                     {onBtDeleteEdge && (
                                         <button
                                             onClick={(e) => {
@@ -779,7 +822,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                             }}
                                             title="Deletar trecho"
                                             aria-label="Deletar trecho"
-                                            style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', background: '#ef444420', cursor: 'pointer'}}
+                                            className={getIconActionButtonClass('danger')}
                                         >
                                             <Trash2 size={12} />
                                         </button>
@@ -793,7 +836,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                             }}
                                             title="Informar condutor"
                                             aria-label="Informar condutor"
-                                            style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #0ea5e9', borderRadius: 4, color: '#0284c7', background: '#0ea5e914', cursor: 'pointer'}}
+                                            className={getIconActionButtonClass('sky')}
                                         >
                                             <Plus size={12} />
                                         </button>
@@ -807,7 +850,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                             }}
                                             title="Retirar condutor"
                                             aria-label="Retirar condutor"
-                                            style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #64748b', borderRadius: 4, color: '#334155', background: '#f1f5f9', cursor: 'pointer'}}
+                                            className={getIconActionButtonClass('slate')}
                                         >
                                             <Minus size={12} />
                                         </button>
@@ -851,7 +894,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                             position={position}
                                             icon={L.divIcon({
                                                 className: 'bt-edge-remove-label',
-                                                html: '<div style="color:#dc2626;font-weight:900;font-size:13px;line-height:1;text-shadow:0 0 2px #fff;">X</div>',
+                                                html: '<div class="bt-edge-remove-glyph">X</div>',
                                                 iconSize: [12, 12],
                                                 iconAnchor: [6, 6]
                                             })}
@@ -887,7 +930,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         }}
                     >
                         <Tooltip permanent direction="top" offset={[0, -8]} opacity={0.85}>
-                            <span style={{ fontSize: 10, fontWeight: 600 }}>{pole.title}</span>
+                            <span className="text-[10px] font-semibold">{pole.title}</span>
                         </Tooltip>
                         <Popup>
                             <div className="text-xs">
@@ -897,34 +940,36 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                     <input
                                         type="text"
                                         value={pole.title}
+                                        title={`Nome do poste ${pole.id}`}
+                                        placeholder="Nome do poste"
                                         onChange={(e) => onBtRenamePole(pole.id, e.target.value)}
                                         className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
                                     />
                                 )}
-                                {pole.id === criticalPoleId && <div style={{ color: '#ef4444', fontWeight: 700, marginTop: 2 }}>⚠ Ponto crítico</div>}
+                                {pole.id === criticalPoleId && <div className="mt-0.5 font-bold text-red-500">⚠ Ponto crítico</div>}
                                 {accumulatedByPoleMap.has(pole.id) && (
-                                    <div style={{ marginTop: 3, color: '#374151' }}>
+                                    <div className="mt-1 text-slate-700">
                                         <div>CLT acum.: {accumulatedByPoleMap.get(pole.id)!.accumulatedClients}</div>
                                         <div>Demanda acum.: {accumulatedByPoleMap.get(pole.id)!.accumulatedDemandKva.toFixed(2)} kVA</div>
                                     </div>
                                 )}
-                                <div style={{ color: pole.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2 }}>
+                                <div className={`mt-0.5 font-semibold ${pole.verified ? 'text-green-600' : 'text-amber-600'}`}>
                                     {pole.verified ? '✓ Verificado' : '○ Não verificado'}
                                 </div>
-                                <div style={{ marginTop: 2, color: '#334155' }}>
+                                <div className="mt-0.5 text-slate-700">
                                     Flag: <strong>{getPoleChangeFlag(pole) === 'new' ? 'Novo' : getPoleChangeFlag(pole) === 'remove' ? 'Remoção' : getPoleChangeFlag(pole) === 'replace' ? 'Substituição' : 'Existente'}</strong>
                                 </div>
                                 {(pole.circuitBreakPoint ?? false) && (
-                                    <div style={{ marginTop: 2, color: '#0369a1', fontWeight: 700 }}>
+                                    <div className="mt-0.5 font-bold text-sky-700">
                                         Separação física ativa: circuito interrompido neste poste.
                                     </div>
                                 )}
                                 {onBtSetPoleChangeFlag && (
-                                    <div style={{ marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'existing'); }} style={{ height: 22, border: '1px solid #d946ef', borderRadius: 4, color: '#a21caf', background: getPoleChangeFlag(pole) === 'existing' ? '#fae8ff' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Existente</button>
-                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'new'); }} style={{ height: 22, border: '1px solid #22c55e', borderRadius: 4, color: '#15803d', background: getPoleChangeFlag(pole) === 'new' ? '#dcfce7' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Novo</button>
-                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'replace'); }} style={{ height: 22, border: '1px solid #facc15', borderRadius: 4, color: '#a16207', background: getPoleChangeFlag(pole) === 'replace' ? '#fef9c3' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Substituição</button>
-                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'remove'); }} style={{ height: 22, border: '1px solid #ef4444', borderRadius: 4, color: '#b91c1c', background: getPoleChangeFlag(pole) === 'remove' ? '#fee2e2' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Remoção</button>
+                                    <div className={POPUP_FLAG_GRID_CLASS}>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'existing'); }} className={getFlagButtonClass(getPoleChangeFlag(pole) === 'existing', 'existing')}>Existente</button>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'new'); }} className={getFlagButtonClass(getPoleChangeFlag(pole) === 'new', 'new')}>Novo</button>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'replace'); }} className={getFlagButtonClass(getPoleChangeFlag(pole) === 'replace', 'replace')}>Substituição</button>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetPoleChangeFlag(pole.id, 'remove'); }} className={getFlagButtonClass(getPoleChangeFlag(pole) === 'remove', 'remove')}>Remoção</button>
                                         <button
                                             onClick={(e) => {
                                                 e.preventDefault();
@@ -932,31 +977,20 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                                 onBtTogglePoleCircuitBreak?.(pole.id, !(pole.circuitBreakPoint ?? false));
                                             }}
                                             title="Separa fisicamente o circuito neste poste"
-                                            style={{
-                                                height: 22,
-                                                border: `1px solid ${(pole.circuitBreakPoint ?? false) ? '#38bdf8' : '#94a3b8'}`,
-                                                borderRadius: 4,
-                                                color: (pole.circuitBreakPoint ?? false) ? '#0369a1' : '#475569',
-                                                background: (pole.circuitBreakPoint ?? false) ? '#e0f2fe' : '#ffffff',
-                                                cursor: 'pointer',
-                                                fontSize: 10,
-                                                fontWeight: 700,
-                                                fontFamily: 'monospace',
-                                                letterSpacing: '-0.2px'
-                                            }}
+                                            className={`h-6 rounded border text-[10px] font-bold tracking-[-0.2px] ${pole.circuitBreakPoint ? 'border-sky-400 bg-sky-100 font-mono text-sky-700' : 'border-slate-400 bg-white font-mono text-slate-600 hover:bg-slate-50'}`}
                                         >
                                             -| |-
                                         </button>
                                     </div>
                                 )}
-                                <div style={{ marginTop: 6, display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <div className={POPUP_TOOLBAR_CLASS}>
                                     <button
                                         onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
                                             onBtDeletePole?.(pole.id);
                                         }}
-                                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer' }}
+                                        className={getIconActionButtonClass('danger')}
                                         title="Deletar poste"
                                         aria-label="Deletar poste"
                                     >
@@ -970,9 +1004,9 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                         }}
                                         title={poleHasTransformer.get(pole.id) ? 'Remover transformador do poste' : 'Adicionar transformador ao poste'}
                                         aria-label={poleHasTransformer.get(pole.id) ? 'Remover transformador do poste' : 'Adicionar transformador ao poste'}
-                                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: `1px solid ${poleHasTransformer.get(pole.id) ? '#7c3aed' : '#64748b'}`, borderRadius: 4, color: poleHasTransformer.get(pole.id) ? '#7c3aed' : '#475569', background: poleHasTransformer.get(pole.id) ? '#7c3aed14' : '#f1f5f9', cursor: 'pointer' }}
+                                        className={getIconActionButtonClass('violet', poleHasTransformer.get(pole.id) ?? false)}
                                     >
-                                        <Triangle size={12} style={{ transform: 'rotate(180deg)', fill: 'currentColor' }} />
+                                        <Triangle size={12} className="rotate-180 fill-current" />
                                     </button>
                                     {onBtQuickAddPoleRamal && (
                                         <button
@@ -983,7 +1017,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                             }}
                                             title="Informar ramais"
                                             aria-label="Informar ramais"
-                                            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #0ea5e9', borderRadius: 4, color: '#0284c7', background: '#0ea5e914', cursor: 'pointer' }}
+                                            className={getIconActionButtonClass('sky')}
                                         >
                                             <Plus size={12} />
                                         </button>
@@ -997,7 +1031,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                             }}
                                             title="Reduzir ramais"
                                             aria-label="Reduzir ramais"
-                                            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 24, border: '1px solid #64748b', borderRadius: 4, color: '#334155', background: '#f1f5f9', cursor: 'pointer' }}
+                                            className={getIconActionButtonClass('slate')}
                                         >
                                             <Minus size={12} />
                                         </button>
@@ -1041,7 +1075,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         }}
                     >
                         <Tooltip permanent direction="bottom" offset={[0, 8]} opacity={0.85}>
-                            <span style={{fontSize: 10, fontWeight: 600}}>{transformer.title}</span>
+                            <span className="text-[10px] font-semibold">{transformer.title}</span>
                         </Tooltip>
                         <Popup>
                             <div className="text-xs">
@@ -1057,16 +1091,16 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                     />
                                 )}
                                 <div>Demanda: {transformer.demandKw} kW</div>
-                                <div style={{color: transformer.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{transformer.verified ? '✓ Verificado' : '○ Não verificado'}</div>
-                                <div style={{ marginTop: 2, color: '#334155' }}>
+                                <div className={`mt-0.5 font-semibold ${transformer.verified ? 'text-green-600' : 'text-amber-600'}`}>{transformer.verified ? '✓ Verificado' : '○ Não verificado'}</div>
+                                <div className="mt-0.5 text-slate-700">
                                     Flag: <strong>{getTransformerChangeFlag(transformer) === 'new' ? 'Novo' : getTransformerChangeFlag(transformer) === 'remove' ? 'Remoção' : getTransformerChangeFlag(transformer) === 'replace' ? 'Substituição' : 'Existente'}</strong>
                                 </div>
                                 {onBtSetTransformerChangeFlag && (
-                                    <div style={{ marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetTransformerChangeFlag(transformer.id, 'existing'); }} style={{ height: 22, border: '1px solid #d946ef', borderRadius: 4, color: '#a21caf', background: getTransformerChangeFlag(transformer) === 'existing' ? '#fae8ff' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Existente</button>
-                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetTransformerChangeFlag(transformer.id, 'new'); }} style={{ height: 22, border: '1px solid #22c55e', borderRadius: 4, color: '#15803d', background: getTransformerChangeFlag(transformer) === 'new' ? '#dcfce7' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Novo</button>
-                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetTransformerChangeFlag(transformer.id, 'replace'); }} style={{ height: 22, border: '1px solid #facc15', borderRadius: 4, color: '#a16207', background: getTransformerChangeFlag(transformer) === 'replace' ? '#fef9c3' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Substituição</button>
-                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetTransformerChangeFlag(transformer.id, 'remove'); }} style={{ height: 22, border: '1px solid #ef4444', borderRadius: 4, color: '#b91c1c', background: getTransformerChangeFlag(transformer) === 'remove' ? '#fee2e2' : '#ffffff', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>Remoção</button>
+                                    <div className={POPUP_FLAG_GRID_CLASS}>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetTransformerChangeFlag(transformer.id, 'existing'); }} className={getFlagButtonClass(getTransformerChangeFlag(transformer) === 'existing', 'existing')}>Existente</button>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetTransformerChangeFlag(transformer.id, 'new'); }} className={getFlagButtonClass(getTransformerChangeFlag(transformer) === 'new', 'new')}>Novo</button>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetTransformerChangeFlag(transformer.id, 'replace'); }} className={getFlagButtonClass(getTransformerChangeFlag(transformer) === 'replace', 'replace')}>Substituição</button>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBtSetTransformerChangeFlag(transformer.id, 'remove'); }} className={getFlagButtonClass(getTransformerChangeFlag(transformer) === 'remove', 'remove')}>Remoção</button>
                                     </div>
                                 )}
                                 {onBtDeleteTransformer && (
@@ -1076,7 +1110,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                             e.stopPropagation();
                                             onBtDeleteTransformer(transformer.id);
                                         }}
-                                        style={{marginTop: 4, padding: '2px 8px', background: '#ef444420', border: '1px solid #ef4444', borderRadius: 4, color: '#ef4444', cursor: 'pointer', fontSize: 11}}
+                                        className="mt-1 inline-flex h-6 items-center rounded border border-red-500 bg-red-500/10 px-2 text-[11px] text-red-500 transition-colors hover:bg-red-100"
                                     >
                                         Deletar trafo
                                     </button>

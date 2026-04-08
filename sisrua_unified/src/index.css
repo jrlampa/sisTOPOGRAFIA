@@ -34,8 +34,8 @@
   /* Glassmorphism Utility Classes */
   .glass-panel {
     background: var(--glass-bg);
-    backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
   }
@@ -51,14 +51,14 @@
   
   .glass-overlay {
     background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
   }
   
   .glass-card {
     background: var(--glass-bg);
-    backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
     border-radius: 1rem;
@@ -67,8 +67,8 @@
   /* Enterprise Button Styles */
   .btn-enterprise {
     background: var(--glass-bg);
-    backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     border: 1px solid var(--glass-border);
     transition: all 0.3s ease;
   }
@@ -77,5 +77,29 @@
     background: rgba(255, 255, 255, 0.9);
     transform: translateY(-2px);
     box-shadow: 0 8px 24px 0 rgba(31, 38, 135, 0.15);
+  }
+
+  .text-enterprise-blue {
+    color: var(--enterprise-blue);
+  }
+
+  .text-enterprise-blue-light {
+    color: var(--enterprise-blue-light);
+  }
+
+  .border-enterprise-blue {
+    border-color: var(--enterprise-blue);
+  }
+
+  .bg-enterprise-blue {
+    background-color: var(--enterprise-blue);
+  }
+
+  .bt-edge-remove-glyph {
+    color: #dc2626;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1;
+    text-shadow: 0 0 2px #fff;
   }
 }
