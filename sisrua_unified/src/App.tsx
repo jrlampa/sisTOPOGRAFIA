@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Map as MapIcon, Layers, Search, Loader2, AlertCircle, Settings, Mountain, TrendingUp } from 'lucide-react';
-import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario, BtCqtComputationInputs } from './types';
+import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario, BtCqtComputationInputs, BtEdge } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
 import MapSelector from './components/MapSelector';
 import Dashboard from './components/Dashboard';
@@ -27,7 +27,8 @@ import {
   getClandestinoAreaRange,
   getClandestinoClientsRange,
   getClandestinoDiversificationFactorByClients,
-  getClandestinoKvaByArea
+  getClandestinoKvaByArea,
+  loadClandestinoWorkbookRules
 } from './utils/btCalculations';
 import { parseLatLngQuery, parseUtmQuery } from './utils/geo';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -62,6 +63,32 @@ const NORMAL_CLIENT_RAMAL_TYPES = [
 ];
 const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
 const DEFAULT_EDGE_CONDUCTOR = '70 Al - MX';
+type BtEdgeChangeFlag = NonNullable<BtEdge['edgeChangeFlag']>;
+
+const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
+  if (edge.edgeChangeFlag) {
+    return edge.edgeChangeFlag;
+  }
+
+  return edge.removeOnExecution ? 'remove' : 'existing';
+};
+
+const normalizeBtEdge = (edge: BtEdge): BtEdge => {
+  const edgeChangeFlag = getEdgeChangeFlag(edge);
+  const mustHaveConductor = edgeChangeFlag === 'replace';
+  const hasConductors = edge.conductors.length > 0;
+
+  return {
+    ...edge,
+    edgeChangeFlag,
+    removeOnExecution: edgeChangeFlag === 'remove',
+    conductors: mustHaveConductor && !hasConductors
+      ? [{ id: `C${Date.now()}${Math.floor(Math.random() * 1000)}`, quantity: 1, conductorName: DEFAULT_EDGE_CONDUCTOR }]
+      : edge.conductors
+  };
+};
+
+const normalizeBtEdges = (edges: BtEdge[]): BtEdge[] => edges.map(normalizeBtEdge);
 
 type PendingNormalClassificationPole = {
   poleId: string;
@@ -137,6 +164,7 @@ const nextSequentialId = (ids: string[], prefix: string): string => {
 };
 
 function App() {
+  const [, setClandestinoRulesVersion] = useState(0);
   // Global State with Undo/Redo
   const {
     state: appState,
@@ -203,6 +231,20 @@ function App() {
   const isDark = settings.theme === 'dark';
   const btEditorMode: BtEditorMode = settings.btEditorMode ?? 'none';
   const [pendingBtEdgeStartPoleId, setPendingBtEdgeStartPoleId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    loadClandestinoWorkbookRules().then((loaded) => {
+      if (active && loaded) {
+        setClandestinoRulesVersion((version) => version + 1);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const btAccumulatedByPole = React.useMemo(
     () => calculateAccumulatedDemandByPole(btTopology, settings.projectType ?? 'ramais', settings.clandestinoAreaM2 ?? 0),
@@ -458,7 +500,13 @@ function App() {
   };
 
   const updateBtTopology = (nextTopology: BtTopology) => {
-    setAppState({ ...appState, btTopology: nextTopology }, true);
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...nextTopology,
+        edges: normalizeBtEdges(nextTopology.edges)
+      }
+    }, true);
   };
 
   const updateProjectType = (nextProjectType: 'ramais' | 'clandestino') => {
@@ -703,7 +751,7 @@ function App() {
       }
     }
 
-    const edgeWithoutConductors = btTopology.edges.find((edge) => edge.conductors.length === 0);
+    const edgeWithoutConductors = btTopology.edges.find((edge) => getEdgeChangeFlag(edge) !== 'remove' && edge.conductors.length === 0);
     if (edgeWithoutConductors) {
       showToast(`Trecho ${edgeWithoutConductors.id} sem condutores definidos.`, 'error');
       return false;
@@ -902,7 +950,9 @@ function App() {
               fromPoleId: fromPole.id,
               toPoleId: nearestPole.id,
               lengthMeters,
-              conductors: []
+              conductors: [],
+              removeOnExecution: false,
+              edgeChangeFlag: 'existing'
             }
           ]
         }
@@ -955,6 +1005,43 @@ function App() {
       }
     }, true);
     showToast(`Condutor ${edgeId} removido`, 'info');
+  };
+
+  const handleBtSetEdgeChangeFlag = (edgeId: string, edgeChangeFlag: BtEdgeChangeFlag) => {
+    setAppState({
+      ...appState,
+      btTopology: {
+        ...btTopology,
+        edges: btTopology.edges.map((edge) => {
+          if (edge.id !== edgeId) {
+            return edge;
+          }
+
+          const nextEdge = {
+            ...edge,
+            edgeChangeFlag,
+            removeOnExecution: edgeChangeFlag === 'remove'
+          };
+
+          return normalizeBtEdge(nextEdge);
+        })
+      }
+    }, true);
+
+    const statusLabel =
+      edgeChangeFlag === 'remove'
+        ? 'REMOÇÃO'
+        : edgeChangeFlag === 'new'
+          ? 'NOVO'
+          : edgeChangeFlag === 'replace'
+            ? 'SUBSTITUIÇÃO'
+            : 'EXISTENTE';
+
+    showToast(`Trecho ${edgeId} marcado como ${statusLabel}.`, 'info');
+  };
+
+  const handleBtToggleEdgeRemoval = (edgeId: string, removeOnExecution: boolean) => {
+    handleBtSetEdgeChangeFlag(edgeId, removeOnExecution ? 'remove' : 'existing');
   };
 
   const handleBtDeleteTransformer = (transformerId: string) => {
@@ -1355,6 +1442,7 @@ function App() {
     const polesById = new Map(btTopology.poles.map((pole) => [pole.id, pole]));
 
     const cqtBranches = btTopology.edges
+      .filter((edge) => getEdgeChangeFlag(edge) !== 'remove')
       .map((edge) => {
         const conductorName = edge.conductors[0]?.conductorName;
         if (!conductorName) {
@@ -1445,6 +1533,8 @@ function App() {
               toPoleId: edge.toPoleId,
               lengthMeters: edge.lengthMeters ?? 0,
               verified: edge.verified ?? false,
+              edgeChangeFlag: getEdgeChangeFlag(edge),
+              removeOnExecution: getEdgeChangeFlag(edge) === 'remove',
               conductors: edge.conductors.map((conductor) => ({
                 id: conductor.id,
                 quantity: conductor.quantity,
@@ -1888,6 +1978,7 @@ function App() {
             onClandestinoAreaChange={updateClandestinoAreaM2}
             onBtRenamePole={handleBtRenamePole}
             onBtRenameTransformer={handleBtRenameTransformer}
+            onBtSetEdgeChangeFlag={handleBtSetEdgeChangeFlag}
           />
 
           {/* Control Section */}
@@ -2061,6 +2152,7 @@ function App() {
             onBtDeletePole={handleBtDeletePole}
             onBtDeleteEdge={handleBtDeleteEdge}
             onBtDeleteTransformer={handleBtDeleteTransformer}
+            onBtSetEdgeChangeFlag={handleBtSetEdgeChangeFlag}
             onBtToggleTransformerOnPole={handleBtToggleTransformerOnPole}
             onBtQuickAddPoleRamal={handleBtQuickAddPoleRamal}
             onBtQuickRemovePoleRamal={handleBtQuickRemovePoleRamal}

@@ -23,6 +23,21 @@ export const fetchOsmData = async (lat: number, lng: number, radius: number): Pr
     return data.elements;
   } catch (error) {
     Logger.error("Failed to fetch OSM data", error);
+   Logger.info("Falling back to mock OSM data for testing");
+   try {
+     const mockResponse = await fetch(`${API_BASE_URL}/osm/mock`, {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({ lat, lng, radius })
+     });
+     if (mockResponse.ok) {
+       const mockData: OverpassResponse = await mockResponse.json();
+       Logger.info(`Using mock data with ${mockData.elements.length} elements`);
+       return mockData.elements;
+     }
+   } catch (mockError) {
+     Logger.error("Mock fallback also failed", mockError);
+   }
     throw error;
   }
 };

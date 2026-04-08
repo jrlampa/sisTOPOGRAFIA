@@ -63,6 +63,16 @@ const EnvSchema = z.object({
     /** Explicit opt-in/out for Supabase jobs persistence. Defaults to true when DATABASE_URL exists. */
     USE_SUPABASE_JOBS: z.string().optional(),
 
+    // ── Constants catalog (DB-backed lookup tables) ────────────────────────────
+    /** Enable reading CQT lookup tables (cabos/trafos/disjuntores) from DB. Defaults to false. */
+    USE_DB_CONSTANTS_CQT: z.string().optional(),
+    /** Enable reading clandestino lookup tables (area→kVA, clients→factor) from DB. Defaults to false. */
+    USE_DB_CONSTANTS_CLANDESTINO: z.string().optional(),
+    /** Enable reading operational config constants (cleanup TTLs, pilot config) from DB. Defaults to false. */
+    USE_DB_CONSTANTS_CONFIG: z.string().optional(),
+    /** Optional token to protect manual constants refresh endpoint. */
+    CONSTANTS_REFRESH_TOKEN: z.string().optional(),
+
     // ── Observability ─────────────────────────────────────────────────────────
     METRICS_ENABLED: z.coerce.boolean().default(true),
     /** Prefix for all Prometheus metric names */
@@ -95,7 +105,11 @@ function loadConfig() {
 
     const isDocker: boolean = raw.DOCKER_ENV === 'true';
 
-    return { ...raw, useFirestore, useSupabaseJobs, isDocker } as const;
+    const useDbConstantsCqt: boolean = raw.USE_DB_CONSTANTS_CQT === 'true';
+    const useDbConstantsClandestino: boolean = raw.USE_DB_CONSTANTS_CLANDESTINO === 'true';
+    const useDbConstantsConfig: boolean = raw.USE_DB_CONSTANTS_CONFIG === 'true';
+
+    return { ...raw, useFirestore, useSupabaseJobs, isDocker, useDbConstantsCqt, useDbConstantsClandestino, useDbConstantsConfig } as const;
 }
 
 export const config = loadConfig();

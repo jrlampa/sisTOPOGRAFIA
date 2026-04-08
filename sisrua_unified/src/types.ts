@@ -201,6 +201,8 @@ export interface BtEdge {
   lengthMeters?: number;
   conductors: BtRamalEntry[];
   verified?: boolean;
+  removeOnExecution?: boolean;
+  edgeChangeFlag?: 'existing' | 'new' | 'remove' | 'replace';
 }
 
 export interface BtTopology {

@@ -12,8 +12,9 @@ import { OllamaService } from './services/ollamaService.js';
 import { startFirestoreMonitoring, stopFirestoreMonitoring } from './services/firestoreService.js';
 import { initializeDxfCleanup, markDxfDownloaded, stopDxfCleanup } from './services/dxfCleanupService.js';
 import { stopTaskWorker } from './services/cloudTasksService.js';
+import { constantsService } from './services/constantsService.js';
 import { logger } from './utils/logger.js';
-import { generalRateLimiter } from './middleware/rateLimiter.js';
+import { generalRateLimiter, refreshRateLimitersFromCatalog } from './middleware/rateLimiter.js';
 import { requestMetrics } from './middleware/requestMetrics.js';
 import { specs } from './swagger.js';
 
@@ -24,6 +25,7 @@ import osmRoutes from './routes/osmRoutes.js';
 import ibgeRoutes from './routes/ibgeRoutes.js';
 import indeRoutes from './routes/indeRoutes.js';
 import analysisRoutes from './routes/analysisRoutes.js';
+import constantsRoutes from './routes/constantsRoutes.js';
 import jobRoutes from './routes/jobRoutes.js';
 import firestoreRoutes from './routes/firestoreRoutes.js';
 import dxfRoutes from './routes/dxfRoutes.js';
@@ -68,8 +70,6 @@ const frontendDistDirectory = resolveFrontendDistDirectory();
 if (!fs.existsSync(dxfDirectory)) {
     fs.mkdirSync(dxfDirectory, { recursive: true });
 }
-
-initializeDxfCleanup(dxfDirectory);
 
 // Ollama management
 async function isOllamaRunning(): Promise<boolean> {
@@ -129,7 +129,15 @@ app.get('/health', async (_req: Request, res: Response) => {
         status: 'online',
         service: 'sisRUA Unified Backend',
         version: config.APP_VERSION,
-        environment: config.NODE_ENV
+        environment: config.NODE_ENV,
+        constantsCatalog: {
+            enabledNamespaces: {
+                cqt: config.useDbConstantsCqt,
+                clandestino: config.useDbConstantsClandestino,
+                config: config.useDbConstantsConfig,
+            },
+            cache: constantsService.stats(),
+        }
     });
 });
 
@@ -140,6 +148,7 @@ app.use('/api/osm', osmRoutes);
 app.use('/api/ibge', ibgeRoutes);
 app.use('/api/inde', indeRoutes);
 app.use('/api/analyze', analysisRoutes);
+app.use('/api/constants', constantsRoutes);
 app.use('/api/jobs', jobRoutes);
 if (config.useFirestore) {
     app.use('/api/firestore', firestoreRoutes);
@@ -168,6 +177,18 @@ app.listen(port, async () => {
     if (config.useSupabaseJobs) {
         logger.info('Supabase/Postgres jobs persistence is enabled');
     }
+    const dbConstantsNamespaces: string[] = [
+        ...(config.useDbConstantsCqt ? ['cqt'] : []),
+        ...(config.useDbConstantsClandestino ? ['clandestino'] : []),
+        ...(config.useDbConstantsConfig ? ['config'] : []),
+    ];
+    if (dbConstantsNamespaces.length > 0) {
+        await constantsService.warmUp(dbConstantsNamespaces).catch(
+            (e: Error) => logger.warn('Constants warmup failed — hardcoded fallback active', { error: e.message })
+        );
+        refreshRateLimitersFromCatalog();
+    }
+    initializeDxfCleanup(dxfDirectory);
     if (config.NODE_ENV === 'production' && config.useFirestore) {
         await startFirestoreMonitoring().catch(e => logger.error('Firestore monitor failed', e));
     }

@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Circle, useMapEvents, GeoJSON, Polygon
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { GeoJsonObject, FeatureCollection } from 'geojson';
-import { BtEditorMode, BtTopology, SelectionMode } from '../types';
+import { BtEditorMode, BtEdge, BtTopology, SelectionMode } from '../types';
 import { Minus, Plus, Trash2, Triangle } from 'lucide-react';
 
 const CONDUCTOR_OPTIONS = [
@@ -63,6 +63,7 @@ interface MapSelectorProps {
     onBtMapClick?: (location: { lat: number; lng: number; label?: string }) => void;
     onBtDeletePole?: (id: string) => void;
     onBtDeleteEdge?: (id: string) => void;
+    onBtSetEdgeChangeFlag?: (edgeId: string, edgeChangeFlag: 'existing' | 'new' | 'remove' | 'replace') => void;
     onBtDeleteTransformer?: (id: string) => void;
     onBtToggleTransformerOnPole?: (poleId: string) => void;
     onBtQuickAddPoleRamal?: (poleId: string) => void;
@@ -82,6 +83,34 @@ interface MapSelectorProps {
     showAnalysis?: boolean;
     geojson?: GeoJsonObject | null;
 }
+
+type BtEdgeChangeFlag = NonNullable<BtEdge['edgeChangeFlag']>;
+
+const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
+    if (edge.edgeChangeFlag) {
+        return edge.edgeChangeFlag;
+    }
+
+    return edge.removeOnExecution ? 'remove' : 'existing';
+};
+
+const getEdgeVisualConfig = (edge: BtEdge) => {
+    const flag = getEdgeChangeFlag(edge);
+
+    if (flag === 'new') {
+        return { color: '#22c55e', dashArray: '8 6', weight: 3 };
+    }
+
+    if (flag === 'remove') {
+        return { color: '#ef4444', dashArray: '8 6', weight: 3 };
+    }
+
+    if (flag === 'replace') {
+        return { color: '#facc15', dashArray: undefined as string | undefined, weight: 3 };
+    }
+
+    return { color: '#d946ef', dashArray: undefined as string | undefined, weight: 3 };
+};
 
 const SelectionManager = ({
     center,
@@ -282,6 +311,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     onBtMapClick,
     onBtDeletePole,
     onBtDeleteEdge,
+    onBtSetEdgeChangeFlag,
     onBtDeleteTransformer,
     onBtToggleTransformerOnPole,
     onBtQuickAddPoleRamal,
@@ -402,6 +432,27 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         };
     }, [mapStyle]);
 
+    const getRemovalMarkersForEdge = React.useCallback(
+        (from: { lat: number; lng: number }, to: { lat: number; lng: number }) => {
+            const start = L.latLng(from.lat, from.lng);
+            const end = L.latLng(to.lat, to.lng);
+            const distanceMeters = Math.max(start.distanceTo(end), 1);
+            const markerCount = Math.max(3, Math.min(12, Math.floor(distanceMeters / 6)));
+            const points: Array<[number, number]> = [];
+
+            for (let index = 1; index <= markerCount; index += 1) {
+                const t = index / (markerCount + 1);
+                points.push([
+                    from.lat + (to.lat - from.lat) * t,
+                    from.lng + (to.lng - from.lng) * t
+                ]);
+            }
+
+            return points;
+        },
+        []
+    );
+
     return (
         <div
             className="w-full h-full rounded-xl overflow-hidden shadow-2xl border border-slate-700 relative z-0"
@@ -455,6 +506,17 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         return null;
                     }
 
+                    const edgeChangeFlag = getEdgeChangeFlag(edge);
+                    const edgeVisual = getEdgeVisualConfig(edge);
+                    const edgeFlagLabel =
+                        edgeChangeFlag === 'remove'
+                            ? 'Remoção'
+                            : edgeChangeFlag === 'new'
+                                ? 'Novo'
+                                : edgeChangeFlag === 'replace'
+                                    ? 'Substituição'
+                                    : 'Existente';
+
                     const selectedConductor = edgeConductorSelection[edge.id]
                         ?? edge.conductors[edge.conductors.length - 1]?.conductorName
                         ?? CONDUCTOR_OPTIONS[0];
@@ -464,6 +526,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                             <div className="text-xs">
                                 <div><strong>{edge.id}</strong></div>
                                 <div style={{marginTop: 2, color: '#334155'}}>{from.title} {'<->'} {to.title}</div>
+                                <div style={{marginTop: 4, color: '#334155'}}>Flag: <strong>{edgeFlagLabel}</strong></div>
                                 <div style={{marginTop: 4, color: '#334155'}}>Condutor</div>
                                 <div style={{marginTop: 2}}>
                                     <select
@@ -495,6 +558,50 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                     <div style={{marginTop: 2, color: '#6b7280'}}>Sem condutor informado</div>
                                 )}
                                 <div style={{color: edge.verified ? '#16a34a' : '#d97706', fontWeight: 600, marginTop: 2}}>{edge.verified ? '✓ Verificado' : '○ Não verificado'}</div>
+                                {onBtSetEdgeChangeFlag && (
+                                    <div style={{marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6}}>
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onBtSetEdgeChangeFlag(edge.id, 'existing');
+                                            }}
+                                            style={{height: 24, border: '1px solid #d946ef', borderRadius: 4, color: '#a21caf', background: edgeChangeFlag === 'existing' ? '#fae8ff' : '#ffffff', cursor: 'pointer', fontSize: 11, fontWeight: 700}}
+                                        >
+                                            Existente
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onBtSetEdgeChangeFlag(edge.id, 'new');
+                                            }}
+                                            style={{height: 24, border: '1px solid #22c55e', borderRadius: 4, color: '#15803d', background: edgeChangeFlag === 'new' ? '#dcfce7' : '#ffffff', cursor: 'pointer', fontSize: 11, fontWeight: 700}}
+                                        >
+                                            Novo
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onBtSetEdgeChangeFlag(edge.id, 'replace');
+                                            }}
+                                            style={{height: 24, border: '1px solid #facc15', borderRadius: 4, color: '#a16207', background: edgeChangeFlag === 'replace' ? '#fef9c3' : '#ffffff', cursor: 'pointer', fontSize: 11, fontWeight: 700}}
+                                        >
+                                            Substituição
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onBtSetEdgeChangeFlag(edge.id, 'remove');
+                                            }}
+                                            style={{height: 24, border: '1px solid #ef4444', borderRadius: 4, color: '#b91c1c', background: edgeChangeFlag === 'remove' ? '#fee2e2' : '#ffffff', cursor: 'pointer', fontSize: 11, fontWeight: 700}}
+                                        >
+                                            Remoção
+                                        </button>
+                                    </div>
+                                )}
                                 <div style={{marginTop: 6, display: 'flex', gap: 8, alignItems: 'center'}}>
                                     {onBtDeleteEdge && (
                                         <button
@@ -554,8 +661,31 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                             </Polyline>
                             <Polyline
                                 positions={[[from.lat, from.lng], [to.lat, to.lng]]}
-                                pathOptions={{ color: edge.verified ? '#22c55e' : '#f59e0b', weight: edge.verified ? 3 : 2, opacity: 0.9, dashArray: edge.verified ? undefined : '6 4', interactive: false }}
+                                pathOptions={{
+                                    color: edgeVisual.color,
+                                    weight: edgeVisual.weight,
+                                    opacity: 0.9,
+                                    dashArray: edgeVisual.dashArray,
+                                    interactive: false
+                                }}
                             />
+                            {edgeChangeFlag === 'remove' && (
+                                <>
+                                    {getRemovalMarkersForEdge(from, to).map((position, markerIndex) => (
+                                        <Marker
+                                            key={`${edge.id}-removal-x-${markerIndex}`}
+                                            position={position}
+                                            icon={L.divIcon({
+                                                className: 'bt-edge-remove-label',
+                                                html: '<div style="color:#dc2626;font-weight:900;font-size:13px;line-height:1;text-shadow:0 0 2px #fff;">X</div>',
+                                                iconSize: [12, 12],
+                                                iconAnchor: [6, 6]
+                                            })}
+                                            interactive={false}
+                                        />
+                                    ))}
+                                </>
+                            )}
                         </React.Fragment>
                     );
                 })}

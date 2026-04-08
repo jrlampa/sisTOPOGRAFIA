@@ -1,4 +1,6 @@
 import { TrafosZRow } from '../services/cqtEngine.js';
+import { config } from '../config.js';
+import { constantsService } from '../services/constantsService.js';
 
 export interface CaboLookupRow {
     name: string;
@@ -27,6 +29,10 @@ export const TRAFOS_Z_BASELINE: TrafosZRow[] = [
 export const getTrafosZByScenario = (
     _scenario: 'atual' | 'proj1' | 'proj2' = 'atual'
 ): TrafosZRow[] => {
+    if (config.useDbConstantsCqt) {
+        const cached = constantsService.getSync<TrafosZRow[]>('cqt', 'TRAFOS_Z_BASELINE');
+        if (cached) return cached;
+    }
     // Workbook atual usa mesma curva de fator para os cenários; manter função para
     // facilitar cenários divergentes sem quebrar contrato.
     return TRAFOS_Z_BASELINE;
@@ -86,11 +92,19 @@ export const DISJUNTORES_BASELINE: DisjuntorLookupRow[] = [
 export const getCabosByScenario = (
     _scenario: 'atual' | 'proj1' | 'proj2' = 'atual'
 ): CaboLookupRow[] => {
+    if (config.useDbConstantsCqt) {
+        const cached = constantsService.getSync<CaboLookupRow[]>('cqt', 'CABOS_BASELINE');
+        if (cached) return cached;
+    }
     return CABOS_BASELINE;
 };
 
 export const getDisjuntoresByScenario = (
     _scenario: 'atual' | 'proj1' | 'proj2' = 'atual'
 ): DisjuntorLookupRow[] => {
+    if (config.useDbConstantsCqt) {
+        const cached = constantsService.getSync<DisjuntorLookupRow[]>('cqt', 'DISJUNTORES_BASELINE');
+        if (cached) return cached;
+    }
     return DISJUNTORES_BASELINE;
 };

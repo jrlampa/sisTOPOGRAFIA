@@ -1,6 +1,6 @@
 import React from 'react';
 import { Activity, Plus, Trash2, Sigma } from 'lucide-react';
-import { BtNetworkScenario, BtPoleRamalEntry, BtTopology, BtTransformerReading } from '../types';
+import { BtEdge, BtNetworkScenario, BtPoleRamalEntry, BtTopology, BtTransformerReading } from '../types';
 import {
   calculateAccumulatedDemandByPole,
   calculateBtSummary,
@@ -20,11 +20,22 @@ interface BtTopologyPanelProps {
   btNetworkScenario: BtNetworkScenario;
   clandestinoAreaM2: number;
   onTopologyChange: (next: BtTopology) => void;
+  onBtSetEdgeChangeFlag?: (edgeId: string, edgeChangeFlag: 'existing' | 'new' | 'remove' | 'replace') => void;
   onProjectTypeChange?: (next: 'ramais' | 'clandestino') => void;
   onClandestinoAreaChange?: (nextAreaM2: number) => void;
   onBtRenamePole?: (poleId: string, title: string) => void;
   onBtRenameTransformer?: (transformerId: string, title: string) => void;
 }
+
+type BtEdgeChangeFlag = NonNullable<BtEdge['edgeChangeFlag']>;
+
+const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
+  if (edge.edgeChangeFlag) {
+    return edge.edgeChangeFlag;
+  }
+
+  return edge.removeOnExecution ? 'remove' : 'existing';
+};
 
 const CURRENT_TO_DEMAND_CONVERSION = 0.375;
 const NORMAL_CLIENT_RAMAL_TYPES = [
@@ -196,6 +207,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   btNetworkScenario,
   clandestinoAreaM2,
   onTopologyChange,
+  onBtSetEdgeChangeFlag,
   onProjectTypeChange,
   onClandestinoAreaChange,
   onBtRenamePole,
@@ -773,12 +785,73 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
             {selectedEdge && (
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-[10px] text-slate-400">
-                  <span>Condutores do trecho</span>
-                  <div className="flex items-center gap-2">
+                {(() => {
+                  const selectedEdgeFlag = getEdgeChangeFlag(selectedEdge);
+                  return (
+                <div className="rounded border border-slate-200 bg-slate-100/70 p-2">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Condutores do trecho</div>
+                  <div className="mt-1 text-[10px] text-slate-600">Preset padrão para novos trechos: <span className="font-semibold text-fuchsia-700">Existente (Magenta)</span></div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const confirmed = window.confirm(`Apagar o trecho ${selectedEdge.id}?`);
+                        if (!confirmed) {
+                          return;
+                        }
+
+                        onTopologyChange({
+                          ...btTopology,
+                          edges: btTopology.edges.filter((edge) => edge.id !== selectedEdge.id)
+                        });
+                      }}
+                      className="inline-flex h-8 items-center gap-1 rounded border border-rose-500/40 px-2 text-xs text-rose-600 hover:bg-rose-50"
+                      title="Apagar trecho selecionado"
+                    >
+                      <Trash2 size={12} /> Trecho
+                    </button>
+                    <button
+                      onClick={() => onBtSetEdgeChangeFlag?.(selectedEdge.id, 'remove')}
+                      className={`inline-flex h-8 items-center rounded border px-2 text-xs ${selectedEdgeFlag === 'remove'
+                        ? 'border-rose-400 bg-rose-50 text-rose-700 hover:bg-rose-100'
+                        : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+                      }`}
+                      title="Flag de remoção"
+                    >
+                      Remoção
+                    </button>
+                    <button
+                      onClick={() => onBtSetEdgeChangeFlag?.(selectedEdge.id, 'new')}
+                      className={`inline-flex h-8 items-center rounded border px-2 text-xs ${selectedEdgeFlag === 'new'
+                        ? 'border-emerald-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                        : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+                      }`}
+                      title="Flag de novo"
+                    >
+                      Novo
+                    </button>
+                    <button
+                      onClick={() => onBtSetEdgeChangeFlag?.(selectedEdge.id, 'replace')}
+                      className={`inline-flex h-8 items-center rounded border px-2 text-xs ${selectedEdgeFlag === 'replace'
+                        ? 'border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
+                        : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+                      }`}
+                      title="Flag de substituição"
+                    >
+                      Substituição
+                    </button>
+                    <button
+                      onClick={() => onBtSetEdgeChangeFlag?.(selectedEdge.id, 'existing')}
+                      className={`inline-flex h-8 items-center rounded border px-2 text-xs ${selectedEdgeFlag === 'existing'
+                        ? 'border-fuchsia-400 bg-fuchsia-50 text-fuchsia-700 hover:bg-fuchsia-100'
+                        : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+                      }`}
+                      title="Preset existente"
+                    >
+                      Existente
+                    </button>
                     <button
                       onClick={() => updateEdgeVerified(selectedEdge.id, !selectedEdge.verified)}
-                      className="rounded border border-cyan-400 px-2 py-1 text-[10px] text-cyan-900 hover:bg-cyan-100"
+                      className="inline-flex h-8 items-center rounded border border-cyan-400 bg-white px-2 text-xs text-cyan-900 hover:bg-cyan-100"
                     >
                       {selectedEdge.verified ? 'Condutor verificado' : 'Marcar verificado'}
                     </button>
@@ -789,12 +862,14 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                           { id: nextId('C'), quantity: 1, conductorName: CONDUCTOR_NAMES[0] }
                         ]);
                       }}
-                      className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-slate-700 hover:bg-slate-100"
+                      className="inline-flex h-8 items-center gap-1 rounded border border-slate-300 bg-white px-2 text-xs text-slate-700 hover:bg-slate-100"
                     >
                       <Plus size={12} /> Condutor
                     </button>
                   </div>
                 </div>
+                  );
+                })()}
 
                 {selectedEdge.conductors.map((entry) => (
                   <div key={entry.id} className="grid max-w-full grid-cols-[64px_minmax(0,1fr)_28px] items-center gap-2">
@@ -842,6 +917,16 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                 ))}
 
                 <div className="rounded border border-slate-300 bg-white p-2 text-[10px] text-slate-700">
+                  {getEdgeChangeFlag(selectedEdge) === 'remove' && (
+                    <div className="mb-1 rounded border border-rose-300 bg-rose-50 px-2 py-1 text-rose-700">
+                      Trecho marcado para remoção na execução do projeto.
+                    </div>
+                  )}
+                  {getEdgeChangeFlag(selectedEdge) === 'replace' && (
+                    <div className="mb-1 rounded border border-yellow-300 bg-yellow-50 px-2 py-1 text-yellow-800">
+                      Substituição: o condutor informado será mantido no local do trecho substituído.
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <Sigma size={12} />
                     <span>Total de trechos no projeto: {btTopology.edges.length}</span>

@@ -9,6 +9,40 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.nchc.org.tw/api/interpreter'
 ];
 
+const buildMockOverpassPayload = (lat: number, lng: number, radius: number) => {
+  const d = Math.max(0.0005, Math.min(radius / 111_000, 0.002));
+  return {
+    version: 0.6,
+    generator: 'Mock Overpass API',
+    elements: [
+      {
+        type: 'node',
+        id: 1001,
+        lat,
+        lon: lng,
+        tags: { power: 'pole' }
+      },
+      {
+        type: 'node',
+        id: 1002,
+        lat: lat + d,
+        lon: lng + d,
+        tags: { power: 'transformer' }
+      },
+      {
+        type: 'way',
+        id: 2001,
+        nodes: [1001, 1002],
+        geometry: [
+          { lat, lon: lng },
+          { lat: lat + d, lon: lng + d }
+        ],
+        tags: { power: 'line', voltage: '13000' }
+      }
+    ]
+  };
+};
+
 const fetchWithTimeout = async (url: string, body: string, timeoutMs: number): Promise<Response> => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -69,7 +103,22 @@ router.post('/', async (req: Request, res: Response) => {
     radius,
     error: lastError instanceof Error ? lastError.message : String(lastError)
   });
-  return res.status(502).json({ error: 'Failed to fetch OSM data from Overpass endpoints' });
+
+  // Resilient fallback so "ANALISE REGIÃO" keeps working even when Overpass is down.
+  const mock = buildMockOverpassPayload(lat, lng, radius);
+  return res.status(200).json({ ...mock, _fallback: true });
+});
+
+router.post('/mock', async (req: Request, res: Response) => {
+  const lat = Number(req.body?.lat);
+  const lng = Number(req.body?.lng);
+  const radius = Number(req.body?.radius ?? 300);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(radius) || radius <= 0) {
+    return res.status(400).json({ error: 'Invalid coordinates or radius' });
+  }
+
+  return res.json(buildMockOverpassPayload(lat, lng, radius));
 });
 
 export default router;

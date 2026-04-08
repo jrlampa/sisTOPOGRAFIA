@@ -12,6 +12,63 @@ const HOURS_PER_MONTH_REFERENCE = 720;
 const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
 const CURRENT_TO_DEMAND_CONVERSION = 0.375;
 
+let activeClandestinoAreaToKva: Record<number, number> = CLANDESTINO_AREA_TO_KVA;
+let activeClandestinoClientToDiversifFactor: Record<number, number> = CLANDESTINO_CLIENT_TO_DIVERSIF_FACTOR;
+let clandestinoRulesLoadPromise: Promise<boolean> | null = null;
+
+const isLookupRecord = (value: unknown): value is Record<string, number> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  return Object.values(value).every((item) => typeof item === 'number' && Number.isFinite(item));
+};
+
+const toNumericRecord = (value: Record<string, number>): Record<number, number> => (
+  Object.fromEntries(
+    Object.entries(value)
+      .map(([key, item]) => [Number(key), item])
+      .filter(([key, item]) => Number.isInteger(key) && typeof item === 'number')
+  ) as Record<number, number>
+);
+
+export const loadClandestinoWorkbookRules = async (): Promise<boolean> => {
+  if (clandestinoRulesLoadPromise) {
+    return clandestinoRulesLoadPromise;
+  }
+
+  clandestinoRulesLoadPromise = (async () => {
+    try {
+      const response = await fetch('/api/constants/clandestino');
+      if (!response.ok) {
+        return false;
+      }
+
+      const payload: unknown = await response.json();
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        return false;
+      }
+
+      const { areaToKva, clientToDiversifFactor } = payload as {
+        areaToKva?: unknown;
+        clientToDiversifFactor?: unknown;
+      };
+
+      if (!isLookupRecord(areaToKva) || !isLookupRecord(clientToDiversifFactor)) {
+        return false;
+      }
+
+      activeClandestinoAreaToKva = toNumericRecord(areaToKva);
+      activeClandestinoClientToDiversifFactor = toNumericRecord(clientToDiversifFactor);
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
+  return clandestinoRulesLoadPromise;
+};
+
 const getPoleClientsByProjectType = (projectType: BtProjectType, topology: BtTopology, poleId: string): number => {
   const pole = topology.poles.find((item) => item.id === poleId);
   if (!pole) {
@@ -87,7 +144,7 @@ export const getClandestinoKvaByArea = (areaM2: number): number | null => {
     return null;
   }
 
-  return CLANDESTINO_AREA_TO_KVA[areaKey] ?? null;
+  return activeClandestinoAreaToKva[areaKey] ?? null;
 };
 
 export const getClandestinoDiversificationFactorByClients = (clients: number): number | null => {
@@ -96,7 +153,7 @@ export const getClandestinoDiversificationFactorByClients = (clients: number): n
     return null;
   }
 
-  return CLANDESTINO_CLIENT_TO_DIVERSIF_FACTOR[clientsKey] ?? null;
+  return activeClandestinoClientToDiversifFactor[clientsKey] ?? null;
 };
 
 export const calculateClandestinoDemandKvaByAreaAndClients = (areaM2: number, clients: number): number => {

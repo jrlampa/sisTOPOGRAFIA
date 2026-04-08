@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { X, Cpu, Zap, Layers, TreeDeciduous, Car, Building2, Mountain, LampFloor, Globe, Circle, Hexagon, Square, Eraser, Download, FileJson, Loader2, Moon, Sun, Map as MapIcon, Satellite, Type, Briefcase, Activity, Upload, Save, FolderOpen, PencilRuler, ArrowLeftRight, Grid3X3, AlertTriangle } from 'lucide-react';
 import { AppSettings, LayerConfig, ProjectionType, SelectionMode, GeoLocation, MapProvider, SimplificationLevel, ProjectMetadata, ContourRenderMode, BtProjectType, BtEditorMode } from '../types';
 import { MAX_RADIUS, MIN_RADIUS } from '../constants';
+import ConstantsCatalogOps from './ConstantsCatalogOps';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -566,6 +567,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     UTM Absoluto usa coordenadas reais compatíveis com Google Earth e GPS
                   </p>
                 </div>
+
+                <ConstantsCatalogOps />
               </div>
             </>
           )}

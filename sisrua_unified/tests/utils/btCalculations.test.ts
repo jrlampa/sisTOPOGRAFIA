@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   calculateTransformerEnergyKwh,
   calculateTransformerDemandKw,
@@ -25,6 +25,10 @@ const makeReading = (billedBrl: number, unitRateBrlPerKwh: number): BtTransforme
 });
 
 const emptyTopology = (): BtTopology => ({ poles: [], transformers: [], edges: [] });
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 // ---------------------------------------------------------------------------
 // calculateTransformerEnergyKwh
@@ -368,5 +372,37 @@ describe('calculateAccumulatedDemandByPole', () => {
     for (let i = 1; i < results.length; i++) {
       expect(results[i - 1].accumulatedDemandKva).toBeGreaterThanOrEqual(results[i].accumulatedDemandKva);
     }
+  });
+});
+
+describe('loadClandestinoWorkbookRules', () => {
+  it('overrides hardcoded lookup tables when API returns DB-backed values', async () => {
+    vi.resetModules();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        areaToKva: { '20': 9.99, '50': 8.88 },
+        clientToDiversifFactor: { '1': 7.77, '10': 6.66 }
+      })
+    }));
+
+    const mod = await import('../../src/utils/btCalculations');
+    const loaded = await mod.loadClandestinoWorkbookRules();
+
+    expect(loaded).toBe(true);
+    expect(mod.getClandestinoKvaByArea(20)).toBe(9.99);
+    expect(mod.getClandestinoDiversificationFactorByClients(10)).toBe(6.66);
+  });
+
+  it('keeps hardcoded fallback when API request fails', async () => {
+    vi.resetModules();
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+
+    const mod = await import('../../src/utils/btCalculations');
+    const loaded = await mod.loadClandestinoWorkbookRules();
+
+    expect(loaded).toBe(false);
+    expect(mod.getClandestinoKvaByArea(20)).toBe(1.62);
+    expect(mod.getClandestinoDiversificationFactorByClients(10)).toBe(9.64);
   });
 });
