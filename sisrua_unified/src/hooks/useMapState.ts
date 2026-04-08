@@ -105,28 +105,30 @@ export function useMapState({
 
   // Set center to current geolocation on mount (only when center is the default placeholder)
   useEffect(() => {
-    if (appState.center.lat === DEFAULT_LOCATION.lat && appState.center.lng === DEFAULT_LOCATION.lng) {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setAppState(
-              {
-                ...appState,
-                center: {
-                  lat: position.coords.latitude,
-                  lng: position.coords.longitude,
-                  label: 'Current Location',
-                },
+    const isDefaultCenter =
+      appState.center.lat === DEFAULT_LOCATION.lat && appState.center.lng === DEFAULT_LOCATION.lng;
+    
+    if (isDefaultCenter && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setAppState(
+            {
+              ...appState,
+              center: {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                label: 'Current Location',
               },
-              false
-            );
-          },
-          (_err) => {
-            // Geolocation permission denied — keep default
-          }
-        );
-      }
+            },
+            false
+          );
+        },
+        (_err) => {
+          // Geolocation permission denied — keep default
+        }
+      );
     }
+  // Only run on mount; appState.center must be captured but not trigger re-runs
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

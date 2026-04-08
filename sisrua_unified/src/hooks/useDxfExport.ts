@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { generateDXF, getDxfJobStatus } from '../services/dxfService';
 import { SelectionMode, GeoLocation, LayerConfig } from '../types';
+import { validateDxfExportInputs } from '../utils/validation';
 
 type ContourRenderMode = 'spline' | 'polyline';
 
@@ -63,6 +64,12 @@ export function useDxfExport({ onSuccess, onError, onBtContextLoaded }: UseDxfEx
     contourRenderMode: ContourRenderMode = 'spline',
     btContext?: BtContextPayload
   ) => {
+    // Validate inputs before sending to backend
+    if (!validateDxfExportInputs(center, radius, selectionMode, polygon, layers)) {
+      onError('DXF Error: Invalid input parameters');
+      return false;
+    }
+
     setIsDownloading(true);
     setJobStatus('queued');
     setJobProgress(0);
@@ -129,6 +136,8 @@ export function useDxfExport({ onSuccess, onError, onBtContextLoaded }: UseDxfEx
         }
 
         if (statusResponse.status === 'completed') {
+          if (!isActive) return;
+          
           const url = statusResponse.result?.url;
           if (!url) {
             throw new Error('DXF job completed without a URL');
@@ -136,6 +145,8 @@ export function useDxfExport({ onSuccess, onError, onBtContextLoaded }: UseDxfEx
 
           const center = downloadCenter || { lat: 0, lng: 0, label: '' };
           await tryLoadBtContext(statusResponse.result?.btContextUrl);
+          
+          if (!isActive) return;
           triggerDownload(url, center);
           onSuccess('DXF Downloaded');
           clearInterval(intervalId);
@@ -148,6 +159,8 @@ export function useDxfExport({ onSuccess, onError, onBtContextLoaded }: UseDxfEx
         }
 
         if (statusResponse.status === 'failed') {
+          if (!isActive) return;
+          
           const errorMessage = statusResponse.error || 'DXF generation failed';
           onError(`DXF Error: ${errorMessage}`);
           clearInterval(intervalId);

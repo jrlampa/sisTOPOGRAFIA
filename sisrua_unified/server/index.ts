@@ -102,13 +102,27 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 // Controlled DXF download: stream file and delete it immediately after successful download.
 app.get('/downloads/:filename', (req: Request, res: Response) => {
     const requested = req.params.filename || '';
+    
+    // Sanitize: allow only alphanumeric, dash, underscore, and dot
+    if (!/^[\w\-\.]+$/.test(requested)) {
+        return res.status(400).json({ error: 'Invalid filename format' });
+    }
+    
+    // Path traversal protection
     const safeName = path.basename(requested);
-
     if (!safeName || safeName !== requested) {
         return res.status(400).json({ error: 'Invalid filename' });
     }
 
     const filePath = path.join(dxfDirectory, safeName);
+    
+    // Verify the resolved path is still within dxfDirectory
+    const resolvedPath = path.resolve(filePath);
+    const resolvedDir = path.resolve(dxfDirectory);
+    if (!resolvedPath.startsWith(resolvedDir)) {
+        return res.status(400).json({ error: 'Access denied' });
+    }
+    
     if (!fs.existsSync(filePath)) {
         return res.status(404).json({ error: 'File not found' });
     }
