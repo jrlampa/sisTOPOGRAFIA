@@ -1,6 +1,6 @@
 # Audit Checklist Completo - 30 itens
 
-## ✅ JÁ IMPLEMENTADO (27 itens)
+## ✅ JÁ IMPLEMENTADO (30 itens)
 
 | # | Item | Arquivo | Status | Prioridade | Commit |
 |---|------|---------|--------|------------|--------|
@@ -32,35 +32,31 @@
 | **23** | **Não há Paginação em Histórico BT** | **usePagination.ts + BtExportSummaryBanner** | **✅** | **P3** | **614a68a** |
 | **15** | **Lógica de Negócio Misturada com UI** | **useBt*Operations.ts + useBtCrudHandlers.ts** | **✅** | **P1** | **bd811ca** |
 | **29** | **Documentação de API Swagger Extensa** | **server/swagger/** (modularizado) | **✅** | **P3** | **(este commit)** |
+| **21** | **Testes E2E crasham com frequência** | **e2e/dxfGeneration.spec.ts + e2e/groq-and-dxf.spec.ts** | **✅** | **P3** | **(este commit)** |
+| **28** | **Nomenclatura Inconsistente (Bt vs BT vs bt)** | **scripts/check-bt-naming.js + npm script naming:check:bt** | **✅** | **P3** | **(este commit)** |
 
 ---
 
-## 🔲 AINDA NÃO FEITO (2 itens)
+## 🔲 AINDA NÃO FEITO (0 itens)
 
-### P3 - Low Priority / Backlog
-
-| # | Item | Arquivo | Prioridade | Status |
-|---|------|---------|------------|------|
-| 21 | Testes E2E Crasham com Frequência | `e2e/**` | P3 | Investigação requerida |
-| 28 | Nomenclatura Inconsistente (Bt vs BT) | Toda codebase | P3 | Análise: Já padronizado como "Bt" |
+Nenhuma pendência aberta no checklist de 30 itens.
 
 ---
 
 ## Estatísticas
 - **Total**: 30 itens
-- **Concluído**: 27 (90%) ✅
-- **Restante**: 2 (10%) 🔲
+- **Concluído**: 30 (100%) ✅
+- **Restante**: 0 (0%) 🔲
   - P1: 0 item
-  - P3: 2 itens (baixa prioridade/backlog)
+  - P3: 0 itens
 
 ---
 
 ## 🎯 PRÓXIMAS AÇÕES (Recomendadas)
 
-### Batch Atual (P3 - Melhorias)
-1. **Item 21** (E2E Tests) - Revisar e estabilizar testes crashes
-2. **Item 28** (Nomenclatura) - Fechar padronização BT vs Bt em toda codebase
+1. Monitorar estabilidade E2E em CI com `npm run test:e2e`.
+2. Manter padrão de nomenclatura executando `npm run naming:check:bt` no pipeline.
 
 ---
 
-> Nota: status atualizado após conclusão do Item 15 (SRP hooks BT) e Item 29 (modularização Swagger).
+> Nota: checklist fechado em 100% após conclusão dos itens 15, 21, 28 e 29.

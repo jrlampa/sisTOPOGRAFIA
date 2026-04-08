@@ -46,7 +46,9 @@ export function distanceMetersWithCache(from: Coordinates, to: Coordinates): num
   // Manter cache sob tamanho máximo
   if (memoizedDistanceCache.size >= MAX_CACHE_SIZE) {
     const firstKey = memoizedDistanceCache.keys().next().value;
-    memoizedDistanceCache.delete(firstKey);
+    if (typeof firstKey === 'string') {
+      memoizedDistanceCache.delete(firstKey);
+    }
   }
   
   memoizedDistanceCache.set(key, distance);

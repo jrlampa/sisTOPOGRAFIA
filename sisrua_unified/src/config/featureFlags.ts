@@ -35,9 +35,7 @@ export enum FeatureFlag {
   DEBUG_MODE = 'debug_mode',
 }
 
-interface FeatureFlagConfig {
-  [key: string]: boolean;
-}
+type FeatureFlagConfig = Record<FeatureFlag, boolean>;
 
 /**
  * Configuração padrão para desenvolvimento.
@@ -87,7 +85,7 @@ let runtimeFlags: FeatureFlagConfig = {
  *   [FeatureFlag.AI_CLANDESTINO_ANALYSIS]: true,
  * })
  */
-export function loadFeatureFlags(customFlags: Partial<FeatureFlagConfig>): void {
+export function loadFeatureFlags(customFlags: Partial<Record<FeatureFlag, boolean>>): void {
   if (process.env.NODE_ENV === 'production' && Object.keys(customFlags).length > 0) {
     console.warn(
       'Feature flags customizadas não devem ser alteradas em produção. Use env vars.'
@@ -95,7 +93,14 @@ export function loadFeatureFlags(customFlags: Partial<FeatureFlagConfig>): void 
     return;
   }
   
-  runtimeFlags = { ...runtimeFlags, ...customFlags };
+  const sanitizedCustomFlags = Object.entries(customFlags).reduce((acc, [key, value]) => {
+    if (typeof value === 'boolean') {
+      acc[key as FeatureFlag] = value;
+    }
+    return acc;
+  }, {} as Partial<Record<FeatureFlag, boolean>>);
+
+  runtimeFlags = { ...runtimeFlags, ...sanitizedCustomFlags };
 }
 
 /**

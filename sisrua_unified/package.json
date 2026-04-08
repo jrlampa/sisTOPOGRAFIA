@@ -37,6 +37,7 @@
     "security:audit": "npm audit --audit-level=moderate",
     "security:audit:fix": "npm audit fix",
     "security:check": "npm run security:audit && echo '\n--- Security audit complete ---'",
+    "naming:check:bt": "node scripts/check-bt-naming.js",
     "setup:local": "powershell -ExecutionPolicy Bypass -File scripts/setup-local.ps1",
     "setup:local:bash": "bash scripts/setup-local.sh",
     "health:check": "powershell -ExecutionPolicy Bypass -File scripts/health-check.ps1",
