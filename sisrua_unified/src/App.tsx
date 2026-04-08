@@ -24,8 +24,8 @@ import { AppHeader } from './components/AppHeader';
 import { SidebarBtEditorSection } from './components/SidebarBtEditorSection';
 import { SidebarAnalysisResults } from './components/SidebarAnalysisResults';
 import { SidebarSelectionControls } from './components/SidebarSelectionControls';
+import { BtModalStack } from './components/BtModalStack';
 import { BtExportSummaryBanner } from './components/BtExportSummaryBanner';
-import { NormalRamalModal, ClandestinoToNormalModal, NormalToClandestinoModal, ResetBtTopologyModal } from './components/BtModals';
 
 const MapSelector = React.lazy(() => import('./components/MapSelector'));
 const SettingsModal = React.lazy(() => import('./components/SettingsModal'));
@@ -529,27 +529,21 @@ function App() {
             )}
           </AnimatePresence>
 
-          <NormalRamalModal
-            modal={normalRamalModal}
-            setModal={setNormalRamalModal}
-            onConfirm={handleConfirmNormalRamalModal}
-          />
-          <ClandestinoToNormalModal
-            modal={clandestinoToNormalModal}
-            setModal={setClandestinoToNormalModal}
-            onClassifyLater={handleClandestinoToNormalClassifyLater}
-            onConvertNow={handleClandestinoToNormalConvertNow}
-          />
-          <NormalToClandestinoModal
-            modal={normalToClandestinoModal}
-            setModal={setNormalToClandestinoModal}
-            onKeepClients={handleNormalToClandestinoKeepClients}
-            onZeroNormalClients={handleNormalToClandestinoZeroNormalClients}
-          />
-          <ResetBtTopologyModal
-            open={resetConfirmOpen}
-            onConfirm={handleConfirmResetBtTopology}
-            onCancel={() => setResetConfirmOpen(false)}
+          <BtModalStack
+            normalRamalModal={normalRamalModal}
+            setNormalRamalModal={setNormalRamalModal}
+            handleConfirmNormalRamalModal={handleConfirmNormalRamalModal}
+            clandestinoToNormalModal={clandestinoToNormalModal}
+            setClandestinoToNormalModal={setClandestinoToNormalModal}
+            handleClandestinoToNormalClassifyLater={handleClandestinoToNormalClassifyLater}
+            handleClandestinoToNormalConvertNow={handleClandestinoToNormalConvertNow}
+            normalToClandestinoModal={normalToClandestinoModal}
+            setNormalToClandestinoModal={setNormalToClandestinoModal}
+            handleNormalToClandestinoKeepClients={handleNormalToClandestinoKeepClients}
+            handleNormalToClandestinoZeroNormalClients={handleNormalToClandestinoZeroNormalClients}
+            resetConfirmOpen={resetConfirmOpen}
+            handleConfirmResetBtTopology={handleConfirmResetBtTopology}
+            setResetConfirmOpen={setResetConfirmOpen}
           />
         </div>
       </main>
