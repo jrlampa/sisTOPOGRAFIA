@@ -1,16 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { Download, Map as MapIcon, Layers, Search, Loader2, AlertCircle, Settings, Mountain, TrendingUp } from 'lucide-react';
 import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario, BtCqtComputationInputs, BtEdge } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
-import MapSelector from './components/MapSelector';
-import Dashboard from './components/Dashboard';
-import SettingsModal from './components/SettingsModal';
-import HistoryControls from './components/HistoryControls';
-import DxfLegend from './components/DxfLegend';
-import FloatingLayerPanel from './components/FloatingLayerPanel';
-import ElevationProfile from './components/ElevationProfile';
-import BatchUpload from './components/BatchUpload';
-import BtTopologyPanel from './components/BtTopologyPanel';
 import Toast, { ToastType } from './components/Toast';
 import ProgressIndicator from './components/ProgressIndicator';
 import { useUndoRedo } from './hooks/useUndoRedo';
@@ -35,6 +26,16 @@ import {
 } from './utils/btCalculations';
 import { parseLatLngQuery, parseUtmQuery } from './utils/geo';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const MapSelector = React.lazy(() => import('./components/MapSelector'));
+const Dashboard = React.lazy(() => import('./components/Dashboard'));
+const SettingsModal = React.lazy(() => import('./components/SettingsModal'));
+const HistoryControls = React.lazy(() => import('./components/HistoryControls'));
+const DxfLegend = React.lazy(() => import('./components/DxfLegend'));
+const FloatingLayerPanel = React.lazy(() => import('./components/FloatingLayerPanel'));
+const ElevationProfile = React.lazy(() => import('./components/ElevationProfile'));
+const BatchUpload = React.lazy(() => import('./components/BatchUpload'));
+const BtTopologyPanel = React.lazy(() => import('./components/BtTopologyPanel'));
 
 const EMPTY_BT_TOPOLOGY: BtTopology = {
   poles: [],
@@ -118,6 +119,22 @@ const normalizeBtTransformer = (transformer: BtTransformer): BtTransformer => ({
   transformerChangeFlag: getTransformerChangeFlag(transformer)
 });
 const normalizeBtTransformers = (transformers: BtTransformer[]): BtTransformer[] => transformers.map(normalizeBtTransformer);
+
+const InlineSuspenseFallback = ({ label }: { label: string }) => (
+  <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+    <Loader2 size={14} className="animate-spin" />
+    {label}
+  </div>
+);
+
+const MapSuspenseFallback = () => (
+  <div className="absolute inset-0 flex items-center justify-center bg-slate-950 text-slate-300">
+    <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 px-5 py-4 text-sm font-semibold">
+      <Loader2 size={18} className="animate-spin" />
+      Carregando mapa 2.5D...
+    </div>
+  </div>
+);
 
 type PendingNormalClassificationPole = {
   poleId: string;
@@ -1989,25 +2006,27 @@ function App() {
 
       <AnimatePresence>
         {showSettings && (
-          <SettingsModal
-            key="settings"
-            isOpen={showSettings}
-            onClose={() => setShowSettings(false)}
-            settings={settings}
-            onUpdateSettings={updateSettings}
-            selectionMode={selectionMode}
-            onSelectionModeChange={handleSelectionModeChange}
-            radius={radius}
-            onRadiusChange={(r) => setAppState({ ...appState, radius: r }, false)}
-            polygon={polygon}
-            onClearPolygon={() => setAppState({ ...appState, polygon: [] }, true)}
-            hasData={!!osmData}
-            isDownloading={isDownloading}
-            onExportDxf={handleDownloadDxf}
-            onExportGeoJSON={handleDownloadGeoJSON}
-            onSaveProject={handleSaveProject}
-            onLoadProject={handleLoadProject}
-          />
+          <Suspense fallback={<InlineSuspenseFallback label="Carregando configurações" />}>
+            <SettingsModal
+              key="settings"
+              isOpen={showSettings}
+              onClose={() => setShowSettings(false)}
+              settings={settings}
+              onUpdateSettings={updateSettings}
+              selectionMode={selectionMode}
+              onSelectionModeChange={handleSelectionModeChange}
+              radius={radius}
+              onRadiusChange={(r) => setAppState({ ...appState, radius: r }, false)}
+              polygon={polygon}
+              onClearPolygon={() => setAppState({ ...appState, polygon: [] }, true)}
+              hasData={!!osmData}
+              isDownloading={isDownloading}
+              onExportDxf={handleDownloadDxf}
+              onExportGeoJSON={handleDownloadGeoJSON}
+              onSaveProject={handleSaveProject}
+              onLoadProject={handleLoadProject}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
@@ -2029,12 +2048,14 @@ function App() {
         </div>
 
         <div className="flex items-center gap-6">
-          <HistoryControls
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onUndo={undo}
-            onRedo={redo}
-          />
+          <Suspense fallback={<InlineSuspenseFallback label="Carregando histórico" />}>
+            <HistoryControls
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={undo}
+              onRedo={redo}
+            />
+          </Suspense>
 
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -2217,25 +2238,27 @@ function App() {
 
           <div className="h-px bg-white/5 mx-2"></div>
 
-          <BtTopologyPanel
-            btTopology={btTopology}
-            projectType={settings.projectType ?? 'ramais'}
-            btNetworkScenario={btNetworkScenario}
-            clandestinoAreaM2={settings.clandestinoAreaM2 ?? 0}
-            transformerDebugById={btTransformerDebugById}
-            onTopologyChange={updateBtTopology}
-            onSelectedPoleChange={handleBtSelectedPoleChange}
-            onSelectedTransformerChange={handleBtSelectedTransformerChange}
-            onSelectedEdgeChange={handleBtSelectedEdgeChange}
-            onProjectTypeChange={updateProjectType}
-            onClandestinoAreaChange={updateClandestinoAreaM2}
-            onBtRenamePole={handleBtRenamePole}
-            onBtRenameTransformer={handleBtRenameTransformer}
-            onBtSetEdgeChangeFlag={handleBtSetEdgeChangeFlag}
-            onBtSetPoleChangeFlag={handleBtSetPoleChangeFlag}
-            onBtTogglePoleCircuitBreak={handleBtTogglePoleCircuitBreak}
-            onBtSetTransformerChangeFlag={handleBtSetTransformerChangeFlag}
-          />
+          <Suspense fallback={<InlineSuspenseFallback label="Carregando painel BT" />}>
+            <BtTopologyPanel
+              btTopology={btTopology}
+              projectType={settings.projectType ?? 'ramais'}
+              btNetworkScenario={btNetworkScenario}
+              clandestinoAreaM2={settings.clandestinoAreaM2 ?? 0}
+              transformerDebugById={btTransformerDebugById}
+              onTopologyChange={updateBtTopology}
+              onSelectedPoleChange={handleBtSelectedPoleChange}
+              onSelectedTransformerChange={handleBtSelectedTransformerChange}
+              onSelectedEdgeChange={handleBtSelectedEdgeChange}
+              onProjectTypeChange={updateProjectType}
+              onClandestinoAreaChange={updateClandestinoAreaM2}
+              onBtRenamePole={handleBtRenamePole}
+              onBtRenameTransformer={handleBtRenameTransformer}
+              onBtSetEdgeChangeFlag={handleBtSetEdgeChangeFlag}
+              onBtSetPoleChangeFlag={handleBtSetPoleChangeFlag}
+              onBtTogglePoleCircuitBreak={handleBtTogglePoleCircuitBreak}
+              onBtSetTransformerChangeFlag={handleBtSetTransformerChangeFlag}
+            />
+          </Suspense>
 
           {/* Control Section */}
           <div className="space-y-6">
@@ -2355,14 +2378,20 @@ function App() {
                 className="flex flex-col gap-6 mt-auto overflow-visible"
               >
                 <div className="h-px bg-white/5 mx-2"></div>
-                <Dashboard stats={stats} analysisText={analysisText} />
+                <Suspense fallback={<InlineSuspenseFallback label="Carregando análise" />}>
+                  <Dashboard stats={stats} analysisText={analysisText} />
+                </Suspense>
 
-                <DxfLegend />
+                <Suspense fallback={<InlineSuspenseFallback label="Carregando legenda DXF" />}>
+                  <DxfLegend />
+                </Suspense>
 
-                <BatchUpload
-                  onError={(message) => showToast(message, 'error')}
-                  onInfo={(message) => showToast(message, 'info')}
-                />
+                <Suspense fallback={<InlineSuspenseFallback label="Carregando importação em lote" />}>
+                  <BatchUpload
+                    onError={(message) => showToast(message, 'error')}
+                    onInfo={(message) => showToast(message, 'info')}
+                  />
+                </Suspense>
 
                 <div className="flex items-center gap-3 p-4 glass rounded-2xl">
                   <div className={`p-2 rounded-lg ${terrainData ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-800 text-slate-600'}`}>
@@ -2395,65 +2424,69 @@ function App() {
 
         {/* Map Viewport */}
         <div className="flex-1 relative z-10">
-          <MapSelector
-            center={center}
-            flyToEdgeTarget={btEdgeFlyToTarget}
-            flyToPoleTarget={btPoleFlyToTarget}
-            flyToTransformerTarget={btTransformerFlyToTarget}
-            radius={radius}
-            selectionMode={selectionMode}
-            polygonPoints={polygonPoints}
-            onLocationChange={handleMapClick}
-            btEditorMode={btEditorMode}
-            btTopology={btTopology}
-            onBtMapClick={handleBtMapClick}
-            pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId}
-            onBtDeletePole={handleBtDeletePole}
-            onBtDeleteEdge={handleBtDeleteEdge}
-            onBtDeleteTransformer={handleBtDeleteTransformer}
-            onBtSetEdgeChangeFlag={handleBtSetEdgeChangeFlag}
-            onBtToggleTransformerOnPole={handleBtToggleTransformerOnPole}
-            onBtQuickAddPoleRamal={handleBtQuickAddPoleRamal}
-            onBtQuickRemovePoleRamal={handleBtQuickRemovePoleRamal}
-            onBtQuickAddEdgeConductor={handleBtQuickAddEdgeConductor}
-            onBtQuickRemoveEdgeConductor={handleBtQuickRemoveEdgeConductor}
-            onBtSetEdgeReplacementFromConductors={handleBtSetEdgeReplacementFromConductors}
-            onBtRenamePole={handleBtRenamePole}
-            onBtRenameTransformer={handleBtRenameTransformer}
-            onBtSetPoleVerified={handleBtSetPoleVerified}
-            onBtSetPoleChangeFlag={handleBtSetPoleChangeFlag}
-            onBtTogglePoleCircuitBreak={handleBtTogglePoleCircuitBreak}
-            onBtSetTransformerChangeFlag={handleBtSetTransformerChangeFlag}
-            onBtDragPole={handleBtDragPole}
-            onBtDragTransformer={handleBtDragTransformer}
-            criticalPoleId={btCriticalPoleId}
-            accumulatedByPole={btAccumulatedByPole}
-            onPolygonChange={(points) => {
-              const geoPoints = points.map(p => ({ lat: p[0], lng: p[1] }));
-              setAppState({ ...appState, polygon: geoPoints }, true);
-            }}
-            measurePath={measurePathPoints}
-            onMeasurePathChange={handleMeasurePathChange}
-            onKmlDrop={handleKmlDrop}
-            mapStyle={settings.mapProvider === 'satellite' ? 'satellite' : 'dark'}
-          />
+          <Suspense fallback={<MapSuspenseFallback />}>
+            <MapSelector
+              center={center}
+              flyToEdgeTarget={btEdgeFlyToTarget}
+              flyToPoleTarget={btPoleFlyToTarget}
+              flyToTransformerTarget={btTransformerFlyToTarget}
+              radius={radius}
+              selectionMode={selectionMode}
+              polygonPoints={polygonPoints}
+              onLocationChange={handleMapClick}
+              btEditorMode={btEditorMode}
+              btTopology={btTopology}
+              onBtMapClick={handleBtMapClick}
+              pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId}
+              onBtDeletePole={handleBtDeletePole}
+              onBtDeleteEdge={handleBtDeleteEdge}
+              onBtDeleteTransformer={handleBtDeleteTransformer}
+              onBtSetEdgeChangeFlag={handleBtSetEdgeChangeFlag}
+              onBtToggleTransformerOnPole={handleBtToggleTransformerOnPole}
+              onBtQuickAddPoleRamal={handleBtQuickAddPoleRamal}
+              onBtQuickRemovePoleRamal={handleBtQuickRemovePoleRamal}
+              onBtQuickAddEdgeConductor={handleBtQuickAddEdgeConductor}
+              onBtQuickRemoveEdgeConductor={handleBtQuickRemoveEdgeConductor}
+              onBtSetEdgeReplacementFromConductors={handleBtSetEdgeReplacementFromConductors}
+              onBtRenamePole={handleBtRenamePole}
+              onBtRenameTransformer={handleBtRenameTransformer}
+              onBtSetPoleVerified={handleBtSetPoleVerified}
+              onBtSetPoleChangeFlag={handleBtSetPoleChangeFlag}
+              onBtTogglePoleCircuitBreak={handleBtTogglePoleCircuitBreak}
+              onBtSetTransformerChangeFlag={handleBtSetTransformerChangeFlag}
+              onBtDragPole={handleBtDragPole}
+              onBtDragTransformer={handleBtDragTransformer}
+              criticalPoleId={btCriticalPoleId}
+              accumulatedByPole={btAccumulatedByPole}
+              onPolygonChange={(points) => {
+                const geoPoints = points.map(p => ({ lat: p[0], lng: p[1] }));
+                setAppState({ ...appState, polygon: geoPoints }, true);
+              }}
+              measurePath={measurePathPoints}
+              onMeasurePathChange={handleMeasurePathChange}
+              onKmlDrop={handleKmlDrop}
+              mapStyle={settings.mapProvider === 'satellite' ? 'satellite' : 'dark'}
+            />
 
-          <FloatingLayerPanel
-            settings={settings}
-            onUpdateSettings={updateSettings}
-            isDark={isDark}
-          />
+            <FloatingLayerPanel
+              settings={settings}
+              onUpdateSettings={updateSettings}
+              isDark={isDark}
+            />
+          </Suspense>
 
           <AnimatePresence>
             {elevationProfileData.length > 0 && (
-              <ElevationProfile
-                data={elevationProfileData}
-                onClose={() => { 
-                  clearProfile(); 
-                  handleSelectionModeChange('circle'); 
-                }}
-                isDark={isDark}
-              />
+              <Suspense fallback={<InlineSuspenseFallback label="Carregando perfil altimétrico" />}>
+                <ElevationProfile
+                  data={elevationProfileData}
+                  onClose={() => { 
+                    clearProfile(); 
+                    handleSelectionModeChange('circle'); 
+                  }}
+                  isDark={isDark}
+                />
+              </Suspense>
             )}
           </AnimatePresence>
 
