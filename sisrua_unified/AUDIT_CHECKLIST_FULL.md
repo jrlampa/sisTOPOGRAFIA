@@ -1,6 +1,6 @@
 # Audit Checklist Completo - 30 itens
 
-## ✅ JÁ IMPLEMENTADO (25 itens)
+## ✅ JÁ IMPLEMENTADO (27 itens)
 
 | # | Item | Arquivo | Status | Prioridade | Commit |
 |---|------|---------|--------|------------|--------|
@@ -30,16 +30,12 @@
 | 26 | Comentários Português/Inglês Misturados | `COMMENT_STANDARDS_PT_BR.md` | ✅ | P3 | `0b40a4e` |
 | **30** | **Scripts de Build Duplicados** | **scripts/build_release.{sh,js}** | **✅** | **P3** | **68e5771** |
 | **23** | **Não há Paginação em Histórico BT** | **usePagination.ts + BtExportSummaryBanner** | **✅** | **P3** | **614a68a** |
+| **15** | **Lógica de Negócio Misturada com UI** | **useBt*Operations.ts + useBtCrudHandlers.ts** | **✅** | **P1** | **bd811ca** |
+| **29** | **Documentação de API Swagger Extensa** | **server/swagger/** (modularizado) | **✅** | **P3** | **(este commit)** |
 
 ---
 
-## 🔲 AINDA NÃO FEITO (5 itens)
-
-### P1 - High Priority (RESTAM: 1)
-
-| # | Item | Arquivo | Prioridade | Risco | Esforço |
-|---|------|---------|------------|-------|---------|
-| 15 | Lógica de Negócio Misturada com UI | `useBtCrudHandlers.ts` (1087 linhas) | P1 | Alto: Violação SRP | Alto |
+## 🔲 AINDA NÃO FEITO (2 itens)
 
 ### P3 - Low Priority / Backlog
 
@@ -47,38 +43,24 @@
 |---|------|---------|------------|------|
 | 21 | Testes E2E Crasham com Frequência | `e2e/**` | P3 | Investigação requerida |
 | 28 | Nomenclatura Inconsistente (Bt vs BT) | Toda codebase | P3 | Análise: Já padronizado como "Bt" |
-| 29 | Documentação de API Swagger Extensa | `server/swagger.ts` | P3 | Estilo de código, não crítico |
 
 ---
 
 ## Estatísticas
 - **Total**: 30 itens
-- **Concluído**: 25 (83%) ✅
-- **Restante**: 5 (17%) 🔲
-  - P1: 1 item (refactoring pesado)
-  - P3: 4 itens (baixa prioridade/backlog)
+- **Concluído**: 27 (90%) ✅
+- **Restante**: 2 (10%) 🔲
+  - P1: 0 item
+  - P3: 2 itens (baixa prioridade/backlog)
 
 ---
 
 ## 🎯 PRÓXIMAS AÇÕES (Recomendadas)
 
-### Batch 1 (P1 - Refactoring Pesado) 
-1. **Item 15** (Refatorar `useBtCrudHandlers`) - Dividir em 3 hooks especializados
-   - `useBtPoleOperations.ts` - operações de polos
-   - `useBtEdgeOperations.ts` - operações de arestas
-   - `useBtTransformerOperations.ts` - operações de transformadores
-
-### Batch 2 (P3 - Melhorias)
-2. **Item 21** (E2E Tests) - Revisar e estabilizar testes crashes
-3. **Item 23** (Paginação Histórico) - Implementar paginação de histórico BT
-4. **Item 28** (Nomenclatura) - Padronizar BT vs Bt em toda codebase
-5. **Item 30** (Scripts Build) - Adicionar equivalente bash para CI/CD cross-platform
+### Batch Atual (P3 - Melhorias)
+1. **Item 21** (E2E Tests) - Revisar e estabilizar testes crashes
+2. **Item 28** (Nomenclatura) - Fechar padronização BT vs Bt em toda codebase
 
 ---
 
-## Estatísticas
-- **Total**: 30 itens
-- **Concluído**: 23 (77%) ✅
-- **Restante**: 7 (23%) 🔲
-  - P1: 1 item (refactoring pesado)
-  - P3: 6 itens
+> Nota: status atualizado após conclusão do Item 15 (SRP hooks BT) e Item 29 (modularização Swagger).
