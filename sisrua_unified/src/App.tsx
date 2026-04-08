@@ -6,7 +6,6 @@ import Toast from './components/Toast';
 import ProgressIndicator from './components/ProgressIndicator';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useOsmEngine } from './hooks/useOsmEngine';
-import { useSearch } from './hooks/useSearch';
 import { useElevationProfile } from './hooks/useElevationProfile';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useMapState } from './hooks/useMapState';
@@ -16,6 +15,7 @@ import { useBtDerivedState } from './hooks/useBtDerivedState';
 import { useBtExportHistory } from './hooks/useBtExportHistory';
 import { useBtDxfWorkflow } from './hooks/useBtDxfWorkflow';
 import { useProjectDataWorkflow } from './hooks/useProjectDataWorkflow';
+import { useAppAnalysisWorkflow } from './hooks/useAppAnalysisWorkflow';
 import {
   EMPTY_BT_TOPOLOGY,
 } from './utils/btNormalization';
@@ -248,16 +248,6 @@ function App() {
     handleBtSelectedTransformerChange,
   } = useBtNavigationState({ btTopology, showToast });
 
-  // Custom hooks for feature modules
-  const { searchQuery, setSearchQuery, isSearching, handleSearch } = useSearch({
-    onLocationFound: (location) => {
-      setAppState({ ...appState, center: location }, true);
-      clearData();
-      showToast(`Locality found: ${location.label}`, 'success');
-    },
-    onError: (message) => showToast(message, 'error')
-  });
-
   const { handleDownloadDxf, handleDownloadGeoJSON, isDownloading, jobId, jobStatus, jobProgress } = useBtDxfWorkflow({
     center,
     radius,
@@ -280,22 +270,28 @@ function App() {
     showToast,
   });
 
-  const handleSelectionModeChange = (mode: typeof selectionMode) => {
-    clearPendingBtEdge();
-    handleBaseSelectionModeChange(mode);
-  };
-
-  const handleFetchAndAnalyze = async () => {
-    const success = await runAnalysis(center, radius, settings.enableAI);
-    if (success) showToast("Analysis Complete!", 'success');
-    else showToast("Audit failed. Check backend logs.", 'error');
-  };
-
-  const showDxfProgress = isDownloading || !!jobId;
-  const dxfProgressValue = Math.max(0, Math.min(100, Math.round(jobProgress)));
-  const dxfProgressLabel = jobStatus === 'queued' || jobStatus === 'waiting'
-    ? 'A gerar DXF: na fila...'
-    : `A gerar DXF: ${dxfProgressValue}%...`;
+  const {
+    searchQuery,
+    setSearchQuery,
+    isSearching,
+    handleSearch,
+    handleSelectionModeChange,
+    handleFetchAndAnalyze,
+    showDxfProgress,
+    dxfProgressLabel,
+  } = useAppAnalysisWorkflow({
+    appState,
+    setAppState,
+    clearData,
+    showToast,
+    clearPendingBtEdge,
+    handleBaseSelectionModeChange,
+    runAnalysis,
+    isDownloading,
+    jobId,
+    jobStatus,
+    jobProgress,
+  });
 
   return (
     <div className={`flex flex-col h-screen w-full font-sans transition-colors duration-500 overflow-hidden ${isDark ? 'bg-[#020617] text-slate-200' : 'bg-slate-50 text-slate-900'}`}>
