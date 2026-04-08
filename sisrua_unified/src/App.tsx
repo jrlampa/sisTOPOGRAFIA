@@ -27,10 +27,10 @@ import { SidebarSelectionControls } from './components/SidebarSelectionControls'
 import { BtModalStack } from './components/BtModalStack';
 import { SessionRecoveryBanner } from './components/SessionRecoveryBanner';
 import { DxfProgressBadge } from './components/DxfProgressBadge';
+import { AppSettingsOverlay } from './components/AppSettingsOverlay';
 import { BtExportSummaryBanner } from './components/BtExportSummaryBanner';
 
 const MapSelector = React.lazy(() => import('./components/MapSelector'));
-const SettingsModal = React.lazy(() => import('./components/SettingsModal'));
 const FloatingLayerPanel = React.lazy(() => import('./components/FloatingLayerPanel'));
 const ElevationProfile = React.lazy(() => import('./components/ElevationProfile'));
 
@@ -339,31 +339,24 @@ function App() {
         onHistoryCqtScenarioFilterChange={setBtHistoryCqtScenarioFilter}
       />
 
-      <AnimatePresence>
-        {showSettings && (
-          <Suspense fallback={<InlineSuspenseFallback label="Carregando configurações" />}>
-            <SettingsModal
-              key="settings"
-              isOpen={showSettings}
-              onClose={closeSettings}
-              settings={settings}
-              onUpdateSettings={updateSettings}
-              selectionMode={selectionMode}
-              onSelectionModeChange={handleSelectionModeChange}
-              radius={radius}
-              onRadiusChange={handleRadiusChange}
-              polygon={polygon}
-              onClearPolygon={handleClearPolygon}
-              hasData={!!osmData}
-              isDownloading={isDownloading}
-              onExportDxf={handleDownloadDxf}
-              onExportGeoJSON={handleDownloadGeoJSON}
-              onSaveProject={handleSaveProject}
-              onLoadProject={handleLoadProject}
-            />
-          </Suspense>
-        )}
-      </AnimatePresence>
+      <AppSettingsOverlay
+        showSettings={showSettings}
+        closeSettings={closeSettings}
+        settings={settings}
+        updateSettings={updateSettings}
+        selectionMode={selectionMode}
+        handleSelectionModeChange={handleSelectionModeChange}
+        radius={radius}
+        handleRadiusChange={handleRadiusChange}
+        polygon={polygon}
+        handleClearPolygon={handleClearPolygon}
+        hasData={!!osmData}
+        isDownloading={isDownloading}
+        handleDownloadDxf={handleDownloadDxf}
+        handleDownloadGeoJSON={handleDownloadGeoJSON}
+        handleSaveProject={handleSaveProject}
+        handleLoadProject={handleLoadProject}
+      />
 
       {/* Premium Header */}
       <AppHeader
