@@ -1,8 +1,30 @@
 import { useState } from 'react';
 import { OsmElement, AnalysisStats, TerrainGrid, GeoLocation } from '../types';
-import { fetchOsmData } from '../services/osmService';
+import { fetchOsmData, OsmStats } from '../services/osmService';
 import { fetchElevationGrid } from '../services/elevationService';
 import { analyzeArea } from '../services/geminiService';
+
+const EMPTY_ANALYSIS_STATS: AnalysisStats = {
+    totalBuildings: 0,
+    totalRoads: 0,
+    totalNature: 0,
+    avgHeight: 0,
+    maxHeight: 0,
+};
+
+const toAnalysisStats = (stats: OsmStats | null): AnalysisStats => {
+    if (!stats) {
+        return EMPTY_ANALYSIS_STATS;
+    }
+
+    return {
+        totalBuildings: stats.totalBuildings,
+        totalRoads: stats.totalRoads,
+        totalNature: stats.totalNature,
+        avgHeight: stats.avgHeight,
+        maxHeight: stats.maxHeight,
+    };
+};
 
 export function useOsmEngine() {
     const [isProcessing, setIsProcessing] = useState(false);
@@ -36,16 +58,15 @@ export function useOsmEngine() {
             setTerrainData(terrain);
             setProgressValue(70);
 
-            // 3. Use stats pre-computed by the backend; cast is safe because
-            //    AnalysisStats and OsmStats share the same shape.
-            const calculatedStats = backendStats as AnalysisStats | null;
+            // 3. Use stats pre-computed by the backend.
+            const calculatedStats = toAnalysisStats(backendStats);
             setStats(calculatedStats);
             setProgressValue(85);
 
             // 4. Get analysis narrative
             if (enableAI) {
                 setStatusMessage('Generating analysis summary...');
-                const text = await analyzeArea(calculatedStats ?? {}, center.label || "selected area", true);
+                const text = await analyzeArea(calculatedStats, center.label || "selected area", true);
                 setAnalysisText(text);
             } else {
                 setAnalysisText("Analysis summary disabled.");
