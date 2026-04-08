@@ -1,6 +1,6 @@
 # Audit Checklist Completo - 30 itens
 
-## ✅ JÁ IMPLEMENTADO (17 itens)
+## ✅ JÁ IMPLEMENTADO (18 itens)
 
 | # | Item | Arquivo | Status | Prioridade | Commit |
 |---|------|---------|--------|------------|--------|
@@ -21,17 +21,17 @@
 | **18** | **Tratamento de Erro Genérico** | **errorHandler.ts (novo)** | **✅** | **P1** | **380cf6a** |
 | **17** | **Risco de XSS em downloadBlob** | **downloads.ts (novo)** | **✅** | **P1** | **380cf6a** |
 | **8** | **Verificação de Tipo Runtime Insuficiente** | **validation.ts integrado** | **✅** | **P1** | **380cf6a** |
+| **6** | **Prop Drilling Excessivo** | **BtContext.tsx (novo)** | **✅** | **P1** | **217fdd2** |
 
 ---
 
-## 🔲 AINDA NÃO FEITO (13 itens)
+## 🔲 AINDA NÃO FEITO (12 itens)
 
-### P1 - High Priority (RESTAM: 2)
+### P1 - High Priority (RESTAM: 1)
 
 | # | Item | Arquivo | Prioridade | Risco | Esforço |
 |---|------|---------|------------|-------|---------|
 | 15 | Lógica de Negócio Misturada com UI | `useBtCrudHandlers.ts` (1222 linhas) | P1 | Alto: Violação SRP | Alto |
-| 6 | Prop Drilling Excessivo | `App.tsx:1000-1030` | P1 | Médio: Acoplamento alto | Alto |
 
 ### P2 - Medium Priority
 
@@ -78,8 +78,8 @@
 
 ## Estatísticas
 - **Total**: 30 itens
-- **Concluído**: 17 (57%) ✅
-- **Restante**: 13 (43%) 🔲
-  - P1: 2 itens (ambos refatoração complexa)
+- **Concluído**: 18 (60%) ✅
+- **Restante**: 12 (40%) 🔲
+  - P1: 1 item (refactoring pesado)
   - P2: 4 itens
   - P3: 7 itens
