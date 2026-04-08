@@ -1,7 +1,6 @@
-import React, { Suspense, useEffect, useRef } from 'react';
-import { useState } from 'react';
+import React, { Suspense } from 'react';
 import { Map as MapIcon, Search, Loader2, TrendingUp } from 'lucide-react';
-import { AnalysisStats, GlobalState, BtTopology, BtPoleNode, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario } from './types';
+import { AnalysisStats, GlobalState, BtTopology, BtPoleNode, BtEditorMode, BtNetworkScenario } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
 import Toast from './components/Toast';
 import ProgressIndicator from './components/ProgressIndicator';
@@ -17,8 +16,8 @@ import { useMapState } from './hooks/useMapState';
 import { useBtNavigationState } from './hooks/useBtNavigationState';
 import { useBtCrudHandlers } from './hooks/useBtCrudHandlers';
 import { useBtDerivedState } from './hooks/useBtDerivedState';
+import { useBtExportHistory } from './hooks/useBtExportHistory';
 import {
-  MAX_BT_EXPORT_HISTORY,
   nextSequentialId,
   EMPTY_BT_TOPOLOGY,
 } from './utils/btNormalization';
@@ -29,7 +28,6 @@ import { SidebarBtEditorSection } from './components/SidebarBtEditorSection';
 import { SidebarAnalysisResults } from './components/SidebarAnalysisResults';
 import { BtExportSummaryBanner } from './components/BtExportSummaryBanner';
 import { NormalRamalModal, ClandestinoToNormalModal, NormalToClandestinoModal, ResetBtTopologyModal } from './components/BtModals';
-import { clearBtExportHistoryRemote, ingestBtExportHistory, listBtExportHistory } from './services/btExportHistoryService';
 
 const MapSelector = React.lazy(() => import('./components/MapSelector'));
 const SettingsModal = React.lazy(() => import('./components/SettingsModal'));
@@ -55,12 +53,6 @@ const MapSuspenseFallback = () => (
 );
 
 function App() {
-  const btHistoryHydratedRef = useRef(false);
-  const [btHistoryTotal, setBtHistoryTotal] = useState(0);
-  const [btHistoryLoading, setBtHistoryLoading] = useState(false);
-  const [btHistoryProjectTypeFilter, setBtHistoryProjectTypeFilter] = useState<'all' | 'ramais' | 'clandestino'>('all');
-  const [btHistoryCqtScenarioFilter, setBtHistoryCqtScenarioFilter] = useState<'all' | 'atual' | 'proj1' | 'proj2'>('all');
-
   const {
     state: appState,
     setState: setAppState,
@@ -120,90 +112,9 @@ function App() {
   // Derived state
   const { center, radius, selectionMode, polygon, settings } = appState;
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
-  const btExportSummary = appState.btExportSummary ?? null;
-  const btExportHistory = appState.btExportHistory ?? [];
-  const latestBtExport = btExportSummary ?? btExportHistory[0] ?? null;
   const btNetworkScenario: BtNetworkScenario = settings.btNetworkScenario ?? 'asis';
   const isDark = settings.theme === 'dark';
   const btEditorMode: BtEditorMode = settings.btEditorMode ?? 'none';
-
-  const btHistoryCanLoadMore = btExportHistory.length < btHistoryTotal;
-
-  const resolveBtHistoryFilters = () => ({
-    projectType: btHistoryProjectTypeFilter === 'all' ? undefined : btHistoryProjectTypeFilter,
-    cqtScenario: btHistoryCqtScenarioFilter === 'all' ? undefined : btHistoryCqtScenarioFilter,
-  });
-
-  const loadBtHistoryPage = async (offset: number, append: boolean) => {
-    setBtHistoryLoading(true);
-    try {
-      const page = await listBtExportHistory(MAX_BT_EXPORT_HISTORY, offset, resolveBtHistoryFilters());
-      setBtHistoryTotal(page.total);
-
-      const nextEntries = append
-        ? [...(appState.btExportHistory ?? []), ...page.entries]
-        : page.entries;
-
-      const latestFromDb = nextEntries[0] ?? null;
-      setAppState(
-        {
-          ...appState,
-          btExportSummary: appState.btExportSummary ?? latestFromDb,
-          btExportHistory: nextEntries,
-        },
-        false,
-      );
-    } catch {
-      // Falha de hidratação/paginação não bloqueia fluxo local.
-    } finally {
-      setBtHistoryLoading(false);
-    }
-  };
-
-  const handleLoadMoreBtHistory = () => {
-    if (btHistoryLoading || !btHistoryCanLoadMore) {
-      return;
-    }
-
-    void loadBtHistoryPage(btExportHistory.length, true);
-  };
-
-  const appendBtHistoryEntry = (entry: BtExportHistoryEntry) => {
-    const nextBtExportSummary: BtExportSummary = {
-      btContextUrl: entry.btContextUrl,
-      criticalPoleId: entry.criticalPoleId,
-      criticalAccumulatedClients: entry.criticalAccumulatedClients,
-      criticalAccumulatedDemandKva: entry.criticalAccumulatedDemandKva,
-      cqt: entry.cqt,
-      verifiedPoles: entry.verifiedPoles,
-      totalPoles: entry.totalPoles,
-      verifiedEdges: entry.verifiedEdges,
-      totalEdges: entry.totalEdges,
-      verifiedTransformers: entry.verifiedTransformers,
-      totalTransformers: entry.totalTransformers,
-    };
-
-    const nextHistory = [entry, ...(appState.btExportHistory ?? [])].slice(0, MAX_BT_EXPORT_HISTORY);
-    setAppState({ ...appState, btExportSummary: nextBtExportSummary, btExportHistory: nextHistory }, false);
-
-    const cqtScenarioLabel = entry.cqt?.scenario ? ` | CQT ${entry.cqt.scenario.toUpperCase()}` : '';
-    showToast(`Resumo BT: ponto crítico ${entry.criticalPoleId} (${entry.criticalAccumulatedDemandKva.toFixed(2)})${cqtScenarioLabel}.`, 'info');
-  };
-
-  const handleClearBtExportHistory = async () => {
-    try {
-      const result = await clearBtExportHistoryRemote(resolveBtHistoryFilters());
-      await loadBtHistoryPage(0, false);
-
-      if (result.deletedCount > 0) {
-        showToast(`Histórico BT limpo no servidor (${result.deletedCount} registro(s)).`, 'success');
-      } else {
-        showToast('Nenhum registro BT correspondente ao filtro para limpar.', 'info');
-      }
-    } catch {
-      showToast('Falha ao limpar histórico BT no servidor.', 'error');
-    }
-  };
 
   const {
     btAccumulatedByPole,
@@ -211,34 +122,6 @@ function App() {
     btTransformerDebugById,
     btCriticalPoleId,
   } = useBtDerivedState({ appState, setAppState });
-
-  useEffect(() => {
-    if (btHistoryHydratedRef.current) {
-      return;
-    }
-
-    if ((appState.btExportHistory ?? []).length > 0) {
-      btHistoryHydratedRef.current = true;
-      return;
-    }
-
-    btHistoryHydratedRef.current = true;
-
-    const hydrateBtHistory = async () => {
-      await loadBtHistoryPage(0, false);
-    };
-
-    void hydrateBtHistory();
-  }, [appState, setAppState]);
-
-  useEffect(() => {
-    if (!btHistoryHydratedRef.current) {
-      return;
-    }
-
-    void loadBtHistoryPage(0, false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [btHistoryProjectTypeFilter, btHistoryCqtScenarioFilter]);
 
   // Core analysis engine
   const {
@@ -286,6 +169,26 @@ function App() {
     clearData,
     loadElevationProfile,
     clearProfile,
+  });
+
+  const {
+    latestBtExport,
+    btExportHistory,
+    btHistoryTotal,
+    btHistoryLoading,
+    btHistoryCanLoadMore,
+    btHistoryProjectTypeFilter,
+    setBtHistoryProjectTypeFilter,
+    btHistoryCqtScenarioFilter,
+    setBtHistoryCqtScenarioFilter,
+    handleLoadMoreBtHistory,
+    handleClearBtExportHistory,
+    ingestBtContextHistory,
+  } = useBtExportHistory({
+    appState,
+    setAppState,
+    showToast,
+    projectType: settings.projectType === 'clandestino' ? 'clandestino' : 'ramais',
   });
 
   const {
@@ -362,23 +265,7 @@ function App() {
     onSuccess: (message) => showToast(message, 'success'),
     onError: (message) => showToast(message, 'error'),
     onBtContextLoaded: ({ btContextUrl, btContext }) => {
-      void (async () => {
-        try {
-          const result = await ingestBtExportHistory({
-            btContextUrl,
-            btContext,
-            projectType: settings.projectType === 'clandestino' ? 'clandestino' : 'ramais',
-          });
-
-          if (!result.entry) {
-            return;
-          }
-
-          appendBtHistoryEntry(result.entry);
-        } catch {
-          showToast('Falha ao consolidar resumo BT no backend.', 'error');
-        }
-      })();
+      void ingestBtContextHistory(btContextUrl, btContext);
     }
   });
 
