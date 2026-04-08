@@ -347,6 +347,7 @@ function App() {
     btNetworkScenario,
     btEditorMode,
     btTopology,
+    btAccumulatedByPole,
     btTransformerDebugById,
     btPoleCoordinateInput,
     setBtPoleCoordinateInput,

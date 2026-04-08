@@ -2,6 +2,7 @@ import type { AppSettings, BtCqtComputationInputs, BtNetworkScenario, BtTopology
 import {
   calculateAccumulatedDemandByPole,
   calculateClandestinoDemandKvaByAreaAndClients,
+  type BtPoleAccumulatedDemand,
 } from './btCalculations';
 import {
   CLANDESTINO_RAMAL_TYPE,
@@ -28,6 +29,7 @@ interface BuildBtDxfContextParams {
   settings: AppSettings;
   btNetworkScenario: BtNetworkScenario;
   includeTopology: boolean;
+  accumulatedByPole?: BtPoleAccumulatedDemand[];
 }
 
 export function buildBtDxfContext({
@@ -35,8 +37,9 @@ export function buildBtDxfContext({
   settings,
   btNetworkScenario,
   includeTopology,
+  accumulatedByPole,
 }: BuildBtDxfContextParams) {
-  const btAccumulated = calculateAccumulatedDemandByPole(
+  const btAccumulated = accumulatedByPole ?? calculateAccumulatedDemandByPole(
     btTopology,
     settings.projectType ?? 'ramais',
     settings.clandestinoAreaM2 ?? 0

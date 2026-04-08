@@ -4,6 +4,8 @@ import {
   calculateAccumulatedDemandByPole,
   calculateEstimatedDemandByTransformer,
   loadClandestinoWorkbookRules,
+  type BtPoleAccumulatedDemand,
+  type BtTransformerEstimatedDemand,
 } from '../utils/btCalculations';
 import {
   CURRENT_TO_DEMAND_CONVERSION,
@@ -14,6 +16,7 @@ import {
   LEGACY_ID_ENTROPY,
   ENTITY_ID_PREFIXES,
 } from '../constants/magicNumbers';
+import { fetchBtDerivedState } from '../services/btDerivedService';
 
 interface UseBtDerivedStateParams {
   appState: GlobalState;
@@ -22,6 +25,8 @@ interface UseBtDerivedStateParams {
 
 export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStateParams) {
   const [, setClandestinoRulesVersion] = useState(0);
+  const [btAccumulatedByPole, setBtAccumulatedByPole] = useState<BtPoleAccumulatedDemand[]>([]);
+  const [btEstimatedByTransformer, setBtEstimatedByTransformer] = useState<BtTransformerEstimatedDemand[]>([]);
 
   // Keep a ref so the transformer-sync effect always spreads the latest appState
   // without needing it as a reactive dependency (avoids firing on every state change).
@@ -45,15 +50,53 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
     };
   }, []);
 
-  const btAccumulatedByPole = useMemo(
+  const localAccumulatedByPole = useMemo(
     () => calculateAccumulatedDemandByPole(btTopology, settings.projectType ?? 'ramais', settings.clandestinoAreaM2 ?? 0),
     [btTopology, settings.projectType, settings.clandestinoAreaM2]
   );
 
-  const btEstimatedByTransformer = useMemo(
+  const localEstimatedByTransformer = useMemo(
     () => calculateEstimatedDemandByTransformer(btTopology, settings.projectType ?? 'ramais', settings.clandestinoAreaM2 ?? 0),
     [btTopology, settings.projectType, settings.clandestinoAreaM2]
   );
+
+  useEffect(() => {
+    let active = true;
+
+    const applyFallback = () => {
+      if (!active) {
+        return;
+      }
+      setBtAccumulatedByPole(localAccumulatedByPole);
+      setBtEstimatedByTransformer(localEstimatedByTransformer);
+    };
+
+    fetchBtDerivedState({
+      topology: btTopology,
+      projectType: settings.projectType ?? 'ramais',
+      clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
+    })
+      .then((payload) => {
+        if (!active) {
+          return;
+        }
+        setBtAccumulatedByPole(payload.accumulatedByPole);
+        setBtEstimatedByTransformer(payload.estimatedByTransformer);
+      })
+      .catch(() => {
+        applyFallback();
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    btTopology,
+    settings.projectType,
+    settings.clandestinoAreaM2,
+    localAccumulatedByPole,
+    localEstimatedByTransformer,
+  ]);
 
   const btTransformerDebugById = useMemo(
     () =>

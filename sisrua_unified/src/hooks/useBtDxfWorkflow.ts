@@ -1,6 +1,8 @@
 import { useDxfExport } from './useDxfExport';
 import { buildBtDxfContext } from '../utils/btDxfContext';
 import type { AppSettings, BtNetworkScenario, BtTopology, GeoLocation, SelectionMode } from '../types';
+import { fetchBtDerivedState } from '../services/btDerivedService';
+import { calculateAccumulatedDemandByPole } from '../utils/btCalculations';
 
 type Params = {
   center: GeoLocation;
@@ -46,11 +48,24 @@ export function useBtDxfWorkflow({
       return;
     }
 
+    const fallbackAccumulatedByPole = calculateAccumulatedDemandByPole(
+      btTopology,
+      settings.projectType ?? 'ramais',
+      settings.clandestinoAreaM2 ?? 0
+    );
+
+    const derivedState = await fetchBtDerivedState({
+      topology: btTopology,
+      projectType: settings.projectType ?? 'ramais',
+      clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
+    }).catch(() => null);
+
     const btContext = buildBtDxfContext({
       btTopology,
       settings,
       btNetworkScenario,
       includeTopology: settings.layers.btNetwork,
+      accumulatedByPole: derivedState?.accumulatedByPole ?? fallbackAccumulatedByPole,
     });
 
     await downloadDxf(

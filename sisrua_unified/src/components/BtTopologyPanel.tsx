@@ -3,7 +3,6 @@ import { Activity, Plus, Trash2, Sigma, ChevronDown } from 'lucide-react';
 import { BtEdge, BtNetworkScenario, BtPoleNode, BtPoleRamalEntry, BtTopology, BtTransformer, BtTransformerReading } from '../types';
 import { useBtTopologySelection } from '../hooks/useBtTopologySelection';
 import {
-  calculateAccumulatedDemandByPole,
   calculateBtSummary,
   calculateClandestinoDemandKvaByAreaAndClients,
   calculatePointDemandKva,
@@ -13,12 +12,14 @@ import {
   calculateClandestinoDemandKw,
   getClandestinoDiversificationFactorByClients,
   getClandestinoAreaRange,
-  getClandestinoKvaByArea
+  getClandestinoKvaByArea,
+  type BtPoleAccumulatedDemand
 } from '../utils/btCalculations';
 import { LEGACY_ID_ENTROPY } from '../constants/magicNumbers';
 
 interface BtTopologyPanelProps {
   btTopology: BtTopology;
+  accumulatedByPole: BtPoleAccumulatedDemand[];
   projectType: 'ramais' | 'geral' | 'clandestino';
   btNetworkScenario: BtNetworkScenario;
   clandestinoAreaM2: number;
@@ -226,6 +227,7 @@ function NumericTextInput({
 
 const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   btTopology,
+  accumulatedByPole,
   projectType,
   btNetworkScenario,
   clandestinoAreaM2,
@@ -426,7 +428,6 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         : transformersWithoutReadings > 0
           ? `Demanda parcial: ${transformersWithReadings}/${btTopology.transformers.length} trafo(s) com leituras.`
           : 'Demanda consolidada com leituras em todos os trafos.';
-  const accumulatedByPole = calculateAccumulatedDemandByPole(btTopology, projectType, clandestinoAreaM2);
   const clientDemandByPole = [...accumulatedByPole]
     .sort((a, b) => b.localTrechoDemandKva - a.localTrechoDemandKva);
 

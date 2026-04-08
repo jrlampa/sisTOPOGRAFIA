@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { AppSettings, BtEditorMode, BtNetworkScenario, BtTopology } from '../types';
+import type { BtPoleAccumulatedDemand } from '../utils/btCalculations';
 import type { PendingNormalClassificationPole } from '../utils/btNormalization';
 import type { BtEdgeChangeFlag, BtPoleChangeFlag, BtTransformerChangeFlag } from '../utils/btNormalization';
 import { useDebounce } from '../utils/debounce';
@@ -23,6 +24,7 @@ export interface SidebarBtEditorSectionProps {
   btNetworkScenario: BtNetworkScenario;
   btEditorMode: BtEditorMode;
   btTopology: BtTopology;
+  btAccumulatedByPole: BtPoleAccumulatedDemand[];
   btTransformerDebugById: TransformerDebugById;
   btPoleCoordinateInput: string;
   setBtPoleCoordinateInput: (v: string) => void;
@@ -50,6 +52,7 @@ export function SidebarBtEditorSection({
   btNetworkScenario,
   btEditorMode,
   btTopology,
+  btAccumulatedByPole,
   btTransformerDebugById,
   btPoleCoordinateInput,
   setBtPoleCoordinateInput,
@@ -206,6 +209,7 @@ export function SidebarBtEditorSection({
       <Suspense fallback={<InlineSuspenseFallback label="Carregando painel BT" />}>
         <BtTopologyPanel
           btTopology={btTopology}
+          accumulatedByPole={btAccumulatedByPole}
           projectType={settings.projectType ?? 'ramais'}
           btNetworkScenario={btNetworkScenario}
           clandestinoAreaM2={settings.clandestinoAreaM2 ?? 0}
