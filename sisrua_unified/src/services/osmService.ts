@@ -39,5 +39,7 @@ export const fetchOsmData = async (lat: number, lng: number, radius: number): Pr
      Logger.error("Mock fallback also failed", mockError);
    }
     throw error;
+     // No mock fallback in production - enforce real API usage
+     throw new Error(`OSM data unavailable: Cannot reach Overpass API for coordinates (${lat.toFixed(6)}, ${lng.toFixed(6)}). Ensure network connectivity and that API rate limits are not exceeded.`);
   }
 };

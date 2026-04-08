@@ -420,7 +420,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   )}
 
                   <LayerToggle
-                    label="Terreno (Malha 3D)"
+                      label="Terreno (Malha 2.5D)"
                     icon={Mountain}
                     active={settings.layers.terrain}
                     onClick={() => toggleLayer('terrain')}

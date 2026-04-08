@@ -101,7 +101,7 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({ settings, onUpd
                             colorClass="text-emerald-500"
                         />
                         <LayerButton
-                            label="Terreno 3D"
+                                label="Terreno 2.5D"
                             icon={Mountain}
                             active={settings.layers.terrain}
                             onClick={() => toggleLayer('terrain')}
