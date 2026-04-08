@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => {
             leaflet: ['leaflet', 'react-leaflet', 'proj4'],
             motion: ['framer-motion'],
             icons: ['lucide-react'],
+            recharts: ['recharts'],
           },
         },
       },
