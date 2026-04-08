@@ -35,8 +35,8 @@ import {
   nextSequentialId,
 } from '../utils/btNormalization';
 import { generateEntityId, ID_PREFIX } from '../utils/idGenerator';
-import { parseLatLngQuery, parseUtmQuery } from '../utils/geo';
 import { calculateSectioningImpact } from '../utils/btCalculations';
+import { API_BASE_URL } from '../config/api';
 
 export type { PendingNormalClassificationPole };
 
@@ -166,21 +166,51 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
     showToast(`${nextPole.title} inserido`, 'success');
   };
 
-  const handleBtInsertPoleByCoordinates = () => {
+  const resolveLocationFromBackend = async (query: string): Promise<GeoLocation> => {
+    const response = await fetch(`${API_BASE_URL}/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
+
+    if (!response.ok) {
+      let apiErrorMessage = 'Formato inválido. Use: -22.9068 -43.1729 ou 23K 635806 7462003.';
+
+      try {
+        const errorPayload = await response.json() as {
+          details?: string;
+          error?: string;
+          message?: string;
+        };
+
+        apiErrorMessage = errorPayload.details || errorPayload.error || errorPayload.message || apiErrorMessage;
+      } catch {
+        // Keep fallback message when response body is not JSON.
+      }
+
+      throw new Error(apiErrorMessage);
+    }
+
+    return await response.json() as GeoLocation;
+  };
+
+  const handleBtInsertPoleByCoordinates = async () => {
     const query = btPoleCoordinateInput.trim();
     if (!query) {
       showToast('Informe as coordenadas do poste.', 'info');
       return;
     }
 
-    const parsed = parseLatLngQuery(query) ?? parseUtmQuery(query);
-    if (!parsed) {
-      showToast('Formato inválido. Use: -22.9068 -43.1729 ou 23K 635806 7462003.', 'error');
-      return;
+    try {
+      const resolvedLocation = await resolveLocationFromBackend(query);
+      insertBtPoleAtLocation(resolvedLocation);
+      setBtPoleCoordinateInput('');
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : 'Formato inválido. Use: -22.9068 -43.1729 ou 23K 635806 7462003.';
+      showToast(message, 'error');
     }
-
-    insertBtPoleAtLocation(parsed);
-    setBtPoleCoordinateInput('');
   };
 
   const handleBtDeletePole = (poleId: string) => {
