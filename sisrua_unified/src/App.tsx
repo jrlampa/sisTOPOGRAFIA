@@ -1,8 +1,8 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { Download, Map as MapIcon, Layers, Search, Loader2, AlertCircle, Settings, Mountain, TrendingUp } from 'lucide-react';
-import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario, BtCqtComputationInputs, BtEdge } from './types';
+import { AnalysisStats, GlobalState, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario, BtCqtComputationInputs, BtEdge } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
-import Toast, { ToastType } from './components/Toast';
+import Toast from './components/Toast';
 import ProgressIndicator from './components/ProgressIndicator';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useOsmEngine } from './hooks/useOsmEngine';
@@ -11,7 +11,8 @@ import { useDxfExport } from './hooks/useDxfExport';
 import { useKmlImport } from './hooks/useKmlImport';
 import { useFileOperations } from './hooks/useFileOperations';
 import { useElevationProfile } from './hooks/useElevationProfile';
-import { useAutoSave, loadSessionDraft, clearSessionDraft } from './hooks/useAutoSave';
+import { useAutoSave } from './hooks/useAutoSave';
+import { useMapState } from './hooks/useMapState';
 import { useBtNavigationState } from './hooks/useBtNavigationState';
 import {
   calculateAccumulatedDemandByPole,
@@ -135,7 +136,7 @@ function App() {
   });
 
   // Derived state
-  const { center, radius, selectionMode, polygon, measurePath, settings } = appState;
+  const { center, radius, selectionMode, polygon, settings } = appState;
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
   const btExportSummary = appState.btExportSummary ?? null;
   const btExportHistory = appState.btExportHistory ?? [];
@@ -276,17 +277,38 @@ function App() {
     setOsmData
   } = useOsmEngine();
 
-  // Toast notifications
-  const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const [sessionDraft, setSessionDraft] = useState<GlobalState | null>(null);
-
   // Auto-save: persist appState to localStorage with debounce
   useAutoSave(appState);
 
-  const showToast = (message: string, type: ToastType) => {
-    setToast({ message, type });
-  };
+  const { profileData: elevationProfileData, loadProfile: loadElevationProfile, clearProfile } = useElevationProfile();
+
+  const {
+    toast,
+    closeToast,
+    showToast,
+    showSettings,
+    openSettings,
+    closeSettings,
+    sessionDraft,
+    handleRestoreSession,
+    handleDismissSession,
+    updateSettings,
+    handleMapClick,
+    handleSelectionModeChange: handleBaseSelectionModeChange,
+    handleMeasurePathChange,
+    handleRadiusChange,
+    handleClearPolygon,
+    handlePolygonChange,
+    isPolygonValid,
+    polygonPoints,
+    measurePathPoints,
+  } = useMapState({
+    appState,
+    setAppState,
+    clearData,
+    loadElevationProfile,
+    clearProfile,
+  });
 
   const {
     btPoleCoordinateInput,
@@ -345,29 +367,6 @@ function App() {
     handleBtSelectedPoleChange,
     handleBtSelectedTransformerChange,
   } = useBtNavigationState({ btTopology, showToast });
-
-  // On mount: check for a recoverable session (only if there's BT topology work)
-  useEffect(() => {
-    const draft = loadSessionDraft();
-    if (draft && (draft.state.btTopology?.poles.length ?? 0) > 0) {
-      setSessionDraft(draft.state);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleRestoreSession = () => {
-    if (sessionDraft) {
-      setAppState(sessionDraft, false);
-      setSessionDraft(null);
-      clearSessionDraft();
-      showToast('Sessão anterior restaurada.', 'success');
-    }
-  };
-
-  const handleDismissSession = () => {
-    setSessionDraft(null);
-    clearSessionDraft();
-  };
 
   // Custom hooks for feature modules
   const { searchQuery, setSearchQuery, isSearching, handleSearch } = useSearch({
@@ -514,31 +513,9 @@ function App() {
     onError: (message) => showToast(message, 'error')
   });
 
-  const { profileData: elevationProfileData, loadProfile: loadElevationProfile, clearProfile } = useElevationProfile();
-
-  const updateSettings = (newSettings: AppSettings) => {
-    setAppState({ ...appState, settings: newSettings }, true);
-  };
-
-  const handleMapClick = (newCenter: GeoLocation) => {
-    setAppState({ ...appState, center: newCenter }, true);
-    clearData();
-  };
-
-  const handleSelectionModeChange = (mode: SelectionMode) => {
+  const handleSelectionModeChange = (mode: typeof selectionMode) => {
     clearPendingBtEdge();
-    setAppState({ ...appState, selectionMode: mode, polygon: [], measurePath: [] }, true);
-  };
-
-  const handleMeasurePathChange = async (path: [number, number][]) => {
-    const geoPath = path.map(p => ({ lat: p[0], lng: p[1] }));
-    setAppState({ ...appState, measurePath: geoPath }, false);
-
-    if (geoPath.length === 2) {
-      await loadElevationProfile(geoPath[0], geoPath[1]);
-    } else {
-      clearProfile();
-    }
+    handleBaseSelectionModeChange(mode);
   };
 
   const handleFetchAndAnalyze = async () => {
@@ -744,18 +721,6 @@ function App() {
     }
   }, []);
 
-  // Helpers
-  const isPolygonValid = (selectionMode === 'polygon' && polygon.length >= 3);
-
-  // Memoized points to prevent unnecessary re-renders of the map
-  const polygonPoints = React.useMemo(() =>
-    polygon.map(p => [p.lat, p.lng] as [number, number]),
-    [polygon]);
-
-  const measurePathPoints = React.useMemo(() =>
-    measurePath.map(p => [p.lat, p.lng] as [number, number]),
-    [measurePath]);
-
   const showDxfProgress = isDownloading || !!jobId;
   const dxfProgressValue = Math.max(0, Math.min(100, Math.round(jobProgress)));
   const dxfProgressLabel = jobStatus === 'queued' || jobStatus === 'waiting'
@@ -771,7 +736,7 @@ function App() {
             key="toast"
             message={toast.message}
             type={toast.type}
-            onClose={() => setToast(null)}
+            onClose={closeToast}
             duration={toast.type === 'error' ? 8000 : 4000}
           />
         )}
@@ -893,15 +858,15 @@ function App() {
             <SettingsModal
               key="settings"
               isOpen={showSettings}
-              onClose={() => setShowSettings(false)}
+              onClose={closeSettings}
               settings={settings}
               onUpdateSettings={updateSettings}
               selectionMode={selectionMode}
               onSelectionModeChange={handleSelectionModeChange}
               radius={radius}
-              onRadiusChange={(r) => setAppState({ ...appState, radius: r }, false)}
+              onRadiusChange={handleRadiusChange}
               polygon={polygon}
-              onClearPolygon={() => setAppState({ ...appState, polygon: [] }, true)}
+              onClearPolygon={handleClearPolygon}
               hasData={!!osmData}
               isDownloading={isDownloading}
               onExportDxf={handleDownloadDxf}
@@ -943,7 +908,7 @@ function App() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setShowSettings(true)}
+            onClick={openSettings}
             className="p-2.5 glass rounded-xl text-slate-300 hover:text-white transition-colors shadow-lg"
           >
             <Settings size={20} />
@@ -1195,7 +1160,7 @@ function App() {
                     value={radius}
                     onMouseDown={saveSnapshot}
                     onTouchStart={saveSnapshot}
-                    onChange={(e) => setAppState({ ...appState, radius: parseInt(e.target.value) }, false)}
+                    onChange={(e) => handleRadiusChange(parseInt(e.target.value, 10))}
                     className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400"
                   />
                   <div className="flex justify-between mt-2 text-[9px] font-bold text-slate-600 uppercase">
@@ -1341,10 +1306,7 @@ function App() {
               onBtDragTransformer={handleBtDragTransformer}
               criticalPoleId={btCriticalPoleId}
               accumulatedByPole={btAccumulatedByPole}
-              onPolygonChange={(points) => {
-                const geoPoints = points.map(p => ({ lat: p[0], lng: p[1] }));
-                setAppState({ ...appState, polygon: geoPoints }, true);
-              }}
+              onPolygonChange={handlePolygonChange}
               measurePath={measurePathPoints}
               onMeasurePathChange={handleMeasurePathChange}
               onKmlDrop={handleKmlDrop}
