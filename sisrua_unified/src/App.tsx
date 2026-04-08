@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Download, Map as MapIcon, Layers, Search, Loader2, AlertCircle, Settings, Mountain, TrendingUp } from 'lucide-react';
+import { Map as MapIcon, Search, Loader2, TrendingUp } from 'lucide-react';
 import { AnalysisStats, GlobalState, BtTopology, BtPoleNode, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
 import Toast from './components/Toast';
@@ -17,23 +17,22 @@ import { useBtNavigationState } from './hooks/useBtNavigationState';
 import { useBtCrudHandlers } from './hooks/useBtCrudHandlers';
 import { useBtDerivedState } from './hooks/useBtDerivedState';
 import {
-  NORMAL_CLIENT_RAMAL_TYPES,
   MAX_BT_EXPORT_HISTORY,
   nextSequentialId,
   EMPTY_BT_TOPOLOGY,
 } from './utils/btNormalization';
 import { buildBtDxfContext } from './utils/btDxfContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AppHeader } from './components/AppHeader';
+import { SidebarBtEditorSection } from './components/SidebarBtEditorSection';
+import { SidebarAnalysisResults } from './components/SidebarAnalysisResults';
+import { BtExportSummaryBanner } from './components/BtExportSummaryBanner';
+import { NormalRamalModal, ClandestinoToNormalModal, NormalToClandestinoModal } from './components/BtModals';
 
 const MapSelector = React.lazy(() => import('./components/MapSelector'));
-const Dashboard = React.lazy(() => import('./components/Dashboard'));
 const SettingsModal = React.lazy(() => import('./components/SettingsModal'));
-const HistoryControls = React.lazy(() => import('./components/HistoryControls'));
-const DxfLegend = React.lazy(() => import('./components/DxfLegend'));
 const FloatingLayerPanel = React.lazy(() => import('./components/FloatingLayerPanel'));
 const ElevationProfile = React.lazy(() => import('./components/ElevationProfile'));
-const BatchUpload = React.lazy(() => import('./components/BatchUpload'));
-const BtTopologyPanel = React.lazy(() => import('./components/BtTopologyPanel'));
 
 
 
@@ -490,76 +489,13 @@ function App() {
         </div>
       )}
 
-      {(latestBtExport || btExportHistory.length > 0) && (
-        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-cyan-500/30 bg-slate-950/95 px-4 py-3 text-xs text-cyan-100 shadow-xl">
-          <div className="flex items-center justify-between gap-4">
-            <div className="font-semibold uppercase tracking-wide text-cyan-300">Resumo BT Exportado</div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={exportBtHistoryJson}
-                className="inline-flex items-center gap-1 rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/10"
-              >
-                <Download size={10} /> JSON
-              </button>
-              <button
-                onClick={exportBtHistoryCsv}
-                className="inline-flex items-center gap-1 rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/10"
-              >
-                <Download size={10} /> CSV
-              </button>
-              <button
-                onClick={clearBtExportHistory}
-                className="rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/10"
-              >
-                Limpar
-              </button>
-            </div>
-          </div>
-
-          {latestBtExport && (
-            <>
-              <div className="mt-1">
-                Ponto crítico: {latestBtExport.criticalPoleId} | CLT acum.: {latestBtExport.criticalAccumulatedClients} | Demanda acum.: {latestBtExport.criticalAccumulatedDemandKva.toFixed(2)}
-              </div>
-              {((latestBtExport.totalPoles ?? 0) > 0 || (latestBtExport.totalEdges ?? 0) > 0 || (latestBtExport.totalTransformers ?? 0) > 0) && (
-                <div className="mt-1 text-cyan-100/90">
-                  Verificação Atual: Postes {latestBtExport.verifiedPoles ?? 0}/{latestBtExport.totalPoles ?? 0} | Condutores {latestBtExport.verifiedEdges ?? 0}/{latestBtExport.totalEdges ?? 0} | Trafos {latestBtExport.verifiedTransformers ?? 0}/{latestBtExport.totalTransformers ?? 0}
-                </div>
-              )}
-              {latestBtExport.cqt && (
-                <div className="mt-1 text-cyan-100/90">
-                  CQT {latestBtExport.cqt.scenario?.toUpperCase() ?? '-'}: DMDI {latestBtExport.cqt.dmdi?.toFixed(3) ?? '-'} | P31 {latestBtExport.cqt.p31?.toFixed(3) ?? '-'} | P32 {latestBtExport.cqt.p32?.toFixed(3) ?? '-'} | K10 {latestBtExport.cqt.k10QtMttr?.toFixed(6) ?? '-'}
-                  {typeof latestBtExport.cqt.parityPassed === 'number' && typeof latestBtExport.cqt.parityFailed === 'number'
-                    ? ` | Paridade ${latestBtExport.cqt.parityPassed} OK / ${latestBtExport.cqt.parityFailed} falhas`
-                    : ''}
-                </div>
-              )}
-              <a
-                href={latestBtExport.btContextUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-block text-cyan-300 underline underline-offset-2 hover:text-cyan-200"
-              >
-                Abrir metadata BT (JSON)
-              </a>
-            </>
-          )}
-
-          {btExportHistory.length > 0 && (
-            <div className="mt-3 border-t border-cyan-500/20 pt-2">
-              <div className="mb-1 font-semibold uppercase tracking-wide text-cyan-300">Histórico (últimas 5 de {btExportHistory.length})</div>
-              {btExportHistory.slice(0, 5).map((entry, index) => (
-                <div key={`${entry.exportedAt}-${entry.criticalPoleId}-${index}`} className="text-[11px] text-cyan-100/90">
-                  {new Date(entry.exportedAt).toLocaleString('pt-BR')} | {entry.projectType.toUpperCase()} | {entry.criticalPoleId} | {entry.criticalAccumulatedDemandKva.toFixed(2)}
-                  {((entry.totalPoles ?? 0) > 0 || (entry.totalEdges ?? 0) > 0 || (entry.totalTransformers ?? 0) > 0)
-                    ? ` | V ${entry.verifiedPoles ?? 0}/${entry.totalPoles ?? 0} P, ${entry.verifiedEdges ?? 0}/${entry.totalEdges ?? 0} A, ${entry.verifiedTransformers ?? 0}/${entry.totalTransformers ?? 0} T`
-                    : ''}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      <BtExportSummaryBanner
+        latestBtExport={latestBtExport}
+        btExportHistory={btExportHistory}
+        exportBtHistoryJson={exportBtHistoryJson}
+        exportBtHistoryCsv={exportBtHistoryCsv}
+        clearBtExportHistory={clearBtExportHistory}
+      />
 
       <AnimatePresence>
         {showSettings && (
@@ -588,42 +524,14 @@ function App() {
       </AnimatePresence>
 
       {/* Premium Header */}
-      <header className={`h-20 border-b flex items-center justify-between px-8 shrink-0 z-30 transition-all ${isDark ? 'border-white/5 bg-[#020617]/80 backdrop-blur-md' : 'border-slate-200 bg-white/80 backdrop-blur-md'}`}>
-        <div className="flex items-center gap-4">
-          <motion.div
-            whileHover={{ rotate: 180 }}
-            className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20"
-          >
-            <Layers size={22} className="text-white" />
-          </motion.div>
-          <div>
-            <h1 className="text-xl font-black tracking-tighter text-white flex items-center gap-2">
-              SIS RUA <span className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-[10px] font-mono border border-blue-500/20">UNIFIED</span>
-            </h1>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em]">Análise Geo Avançada</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-6">
-          <Suspense fallback={<InlineSuspenseFallback label="Carregando histórico" />}>
-            <HistoryControls
-              canUndo={canUndo}
-              canRedo={canRedo}
-              onUndo={undo}
-              onRedo={redo}
-            />
-          </Suspense>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={openSettings}
-            className="p-2.5 glass rounded-xl text-slate-300 hover:text-white transition-colors shadow-lg"
-          >
-            <Settings size={20} />
-          </motion.button>
-        </div>
-      </header>
+      <AppHeader
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
+        onOpenSettings={openSettings}
+        isDark={isDark}
+      />
 
       {/* Main Content Area */}
       <main className="flex-1 flex overflow-hidden relative">
@@ -684,138 +592,32 @@ function App() {
 
           <div className="h-px bg-white/5 mx-2"></div>
 
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Editor BT</label>
-              <span className="text-[9px] text-slate-500 uppercase">{(settings.projectType ?? 'ramais').toUpperCase()} / {btNetworkScenario === 'asis' ? 'ATUAL' : 'PROJETO'}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => updateSettings({ ...settings, btNetworkScenario: 'asis', btEditorMode: 'none' })}
-                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btNetworkScenario === 'asis' ? 'bg-cyan-700 text-white border-cyan-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
-              >
-                REDE ATUAL
-              </button>
-              <button
-                onClick={() => updateSettings({ ...settings, btNetworkScenario: 'projeto' })}
-                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btNetworkScenario === 'projeto' ? 'bg-indigo-700 text-white border-indigo-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
-              >
-                REDE NOVA
-              </button>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => updateSettings({ ...settings, btEditorMode: 'none' })}
-                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'none' ? 'bg-slate-800 text-slate-100 border-white/10' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
-              >
-                NAVEGAR
-              </button>
-              <button
-                onClick={() => updateSettings({ ...settings, btEditorMode: 'move-pole' })}
-                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'move-pole' ? 'bg-amber-600 text-white border-amber-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
-              >
-                MOVER
-              </button>
-              <button
-                onClick={() => updateSettings({ ...settings, btEditorMode: 'add-pole' })}
-                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-pole' ? 'bg-blue-600 text-white border-blue-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
-              >
-                + POSTE
-              </button>
-              <button
-                onClick={() => {
-                  clearPendingBtEdge();
-                  updateSettings({ ...settings, btEditorMode: 'add-edge' });
-                }}
-                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-edge' ? 'bg-emerald-600 text-white border-emerald-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
-              >
-                + CONDUTOR
-              </button>
-              <button
-                onClick={() => updateSettings({ ...settings, btEditorMode: 'add-transformer' })}
-                className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === 'add-transformer' ? 'bg-violet-600 text-white border-violet-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
-              >
-                + TRAFO
-              </button>
-            </div>
-            {btEditorMode === 'add-pole' && (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleBtInsertPoleByCoordinates();
-                }}
-                className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2 space-y-2"
-              >
-                <div className="text-[10px] font-semibold text-blue-200">Inserir poste por coordenadas</div>
-                <input
-                  type="text"
-                  value={btPoleCoordinateInput}
-                  onChange={(e) => setBtPoleCoordinateInput(e.target.value)}
-                  placeholder="-22.9068 -43.1729 ou 23K 635806 7462003"
-                  aria-label="Coordenadas do poste"
-                  className="w-full rounded border border-blue-500/40 bg-slate-900 p-2 text-[11px] text-blue-100 placeholder:text-slate-500"
-                />
-                <button
-                  type="submit"
-                  className="w-full rounded border border-blue-500 bg-blue-600 px-2 py-1.5 text-[10px] font-bold text-white hover:bg-blue-500"
-                >
-                  INSERIR POR COORDENADA
-                </button>
-              </form>
-            )}
-            {btEditorMode === 'move-pole' && (
-              <div className="rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-xs font-medium leading-snug text-amber-900 shadow-sm">
-                <div>Arraste fino de poste:</div>
-                <div>Clique e segure no poste para ajustar a posicao no mapa.</div>
-              </div>
-            )}
-            {btNetworkScenario === 'asis' && (
-              <div className="text-[10px] text-cyan-900 bg-cyan-50 border border-cyan-300 rounded-lg p-2">
-                Rede Atual ativa: você pode navegar e lançar poste, condutor e trafo na topologia existente.
-              </div>
-            )}
-            {settings.projectType === 'clandestino' && (
-              <div className="text-[10px] text-amber-300 bg-amber-900/20 border border-amber-500/20 rounded-lg p-2">
-                Área clandestina: {settings.clandestinoAreaM2 ?? 0} m²
-              </div>
-            )}
-            {settings.projectType !== 'clandestino' && pendingNormalClassificationPoles.length > 0 && (
-              <div className="text-[10px] text-rose-300 bg-rose-900/20 border border-rose-500/30 rounded-lg p-2">
-                Classificação pendente em {pendingNormalClassificationPoles.length} poste(s). DXF bloqueado até classificar.
-              </div>
-            )}
-            <button
-              onClick={handleResetBtTopology}
-              className="w-full text-[10px] font-bold py-2 rounded-lg border border-rose-500/40 text-rose-300 hover:bg-rose-500/10 transition-all"
-              title="Remover toda a topologia BT"
-            >
-              ZERAR BT (LIMPAR TUDO)
-            </button>
-          </div>
-
-          <div className="h-px bg-white/5 mx-2"></div>
-
-          <Suspense fallback={<InlineSuspenseFallback label="Carregando painel BT" />}>
-            <BtTopologyPanel
-              btTopology={btTopology}
-              projectType={settings.projectType ?? 'ramais'}
-              btNetworkScenario={btNetworkScenario}
-              clandestinoAreaM2={settings.clandestinoAreaM2 ?? 0}
-              transformerDebugById={btTransformerDebugById}
-              onTopologyChange={updateBtTopology}
-              onSelectedPoleChange={handleBtSelectedPoleChange}
-              onSelectedTransformerChange={handleBtSelectedTransformerChange}
-              onSelectedEdgeChange={handleBtSelectedEdgeChange}
-              onProjectTypeChange={updateProjectType}
-              onClandestinoAreaChange={updateClandestinoAreaM2}
-              onBtRenamePole={handleBtRenamePole}
-              onBtRenameTransformer={handleBtRenameTransformer}
-              onBtSetEdgeChangeFlag={handleBtSetEdgeChangeFlag}
-              onBtSetPoleChangeFlag={handleBtSetPoleChangeFlag}
-              onBtTogglePoleCircuitBreak={handleBtTogglePoleCircuitBreak}
-              onBtSetTransformerChangeFlag={handleBtSetTransformerChangeFlag}
-            />
-          </Suspense>
+          <SidebarBtEditorSection
+            settings={settings}
+            updateSettings={updateSettings}
+            btNetworkScenario={btNetworkScenario}
+            btEditorMode={btEditorMode}
+            btTopology={btTopology}
+            btTransformerDebugById={btTransformerDebugById}
+            btPoleCoordinateInput={btPoleCoordinateInput}
+            setBtPoleCoordinateInput={setBtPoleCoordinateInput}
+            handleBtInsertPoleByCoordinates={handleBtInsertPoleByCoordinates}
+            clearPendingBtEdge={clearPendingBtEdge}
+            pendingNormalClassificationPoles={pendingNormalClassificationPoles}
+            handleResetBtTopology={handleResetBtTopology}
+            updateBtTopology={updateBtTopology}
+            updateProjectType={updateProjectType}
+            updateClandestinoAreaM2={updateClandestinoAreaM2}
+            handleBtSelectedPoleChange={handleBtSelectedPoleChange}
+            handleBtSelectedTransformerChange={handleBtSelectedTransformerChange}
+            handleBtSelectedEdgeChange={handleBtSelectedEdgeChange}
+            handleBtRenamePole={handleBtRenamePole}
+            handleBtRenameTransformer={handleBtRenameTransformer}
+            handleBtSetEdgeChangeFlag={handleBtSetEdgeChangeFlag}
+            handleBtSetPoleChangeFlag={handleBtSetPoleChangeFlag}
+            handleBtTogglePoleCircuitBreak={handleBtTogglePoleCircuitBreak}
+            handleBtSetTransformerChangeFlag={handleBtSetTransformerChangeFlag}
+          />
 
           {/* Control Section */}
           <div className="space-y-6">
@@ -912,71 +714,16 @@ function App() {
           </div>
 
           {/* Error Display */}
-          <AnimatePresence>
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl flex items-start gap-3 text-rose-400 text-sm overflow-hidden"
-              >
-                <AlertCircle size={18} className="mt-0.5 shrink-0" />
-                <p className="font-medium">{error}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Analysis Results */}
-          <AnimatePresence>
-            {osmData && stats && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col gap-6 mt-auto overflow-visible"
-              >
-                <div className="h-px bg-white/5 mx-2"></div>
-                <Suspense fallback={<InlineSuspenseFallback label="Carregando análise" />}>
-                  <Dashboard stats={stats} analysisText={analysisText} />
-                </Suspense>
-
-                <Suspense fallback={<InlineSuspenseFallback label="Carregando legenda DXF" />}>
-                  <DxfLegend />
-                </Suspense>
-
-                <Suspense fallback={<InlineSuspenseFallback label="Carregando importação em lote" />}>
-                  <BatchUpload
-                    onError={(message) => showToast(message, 'error')}
-                    onInfo={(message) => showToast(message, 'info')}
-                  />
-                </Suspense>
-
-                <div className="flex items-center gap-3 p-4 glass rounded-2xl">
-                  <div className={`p-2 rounded-lg ${terrainData ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-800 text-slate-600'}`}>
-                    <Mountain size={18} />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">MOTOR DE TERRENO</span>
-                    <span className="text-xs font-bold text-slate-200">{terrainData ? 'Grade de Alta Resolução Carregada' : 'Grade Pendente...'}</span>
-                  </div>
-                </div>
-
-                <motion.button
-                  whileHover={{ scale: 1.02, x: 5 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleDownloadDxf}
-                  disabled={isDownloading}
-                  className="group w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl flex items-center justify-center gap-3 font-black text-xs tracking-widest uppercase shadow-xl shadow-emerald-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isDownloading ? <Loader2 className="animate-spin" size={18} /> : (
-                    <div className="p-1 rounded bg-white/10 group-hover:animate-bounce">
-                      <Download size={18} />
-                    </div>
-                  )}
-                  {isDownloading ? 'GERANDO...' : 'BAIXAR DXF'}
-                </motion.button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <SidebarAnalysisResults
+            osmData={osmData}
+            stats={stats}
+            analysisText={analysisText}
+            terrainData={terrainData}
+            error={error}
+            handleDownloadDxf={handleDownloadDxf}
+            isDownloading={isDownloading}
+            showToast={showToast}
+          />
         </motion.aside>
 
         {/* Map Viewport */}
@@ -1044,178 +791,23 @@ function App() {
             )}
           </AnimatePresence>
 
-          <AnimatePresence>
-            {normalRamalModal && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[980] flex items-center justify-center bg-black/40 p-4"
-              >
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                  className="w-full max-w-sm rounded-xl border border-slate-300 bg-white p-4 shadow-2xl"
-                >
-                  <div className="text-sm font-semibold text-slate-800">Ramal do cliente</div>
-                  <div className="mt-1 text-xs text-slate-500">{normalRamalModal.poleTitle}</div>
-
-                  <div className="mt-3 space-y-2">
-                    <label className="text-xs text-slate-600 block">Tipo de ramal</label>
-                    <select
-                      aria-label="Tipo de ramal"
-                      value={normalRamalModal.ramalType}
-                      onChange={(e) => setNormalRamalModal({ ...normalRamalModal, ramalType: e.target.value })}
-                      className="w-full rounded border border-slate-300 bg-white p-2 text-sm text-slate-800"
-                    >
-                      {NORMAL_CLIENT_RAMAL_TYPES.map((type) => (
-                        <option key={type} value={type}>{type}</option>
-                      ))}
-                    </select>
-
-                    <label className="text-xs text-slate-600 block">Quantidade</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      aria-label="Quantidade de ramais"
-                      value={normalRamalModal.quantity === 0 ? '' : String(normalRamalModal.quantity)}
-                      onFocus={(e) => e.target.select()}
-                      onClick={(e) => e.currentTarget.select()}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/[^0-9]/g, '');
-                        const n = parseInt(raw, 10);
-                        setNormalRamalModal({ ...normalRamalModal, quantity: Number.isFinite(n) && n > 0 ? n : 0 });
-                      }}
-                      className="w-full rounded border border-slate-300 bg-white p-2 text-sm text-slate-800"
-                    />
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-end gap-2">
-                    <button
-                      onClick={() => setNormalRamalModal(null)}
-                      className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={handleConfirmNormalRamalModal}
-                      className="rounded border border-blue-500 bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500"
-                    >
-                      Adicionar
-                    </button>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <AnimatePresence>
-            {clandestinoToNormalModal && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[985] flex items-center justify-center bg-black/50 p-4"
-              >
-                <motion.div
-                  initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 12, scale: 0.98 }}
-                  className="w-full max-w-2xl rounded-xl border border-amber-300 bg-white p-5 shadow-2xl"
-                >
-                  <div className="text-base font-semibold text-slate-900">Atenção: mudança Clandestino → Normal</div>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Identifique os tipos de ramal dos postes abaixo para cálculo normal. Você pode migrar tudo agora como Monofásico ou fazer depois.
-                  </p>
-
-                  <div className="mt-3 max-h-60 overflow-y-auto rounded-lg border border-slate-200">
-                    <table className="w-full text-left text-xs">
-                      <thead className="sticky top-0 bg-slate-50 text-slate-600">
-                        <tr>
-                          <th className="px-3 py-2 font-semibold">Poste</th>
-                          <th className="px-3 py-2 font-semibold">Clientes clandestinos</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {clandestinoToNormalModal.poles.map((entry) => (
-                          <tr key={entry.poleId} className="border-t border-slate-100">
-                            <td className="px-3 py-2 text-slate-800">{entry.poleTitle}</td>
-                            <td className="px-3 py-2 text-slate-700">{entry.clandestinoClients}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-                    <button
-                      onClick={() => setClandestinoToNormalModal(null)}
-                      className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={handleClandestinoToNormalClassifyLater}
-                      className="rounded border border-amber-500 bg-amber-500 px-3 py-1.5 text-xs text-white hover:bg-amber-400"
-                    >
-                      Fazer Depois (Bloquear DXF)
-                    </button>
-                    <button
-                      onClick={handleClandestinoToNormalConvertNow}
-                      className="rounded border border-blue-500 bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500"
-                    >
-                      Migrar Agora como Monofásico
-                    </button>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <AnimatePresence>
-            {normalToClandestinoModal && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[985] flex items-center justify-center bg-black/50 p-4"
-              >
-                <motion.div
-                  initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 12, scale: 0.98 }}
-                  className="w-full max-w-lg rounded-xl border border-slate-300 bg-white p-5 shadow-2xl"
-                >
-                  <div className="text-base font-semibold text-slate-900">Mudança Normal → Clandestino</div>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Há {normalToClandestinoModal.totalNormalClients} cliente(s) normal(is) cadastrados. Deseja manter para possível retorno ou zerar somente os normais?
-                  </p>
-
-                  <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-                    <button
-                      onClick={() => setNormalToClandestinoModal(null)}
-                      className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={handleNormalToClandestinoKeepClients}
-                      className="rounded border border-indigo-500 bg-indigo-600 px-3 py-1.5 text-xs text-white hover:bg-indigo-500"
-                    >
-                      Manter Clientes
-                    </button>
-                    <button
-                      onClick={handleNormalToClandestinoZeroNormalClients}
-                      className="rounded border border-rose-500 bg-rose-600 px-3 py-1.5 text-xs text-white hover:bg-rose-500"
-                    >
-                      Zerar Só Normais
-                    </button>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <NormalRamalModal
+            modal={normalRamalModal}
+            setModal={setNormalRamalModal}
+            onConfirm={handleConfirmNormalRamalModal}
+          />
+          <ClandestinoToNormalModal
+            modal={clandestinoToNormalModal}
+            setModal={setClandestinoToNormalModal}
+            onClassifyLater={handleClandestinoToNormalClassifyLater}
+            onConvertNow={handleClandestinoToNormalConvertNow}
+          />
+          <NormalToClandestinoModal
+            modal={normalToClandestinoModal}
+            setModal={setNormalToClandestinoModal}
+            onKeepClients={handleNormalToClandestinoKeepClients}
+            onZeroNormalClients={handleNormalToClandestinoZeroNormalClients}
+          />
         </div>
       </main>
     </div>
