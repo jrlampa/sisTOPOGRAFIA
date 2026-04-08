@@ -27,7 +27,7 @@ import { AppHeader } from './components/AppHeader';
 import { SidebarBtEditorSection } from './components/SidebarBtEditorSection';
 import { SidebarAnalysisResults } from './components/SidebarAnalysisResults';
 import { BtExportSummaryBanner } from './components/BtExportSummaryBanner';
-import { NormalRamalModal, ClandestinoToNormalModal, NormalToClandestinoModal } from './components/BtModals';
+import { NormalRamalModal, ClandestinoToNormalModal, NormalToClandestinoModal, ResetBtTopologyModal } from './components/BtModals';
 
 const MapSelector = React.lazy(() => import('./components/MapSelector'));
 const SettingsModal = React.lazy(() => import('./components/SettingsModal'));
@@ -213,6 +213,9 @@ function App() {
     handleBtQuickRemoveEdgeConductor,
     handleConfirmNormalRamalModal,
     handleResetBtTopology,
+    resetConfirmOpen,
+    setResetConfirmOpen,
+    handleConfirmResetBtTopology,
     clearBtExportHistory,
     exportBtHistoryJson,
     exportBtHistoryCsv,
@@ -807,6 +810,11 @@ function App() {
             setModal={setNormalToClandestinoModal}
             onKeepClients={handleNormalToClandestinoKeepClients}
             onZeroNormalClients={handleNormalToClandestinoZeroNormalClients}
+          />
+          <ResetBtTopologyModal
+            open={resetConfirmOpen}
+            onConfirm={handleConfirmResetBtTopology}
+            onCancel={() => setResetConfirmOpen(false)}
           />
         </div>
       </main>

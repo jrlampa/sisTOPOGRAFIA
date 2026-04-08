@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GlobalState } from '../types';
 import {
   calculateAccumulatedDemandByPole,
@@ -18,6 +18,11 @@ interface UseBtDerivedStateParams {
 
 export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStateParams) {
   const [, setClandestinoRulesVersion] = useState(0);
+
+  // Keep a ref so the transformer-sync effect always spreads the latest appState
+  // without needing it as a reactive dependency (avoids firing on every state change).
+  const appStateRef = useRef(appState);
+  appStateRef.current = appState;
 
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
   const settings = appState.settings;
@@ -140,7 +145,7 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
 
     setAppState(
       {
-        ...appState,
+        ...appStateRef.current,
         btTopology: {
           ...btTopology,
           transformers: nextTransformers,
@@ -148,7 +153,7 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
       },
       false
     );
-  }, [appState, btEstimatedByTransformer, btTopology, setAppState, settings.btTransformerCalculationMode]);
+  }, [btEstimatedByTransformer, btTopology, setAppState, settings.btTransformerCalculationMode]);
 
   return {
     btAccumulatedByPole,

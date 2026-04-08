@@ -219,3 +219,52 @@ export function NormalToClandestinoModal({ modal, setModal, onKeepClients, onZer
     </AnimatePresence>
   );
 }
+
+// ── ResetBtTopologyModal ──────────────────────────────────────────────────────
+
+interface ResetBtTopologyModalProps {
+  open: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+export function ResetBtTopologyModal({ open, onConfirm, onCancel }: ResetBtTopologyModalProps) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[990] flex items-center justify-center bg-black/50 p-4"
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            className="w-full max-w-sm rounded-xl border border-rose-400 bg-white p-5 shadow-2xl"
+          >
+            <div className="text-base font-semibold text-slate-900">Zerar topologia BT?</div>
+            <p className="mt-1 text-sm text-slate-600">
+              Isso removerá todos os postes, condutores, trafos e todo o histórico BT. A ação não pode ser desfeita.
+            </p>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                onClick={onCancel}
+                className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={onConfirm}
+                className="rounded border border-rose-500 bg-rose-600 px-3 py-1.5 text-xs text-white hover:bg-rose-500"
+              >
+                Zerar
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

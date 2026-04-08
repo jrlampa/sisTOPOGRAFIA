@@ -128,6 +128,7 @@ export function useBtCrudHandlers({ appState, setAppState, showToast }: Params) 
     ramalType: string;
     quantity: number;
   } | null>(null);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
   // ── Private helpers ───────────────────────────────────────────────────────
 
@@ -934,13 +935,11 @@ export function useBtCrudHandlers({ appState, setAppState, showToast }: Params) 
       return;
     }
 
-    const confirmed = window.confirm(
-      'Zerar toda a topologia BT? Isso removerá postes, condutores, trafos e histórico BT.'
-    );
-    if (!confirmed) {
-      return;
-    }
+    setResetConfirmOpen(true);
+  };
 
+  const handleConfirmResetBtTopology = () => {
+    setResetConfirmOpen(false);
     setPendingBtEdgeStartPoleId(null);
     setPendingNormalClassificationPoles([]);
     setClandestinoToNormalModal(null);
@@ -1206,6 +1205,9 @@ export function useBtCrudHandlers({ appState, setAppState, showToast }: Params) 
     handleBtQuickRemoveEdgeConductor,
     handleConfirmNormalRamalModal,
     handleResetBtTopology,
+    resetConfirmOpen,
+    setResetConfirmOpen,
+    handleConfirmResetBtTopology,
     clearBtExportHistory,
     exportBtHistoryJson,
     exportBtHistoryCsv,
