@@ -1,6 +1,6 @@
 # Audit Checklist Completo - 30 itens
 
-## ✅ JÁ IMPLEMENTADO (10 itens)
+## ✅ JÁ IMPLEMENTADO (17 itens)
 
 | # | Item | Arquivo | Status | Prioridade | Commit |
 |---|------|---------|--------|------------|--------|
@@ -14,22 +14,24 @@
 | 4 | Verificação de Integridade em Autosave | `useAutoSave.ts:37-52` | ✅ | P1 | `76c137d` |
 | 24 | CORS Permissivo Demais | `server/index.ts:96-113` | ✅ | P1 | `76c137d` |
 | 25 | Importação com @ts-ignore | `MapSelector.tsx:38-50` | ✅ | P0 | `bd3ce06` |
+| **16** | **Constantes Mágicas Não Tipadas** | **magicNumbers.ts (novo)** | **✅** | **P1** | **0fee0e2** |
+| **14** | **Tipos `any` Não Justificados** | **MapSelector.tsx interface** | **✅** | **P1** | **0fee0e2** |
+| **13** | **Ausência de Debounce em Coordenadas** | **SidebarBtEditorSection.tsx** | **✅** | **P1** | **0fee0e2** |
+| **1** | **Mutabilidade do Estado Global** | **immutability.ts (novo)** | **✅** | **P1** | **0fee0e2** |
+| **18** | **Tratamento de Erro Genérico** | **errorHandler.ts (novo)** | **✅** | **P1** | **380cf6a** |
+| **17** | **Risco de XSS em downloadBlob** | **downloads.ts (novo)** | **✅** | **P1** | **380cf6a** |
+| **8** | **Verificação de Tipo Runtime Insuficiente** | **validation.ts integrado** | **✅** | **P1** | **380cf6a** |
 
 ---
 
-## 🔲 AINDA NÃO FEITO (20 itens)
+## 🔲 AINDA NÃO FEITO (13 itens)
 
-### P1 - High Priority
+### P1 - High Priority (RESTAM: 2)
 
 | # | Item | Arquivo | Prioridade | Risco | Esforço |
 |---|------|---------|------------|-------|---------|
-| 1 | Mutabilidade do Estado Global | `App.tsx:381-384`, `useMapState.ts:68-104` | P1 | Médio: Re-renders desnecessários | Médio |
-| 13 | Ausência de Debounce em Coordenadas | `App.tsx:750-764` | P1 | Médio: Spam de eventos | Baixo |
-| 14 | Tipos `any` Não Justificados | `MapSelector.tsx:138-152` | P1 | Médio: Perda de type safety | Baixo |
 | 15 | Lógica de Negócio Misturada com UI | `useBtCrudHandlers.ts` (1222 linhas) | P1 | Alto: Violação SRP | Alto |
-| 16 | Constantes Mágicas Não Tipadas | `useBtCrudHandlers.ts:733` | P1 | Baixo: Manutenibilidade | Baixo |
-| 17 | Risco de XSS em downloadBlob | `useBtCrudHandlers.ts:48-58` | P1 | Médio: Segurança | Médio |
-| 18 | Tratamento de Erro Genérico | `server/index.ts:169-172` | P1 | Médio: Debugging difícil | Médio |
+| 6 | Prop Drilling Excessivo | `App.tsx:1000-1030` | P1 | Médio: Acoplamento alto | Alto |
 
 ### P2 - Medium Priority
 
@@ -76,8 +78,8 @@
 
 ## Estatísticas
 - **Total**: 30 itens
-- **Concluído**: 10 (33%) ✅
-- **Restante**: 20 (67%) 🔲
-  - P1: 7 itens
-  - P2: 4 itens  
-  - P3: 9 itens
+- **Concluído**: 17 (57%) ✅
+- **Restante**: 13 (43%) 🔲
+  - P1: 2 itens (ambos refatoração complexa)
+  - P2: 4 itens
+  - P3: 7 itens
