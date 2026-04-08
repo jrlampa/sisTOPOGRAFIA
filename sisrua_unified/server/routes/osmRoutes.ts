@@ -3,6 +3,50 @@ import { logger } from '../utils/logger.js';
 
 const router = Router();
 
+// ---------------------------------------------------------------------------
+// Stats computation (mirrors the former client-side calculateStats)
+// ---------------------------------------------------------------------------
+interface OsmStats {
+  totalBuildings: number;
+  totalRoads: number;
+  totalNature: number;
+  avgHeight: number;
+  maxHeight: number;
+}
+
+function computeOsmStats(elements: any[]): OsmStats {
+  let buildings = 0;
+  let roads = 0;
+  let nature = 0;
+  let totalHeight = 0;
+  let heightCount = 0;
+  let maxHeight = 0;
+
+  for (const el of elements) {
+    if (el.tags?.building) buildings++;
+    if (el.tags?.highway) roads++;
+    if (el.tags?.natural || el.tags?.landuse) nature++;
+
+    let h = 0;
+    if (el.tags?.height) h = parseFloat(el.tags.height);
+    else if (el.tags?.['building:levels']) h = parseFloat(el.tags['building:levels']) * 3.2;
+
+    if (h > 0) {
+      totalHeight += h;
+      heightCount++;
+      if (h > maxHeight) maxHeight = h;
+    }
+  }
+
+  return {
+    totalBuildings: buildings,
+    totalRoads: roads,
+    totalNature: nature,
+    avgHeight: heightCount > 0 ? totalHeight / heightCount : 0,
+    maxHeight,
+  };
+}
+
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
@@ -89,7 +133,8 @@ router.post('/', async (req: Request, res: Response) => {
       }
 
       const data = await response.json();
-      return res.json(data);
+      const stats = computeOsmStats(data.elements ?? []);
+      return res.json({ ...data, _stats: stats });
     } catch (error) {
       lastError = error;
       const message = error instanceof Error ? error.message : String(error);
@@ -106,7 +151,8 @@ router.post('/', async (req: Request, res: Response) => {
 
   // Resilient fallback so "ANALISE REGIÃO" keeps working even when Overpass is down.
   const mock = buildMockOverpassPayload(lat, lng, radius);
-  return res.status(200).json({ ...mock, _fallback: true });
+  const fallbackStats = computeOsmStats(mock.elements ?? []);
+  return res.status(200).json({ ...mock, _fallback: true, _stats: fallbackStats });
 });
 
 router.post('/mock', async (req: Request, res: Response) => {

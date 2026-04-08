@@ -2,7 +2,20 @@ import { OverpassResponse, OsmElement } from '../types';
 import Logger from '../utils/logger';
 import { API_BASE_URL } from '../config/api';
 
-export const fetchOsmData = async (lat: number, lng: number, radius: number): Promise<OsmElement[]> => {
+export interface OsmStats {
+  totalBuildings: number;
+  totalRoads: number;
+  totalNature: number;
+  avgHeight: number;
+  maxHeight: number;
+}
+
+export interface OsmFetchResult {
+  elements: OsmElement[];
+  stats: OsmStats | null;
+}
+
+export const fetchOsmData = async (lat: number, lng: number, radius: number): Promise<OsmFetchResult> => {
   try {
     Logger.debug(`Fetching OSM data for lat: ${lat}, lng: ${lng}, radius: ${radius}m`);
     const response = await fetch(`${API_BASE_URL}/osm`, {
@@ -20,7 +33,8 @@ export const fetchOsmData = async (lat: number, lng: number, radius: number): Pr
 
     const data: OverpassResponse = await response.json();
     Logger.info(`Fetched ${data.elements.length} OSM elements`);
-    return data.elements;
+    const stats = (data as any)._stats as OsmStats | undefined;
+    return { elements: data.elements, stats: stats ?? null };
   } catch (error) {
     Logger.error("Failed to fetch OSM data", error);
    Logger.info("Falling back to mock OSM data for testing");
@@ -33,7 +47,8 @@ export const fetchOsmData = async (lat: number, lng: number, radius: number): Pr
      if (mockResponse.ok) {
        const mockData: OverpassResponse = await mockResponse.json();
        Logger.info(`Using mock data with ${mockData.elements.length} elements`);
-       return mockData.elements;
+      const mockStats = (mockData as any)._stats as OsmStats | undefined;
+      return { elements: mockData.elements, stats: mockStats ?? null };
      }
    } catch (mockError) {
      Logger.error("Mock fallback also failed", mockError);

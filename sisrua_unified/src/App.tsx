@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Map as MapIcon, Search, Loader2, TrendingUp } from 'lucide-react';
-import { AnalysisStats, GlobalState, BtTopology, BtPoleNode, BtEditorMode, BtNetworkScenario } from './types';
+import { GlobalState, BtEditorMode, BtNetworkScenario } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
 import Toast from './components/Toast';
 import ProgressIndicator from './components/ProgressIndicator';
@@ -115,7 +115,6 @@ function App() {
 
   const {
     btAccumulatedByPole,
-    btEstimatedByTransformer,
     btTransformerDebugById,
     btCriticalPoleId,
   } = useBtDerivedState({ appState, setAppState });
@@ -132,7 +131,6 @@ function App() {
     error,
     runAnalysis,
     clearData,
-    setOsmData
   } = useOsmEngine();
 
   // Auto-save: persist appState to localStorage with debounce

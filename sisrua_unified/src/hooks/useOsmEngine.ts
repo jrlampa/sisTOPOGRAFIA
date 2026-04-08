@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { OsmElement, AnalysisStats, TerrainGrid, GeoLocation } from '../types';
 import { fetchOsmData } from '../services/osmService';
 import { fetchElevationGrid } from '../services/elevationService';
-import { calculateStats } from '../services/dxfService';
 import { analyzeArea } from '../services/geminiService';
 
 export function useOsmEngine() {
@@ -24,7 +23,7 @@ export function useOsmEngine() {
         try {
             // 1. Fetch OSM Data
             setStatusMessage('Scanning OSM Infrastructure...');
-            const data = await fetchOsmData(center.lat, center.lng, radius);
+            const { elements: data, stats: backendStats } = await fetchOsmData(center.lat, center.lng, radius);
             if (data.length === 0) {
                 throw new Error("No architectural data found in this radius.");
             }
@@ -37,16 +36,16 @@ export function useOsmEngine() {
             setTerrainData(terrain);
             setProgressValue(70);
 
-            // 3. Calculate Stats authoritative on backend logic?
-            // For now, client-side helper is fine, but we use the service
-            const calculatedStats = calculateStats(data);
+            // 3. Use stats pre-computed by the backend; cast is safe because
+            //    AnalysisStats and OsmStats share the same shape.
+            const calculatedStats = backendStats as AnalysisStats | null;
             setStats(calculatedStats);
             setProgressValue(85);
 
             // 4. Get analysis narrative
             if (enableAI) {
                 setStatusMessage('Generating analysis summary...');
-                const text = await analyzeArea(calculatedStats, center.label || "selected area", true);
+                const text = await analyzeArea(calculatedStats ?? {}, center.label || "selected area", true);
                 setAnalysisText(text);
             } else {
                 setAnalysisText("Analysis summary disabled.");
