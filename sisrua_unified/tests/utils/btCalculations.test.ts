@@ -64,9 +64,14 @@ describe('calculateTransformerDemandKw', () => {
     expect(calculateTransformerDemandKw([])).toBe(0);
   });
 
-  it('returns energy divided by 720 hours reference', () => {
-    // 720 BRL / 1.0 BRL/kWh = 720 kWh / 720 = 1.0 kW
-    expect(calculateTransformerDemandKw([makeReading(720, 1.0)])).toBe(1.0);
+  it('uses CORRENTE_MAX * 0.375 * FATOR_TEMPERATURA and picks highest corrected reading', () => {
+    const readings: BtTransformerReading[] = [
+      { id: 'r1', currentMaxA: 10, temperatureFactor: 1.2 },
+      { id: 'r2', currentMaxA: 12, temperatureFactor: 1.0 }
+    ];
+
+    // r1 = 10 * 0.375 * 1.2 = 4.5; r2 = 12 * 0.375 * 1.0 = 4.5
+    expect(calculateTransformerDemandKw(readings)).toBe(4.5);
   });
 });
 
@@ -157,14 +162,14 @@ describe('calculateClandestinoDemandKvaByAreaAndClients', () => {
 // ---------------------------------------------------------------------------
 
 describe('calculatePointDemandKva', () => {
-  it('returns transformerDemandKw for ramais project type', () => {
+  it('returns RAMAL DMDI for normal mode (AA24 / SUM(X))', () => {
     const result = calculatePointDemandKva({
       projectType: 'ramais',
-      transformerDemandKw: 7.5,
+      transformerDemandKw: 12,
       clandestinoAreaM2: 0,
-      clandestinoClients: 0
+      clandestinoClients: 4
     });
-    expect(result).toBe(7.5);
+    expect(result).toBe(3);
   });
 
   it('uses clandestino area/client lookup for clandestino project type', () => {
@@ -257,12 +262,12 @@ describe('calculateAccumulatedDemandByPole', () => {
     const topology: BtTopology = {
       poles: [
         { id: 'P1', lat: 0, lng: 0, title: 'P1' },
-        { id: 'P2', lat: 0, lng: 0, title: 'P2' },
-        { id: 'P3', lat: 0, lng: 0, title: 'P3' },
-        { id: 'P4', lat: 0, lng: 0, title: 'P4' }
+        { id: 'P2', lat: 0, lng: 0, title: 'P2', ramais: [{ id: 'r1', quantity: 3, ramalType: '5 CC' }] },
+        { id: 'P3', lat: 0, lng: 0, title: 'P3', ramais: [{ id: 'r2', quantity: 5, ramalType: '5 CC' }] },
+        { id: 'P4', lat: 0, lng: 0, title: 'P4', ramais: [{ id: 'r3', quantity: 2, ramalType: '5 CC' }] }
       ],
       transformers: [
-        { id: 'T1', lat: 0, lng: 0, title: 'T1', monthlyBillBrl: 0, demandKw: 10.0, readings: [] }
+        { id: 'T1', poleId: 'P1', lat: 0, lng: 0, title: 'T1', monthlyBillBrl: 0, demandKw: 10.0, readings: [] }
       ],
       edges: [
         {
@@ -299,11 +304,11 @@ describe('calculateAccumulatedDemandByPole', () => {
     const topology: BtTopology = {
       poles: [
         { id: 'P1', lat: 0, lng: 0, title: 'P1' },
-        { id: 'P2', lat: 0, lng: 0, title: 'P2' },
-        { id: 'P3', lat: 0, lng: 0, title: 'P3' }
+        { id: 'P2', lat: 0, lng: 0, title: 'P2', ramais: [{ id: 'r4', quantity: 3, ramalType: '5 CC' }] },
+        { id: 'P3', lat: 0, lng: 0, title: 'P3', ramais: [{ id: 'r5', quantity: 2, ramalType: '5 CC' }] }
       ],
       transformers: [
-        { id: 'T1', lat: 0, lng: 0, title: 'T1', monthlyBillBrl: 0, demandKw: 5.0, readings: [] }
+        { id: 'T1', poleId: 'P1', lat: 0, lng: 0, title: 'T1', monthlyBillBrl: 0, demandKw: 5.0, readings: [] }
       ],
       edges: [
         {

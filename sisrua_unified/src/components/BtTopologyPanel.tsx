@@ -7,6 +7,7 @@ import {
   calculateBtSummary,
   calculateClandestinoDemandKvaByAreaAndClients,
   calculatePointDemandKva,
+  calculateRamalDmdiKva,
   calculateTransformerDemandKw,
   calculateTransformerMonthlyBill,
   calculateClandestinoDemandKw,
@@ -847,7 +848,12 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     (acc, pole) => acc + (pole.ramais ?? []).reduce((sum, ramal) => sum + ramal.quantity, 0),
                     0
                   );
-                  const dmdi = totalClients > 0 ? effectiveDemandKw / totalClients : null;
+                  const dmdi = calculateRamalDmdiKva({
+                    projectType,
+                    aa24DemandBase: summary.transformerDemandKw,
+                    sumClientsX: totalClients,
+                    ab35LookupDmdi: calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, totalClients)
+                  });
 
                   return (
                     <>
@@ -916,7 +922,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                         <div>Demanda corrigida: {formatBr(effectiveDemandKw)} kVA</div>
                         <div>Demanda maxima: {formatBr(hasReadings ? demandMaxKw : effectiveDemandKw)} kVA</div>
                         <div>Carregamento atual: {loadingPct === null ? '#DIV/0!' : `${loadingPct.toFixed(2)}%`}</div>
-                        <div>DMDI (ramal): {dmdi === null ? '#DIV/0!' : dmdi.toFixed(2)}</div>
+                        <div>DMDI (ramal): {totalClients === 0 ? '#DIV/0!' : dmdi.toFixed(2)}</div>
                         <div>Total clientes: {totalClients}</div>
                       </div>
 

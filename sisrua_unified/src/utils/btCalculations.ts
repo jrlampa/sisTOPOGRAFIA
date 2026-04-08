@@ -174,6 +174,13 @@ interface CalculatePointDemandKvaInput {
   clandestinoClients: number;
 }
 
+interface CalculateRamalDmdiInput {
+  projectType: BtProjectType;
+  aa24DemandBase: number;
+  sumClientsX: number;
+  ab35LookupDmdi: number;
+}
+
 interface CalculateAccumulatedDemandKvaInput {
   projectType: BtProjectType;
   clandestinoAreaM2: number;
@@ -320,11 +327,32 @@ export const calculatePointDemandKva = ({
   clandestinoAreaM2,
   clandestinoClients
 }: CalculatePointDemandKvaInput): number => {
+  const ab35LookupDmdi = calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, clandestinoClients);
+
+  return calculateRamalDmdiKva({
+    projectType,
+    aa24DemandBase: transformerDemandKw,
+    sumClientsX: clandestinoClients,
+    ab35LookupDmdi
+  });
+};
+
+export const calculateRamalDmdiKva = ({
+  projectType,
+  aa24DemandBase,
+  sumClientsX,
+  ab35LookupDmdi
+}: CalculateRamalDmdiInput): number => {
   if (projectType === 'clandestino') {
-    return calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, clandestinoClients);
+    return Number(ab35LookupDmdi.toFixed(2));
   }
 
-  return Number(transformerDemandKw.toFixed(2));
+  if (!Number.isFinite(aa24DemandBase) || !Number.isFinite(sumClientsX) || sumClientsX <= 0) {
+    // Workbook IFERROR parity for AA30 when denominator is empty/zero.
+    return 0;
+  }
+
+  return Number((aa24DemandBase / sumClientsX).toFixed(2));
 };
 
 export const calculateAccumulatedDemandKva = ({
@@ -442,7 +470,12 @@ export const calculateAccumulatedDemandByPole = (
 
   const totalClients = Array.from(localClientByPole.values()).reduce((sum, value) => sum + value, 0);
   const transformerDemandKva = topology.transformers.reduce((sum, transformer) => sum + transformer.demandKw, 0);
-  const avgDemandPerClient = totalClients > 0 ? transformerDemandKva / totalClients : 0;
+  const avgDemandPerClient = calculateRamalDmdiKva({
+    projectType,
+    aa24DemandBase: transformerDemandKva,
+    sumClientsX: totalClients,
+    ab35LookupDmdi: calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, totalClients)
+  });
 
   const memo = new Map<string, BtPoleAccumulatedDemand>();
 
