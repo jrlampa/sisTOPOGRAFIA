@@ -1,4 +1,5 @@
 import { Download } from 'lucide-react';
+import { usePagination, PaginationControls } from '../hooks/usePagination';
 import type { BtExportSummary, BtExportHistoryEntry } from '../types';
 
 interface BtExportSummaryBannerProps {
@@ -16,6 +17,9 @@ export function BtExportSummaryBanner({
   exportBtHistoryCsv,
   clearBtExportHistory,
 }: BtExportSummaryBannerProps) {
+  // Item 23: Paginação de histórico BT
+  const historyPagination = usePagination(btExportHistory, 5);
+
   if (!latestBtExport && btExportHistory.length === 0) {
     return null;
   }
@@ -78,9 +82,9 @@ export function BtExportSummaryBanner({
       {btExportHistory.length > 0 && (
         <div className="mt-3 border-t border-cyan-500/20 pt-2">
           <div className="mb-1 font-semibold uppercase tracking-wide text-cyan-300">
-            Histórico (últimas 5 de {btExportHistory.length})
+            Histórico ({historyPagination.totalItems} entradas)
           </div>
-          {btExportHistory.slice(0, 5).map((entry, index) => (
+          {historyPagination.items.map((entry, index) => (
             <div key={`${entry.exportedAt}-${entry.criticalPoleId}-${index}`} className="text-[11px] text-cyan-100/90">
               {new Date(entry.exportedAt).toLocaleString('pt-BR')} | {entry.projectType.toUpperCase()} | {entry.criticalPoleId} | {entry.criticalAccumulatedDemandKva.toFixed(2)}
               {((entry.totalPoles ?? 0) > 0 || (entry.totalEdges ?? 0) > 0 || (entry.totalTransformers ?? 0) > 0)
@@ -88,6 +92,15 @@ export function BtExportSummaryBanner({
                 : ''}
             </div>
           ))}
+          <PaginationControls
+            currentPage={historyPagination.currentPage}
+            totalPages={historyPagination.totalPages}
+            totalItems={historyPagination.totalItems}
+            onPreviousPage={historyPagination.previousPage}
+            onNextPage={historyPagination.nextPage}
+            onGoToPage={historyPagination.goToPage}
+            className="text-cyan-300 border-cyan-500/40"
+          />
         </div>
       )}
     </div>
