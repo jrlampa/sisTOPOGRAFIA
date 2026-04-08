@@ -1,11 +1,10 @@
 import React from 'react';
 import { Activity, Plus, Trash2, Sigma, ChevronDown } from 'lucide-react';
 import { BtEdge, BtNetworkScenario, BtPoleNode, BtPoleRamalEntry, BtTopology, BtTransformer, BtTransformerReading } from '../types';
+import type { BtDerivedSummary } from '../services/btDerivedService';
 import { useBtTopologySelection } from '../hooks/useBtTopologySelection';
 import {
-  calculateBtSummary,
   calculateClandestinoDemandKvaByAreaAndClients,
-  calculatePointDemandKva,
   calculateRamalDmdiKva,
   calculateTransformerDemandKw,
   calculateTransformerMonthlyBill,
@@ -20,6 +19,8 @@ import { LEGACY_ID_ENTROPY } from '../constants/magicNumbers';
 interface BtTopologyPanelProps {
   btTopology: BtTopology;
   accumulatedByPole: BtPoleAccumulatedDemand[];
+  summary: BtDerivedSummary;
+  pointDemandKva: number;
   projectType: 'ramais' | 'geral' | 'clandestino';
   btNetworkScenario: BtNetworkScenario;
   clandestinoAreaM2: number;
@@ -228,6 +229,8 @@ function NumericTextInput({
 const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   btTopology,
   accumulatedByPole,
+  summary,
+  pointDemandKva,
   projectType,
   btNetworkScenario,
   clandestinoAreaM2,
@@ -245,7 +248,6 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   onBtRenamePole,
   onBtRenameTransformer,
 }) => {
-  const summary = calculateBtSummary(btTopology);
   const {
     selectedPoleId,
     selectedTransformerId,
@@ -403,12 +405,6 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   const clandestinoFinalDemandKva = projectType === 'clandestino'
     ? calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, totalClandestinoClients)
     : 0;
-  const pointDemandKva = calculatePointDemandKva({
-    projectType,
-    transformerDemandKw: summary.transformerDemandKw,
-    clandestinoAreaM2,
-    clandestinoClients: totalClandestinoClients
-  });
   const isNormalProject = projectType !== 'clandestino';
   const transformersWithReadings = btTopology.transformers.filter((transformer) => transformer.readings.length > 0).length;
   const transformersWithoutReadings = Math.max(0, btTopology.transformers.length - transformersWithReadings);

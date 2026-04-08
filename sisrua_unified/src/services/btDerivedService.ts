@@ -15,14 +15,16 @@ interface BtTransformerEstimatedDemand {
   estimatedDemandKw: number;
 }
 
-interface BtDerivedResponse {
-  summary: {
-    poles: number;
-    transformers: number;
-    edges: number;
-    totalLengthMeters: number;
-    transformerDemandKw: number;
-  };
+export interface BtDerivedSummary {
+  poles: number;
+  transformers: number;
+  edges: number;
+  totalLengthMeters: number;
+  transformerDemandKw: number;
+}
+
+export interface BtDerivedResponse {
+  summary: BtDerivedSummary;
   pointDemandKva: number;
   criticalPoleId: string | null;
   accumulatedByPole: BtPoleAccumulatedDemand[];

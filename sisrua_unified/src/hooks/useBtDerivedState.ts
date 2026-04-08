@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GlobalState } from '../types';
 import {
   calculateAccumulatedDemandByPole,
+  calculateBtSummary,
   calculateEstimatedDemandByTransformer,
+  calculatePointDemandKva,
   loadClandestinoWorkbookRules,
   type BtPoleAccumulatedDemand,
   type BtTransformerEstimatedDemand,
@@ -16,7 +18,7 @@ import {
   LEGACY_ID_ENTROPY,
   ENTITY_ID_PREFIXES,
 } from '../constants/magicNumbers';
-import { fetchBtDerivedState } from '../services/btDerivedService';
+import { fetchBtDerivedState, type BtDerivedSummary } from '../services/btDerivedService';
 
 interface UseBtDerivedStateParams {
   appState: GlobalState;
@@ -27,6 +29,14 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
   const [, setClandestinoRulesVersion] = useState(0);
   const [btAccumulatedByPole, setBtAccumulatedByPole] = useState<BtPoleAccumulatedDemand[]>([]);
   const [btEstimatedByTransformer, setBtEstimatedByTransformer] = useState<BtTransformerEstimatedDemand[]>([]);
+  const [btSummary, setBtSummary] = useState<BtDerivedSummary>({
+    poles: 0,
+    transformers: 0,
+    edges: 0,
+    totalLengthMeters: 0,
+    transformerDemandKw: 0,
+  });
+  const [btPointDemandKva, setBtPointDemandKva] = useState(0);
 
   // Keep a ref so the transformer-sync effect always spreads the latest appState
   // without needing it as a reactive dependency (avoids firing on every state change).
@@ -60,6 +70,22 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
     [btTopology, settings.projectType, settings.clandestinoAreaM2]
   );
 
+  const localSummary = useMemo(() => calculateBtSummary(btTopology), [btTopology]);
+
+  const localPointDemandKva = useMemo(
+    () =>
+      calculatePointDemandKva({
+        projectType: settings.projectType ?? 'ramais',
+        transformerDemandKw: localSummary.transformerDemandKw,
+        clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
+        clandestinoClients: btTopology.poles.reduce(
+          (acc, pole) => acc + (pole.ramais ?? []).reduce((sum, ramal) => sum + ramal.quantity, 0),
+          0
+        ),
+      }),
+    [btTopology.poles, localSummary.transformerDemandKw, settings.projectType, settings.clandestinoAreaM2]
+  );
+
   useEffect(() => {
     let active = true;
 
@@ -69,6 +95,8 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
       }
       setBtAccumulatedByPole(localAccumulatedByPole);
       setBtEstimatedByTransformer(localEstimatedByTransformer);
+      setBtSummary(localSummary);
+      setBtPointDemandKva(localPointDemandKva);
     };
 
     fetchBtDerivedState({
@@ -82,6 +110,8 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
         }
         setBtAccumulatedByPole(payload.accumulatedByPole);
         setBtEstimatedByTransformer(payload.estimatedByTransformer);
+        setBtSummary(payload.summary);
+        setBtPointDemandKva(payload.pointDemandKva);
       })
       .catch(() => {
         applyFallback();
@@ -96,6 +126,8 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
     settings.clandestinoAreaM2,
     localAccumulatedByPole,
     localEstimatedByTransformer,
+    localSummary,
+    localPointDemandKva,
   ]);
 
   const btTransformerDebugById = useMemo(
@@ -207,5 +239,7 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
     btEstimatedByTransformer,
     btTransformerDebugById,
     btCriticalPoleId,
+    btSummary,
+    btPointDemandKva,
   };
 }

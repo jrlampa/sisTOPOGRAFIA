@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { AppSettings, BtEditorMode, BtNetworkScenario, BtTopology } from '../types';
 import type { BtPoleAccumulatedDemand } from '../utils/btCalculations';
+import type { BtDerivedSummary } from '../services/btDerivedService';
 import type { PendingNormalClassificationPole } from '../utils/btNormalization';
 import type { BtEdgeChangeFlag, BtPoleChangeFlag, BtTransformerChangeFlag } from '../utils/btNormalization';
 import { useDebounce } from '../utils/debounce';
@@ -25,6 +26,8 @@ export interface SidebarBtEditorSectionProps {
   btEditorMode: BtEditorMode;
   btTopology: BtTopology;
   btAccumulatedByPole: BtPoleAccumulatedDemand[];
+  btSummary: BtDerivedSummary;
+  btPointDemandKva: number;
   btTransformerDebugById: TransformerDebugById;
   btPoleCoordinateInput: string;
   setBtPoleCoordinateInput: (v: string) => void;
@@ -53,6 +56,8 @@ export function SidebarBtEditorSection({
   btEditorMode,
   btTopology,
   btAccumulatedByPole,
+  btSummary,
+  btPointDemandKva,
   btTransformerDebugById,
   btPoleCoordinateInput,
   setBtPoleCoordinateInput,
@@ -210,6 +215,8 @@ export function SidebarBtEditorSection({
         <BtTopologyPanel
           btTopology={btTopology}
           accumulatedByPole={btAccumulatedByPole}
+          summary={btSummary}
+          pointDemandKva={btPointDemandKva}
           projectType={settings.projectType ?? 'ramais'}
           btNetworkScenario={btNetworkScenario}
           clandestinoAreaM2={settings.clandestinoAreaM2 ?? 0}

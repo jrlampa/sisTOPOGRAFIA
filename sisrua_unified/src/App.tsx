@@ -94,6 +94,8 @@ function App() {
     btAccumulatedByPole,
     btTransformerDebugById,
     btCriticalPoleId,
+    btSummary,
+    btPointDemandKva,
   } = useBtDerivedState({ appState, setAppState });
 
   // Core analysis engine
@@ -348,6 +350,8 @@ function App() {
     btEditorMode,
     btTopology,
     btAccumulatedByPole,
+    btSummary,
+    btPointDemandKva,
     btTransformerDebugById,
     btPoleCoordinateInput,
     setBtPoleCoordinateInput,
