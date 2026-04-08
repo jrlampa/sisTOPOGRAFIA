@@ -1,6 +1,7 @@
 import React from 'react';
 import { Activity, Plus, Trash2, Sigma, ChevronDown } from 'lucide-react';
 import { BtEdge, BtNetworkScenario, BtPoleNode, BtPoleRamalEntry, BtTopology, BtTransformer, BtTransformerReading } from '../types';
+import { useBtTopologySelection } from '../hooks/useBtTopologySelection';
 import {
   calculateAccumulatedDemandByPole,
   calculateBtSummary,
@@ -236,49 +237,26 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   onBtRenameTransformer,
 }) => {
   const summary = calculateBtSummary(btTopology);
-  const [selectedPoleId, setSelectedPoleId] = React.useState<string>('');
-  const [selectedTransformerId, setSelectedTransformerId] = React.useState<string>('');
-  const [selectedEdgeId, setSelectedEdgeId] = React.useState<string>('');
-  const [isPoleDropdownOpen, setIsPoleDropdownOpen] = React.useState(false);
-  const [isTransformerDropdownOpen, setIsTransformerDropdownOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!selectedPoleId && btTopology.poles.length > 0) {
-      setSelectedPoleId(btTopology.poles[0].id);
-    }
-
-    if (selectedPoleId && !btTopology.poles.some((pole) => pole.id === selectedPoleId)) {
-      setSelectedPoleId(btTopology.poles[0]?.id || '');
-    }
-
-    setIsPoleDropdownOpen(false);
-  }, [btTopology.poles, selectedPoleId]);
-
-  React.useEffect(() => {
-    if (!selectedTransformerId && btTopology.transformers.length > 0) {
-      setSelectedTransformerId(btTopology.transformers[0].id);
-    }
-
-    if (selectedTransformerId && !btTopology.transformers.some((t) => t.id === selectedTransformerId)) {
-      setSelectedTransformerId(btTopology.transformers[0]?.id || '');
-    }
-
-    setIsTransformerDropdownOpen(false);
-  }, [btTopology.transformers, selectedTransformerId]);
-
-  React.useEffect(() => {
-    if (!selectedEdgeId && btTopology.edges.length > 0) {
-      setSelectedEdgeId(btTopology.edges[0].id);
-    }
-
-    if (selectedEdgeId && !btTopology.edges.some((e) => e.id === selectedEdgeId)) {
-      setSelectedEdgeId(btTopology.edges[0]?.id || '');
-    }
-  }, [btTopology.edges, selectedEdgeId]);
-
-  const selectedTransformer = btTopology.transformers.find((transformer) => transformer.id === selectedTransformerId) || null;
-  const selectedEdge = btTopology.edges.find((edge) => edge.id === selectedEdgeId) || null;
-  const selectedPole = btTopology.poles.find((pole) => pole.id === selectedPoleId) || null;
+  const {
+    selectedPoleId,
+    selectedTransformerId,
+    selectedEdgeId,
+    selectedPole,
+    selectedTransformer,
+    selectedEdge,
+    isPoleDropdownOpen,
+    isTransformerDropdownOpen,
+    setIsPoleDropdownOpen,
+    setIsTransformerDropdownOpen,
+    selectPole,
+    selectTransformer,
+    selectEdge,
+  } = useBtTopologySelection({
+    btTopology,
+    onSelectedPoleChange,
+    onSelectedTransformerChange,
+    onSelectedEdgeChange,
+  });
   const selectedEdgeLengthLabel =
     typeof selectedEdge?.lengthMeters === 'number'
       ? `${Math.round(selectedEdge.lengthMeters)} m`
@@ -576,9 +554,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     const nextTitle = e.target.value;
                     const selectedOtherPole = btTopology.poles.find((pole) => pole.id !== selectedPole.id && pole.title === nextTitle);
                     if (selectedOtherPole) {
-                      setSelectedPoleId(selectedOtherPole.id);
-                      onSelectedPoleChange?.(selectedOtherPole.id);
-                      setIsPoleDropdownOpen(false);
+                      selectPole(selectedOtherPole.id);
                       return;
                     }
 
@@ -601,11 +577,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                       <button
                         key={pole.id}
                         type="button"
-                        onClick={() => {
-                          setSelectedPoleId(pole.id);
-                          onSelectedPoleChange?.(pole.id);
-                          setIsPoleDropdownOpen(false);
-                        }}
+                        onClick={() => selectPole(pole.id)}
                         className={`w-full px-2 py-1.5 text-left text-xs hover:bg-slate-100 ${selectedPoleId === pole.id ? 'bg-slate-100 font-semibold text-slate-900' : 'text-slate-700'}`}
                       >
                         {pole.title}
@@ -783,9 +755,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     (transformer) => transformer.id !== selectedTransformer.id && transformer.title === nextTitle
                   );
                   if (selectedOtherTransformer) {
-                    setSelectedTransformerId(selectedOtherTransformer.id);
-                    onSelectedTransformerChange?.(selectedOtherTransformer.id);
-                    setIsTransformerDropdownOpen(false);
+                    selectTransformer(selectedOtherTransformer.id);
                     return;
                   }
 
@@ -808,11 +778,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     <button
                       key={transformer.id}
                       type="button"
-                      onClick={() => {
-                        setSelectedTransformerId(transformer.id);
-                        onSelectedTransformerChange?.(transformer.id);
-                        setIsTransformerDropdownOpen(false);
-                      }}
+                      onClick={() => selectTransformer(transformer.id)}
                       className={`w-full px-2 py-1.5 text-left text-xs hover:bg-slate-100 ${selectedTransformerId === transformer.id ? 'bg-slate-100 font-semibold text-slate-900' : 'text-slate-700'}`}
                     >
                       {transformer.title}
@@ -985,11 +951,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             <select
               className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
               value={selectedEdgeId}
-              onChange={(e) => {
-                const nextEdgeId = e.target.value;
-                setSelectedEdgeId(nextEdgeId);
-                onSelectedEdgeChange?.(nextEdgeId);
-              }}
+              onChange={(e) => selectEdge(e.target.value)}
             >
               {btTopology.edges.map((edge) => {
                 const fromTitle = btTopology.poles.find((pole) => pole.id === edge.fromPoleId)?.title ?? edge.fromPoleId;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, Map as MapIcon, Layers, Search, Loader2, AlertCircle, Settings, Mountain, TrendingUp } from 'lucide-react';
 import { AnalysisStats, GlobalState, AppSettings, GeoLocation, SelectionMode, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario, BtCqtComputationInputs, BtEdge } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
@@ -21,11 +21,11 @@ import { useKmlImport } from './hooks/useKmlImport';
 import { useFileOperations } from './hooks/useFileOperations';
 import { useElevationProfile } from './hooks/useElevationProfile';
 import { useAutoSave, loadSessionDraft, clearSessionDraft } from './hooks/useAutoSave';
+import { useBtNavigationState } from './hooks/useBtNavigationState';
 import {
   calculateAccumulatedDemandByPole,
   calculateEstimatedDemandByTransformer,
   calculateSectioningImpact,
-  findTransformerConflictsWithoutSectioning,
   calculateClandestinoDemandKvaByAreaAndClients,
   getClandestinoAreaRange,
   getClandestinoClientsRange,
@@ -404,7 +404,6 @@ function App() {
     ramalType: string;
     quantity: number;
   } | null>(null);
-  const [btEdgeFlyToTarget, setBtEdgeFlyToTarget] = useState<{ lat: number; lng: number; token: number } | null>(null);
   const [pendingNormalClassificationPoles, setPendingNormalClassificationPoles] = useState<PendingNormalClassificationPole[]>([]);
   const [clandestinoToNormalModal, setClandestinoToNormalModal] = useState<{
     poles: PendingNormalClassificationPole[];
@@ -413,44 +412,22 @@ function App() {
     totalNormalClients: number;
   } | null>(null);
   const [btPoleCoordinateInput, setBtPoleCoordinateInput] = useState('');
-  const [btPoleFlyToTarget, setBtPoleFlyToTarget] = useState<{ lat: number; lng: number; token: number } | null>(null);
-  const [btTransformerFlyToTarget, setBtTransformerFlyToTarget] = useState<{ lat: number; lng: number; token: number } | null>(null);
-  const lastTransformerConflictSignatureRef = useRef<string | null>(null);
 
   // Auto-save: persist appState to localStorage with debounce
   useAutoSave(appState);
 
-  useEffect(() => {
-    const conflictGroups = findTransformerConflictsWithoutSectioning(btTopology);
-    if (conflictGroups.length === 0) {
-      lastTransformerConflictSignatureRef.current = null;
-      return;
-    }
+  const showToast = (message: string, type: ToastType) => {
+    setToast({ message, type });
+  };
 
-    const signature = conflictGroups
-      .map((group) => group.transformerIds.join(','))
-      .sort((a, b) => a.localeCompare(b))
-      .join('|');
-
-    if (signature === lastTransformerConflictSignatureRef.current) {
-      return;
-    }
-
-    lastTransformerConflictSignatureRef.current = signature;
-
-    const firstConflict = conflictGroups[0];
-    const transformerLabels = firstConflict.transformerIds
-      .map((transformerId) => btTopology.transformers.find((item) => item.id === transformerId)?.title ?? transformerId)
-      .join(', ');
-    const extraConflictLabel = conflictGroups.length > 1
-      ? ` Há mais ${conflictGroups.length - 1} rede(s) BT em conflito.`
-      : '';
-
-    showToast(
-      `Alerta BT: dois ou mais transformadores na mesma rede sem separação física (${transformerLabels}).${extraConflictLabel}`,
-      'error'
-    );
-  }, [btTopology]);
+  const {
+    btEdgeFlyToTarget,
+    btPoleFlyToTarget,
+    btTransformerFlyToTarget,
+    handleBtSelectedEdgeChange,
+    handleBtSelectedPoleChange,
+    handleBtSelectedTransformerChange,
+  } = useBtNavigationState({ btTopology, showToast });
 
   // On mount: check for a recoverable session (only if there's BT topology work)
   useEffect(() => {
@@ -460,10 +437,6 @@ function App() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const showToast = (message: string, type: ToastType) => {
-    setToast({ message, type });
-  };
 
   const getPoleClandestinoClients = (pole: BtPoleNode) =>
     (pole.ramais ?? []).reduce((acc, ramal) => {
@@ -1442,51 +1415,6 @@ function App() {
         poles: btTopology.poles.map((pole) => pole.id === poleId ? { ...pole, verified } : pole)
       }
     }, true);
-  };
-
-  const handleBtSelectedEdgeChange = (edgeId: string) => {
-    const edge = btTopology.edges.find((candidate) => candidate.id === edgeId);
-    if (!edge) {
-      return;
-    }
-
-    const fromPole = btTopology.poles.find((pole) => pole.id === edge.fromPoleId);
-    const toPole = btTopology.poles.find((pole) => pole.id === edge.toPoleId);
-    if (!fromPole || !toPole) {
-      return;
-    }
-
-    setBtEdgeFlyToTarget({
-      lat: (fromPole.lat + toPole.lat) / 2,
-      lng: (fromPole.lng + toPole.lng) / 2,
-      token: Date.now(),
-    });
-  };
-
-  const handleBtSelectedPoleChange = (poleId: string) => {
-    const pole = btTopology.poles.find((candidate) => candidate.id === poleId);
-    if (!pole) {
-      return;
-    }
-
-    setBtPoleFlyToTarget({
-      lat: pole.lat,
-      lng: pole.lng,
-      token: Date.now(),
-    });
-  };
-
-  const handleBtSelectedTransformerChange = (transformerId: string) => {
-    const transformer = btTopology.transformers.find((candidate) => candidate.id === transformerId);
-    if (!transformer) {
-      return;
-    }
-
-    setBtTransformerFlyToTarget({
-      lat: transformer.lat,
-      lng: transformer.lng,
-      token: Date.now(),
-    });
   };
 
   const handleBtQuickAddPoleRamal = (poleId: string) => {

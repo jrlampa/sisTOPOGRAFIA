@@ -26,11 +26,18 @@ export default defineConfig(({ mode }) => {
       }
     },
     build: {
-      // Use Vite default chunk splitting to avoid runtime module init ordering issues
       chunkSizeWarningLimit: 500,
-      // Use esbuild minification (faster and already included)
       minify: 'esbuild',
-      target: 'esnext'
+      target: 'esnext',
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            leaflet: ['leaflet', 'react-leaflet', 'proj4'],
+            motion: ['framer-motion'],
+            icons: ['lucide-react'],
+          },
+        },
+      },
     },
     test: {
       globals: true,

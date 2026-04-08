@@ -15,13 +15,13 @@ describe('btCalculations - Transformer Conflict Detection', () => {
         { id: 'pole-4', lat: -22.826000, lng: -43.325500, name: 'P4', voltage: '380', status: 'good' },
       ] as BtPole[],
       transformers: [
-        { id: 'tf-1', lat: -22.825546, lng: -43.325956, name: 'TF1', power: 75, status: 'good' },
-        { id: 'tf-2', lat: -22.825600, lng: -43.325900, name: 'TF2', power: 75, status: 'good' },
-        { id: 'tf-3', lat: -22.826000, lng: -43.325500, name: 'TF3', power: 75, status: 'good' },
+        { id: 'tf-1', poleId: 'pole-1', lat: -22.825546, lng: -43.325956, name: 'TF1', power: 75, status: 'good' },
+        { id: 'tf-2', poleId: 'pole-2', lat: -22.825600, lng: -43.325900, name: 'TF2', power: 75, status: 'good' },
+        { id: 'tf-3', poleId: 'pole-4', lat: -22.826000, lng: -43.325500, name: 'TF3', power: 75, status: 'good' },
       ] as BtTransformer[],
       edges: [
-        { id: 'edge-1', fromPole: 'pole-1', toPole: 'pole-2', conductor: 'CA', status: 'good' },
-        { id: 'edge-2', fromPole: 'pole-2', toPole: 'pole-3', conductor: 'CA', status: 'good' },
+        { id: 'edge-1', fromPoleId: 'pole-1', toPoleId: 'pole-2', conductors: [] },
+        { id: 'edge-2', fromPoleId: 'pole-2', toPoleId: 'pole-3', conductors: [] },
         // TF-3 is isolated (no edges)
       ] as BtEdge[],
       circuitBreakPoints: [],
@@ -40,7 +40,7 @@ describe('btCalculations - Transformer Conflict Detection', () => {
   it('should not report conflict for single transformer in mesh', () => {
     // Modify context: single transformer in connected poles
     mockBtContext.transformers = [
-      { id: 'tf-1', lat: -22.825546, lng: -43.325956, name: 'TF1', power: 75, status: 'good' } as BtTransformer,
+      { id: 'tf-1', poleId: 'pole-1', lat: -22.825546, lng: -43.325956, name: 'TF1', power: 75, status: 'good' } as BtTransformer,
     ];
 
     const conflicts = findTransformerConflictsWithoutSectioning(mockBtContext);
@@ -72,10 +72,13 @@ describe('btCalculations - Transformer Conflict Detection', () => {
 
   it('should handle context with transformers but no edges', () => {
     const contextNoEdges = {
-      poles: [{ id: 'p1', lat: -22.825546, lng: -43.325956, name: 'P1', voltage: '380', status: 'good' }],
+      poles: [
+        { id: 'p1', lat: -22.825546, lng: -43.325956, name: 'P1', voltage: '380', status: 'good' },
+        { id: 'p2', lat: -22.825600, lng: -43.325900, name: 'P2', voltage: '380', status: 'good' },
+      ],
       transformers: [
-        { id: 'tf-1', lat: -22.825546, lng: -43.325956, name: 'TF1', power: 75, status: 'good' },
-        { id: 'tf-2', lat: -22.825600, lng: -43.325900, name: 'TF2', power: 75, status: 'good' },
+        { id: 'tf-1', poleId: 'p1', lat: -22.825546, lng: -43.325956, name: 'TF1', power: 75, status: 'good' },
+        { id: 'tf-2', poleId: 'p2', lat: -22.825600, lng: -43.325900, name: 'TF2', power: 75, status: 'good' },
       ],
       edges: [],
       circuitBreakPoints: [],
