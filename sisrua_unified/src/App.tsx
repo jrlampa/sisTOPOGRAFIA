@@ -7,8 +7,6 @@ import ProgressIndicator from './components/ProgressIndicator';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useOsmEngine } from './hooks/useOsmEngine';
 import { useSearch } from './hooks/useSearch';
-import { useKmlImport } from './hooks/useKmlImport';
-import { useFileOperations } from './hooks/useFileOperations';
 import { useElevationProfile } from './hooks/useElevationProfile';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useMapState } from './hooks/useMapState';
@@ -17,8 +15,8 @@ import { useBtCrudHandlers } from './hooks/useBtCrudHandlers';
 import { useBtDerivedState } from './hooks/useBtDerivedState';
 import { useBtExportHistory } from './hooks/useBtExportHistory';
 import { useBtDxfWorkflow } from './hooks/useBtDxfWorkflow';
+import { useProjectDataWorkflow } from './hooks/useProjectDataWorkflow';
 import {
-  nextSequentialId,
   EMPTY_BT_TOPOLOGY,
 } from './utils/btNormalization';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -274,53 +272,12 @@ function App() {
     ingestBtContextHistory,
   });
 
-  const { importKml } = useKmlImport({
-    onImportSuccess: (result, filename) => {
-      if (result.type === 'polygon') {
-        // Area boundary → set as polygon selection (existing behavior)
-        setAppState({
-          ...appState,
-          selectionMode: 'polygon' as const,
-          polygon: result.points,
-          center: { ...result.points[0], label: filename }
-        }, true);
-        clearData();
-        showToast('KML/KMZ importado com sucesso', 'success');
-      } else {
-        // Point placemarks → bulk insert as BT poles
-        let runningIds = btTopology.poles.map((p) => p.id);
-        const newPoles: BtPoleNode[] = result.points.map((pt, i) => {
-          const id = nextSequentialId(runningIds, 'P');
-          runningIds = [...runningIds, id];
-          const name = result.names?.[i];
-          return {
-            id,
-            lat: pt.lat,
-            lng: pt.lng,
-            title: name ?? `Poste ${id}`,
-            ramais: []
-          };
-        });
-
-        setAppState({
-          ...appState,
-          center: { ...result.points[0], label: filename },
-          btTopology: {
-            ...btTopology,
-            poles: [...btTopology.poles, ...newPoles]
-          }
-        }, true);
-        showToast(`${newPoles.length} poste(s) importado(s) do KMZ`, 'success');
-      }
-    },
-    onError: (message) => showToast(message, 'error')
-  });
-
-  const { saveProject, loadProject } = useFileOperations({
+  const { handleKmlDrop, handleSaveProject, handleLoadProject } = useProjectDataWorkflow({
     appState,
     setAppState,
-    onSuccess: (message) => showToast(message, 'success'),
-    onError: (message) => showToast(message, 'error')
+    clearData,
+    clearPendingBtEdge,
+    showToast,
   });
 
   const handleSelectionModeChange = (mode: typeof selectionMode) => {
@@ -332,19 +289,6 @@ function App() {
     const success = await runAnalysis(center, radius, settings.enableAI);
     if (success) showToast("Analysis Complete!", 'success');
     else showToast("Audit failed. Check backend logs.", 'error');
-  };
-
-  const handleKmlDrop = async (file: File) => {
-    await importKml(file);
-  };
-
-  const handleSaveProject = () => {
-    saveProject();
-  };
-
-  const handleLoadProject = (file: File) => {
-    clearPendingBtEdge();
-    loadProject(file);
   };
 
   const showDxfProgress = isDownloading || !!jobId;
