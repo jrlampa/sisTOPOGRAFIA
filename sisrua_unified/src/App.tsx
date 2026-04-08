@@ -1,6 +1,6 @@
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { Suspense } from 'react';
 import { Download, Map as MapIcon, Layers, Search, Loader2, AlertCircle, Settings, Mountain, TrendingUp } from 'lucide-react';
-import { AnalysisStats, GlobalState, BtTopology, BtPoleNode, BtTransformer, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario, BtCqtComputationInputs, BtEdge } from './types';
+import { AnalysisStats, GlobalState, BtTopology, BtPoleNode, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario } from './types';
 import { DEFAULT_LOCATION, MAX_RADIUS, MIN_RADIUS } from './constants';
 import Toast from './components/Toast';
 import ProgressIndicator from './components/ProgressIndicator';
@@ -14,25 +14,15 @@ import { useElevationProfile } from './hooks/useElevationProfile';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useMapState } from './hooks/useMapState';
 import { useBtNavigationState } from './hooks/useBtNavigationState';
-import {
-  calculateAccumulatedDemandByPole,
-  calculateEstimatedDemandByTransformer,
-  calculateClandestinoDemandKvaByAreaAndClients,
-  loadClandestinoWorkbookRules
-} from './utils/btCalculations';
 import { useBtCrudHandlers } from './hooks/useBtCrudHandlers';
+import { useBtDerivedState } from './hooks/useBtDerivedState';
 import {
-  getEdgeChangeFlag,
-  getPoleChangeFlag,
-  getTransformerChangeFlag,
-  CLANDESTINO_RAMAL_TYPE,
   NORMAL_CLIENT_RAMAL_TYPES,
   MAX_BT_EXPORT_HISTORY,
   nextSequentialId,
   EMPTY_BT_TOPOLOGY,
-  CURRENT_TO_DEMAND_CONVERSION,
-  DEFAULT_TEMPERATURE_FACTOR
 } from './utils/btNormalization';
+import { buildBtDxfContext } from './utils/btDxfContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MapSelector = React.lazy(() => import('./components/MapSelector'));
@@ -63,22 +53,7 @@ const MapSuspenseFallback = () => (
   </div>
 );
 
-const inferBranchSide = (rawLabel: string): 'ESQUERDO' | 'DIREITO' | undefined => {
-  const label = rawLabel.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-  if (label.includes('ESQ') || label.includes('ESQUER')) {
-    return 'ESQUERDO';
-  }
-
-  if (label.includes('DIR') || label.includes('DIREIT')) {
-    return 'DIREITO';
-  }
-
-  return undefined;
-};
-
 function App() {
-  const [, setClandestinoRulesVersion] = useState(0);
-  // Global State with Undo/Redo
   const {
     state: appState,
     setState: setAppState,
@@ -145,122 +120,12 @@ function App() {
   const isDark = settings.theme === 'dark';
   const btEditorMode: BtEditorMode = settings.btEditorMode ?? 'none';
 
-  useEffect(() => {
-    let active = true;
-
-    loadClandestinoWorkbookRules().then((loaded) => {
-      if (active && loaded) {
-        setClandestinoRulesVersion((version) => version + 1);
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const btAccumulatedByPole = React.useMemo(
-    () => calculateAccumulatedDemandByPole(btTopology, settings.projectType ?? 'ramais', settings.clandestinoAreaM2 ?? 0),
-    [btTopology, settings.projectType, settings.clandestinoAreaM2]
-  );
-  const btEstimatedByTransformer = React.useMemo(
-    () => calculateEstimatedDemandByTransformer(btTopology, settings.projectType ?? 'ramais', settings.clandestinoAreaM2 ?? 0),
-    [btTopology, settings.projectType, settings.clandestinoAreaM2]
-  );
-  const btTransformerDebugById = React.useMemo(
-    () => Object.fromEntries(
-      btEstimatedByTransformer.map((entry) => [
-        entry.transformerId,
-        {
-          assignedClients: entry.assignedClients,
-          estimatedDemandKw: entry.estimatedDemandKw
-        }
-      ])
-    ) as Record<string, { assignedClients: number; estimatedDemandKw: number }>,
-    [btEstimatedByTransformer]
-  );
-  const btCriticalPoleId = btAccumulatedByPole[0]?.poleId ?? null;
-
-  useEffect(() => {
-    if ((settings.btTransformerCalculationMode ?? 'automatic') !== 'automatic') {
-      return;
-    }
-
-    if (btTopology.transformers.length === 0) {
-      return;
-    }
-
-    const estimatedByTransformerId = new Map(
-      btEstimatedByTransformer.map((entry) => [entry.transformerId, entry.estimatedDemandKw])
-    );
-
-    let hasChanges = false;
-    const nextTransformers = btTopology.transformers.map((transformer) => {
-      const estimatedDemandKw = Number((estimatedByTransformerId.get(transformer.id) ?? 0).toFixed(2));
-      const hasReadings = transformer.readings.length > 0;
-      const isAutoReading = hasReadings && transformer.readings.every((reading) => reading.autoCalculated === true);
-
-      if (hasReadings && !isAutoReading) {
-        return transformer;
-      }
-
-      if (!isAutoReading) {
-        if (Math.abs((transformer.demandKw ?? 0) - estimatedDemandKw) < 0.01) {
-          return transformer;
-        }
-
-        hasChanges = true;
-        return {
-          ...transformer,
-          demandKw: estimatedDemandKw
-        };
-      }
-
-      const baseReading = transformer.readings[0] ?? {
-        id: `R${Date.now()}${Math.floor(Math.random() * 1000)}`,
-        currentMaxA: 0,
-        temperatureFactor: DEFAULT_TEMPERATURE_FACTOR,
-        autoCalculated: true
-      };
-      const temperatureFactor = (baseReading.temperatureFactor ?? DEFAULT_TEMPERATURE_FACTOR) > 0
-        ? (baseReading.temperatureFactor ?? DEFAULT_TEMPERATURE_FACTOR)
-        : DEFAULT_TEMPERATURE_FACTOR;
-      const inferredCurrent = Math.round((estimatedDemandKw / (CURRENT_TO_DEMAND_CONVERSION * temperatureFactor)) * 100) / 100;
-
-      const previousCurrent = baseReading.currentMaxA ?? 0;
-      const previousDemand = transformer.demandKw ?? 0;
-      if (
-        Math.abs(previousCurrent - inferredCurrent) < 0.01 &&
-        Math.abs(previousDemand - estimatedDemandKw) < 0.01
-      ) {
-        return transformer;
-      }
-
-      hasChanges = true;
-      return {
-        ...transformer,
-        demandKw: estimatedDemandKw,
-        readings: [{
-          ...baseReading,
-          currentMaxA: inferredCurrent,
-          temperatureFactor,
-          autoCalculated: true
-        }]
-      };
-    });
-
-    if (!hasChanges) {
-      return;
-    }
-
-    setAppState({
-      ...appState,
-      btTopology: {
-        ...btTopology,
-        transformers: nextTransformers
-      }
-    }, false);
-  }, [appState, btEstimatedByTransformer, btTopology, setAppState, settings.btTransformerCalculationMode]);
+  const {
+    btAccumulatedByPole,
+    btEstimatedByTransformer,
+    btTransformerDebugById,
+    btCriticalPoleId,
+  } = useBtDerivedState({ appState, setAppState });
 
   // Core analysis engine
   const {
@@ -528,148 +393,12 @@ function App() {
     if (!osmData) return;
     if (!validateBtBeforeExport()) return;
 
-    const btAccumulated = calculateAccumulatedDemandByPole(
+    const btContext = buildBtDxfContext({
       btTopology,
-      settings.projectType ?? 'ramais',
-      settings.clandestinoAreaM2 ?? 0
-    );
-
-    const totalClientsX = btTopology.poles.reduce((sum, pole) => {
-      const poleClients = (pole.ramais ?? []).reduce((poleSum, ramal) => {
-        const isClandestino = (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE;
-        if ((settings.projectType ?? 'ramais') === 'clandestino') {
-          return isClandestino ? poleSum + ramal.quantity : poleSum;
-        }
-
-        return isClandestino ? poleSum : poleSum + ramal.quantity;
-      }, 0);
-
-      return sum + poleClients;
-    }, 0);
-
-    const aa24DemandBase = btTopology.transformers.reduce((sum, transformer) => sum + (transformer.demandKw ?? 0), 0);
-    const ab35LookupDmdi = calculateClandestinoDemandKvaByAreaAndClients(
-      settings.clandestinoAreaM2 ?? 0,
-      totalClientsX
-    );
-
-    const cqtScenario = btNetworkScenario === 'proj1' || btNetworkScenario === 'proj2' ? btNetworkScenario : 'atual';
-    const accumulatedByPoleMap = new Map(
-      btAccumulated.map((item) => [item.poleId, item.accumulatedDemandKva])
-    );
-    const polesById = new Map(btTopology.poles.map((pole) => [pole.id, pole]));
-
-    const cqtBranches = btTopology.edges
-      .filter((edge) => getEdgeChangeFlag(edge) !== 'remove')
-      .map((edge) => {
-        const conductorName = edge.conductors[0]?.conductorName;
-        if (!conductorName) {
-          return null;
-        }
-
-        const fromAccumulatedKva = accumulatedByPoleMap.get(edge.fromPoleId) ?? 0;
-        const toAccumulatedKva = accumulatedByPoleMap.get(edge.toPoleId) ?? 0;
-        const acumuladaKva = Math.max(fromAccumulatedKva, toAccumulatedKva, 0);
-        const fromPoleTitle = polesById.get(edge.fromPoleId)?.title ?? '';
-        const toPoleTitle = polesById.get(edge.toPoleId)?.title ?? '';
-        const inferredSide =
-          inferBranchSide(edge.id) ??
-          inferBranchSide(fromPoleTitle) ??
-          inferBranchSide(toPoleTitle);
-
-        return {
-          trechoId: edge.id,
-          ponto: edge.toPoleId,
-          lado: inferredSide,
-          fase: 'TRI' as const,
-          acumuladaKva,
-          eta: 1,
-          tensaoTrifasicaV: 127,
-          conductorName,
-          lengthMeters: edge.lengthMeters ?? 0,
-          temperatureC: 30
-        };
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
-
-    const cqtComputationInputs: BtCqtComputationInputs = {
-      scenario: cqtScenario,
-      dmdi: {
-        clandestinoEnabled: (settings.projectType ?? 'ramais') === 'clandestino',
-        aa24DemandBase,
-        sumClientsX: totalClientsX,
-        ab35LookupDmdi
-      },
-      db: {
-        trAtual: btTopology.transformers.reduce((sum, transformer) => sum + (transformer.projectPowerKva ?? 0), 0),
-        demAtual: aa24DemandBase,
-        qtMt: 0
-      },
-      branches: cqtBranches
-    };
-
-    const btContext = {
-      projectType: settings.projectType ?? 'ramais',
+      settings,
       btNetworkScenario,
-      clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
-      totalTransformers: btTopology.transformers.length,
-      totalPoles: btTopology.poles.length,
-      totalEdges: btTopology.edges.length,
-      verifiedTransformers: btTopology.transformers.filter((item) => item.verified).length,
-      verifiedPoles: btTopology.poles.filter((item) => item.verified).length,
-      verifiedEdges: btTopology.edges.filter((item) => item.verified).length,
-      accumulatedByPole: btAccumulated,
-      criticalPole: btAccumulated[0] ?? null,
-      cqtComputationInputs,
-      topology: settings.layers.btNetwork
-        ? {
-            poles: btTopology.poles.map((pole) => ({
-              id: pole.id,
-              lat: pole.lat,
-              lng: pole.lng,
-              title: pole.title,
-              nodeChangeFlag: getPoleChangeFlag(pole),
-              circuitBreakPoint: pole.circuitBreakPoint ?? false,
-              verified: pole.verified ?? false,
-              ramais: (pole.ramais ?? []).map((ramal) => ({
-                id: ramal.id,
-                quantity: ramal.quantity,
-                ramalType: ramal.ramalType ?? ''
-              }))
-            })),
-            transformers: btTopology.transformers.map((transformer) => ({
-              id: transformer.id,
-              poleId: transformer.poleId ?? '',
-              lat: transformer.lat,
-              lng: transformer.lng,
-              title: transformer.title,
-              transformerChangeFlag: getTransformerChangeFlag(transformer),
-              projectPowerKva: transformer.projectPowerKva ?? 0,
-              demandKw: transformer.demandKw,
-              verified: transformer.verified ?? false
-            })),
-            edges: btTopology.edges.map((edge) => ({
-              id: edge.id,
-              fromPoleId: edge.fromPoleId,
-              toPoleId: edge.toPoleId,
-              lengthMeters: edge.lengthMeters ?? 0,
-              verified: edge.verified ?? false,
-              edgeChangeFlag: getEdgeChangeFlag(edge),
-              removeOnExecution: getEdgeChangeFlag(edge) === 'remove',
-              replacementFromConductors: (edge.replacementFromConductors ?? []).map((conductor) => ({
-                id: conductor.id,
-                quantity: conductor.quantity,
-                conductorName: conductor.conductorName
-              })),
-              conductors: edge.conductors.map((conductor) => ({
-                id: conductor.id,
-                quantity: conductor.quantity,
-                conductorName: conductor.conductorName
-              }))
-            }))
-          }
-        : null
-    };
+      includeTopology: settings.layers.btNetwork,
+    });
 
     await downloadDxf(
       center,
@@ -700,26 +429,6 @@ function App() {
     clearPendingBtEdge();
     loadProject(file);
   };
-
-  // Get current location on mount (only if center is default)
-  useEffect(() => {
-    if (center.lat === DEFAULT_LOCATION.lat && center.lng === DEFAULT_LOCATION.lng) {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((position) => {
-          setAppState({
-            ...appState,
-            center: {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-              label: "Current Location"
-            }
-          }, false);
-        }, (_err) => {
-          // Geolocation permission denied, using default
-        });
-      }
-    }
-  }, []);
 
   const showDxfProgress = isDownloading || !!jobId;
   const dxfProgressValue = Math.max(0, Math.min(100, Math.round(jobProgress)));

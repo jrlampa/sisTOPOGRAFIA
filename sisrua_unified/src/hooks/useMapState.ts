@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { AppSettings, GeoLocation, GlobalState, SelectionMode } from '../types';
 import type { ToastType } from '../components/Toast';
 import { clearSessionDraft, loadSessionDraft } from './useAutoSave';
+import { DEFAULT_LOCATION } from '../constants';
 
 interface UseMapStateParams {
   appState: GlobalState;
@@ -101,6 +102,33 @@ export function useMapState({
     const geoPoints = points.map((point) => ({ lat: point[0], lng: point[1] }));
     setAppState({ ...appState, polygon: geoPoints }, true);
   };
+
+  // Set center to current geolocation on mount (only when center is the default placeholder)
+  useEffect(() => {
+    if (appState.center.lat === DEFAULT_LOCATION.lat && appState.center.lng === DEFAULT_LOCATION.lng) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setAppState(
+              {
+                ...appState,
+                center: {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude,
+                  label: 'Current Location',
+                },
+              },
+              false
+            );
+          },
+          (_err) => {
+            // Geolocation permission denied — keep default
+          }
+        );
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isPolygonValid = selectionMode === 'polygon' && polygon.length >= 3;
 
