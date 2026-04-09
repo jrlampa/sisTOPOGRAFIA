@@ -23,6 +23,7 @@ import analysisRoutes from './routes/analysisRoutes.js';
 import jobRoutes from './routes/jobRoutes.js';
 import firestoreRoutes from './routes/firestoreRoutes.js';
 import dxfRoutes from './routes/dxfRoutes.js';
+import btRoutes from './routes/btRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -135,6 +136,7 @@ app.use('/api/analyze', analysisRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/firestore', firestoreRoutes);
 app.use('/api/dxf', dxfRoutes);
+app.use('/api/bt', btRoutes);
 
 // Static files
 app.use(express.static(frontendDistDirectory));
