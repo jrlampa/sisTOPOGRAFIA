@@ -1,8 +1,12 @@
 export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/server', '<rootDir>/tests'],
-  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  roots: ['<rootDir>/server'],
+  testMatch: ['**/server/tests/**/*.test.ts'],
+  moduleFileExtensions: ['ts', 'js', 'json'],
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
   collectCoverageFrom: [
     'server/**/*.ts',
     '!server/**/*.d.ts',
@@ -14,7 +18,7 @@ export default {
     '/tests/',
     '/dist/',
   ],
-  coverageThresholds: {
+  coverageThreshold: {
     global: {
       branches: 75,
       functions: 80,
@@ -22,10 +26,19 @@ export default {
       statements: 80,
     },
   },
-  setupFilesAfterEnv: ['<rootDir>/tests/jest.setup.ts'],
+  setupFilesAfterEnv: [
+    '<rootDir>/server/tests/setup.ts',
+  ],
+  coverageDirectory: './coverage/backend',
   globals: {
     'ts-jest': {
-      tsconfig: 'tsconfig.server.json',
+      tsconfig: {
+        // Force CommonJS output — tsconfig.server.json uses NodeNext which emits ESM
+        module: 'CommonJS',
+        moduleResolution: 'node',
+        esModuleInterop: true,
+        types: ['node', 'jest'],
+      },
     },
   },
 };

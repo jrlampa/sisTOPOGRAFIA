@@ -73,6 +73,10 @@ const EnvSchema = z.object({
     /** Optional token to protect manual constants refresh endpoint. */
     CONSTANTS_REFRESH_TOKEN: z.string().optional(),
 
+    // ── CORS ──────────────────────────────────────────────────────────────────
+    /** Comma-separated list of allowed production origins for CORS (e.g. https://app.example.com) */
+    CORS_ORIGIN: z.string().optional(),
+
     // ── Observability ─────────────────────────────────────────────────────────
     METRICS_ENABLED: z.coerce.boolean().default(true),
     /** Prefix for all Prometheus metric names */

@@ -100,7 +100,9 @@ function stopOllama(): void {
 // CORS configuration: restrict to specific origins based on environment
 const allowedOrigins =
   config.NODE_ENV === 'production'
-    ? ['https://sisrua.example.com'] // Replace with actual production domain
+    ? (config.CORS_ORIGIN
+        ? config.CORS_ORIGIN.split(',').map((o) => o.trim())
+        : [])
     : ['http://localhost:5173', 'http://localhost:4173', 'http://127.0.0.1:5173']; // Vite dev/preview
 
 app.use(cors({

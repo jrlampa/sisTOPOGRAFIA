@@ -110,24 +110,5 @@
     "vite": "^6.2.0",
     "vitest": "^1.3.1",
     "wait-on": "^9.0.4"
-  },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "testMatch": [
-      "**/server/tests/**/*.test.ts"
-    ],
-    "setupFilesAfterEnv": [
-      "<rootDir>/server/tests/setup.ts"
-    ],
-    "moduleFileExtensions": [
-      "ts",
-      "js",
-      "json"
-    ],
-    "moduleNameMapper": {
-      "^(\\.{1,2}/.*)\\.js$": "$1"
-    },
-    "coverageDirectory": "./coverage/backend"
   }
 }

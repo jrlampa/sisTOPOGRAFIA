@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { z } from 'zod';
 import { generateDXF, getDxfJobStatus } from '../services/dxfService';
 import { SelectionMode, GeoLocation, LayerConfig } from '../types';
 import { validateDxfExportInputs } from '../utils/validation';
@@ -17,6 +18,10 @@ interface UseDxfExportProps {
 interface BtContextPayload {
   [key: string]: unknown;
 }
+
+const btContextResponseSchema = z.object({
+  btContext: z.record(z.unknown()),
+});
 
 export function useDxfExport({ onSuccess, onError, onBtContextLoaded }: UseDxfExportProps) {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -46,12 +51,13 @@ export function useDxfExport({ onSuccess, onError, onBtContextLoaded }: UseDxfEx
         return;
       }
 
-      const payload = await response.json() as { btContext?: Record<string, unknown> };
-      if (!payload.btContext || typeof payload.btContext !== 'object') {
+      const rawPayload: unknown = await response.json();
+      const parsed = btContextResponseSchema.safeParse(rawPayload);
+      if (!parsed.success) {
         return;
       }
 
-      onBtContextLoaded?.({ btContextUrl, btContext: payload.btContext });
+      onBtContextLoaded?.({ btContextUrl, btContext: parsed.data.btContext });
     } catch {
       // Silent fail: DXF download must not be blocked by optional BT metadata retrieval.
     }

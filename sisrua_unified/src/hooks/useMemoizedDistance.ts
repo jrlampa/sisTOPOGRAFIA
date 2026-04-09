@@ -68,9 +68,15 @@ export function distanceMetersWithCache(from: Coordinates, to: Coordinates): num
 export function useMemoizedDistances(
   pairs: Array<{ from: Coordinates; to: Coordinates }>
 ): number[] {
+  // Build a stable primitive key without O(n) JSON.stringify on each render.
+  const stableKey = pairs
+    .map((p) => cacheKey(p.from, p.to))
+    .join('|');
+
   return useMemo(() => {
     return pairs.map((pair) => distanceMetersWithCache(pair.from, pair.to));
-  }, [JSON.stringify(pairs)]); // Nota: serialização é custo de memoização
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stableKey]);
 }
 
 /** Limpar cache se necessário (ex: antes de testes) */
