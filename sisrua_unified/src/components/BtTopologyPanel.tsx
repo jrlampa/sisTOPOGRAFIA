@@ -1,20 +1,15 @@
 import React from 'react';
 import { Activity, Plus, Trash2, Sigma, ChevronDown } from 'lucide-react';
 import { BtEdge, BtNetworkScenario, BtPoleNode, BtPoleRamalEntry, BtTopology, BtTransformer, BtTransformerReading } from '../types';
-import type { BtDerivedSummary } from '../services/btDerivedService';
+import type {
+  BtDerivedSummary,
+  BtPoleAccumulatedDemand,
+  BtClandestinoDisplay,
+  BtTransformerDerived,
+} from '../services/btDerivedService';
 import { useBtTopologySelection } from '../hooks/useBtTopologySelection';
-import {
-  calculateClandestinoDemandKvaByAreaAndClients,
-  calculateRamalDmdiKva,
-  calculateTransformerDemandKw,
-  calculateTransformerMonthlyBill,
-  calculateClandestinoDemandKw,
-  getClandestinoDiversificationFactorByClients,
-  getClandestinoAreaRange,
-  getClandestinoKvaByArea,
-  type BtPoleAccumulatedDemand
-} from '../utils/btCalculations';
 import { LEGACY_ID_ENTROPY } from '../constants/magicNumbers';
+import { CURRENT_TO_DEMAND_CONVERSION, DEFAULT_TEMPERATURE_FACTOR } from '../constants/btPhysicalConstants';
 
 interface BtTopologyPanelProps {
   btTopology: BtTopology;
@@ -24,6 +19,8 @@ interface BtTopologyPanelProps {
   projectType: 'ramais' | 'geral' | 'clandestino';
   btNetworkScenario: BtNetworkScenario;
   clandestinoAreaM2: number;
+  clandestinoDisplay: BtClandestinoDisplay;
+  transformersDerived: BtTransformerDerived[];
   transformerDebugById?: Record<string, { assignedClients: number; estimatedDemandKw: number }>;
   onTopologyChange: (next: BtTopology) => void;
   onSelectedPoleChange?: (poleId: string) => void;
@@ -54,8 +51,6 @@ const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
 const getPoleChangeFlag = (pole: BtPoleNode): BtPoleChangeFlag => pole.nodeChangeFlag ?? 'existing';
 const getTransformerChangeFlag = (transformer: BtTransformer): BtTransformerChangeFlag => transformer.transformerChangeFlag ?? 'existing';
 
-const CURRENT_TO_DEMAND_CONVERSION = 0.375;
-const DEFAULT_TEMPERATURE_FACTOR = 1.2;
 const NORMAL_CLIENT_RAMAL_TYPES = [
   '5 CC',
   '8 CC',
@@ -234,6 +229,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   projectType,
   btNetworkScenario,
   clandestinoAreaM2,
+  clandestinoDisplay,
+  transformersDerived,
   transformerDebugById = {},
   onTopologyChange,
   onSelectedPoleChange,
@@ -307,8 +304,15 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   };
 
   const updateTransformerReadings = (transformerId: string, readings: BtTransformerReading[]) => {
-    const monthlyBillBrl = calculateTransformerMonthlyBill(readings);
-    const demandKw = calculateTransformerDemandKw(readings);
+    // Compute demandKw and monthlyBillBrl inline using physical constants from btPhysicalConstants.
+    // The backend will recompute these in the next /api/bt/derived call for authoritative values.
+    const monthlyBillBrl = readings.reduce((acc, r) => acc + ((r as { billedBrl?: number }).billedBrl ?? 0), 0);
+    const correctedDemands = readings.map((r) => {
+      const currentMaxA = (r as { currentMaxA?: number }).currentMaxA ?? 0;
+      const temperatureFactor = (r as { temperatureFactor?: number }).temperatureFactor ?? 1;
+      return currentMaxA * CURRENT_TO_DEMAND_CONVERSION * temperatureFactor;
+    });
+    const demandKw = Number((Math.max(...correctedDemands, 0)).toFixed(2));
 
     onTopologyChange({
       ...btTopology,
@@ -388,23 +392,11 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     });
   };
 
-  const clandestinoDemandKw = projectType === 'clandestino'
-    ? calculateClandestinoDemandKw(clandestinoAreaM2)
-    : 0;
-  const clandestinoAreaRange = getClandestinoAreaRange();
-  const clandestinoDemandKva = projectType === 'clandestino'
-    ? getClandestinoKvaByArea(clandestinoAreaM2)
-    : null;
-  const totalClandestinoClients = btTopology.poles.reduce(
-    (acc, pole) => acc + (pole.ramais ?? []).reduce((sum, ramal) => sum + ramal.quantity, 0),
-    0
-  );
-  const clandestinoDiversificationFactor = projectType === 'clandestino'
-    ? getClandestinoDiversificationFactorByClients(totalClandestinoClients)
-    : null;
-  const clandestinoFinalDemandKva = projectType === 'clandestino'
-    ? calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, totalClandestinoClients)
-    : 0;
+  const clandestinoDemandKw = projectType === 'clandestino' ? clandestinoDisplay.demandKw : 0;
+  const clandestinoAreaRange = { min: clandestinoDisplay.areaMin, max: clandestinoDisplay.areaMax };
+  const clandestinoDemandKva = projectType === 'clandestino' ? clandestinoDisplay.demandKva : null;
+  const clandestinoDiversificationFactor = projectType === 'clandestino' ? clandestinoDisplay.diversificationFactor : null;
+  const clandestinoFinalDemandKva = projectType === 'clandestino' ? clandestinoDisplay.finalDemandKva : 0;
   const isNormalProject = projectType !== 'clandestino';
   const transformersWithReadings = btTopology.transformers.filter((transformer) => transformer.readings.length > 0).length;
   const transformersWithoutReadings = Math.max(0, btTopology.transformers.length - transformersWithReadings);
@@ -856,12 +848,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                     (acc, pole) => acc + (pole.ramais ?? []).reduce((sum, ramal) => sum + ramal.quantity, 0),
                     0
                   );
-                  const dmdi = calculateRamalDmdiKva({
-                    projectType,
-                    aa24DemandBase: summary.transformerDemandKw,
-                    sumClientsX: totalClients,
-                    ab35LookupDmdi: calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, totalClients)
-                  });
+                  // pointDemandKva from backend is the DMDI (demanda média por cliente).
+                  const dmdi = pointDemandKva;
 
                   return (
                     <>

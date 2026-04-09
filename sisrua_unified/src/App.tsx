@@ -96,6 +96,8 @@ function App() {
     btCriticalPoleId,
     btSummary,
     btPointDemandKva,
+    btClandestinoDisplay,
+    btTransformersDerived,
   } = useBtDerivedState({ appState, setAppState });
 
   // Core analysis engine
@@ -371,6 +373,8 @@ function App() {
     handleBtSetPoleChangeFlag,
     handleBtTogglePoleCircuitBreak,
     handleBtSetTransformerChangeFlag,
+    btClandestinoDisplay,
+    btTransformersDerived,
   };
 
   const sidebarAnalysisResultsProps: React.ComponentProps<typeof SidebarAnalysisResults> = {

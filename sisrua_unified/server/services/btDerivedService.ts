@@ -2,6 +2,8 @@ import { constantsService } from './constantsService.js';
 
 type BtProjectType = 'ramais' | 'geral' | 'clandestino';
 
+const CURRENT_TO_DEMAND_CONVERSION = 0.375;
+
 interface BtPoleRamalEntry {
     quantity: number;
     ramalType?: string;
@@ -16,7 +18,12 @@ interface BtPoleNode {
 }
 
 interface BtTransformerReading {
-    id: string;
+    id?: string;
+    currentMaxA?: number;
+    temperatureFactor?: number;
+    billedBrl?: number;
+    unitRateBrlPerKwh?: number;
+    autoCalculated?: boolean;
 }
 
 interface BtTransformer {
@@ -54,6 +61,29 @@ export interface BtTransformerEstimatedDemand {
     estimatedDemandKw: number;
 }
 
+export interface BtSectioningImpact {
+    unservedPoleIds: string[];
+    unservedClients: number;
+    estimatedDemandKw: number;
+    loadCenter: { lat: number; lng: number } | null;
+    suggestedPoleId: string | null;
+}
+
+export interface BtClandestinoDisplay {
+    demandKw: number;
+    areaMin: number;
+    areaMax: number;
+    demandKva: number | null;
+    diversificationFactor: number | null;
+    finalDemandKva: number;
+}
+
+export interface BtTransformerDerived {
+    transformerId: string;
+    demandKw: number;
+    monthlyBillBrl: number;
+}
+
 export interface BtDerivedResponse {
     summary: {
         poles: number;
@@ -66,6 +96,9 @@ export interface BtDerivedResponse {
     criticalPoleId: string | null;
     accumulatedByPole: BtPoleAccumulatedDemand[];
     estimatedByTransformer: BtTransformerEstimatedDemand[];
+    sectioningImpact: BtSectioningImpact;
+    clandestinoDisplay: BtClandestinoDisplay;
+    transformersDerived: BtTransformerDerived[];
 }
 
 const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
@@ -443,6 +476,115 @@ const calculateSummary = (topology: BtTopology) => {
     };
 };
 
+const distanceMetersBetween = (a: { lat: number; lng: number }, b: { lat: number; lng: number }): number => {
+    const earthRadius = 6371000;
+    const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+    const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+    const lat1 = (a.lat * Math.PI) / 180;
+    const lat2 = (b.lat * Math.PI) / 180;
+    const h =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * earthRadius * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+};
+
+const calculateSectioningImpact = (
+    topology: BtTopology,
+    projectType: BtProjectType,
+    clandestinoAreaM2: number
+): BtSectioningImpact => {
+    if (topology.poles.length === 0) {
+        return { unservedPoleIds: [], unservedClients: 0, estimatedDemandKw: 0, loadCenter: null, suggestedPoleId: null };
+    }
+
+    const { localClientByPole, ownerTransformerByPole } = calculateTransformerOwnershipData(topology, projectType);
+    const unservedPoles = topology.poles.filter((pole) => !ownerTransformerByPole.has(pole.id));
+    const unservedPoleIds = unservedPoles.map((pole) => pole.id);
+    const unservedClients = unservedPoles.reduce((sum, pole) => sum + (localClientByPole.get(pole.id) ?? 0), 0);
+
+    const totalClients = Array.from(localClientByPole.values()).reduce((sum, v) => sum + v, 0);
+    const measuredDemandKw = topology.transformers.reduce(
+        (sum, t) => (t.readings.length === 0 ? sum : sum + (t.demandKw ?? 0)),
+        0
+    );
+    const demandPerClientKw = totalClients > 0 ? measuredDemandKw / totalClients : 0;
+
+    const estimatedDemandKw = projectType === 'clandestino'
+        ? getClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, unservedClients)
+        : toFixed2(unservedClients * demandPerClientKw);
+
+    if (unservedPoles.length === 0) {
+        return { unservedPoleIds, unservedClients, estimatedDemandKw, loadCenter: null, suggestedPoleId: null };
+    }
+
+    const weighted = unservedPoles.map((pole) => ({ pole, weight: Math.max(localClientByPole.get(pole.id) ?? 0, 1) }));
+    const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
+    const loadCenter = {
+        lat: weighted.reduce((sum, item) => sum + item.pole.lat * item.weight, 0) / (totalWeight || 1),
+        lng: weighted.reduce((sum, item) => sum + item.pole.lng * item.weight, 0) / (totalWeight || 1),
+    };
+
+    let suggestedPoleId: string | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    for (const pole of unservedPoles) {
+        const d = distanceMetersBetween(loadCenter, { lat: pole.lat, lng: pole.lng });
+        if (d < nearestDistance) {
+            nearestDistance = d;
+            suggestedPoleId = pole.id;
+        }
+    }
+
+    return { unservedPoleIds, unservedClients, estimatedDemandKw, loadCenter, suggestedPoleId };
+};
+
+const calculateClandestinoDisplay = (
+    topology: BtTopology,
+    clandestinoAreaM2: number
+): BtClandestinoDisplay => {
+    const areaToKva = constantsService.getSync<Record<string, number>>('clandestino', 'AREA_TO_KVA');
+    const clientToDiversifFactor = constantsService.getSync<Record<string, number>>('clandestino', 'CLIENT_TO_DIVERSIF_FACTOR');
+
+    const numericAreaKeys = areaToKva ? Object.keys(areaToKva).map(Number).filter(Number.isFinite) : [];
+    const areaMin = numericAreaKeys.length > 0 ? Math.min(...numericAreaKeys) : 0;
+    const areaMax = numericAreaKeys.length > 0 ? Math.max(...numericAreaKeys) : 0;
+
+    const areaKey = String(Math.round(clandestinoAreaM2));
+    const demandKva = (areaToKva && Number.isFinite(areaToKva[areaKey])) ? areaToKva[areaKey] : null;
+    const demandKw = demandKva ?? 0;
+
+    const totalClients = topology.poles.reduce(
+        (acc, pole) => acc + (pole.ramais ?? []).reduce((sum, ramal) => sum + ramal.quantity, 0),
+        0
+    );
+    const clientKey = String(Math.round(totalClients));
+    const diversificationFactor = (clientToDiversifFactor && Number.isFinite(clientToDiversifFactor[clientKey]))
+        ? clientToDiversifFactor[clientKey]
+        : null;
+
+    const finalDemandKva = (demandKva !== null && diversificationFactor !== null)
+        ? toFixed2(demandKva * diversificationFactor)
+        : 0;
+
+    return { demandKw, areaMin, areaMax, demandKva, diversificationFactor, finalDemandKva };
+};
+
+const calculateTransformersDerived = (topology: BtTopology): BtTransformerDerived[] => {
+    return topology.transformers.map((transformer) => {
+        const readings = transformer.readings;
+        const monthlyBillBrl = readings.reduce((acc, r) => acc + (r.billedBrl ?? 0), 0);
+        if (readings.length === 0) {
+            return { transformerId: transformer.id, demandKw: 0, monthlyBillBrl };
+        }
+        const correctedDemands = readings.map((r) => {
+            const currentMaxA = r.currentMaxA ?? 0;
+            const temperatureFactor = r.temperatureFactor ?? 1;
+            return currentMaxA * CURRENT_TO_DEMAND_CONVERSION * temperatureFactor;
+        });
+        const demandKw = toFixed2(Math.max(...correctedDemands, 0));
+        return { transformerId: transformer.id, demandKw, monthlyBillBrl };
+    });
+};
+
 export const computeBtDerivedState = (
     topology: BtTopology,
     projectType: BtProjectType,
@@ -463,6 +605,9 @@ export const computeBtDerivedState = (
 
     const accumulatedByPole = calculateAccumulatedDemandByPole(topology, projectType, clandestinoAreaM2);
     const estimatedByTransformer = calculateEstimatedDemandByTransformer(topology, projectType, clandestinoAreaM2);
+    const sectioningImpact = calculateSectioningImpact(topology, projectType, clandestinoAreaM2);
+    const clandestinoDisplay = calculateClandestinoDisplay(topology, clandestinoAreaM2);
+    const transformersDerived = calculateTransformersDerived(topology);
 
     return {
         summary,
@@ -470,5 +615,8 @@ export const computeBtDerivedState = (
         criticalPoleId: accumulatedByPole[0]?.poleId ?? null,
         accumulatedByPole,
         estimatedByTransformer,
+        sectioningImpact,
+        clandestinoDisplay,
+        transformersDerived,
     };
 };

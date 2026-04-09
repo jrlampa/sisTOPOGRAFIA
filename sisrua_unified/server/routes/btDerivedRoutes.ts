@@ -18,11 +18,20 @@ const btPoleSchema = z.object({
     ramais: z.array(btRamalSchema).optional(),
 }).passthrough();
 
+const btTransformerReadingSchema = z.object({
+    id: z.string().optional(),
+    currentMaxA: z.coerce.number().optional(),
+    temperatureFactor: z.coerce.number().optional(),
+    billedBrl: z.coerce.number().optional(),
+    unitRateBrlPerKwh: z.coerce.number().optional(),
+    autoCalculated: z.boolean().optional(),
+}).passthrough();
+
 const btTransformerSchema = z.object({
     id: z.string().min(1),
     poleId: z.string().optional(),
     demandKw: z.coerce.number().default(0),
-    readings: z.array(z.object({ id: z.string().optional() }).passthrough()).default([]),
+    readings: z.array(btTransformerReadingSchema).default([]),
 }).passthrough();
 
 const btEdgeSchema = z.object({

@@ -1,7 +1,7 @@
 import { API_BASE_URL } from '../config/api';
 import type { BtTopology, BtProjectType } from '../types';
 
-interface BtPoleAccumulatedDemand {
+export interface BtPoleAccumulatedDemand {
   poleId: string;
   localClients: number;
   accumulatedClients: number;
@@ -9,10 +9,33 @@ interface BtPoleAccumulatedDemand {
   accumulatedDemandKva: number;
 }
 
-interface BtTransformerEstimatedDemand {
+export interface BtTransformerEstimatedDemand {
   transformerId: string;
   assignedClients: number;
   estimatedDemandKw: number;
+}
+
+export interface BtSectioningImpact {
+  unservedPoleIds: string[];
+  unservedClients: number;
+  estimatedDemandKw: number;
+  loadCenter: { lat: number; lng: number } | null;
+  suggestedPoleId: string | null;
+}
+
+export interface BtClandestinoDisplay {
+  demandKw: number;
+  areaMin: number;
+  areaMax: number;
+  demandKva: number | null;
+  diversificationFactor: number | null;
+  finalDemandKva: number;
+}
+
+export interface BtTransformerDerived {
+  transformerId: string;
+  demandKw: number;
+  monthlyBillBrl: number;
 }
 
 export interface BtDerivedSummary {
@@ -29,6 +52,9 @@ export interface BtDerivedResponse {
   criticalPoleId: string | null;
   accumulatedByPole: BtPoleAccumulatedDemand[];
   estimatedByTransformer: BtTransformerEstimatedDemand[];
+  sectioningImpact: BtSectioningImpact;
+  clandestinoDisplay: BtClandestinoDisplay;
+  transformersDerived: BtTransformerDerived[];
 }
 
 interface FetchBtDerivedStateInput {

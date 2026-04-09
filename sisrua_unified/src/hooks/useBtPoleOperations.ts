@@ -35,7 +35,7 @@ import {
   nextSequentialId,
 } from '../utils/btNormalization';
 import { generateEntityId, ID_PREFIX } from '../utils/idGenerator';
-import { calculateSectioningImpact } from '../utils/btCalculations';
+import { fetchBtDerivedState } from '../services/btDerivedService';
 import { API_BASE_URL } from '../config/api';
 
 export type { PendingNormalClassificationPole };
@@ -264,7 +264,7 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
     );
   };
 
-  const handleBtTogglePoleCircuitBreak = (poleId: string, circuitBreakPoint: boolean) => {
+  const handleBtTogglePoleCircuitBreak = async (poleId: string, circuitBreakPoint: boolean) => {
     const nextTopology: BtTopology = {
       ...btTopology,
       poles: btTopology.poles.map((pole) =>
@@ -272,21 +272,9 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
       )
     };
 
-    const sectioningImpact = circuitBreakPoint
-      ? calculateSectioningImpact(nextTopology, settings.projectType ?? 'ramais', settings.clandestinoAreaM2 ?? 0)
-      : null;
-    const suggestedPole = sectioningImpact?.suggestedPoleId
-      ? nextTopology.poles.find((pole) => pole.id === sectioningImpact.suggestedPoleId)
-      : null;
-
+    // Commit the topology change immediately so the UI reflects it.
     setAppState(
-      {
-        ...appState,
-        center: suggestedPole
-          ? { lat: suggestedPole.lat, lng: suggestedPole.lng, label: `Poste sugerido para novo trafo: ${suggestedPole.title}` }
-          : appState.center,
-        btTopology: nextTopology
-      },
+      { ...appState, btTopology: nextTopology },
       true
     );
 
@@ -295,15 +283,41 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
       return;
     }
 
-    if (sectioningImpact && sectioningImpact.unservedPoleIds.length > 0) {
-      const suggestedLabel = suggestedPole ? `${suggestedPole.title} (${suggestedPole.id})` : 'não encontrado';
-      showToast(
-        `Seccionamento BT: ${sectioningImpact.unservedPoleIds.length} poste(s) sem trafo atendendo. ` +
-          `Carga sobrante estimada: ${sectioningImpact.estimatedDemandKw.toFixed(2)} kVA para ${sectioningImpact.unservedClients} cliente(s). ` +
-          `Poste sugerido: ${suggestedLabel}.`,
-        'error'
-      );
-      return;
+    // Compute sectioning impact for the new topology via the backend.
+    try {
+      const derived = await fetchBtDerivedState({
+        topology: nextTopology,
+        projectType: settings.projectType ?? 'ramais',
+        clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
+      });
+      const sectioningImpact = derived.sectioningImpact;
+      const suggestedPole = sectioningImpact?.suggestedPoleId
+        ? nextTopology.poles.find((pole) => pole.id === sectioningImpact.suggestedPoleId)
+        : null;
+
+      if (suggestedPole) {
+        setAppState(
+          {
+            ...appState,
+            center: { lat: suggestedPole.lat, lng: suggestedPole.lng, label: `Poste sugerido para novo trafo: ${suggestedPole.title}` },
+            btTopology: nextTopology
+          },
+          true
+        );
+      }
+
+      if (sectioningImpact && sectioningImpact.unservedPoleIds.length > 0) {
+        const suggestedLabel = suggestedPole ? `${suggestedPole.title} (${suggestedPole.id})` : 'não encontrado';
+        showToast(
+          `Seccionamento BT: ${sectioningImpact.unservedPoleIds.length} poste(s) sem trafo atendendo. ` +
+            `Carga sobrante estimada: ${sectioningImpact.estimatedDemandKw.toFixed(2)} kVA para ${sectioningImpact.unservedClients} cliente(s). ` +
+            `Poste sugerido: ${suggestedLabel}.`,
+          'error'
+        );
+        return;
+      }
+    } catch {
+      // Backend unavailable — proceed without impact analysis.
     }
 
     showToast(`Poste ${poleId} marcado com separação física do circuito.`, 'info');
