@@ -73,6 +73,10 @@ const EnvSchema = z.object({
     /** Optional token to protect manual constants refresh endpoint. */
     CONSTANTS_REFRESH_TOKEN: z.string().optional(),
 
+    // ── BT Radial Calculation feature flag ───────────────────────────────────
+    /** Enable the new radial BT calculation engine. Defaults to false. */
+    BT_RADIAL_ENABLED: z.string().optional(),
+
     // ── CORS ──────────────────────────────────────────────────────────────────
     /** Comma-separated list of allowed production origins for CORS (e.g. https://app.example.com) */
     CORS_ORIGIN: z.string().optional(),
@@ -112,8 +116,9 @@ function loadConfig() {
     const useDbConstantsCqt: boolean = raw.USE_DB_CONSTANTS_CQT === 'true';
     const useDbConstantsClandestino: boolean = raw.USE_DB_CONSTANTS_CLANDESTINO === 'true';
     const useDbConstantsConfig: boolean = raw.USE_DB_CONSTANTS_CONFIG === 'true';
+    const btRadialEnabled: boolean = raw.BT_RADIAL_ENABLED === 'true';
 
-    return { ...raw, useFirestore, useSupabaseJobs, isDocker, useDbConstantsCqt, useDbConstantsClandestino, useDbConstantsConfig } as const;
+    return { ...raw, useFirestore, useSupabaseJobs, isDocker, useDbConstantsCqt, useDbConstantsClandestino, useDbConstantsConfig, btRadialEnabled } as const;
 }
 
 export const config = loadConfig();
