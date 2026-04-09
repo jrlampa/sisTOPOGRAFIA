@@ -1,34 +1,52 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GlobalState } from '../types';
-import {
-  calculateAccumulatedDemandByPole,
-  calculateBtSummary,
-  calculateEstimatedDemandByTransformer,
-  calculatePointDemandKva,
-  loadClandestinoWorkbookRules,
-  type BtPoleAccumulatedDemand,
-  type BtTransformerEstimatedDemand,
-} from '../utils/btCalculations';
+import type {
+  BtPoleAccumulatedDemand,
+  BtTransformerEstimatedDemand,
+  BtSectioningImpact,
+  BtClandestinoDisplay,
+  BtTransformerDerived,
+  BtDerivedSummary,
+} from '../services/btDerivedService';
+import { fetchBtDerivedState } from '../services/btDerivedService';
 import {
   CURRENT_TO_DEMAND_CONVERSION,
   DEFAULT_TEMPERATURE_FACTOR,
   EMPTY_BT_TOPOLOGY,
-} from '../utils/btNormalization';
+} from '../constants/btPhysicalConstants';
 import {
   LEGACY_ID_ENTROPY,
   ENTITY_ID_PREFIXES,
 } from '../constants/magicNumbers';
-import { fetchBtDerivedState, type BtDerivedSummary } from '../services/btDerivedService';
 
 interface UseBtDerivedStateParams {
   appState: GlobalState;
   setAppState: (nextState: GlobalState, commit: boolean) => void;
 }
 
+const EMPTY_SECTIONING_IMPACT: BtSectioningImpact = {
+  unservedPoleIds: [],
+  unservedClients: 0,
+  estimatedDemandKw: 0,
+  loadCenter: null,
+  suggestedPoleId: null,
+};
+
+const EMPTY_CLANDESTINO_DISPLAY: BtClandestinoDisplay = {
+  demandKw: 0,
+  areaMin: 0,
+  areaMax: 0,
+  demandKva: null,
+  diversificationFactor: null,
+  finalDemandKva: 0,
+};
+
 export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStateParams) {
-  const [, setClandestinoRulesVersion] = useState(0);
   const [btAccumulatedByPole, setBtAccumulatedByPole] = useState<BtPoleAccumulatedDemand[]>([]);
   const [btEstimatedByTransformer, setBtEstimatedByTransformer] = useState<BtTransformerEstimatedDemand[]>([]);
+  const [btSectioningImpact, setBtSectioningImpact] = useState<BtSectioningImpact>(EMPTY_SECTIONING_IMPACT);
+  const [btClandestinoDisplay, setBtClandestinoDisplay] = useState<BtClandestinoDisplay>(EMPTY_CLANDESTINO_DISPLAY);
+  const [btTransformersDerived, setBtTransformersDerived] = useState<BtTransformerDerived[]>([]);
   const [btSummary, setBtSummary] = useState<BtDerivedSummary>({
     poles: 0,
     transformers: 0,
@@ -49,56 +67,6 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
   useEffect(() => {
     let active = true;
 
-    loadClandestinoWorkbookRules().then((loaded) => {
-      if (active && loaded) {
-        setClandestinoRulesVersion((version) => version + 1);
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const localAccumulatedByPole = useMemo(
-    () => calculateAccumulatedDemandByPole(btTopology, settings.projectType ?? 'ramais', settings.clandestinoAreaM2 ?? 0),
-    [btTopology, settings.projectType, settings.clandestinoAreaM2]
-  );
-
-  const localEstimatedByTransformer = useMemo(
-    () => calculateEstimatedDemandByTransformer(btTopology, settings.projectType ?? 'ramais', settings.clandestinoAreaM2 ?? 0),
-    [btTopology, settings.projectType, settings.clandestinoAreaM2]
-  );
-
-  const localSummary = useMemo(() => calculateBtSummary(btTopology), [btTopology]);
-
-  const localPointDemandKva = useMemo(
-    () =>
-      calculatePointDemandKva({
-        projectType: settings.projectType ?? 'ramais',
-        transformerDemandKw: localSummary.transformerDemandKw,
-        clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
-        clandestinoClients: btTopology.poles.reduce(
-          (acc, pole) => acc + (pole.ramais ?? []).reduce((sum, ramal) => sum + ramal.quantity, 0),
-          0
-        ),
-      }),
-    [btTopology.poles, localSummary.transformerDemandKw, settings.projectType, settings.clandestinoAreaM2]
-  );
-
-  useEffect(() => {
-    let active = true;
-
-    const applyFallback = () => {
-      if (!active) {
-        return;
-      }
-      setBtAccumulatedByPole(localAccumulatedByPole);
-      setBtEstimatedByTransformer(localEstimatedByTransformer);
-      setBtSummary(localSummary);
-      setBtPointDemandKva(localPointDemandKva);
-    };
-
     fetchBtDerivedState({
       topology: btTopology,
       projectType: settings.projectType ?? 'ramais',
@@ -112,23 +80,18 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
         setBtEstimatedByTransformer(payload.estimatedByTransformer);
         setBtSummary(payload.summary);
         setBtPointDemandKva(payload.pointDemandKva);
+        setBtSectioningImpact(payload.sectioningImpact ?? EMPTY_SECTIONING_IMPACT);
+        setBtClandestinoDisplay(payload.clandestinoDisplay ?? EMPTY_CLANDESTINO_DISPLAY);
+        setBtTransformersDerived(payload.transformersDerived ?? []);
       })
       .catch(() => {
-        applyFallback();
+        // On error, keep previous values (no silent local fallback).
       });
 
     return () => {
       active = false;
     };
-  }, [
-    btTopology,
-    settings.projectType,
-    settings.clandestinoAreaM2,
-    localAccumulatedByPole,
-    localEstimatedByTransformer,
-    localSummary,
-    localPointDemandKva,
-  ]);
+  }, [btTopology, settings.projectType, settings.clandestinoAreaM2]);
 
   const btTransformerDebugById = useMemo(
     () =>
@@ -241,5 +204,8 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
     btCriticalPoleId,
     btSummary,
     btPointDemandKva,
+    btSectioningImpact,
+    btClandestinoDisplay,
+    btTransformersDerived,
   };
 }

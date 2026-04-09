@@ -1,8 +1,7 @@
 import React, { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { AppSettings, BtEditorMode, BtNetworkScenario, BtTopology } from '../types';
-import type { BtPoleAccumulatedDemand } from '../utils/btCalculations';
-import type { BtDerivedSummary } from '../services/btDerivedService';
+import type { BtDerivedSummary, BtPoleAccumulatedDemand, BtClandestinoDisplay, BtTransformerDerived } from '../services/btDerivedService';
 import type { PendingNormalClassificationPole } from '../utils/btNormalization';
 import type { BtEdgeChangeFlag, BtPoleChangeFlag, BtTransformerChangeFlag } from '../utils/btNormalization';
 import { useDebounce } from '../utils/debounce';
@@ -47,6 +46,8 @@ export interface SidebarBtEditorSectionProps {
   handleBtSetPoleChangeFlag: (poleId: string, flag: BtPoleChangeFlag) => void;
   handleBtTogglePoleCircuitBreak: (poleId: string, circuitBreakPoint: boolean) => void;
   handleBtSetTransformerChangeFlag: (id: string, flag: BtTransformerChangeFlag) => void;
+  btClandestinoDisplay: BtClandestinoDisplay;
+  btTransformersDerived: BtTransformerDerived[];
 }
 
 export function SidebarBtEditorSection({
@@ -77,7 +78,9 @@ export function SidebarBtEditorSection({
   handleBtSetPoleChangeFlag,
   handleBtTogglePoleCircuitBreak,
   handleBtSetTransformerChangeFlag,
-}: SidebarBtEditorSectionProps) {
+  btClandestinoDisplay,
+  btTransformersDerived,
+}: SidebarBtEditorSectionProps){
   // Debounce coordinate input to reduce state updates while typing
   const debouncedSetCoordinateInput = useDebounce(
     (value: string) => setBtPoleCoordinateInput(value),
@@ -233,6 +236,8 @@ export function SidebarBtEditorSection({
           onBtSetPoleChangeFlag={handleBtSetPoleChangeFlag}
           onBtTogglePoleCircuitBreak={handleBtTogglePoleCircuitBreak}
           onBtSetTransformerChangeFlag={handleBtSetTransformerChangeFlag}
+          clandestinoDisplay={btClandestinoDisplay}
+          transformersDerived={btTransformersDerived}
         />
       </Suspense>
     </>
