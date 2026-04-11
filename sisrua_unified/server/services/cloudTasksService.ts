@@ -8,6 +8,7 @@ import { completeJob, createJob, failJob, updateJobStatus } from './jobStatusSer
 import { setCachedFilename } from './cacheService.js';
 import { scheduleDxfDeletion } from './dxfCleanupService.js';
 import { config } from '../config.js';
+import { metricsService } from './metricsService.js';
 
 export interface DxfTaskPayload {
   taskId: string;
@@ -48,6 +49,38 @@ let queueInitialized = false;
 let workerStarted = false;
 let workerInterval: NodeJS.Timeout | null = null;
 let workerBusy = false;
+let workerStopping = false;
+
+const REQUIRED_DXF_TASKS_COLUMNS = [
+  'task_id',
+  'status',
+  'payload',
+  'attempts',
+  'error',
+  'created_at',
+  'updated_at',
+  'started_at',
+  'finished_at'
+] as const;
+
+async function validateDxfTasksSchema(sql: ReturnType<typeof postgres>): Promise<void> {
+  const rows = await sql<[{ column_name: string }][]>`
+    select column_name
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'dxf_tasks'
+  `;
+
+  const existing = new Set(rows.map((row) => row.column_name));
+  const missing = REQUIRED_DXF_TASKS_COLUMNS.filter((column) => !existing.has(column));
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required columns in public.dxf_tasks: ${missing.join(', ')}. ` +
+      'Apply database migrations before enabling Supabase/Postgres queue persistence.'
+    );
+  }
+}
 
 function persistBtContextSidecar(outputFile: string, btContext: Record<string, unknown> | null | undefined): string | null {
   if (!btContext || Object.keys(btContext).length === 0) {
@@ -85,22 +118,10 @@ async function initializeQueuePersistence(): Promise<void> {
       idle_timeout: 10
     });
 
-    await sqlClient.unsafe(`
-      create table if not exists dxf_tasks (
-        task_id text primary key,
-        status text not null,
-        payload jsonb not null,
-        attempts integer not null default 0,
-        error text,
-        created_at timestamptz not null default now(),
-        updated_at timestamptz not null default now(),
-        started_at timestamptz,
-        finished_at timestamptz
-      )
-    `);
+    await validateDxfTasksSchema(sqlClient);
 
     postgresAvailable = true;
-    logger.info('DXF queue persistence enabled (Supabase/Postgres)');
+    logger.info('DXF queue persistence enabled (Supabase/Postgres, schema validated)');
   } catch (error) {
     postgresAvailable = false;
     logger.warn('DXF queue persistence unavailable, using local async fallback', { error });
@@ -116,17 +137,35 @@ async function markTaskState(taskId: string, status: QueueRow['status'], error?:
     return;
   }
 
-  await sqlClient.unsafe(
-    `
+  await sqlClient`
       update dxf_tasks
-      set status = $2,
-          error = $3,
+      set status = ${status},
+          error = ${error ?? null},
           updated_at = now(),
-          finished_at = case when $2 in ('completed','failed') then now() else finished_at end
-      where task_id = $1
-    `,
-    [taskId, status, error ?? null]
-  );
+          finished_at = case when ${status} in ('completed','failed') then now() else finished_at end
+      where task_id = ${taskId}
+    `;
+}
+
+async function updateQueueMetrics(): Promise<void> {
+  if (!postgresAvailable || !sqlClient) {
+    metricsService.recordDxfQueueState({ pendingTasks: 0, processingTasks: 0, workerBusy });
+    return;
+  }
+
+  const rows = await sqlClient<[{ pending_tasks: number; processing_tasks: number }]>`
+    select
+      count(*) filter (where status = 'queued')::int as pending_tasks,
+      count(*) filter (where status = 'processing')::int as processing_tasks
+    from dxf_tasks
+  `;
+
+  const snapshot = rows[0] ?? { pending_tasks: 0, processing_tasks: 0 };
+  metricsService.recordDxfQueueState({
+    pendingTasks: snapshot.pending_tasks,
+    processingTasks: snapshot.processing_tasks,
+    workerBusy,
+  });
 }
 
 async function processPayload(payload: DxfTaskPayload): Promise<void> {
@@ -167,8 +206,7 @@ async function pickNextTask(): Promise<QueueRow | null> {
     return null;
   }
 
-  const rows = await sqlClient.unsafe(
-    `
+  const rows = await sqlClient<QueueRow[]>`
       with next_task as (
         select task_id
         from dxf_tasks
@@ -184,8 +222,7 @@ async function pickNextTask(): Promise<QueueRow | null> {
       from next_task
       where t.task_id = next_task.task_id
       returning t.task_id, t.status, t.payload, t.attempts
-    `
-  ) as QueueRow[];
+    `;
 
   if (rows.length === 0) {
     return null;
@@ -195,11 +232,12 @@ async function pickNextTask(): Promise<QueueRow | null> {
 }
 
 async function processNextTask(): Promise<void> {
-  if (!postgresAvailable || !sqlClient || workerBusy) {
+  if (!postgresAvailable || !sqlClient || workerBusy || workerStopping) {
     return;
   }
 
   workerBusy = true;
+  await updateQueueMetrics();
   try {
     const task = await pickNextTask();
     if (!task) {
@@ -209,21 +247,21 @@ async function processNextTask(): Promise<void> {
     try {
       await processPayload(task.payload);
       await markTaskState(task.task_id, 'completed');
+      metricsService.recordDxfRequest('generated');
       logger.info('DXF task processed', { taskId: task.task_id, cacheKey: task.payload.cacheKey });
+      await updateQueueMetrics();
     } catch (error: any) {
       const message = error instanceof Error ? error.message : String(error);
       await failJob(task.task_id, message);
+      metricsService.recordDxfRequest('failed');
 
       const nextState: QueueRow['status'] = task.attempts >= MAX_ATTEMPTS ? 'failed' : 'queued';
       if (nextState === 'queued') {
-        await sqlClient.unsafe(
-          `
+        await sqlClient`
             update dxf_tasks
-            set status = 'queued', error = $2, updated_at = now()
-            where task_id = $1
-          `,
-          [task.task_id, message]
-        );
+            set status = 'queued', error = ${message}, updated_at = now()
+            where task_id = ${task.task_id}
+          `;
       } else {
         await markTaskState(task.task_id, 'failed', message);
       }
@@ -234,9 +272,11 @@ async function processNextTask(): Promise<void> {
         error: message,
         nextState
       });
+      await updateQueueMetrics();
     }
   } finally {
     workerBusy = false;
+    await updateQueueMetrics();
   }
 }
 
@@ -246,29 +286,46 @@ function startWorkerIfNeeded(): void {
   }
 
   workerStarted = true;
+  workerStopping = false;
   workerInterval = setInterval(() => {
     processNextTask().catch((error) => {
       logger.error('DXF queue worker cycle failed', { error });
     });
   }, WORKER_INTERVAL_MS);
 
+  void updateQueueMetrics();
+
   logger.info('DXF queue worker started', { intervalMs: WORKER_INTERVAL_MS });
 }
 
-export function stopTaskWorker(): void {
+export async function stopTaskWorker(): Promise<void> {
+  workerStopping = true;
+  await updateQueueMetrics();
+
   if (workerInterval) {
     clearInterval(workerInterval);
     workerInterval = null;
   }
   workerStarted = false;
 
+  const shutdownStart = Date.now();
+  const maxDrainMs = 8_000;
+  while (workerBusy && Date.now() - shutdownStart < maxDrainMs) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  if (workerBusy) {
+    logger.warn('Stopping task worker before current task drain completed', { maxDrainMs });
+  }
+
   if (sqlClient) {
-    sqlClient.end({ timeout: 3 }).catch(() => undefined);
+    await sqlClient.end({ timeout: 3 }).catch(() => undefined);
     sqlClient = null;
   }
 
   postgresAvailable = false;
   queueInitialized = false;
+  metricsService.recordDxfQueueState({ pendingTasks: 0, processingTasks: 0, workerBusy: false });
 }
 
 /**
@@ -290,13 +347,12 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
   startWorkerIfNeeded();
 
   if (postgresAvailable && sqlClient) {
-    await sqlClient.unsafe(
-      `
+    await sqlClient`
         insert into dxf_tasks (task_id, status, payload, attempts, updated_at)
-        values ($1, 'queued', $2::jsonb, 0, now())
-      `,
-      [taskId, JSON.stringify(fullPayload)]
-    );
+        values (${taskId}, 'queued', ${sqlClient.json(fullPayload)}::jsonb, 0, now())
+      `;
+
+    await updateQueueMetrics();
 
     logger.info('DXF task queued in Supabase/Postgres', {
       taskId,
@@ -315,6 +371,7 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
     processPayload(fullPayload).catch(async (error: any) => {
       const message = error instanceof Error ? error.message : String(error);
       await failJob(taskId, message);
+      metricsService.recordDxfRequest('failed');
       logger.error('Local fallback DXF task failed', { taskId, error: message });
     });
   }, 0);
@@ -337,10 +394,9 @@ export async function getTaskStatus(taskId: string): Promise<{ taskId: string; s
     };
   }
 
-  const rows = await sqlClient.unsafe(
-    `select status, error from dxf_tasks where task_id = $1 limit 1`,
-    [taskId]
-  ) as Array<{ status: string; error: string | null }>;
+  const rows = await sqlClient<Array<{ status: string; error: string | null }>>`
+    select status, error from dxf_tasks where task_id = ${taskId} limit 1
+  `;
 
   if (rows.length === 0) {
     return {

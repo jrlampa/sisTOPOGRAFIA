@@ -122,10 +122,6 @@ const numberFromInput = (value: string, decimals?: number): number => {
   return Math.round(parsed * factor) / factor;
 };
 
-const selectAllInputText = (e: React.FocusEvent<HTMLInputElement> | React.MouseEvent<HTMLInputElement>) => {
-  e.currentTarget.select();
-};
-
 const normalizeNumericClipboardText = (raw: string): string => {
   const trimmed = raw.trim();
   if (!trimmed) {
@@ -397,9 +393,18 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   const clandestinoDemandKva = projectType === 'clandestino' ? clandestinoDisplay.demandKva : null;
   const clandestinoDiversificationFactor = projectType === 'clandestino' ? clandestinoDisplay.diversificationFactor : null;
   const clandestinoFinalDemandKva = projectType === 'clandestino' ? clandestinoDisplay.finalDemandKva : 0;
+  const totalClandestinoClients = btTopology.poles.reduce((total, pole) => {
+    const poleClients = (pole.ramais ?? []).reduce((ramalTotal, ramal) => {
+      const isClandestino = (ramal.ramalType ?? '').toLowerCase() === CLANDESTINO_RAMAL_TYPE.toLowerCase();
+      return isClandestino ? ramalTotal + (ramal.quantity ?? 0) : ramalTotal;
+    }, 0);
+
+    return total + poleClients;
+  }, 0);
   const isNormalProject = projectType !== 'clandestino';
   const transformersWithReadings = btTopology.transformers.filter((transformer) => transformer.readings.length > 0).length;
   const transformersWithoutReadings = Math.max(0, btTopology.transformers.length - transformersWithReadings);
+  const transformersDerivedCount = transformersDerived.length;
   const pointDemandCardClass = projectType === 'clandestino'
     ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
     : btTopology.transformers.length === 0 || transformersWithReadings === 0
@@ -481,7 +486,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         <div className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700">Postes: {summary.poles}</div>
         <div className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700">Condutores: {summary.edges}</div>
         <div className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700">Trafos: {summary.transformers}</div>
-        <div className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700">Rede: {Math.round(summary.totalLengthMeters)} m</div>
+        <div className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700">Rede: {Math.round(summary.totalLengthMeters)} m | Derivados: {transformersDerivedCount}</div>
       </div>
 
       {btNetworkScenario === 'asis' && (

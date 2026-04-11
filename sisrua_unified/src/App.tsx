@@ -25,6 +25,7 @@ import { AppSettingsOverlay } from './components/AppSettingsOverlay';
 import { AppStatusStack } from './components/AppStatusStack';
 import { MainMapWorkspace } from './components/MainMapWorkspace';
 import { SidebarWorkspace } from './components/SidebarWorkspace';
+import { ThemeProvider } from './theme/ThemeProvider';
 
 function App() {
   const {
@@ -73,7 +74,7 @@ function App() {
         projectName: 'PROJECT OSM-01',
         companyName: 'ENG CORP',
         engineerName: 'ENG. LEAD',
-        date: new Date().toLocaleDateString('en-US'),
+        date: new Date().toLocaleDateString('pt-BR'),
         scale: 'N/A',
         revision: 'R00'
       }
@@ -389,7 +390,8 @@ function App() {
   };
 
   return (
-    <div className={`flex flex-col h-screen w-full font-sans transition-colors duration-500 overflow-hidden ${isDark ? 'bg-[#020617] text-slate-200' : 'bg-slate-50 text-slate-900'}`}>
+    <ThemeProvider theme={settings.theme}>
+      <div className="app-shell flex flex-col h-screen w-full font-sans transition-colors duration-500 overflow-hidden">
 
       <AppStatusStack
         toast={toast}
@@ -446,7 +448,6 @@ function App() {
         onUndo={undo}
         onRedo={redo}
         onOpenSettings={openSettings}
-        isDark={isDark}
       />
 
       {/* Main Content Area */}
@@ -454,7 +455,6 @@ function App() {
 
         <SidebarWorkspace
           isSidebarDockedForRamalModal={isSidebarDockedForRamalModal}
-          isDark={isDark}
           selectionControlsProps={sidebarSelectionControlsProps}
           btEditorSectionProps={sidebarBtEditorSectionProps}
           analysisResultsProps={sidebarAnalysisResultsProps}
@@ -476,7 +476,8 @@ function App() {
           btModalStackProps={btModalStackProps}
         />
       </main>
-    </div>
+      </div>
+    </ThemeProvider>
   );
 }
 

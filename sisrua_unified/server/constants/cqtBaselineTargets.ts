@@ -1,5 +1,8 @@
+// Canonical workbook is in Light_estudo/ (see Light_estudo/README.md).
+// Legacy root-level copy is the fallback for backward compatibility.
 export const CQT_BASELINE_TARGETS = {
-    workbook: 'CQTsimplificado_BECO DO MATA 7 - PARIDADE_FINAL.xlsx',
+    workbook: 'Light_estudo/CQTsimplificado_BECO DO MATA 7 - PARIDADE_FINAL.xlsx',
+    workbookLegacyFallback: 'CQTsimplificado_BECO DO MATA 7 - PARIDADE_FINAL.xlsx',
     tolerance: 1e-9,
     ramal: {
         aa30Dmdi: 2.84,

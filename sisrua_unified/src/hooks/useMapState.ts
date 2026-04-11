@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppSettings, GeoLocation, GlobalState, SelectionMode } from '../types';
 import type { ToastType } from '../components/Toast';
 import { clearSessionDraft, loadSessionDraft } from './useAutoSave';
@@ -22,65 +22,88 @@ export function useMapState({
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [sessionDraft, setSessionDraft] = useState<GlobalState | null>(null);
+  const appStateRef = useRef(appState);
 
   const { polygon, measurePath, selectionMode } = appState;
+
+  useEffect(() => {
+    appStateRef.current = appState;
+  }, [appState]);
+
+  const applyAppState = useCallback(
+    (buildNextState: (current: GlobalState) => GlobalState, commit = true) => {
+      const nextState = buildNextState(appStateRef.current);
+      appStateRef.current = nextState;
+      setAppState(nextState, commit);
+    },
+    [setAppState]
+  );
 
   useEffect(() => {
     const draft = loadSessionDraft();
     if (draft && (draft.state.btTopology?.poles.length ?? 0) > 0) {
       setSessionDraft(draft.state);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const showToast = (message: string, type: ToastType) => {
+  const showToast = useCallback((message: string, type: ToastType) => {
     setToast({ message, type });
-  };
+  }, []);
 
-  const closeToast = () => {
+  const closeToast = useCallback(() => {
     setToast(null);
-  };
+  }, []);
 
-  const openSettings = () => {
+  const openSettings = useCallback(() => {
     setShowSettings(true);
-  };
+  }, []);
 
-  const closeSettings = () => {
+  const closeSettings = useCallback(() => {
     setShowSettings(false);
-  };
+  }, []);
 
-  const handleRestoreSession = () => {
+  const handleRestoreSession = useCallback(() => {
     if (!sessionDraft) {
       return;
     }
 
     setAppState(sessionDraft, false);
+    appStateRef.current = sessionDraft;
     setSessionDraft(null);
     clearSessionDraft();
     showToast('Sessão anterior restaurada.', 'success');
-  };
+  }, [sessionDraft, setAppState, showToast]);
 
-  const handleDismissSession = () => {
+  const handleDismissSession = useCallback(() => {
     setSessionDraft(null);
     clearSessionDraft();
-  };
+  }, []);
 
-  const updateSettings = (newSettings: AppSettings) => {
-    setAppState({ ...appState, settings: newSettings }, true);
-  };
+  const updateSettings = useCallback(
+    (newSettings: AppSettings) => {
+      applyAppState((current) => ({ ...current, settings: newSettings }), true);
+    },
+    [applyAppState]
+  );
 
-  const handleMapClick = (newCenter: GeoLocation) => {
-    setAppState({ ...appState, center: newCenter }, true);
-    clearData();
-  };
+  const handleMapClick = useCallback(
+    (newCenter: GeoLocation) => {
+      applyAppState((current) => ({ ...current, center: newCenter }), true);
+      clearData();
+    },
+    [applyAppState, clearData]
+  );
 
-  const handleSelectionModeChange = (mode: SelectionMode) => {
-    setAppState({ ...appState, selectionMode: mode, polygon: [], measurePath: [] }, true);
-  };
+  const handleSelectionModeChange = useCallback(
+    (mode: SelectionMode) => {
+      applyAppState((current) => ({ ...current, selectionMode: mode, polygon: [], measurePath: [] }), true);
+    },
+    [applyAppState]
+  );
 
-  const handleMeasurePathChange = async (path: [number, number][]) => {
+  const handleMeasurePathChange = useCallback(async (path: [number, number][]) => {
     const geoPath = path.map((point) => ({ lat: point[0], lng: point[1] }));
-    setAppState({ ...appState, measurePath: geoPath }, false);
+    applyAppState((current) => ({ ...current, measurePath: geoPath }), false);
 
     if (geoPath.length === 2) {
       await loadElevationProfile(geoPath[0], geoPath[1]);
@@ -88,49 +111,63 @@ export function useMapState({
     }
 
     clearProfile();
-  };
+  }, [applyAppState, clearProfile, loadElevationProfile]);
 
-  const handleRadiusChange = (nextRadius: number) => {
-    setAppState({ ...appState, radius: nextRadius }, false);
-  };
+  const handleRadiusChange = useCallback(
+    (nextRadius: number) => {
+      applyAppState((current) => ({ ...current, radius: nextRadius }), false);
+    },
+    [applyAppState]
+  );
 
-  const handleClearPolygon = () => {
-    setAppState({ ...appState, polygon: [] }, true);
-  };
+  const handleClearPolygon = useCallback(() => {
+    applyAppState((current) => ({ ...current, polygon: [] }), true);
+  }, [applyAppState]);
 
-  const handlePolygonChange = (points: [number, number][]) => {
+  const handlePolygonChange = useCallback((points: [number, number][]) => {
     const geoPoints = points.map((point) => ({ lat: point[0], lng: point[1] }));
-    setAppState({ ...appState, polygon: geoPoints }, true);
-  };
+    applyAppState((current) => ({ ...current, polygon: geoPoints }), true);
+  }, [applyAppState]);
 
   // Set center to current geolocation on mount (only when center is the default placeholder)
   useEffect(() => {
+    const currentState = appStateRef.current;
     const isDefaultCenter =
-      appState.center.lat === DEFAULT_LOCATION.lat && appState.center.lng === DEFAULT_LOCATION.lng;
-    
-    if (isDefaultCenter && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setAppState(
-            {
-              ...appState,
-              center: {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
-                label: 'Current Location',
-              },
-            },
-            false
-          );
-        },
-        (_err) => {
-          // Geolocation permission denied — keep default
-        }
-      );
+      currentState.center.lat === DEFAULT_LOCATION.lat &&
+      currentState.center.lng === DEFAULT_LOCATION.lng;
+
+    if (!isDefaultCenter || !navigator.geolocation) {
+      return;
     }
-  // Only run on mount; appState.center must be captured but not trigger re-runs
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    let cancelled = false;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (cancelled) {
+          return;
+        }
+
+        applyAppState(
+          (state) => ({
+            ...state,
+            center: {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              label: 'Local Atual',
+            },
+          }),
+          false
+        );
+      },
+      () => {
+        // Geolocation permission denied — keep default
+      }
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applyAppState]);
 
   const isPolygonValid = selectionMode === 'polygon' && polygon.length >= 3;
 

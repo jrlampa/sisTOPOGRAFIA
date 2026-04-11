@@ -23,6 +23,14 @@ interface RateLimitPolicySnapshot {
         windowMs: number;
         limit: number;
     };
+    downloads: {
+        windowMs: number;
+        limit: number;
+    };
+    analyze: {
+        windowMs: number;
+        limit: number;
+    };
 }
 
 const getConfigNumberConstant = (key: string, fallback: number): number => {
@@ -38,6 +46,10 @@ const getGeneralWindowMs = (): number => getConfigNumberConstant('RATE_LIMIT_GEN
 const getGeneralLimit = (): number => getConfigNumberConstant('RATE_LIMIT_GENERAL_MAX', config.RATE_LIMIT_GENERAL_MAX);
 const getDxfWindowMs = (): number => getConfigNumberConstant('RATE_LIMIT_DXF_WINDOW_MS', config.RATE_LIMIT_DXF_WINDOW_MS);
 const getDxfLimit = (): number => getConfigNumberConstant('RATE_LIMIT_DXF_MAX', config.RATE_LIMIT_DXF_MAX);
+const getDownloadsWindowMs = (): number => getConfigNumberConstant('RATE_LIMIT_DOWNLOADS_WINDOW_MS', 15 * 60 * 1_000);
+const getDownloadsLimit = (): number => getConfigNumberConstant('RATE_LIMIT_DOWNLOADS_MAX', 50);
+const getAnalyzeWindowMs = (): number => getConfigNumberConstant('RATE_LIMIT_ANALYZE_WINDOW_MS', 5 * 60 * 1_000);
+const getAnalyzeLimit = (): number => getConfigNumberConstant('RATE_LIMIT_ANALYZE_MAX', 20);
 
 export const getRateLimitPolicySnapshot = (): RateLimitPolicySnapshot => ({
     general: {
@@ -47,6 +59,14 @@ export const getRateLimitPolicySnapshot = (): RateLimitPolicySnapshot => ({
     dxf: {
         windowMs: getDxfWindowMs(),
         limit: getDxfLimit(),
+    },
+    downloads: {
+        windowMs: getDownloadsWindowMs(),
+        limit: getDownloadsLimit(),
+    },
+    analyze: {
+        windowMs: getAnalyzeWindowMs(),
+        limit: getAnalyzeLimit(),
     },
 });
 
@@ -86,13 +106,53 @@ const createGeneralRateLimiter = (windowMs: number) => rateLimit({
     }
 });
 
+const createAnalyzeRateLimiter = (windowMs: number) => rateLimit({
+    windowMs,
+    limit: () => getAnalyzeLimit(),
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    keyGenerator,
+    message: { error: 'Too many AI analysis requests, please try again later.' },
+    handler: (req, res, _next, options) => {
+        logger.warn('Analyze rate limit exceeded', {
+            ip: req.ip,
+            path: req.path,
+            limit: options.limit,
+            windowMs: options.windowMs
+        });
+        res.status(options.statusCode).json(options.message);
+    }
+});
+
+const createDownloadsRateLimiter = (windowMs: number) => rateLimit({
+    windowMs,
+    limit: () => getDownloadsLimit(),
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    keyGenerator,
+    message: { error: 'Too many download requests, please try again later.' },
+    handler: (req, res, _next, options) => {
+        logger.warn('Download rate limit exceeded', {
+            ip: req.ip,
+            path: req.path,
+            limit: options.limit,
+            windowMs: options.windowMs
+        });
+        res.status(options.statusCode).json(options.message);
+    }
+});
+
 let dxfRateLimiterHandler = createDxfRateLimiter(config.RATE_LIMIT_DXF_WINDOW_MS);
 let generalRateLimiterHandler = createGeneralRateLimiter(config.RATE_LIMIT_GENERAL_WINDOW_MS);
+let analyzeRateLimiterHandler = createAnalyzeRateLimiter(getAnalyzeWindowMs());
+let downloadsRateLimiterHandler = createDownloadsRateLimiter(getDownloadsWindowMs());
 
 export const refreshRateLimitersFromCatalog = (): void => {
     const policy = getRateLimitPolicySnapshot();
     dxfRateLimiterHandler = createDxfRateLimiter(policy.dxf.windowMs);
     generalRateLimiterHandler = createGeneralRateLimiter(policy.general.windowMs);
+    analyzeRateLimiterHandler = createAnalyzeRateLimiter(policy.analyze.windowMs);
+    downloadsRateLimiterHandler = createDownloadsRateLimiter(policy.downloads.windowMs);
 };
 
 const dxfRateLimiter = (req: Parameters<typeof dxfRateLimiterHandler>[0], res: Parameters<typeof dxfRateLimiterHandler>[1], next: Parameters<typeof dxfRateLimiterHandler>[2]) =>
@@ -101,4 +161,10 @@ const dxfRateLimiter = (req: Parameters<typeof dxfRateLimiterHandler>[0], res: P
 const generalRateLimiter = (req: Parameters<typeof generalRateLimiterHandler>[0], res: Parameters<typeof generalRateLimiterHandler>[1], next: Parameters<typeof generalRateLimiterHandler>[2]) =>
     generalRateLimiterHandler(req, res, next);
 
-export { dxfRateLimiter, generalRateLimiter };
+const analyzeRateLimiter = (req: Parameters<typeof analyzeRateLimiterHandler>[0], res: Parameters<typeof analyzeRateLimiterHandler>[1], next: Parameters<typeof analyzeRateLimiterHandler>[2]) =>
+    analyzeRateLimiterHandler(req, res, next);
+
+const downloadsRateLimiter = (req: Parameters<typeof downloadsRateLimiterHandler>[0], res: Parameters<typeof downloadsRateLimiterHandler>[1], next: Parameters<typeof downloadsRateLimiterHandler>[2]) =>
+    downloadsRateLimiterHandler(req, res, next);
+
+export { dxfRateLimiter, generalRateLimiter, analyzeRateLimiter, downloadsRateLimiter };

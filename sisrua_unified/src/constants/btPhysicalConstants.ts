@@ -1,3 +1,5 @@
+import type { BtTopology } from '../types';
+
 /** Fator de conversão corrente → demanda (kW/A) para redes BT. Fonte: planilha de cálculo. */
 export const CURRENT_TO_DEMAND_CONVERSION = 0.375;
 
@@ -5,4 +7,4 @@ export const CURRENT_TO_DEMAND_CONVERSION = 0.375;
 export const DEFAULT_TEMPERATURE_FACTOR = 1.2;
 
 /** Topologia BT vazia — usada como estado inicial quando não há rede carregada. */
-export const EMPTY_BT_TOPOLOGY = { poles: [], transformers: [], edges: [] } as const;
+export const EMPTY_BT_TOPOLOGY: BtTopology = { poles: [], transformers: [], edges: [] };

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from collections import Counter
@@ -11,9 +12,67 @@ from typing import Any
 from openpyxl import load_workbook
 from openpyxl.utils.cell import get_column_letter
 
-DEFAULT_WORKBOOK_PATH = "CQTsimplificado_BECO DO MATA 7 - PARIDADE_FINAL.xlsx"
+# ── Canonical workbook resolution ────────────────────────────────────────────
+# Priority order:
+#   1. CQT_WORKBOOK_PATH env var
+#   2. First *.xlsx found in Light_estudo/
+#   3. Legacy fallback: root-level BECO DO MATA 7 workbook
+_LEGACY_WORKBOOK = "CQTsimplificado_BECO DO MATA 7 - PARIDADE_FINAL.xlsx"
+_LIGHT_ESTUDO_DIR = Path("Light_estudo")
+
+
+def _resolve_default_workbook() -> str:
+    env_path = os.environ.get("CQT_WORKBOOK_PATH", "").strip()
+    if env_path:
+        return env_path
+    if _LIGHT_ESTUDO_DIR.is_dir():
+        candidates = sorted(_LIGHT_ESTUDO_DIR.glob("*.xlsx"))
+        if candidates:
+            return str(candidates[0])
+    return _LEGACY_WORKBOOK
+
+
+DEFAULT_WORKBOOK_PATH = _resolve_default_workbook()
 DEFAULT_OUTPUT_PATH = Path("docs") / "CQT_WORKBOOK_AUDIT.json"
 COL_REF_RE = re.compile(r"\$?([A-Z]{1,3})\$?\d+")
+
+
+PARITY_CELL_MAP: dict[str, dict[str, list[str]]] = {
+    "atual": {
+        "RAMAL": ["AA30"],
+        "GERAL": ["P31", "P32"],
+        "DB": ["K6", "K7", "K8", "K10"],
+    },
+    "proj1": {
+        "GERAL PROJ": ["P31", "P32"],
+    },
+    "proj2": {
+        "GERAL PROJ2": ["P31", "P32"],
+    },
+}
+
+
+def _extract_parity_cells(wb_v: Any) -> dict[str, dict[str, Any]]:
+    parity_cells: dict[str, dict[str, Any]] = {}
+
+    for scenario, sheet_cells in PARITY_CELL_MAP.items():
+        scenario_values: dict[str, Any] = {}
+        for sheet_name, cells in sheet_cells.items():
+            if sheet_name not in wb_v.sheetnames:
+                continue
+
+            ws = wb_v[sheet_name]
+            for cell_ref in cells:
+                key = f"{sheet_name}!{cell_ref}"
+                value = ws[cell_ref].value
+                if isinstance(value, (int, float)):
+                    scenario_values[key] = float(value)
+                elif isinstance(value, str) and value.startswith("#"):
+                    scenario_values[key] = {"error": value}
+
+        parity_cells[scenario] = scenario_values
+
+    return parity_cells
 
 
 def _build_recommendations(summary: dict[str, Any]) -> list[str]:
@@ -51,7 +110,7 @@ def _build_recommendations(summary: dict[str, Any]) -> list[str]:
 
     if not recommendations:
         recommendations.append(
-            "Workbook has no major structural risks " "for current parity workflow."
+            "Workbook has no major structural risks for parity workflow."
         )
 
     return recommendations
@@ -251,11 +310,13 @@ def analyze_workbook(workbook_path: Path) -> dict[str, Any]:
 
     risk = _build_risk(summary)
     recommendations = _build_recommendations(summary)
+    parity_cells = _extract_parity_cells(wb_v)
 
     return {
         "summary": summary,
         "risk": risk,
         "recommendations": recommendations,
+        "parityCells": parity_cells,
         "sheets": sheet_stats,
         "samples": {
             "formulaRefLiteral": formula_ref_literal_sample,
@@ -314,8 +375,11 @@ def main() -> int:
         )
 
     if args.check and report["risk"]["checkFailed"]:
+        check_error = (
+            "CQT workbook audit check failed: " "critical structural flags detected."
+        )
         print(
-            "CQT workbook audit check failed: " "critical structural flags detected.",
+            check_error,
             file=sys.stderr,
         )
         return 1

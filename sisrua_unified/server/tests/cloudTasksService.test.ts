@@ -32,12 +32,13 @@ jest.mock('postgres', () => ({
 
 describe('cloudTasksService (Postgres queue)', () => {
   const originalEnv = process.env;
+  const testDatabaseUrl = process.env.TEST_DATABASE_URL || 'postgresql://user:password@localhost:5432/testdb?sslmode=require';
 
   beforeEach(() => {
     process.env = {
       ...originalEnv,
       NODE_ENV: 'test',
-      DATABASE_URL: 'postgresql://postgres:secret@localhost:5432/postgres?sslmode=require',
+      DATABASE_URL: testDatabaseUrl,
       USE_SUPABASE_JOBS: 'true'
     };
 

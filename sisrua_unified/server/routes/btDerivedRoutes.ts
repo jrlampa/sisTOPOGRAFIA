@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { computeBtDerivedState } from '../services/btDerivedService.js';
+import { calculateBtRadial, BtRadialValidationError } from '../services/btRadialCalculationService.js';
 import { logger } from '../utils/logger.js';
 
 const router = Router();
@@ -50,6 +51,39 @@ const btDerivedRequestSchema = z.object({
         transformers: z.array(btTransformerSchema),
         edges: z.array(btEdgeSchema),
     }),
+    /**
+     * Optional: when provided, also runs the BT radial calculation engine and
+     * includes `radialCalcOutput` in the response.  Existing consumers that do
+     * not send this field are unaffected (Phase 6 – non-breaking extension).
+     */
+    radialCalcInput: z.object({
+        transformer: z.object({
+            id: z.string().min(1),
+            rootNodeId: z.string().min(1),
+            kva: z.number().positive(),
+            zPercent: z.number().nonnegative(),
+            qtMt: z.number().nonnegative(),
+        }),
+        nodes: z.array(z.object({
+            id: z.string().min(1),
+            load: z.object({
+                localDemandKva: z.number().nonnegative(),
+                ramal: z.object({
+                    conductorId: z.string().min(1),
+                    lengthMeters: z.number().positive(),
+                }).optional(),
+            }),
+        })).min(1),
+        edges: z.array(z.object({
+            fromNodeId: z.string().min(1),
+            toNodeId: z.string().min(1),
+            conductorId: z.string().min(1),
+            lengthMeters: z.number().positive(),
+        })),
+        phase: z.enum(['MONO', 'BIF', 'TRI']),
+        temperatureC: z.number().positive().optional(),
+        nominalVoltageV: z.number().positive().optional(),
+    }).optional(),
 });
 
 router.post('/derived', (req: Request, res: Response) => {
@@ -62,8 +96,27 @@ router.post('/derived', (req: Request, res: Response) => {
             });
         }
 
-        const { topology, projectType, clandestinoAreaM2 } = validation.data;
+        const { topology, projectType, clandestinoAreaM2, radialCalcInput } = validation.data;
         const payload = computeBtDerivedState(topology, projectType, clandestinoAreaM2);
+
+        // Phase 6 – non-breaking extension: run radial calc when input is provided.
+        if (radialCalcInput) {
+            try {
+                const radialCalcOutput = calculateBtRadial(radialCalcInput);
+                return res.json({ ...payload, radialCalcOutput });
+            } catch (calcErr) {
+                if (calcErr instanceof BtRadialValidationError) {
+                    return res.status(422).json({
+                        error: 'Radial calculation topology validation failed',
+                        code: calcErr.code,
+                        message: calcErr.message,
+                    });
+                }
+                logger.error('BT radial calc error inside derived endpoint', { error: calcErr });
+                return res.status(500).json({ error: 'Radial calculation failed' });
+            }
+        }
+
         return res.json(payload);
     } catch (error) {
         logger.error('BT derived computation error', { error });

@@ -77,7 +77,6 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
             ...fallbackCommands
         ]));
 
-        const command = commandCandidates[0];
         const args = [scriptPath];
 
         // SECURITY: Sanitize all arguments - convert to strings to prevent injection
@@ -116,6 +115,21 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
             let stdoutData = '';
             let stderrData = '';
             let handled = false;
+            const timeoutHandle = setTimeout(() => {
+                if (handled) {
+                    return;
+                }
+
+                handled = true;
+                logger.error('Python process timeout reached', {
+                    command: selectedCommand,
+                    timeoutMs: config.PYTHON_PROCESS_TIMEOUT_MS
+                });
+                pythonProcess.kill();
+                reject(new Error(`Python script timed out after ${config.PYTHON_PROCESS_TIMEOUT_MS}ms`));
+            }, config.PYTHON_PROCESS_TIMEOUT_MS);
+
+            const clearProcessTimeout = () => clearTimeout(timeoutHandle);
 
             pythonProcess.stdout.on('data', (data) => {
                 const str = data.toString();
@@ -133,6 +147,8 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
                 if (handled) {
                     return;
                 }
+
+                clearProcessTimeout();
 
                 logger.info('Python process exited', { command: selectedCommand, exitCode: code });
                 if (code === 0) {
@@ -154,6 +170,8 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
                 if (handled) {
                     return;
                 }
+
+                clearProcessTimeout();
 
                 const isMissingCommand = err?.code === 'ENOENT';
                 const hasNextCandidate = index < commandCandidates.length - 1;

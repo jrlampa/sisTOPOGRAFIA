@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Circle, useMapEvents, GeoJSON, Polygon, Polyline, Popup, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Circle, useMap, useMapEvents, GeoJSON, Polygon, Polyline, Popup, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { GeoJsonObject, FeatureCollection } from 'geojson';
@@ -41,6 +41,10 @@ const CONDUCTOR_OPTIONS = [
 ];
 
 const EDGE_HIT_AREA_WEIGHT = 28;
+const VIEWPORT_PADDING_RATIO = 0.15;
+const DENSE_TOOLTIP_POLE_LIMIT = 400;
+const DENSE_TOOLTIP_TRANSFORMER_LIMIT = 220;
+const TOOLTIP_MIN_ZOOM = 16;
 const LEAFLET_ICON_BASE_URL = import.meta.env.BASE_URL;
 const POPUP_SELECT_CLASS = 'w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[11px] text-slate-700';
 const POPUP_TOOLBAR_CLASS = 'mt-1.5 flex items-center gap-2';
@@ -195,6 +199,34 @@ interface SelectionManagerProps {
     btEditorMode?: BtEditorMode;
     onBtMapClick?: (location: GeoLocation) => void;
 }
+
+interface ViewportState {
+    bounds: L.LatLngBounds;
+    zoom: number;
+}
+
+interface ViewportTrackerProps {
+    onViewportChange: (next: ViewportState) => void;
+}
+
+const ViewportTracker = ({ onViewportChange }: ViewportTrackerProps) => {
+    const map = useMap();
+
+    React.useEffect(() => {
+        onViewportChange({ bounds: map.getBounds(), zoom: map.getZoom() });
+    }, [map, onViewportChange]);
+
+    useMapEvents({
+        moveend: () => {
+            onViewportChange({ bounds: map.getBounds(), zoom: map.getZoom() });
+        },
+        zoomend: () => {
+            onViewportChange({ bounds: map.getBounds(), zoom: map.getZoom() });
+        }
+    });
+
+    return null;
+};
 
 const SelectionManager = ({
     center,
@@ -493,66 +525,189 @@ const MapSelector: React.FC<MapSelectorProps> = ({
 
     const [edgeConductorSelection, setEdgeConductorSelection] = React.useState<Record<string, string>>({});
     const [edgeReplacementFromSelection, setEdgeReplacementFromSelection] = React.useState<Record<string, string>>({});
+    const [viewport, setViewport] = React.useState<ViewportState | null>(null);
+
+    const handleViewportChange = React.useCallback((nextViewport: ViewportState) => {
+        setViewport((current) => {
+            if (
+                current &&
+                current.zoom === nextViewport.zoom &&
+                current.bounds.equals(nextViewport.bounds)
+            ) {
+                return current;
+            }
+            return nextViewport;
+        });
+    }, []);
 
     const poleHasTransformer = React.useMemo(() => {
         const byPole = new Map<string, boolean>();
         const distanceThresholdMeters = 6;
+        const transformers = topology.transformers || [];
+        const poles = topology.poles || [];
 
-        for (const pole of topology.poles || []) {
-            const hasTransformer = (topology.transformers || []).some((transformer) => {
-                if (transformer.poleId) {
-                    return transformer.poleId === pole.id;
-                }
-                const polePoint = L.latLng(pole.lat, pole.lng);
-                const transformerPoint = L.latLng(transformer.lat, transformer.lng);
-                return polePoint.distanceTo(transformerPoint) <= distanceThresholdMeters;
-            });
-            byPole.set(pole.id, hasTransformer);
+        // O(T): index transformers with an explicit poleId for O(1) lookup
+        const linkedPoleIdSet = new Set<string>(
+            transformers.filter((t) => !!t.poleId).map((t) => t.poleId as string)
+        );
+        // Only check geo-distance for transformers without an explicit poleId
+        const geoTransformers = transformers.filter((t) => !t.poleId);
+
+        for (const pole of poles) {
+            if (linkedPoleIdSet.has(pole.id)) {
+                byPole.set(pole.id, true);
+                continue;
+            }
+            if (geoTransformers.length === 0) {
+                byPole.set(pole.id, false);
+                continue;
+            }
+            const polePoint = L.latLng(pole.lat, pole.lng);
+            byPole.set(
+                pole.id,
+                geoTransformers.some(
+                    (t) => polePoint.distanceTo(L.latLng(t.lat, t.lng)) <= distanceThresholdMeters
+                )
+            );
         }
 
         return byPole;
     }, [topology.poles, topology.transformers]);
 
-    const makePoleIcon = (poleId: string, verified: boolean) => {
-        const hasTransformer = !!poleHasTransformer.get(poleId);
-        const isCritical = poleId === criticalPoleId;
-        const isPending = poleId === pendingBtEdgeStartPoleId;
-        const pole = topology.poles.find((item) => item.id === poleId);
-        const poleFlag = pole ? getPoleChangeFlag(pole) : 'existing';
+    // Pre-compute one L.divIcon per pole — avoids creating new icon objects on every render
+    const poleIconsMap = React.useMemo(() => {
+        const iconsMap = new Map<string, L.DivIcon>();
+        for (const pole of topology.poles || []) {
+            const hasTransformer = !!poleHasTransformer.get(pole.id);
+            const isCritical = pole.id === criticalPoleId;
+            const isPending = pole.id === pendingBtEdgeStartPoleId;
+            const poleFlag = getPoleChangeFlag(pole);
+            let icon: L.DivIcon;
+            if (hasTransformer) {
+                const bg = getFlagColor(poleFlag, pole.verified ? '#15803d' : '#7c3aed');
+                const size = isCritical ? 18 : isPending ? 16 : 14;
+                icon = L.divIcon({
+                    className: 'bt-pole-transformer-icon',
+                    html: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="filter: drop-shadow(0 0 0 ${bg}66);"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
+                    iconSize: [size, size],
+                    iconAnchor: [size / 2, size / 2]
+                });
+            } else {
+                let bg = '#2563eb';
+                let size = 12;
+                if (isCritical) { bg = '#ef4444'; size = 16; }
+                else if (isPending) { bg = '#f59e0b'; size = 14; }
+                else { bg = getFlagColor(poleFlag, pole.verified ? '#16a34a' : '#2563eb'); }
+                icon = L.divIcon({
+                    className: 'bt-pole-icon',
+                    html: `<div style="background:${bg};border:2px solid #ffffff;width:${size}px;height:${size}px;border-radius:9999px;box-shadow:0 0 0 2px ${bg}40;"></div>`,
+                    iconSize: [size, size],
+                    iconAnchor: [size / 2, size / 2]
+                });
+            }
+            iconsMap.set(pole.id, icon);
+        }
+        return iconsMap;
+    }, [topology.poles, poleHasTransformer, criticalPoleId, pendingBtEdgeStartPoleId]);
 
-        if (hasTransformer) {
-            const bg = getFlagColor(poleFlag, verified ? '#15803d' : '#7c3aed');
-            const size = isCritical ? 18 : isPending ? 16 : 14;
-            return L.divIcon({
-                className: 'bt-pole-transformer-icon',
-                html: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="filter: drop-shadow(0 0 0 ${bg}66);"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
-                iconSize: [size, size],
-                iconAnchor: [size / 2, size / 2]
-            });
+    // Pre-compute one L.divIcon per transformer
+    const transformerIconsMap = React.useMemo(() => {
+        const iconsMap = new Map<string, L.DivIcon>();
+        for (const transformer of topology.transformers || []) {
+            const transformerFlag = getTransformerChangeFlag(transformer);
+            const bg = getFlagColor(transformerFlag, transformer.verified ? '#15803d' : '#7c3aed');
+            iconsMap.set(transformer.id, L.divIcon({
+                className: 'bt-transformer-icon',
+                html: `<svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
+            }));
+        }
+        return iconsMap;
+    }, [topology.transformers]);
+
+    // Pre-compute edge change flags and visual configs — avoids calling getEdgeChangeFlag twice per render
+    const edgeRenderDataMap = React.useMemo(() => {
+        const dataMap = new Map<string, { changeFlag: BtEdgeChangeFlag; visual: ReturnType<typeof getEdgeVisualConfig> }>();
+        for (const edge of topology.edges || []) {
+            dataMap.set(edge.id, { changeFlag: getEdgeChangeFlag(edge), visual: getEdgeVisualConfig(edge) });
+        }
+        return dataMap;
+    }, [topology.edges]);
+
+    const visiblePoleIdSet = React.useMemo(() => {
+        if (!viewport) {
+            return new Set((topology.poles || []).map((pole) => pole.id));
         }
 
-        let bg = '#2563eb';
-        let size = 12;
-        if (isCritical) { bg = '#ef4444'; size = 16; }
-        else if (isPending) { bg = '#f59e0b'; size = 14; }
-        else { bg = getFlagColor(poleFlag, verified ? '#16a34a' : '#2563eb'); }
-        return L.divIcon({
-            className: 'bt-pole-icon',
-            html: `<div style="background:${bg};border:2px solid #ffffff;width:${size}px;height:${size}px;border-radius:9999px;box-shadow:0 0 0 2px ${bg}40;"></div>`,
-            iconSize: [size, size],
-            iconAnchor: [size / 2, size / 2]
-        });
-    };
+        const paddedBounds = viewport.bounds.pad(VIEWPORT_PADDING_RATIO);
+        const visibleIds = new Set<string>();
 
-    const makeTransformerIcon = (verified: boolean, transformerFlag: BtTransformerChangeFlag) => {
-        const bg = getFlagColor(transformerFlag, verified ? '#15803d' : '#7c3aed');
-        return L.divIcon({
-            className: 'bt-transformer-icon',
-            html: `<svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
-            iconSize: [14, 14],
-            iconAnchor: [7, 7]
+        for (const pole of topology.poles || []) {
+            if (paddedBounds.contains([pole.lat, pole.lng])) {
+                visibleIds.add(pole.id);
+            }
+        }
+
+        return visibleIds;
+    }, [topology.poles, viewport]);
+
+    const visiblePoles = React.useMemo(() => {
+        return (topology.poles || []).filter((pole) => visiblePoleIdSet.has(pole.id));
+    }, [topology.poles, visiblePoleIdSet]);
+
+    const visibleTransformers = React.useMemo(() => {
+        if (!viewport) {
+            return topology.transformers || [];
+        }
+
+        const paddedBounds = viewport.bounds.pad(VIEWPORT_PADDING_RATIO);
+        return (topology.transformers || []).filter((transformer) => {
+            if (transformer.poleId && visiblePoleIdSet.has(transformer.poleId)) {
+                return true;
+            }
+            return paddedBounds.contains([transformer.lat, transformer.lng]);
         });
-    };
+    }, [topology.transformers, viewport, visiblePoleIdSet]);
+
+    const visibleEdges = React.useMemo(() => {
+        if (!viewport) {
+            return topology.edges || [];
+        }
+
+        return (topology.edges || []).filter((edge) => {
+            return visiblePoleIdSet.has(edge.fromPoleId) || visiblePoleIdSet.has(edge.toPoleId);
+        });
+    }, [topology.edges, viewport, visiblePoleIdSet]);
+
+    const shouldShowPoleTooltips =
+        (viewport?.zoom ?? 15) >= TOOLTIP_MIN_ZOOM || visiblePoles.length <= DENSE_TOOLTIP_POLE_LIMIT;
+    const shouldShowTransformerTooltips =
+        (viewport?.zoom ?? 15) >= TOOLTIP_MIN_ZOOM || visibleTransformers.length <= DENSE_TOOLTIP_TRANSFORMER_LIMIT;
+
+    const logMapLayersRender = React.useCallback<React.ProfilerOnRenderCallback>(
+        (id, phase, actualDuration, baseDuration) => {
+            if (!import.meta.env.DEV) {
+                return;
+            }
+            if (actualDuration < 8) {
+                return;
+            }
+
+            // Helps compare React DevTools Profiler data with runtime topology size on heavy scenes.
+            console.debug('[MapSelectorProfiler]', {
+                id,
+                phase,
+                actualDurationMs: Number(actualDuration.toFixed(2)),
+                baseDurationMs: Number(baseDuration.toFixed(2)),
+                visibleEdges: visibleEdges.length,
+                visiblePoles: visiblePoles.length,
+                visibleTransformers: visibleTransformers.length,
+                zoom: viewport?.zoom ?? 15
+            });
+        },
+        [visibleEdges.length, visiblePoles.length, visibleTransformers.length, viewport?.zoom]
+    );
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -655,15 +810,19 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                     onBtMapClick={onBtMapClick}
                 />
 
-                {(topology.edges || []).map((edge) => {
+                <ViewportTracker onViewportChange={handleViewportChange} />
+
+                <React.Profiler id="MapTopologyLayers" onRender={logMapLayersRender}>
+                {visibleEdges.map((edge) => {
                     const from = polesById.get(edge.fromPoleId);
                     const to = polesById.get(edge.toPoleId);
                     if (!from || !to) {
                         return null;
                     }
 
-                    const edgeChangeFlag = getEdgeChangeFlag(edge);
-                    const edgeVisual = getEdgeVisualConfig(edge);
+                    const edgeRenderData = edgeRenderDataMap.get(edge.id);
+                    const edgeChangeFlag = edgeRenderData?.changeFlag ?? getEdgeChangeFlag(edge);
+                    const edgeVisual = edgeRenderData?.visual ?? getEdgeVisualConfig(edge);
                     const edgeFlagLabel =
                         edgeChangeFlag === 'remove'
                             ? 'Remoção'
@@ -907,11 +1066,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                     );
                 })}
 
-                {(topology.poles || []).map((pole) => (
+                {visiblePoles.map((pole) => (
                     <Marker
                         key={`${pole.id}-${pole.verified ? 'v' : 'u'}-${pole.id === criticalPoleId ? 'c' : 'n'}-${pole.id === pendingBtEdgeStartPoleId ? 'p' : 'x'}-${poleHasTransformer.get(pole.id) ? 't' : 'nt'}`}
                         position={[pole.lat, pole.lng]}
-                        icon={makePoleIcon(pole.id, !!pole.verified)}
+                        icon={poleIconsMap.get(pole.id) ?? DefaultIcon}
                         draggable={btEditorMode !== 'add-edge' && btEditorMode !== 'add-transformer'}
                         eventHandlers={{
                             click: () => {
@@ -929,9 +1088,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                             }
                         }}
                     >
-                        <Tooltip permanent direction="top" offset={[0, -8]} opacity={0.85}>
-                            <span className="text-[10px] font-semibold">{pole.title}</span>
-                        </Tooltip>
+                        {shouldShowPoleTooltips && (
+                            <Tooltip permanent direction="top" offset={[0, -8]} opacity={0.85}>
+                                <span className="text-[10px] font-semibold">{pole.title}</span>
+                            </Tooltip>
+                        )}
                         <Popup>
                             <div className="text-xs">
                                 <strong>{pole.title}</strong>
@@ -1042,11 +1203,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                     </Marker>
                 ))}
 
-                {(topology.transformers || []).map((transformer) => (
+                {visibleTransformers.map((transformer) => (
                     <Marker
                         key={`${transformer.id}-${transformer.verified ? 'v' : 'u'}`}
                         position={[transformer.lat, transformer.lng]}
-                        icon={makeTransformerIcon(!!transformer.verified, getTransformerChangeFlag(transformer))}
+                        icon={transformerIconsMap.get(transformer.id) ?? DefaultIcon}
                         draggable={false}
                         eventHandlers={{
                             click: () => {
@@ -1074,9 +1235,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                             }
                         }}
                     >
-                        <Tooltip permanent direction="bottom" offset={[0, 8]} opacity={0.85}>
-                            <span className="text-[10px] font-semibold">{transformer.title}</span>
-                        </Tooltip>
+                        {shouldShowTransformerTooltips && (
+                            <Tooltip permanent direction="bottom" offset={[0, 8]} opacity={0.85}>
+                                <span className="text-[10px] font-semibold">{transformer.title}</span>
+                            </Tooltip>
+                        )}
                         <Popup>
                             <div className="text-xs">
                                 <strong>{transformer.title}</strong>
@@ -1119,6 +1282,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         </Popup>
                     </Marker>
                 ))}
+                </React.Profiler>
 
                 {geojson && (
                     <GeoJSON data={geojson} />

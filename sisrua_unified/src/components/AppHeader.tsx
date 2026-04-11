@@ -17,12 +17,11 @@ interface AppHeaderProps {
   onUndo: () => void;
   onRedo: () => void;
   onOpenSettings: () => void;
-  isDark: boolean;
 }
 
-export function AppHeader({ canUndo, canRedo, onUndo, onRedo, onOpenSettings, isDark }: AppHeaderProps) {
+export function AppHeader({ canUndo, canRedo, onUndo, onRedo, onOpenSettings }: AppHeaderProps) {
   return (
-    <header className={`h-20 border-b flex items-center justify-between px-8 shrink-0 z-30 transition-all ${isDark ? 'border-white/5 bg-[#020617]/80 backdrop-blur-md' : 'border-slate-200 bg-white/80 backdrop-blur-md'}`}>
+    <header className="app-header h-20 border-b flex items-center justify-between px-8 shrink-0 z-30 transition-all backdrop-blur-md">
       <div className="flex items-center gap-4">
         <motion.div
           whileHover={{ rotate: 180 }}
@@ -31,10 +30,10 @@ export function AppHeader({ canUndo, canRedo, onUndo, onRedo, onOpenSettings, is
           <Layers size={22} className="text-white" />
         </motion.div>
         <div>
-          <h1 className="text-xl font-black tracking-tighter text-white flex items-center gap-2">
+          <h1 className="text-app-title text-xl font-black tracking-tighter flex items-center gap-2">
             SIS RUA <span className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-[10px] font-mono border border-blue-500/20">UNIFIED</span>
           </h1>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em]">Análise Geo Avançada</p>
+          <p className="text-app-subtle text-[10px] font-bold uppercase tracking-[0.3em]">Análise Geo Avançada</p>
         </div>
       </div>
 

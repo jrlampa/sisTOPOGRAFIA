@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useDxfExport } from './useDxfExport';
 import { buildBtDxfContext } from '../utils/btDxfContext';
 import type { AppSettings, BtNetworkScenario, BtTopology, GeoLocation, SelectionMode } from '../types';
@@ -31,12 +32,27 @@ export function useBtDxfWorkflow({
   showToast,
   ingestBtContextHistory,
 }: Params) {
-  const { downloadDxf, isDownloading, jobId, jobStatus, jobProgress } = useDxfExport({
-    onSuccess: (message) => showToast(message, 'success'),
-    onError: (message) => showToast(message, 'error'),
-    onBtContextLoaded: ({ btContextUrl, btContext }) => {
+  const handleDxfSuccess = useCallback(
+    (message: string) => showToast(message, 'success'),
+    [showToast]
+  );
+
+  const handleDxfError = useCallback(
+    (message: string) => showToast(message, 'error'),
+    [showToast]
+  );
+
+  const handleBtContextLoaded = useCallback(
+    ({ btContextUrl, btContext }: { btContextUrl: string; btContext: Record<string, unknown> }) => {
       void ingestBtContextHistory(btContextUrl, btContext);
-    }
+    },
+    [ingestBtContextHistory]
+  );
+
+  const { downloadDxf, isDownloading, jobId, jobStatus, jobProgress } = useDxfExport({
+    onSuccess: handleDxfSuccess,
+    onError: handleDxfError,
+    onBtContextLoaded: handleBtContextLoaded,
   });
 
   const handleDownloadDxf = async () => {

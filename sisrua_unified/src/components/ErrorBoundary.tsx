@@ -62,10 +62,10 @@ class ErrorBoundary extends Component<Props, State> {
               </div>
               <div className="flex-1">
                 <h1 className="text-2xl font-bold text-white mb-2">
-                  Something Went Wrong
+                  Ocorreu um erro inesperado
                 </h1>
                 <p className="text-slate-400">
-                  The application encountered an unexpected error and needs to recover.
+                  A aplicação encontrou uma falha e precisa se recuperar.
                 </p>
               </div>
             </div>
@@ -78,7 +78,7 @@ class ErrorBoundary extends Component<Props, State> {
                 {this.state.errorInfo && (
                   <details className="mt-2">
                     <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400">
-                      Component Stack
+                      Pilha de componentes
                     </summary>
                     <pre className="mt-2 text-xs text-slate-600 overflow-auto max-h-40">
                       {this.state.errorInfo.componentStack}
@@ -93,20 +93,20 @@ class ErrorBoundary extends Component<Props, State> {
                 onClick={this.handleReset}
                 className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 px-6 rounded-xl font-bold transition-colors"
               >
-                Try Again
+                Tentar Novamente
               </button>
               <button
                 onClick={() => window.location.reload()}
                 className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-3 px-6 rounded-xl font-bold transition-colors"
               >
-                Reload Page
+                Recarregar Página
               </button>
             </div>
 
             <div className="mt-6 p-4 bg-slate-950/50 rounded-xl border border-slate-800">
               <p className="text-xs text-slate-500">
-                If this problem persists, please try clearing your browser cache or contact support.
-                Error details have been logged for debugging.
+                Se o problema persistir, tente limpar o cache do navegador ou contate o suporte.
+                Os detalhes do erro foram registrados para diagnóstico.
               </p>
             </div>
           </div>

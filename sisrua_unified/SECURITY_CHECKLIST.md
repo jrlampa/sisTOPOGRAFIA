@@ -167,6 +167,30 @@ Este checklist garante que o código do SIS RUA Unified mantém os mais altos pa
   curl http://localhost:8080/health
   ```
 
+### Hardening Frontend (Pré-Release)
+
+- [ ] **CSP de produção ativa e sem relaxamentos indevidos**
+  - Verificar se o build injeta `Content-Security-Policy` no `index.html`
+  - Confirmar ausência de `unsafe-inline` em `script-src`
+  - Confirmar `default-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`
+
+- [ ] **Fontes locais e sem dependência de CDNs de fonte**
+  - Não usar Google Fonts/CDNs externos no `index.html`
+  - Garantir `font-src` restrito a `'self'` (e `data:` apenas se necessário)
+
+- [ ] **Consumo de API estrito por ambiente**
+  - Desenvolvimento: `VITE_API_URL` pode apontar para host local seguro
+  - Produção: fallback preferencial para `/api` (mesma origem)
+  - Produção: `VITE_API_URL` absoluto somente com `https` + allowlist (`VITE_ALLOWED_API_ORIGINS`)
+
+- [ ] **Conectividade mínima de CSP validada**
+  - `connect-src` inclui apenas origens realmente usadas
+  - `img-src` limitado a `'self'`, `data:`, `blob:` e provedores de tiles aprovados
+
+- [ ] **Checagem manual de regressão no navegador**
+  - Abrir DevTools e confirmar ausência de erros CSP bloqueando fluxos críticos
+  - Validar mapa, análise, exportação DXF e recuperação de sessão
+
 ### Documentação
 
 - [ ] **CHANGELOG atualizado**

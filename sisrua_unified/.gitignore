@@ -60,6 +60,12 @@ test_api_v*.dxf
 *.inf
 *.reg
 
+# Light_estudo — workbook files are not versioned; only README is tracked
+Light_estudo/*.xlsx
+Light_estudo/*.xlsm
+Light_estudo/*.xls
+!Light_estudo/README.md
+
 # Coverage reports
 coverage/
 *.coverage

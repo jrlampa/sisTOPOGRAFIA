@@ -5,7 +5,7 @@ const mockConfig = {
   useDbConstantsClandestino: true,
   useDbConstantsCqt: false,
   useDbConstantsConfig: true,
-  CONSTANTS_REFRESH_TOKEN: undefined as string | undefined,
+  CONSTANTS_REFRESH_TOKEN: 'test-refresh-token',
   NODE_ENV: 'test'
 };
 
@@ -52,11 +52,13 @@ jest.mock('../middleware/rateLimiter', () => ({
 }));
 
 describe('constantsRoutes', () => {
+  const ADMIN_TOKEN = 'test-refresh-token';
+
   beforeEach(() => {
     mockConfig.useDbConstantsClandestino = true;
     mockConfig.useDbConstantsCqt = false;
     mockConfig.useDbConstantsConfig = true;
-    mockConfig.CONSTANTS_REFRESH_TOKEN = undefined;
+    mockConfig.CONSTANTS_REFRESH_TOKEN = ADMIN_TOKEN;
     mockConfig.NODE_ENV = 'test';
     getSyncMock.mockReset();
     statsMock.mockReset();
@@ -146,7 +148,9 @@ describe('constantsRoutes', () => {
     const app = express();
     app.use('/api/constants', router);
 
-    const response = await request(app).get('/api/constants/refresh-events?limit=5');
+    const response = await request(app)
+      .get('/api/constants/refresh-events?limit=5')
+      .set('x-constants-refresh-token', ADMIN_TOKEN);
 
     expect(response.status).toBe(200);
     expect(getRefreshEventsMock).toHaveBeenCalledWith(5);
@@ -229,7 +233,9 @@ describe('constantsRoutes', () => {
     const app = express();
     app.use('/api/constants', router);
 
-    const response = await request(app).post('/api/constants/refresh');
+    const response = await request(app)
+      .post('/api/constants/refresh')
+      .set('x-constants-refresh-token', ADMIN_TOKEN);
 
     expect(response.status).toBe(200);
     expect(warmUpMock).toHaveBeenCalledWith(['clandestino', 'config']);
@@ -339,7 +345,9 @@ describe('constantsRoutes', () => {
     const app = express();
     app.use('/api/constants', router);
 
-    const response = await request(app).get('/api/constants/refresh-stats');
+    const response = await request(app)
+      .get('/api/constants/refresh-stats')
+      .set('x-constants-refresh-token', ADMIN_TOKEN);
 
     expect(response.status).toBe(200);
     expect(getRefreshStatsMock).toHaveBeenCalledTimes(1);
@@ -380,7 +388,9 @@ describe('constantsRoutes', () => {
     const app = express();
     app.use('/api/constants', router);
 
-    const response = await request(app).get('/api/constants/snapshots?limit=5');
+    const response = await request(app)
+      .get('/api/constants/snapshots?limit=5')
+      .set('x-constants-refresh-token', ADMIN_TOKEN);
 
     expect(response.status).toBe(200);
     expect(listSnapshotsMock).toHaveBeenCalledWith(5, undefined);
@@ -420,7 +430,9 @@ describe('constantsRoutes', () => {
     const app = express();
     app.use('/api/constants', router);
 
-    const response = await request(app).post('/api/constants/snapshots/7/restore');
+    const response = await request(app)
+      .post('/api/constants/snapshots/7/restore')
+      .set('x-constants-refresh-token', ADMIN_TOKEN);
 
     expect(response.status).toBe(200);
     expect(restoreSnapshotMock).toHaveBeenCalledWith(7);
@@ -438,7 +450,9 @@ describe('constantsRoutes', () => {
     const app = express();
     app.use('/api/constants', router);
 
-    const response = await request(app).post('/api/constants/snapshots/999/restore');
+    const response = await request(app)
+      .post('/api/constants/snapshots/999/restore')
+      .set('x-constants-refresh-token', ADMIN_TOKEN);
 
     expect(response.status).toBe(404);
   });
@@ -455,5 +469,19 @@ describe('constantsRoutes', () => {
 
     expect(response.status).toBe(401);
     expect(restoreSnapshotMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects admin refresh endpoints when token is not configured in non-production', async () => {
+    mockConfig.CONSTANTS_REFRESH_TOKEN = undefined;
+
+    const { default: router } = await import('../routes/constantsRoutes');
+
+    const app = express();
+    app.use('/api/constants', router);
+
+    const response = await request(app).post('/api/constants/refresh');
+
+    expect(response.status).toBe(401);
+    expect(warmUpMock).not.toHaveBeenCalled();
   });
 });

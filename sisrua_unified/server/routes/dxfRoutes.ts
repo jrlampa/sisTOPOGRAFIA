@@ -14,14 +14,105 @@ import { attachCqtSnapshotToBtContext } from '../services/cqtContextService.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import { resolveDxfDirectory } from '../utils/dxfDirectory.js';
 
 const router = Router();
 
-// Helper to get base URL
-function getBaseUrl(req: Request): string {
-    const host = req.headers.host || 'localhost:3001';
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
-    return `${protocol}://${host}`;
+const DEFAULT_ALLOWED_HOSTS = new Set(['localhost', '127.0.0.1']);
+
+const safeParseUrl = (value: string): URL | null => {
+    try {
+        return new URL(value);
+    } catch {
+        return null;
+    }
+};
+
+const getFallbackBaseUrl = (): string => {
+    if (config.APP_PUBLIC_URL) {
+        return config.APP_PUBLIC_URL.replace(/\/+$/, '');
+    }
+
+    if (config.CORS_ORIGIN) {
+        const firstOrigin = config.CORS_ORIGIN.split(',').map((entry) => entry.trim()).find(Boolean);
+        if (firstOrigin) {
+            const parsed = safeParseUrl(firstOrigin);
+            if (parsed) {
+                return parsed.origin;
+            }
+        }
+    }
+
+    return `http://localhost:${config.PORT}`;
+};
+
+const buildAllowedHosts = (): Set<string> => {
+    const hosts = new Set<string>(DEFAULT_ALLOWED_HOSTS);
+
+    if (config.APP_PUBLIC_URL) {
+        const parsed = safeParseUrl(config.APP_PUBLIC_URL);
+        if (parsed?.hostname) {
+            hosts.add(parsed.hostname.toLowerCase());
+        }
+    }
+
+    if (config.CORS_ORIGIN) {
+        const origins = config.CORS_ORIGIN.split(',').map((entry) => entry.trim()).filter(Boolean);
+        for (const origin of origins) {
+            const parsed = safeParseUrl(origin);
+            if (parsed?.hostname) {
+                hosts.add(parsed.hostname.toLowerCase());
+            }
+        }
+    }
+
+    return hosts;
+};
+
+const ALLOWED_HOSTS = buildAllowedHosts();
+
+const normalizeProtocol = (value: unknown): 'http' | 'https' | null => {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+        return null;
+    }
+
+    const token = value.split(',')[0].trim().toLowerCase();
+    if (token === 'http' || token === 'https') {
+        return token;
+    }
+
+    return null;
+};
+
+// Exported for focused unit tests.
+export function getBaseUrl(req: Request): string {
+    if (config.APP_PUBLIC_URL) {
+        return config.APP_PUBLIC_URL.replace(/\/+$/, '');
+    }
+
+    const hostname = String(req.hostname || '').trim().toLowerCase();
+    if (!hostname || !ALLOWED_HOSTS.has(hostname)) {
+        const fallback = getFallbackBaseUrl();
+        logger.warn('Unsafe host header detected when building DXF download URL', {
+            receivedHost: req.headers.host,
+            hostname,
+            fallback
+        });
+        return fallback;
+    }
+
+    const protocol =
+        normalizeProtocol(req.headers['x-forwarded-proto']) ||
+        normalizeProtocol(req.protocol) ||
+        (config.NODE_ENV === 'production' ? 'https' : 'http');
+
+    const hostHeader = typeof req.headers.host === 'string' ? req.headers.host : '';
+    const portMatch = hostHeader.match(/:(\d{1,5})$/);
+    const port = portMatch ? Number.parseInt(portMatch[1], 10) : NaN;
+    const hasValidPort = Number.isInteger(port) && port >= 1 && port <= 65535;
+    const portSegment = hasValidPort ? `:${port}` : '';
+
+    return `${protocol}://${hostname}${portSegment}`;
 }
 
 function extractCqtSummary(btContext: unknown): Record<string, unknown> | null {
@@ -80,7 +171,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
 
         const cachedFilename = getCachedFilename(cacheKey);
         if (cachedFilename) {
-            const dxfDirectory = config.DXF_DIRECTORY;
+            const dxfDirectory = resolveDxfDirectory();
             const cachedFilePath = path.join(dxfDirectory, cachedFilename);
             if (fs.existsSync(cachedFilePath)) {
                 const baseUrl = getBaseUrl(req);
@@ -102,7 +193,7 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
 
         const baseUrl = getBaseUrl(req);
         const filename = `dxf_${Date.now()}_${crypto.randomUUID()}.dxf`;
-        const dxfDirectory = config.DXF_DIRECTORY;
+        const dxfDirectory = resolveDxfDirectory();
         fs.mkdirSync(dxfDirectory, { recursive: true });
         const outputFile = path.join(dxfDirectory, filename);
         const downloadUrl = `${baseUrl}/downloads/${filename}`;
@@ -139,10 +230,13 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
             })
         });
 
-    } catch (err: any) {
-        logger.error('DXF generation error', { error: err });
+    } catch (err: unknown) {
+        logger.error('DXF generation error', {
+            error: err instanceof Error ? err.message : String(err),
+            ip: req.ip
+        });
         metricsService.recordDxfRequest('failed');
-        return res.status(500).json({ error: 'Generation failed', details: err.message });
+        return res.status(500).json({ error: 'Generation failed' });
     }
 });
 
