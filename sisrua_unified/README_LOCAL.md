@@ -70,6 +70,15 @@ PYTHON_COMMAND=python3
 OFFLINE_MODE=true
 USE_FIRESTORE=false
 
+# Constants catalog rollout (opcional)
+USE_DB_CONSTANTS_CQT=false
+USE_DB_CONSTANTS_CLANDESTINO=false
+USE_DB_CONSTANTS_CONFIG=false
+
+# Token de proteção para refresh operacional em runtime
+# Recomendado em staging/produção.
+CONSTANTS_REFRESH_TOKEN=change-me
+
 # GROQ AI (opcional, para busca inteligente)
 GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxx
 ```
@@ -99,6 +108,38 @@ python py_engine/create_demo_dxf.py --output teste.dxf
 ```
 
 **Esperado:** Arquivo `teste.dxf` criado e abrível em CAD.
+
+### Teste 2.1: Refresh operacional do catálogo de constantes
+
+Sem token (ambiente não-produtivo, quando token não está configurado):
+
+```bash
+curl -X POST http://localhost:3001/api/constants/refresh
+```
+
+Com token (staging/produção recomendado):
+
+```bash
+curl -X POST http://localhost:3001/api/constants/refresh \
+  -H "x-constants-refresh-token: change-me"
+```
+
+**Esperado:** resposta com `ok: true`, `refreshedNamespaces` e snapshots atualizados.
+
+### Teste 2.2: Timeline de auditoria de refresh
+
+```bash
+curl "http://localhost:3001/api/constants/refresh-events?limit=5"
+```
+
+Com token (quando protegido):
+
+```bash
+curl "http://localhost:3001/api/constants/refresh-events?limit=5" \
+  -H "x-constants-refresh-token: change-me"
+```
+
+**Esperado:** lista `events` com `httpStatus`, `actor`, `durationMs` e `createdAt`.
 
 ### Teste 3: Geração Via API (Com OSM)
 ```bash

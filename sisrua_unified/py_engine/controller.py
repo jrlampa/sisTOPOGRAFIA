@@ -14,6 +14,7 @@ from contour_generator import generate_contours
 from utils.logger import Logger
 from utils.geo import sirgas2000_utm_epsg
 
+
 class OSMController:
     def __init__(
         self,
@@ -23,10 +24,10 @@ class OSMController:
         output_file,
         layers_config,
         crs,
-        export_format='dxf',
-        selection_mode='circle',
+        export_format="dxf",
+        selection_mode="circle",
         polygon=None,
-        contour_style='spline'
+        contour_style="spline",
     ):
         self.lat = lat
         self.lon = lon
@@ -37,17 +38,22 @@ class OSMController:
         self.export_format = export_format.lower()
         self.selection_mode = selection_mode
         self.polygon = polygon or []
-        self.contour_style = contour_style if contour_style in ('spline', 'polyline') else 'spline'
+        self.contour_style = (
+            contour_style if contour_style in ("spline", "polyline") else "spline"
+        )
         self.project_metadata = {
-            'client': 'CLIENTE PADRÃO',
-            'project': 'EXTRACAO ESPACIAL'
+            "client": "CLIENTE PADRÃO",
+            "project": "EXTRACAO ESPACIAL",
         }
+        self.bt_context = {}
         self.audit_summary = {"violations": 0, "coverageScore": 0}
 
     def run(self):
         """Orchestrates the Osm2Dxf flow."""
-        Logger.info(f"OSM Audit & Export Starting (Format: {self.export_format})", progress=5)
-        
+        Logger.info(
+            f"OSM Audit & Export Starting (Format: {self.export_format})", progress=5
+        )
+
         # 1. Prepare Layers
         tags = self._build_tags()
         if not tags:
@@ -61,7 +67,8 @@ class OSMController:
             Logger.info("No architectural features found in area.", "warning")
             # Always write a valid (empty) DXF so the download URL is not a 404
             import ezdxf
-            empty_doc = ezdxf.new('R2013')
+
+            empty_doc = ezdxf.new("R2013")
             empty_doc.saveas(self.output_file)
             Logger.success(f"Empty DXF saved (no features): {self.output_file}")
             return
@@ -75,20 +82,29 @@ class OSMController:
 
         # 5. Coordinate Offset & CAD Export
         # AUTHORITATIVE FIX: Check if we want Georeferenced (Absolute) or Localized (0,0)
-        use_georef = self.layers_config.get('georef', True)
-        
-        Logger.info(f"Step 3/5: Initializing DXF Generation (Georef: {use_georef})...", progress=50)
+        use_georef = self.layers_config.get("georef", True)
+
+        Logger.info(
+            f"Step 3/5: Initializing DXF Generation (Georef: {use_georef})...",
+            progress=50,
+        )
         dxf_gen = DXFGenerator(self.output_file)
-        
+
         if use_georef:
             dxf_gen.diff_x = 0.0
             dxf_gen.diff_y = 0.0
             dxf_gen._offset_initialized = True
-            
-        dxf_gen.add_features(gdf) # Features set the offset ONLY if not initialized above
+
+        dxf_gen.project_info = self.project_metadata
+        dxf_gen.bt_context = self._build_bt_context_for_dxf(gdf.crs)
+
+        dxf_gen.add_features(
+            gdf
+        )  # Features set the offset ONLY if not initialized above
+        dxf_gen.add_bt_topology()
 
         # 6. Terrain & Contours (Optional)
-        if self.layers_config.get('terrain', False):
+        if self.layers_config.get("terrain", False):
             self._process_terrain(gdf, dxf_gen)
 
         # 7. Cartographic Elements
@@ -103,8 +119,15 @@ class OSMController:
 
     def _fetch_features(self, tags):
         try:
-            if self.selection_mode == 'polygon':
-                 return fetch_osm_data(self.lat, self.lon, self.radius, tags, crs=self.crs, polygon=self.polygon)
+            if self.selection_mode == "polygon":
+                return fetch_osm_data(
+                    self.lat,
+                    self.lon,
+                    self.radius,
+                    tags,
+                    crs=self.crs,
+                    polygon=self.polygon,
+                )
             return fetch_osm_data(self.lat, self.lon, self.radius, tags, crs=self.crs)
         except Exception as e:
             Logger.error(f"OSM Fetch Error: {str(e)}")
@@ -114,7 +137,7 @@ class OSMController:
         """Runs spatial analysis on the fetched features."""
         # 1. Determine Target CRS (EPSG)
         target_epsg = self.crs
-        if self.crs == 'auto':
+        if self.crs == "auto":
             # Use centroid of the data to find the best SIRGAS 2000 UTM zone
             centroid = gdf.geometry.centroid
             avg_lat = centroid.y.mean()
@@ -124,7 +147,9 @@ class OSMController:
         try:
             audit_summary, analysis_gdf = run_spatial_audit(gdf)
             self.audit_summary = audit_summary
-            Logger.info(f"Spatial Audit: {audit_summary['violations']} violations detected.")
+            Logger.info(
+                f"Spatial Audit: {audit_summary['violations']} violations detected."
+            )
             return analysis_gdf
         except Exception as se:
             Logger.error(f"Spatial Audit internal failure: {se}")
@@ -136,40 +161,52 @@ class OSMController:
             gdf_4326 = gdf.to_crs(epsg=4326)
             b = gdf_4326.total_bounds
             north, south, east, west = b[3], b[1], b[2], b[0]
-            
+
             # Detect elevation data source
             center_lat = (north + south) / 2
             center_lon = (east + west) / 2
             use_topodata = is_within_brazil(center_lat, center_lon)
-            
+
             # Store elevation metadata for report
             self.elevation_metadata = {
-                'source': 'TOPODATA (INPE)' if use_topodata else 'Open-Elevation',
-                'resolution_m': 30 if use_topodata else 90,
-                'area_brazil': use_topodata,
-                'center_lat': center_lat,
-                'center_lon': center_lon
+                "source": "TOPODATA (INPE)" if use_topodata else "Open-Elevation",
+                "resolution_m": 30 if use_topodata else 90,
+                "area_brazil": use_topodata,
+                "center_lat": center_lat,
+                "center_lon": center_lon,
             }
-            
+
             # Resolution-aware expansion
-            margin = 0.0005 # Degrees
-            elev_points, rows, cols = fetch_elevation_grid(north + margin, south - margin, east + margin, west - margin, resolution=100) 
-            
+            margin = 0.0005  # Degrees
+            elev_points, rows, cols = fetch_elevation_grid(
+                north + margin,
+                south - margin,
+                east + margin,
+                west - margin,
+                resolution=100,
+            )
+
             if elev_points:
                 # Calculate elevation statistics
                 elevations = [z for _, _, z in elev_points if z is not None]
                 if elevations:
-                    self.elevation_metadata.update({
-                        'min_elevation_m': min(elevations),
-                        'max_elevation_m': max(elevations),
-                        'avg_elevation_m': sum(elevations) / len(elevations),
-                        'points_count': len(elevations)
-                    })
-                
-                Logger.info(f"Reconstructing {rows}x{cols} terrain grid...", progress=60)
-                Logger.info(f"Elevation source: {self.elevation_metadata['source']} ({self.elevation_metadata['resolution_m']}m)")
+                    self.elevation_metadata.update(
+                        {
+                            "min_elevation_m": min(elevations),
+                            "max_elevation_m": max(elevations),
+                            "avg_elevation_m": sum(elevations) / len(elevations),
+                            "points_count": len(elevations),
+                        }
+                    )
+
+                Logger.info(
+                    f"Reconstructing {rows}x{cols} terrain grid...", progress=60
+                )
+                Logger.info(
+                    f"Elevation source: {self.elevation_metadata['source']} ({self.elevation_metadata['resolution_m']}m)"
+                )
                 transformer = Transformer.from_crs("EPSG:4326", gdf.crs, always_xy=True)
-                
+
                 grid_rows = []
                 current_row = []
                 for lat, lon, z in elev_points:
@@ -178,86 +215,245 @@ class OSMController:
                     if len(current_row) >= cols:
                         grid_rows.append(current_row)
                         current_row = []
-                
-                if current_row: grid_rows.append(current_row)
+
+                if current_row:
+                    grid_rows.append(current_row)
                 dxf_gen.add_terrain_from_grid(grid_rows)
-                
+
                 # Contours
-                if self.layers_config.get('contours', False):
+                if self.layers_config.get("contours", False):
                     self._add_contours(grid_rows, dxf_gen)
         except Exception as e:
             Logger.error(f"Terrain submodule failure: {str(e)}")
-            self.elevation_metadata = {'source': 'Failed', 'error': str(e)}
+            self.elevation_metadata = {"source": "Failed", "error": str(e)}
 
     def _add_contours(self, grid_rows, dxf_gen):
         try:
-            interval = 1.0 if not self.layers_config.get('high_res_contours') else 0.5
+            interval = 1.0 if not self.layers_config.get("high_res_contours") else 0.5
             contours = generate_contours(grid_rows, interval=interval)
             if contours:
-                dxf_gen.add_contour_lines(contours, use_spline=self.contour_style != 'polyline')
+                dxf_gen.add_contour_lines(
+                    contours, use_spline=self.contour_style != "polyline"
+                )
                 Logger.info(f"Integrated {len(contours)} contour lines.")
         except Exception as ce:
             Logger.error(f"Contour math error: {ce}")
 
     def _add_cad_essentials(self, dxf_gen):
         min_x, min_y, max_x, max_y = dxf_gen.bounds
-        dxf_gen.add_coordinate_grid(min_x, min_y, max_x, max_y, dxf_gen.diff_x, dxf_gen.diff_y)
-        dxf_gen.add_cartographic_elements(min_x, min_y, max_x, max_y, dxf_gen.diff_x, dxf_gen.diff_y)
+        dxf_gen.add_coordinate_grid(
+            min_x, min_y, max_x, max_y, dxf_gen.diff_x, dxf_gen.diff_y
+        )
+        dxf_gen.add_cartographic_elements(
+            min_x, min_y, max_x, max_y, dxf_gen.diff_x, dxf_gen.diff_y
+        )
+
+    def _build_bt_context_for_dxf(self, target_crs):
+        if not isinstance(self.bt_context, dict):
+            return {}
+
+        bt_context = dict(self.bt_context)
+        projected_topology = self._project_bt_topology(target_crs)
+        if projected_topology:
+            bt_context["topologyProjected"] = projected_topology
+        return bt_context
+
+    def _project_bt_topology(self, target_crs):
+        raw_topology = (
+            self.bt_context.get("topology")
+            if isinstance(self.bt_context, dict)
+            else None
+        )
+        if not isinstance(raw_topology, dict):
+            return {}
+
+        target_crs_name = (
+            target_crs.to_string()
+            if hasattr(target_crs, "to_string")
+            else str(target_crs)
+        )
+        transformer = Transformer.from_crs("EPSG:4326", target_crs_name, always_xy=True)
+
+        def _to_float(value, default=None):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return default
+
+        projected_poles = []
+        poles_by_id = {}
+        for raw_pole in raw_topology.get("poles", []):
+            if not isinstance(raw_pole, dict):
+                continue
+            lat = _to_float(raw_pole.get("lat"))
+            lng = _to_float(raw_pole.get("lng"))
+            pole_id = str(raw_pole.get("id", "") or "")
+            if lat is None or lng is None or not pole_id:
+                continue
+
+            x, y = transformer.transform(lng, lat)
+            pole_payload = {
+                "id": pole_id,
+                "title": str(raw_pole.get("title", pole_id) or pole_id),
+                "verified": bool(raw_pole.get("verified", False)),
+                "x": x,
+                "y": y,
+                "ramais": (
+                    raw_pole.get("ramais", [])
+                    if isinstance(raw_pole.get("ramais"), list)
+                    else []
+                ),
+            }
+            projected_poles.append(pole_payload)
+            poles_by_id[pole_id] = pole_payload
+
+        projected_transformers = []
+        for raw_transformer in raw_topology.get("transformers", []):
+            if not isinstance(raw_transformer, dict):
+                continue
+            lat = _to_float(raw_transformer.get("lat"))
+            lng = _to_float(raw_transformer.get("lng"))
+            transformer_id = str(raw_transformer.get("id", "") or "")
+            if lat is None or lng is None or not transformer_id:
+                continue
+
+            x, y = transformer.transform(lng, lat)
+            projected_transformers.append(
+                {
+                    "id": transformer_id,
+                    "poleId": str(raw_transformer.get("poleId", "") or ""),
+                    "title": str(
+                        raw_transformer.get("title", transformer_id) or transformer_id
+                    ),
+                    "verified": bool(raw_transformer.get("verified", False)),
+                    "projectPowerKva": _to_float(
+                        raw_transformer.get("projectPowerKva"), 0.0
+                    )
+                    or 0.0,
+                    "demandKw": _to_float(raw_transformer.get("demandKw"), 0.0) or 0.0,
+                    "x": x,
+                    "y": y,
+                }
+            )
+
+        projected_edges = []
+        for raw_edge in raw_topology.get("edges", []):
+            if not isinstance(raw_edge, dict):
+                continue
+            from_pole_id = str(raw_edge.get("fromPoleId", "") or "")
+            to_pole_id = str(raw_edge.get("toPoleId", "") or "")
+            from_pole = poles_by_id.get(from_pole_id)
+            to_pole = poles_by_id.get(to_pole_id)
+            if not from_pole or not to_pole:
+                continue
+
+            projected_edges.append(
+                {
+                    "id": str(raw_edge.get("id", "") or ""),
+                    "fromPoleId": from_pole_id,
+                    "toPoleId": to_pole_id,
+                    "verified": bool(raw_edge.get("verified", False)),
+                    "edgeChangeFlag": str(raw_edge.get("edgeChangeFlag", "") or ""),
+                    "removeOnExecution": bool(raw_edge.get("removeOnExecution", False)),
+                    "lengthMeters": _to_float(raw_edge.get("lengthMeters"), 0.0) or 0.0,
+                    "fromX": from_pole["x"],
+                    "fromY": from_pole["y"],
+                    "toX": to_pole["x"],
+                    "toY": to_pole["y"],
+                    "conductors": (
+                        raw_edge.get("conductors", [])
+                        if isinstance(raw_edge.get("conductors"), list)
+                        else []
+                    ),
+                    "replacementFromConductors": (
+                        raw_edge.get("replacementFromConductors", [])
+                        if isinstance(raw_edge.get("replacementFromConductors"), list)
+                        else []
+                    ),
+                }
+            )
+
+        if not projected_poles and not projected_edges and not projected_transformers:
+            return {}
+
+        return {
+            "poles": projected_poles,
+            "edges": projected_edges,
+            "transformers": projected_transformers,
+        }
 
     def _export_csv_metadata(self, gdf):
         try:
-            csv_file = self.output_file.replace('.dxf', '_metadata.csv')
+            csv_file = self.output_file.replace(".dxf", "_metadata.csv")
             df = gdf.copy()
-            df['area_m2'] = df.geometry.area
-            df['length_m'] = df.geometry.length
-            df_csv = pd.DataFrame(df.drop(columns='geometry'))
+            df["area_m2"] = df.geometry.area
+            df["length_m"] = df.geometry.length
+            df_csv = pd.DataFrame(df.drop(columns="geometry"))
             df_csv.to_csv(csv_file, index=False)
             Logger.info(f"Metadata exported to {os.path.basename(csv_file)}")
-            
+
             # Export elevation metadata if available
-            if hasattr(self, 'elevation_metadata') and self.elevation_metadata:
-                elev_csv_file = self.output_file.replace('.dxf', '_elevation_metadata.csv')
+            if hasattr(self, "elevation_metadata") and self.elevation_metadata:
+                elev_csv_file = self.output_file.replace(
+                    ".dxf", "_elevation_metadata.csv"
+                )
                 elev_df = pd.DataFrame([self.elevation_metadata])
                 elev_df.to_csv(elev_csv_file, index=False)
-                Logger.info(f"Elevation metadata exported to {os.path.basename(elev_csv_file)}")
+                Logger.info(
+                    f"Elevation metadata exported to {os.path.basename(elev_csv_file)}"
+                )
         except Exception as e:
             Logger.error(f"CSV Metadata Export failed: {e}")
 
     def _build_tags(self):
         tags = {}
-        if self.layers_config.get('buildings', True): tags['building'] = True
-        if self.layers_config.get('roads', True): tags['highway'] = True
-        if self.layers_config.get('nature', True):
-            tags['natural'] = ['tree', 'wood', 'scrub', 'water']
-            tags['landuse'] = ['forest', 'grass', 'park']
-        if self.layers_config.get('furniture', False):
-            tags['amenity'] = ['bench', 'waste_basket', 'bicycle_parking', 'fountain', 'bus_station']
+        if self.layers_config.get("buildings", True):
+            tags["building"] = True
+        if self.layers_config.get("roads", True):
+            tags["highway"] = True
+        if self.layers_config.get("nature", True):
+            tags["natural"] = ["tree", "wood", "scrub", "water"]
+            tags["landuse"] = ["forest", "grass", "park"]
+        if self.layers_config.get("furniture", False):
+            tags["amenity"] = [
+                "bench",
+                "waste_basket",
+                "bicycle_parking",
+                "fountain",
+                "bus_station",
+            ]
             # Only set highway to street_lamp if roads layer did NOT already request all highways.
             # Setting highway=True fetches everything (including street_lamps). Overwriting with
             # ['street_lamp'] would discard all road ways from the result.
-            if 'highway' not in tags:
-                tags['highway'] = ['street_lamp']
+            if "highway" not in tags:
+                tags["highway"] = ["street_lamp"]
         return tags
 
     def _send_geojson_preview(self, gdf, analysis_gdf=None):
-        if Logger.SKIP_GEOJSON: return
+        if Logger.SKIP_GEOJSON:
+            return
         try:
             preview_gdf = gdf.copy()
-            preview_gdf['area'] = preview_gdf.geometry.area
-            preview_gdf['length'] = preview_gdf.geometry.length
+            preview_gdf["area"] = preview_gdf.geometry.area
+            preview_gdf["length"] = preview_gdf.geometry.length
+
             def get_type(row):
-                if row.get('building'): return 'building'
-                if row.get('highway'): return 'highway'
-                return 'other'
-            preview_gdf['feature_type'] = preview_gdf.apply(get_type, axis=1)
+                if row.get("building"):
+                    return "building"
+                if row.get("highway"):
+                    return "highway"
+                return "other"
+
+            preview_gdf["feature_type"] = preview_gdf.apply(get_type, axis=1)
             gdf_wgs84 = preview_gdf.to_crs(epsg=4326)
             payload = json.loads(gdf_wgs84.to_json())
             if analysis_gdf is not None and not analysis_gdf.empty:
                 analysis_wgs84 = analysis_gdf.to_crs(epsg=4326)
                 analysis_json = json.loads(analysis_wgs84.to_json())
-                for f in analysis_json['features']: f['properties']['is_analysis'] = True
-                payload['features'].extend(analysis_json['features'])
-            payload['audit_summary'] = self.audit_summary
+                for f in analysis_json["features"]:
+                    f["properties"]["is_analysis"] = True
+                payload["features"].extend(analysis_json["features"])
+            payload["audit_summary"] = self.audit_summary
             Logger.geojson(payload)
         except Exception as e:
             Logger.error(f"GeoJSON Sync Error: {str(e)}")

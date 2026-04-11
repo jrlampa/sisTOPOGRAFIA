@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--contour_style', type=str, required=False, default='spline', help='Contour render mode: spline or polyline')
     parser.add_argument('--client_name', type=str, required=False, default='CLIENTE PADRÃO', help='Client name for title block')
     parser.add_argument('--project_id', type=str, required=False, default='PROJETO URBANISTICO', help='Project ID for title block')
+    parser.add_argument('--bt_context', type=str, required=False, default='{}', help='JSON string with BT topology summary for DXF annotation')
     parser.add_argument('--no-preview', action='store_true', help='Skip GeoJSON preview logs (prevents OOM in CLI)')
     
     args = parser.parse_args()
@@ -37,6 +38,7 @@ def main():
             Logger.SKIP_GEOJSON = True
 
         raw_polygon = json.loads(args.polygon)
+        raw_bt_context = json.loads(args.bt_context)
         # Normalize polygon: accept both [[lat,lon],...] arrays and [{lat,lng},...] objects
         # (frontend sends GeoLocation objects with {lat, lng} keys)
         def _normalize_point(p):
@@ -44,6 +46,7 @@ def main():
                 return [p.get('lat', p.get('latitude', 0)), p.get('lng', p.get('lon', p.get('longitude', 0)))]
             return list(p)  # already [lat, lon]
         polygon = [_normalize_point(p) for p in raw_polygon] if raw_polygon else []
+        bt_context = raw_bt_context if isinstance(raw_bt_context, dict) else {}
 
         controller = OSMController(
             lat=args.lat,
@@ -61,6 +64,7 @@ def main():
             'client': args.client_name,
             'project': args.project_id
         }
+        controller.bt_context = bt_context
         controller.run()
         
     except Exception as e:

@@ -1,82 +1,211 @@
-import { useState, useCallback, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { GlobalState } from '../types';
+import type {
+  BtPoleAccumulatedDemand,
+  BtTransformerEstimatedDemand,
+  BtSectioningImpact,
+  BtClandestinoDisplay,
+  BtTransformerDerived,
+  BtDerivedSummary,
+} from '../services/btDerivedService';
+import { fetchBtDerivedState } from '../services/btDerivedService';
 import {
-    calculateBtTopology,
-    BtCalculationRequest,
-    BtCalculationResponse,
-    BtTopology,
-    BtSettings,
-    BtConstants,
-    BtCalculationMode,
-} from '../services/btService';
+  CURRENT_TO_DEMAND_CONVERSION,
+  DEFAULT_TEMPERATURE_FACTOR,
+  EMPTY_BT_TOPOLOGY,
+} from '../constants/btPhysicalConstants';
+import {
+  LEGACY_ID_ENTROPY,
+  ENTITY_ID_PREFIXES,
+} from '../constants/magicNumbers';
 
-/**
- * useBtDerivedState
- *
- * Hook that orchestrates BT topology calculation by delegating entirely to the
- * backend service layer.  It manages only:
- *   - request/response lifecycle (loading, error state)
- *   - cached response data for rendering
- *
- * THERE ARE NO ELECTRICAL CALCULATIONS IN THIS FILE.
- * All domain formulas live in server/services/btCalculationService.ts.
- */
-
-export interface UseBtDerivedStateOptions {
-    settings?: BtSettings;
-    constants?: BtConstants;
-    mode?: BtCalculationMode;
+interface UseBtDerivedStateParams {
+  appState: GlobalState;
+  setAppState: (nextState: GlobalState, commit: boolean) => void;
 }
 
-export interface UseBtDerivedState {
-    /** Latest calculation result from the backend. Null before first call. */
-    result: BtCalculationResponse | null;
-    /** True while an API request is in flight. */
-    isCalculating: boolean;
-    /** Error message from the last failed request, or null. */
-    error: string | null;
-    /** Trigger a (re-)calculation for the given topology. */
-    calculate: (topology: BtTopology) => Promise<void>;
-    /** Reset result and error state. */
-    reset: () => void;
-}
+const EMPTY_SECTIONING_IMPACT: BtSectioningImpact = {
+  unservedPoleIds: [],
+  unservedClients: 0,
+  estimatedDemandKw: 0,
+  loadCenter: null,
+  suggestedPoleId: null,
+};
 
-export function useBtDerivedState(
-    options: UseBtDerivedStateOptions = {},
-): UseBtDerivedState {
-    const [result, setResult] = useState<BtCalculationResponse | null>(null);
-    const [isCalculating, setIsCalculating] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+const EMPTY_CLANDESTINO_DISPLAY: BtClandestinoDisplay = {
+  demandKw: 0,
+  areaMin: 0,
+  areaMax: 0,
+  demandKva: null,
+  diversificationFactor: null,
+  finalDemandKva: 0,
+};
 
-    // Keep options in a ref so the `calculate` callback stays stable
-    const optionsRef = useRef(options);
-    optionsRef.current = options;
+export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStateParams) {
+  const [btAccumulatedByPole, setBtAccumulatedByPole] = useState<BtPoleAccumulatedDemand[]>([]);
+  const [btEstimatedByTransformer, setBtEstimatedByTransformer] = useState<BtTransformerEstimatedDemand[]>([]);
+  const [btSectioningImpact, setBtSectioningImpact] = useState<BtSectioningImpact>(EMPTY_SECTIONING_IMPACT);
+  const [btClandestinoDisplay, setBtClandestinoDisplay] = useState<BtClandestinoDisplay>(EMPTY_CLANDESTINO_DISPLAY);
+  const [btTransformersDerived, setBtTransformersDerived] = useState<BtTransformerDerived[]>([]);
+  const [btSummary, setBtSummary] = useState<BtDerivedSummary>({
+    poles: 0,
+    transformers: 0,
+    edges: 0,
+    totalLengthMeters: 0,
+    transformerDemandKw: 0,
+  });
+  const [btPointDemandKva, setBtPointDemandKva] = useState(0);
 
-    const calculate = useCallback(async (topology: BtTopology) => {
-        setIsCalculating(true);
-        setError(null);
+  // Keep a ref so the transformer-sync effect always spreads the latest appState
+  // without needing it as a reactive dependency (avoids firing on every state change).
+  const appStateRef = useRef(appState);
+  appStateRef.current = appState;
 
-        const request: BtCalculationRequest = {
-            topology,
-            settings: optionsRef.current.settings,
-            constants: optionsRef.current.constants,
-            mode: optionsRef.current.mode,
-        };
+  const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
+  const settings = appState.settings;
 
-        try {
-            const response = await calculateBtTopology(request);
-            setResult(response);
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'BT calculation failed';
-            setError(message);
-        } finally {
-            setIsCalculating(false);
+  useEffect(() => {
+    let active = true;
+
+    fetchBtDerivedState({
+      topology: btTopology,
+      projectType: settings.projectType ?? 'ramais',
+      clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
+    })
+      .then((payload) => {
+        if (!active) {
+          return;
         }
-    }, []);
+        setBtAccumulatedByPole(payload.accumulatedByPole);
+        setBtEstimatedByTransformer(payload.estimatedByTransformer);
+        setBtSummary(payload.summary);
+        setBtPointDemandKva(payload.pointDemandKva);
+        setBtSectioningImpact(payload.sectioningImpact ?? EMPTY_SECTIONING_IMPACT);
+        setBtClandestinoDisplay(payload.clandestinoDisplay ?? EMPTY_CLANDESTINO_DISPLAY);
+        setBtTransformersDerived(payload.transformersDerived ?? []);
+      })
+      .catch(() => {
+        // On error, keep previous values (no silent local fallback).
+      });
 
-    const reset = useCallback(() => {
-        setResult(null);
-        setError(null);
-    }, []);
+    return () => {
+      active = false;
+    };
+  }, [btTopology, settings.projectType, settings.clandestinoAreaM2]);
 
-    return { result, isCalculating, error, calculate, reset };
+  const btTransformerDebugById = useMemo(
+    () =>
+      Object.fromEntries(
+        btEstimatedByTransformer.map((entry) => [
+          entry.transformerId,
+          {
+            assignedClients: entry.assignedClients,
+            estimatedDemandKw: entry.estimatedDemandKw,
+          },
+        ])
+      ) as Record<string, { assignedClients: number; estimatedDemandKw: number }>,
+    [btEstimatedByTransformer]
+  );
+
+  const btCriticalPoleId = btAccumulatedByPole[0]?.poleId ?? null;
+
+  useEffect(() => {
+    if ((settings.btTransformerCalculationMode ?? 'automatic') !== 'automatic') {
+      return;
+    }
+
+    if (btTopology.transformers.length === 0) {
+      return;
+    }
+
+    const estimatedByTransformerId = new Map(
+      btEstimatedByTransformer.map((entry) => [entry.transformerId, entry.estimatedDemandKw])
+    );
+
+    let hasChanges = false;
+    const nextTransformers = btTopology.transformers.map((transformer) => {
+      const estimatedDemandKw = Number((estimatedByTransformerId.get(transformer.id) ?? 0).toFixed(2));
+      const hasReadings = transformer.readings.length > 0;
+      const isAutoReading = hasReadings && transformer.readings.every((reading) => reading.autoCalculated === true);
+
+      if (hasReadings && !isAutoReading) {
+        return transformer;
+      }
+
+      if (!isAutoReading) {
+        if (Math.abs((transformer.demandKw ?? 0) - estimatedDemandKw) < 0.01) {
+          return transformer;
+        }
+
+        hasChanges = true;
+        return {
+          ...transformer,
+          demandKw: estimatedDemandKw,
+        };
+      }
+
+      const baseReading = transformer.readings[0] ?? {
+        id: `${ENTITY_ID_PREFIXES.REGULATOR}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`,
+        currentMaxA: 0,
+        temperatureFactor: DEFAULT_TEMPERATURE_FACTOR,
+        autoCalculated: true,
+      };
+      const temperatureFactor =
+        (baseReading.temperatureFactor ?? DEFAULT_TEMPERATURE_FACTOR) > 0
+          ? (baseReading.temperatureFactor ?? DEFAULT_TEMPERATURE_FACTOR)
+          : DEFAULT_TEMPERATURE_FACTOR;
+      const inferredCurrent =
+        Math.round((estimatedDemandKw / (CURRENT_TO_DEMAND_CONVERSION * temperatureFactor)) * 100) / 100;
+
+      const previousCurrent = baseReading.currentMaxA ?? 0;
+      const previousDemand = transformer.demandKw ?? 0;
+      if (
+        Math.abs(previousCurrent - inferredCurrent) < 0.01 &&
+        Math.abs(previousDemand - estimatedDemandKw) < 0.01
+      ) {
+        return transformer;
+      }
+
+      hasChanges = true;
+      return {
+        ...transformer,
+        demandKw: estimatedDemandKw,
+        readings: [
+          {
+            ...baseReading,
+            currentMaxA: inferredCurrent,
+            temperatureFactor,
+            autoCalculated: true,
+          },
+        ],
+      };
+    });
+
+    if (!hasChanges) {
+      return;
+    }
+
+    setAppState(
+      {
+        ...appStateRef.current,
+        btTopology: {
+          ...btTopology,
+          transformers: nextTransformers,
+        },
+      },
+      false
+    );
+  }, [btEstimatedByTransformer, btTopology, setAppState, settings.btTransformerCalculationMode]);
+
+  return {
+    btAccumulatedByPole,
+    btEstimatedByTransformer,
+    btTransformerDebugById,
+    btCriticalPoleId,
+    btSummary,
+    btPointDemandKva,
+    btSectioningImpact,
+    btClandestinoDisplay,
+    btTransformersDerived,
+  };
 }

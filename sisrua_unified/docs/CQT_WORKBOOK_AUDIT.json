@@ -1,0 +1,532 @@
+{
+  "summary": {
+    "workbook": "C:\\Users\\jonat\\OneDrive - IM3 Brasil\\utils\\sisTOPOGRAFIA\\sisrua_unified\\CQTsimplificado_BECO DO MATA 7 - PARIDADE_FINAL.xlsx",
+    "sheetCount": 13,
+    "formulaCellCount": 6926,
+    "visibleFormulaCells": 5976,
+    "hiddenRowCount": 13,
+    "hiddenColCount": 66,
+    "errorCellCount": 44,
+    "errorByType": {
+      "#VALUE!": 8,
+      "#DIV/0!": 16,
+      "#N/A": 20
+    },
+    "formulaRefLiteralCount": 0,
+    "externalReferenceFormulaCount": 3544,
+    "visibleFormulasReferencingHiddenCols": 1680
+  },
+  "risk": {
+    "level": "low",
+    "score": 25,
+    "criticalFlags": [],
+    "warningFlags": [
+      "external_links",
+      "hidden_dependency_medium"
+    ],
+    "checkFailed": false
+  },
+  "recommendations": [
+    "Replace external workbook links with local/static inputs for deterministic audits.",
+    "Include hidden columns in extraction/audit pipelines; visible CQT outputs depend on them.",
+    "Track parity state as value + error class (e.g., #VALUE!, #DIV/0!, #REF!) for robustness."
+  ],
+  "parityCells": {
+    "atual": {
+      "RAMAL!AA30": 2.84,
+      "GERAL!P31": 118.69775108855391,
+      "GERAL!P32": 117.04688712724072,
+      "DB!K6": 225.0,
+      "DB!K7": 101.95599999999999,
+      "DB!K8": 0.015859822222222222,
+      "DB!K10": 0.03415982222222222
+    },
+    "proj1": {
+      "GERAL PROJ!P31": 120.83736598928087,
+      "GERAL PROJ!P32": 120.72752247511889
+    },
+    "proj2": {}
+  },
+  "sheets": [
+    {
+      "name": "DB",
+      "state": "hidden",
+      "maxRow": 411,
+      "maxCol": 25,
+      "formulaCells": 836,
+      "visibleFormulaCells": 836,
+      "errorCells": 2,
+      "hiddenRows": 0,
+      "hiddenCols": 0
+    },
+    {
+      "name": "COORDENADAS",
+      "state": "visible",
+      "maxRow": 63,
+      "maxCol": 8,
+      "formulaCells": 0,
+      "visibleFormulaCells": 0,
+      "errorCells": 0,
+      "hiddenRows": 0,
+      "hiddenCols": 0
+    },
+    {
+      "name": "SUGESTAO_CORTES",
+      "state": "hidden",
+      "maxRow": 220,
+      "maxCol": 33,
+      "formulaCells": 3975,
+      "visibleFormulaCells": 3601,
+      "errorCells": 0,
+      "hiddenRows": 0,
+      "hiddenCols": 2
+    },
+    {
+      "name": "RAMAL",
+      "state": "visible",
+      "maxRow": 78,
+      "maxCol": 32,
+      "formulaCells": 306,
+      "visibleFormulaCells": 237,
+      "errorCells": 4,
+      "hiddenRows": 13,
+      "hiddenCols": 4
+    },
+    {
+      "name": "GERAL",
+      "state": "visible",
+      "maxRow": 454,
+      "maxCol": 17,
+      "formulaCells": 358,
+      "visibleFormulaCells": 315,
+      "errorCells": 0,
+      "hiddenRows": 0,
+      "hiddenCols": 1
+    },
+    {
+      "name": "ESQ ATUAL",
+      "state": "visible",
+      "maxRow": 14,
+      "maxCol": 29,
+      "formulaCells": 167,
+      "visibleFormulaCells": 65,
+      "errorCells": 0,
+      "hiddenRows": 0,
+      "hiddenCols": 15
+    },
+    {
+      "name": "DIR ATUAL",
+      "state": "visible",
+      "maxRow": 18,
+      "maxCol": 29,
+      "formulaCells": 266,
+      "visibleFormulaCells": 178,
+      "errorCells": 0,
+      "hiddenRows": 0,
+      "hiddenCols": 8
+    },
+    {
+      "name": "GERAL PROJ",
+      "state": "visible",
+      "maxRow": 425,
+      "maxCol": 18,
+      "formulaCells": 136,
+      "visibleFormulaCells": 121,
+      "errorCells": 0,
+      "hiddenRows": 0,
+      "hiddenCols": 1
+    },
+    {
+      "name": "ESQ PROJ1",
+      "state": "visible",
+      "maxRow": 12,
+      "maxCol": 29,
+      "formulaCells": 118,
+      "visibleFormulaCells": 73,
+      "errorCells": 3,
+      "hiddenRows": 0,
+      "hiddenCols": 9
+    },
+    {
+      "name": "DIR PROJ1",
+      "state": "visible",
+      "maxRow": 13,
+      "maxCol": 29,
+      "formulaCells": 142,
+      "visibleFormulaCells": 94,
+      "errorCells": 6,
+      "hiddenRows": 0,
+      "hiddenCols": 8
+    },
+    {
+      "name": "GERAL PROJ2",
+      "state": "visible",
+      "maxRow": 428,
+      "maxCol": 17,
+      "formulaCells": 240,
+      "visibleFormulaCells": 212,
+      "errorCells": 3,
+      "hiddenRows": 0,
+      "hiddenCols": 1
+    },
+    {
+      "name": "ESQ PROJ2",
+      "state": "visible",
+      "maxRow": 17,
+      "maxCol": 29,
+      "formulaCells": 234,
+      "visibleFormulaCells": 144,
+      "errorCells": 9,
+      "hiddenRows": 0,
+      "hiddenCols": 9
+    },
+    {
+      "name": "DIR PROJ2",
+      "state": "visible",
+      "maxRow": 17,
+      "maxCol": 29,
+      "formulaCells": 148,
+      "visibleFormulaCells": 100,
+      "errorCells": 17,
+      "hiddenRows": 0,
+      "hiddenCols": 8
+    }
+  ],
+  "samples": {
+    "formulaRefLiteral": [],
+    "errors": [
+      {
+        "sheet": "DB",
+        "cell": "K24",
+        "cached": "#VALUE!",
+        "formula": "=(K23/K22)*VLOOKUP(K22,TRAFOS_Z[],2,0)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "K26",
+        "cached": "#VALUE!",
+        "formula": "=QT_MT+K24"
+      },
+      {
+        "sheet": "RAMAL",
+        "cell": "AE18",
+        "cached": "#VALUE!",
+        "formula": "=AE20/0.375"
+      },
+      {
+        "sheet": "RAMAL",
+        "cell": "AE20",
+        "cached": "#VALUE!",
+        "formula": "=AE24/AE22"
+      },
+      {
+        "sheet": "RAMAL",
+        "cell": "AE28",
+        "cached": "#VALUE!",
+        "formula": "=AE24/AE26"
+      },
+      {
+        "sheet": "RAMAL",
+        "cell": "AE30",
+        "cached": "#VALUE!",
+        "formula": "=IF(GERAL!M2=\"SIM\",RAMAL!$AB$35,AE$24/'GERAL PROJ2'!G9)"
+      },
+      {
+        "sheet": "ESQ PROJ1",
+        "cell": "J9",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "ESQ PROJ1",
+        "cell": "J10",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "ESQ PROJ1",
+        "cell": "J11",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "DIR PROJ1",
+        "cell": "J9",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "DIR PROJ1",
+        "cell": "J10",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "DIR PROJ1",
+        "cell": "J11",
+        "cached": "#N/A",
+        "formula": "#N/A"
+      },
+      {
+        "sheet": "DIR PROJ1",
+        "cell": "K11",
+        "cached": "#N/A",
+        "formula": "=(VLOOKUP(Tabela71020[[#This Row],[CONDUTOR]],CABOS[],3,0)/VLOOKUP(Tabela71020[[#This Row],[CONDUTOR]],CABOS[],6,0))*(1+VLOOKUP(Tabela71020[[#This Row],[CONDUTOR]],CABOS[],5,0)*(Tabela71020[[#This Row],[T]]-20))"
+      },
+      {
+        "sheet": "DIR PROJ1",
+        "cell": "J12",
+        "cached": "#N/A",
+        "formula": "#N/A"
+      },
+      {
+        "sheet": "DIR PROJ1",
+        "cell": "K12",
+        "cached": "#N/A",
+        "formula": "=(VLOOKUP(Tabela71020[[#This Row],[CONDUTOR]],CABOS[],3,0)/VLOOKUP(Tabela71020[[#This Row],[CONDUTOR]],CABOS[],6,0))*(1+VLOOKUP(Tabela71020[[#This Row],[CONDUTOR]],CABOS[],5,0)*(Tabela71020[[#This Row],[T]]-20))"
+      },
+      {
+        "sheet": "GERAL PROJ2",
+        "cell": "P5",
+        "cached": "#VALUE!",
+        "formula": "=O5/0.85"
+      },
+      {
+        "sheet": "GERAL PROJ2",
+        "cell": "O6",
+        "cached": "#VALUE!",
+        "formula": "=O5/O3"
+      },
+      {
+        "sheet": "GERAL PROJ2",
+        "cell": "O16",
+        "cached": "#N/A",
+        "formula": "=INDEX(GERAL_PROJ2[PONTO],MATCH(MIN(GERAL_PROJ2[SNAP]),GERAL_PROJ2[SNAP],0))"
+      },
+      {
+        "sheet": "ESQ PROJ2",
+        "cell": "J8",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "ESQ PROJ2",
+        "cell": "J9",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "ESQ PROJ2",
+        "cell": "J10",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "ESQ PROJ2",
+        "cell": "J11",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "ESQ PROJ2",
+        "cell": "J12",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "ESQ PROJ2",
+        "cell": "J13",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "ESQ PROJ2",
+        "cell": "J14",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "ESQ PROJ2",
+        "cell": "J15",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "ESQ PROJ2",
+        "cell": "J16",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "DIR PROJ2",
+        "cell": "J8",
+        "cached": "#DIV/0!",
+        "formula": "#DIV/0!"
+      },
+      {
+        "sheet": "DIR PROJ2",
+        "cell": "J9",
+        "cached": "#N/A",
+        "formula": "=Tabela71023[[#This Row],[TEMP_AMB]]+60*(Tabela71023[[#This Row],[Ib]]/Tabela71023[[#This Row],[Iz]])"
+      },
+      {
+        "sheet": "DIR PROJ2",
+        "cell": "K9",
+        "cached": "#N/A",
+        "formula": "=(VLOOKUP(Tabela71023[[#This Row],[CONDUTOR]],CABOS[],3,0)/VLOOKUP(Tabela71023[[#This Row],[CONDUTOR]],CABOS[],6,0))*(1+VLOOKUP(Tabela71023[[#This Row],[CONDUTOR]],CABOS[],5,0)*(Tabela71023[[#This Row],[T]]-20))"
+      }
+    ],
+    "externalReferences": [
+      {
+        "sheet": "DB",
+        "cell": "W2",
+        "formula": "=INDEX(CABOS[CONDUTORES],1)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W3",
+        "formula": "=INDEX(CABOS[CONDUTORES],2)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W4",
+        "formula": "=INDEX(CABOS[CONDUTORES],3)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W5",
+        "formula": "=INDEX(CABOS[CONDUTORES],4)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W6",
+        "formula": "=INDEX(CABOS[CONDUTORES],5)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W7",
+        "formula": "=INDEX(CABOS[CONDUTORES],6)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "K8",
+        "formula": "=(DEM_ATUAL/TR_ATUAL)*VLOOKUP(TR_ATUAL,TRAFOS_Z[],2,0)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W8",
+        "formula": "=INDEX(CABOS[CONDUTORES],7)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W9",
+        "formula": "=INDEX(CABOS[CONDUTORES],8)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W10",
+        "formula": "=INDEX(CABOS[CONDUTORES],9)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W11",
+        "formula": "=INDEX(CABOS[CONDUTORES],10)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W12",
+        "formula": "=INDEX(CABOS[CONDUTORES],11)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W13",
+        "formula": "=INDEX(CABOS[CONDUTORES],12)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W14",
+        "formula": "=INDEX(CABOS[CONDUTORES],13)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W15",
+        "formula": "=INDEX(CABOS[CONDUTORES],14)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W16",
+        "formula": "=INDEX(CABOS[CONDUTORES],15)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "K17",
+        "formula": "=(K16/K15)*VLOOKUP(K15,TRAFOS_Z[],2,0)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W17",
+        "formula": "=INDEX(CABOS[CONDUTORES],16)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W18",
+        "formula": "=INDEX(CABOS[CONDUTORES],17)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W19",
+        "formula": "=INDEX(CABOS[CONDUTORES],18)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W20",
+        "formula": "=INDEX(CABOS[CONDUTORES],19)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W21",
+        "formula": "=INDEX(CABOS[CONDUTORES],20)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W22",
+        "formula": "=INDEX(CABOS[CONDUTORES],21)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W23",
+        "formula": "=INDEX(CABOS[CONDUTORES],22)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "K24",
+        "formula": "=(K23/K22)*VLOOKUP(K22,TRAFOS_Z[],2,0)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W24",
+        "formula": "=INDEX(CABOS[CONDUTORES],23)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W25",
+        "formula": "=INDEX(CABOS[CONDUTORES],24)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "W26",
+        "formula": "=INDEX(CABOS[CONDUTORES],25)"
+      },
+      {
+        "sheet": "SUGESTAO_CORTES",
+        "cell": "E4",
+        "formula": "=SUMIFS(GERAL[TOTAL DO TRECHO],GERAL[LADO],\"ESQUERDO\")"
+      },
+      {
+        "sheet": "SUGESTAO_CORTES",
+        "cell": "E5",
+        "formula": "=SUMIFS(GERAL[TOTAL DO TRECHO],GERAL[LADO],\"DIREITO\")"
+      }
+    ]
+  }
+}

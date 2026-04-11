@@ -1,9 +1,15 @@
 import { useState } from 'react';
-import { parseKml } from '../utils/kmlParser';
+import { parseKml, KmlMarker } from '../utils/kmlParser';
 import { GeoLocation } from '../types';
 
+export interface KmlImportResult {
+  type: 'polygon' | 'markers';
+  points: GeoLocation[];           // polygon: boundary points; markers: one per placemark
+  names?: (string | undefined)[];  // only present for markers
+}
+
 interface UseKmlImportProps {
-  onImportSuccess: (points: GeoLocation[], filename: string) => void;
+  onImportSuccess: (result: KmlImportResult, filename: string) => void;
   onError: (message: string) => void;
 }
 
@@ -14,21 +20,27 @@ export function useKmlImport({ onImportSuccess, onError }: UseKmlImportProps) {
     setIsProcessing(true);
     
     try {
-      const points = await parseKml(file);
+      const parsed = await parseKml(file);
+      const filename = file.name.replace(/\.(kml|kmz)$/i, '');
 
-      if (!points || points.length === 0) {
-        throw new Error('No valid points found in KML file');
+      if (parsed.type === 'polygon') {
+        if (parsed.points.length === 0) throw new Error('No valid points found in KML/KMZ file');
+        onImportSuccess({
+          type: 'polygon',
+          points: parsed.points.map(p => ({ lat: p[0], lng: p[1] }))
+        }, filename);
+      } else {
+        if (parsed.markers.length === 0) throw new Error('No valid markers found in KML/KMZ file');
+        onImportSuccess({
+          type: 'markers',
+          points: parsed.markers.map((m: KmlMarker) => ({ lat: m.point[0], lng: m.point[1] })),
+          names: parsed.markers.map((m: KmlMarker) => m.name)
+        }, filename);
       }
 
-      const geoPoints: GeoLocation[] = points.map(p => ({ 
-        lat: p[0], 
-        lng: p[1] 
-      }));
-
-      onImportSuccess(geoPoints, file.name.replace('.kml', ''));
       return true;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'KML import failed';
+      const message = error instanceof Error ? error.message : 'KML/KMZ import failed';
       onError(message);
       return false;
     } finally {

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { GeoLocation } from '../types';
-import { parseUtmQuery } from '../utils/geo';
 import { API_BASE_URL } from '../config/api';
 
 interface UseSearchProps {
@@ -12,42 +11,10 @@ export function useSearch({ onLocationFound, onError }: UseSearchProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
-  const parseLatLng = (query: string): GeoLocation | null => {
-    const normalized = query
-      .replace(/\(([^)]+)\)/g, '$1')
-      .replace(/(\d),(\d)/g, '$1.$2')
-      .replace(/,/g, ' ');
-
-    const numbers = normalized.match(/[-+]?\d+(?:\.\d+)?/g);
-    if (!numbers || numbers.length < 2) return null;
-
-    const lat = parseFloat(numbers[0]);
-    const lng = parseFloat(numbers[1]);
-
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
-
-    return {
-      lat,
-      lng,
-      label: `Lat/Lng ${lat.toFixed(6)}, ${lng.toFixed(6)}`
-    };
-  };
-
   const executeSearch = async (query: string) => {
-    if (!query.trim()) {
-      return;
-    }
+    const sanitizedQuery = query.trim();
 
-    const directLocation = parseLatLng(query.trim());
-    if (directLocation) {
-      onLocationFound(directLocation);
-      return;
-    }
-
-    const utmLocation = parseUtmQuery(query.trim());
-    if (utmLocation) {
-      onLocationFound(utmLocation);
+    if (!sanitizedQuery) {
       return;
     }
 
@@ -56,11 +23,25 @@ export function useSearch({ onLocationFound, onError }: UseSearchProps) {
       const response = await fetch(`${API_BASE_URL}/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({ query: sanitizedQuery })
       });
 
       if (!response.ok) {
-        throw new Error('Location not found');
+        let apiErrorMessage = 'Location not found';
+
+        try {
+          const errorPayload = await response.json() as {
+            details?: string;
+            error?: string;
+            message?: string;
+          };
+
+          apiErrorMessage = errorPayload.details || errorPayload.error || errorPayload.message || apiErrorMessage;
+        } catch {
+          // Keep fallback message when response body is not JSON.
+        }
+
+        throw new Error(apiErrorMessage);
       }
 
       const location: GeoLocation = await response.json();

@@ -3,6 +3,33 @@ import { GeoLocation } from '../types';
 
 const UTM_REGEX = /^(\d{1,2})\s*([C-HJ-NP-X]|[NS])\s+(\d{6,7}(?:\.\d+)?)\s+(\d{7}(?:\.\d+)?)$/i;
 
+export const parseLatLngQuery = (query: string): GeoLocation | null => {
+  const normalized = query
+    .replace(/\(([^)]+)\)/g, '$1')
+    .replace(/(\d),(\d)/g, '$1.$2')
+    .replace(/,/g, ' ')
+    .replace(/;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!/^[-+]?\d+(?:\.\d+)?\s+[-+]?\d+(?:\.\d+)?$/.test(normalized)) {
+    return null;
+  }
+
+  const [latRaw, lngRaw] = normalized.split(' ');
+  const lat = Number.parseFloat(latRaw);
+  const lng = Number.parseFloat(lngRaw);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+
+  return {
+    lat,
+    lng,
+    label: `Lat/Lng ${lat.toFixed(6)}, ${lng.toFixed(6)}`
+  };
+};
+
 export const parseUtmQuery = (query: string): GeoLocation | null => {
   const normalized = query
     .replace(/(\d),(\d)/g, '$1.$2')

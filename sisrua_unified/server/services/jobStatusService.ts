@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger.js';
-import { FirestoreService } from './firestoreService.js';
+import postgres from 'postgres';
+import { config } from '../config.js';
 
 export type JobStatus = 'queued' | 'processing' | 'completed' | 'failed';
 
@@ -10,6 +11,7 @@ export interface JobInfo {
     result?: {
         url: string;
         filename: string;
+        btContextUrl?: string;
     };
     error?: string;
     createdAt: Date;
@@ -17,91 +19,147 @@ export interface JobInfo {
     attempts?: number; // For idempotency tracking
 }
 
-// In-memory storage for job statuses (fallback when Firestore is unavailable)
+// In-memory storage for job statuses (fallback when Postgres is unavailable)
 const jobs = new Map<string, JobInfo>();
 
-// Firestore integration
-const USE_FIRESTORE = process.env.NODE_ENV === 'production' || process.env.USE_FIRESTORE === 'true';
-const firestoreService = new FirestoreService();
-const JOBS_COLLECTION = 'jobs';
+// Supabase/Postgres integration
+const USE_SUPABASE_JOBS = config.useSupabaseJobs;
+const DATABASE_URL = config.DATABASE_URL;
+const JOBS_TABLE = 'jobs';
 
-// Track if Firestore is available
-let firestoreAvailable = false;
+type SqlClient = ReturnType<typeof postgres>;
+
+// Track if Postgres persistence is available
+let postgresAvailable = false;
+let sqlClient: SqlClient | null = null;
 
 // Auto-cleanup old jobs after 1 hour
-const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
-const MAX_JOB_AGE = 60 * 60 * 1000; // 1 hour
+const CLEANUP_INTERVAL = config.JOB_CLEANUP_INTERVAL_MS;
+const MAX_JOB_AGE = config.JOB_MAX_AGE_MS;
 
 let cleanupIntervalId: NodeJS.Timeout | null = null;
 let initializationStarted = false;
 
-async function initializeFirestore(): Promise<void> {
-    if (!USE_FIRESTORE || firestoreAvailable) {
-        return;
-    }
-    
-    try {
-        await firestoreService.start();
-        firestoreAvailable = true;
-        logger.info('JobStatusService: Firestore persistence enabled');
-        
-        // Load existing jobs from Firestore on startup
-        await loadJobsFromFirestore();
-    } catch (error) {
-        logger.warn('JobStatusService: Firestore unavailable, using in-memory fallback', { error });
-        firestoreAvailable = false;
+const REQUIRED_JOBS_COLUMNS = [
+    'id',
+    'status',
+    'progress',
+    'result',
+    'error',
+    'created_at',
+    'updated_at',
+    'attempts'
+] as const;
+
+async function validateJobsSchema(sql: SqlClient): Promise<void> {
+    const rows = await sql<[{ column_name: string }][]>`
+        select column_name
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = ${JOBS_TABLE}
+    `;
+
+    const existing = new Set(rows.map((row) => row.column_name));
+    const missing = REQUIRED_JOBS_COLUMNS.filter((column) => !existing.has(column));
+
+    if (missing.length > 0) {
+        throw new Error(
+            `Missing required columns in public.${JOBS_TABLE}: ${missing.join(', ')}. ` +
+            'Apply database migrations before enabling Supabase/Postgres jobs persistence.'
+        );
     }
 }
 
-async function loadJobsFromFirestore(): Promise<void> {
+async function initializePersistence(): Promise<void> {
+    if (!USE_SUPABASE_JOBS || !DATABASE_URL || postgresAvailable) {
+        return;
+    }
+
     try {
-        const { Firestore } = await import('@google-cloud/firestore');
-        const db = new Firestore({ projectId: process.env.GCP_PROJECT });
-        
-        const snapshot = await db.collection(JOBS_COLLECTION)
-            .where('updatedAt', '>', new Date(Date.now() - MAX_JOB_AGE))
-            .get();
-        
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            jobs.set(doc.id, {
-                id: doc.id,
-                status: data.status,
-                progress: data.progress,
-                result: data.result,
-                error: data.error,
-                createdAt: data.createdAt?.toDate() || new Date(),
-                updatedAt: data.updatedAt?.toDate() || new Date(),
-                attempts: data.attempts || 0
+        sqlClient = postgres(DATABASE_URL, {
+            ssl: 'require',
+            max: 2,
+            connect_timeout: 8,
+            idle_timeout: 10
+        });
+
+        await validateJobsSchema(sqlClient);
+
+        postgresAvailable = true;
+        logger.info('JobStatusService: Supabase/Postgres persistence enabled (schema validated)');
+
+        // Load existing jobs from Postgres on startup
+        await loadJobsFromPostgres();
+    } catch (error) {
+        logger.warn('JobStatusService: Supabase/Postgres unavailable, using in-memory fallback', { error });
+        postgresAvailable = false;
+        if (sqlClient) {
+            await sqlClient.end({ timeout: 3 }).catch(() => undefined);
+            sqlClient = null;
+        }
+    }
+}
+
+async function loadJobsFromPostgres(): Promise<void> {
+    if (!postgresAvailable || !sqlClient) {
+        return;
+    }
+
+    try {
+        const rows = await sqlClient.unsafe(`
+            select id, status, progress, result, error, created_at, updated_at, attempts
+            from ${JOBS_TABLE}
+            where updated_at > (now() - ($1::bigint * interval '1 millisecond'))
+        `, [MAX_JOB_AGE]);
+
+        rows.forEach((row: any) => {
+            jobs.set(String(row.id), {
+                id: String(row.id),
+                status: row.status as JobStatus,
+                progress: Number(row.progress || 0),
+                result: row.result ?? undefined,
+                error: row.error ?? undefined,
+                createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+                updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(),
+                attempts: Number(row.attempts || 0)
             });
         });
-        
-        logger.info('Loaded jobs from Firestore', { count: snapshot.size });
+
+        logger.info('Loaded jobs from Supabase/Postgres', { count: rows.length });
     } catch (error) {
-        logger.error('Failed to load jobs from Firestore', { error });
+        logger.error('Failed to load jobs from Supabase/Postgres', { error });
     }
 }
 
 async function persistJob(job: JobInfo): Promise<void> {
-    if (!firestoreAvailable) {
+    if (!postgresAvailable || !sqlClient) {
         return;
     }
-    
+
     try {
-        const { Firestore, FieldValue } = await import('@google-cloud/firestore');
-        const db = new Firestore({ projectId: process.env.GCP_PROJECT });
-        
-        await db.collection(JOBS_COLLECTION).doc(job.id).set({
-            status: job.status,
-            progress: job.progress,
-            result: job.result || null,
-            error: job.error || null,
-            createdAt: FieldValue.serverTimestamp(),
-            updatedAt: FieldValue.serverTimestamp(),
-            attempts: job.attempts || 0
-        }, { merge: true });
+        await sqlClient.unsafe(`
+            insert into ${JOBS_TABLE} (id, status, progress, result, error, created_at, updated_at, attempts)
+            values ($1, $2, $3, $4::jsonb, $5, $6, $7, $8)
+            on conflict (id)
+            do update set
+                status = excluded.status,
+                progress = excluded.progress,
+                result = excluded.result,
+                error = excluded.error,
+                updated_at = excluded.updated_at,
+                attempts = excluded.attempts
+        `, [
+            job.id,
+            job.status,
+            job.progress,
+            job.result ? JSON.stringify(job.result) : null,
+            job.error || null,
+            job.createdAt,
+            job.updatedAt,
+            job.attempts || 0
+        ]);
     } catch (error) {
-        logger.error('Failed to persist job to Firestore', { jobId: job.id, error });
+        logger.error('Failed to persist job to Supabase/Postgres', { jobId: job.id, error });
     }
 }
 
@@ -128,8 +186,10 @@ export function stopCleanupInterval() {
         logger.info('Job cleanup interval stopped');
     }
     
-    if (firestoreAvailable) {
-        firestoreService.stop();
+    if (sqlClient) {
+        sqlClient.end({ timeout: 3 }).catch(() => undefined);
+        sqlClient = null;
+        postgresAvailable = false;
     }
 }
 
@@ -144,10 +204,10 @@ function ensureInitialized(): void {
     }
 
     initializationStarted = true;
-    initializeFirestore().then(() => {
+    initializePersistence().then(() => {
         startCleanupInterval();
     }).catch(err => {
-        logger.error('Failed to initialize Firestore for job status', { error: err });
+        logger.error('Failed to initialize Supabase/Postgres for job status', { error: err });
         startCleanupInterval();
     });
 }
@@ -196,7 +256,7 @@ export async function updateJobStatus(id: string, status: JobStatus, progress?: 
     }
 }
 
-export async function completeJob(id: string, result: { url: string; filename: string }): Promise<void> {
+export async function completeJob(id: string, result: { url: string; filename: string; btContextUrl?: string }): Promise<void> {
     ensureInitialized();
 
     const job = jobs.get(id);

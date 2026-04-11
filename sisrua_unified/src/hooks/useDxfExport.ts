@@ -1,15 +1,29 @@
 import { useEffect, useState } from 'react';
+import { z } from 'zod';
 import { generateDXF, getDxfJobStatus } from '../services/dxfService';
 import { SelectionMode, GeoLocation, LayerConfig } from '../types';
+import { validateDxfExportInputs } from '../utils/validation';
 
 type ContourRenderMode = 'spline' | 'polyline';
+
+const JOB_POLL_INTERVAL_MS = 2000;
+const MAX_JOB_POLL_ATTEMPTS = 90;
 
 interface UseDxfExportProps {
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
+  onBtContextLoaded?: (payload: { btContextUrl: string; btContext: Record<string, unknown> }) => void;
 }
 
-export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
+interface BtContextPayload {
+  [key: string]: unknown;
+}
+
+const btContextResponseSchema = z.object({
+  btContext: z.record(z.unknown()),
+});
+
+export function useDxfExport({ onSuccess, onError, onBtContextLoaded }: UseDxfExportProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState('idle');
@@ -26,6 +40,29 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
     document.body.removeChild(anchor);
   };
 
+  const tryLoadBtContext = async (btContextUrl?: string) => {
+    if (!btContextUrl) {
+      return;
+    }
+
+    try {
+      const response = await fetch(btContextUrl);
+      if (!response.ok) {
+        return;
+      }
+
+      const rawPayload: unknown = await response.json();
+      const parsed = btContextResponseSchema.safeParse(rawPayload);
+      if (!parsed.success) {
+        return;
+      }
+
+      onBtContextLoaded?.({ btContextUrl, btContext: parsed.data.btContext });
+    } catch {
+      // Silent fail: DXF download must not be blocked by optional BT metadata retrieval.
+    }
+  };
+
   const downloadDxf = async (
     center: GeoLocation,
     radius: number,
@@ -33,8 +70,15 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
     polygon: GeoLocation[],
     layers: LayerConfig,
     projection: 'local' | 'utm' = 'utm',
-    contourRenderMode: ContourRenderMode = 'spline'
+    contourRenderMode: ContourRenderMode = 'spline',
+    btContext?: BtContextPayload
   ) => {
+    // Validate inputs before sending to backend
+    if (!validateDxfExportInputs(center, radius, selectionMode, polygon, layers)) {
+      onError('DXF Error: Invalid input parameters');
+      return false;
+    }
+
     setIsDownloading(true);
     setJobStatus('queued');
     setJobProgress(0);
@@ -48,7 +92,8 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
         polygon,
         layers,
         projection,
-        contourRenderMode
+        contourRenderMode,
+        btContext
       );
 
       if (!result) {
@@ -56,6 +101,7 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
       }
 
       if ('url' in result && result.url) {
+        await tryLoadBtContext(result.btContextUrl);
         triggerDownload(result.url, center);
         onSuccess('DXF Downloaded');
         setIsDownloading(false);
@@ -86,7 +132,19 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
     }
 
     let isActive = true;
+    let attempts = 0;
     const intervalId = window.setInterval(async () => {
+      attempts += 1;
+      if (attempts > MAX_JOB_POLL_ATTEMPTS) {
+        onError('DXF Error: timeout aguardando processamento do job');
+        clearInterval(intervalId);
+        setJobId(null);
+        setIsDownloading(false);
+        setJobStatus('failed');
+        setDownloadCenter(null);
+        return;
+      }
+
       try {
         const statusResponse = await getDxfJobStatus(jobId);
         if (!isActive) {
@@ -99,12 +157,17 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
         }
 
         if (statusResponse.status === 'completed') {
+          if (!isActive) return;
+          
           const url = statusResponse.result?.url;
           if (!url) {
             throw new Error('DXF job completed without a URL');
           }
 
           const center = downloadCenter || { lat: 0, lng: 0, label: '' };
+          await tryLoadBtContext(statusResponse.result?.btContextUrl);
+          
+          if (!isActive) return;
           triggerDownload(url, center);
           onSuccess('DXF Downloaded');
           clearInterval(intervalId);
@@ -117,6 +180,8 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
         }
 
         if (statusResponse.status === 'failed') {
+          if (!isActive) return;
+          
           const errorMessage = statusResponse.error || 'DXF generation failed';
           onError(`DXF Error: ${errorMessage}`);
           clearInterval(intervalId);
@@ -137,13 +202,13 @@ export function useDxfExport({ onSuccess, onError }: UseDxfExportProps) {
         setJobStatus('failed');
         setDownloadCenter(null);
       }
-    }, 2000);
+    }, JOB_POLL_INTERVAL_MS);
 
     return () => {
       isActive = false;
       clearInterval(intervalId);
     };
-  }, [jobId, downloadCenter, onError, onSuccess]);
+  }, [jobId, downloadCenter, onBtContextLoaded, onError, onSuccess]);
 
   return {
     downloadDxf,

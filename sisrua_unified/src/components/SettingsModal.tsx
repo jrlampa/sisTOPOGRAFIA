@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { X, Cpu, Zap, Layers, TreeDeciduous, Car, Building2, Mountain, LampFloor, Globe, Circle, Hexagon, Square, Eraser, Download, FileJson, Loader2, Moon, Sun, Map as MapIcon, Satellite, Type, Briefcase, Activity, Upload, Save, FolderOpen, PencilRuler, ArrowLeftRight, Grid3X3, AlertTriangle } from 'lucide-react';
-import { AppSettings, LayerConfig, ProjectionType, SelectionMode, GeoLocation, MapProvider, SimplificationLevel, ProjectMetadata, ContourRenderMode } from '../types';
+import { AppSettings, LayerConfig, ProjectionType, SelectionMode, GeoLocation, MapProvider, SimplificationLevel, ProjectMetadata, ContourRenderMode, BtProjectType, BtEditorMode, BtTransformerCalculationMode } from '../types';
 import { MAX_RADIUS, MIN_RADIUS } from '../constants';
+import ConstantsCatalogOps from './ConstantsCatalogOps';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -57,6 +58,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const setProjection = (proj: ProjectionType) => onUpdateSettings({ ...settings, projection: proj });
   const setMapProvider = (provider: MapProvider) => onUpdateSettings({ ...settings, mapProvider: provider });
   const setContourRenderMode = (mode: ContourRenderMode) => onUpdateSettings({ ...settings, contourRenderMode: mode });
+  const setBtProjectType = (projectType: BtProjectType) => onUpdateSettings({ ...settings, projectType });
+  const setBtEditorMode = (btEditorMode: BtEditorMode) => onUpdateSettings({ ...settings, btEditorMode });
+  const setBtTransformerCalculationMode = (btTransformerCalculationMode: BtTransformerCalculationMode) => onUpdateSettings({ ...settings, btTransformerCalculationMode });
+  const setClandestinoAreaM2 = (clandestinoAreaM2: number) => onUpdateSettings({ ...settings, clandestinoAreaM2 });
 
   const toggleLayer = (key: keyof LayerConfig) => {
     onUpdateSettings({
@@ -90,16 +95,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       onClick={onClick}
       className={`flex items-center gap-3 p-3 rounded-lg border transition-all glass-panel-hover ${active
         ? 'border-white/40 shadow-md'
-        : 'border-white/20 hover:border-white/30'
-        }`}
-      style={active ? { color: 'var(--enterprise-blue)' } : { color: '#64748b' }}
+        : 'border-white/20 text-slate-500 hover:border-white/30'
+        } ${active ? 'text-enterprise-blue' : ''}`}
     >
       <div className={`p-2 rounded-md ${active ? colorClass : 'bg-white/20'}`}>
         <Icon size={18} className={active ? 'text-white' : 'text-slate-500'} />
       </div>
       <span className="text-sm font-semibold">{label}</span>
-      <div className={`ml-auto w-3 h-3 rounded-full ${active ? 'shadow-md' : 'bg-slate-400'}`} 
-        style={active ? { backgroundColor: 'var(--enterprise-blue)' } : {}} />
+      <div className={`ml-auto h-3 w-3 rounded-full ${active ? 'bg-enterprise-blue shadow-md' : 'bg-slate-400'}`} />
     </button>
   );
 
@@ -108,11 +111,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       <div className="glass-card w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
 
         <div className="flex items-center justify-between p-6 border-b border-white/20">
-          <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--enterprise-blue)' }}>
-            <Cpu size={24} style={{ color: 'var(--enterprise-blue-light)' }} />
+          <h2 className="text-enterprise-blue flex items-center gap-2 text-xl font-bold">
+            <Cpu size={24} className="text-enterprise-blue-light" />
             Painel de Controle
           </h2>
-          <button onClick={onClose} className="text-slate-600 hover:text-slate-800 transition-colors">
+          <button onClick={onClose} title="Fechar painel" aria-label="Fechar painel" className="text-slate-600 hover:text-slate-800 transition-colors">
             <X size={24} />
           </button>
         </div>
@@ -122,24 +125,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           <button
             onClick={() => setActiveTab('general')}
             className={`flex-1 py-3 text-sm font-medium transition-all ${activeTab === 'general' 
-              ? 'border-b-2 glass-panel-hover' 
+              ? 'text-enterprise-blue border-enterprise-blue border-b-2 glass-panel-hover' 
               : 'text-slate-600 hover:text-slate-800 hover:bg-white/20'}`}
-            style={activeTab === 'general' ? { 
-              color: 'var(--enterprise-blue)', 
-              borderBottomColor: 'var(--enterprise-blue)' 
-            } : {}}
+            title="Abrir aba Geral e Exportação"
           >
             Geral & Exportação
           </button>
           <button
             onClick={() => setActiveTab('project')}
             className={`flex-1 py-3 text-sm font-medium transition-all ${activeTab === 'project' 
-              ? 'border-b-2 glass-panel-hover' 
+              ? 'text-enterprise-blue border-enterprise-blue border-b-2 glass-panel-hover' 
               : 'text-slate-600 hover:text-slate-800 hover:bg-white/20'}`}
-            style={activeTab === 'project' ? { 
-              color: 'var(--enterprise-blue)', 
-              borderBottomColor: 'var(--enterprise-blue)' 
-            } : {}}
+            title="Abrir aba Projeto e Metadados"
           >
             Projeto & Metadados
           </button>
@@ -156,7 +153,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   disabled={!onSaveProject}
                   className="btn-enterprise flex items-center justify-center gap-2 p-3 rounded-lg border border-white/30 text-slate-700 hover:text-slate-900 transition-all disabled:opacity-50"
                 >
-                  <Save size={16} /> Salvar Projeto (.osmpro)
+                  <Save size={16} /> Salvar Projeto
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -169,13 +166,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileChange}
-                  accept=".osmpro,.json"
+                  accept=".srua,.osmpro,.json"
+                  title="Carregar arquivo de projeto"
                   className="hidden"
                 />
               </div>
 
               <div className="glass-panel p-4 rounded-lg border border-white/20">
-                <div className="flex items-center gap-2 mb-4" style={{ color: 'var(--enterprise-blue)' }}>
+                <div className="text-enterprise-blue mb-4 flex items-center gap-2">
                   <Briefcase size={18} />
                   <h3 className="font-bold text-sm uppercase">Carimbo (Title Block)</h3>
                 </div>
@@ -187,6 +185,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <input
                       type="text"
                       value={settings.projectMetadata?.projectName || ''}
+                      title="Nome do projeto"
+                      placeholder="Nome do projeto"
                       onChange={(e) => updateMetadata('projectName', e.target.value)}
                       className="w-full glass-panel border border-white/30 rounded p-2 text-sm text-slate-800 focus:border-blue-400 outline-none"
                     />
@@ -196,6 +196,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <input
                       type="text"
                       value={settings.projectMetadata?.companyName || ''}
+                      title="Nome da empresa"
+                      placeholder="Nome da empresa"
                       onChange={(e) => updateMetadata('companyName', e.target.value)}
                       className="w-full glass-panel border border-white/30 rounded p-2 text-sm text-slate-800 focus:border-blue-400 outline-none"
                     />
@@ -206,6 +208,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       <input
                         type="text"
                         value={settings.projectMetadata?.engineerName || ''}
+                        title="Nome do responsável"
+                        placeholder="Nome do responsável"
                         onChange={(e) => updateMetadata('engineerName', e.target.value)}
                         className="w-full glass-panel border border-white/30 rounded p-2 text-sm text-slate-800 focus:border-blue-400 outline-none"
                       />
@@ -215,10 +219,107 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       <input
                         type="text"
                         value={settings.projectMetadata?.date || ''}
+                        title="Data do projeto"
+                        placeholder="DD/MM/AAAA"
                         onChange={(e) => updateMetadata('date', e.target.value)}
                         className="w-full glass-panel border border-white/30 rounded p-2 text-sm text-slate-800 focus:border-blue-400 outline-none"
                       />
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="glass-panel p-4 rounded-lg border border-white/20">
+                <div className="text-enterprise-blue mb-4 flex items-center gap-2">
+                  <Activity size={18} />
+                  <h3 className="font-bold text-sm uppercase">Topologia Rede BT</h3>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-slate-600 block mb-2">Tipo de Projeto</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { value: 'ramais', label: 'RAMAIS' },
+                        { value: 'geral', label: 'GERAL' },
+                        { value: 'clandestino', label: 'CLANDEST.' }
+                      ] as { value: BtProjectType; label: string }[]).map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setBtProjectType(option.value)}
+                          className={`py-2 text-xs font-semibold rounded border transition-all ${(settings.projectType ?? 'ramais') === option.value
+                            ? 'bg-blue-600 border-blue-500 text-white'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                            }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {(settings.projectType ?? 'ramais') === 'clandestino' && (
+                    <div>
+                      <label className="text-xs text-slate-600 block mb-1">Área de Clandestinos (m²)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={settings.clandestinoAreaM2 ?? 0}
+                        title="Área de clandestinos em metros quadrados"
+                        onFocus={(e) => e.target.select()}
+                        onClick={(e) => e.currentTarget.select()}
+                        onChange={(e) => setClandestinoAreaM2(Number(e.target.value) || 0)}
+                        className="w-full glass-panel border border-white/30 rounded p-2 text-sm text-slate-800 focus:border-blue-400 outline-none"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">Campo obrigatório para o fluxo de clandestinos.</p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-xs text-slate-600 block mb-2">Modo de Edição no Mapa</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        { value: 'none', label: 'Navegar' },
+                        { value: 'add-pole', label: 'Inserir Poste' },
+                        { value: 'add-edge', label: 'Inserir Condutor' },
+                        { value: 'add-transformer', label: 'Inserir Trafo' }
+                      ] as { value: BtEditorMode; label: string }[]).map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setBtEditorMode(option.value)}
+                          className={`py-2 text-xs font-semibold rounded border transition-all ${(settings.btEditorMode ?? 'none') === option.value
+                            ? 'bg-emerald-600 border-emerald-500 text-white'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                            }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-600 block mb-2">Cálculo dos Transformadores</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        { value: 'automatic', label: 'Automático' },
+                        { value: 'manual', label: 'Manual' }
+                      ] as { value: BtTransformerCalculationMode; label: string }[]).map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setBtTransformerCalculationMode(option.value)}
+                          className={`py-2 text-xs font-semibold rounded border transition-all ${(settings.btTransformerCalculationMode ?? 'automatic') === option.value
+                            ? 'bg-indigo-600 border-indigo-500 text-white'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                            }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Automático: recalcula demanda/corrente conforme topologia. Manual: preserva o que for informado no card.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -237,6 +338,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   </span>
                   <button
                     onClick={toggleTheme}
+                    title="Alternar tema"
+                    aria-label="Alternar tema"
                     className={`w-12 h-6 rounded-full relative transition-colors ${settings.theme === 'dark' ? 'bg-slate-400' : 'bg-yellow-400'}`}
                   >
                     <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${settings.theme === 'dark' ? 'translate-x-6' : ''}`} />
@@ -321,7 +424,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   )}
 
                   <LayerToggle
-                    label="Terreno (Malha 3D)"
+                      label="Terreno (Malha 2.5D)"
                     icon={Mountain}
                     active={settings.layers.terrain}
                     onClick={() => toggleLayer('terrain')}
@@ -362,6 +465,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         max={50}
                         step={1}
                         value={settings.contourInterval || 5}
+                        title="Intervalo das curvas de nível"
                         onChange={(e) => onUpdateSettings({ ...settings, contourInterval: parseInt(e.target.value) })}
                         className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500"
                       />
@@ -493,6 +597,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     UTM Absoluto usa coordenadas reais compatíveis com Google Earth e GPS
                   </p>
                 </div>
+
+                <ConstantsCatalogOps />
               </div>
             </>
           )}

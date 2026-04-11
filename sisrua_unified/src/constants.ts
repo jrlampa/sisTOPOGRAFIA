@@ -1,7 +1,7 @@
 export const DEFAULT_LOCATION = {
-  lat: -23.5505, // São Paulo, generic start
-  lng: -46.6333,
-  label: "São Paulo, Brazil"
+  lat: -22.9068, // Rio de Janeiro, generic start
+  lng: -43.1729,
+  label: "Rio de Janeiro, RJ"
 };
 
 export const MIN_RADIUS = 10;

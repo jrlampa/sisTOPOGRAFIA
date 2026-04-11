@@ -100,6 +100,7 @@ export interface LayerConfig {
   labels: boolean;
   dimensions: boolean;
   grid: boolean;
+  btNetwork: boolean;
 }
 
 export type ProjectionType = 'local' | 'utm';
@@ -107,6 +108,142 @@ export type AppTheme = 'light' | 'dark';
 export type MapProvider = 'vector' | 'satellite';
 export type SimplificationLevel = 'off' | 'low' | 'medium' | 'high';
 export type ContourRenderMode = 'spline' | 'polyline';
+export type BtProjectType = 'ramais' | 'geral' | 'clandestino';
+export type BtEditorMode = 'none' | 'move-pole' | 'add-pole' | 'add-transformer' | 'add-edge';
+export type BtNetworkScenario = 'asis' | 'projeto' | 'proj1' | 'proj2';
+export type BtTransformerCalculationMode = 'automatic' | 'manual';
+export type BtCqtScenario = 'atual' | 'proj1' | 'proj2';
+
+export interface BtCqtDmdiInputs {
+  clandestinoEnabled: boolean;
+  aa24DemandBase: number;
+  sumClientsX: number;
+  ab35LookupDmdi: number;
+}
+
+export interface BtCqtComputationInputs {
+  scenario: BtCqtScenario;
+  dmdi?: BtCqtDmdiInputs;
+  geral?: {
+    pontoRamal: string;
+    qtMttr: number;
+    esqCqtByPonto: Record<string, number>;
+    dirCqtByPonto: Record<string, number>;
+  };
+  db?: {
+    trAtual: number;
+    demAtual: number;
+    qtMt: number;
+    trafosZ?: Array<{ trafoKva: number; qtFactor: number }>;
+  };
+  branches?: Array<{
+    trechoId: string;
+    fase: 'MONO' | 'BIF' | 'TRI';
+    acumuladaKva: number;
+    eta: number;
+    tensaoTrifasicaV: number;
+    conductorName: string;
+    lengthMeters?: number;
+    temperatureC?: number;
+    ponto?: string;
+    lado?: 'ESQUERDO' | 'DIREITO';
+  }>;
+}
+
+export interface BtRamalEntry {
+  id: string;
+  quantity: number;
+  conductorName: string;
+}
+
+export interface BtPoleRamalEntry {
+  id: string;
+  quantity: number;
+  ramalType?: string;
+}
+
+export interface BtPoleNode {
+  id: string;
+  lat: number;
+  lng: number;
+  title: string;
+  ramais?: BtPoleRamalEntry[];
+  verified?: boolean;
+  nodeChangeFlag?: 'existing' | 'new' | 'remove' | 'replace';
+  circuitBreakPoint?: boolean;
+}
+
+export interface BtTransformerReading {
+  id: string;
+  // Legacy billing fields (kept optional for backward compatibility)
+  kwhMonth?: number;
+  unitRateBrlPerKwh?: number;
+  billedBrl?: number;
+  // Workbook-aligned demand inputs
+  currentMaxA?: number;
+  temperatureFactor?: number;
+  autoCalculated?: boolean;
+}
+
+export interface BtTransformer {
+  id: string;
+  poleId?: string;
+  lat: number;
+  lng: number;
+  title: string;
+  projectPowerKva?: number;
+  monthlyBillBrl: number;
+  demandKw: number;
+  readings: BtTransformerReading[];
+  verified?: boolean;
+  transformerChangeFlag?: 'existing' | 'new' | 'remove' | 'replace';
+}
+
+export interface BtEdge {
+  id: string;
+  fromPoleId: string;
+  toPoleId: string;
+  lengthMeters?: number;
+  conductors: BtRamalEntry[];
+  replacementFromConductors?: BtRamalEntry[];
+  verified?: boolean;
+  removeOnExecution?: boolean;
+  edgeChangeFlag?: 'existing' | 'new' | 'remove' | 'replace';
+}
+
+export interface BtTopology {
+  poles: BtPoleNode[];
+  transformers: BtTransformer[];
+  edges: BtEdge[];
+}
+
+export interface BtExportSummary {
+  btContextUrl: string;
+  criticalPoleId: string;
+  criticalAccumulatedClients: number;
+  criticalAccumulatedDemandKva: number;
+  cqt?: {
+    scenario?: BtCqtScenario;
+    dmdi?: number;
+    p31?: number;
+    p32?: number;
+    k10QtMttr?: number;
+    parityStatus?: 'complete' | 'partial' | 'missing';
+    parityPassed?: number;
+    parityFailed?: number;
+  };
+  verifiedPoles?: number;
+  totalPoles?: number;
+  verifiedEdges?: number;
+  totalEdges?: number;
+  verifiedTransformers?: number;
+  totalTransformers?: number;
+}
+
+export interface BtExportHistoryEntry extends BtExportSummary {
+  exportedAt: string;
+  projectType: BtProjectType;
+}
 
 export interface AppSettings {
   enableAI: boolean;
@@ -119,6 +256,11 @@ export interface AppSettings {
   mapProvider: MapProvider;
   projectMetadata: ProjectMetadata;
   contourInterval: number;
+  projectType?: BtProjectType;
+  btNetworkScenario?: BtNetworkScenario;
+  btEditorMode?: BtEditorMode;
+  btTransformerCalculationMode?: BtTransformerCalculationMode;
+  clandestinoAreaM2?: number;
 }
 
 export type SelectionMode = 'circle' | 'polygon' | 'measure';
@@ -130,4 +272,7 @@ export interface GlobalState {
   polygon: GeoLocation[];
   measurePath: GeoLocation[];
   settings: AppSettings;
+  btTopology?: BtTopology;
+  btExportSummary?: BtExportSummary | null;
+  btExportHistory?: BtExportHistoryEntry[];
 }

@@ -1,17 +1,19 @@
 import fs from 'fs';
 import path from 'path';
 import { logger } from '../utils/logger.js';
-
-// Cleanup policy:
-// 1) Prefer fast cleanup (default 10 min)
-// 2) Hard safety limit: never keep DXF files for more than 2 hours
-const DXF_FILE_TTL_MS = 10 * 60 * 1000; // 10 minutes
-const MAX_DXF_AGE_MS = 2 * 60 * 60 * 1000; // 2 hours
-const CLEANUP_CHECK_INTERVAL = 2 * 60 * 1000; // Check every 2 minutes
+import { config } from '../config.js';
+import { constantsService } from './constantsService.js';
+import { resolveDxfDirectory } from '../utils/dxfDirectory.js';
 
 interface ScheduledFile {
     filePath: string;
     deleteAt: number;
+}
+
+interface DxfCleanupPolicySnapshot {
+    fileTtlMs: number;
+    maxFileAgeMs: number;
+    cleanupCheckIntervalMs: number;
 }
 
 // Track files scheduled for deletion
@@ -22,11 +24,26 @@ let midnightIntervalId: NodeJS.Timeout | null = null;
 let cleanupInitialized = false;
 let configuredDxfDirectory: string | null = null;
 
+const getConfigNumberConstant = (key: string, fallback: number): number => {
+    if (!config.useDbConstantsConfig) {
+        return fallback;
+    }
+
+    const value = constantsService.getSync<number>('config', key);
+    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+};
+
+export const getDxfCleanupPolicySnapshot = (): DxfCleanupPolicySnapshot => ({
+    fileTtlMs: getConfigNumberConstant('DXF_FILE_TTL_MS', config.DXF_FILE_TTL_MS),
+    maxFileAgeMs: getConfigNumberConstant('DXF_MAX_AGE_MS', config.DXF_MAX_AGE_MS),
+    cleanupCheckIntervalMs: getConfigNumberConstant('DXF_CLEANUP_INTERVAL_MS', config.DXF_CLEANUP_INTERVAL_MS),
+});
+
 function getDxfDirectory(): string {
     if (configuredDxfDirectory) {
         return configuredDxfDirectory;
     }
-    return process.env.DXF_DIRECTORY || './public/dxf';
+    return resolveDxfDirectory();
 }
 
 function companionFilesFor(dxfPath: string): string[] {
@@ -38,7 +55,8 @@ function companionFilesFor(dxfPath: string): string[] {
     return [
         dxfPath,
         `${base}_metadata.csv`,
-        `${base}_elevation_metadata.csv`
+        `${base}_elevation_metadata.csv`,
+        `${base}_bt_context.json`
     ];
 }
 
@@ -62,6 +80,7 @@ function deleteFileSet(filePath: string, reason: string): void {
 function sweepStaleDxfFromDisk(): void {
     const now = Date.now();
     const dir = getDxfDirectory();
+    const { maxFileAgeMs } = getDxfCleanupPolicySnapshot();
 
     try {
         if (!fs.existsSync(dir)) {
@@ -78,13 +97,13 @@ function sweepStaleDxfFromDisk(): void {
             const stat = fs.statSync(fullPath);
             const fileAgeMs = now - stat.mtimeMs;
             const lower = entry.name.toLowerCase();
-            const isDxfOrSidecar = lower.endsWith('.dxf') || lower.endsWith('_metadata.csv') || lower.endsWith('_elevation_metadata.csv');
+            const isDxfOrSidecar = lower.endsWith('.dxf') || lower.endsWith('_metadata.csv') || lower.endsWith('_elevation_metadata.csv') || lower.endsWith('_bt_context.json');
 
             if (!isDxfOrSidecar) {
                 continue;
             }
 
-            if (fileAgeMs >= MAX_DXF_AGE_MS) {
+            if (fileAgeMs >= maxFileAgeMs) {
                 deleteFileSet(fullPath, 'max_age_2h');
                 scheduledDeletions.delete(fullPath);
             }
@@ -99,7 +118,8 @@ function sweepStaleDxfFromDisk(): void {
  */
 export function scheduleDxfDeletion(filePath: string): void {
     const now = Date.now();
-    const deleteAt = Math.min(now + DXF_FILE_TTL_MS, now + MAX_DXF_AGE_MS);
+    const { fileTtlMs, maxFileAgeMs } = getDxfCleanupPolicySnapshot();
+    const deleteAt = Math.min(now + fileTtlMs, now + maxFileAgeMs);
     
     scheduledDeletions.set(filePath, {
         filePath,
@@ -109,7 +129,7 @@ export function scheduleDxfDeletion(filePath: string): void {
     logger.info('DXF file scheduled for deletion', {
         filePath,
         deleteAt: new Date(deleteAt).toISOString(),
-        ttlMinutes: 10
+        ttlMinutes: Math.round(fileTtlMs / 60_000)
     });
 }
 
@@ -157,15 +177,17 @@ function startCleanupInterval(): void {
     if (cleanupIntervalId) {
         return; // Already running
     }
+
+    const policy = getDxfCleanupPolicySnapshot();
     
     cleanupIntervalId = setInterval(() => {
         performCleanup();
-    }, CLEANUP_CHECK_INTERVAL);
+    }, policy.cleanupCheckIntervalMs);
     
     logger.info('DXF cleanup service started', {
-        checkIntervalMs: CLEANUP_CHECK_INTERVAL,
-        fileTTLMs: DXF_FILE_TTL_MS,
-        maxFileAgeMs: MAX_DXF_AGE_MS
+        checkIntervalMs: policy.cleanupCheckIntervalMs,
+        fileTTLMs: policy.fileTtlMs,
+        maxFileAgeMs: policy.maxFileAgeMs
     });
 }
 

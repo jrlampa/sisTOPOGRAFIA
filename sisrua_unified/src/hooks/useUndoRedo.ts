@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { assertImmutable } from '../utils/immutability';
 
 export interface HistoryState<T> {
   past: T[];
@@ -49,6 +50,9 @@ export function useUndoRedo<T>(initialPresent: T) {
   }, []);
 
   const set = useCallback((newPresent: T, commit: boolean = true) => {
+    // Verify immutability of new state (development mode only)
+    assertImmutable(newPresent, 'appState in useUndoRedo.set()');
+
     setState(currentState => {
       if (commit) {
         // Prevent duplicate history entries if value hasn't effectively changed

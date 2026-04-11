@@ -1,9 +1,30 @@
 import { useState } from 'react';
 import { OsmElement, AnalysisStats, TerrainGrid, GeoLocation } from '../types';
-import { fetchOsmData } from '../services/osmService';
+import { fetchOsmData, OsmStats } from '../services/osmService';
 import { fetchElevationGrid } from '../services/elevationService';
-import { calculateStats } from '../services/dxfService';
 import { analyzeArea } from '../services/geminiService';
+
+const EMPTY_ANALYSIS_STATS: AnalysisStats = {
+    totalBuildings: 0,
+    totalRoads: 0,
+    totalNature: 0,
+    avgHeight: 0,
+    maxHeight: 0,
+};
+
+const toAnalysisStats = (stats: OsmStats | null): AnalysisStats => {
+    if (!stats) {
+        return EMPTY_ANALYSIS_STATS;
+    }
+
+    return {
+        totalBuildings: stats.totalBuildings,
+        totalRoads: stats.totalRoads,
+        totalNature: stats.totalNature,
+        avgHeight: stats.avgHeight,
+        maxHeight: stats.maxHeight,
+    };
+};
 
 export function useOsmEngine() {
     const [isProcessing, setIsProcessing] = useState(false);
@@ -18,52 +39,51 @@ export function useOsmEngine() {
     const runAnalysis = async (center: GeoLocation, radius: number, enableAI: boolean) => {
         setIsProcessing(true);
         setError(null);
-        setStatusMessage('Starting audit...');
+        setStatusMessage('Iniciando análise...');
         setProgressValue(10);
 
         try {
             // 1. Fetch OSM Data
-            setStatusMessage('Scanning OSM Infrastructure...');
-            const data = await fetchOsmData(center.lat, center.lng, radius);
+            setStatusMessage('Consultando infraestrutura OSM...');
+            const { elements: data, stats: backendStats } = await fetchOsmData(center.lat, center.lng, radius);
             if (data.length === 0) {
-                throw new Error("No architectural data found in this radius.");
+                throw new Error('Nenhum dado geográfico encontrado neste raio.');
             }
             setOsmData(data);
             setProgressValue(40);
 
             // 2. Fetch Terrain Data
-            setStatusMessage('Reconstructing Terrain Grid...');
+            setStatusMessage('Montando grade de terreno...');
             const terrain = await fetchElevationGrid(center, radius);
             setTerrainData(terrain);
             setProgressValue(70);
 
-            // 3. Calculate Stats authoritative on backend logic?
-            // For now, client-side helper is fine, but we use the service
-            const calculatedStats = calculateStats(data);
+            // 3. Use stats pre-computed by the backend.
+            const calculatedStats = toAnalysisStats(backendStats);
             setStats(calculatedStats);
             setProgressValue(85);
 
             // 4. Get analysis narrative
             if (enableAI) {
-                setStatusMessage('Generating analysis summary...');
-                const text = await analyzeArea(calculatedStats, center.label || "selected area", true);
+                setStatusMessage('Gerando resumo da análise...');
+                const text = await analyzeArea(calculatedStats, center.label || 'área selecionada', true);
                 setAnalysisText(text);
             } else {
-                setAnalysisText("Analysis summary disabled.");
+                setAnalysisText('Resumo de análise desabilitado.');
             }
 
             setProgressValue(100);
             setStatusMessage('');
+            setIsProcessing(false);
             return true;
         } catch (err: any) {
-            setError(err.message || "Audit failed.");
+            const errorMessage = err.message || 'Falha na análise.';
+            setError(errorMessage);
             setStatusMessage('');
+            // Reset loading state immediately on error, don't wait
+            setIsProcessing(false);
+            setProgressValue(0);
             return false;
-        } finally {
-            setTimeout(() => {
-                setIsProcessing(false);
-                setProgressValue(0);
-            }, 800);
         }
     };
 

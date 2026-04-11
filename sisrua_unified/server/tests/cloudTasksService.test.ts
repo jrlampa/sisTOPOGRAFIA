@@ -1,60 +1,70 @@
 import { jest } from '@jest/globals';
 
-// Mock logger before importing the service
-jest.mock('../utils/logger', () => ({
-  logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn()
-  }
-}));
-
-const createTaskMock = jest.fn();
-const queuePathMock = jest.fn();
+const unsafeMock = jest.fn();
+const endMock = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('uuid', () => ({
   v4: () => 'test-uuid'
 }));
 
 jest.mock('../pythonBridge', () => ({
-  generateDxf: jest.fn()
+  generateDxf: jest.fn().mockResolvedValue(undefined)
 }));
 
-jest.mock('@google-cloud/tasks', () => ({
-  CloudTasksClient: jest.fn(() => ({
-    createTask: createTaskMock,
-    queuePath: queuePathMock
+jest.mock('../services/jobStatusService', () => ({
+  createJob: jest.fn(),
+  completeJob: jest.fn().mockResolvedValue(undefined),
+  failJob: jest.fn().mockResolvedValue(undefined),
+  updateJobStatus: jest.fn().mockResolvedValue(undefined)
+}));
+
+jest.mock('../services/dxfCleanupService', () => ({
+  scheduleDxfDeletion: jest.fn()
+}));
+
+jest.mock('postgres', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    unsafe: unsafeMock,
+    end: endMock
   }))
 }));
 
-describe('cloudTasksService', () => {
+describe('cloudTasksService (Postgres queue)', () => {
   const originalEnv = process.env;
+  const testDatabaseUrl = process.env.TEST_DATABASE_URL || 'postgresql://user:password@localhost:5432/testdb?sslmode=require';
 
   beforeEach(() => {
-    createTaskMock.mockResolvedValue([{ name: 'tasks/123' }]);
-    queuePathMock.mockReturnValue('projects/test/locations/loc/queues/queue');
     process.env = {
       ...originalEnv,
-      NODE_ENV: 'production',
-      GCP_PROJECT: 'test-project',
-      CLOUD_TASKS_LOCATION: 'loc',
-      CLOUD_TASKS_QUEUE: 'queue',
-      CLOUD_RUN_BASE_URL: 'https://example.com',
-      CLOUD_RUN_SERVICE_ACCOUNT: 'svc@example.com'
+      NODE_ENV: 'test',
+      DATABASE_URL: testDatabaseUrl,
+      USE_SUPABASE_JOBS: 'true'
     };
+
+    unsafeMock.mockReset();
+    endMock.mockClear();
+
+    // 1) create table if not exists
+    // 2) insert queued row
+    unsafeMock
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+
     jest.resetModules();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     process.env = originalEnv;
+    const mod = await import('../services/cloudTasksService');
+    mod.stopTaskWorker();
     jest.clearAllMocks();
   });
 
-  it('includes service account email when creating Cloud Task', async () => {
+  it('queues DXF task into Postgres and returns task id', async () => {
     const { createDxfTask } = await import('../services/cloudTasksService');
 
-    await createDxfTask({
+    const result = await createDxfTask({
       lat: 1,
       lon: 2,
       radius: 3,
@@ -69,8 +79,9 @@ describe('cloudTasksService', () => {
       downloadUrl: 'https://example.com/downloads/file.dxf'
     });
 
-    expect(createTaskMock).toHaveBeenCalledTimes(1);
-    const taskArg = createTaskMock.mock.calls[0][0].task;
-    expect(taskArg.httpRequest?.oidcToken?.serviceAccountEmail).toBe('svc@example.com');
+    expect(result.taskId).toBe('test-uuid');
+    expect(result.taskName).toBe('pg-task-test-uuid');
+    expect(result.alreadyCompleted).toBe(false);
+    expect(unsafeMock).toHaveBeenCalledTimes(2);
   });
 });

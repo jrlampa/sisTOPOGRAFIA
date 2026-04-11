@@ -7,6 +7,19 @@ export interface GeoLocation {
 }
 
 export class GeocodingService {
+    private static isSingleNumericInput(query: string): boolean {
+        const normalized = query
+            .trim()
+            .replace(/\(([^)]+)\)/g, '$1')
+            .replace(/(\d),(\d)/g, '$1.$2')
+            .replace(/;/g, ' ')
+            .replace(/,/g, ' ')
+            .replace(/\s+/g, ' ');
+
+        const numbers = normalized.match(/[-+]?\d+(?:\.\d+)?/g) ?? [];
+        return numbers.length === 1 && /^[-+]?\d+(?:\.\d+)?$/.test(normalized);
+    }
+
     private static normalizeText(value: string): string {
         return value
             .normalize('NFD')
@@ -15,7 +28,23 @@ export class GeocodingService {
             .trim();
     }
 
+    private static isLikelyLatLngInput(query: string): boolean {
+        const normalized = query
+            .trim()
+            .replace(/\(([^)]+)\)/g, '$1')
+            .replace(/(\d),(\d)/g, '$1.$2')
+            .replace(/;/g, ' ')
+            .replace(/,/g, ' ')
+            .replace(/\s+/g, ' ');
+
+        return /^[-+]?\d+(?:\.\d+)?\s+[-+]?\d+(?:\.\d+)?$/.test(normalized);
+    }
+
     private static parseLatLng(query: string): GeoLocation | null {
+        if (!this.isLikelyLatLngInput(query)) {
+            return null;
+        }
+
         const normalized = query
             .replace(/\(([^)]+)\)/g, '$1')
             .replace(/(\d),(\d)/g, '$1.$2')
@@ -35,6 +64,57 @@ export class GeocodingService {
             lng,
             label: `Lat/Lng ${lat.toFixed(6)}, ${lng.toFixed(6)}`
         };
+    }
+
+    /**
+     * Search text locations using Nominatim (OpenStreetMap).
+     * This supports full addresses, cities and neighborhoods.
+     */
+    private static async searchNominatim(query: string): Promise<GeoLocation | null> {
+        const cleanQuery = query.trim();
+        if (cleanQuery.length < 3) {
+            return null;
+        }
+
+        const url = new URL('https://nominatim.openstreetmap.org/search');
+        url.searchParams.set('format', 'jsonv2');
+        url.searchParams.set('q', cleanQuery);
+        url.searchParams.set('limit', '1');
+        url.searchParams.set('addressdetails', '1');
+        url.searchParams.set('accept-language', 'pt-BR,pt,en');
+
+        try {
+            const response = await fetch(url, {
+                signal: AbortSignal.timeout(8000),
+                headers: {
+                    'User-Agent': 'sisrua-unified/1.0 (geocoding)'
+                }
+            });
+
+            if (!response.ok) {
+                return null;
+            }
+
+            const results = await response.json() as Array<{ lat?: string; lon?: string; display_name?: string }>;
+            const best = results?.[0];
+            if (!best?.lat || !best?.lon) {
+                return null;
+            }
+
+            const lat = Number.parseFloat(best.lat);
+            const lng = Number.parseFloat(best.lon);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+                return null;
+            }
+
+            return {
+                lat,
+                lng,
+                label: best.display_name || cleanQuery
+            };
+        } catch {
+            return null;
+        }
     }
 
     private static parseUtm(query: string): { zone: number; hemisphere: 'N' | 'S'; easting: number; northing: number } | null {
@@ -115,6 +195,10 @@ export class GeocodingService {
      * Resolves a query string into coordinates using explicit parsing only.
      */
     static async resolveLocation(query: string): Promise<GeoLocation | null> {
+        if (this.isSingleNumericInput(query)) {
+            return null;
+        }
+
         // 0. Try direct lat/lng
         const latLng = this.parseLatLng(query);
         if (latLng) {
@@ -130,7 +214,13 @@ export class GeocodingService {
             }
         }
 
-        // 2. Try IBGE for Brazilian municipalities
+        // 2. Try text geocoding (city/address)
+        const nominatimLocation = await this.searchNominatim(query);
+        if (nominatimLocation) {
+            return nominatimLocation;
+        }
+
+        // 3. Try IBGE for Brazilian municipalities
         const ibgeLocation = await this.searchIbgeMunicipio(query);
         if (ibgeLocation) {
             return ibgeLocation;
