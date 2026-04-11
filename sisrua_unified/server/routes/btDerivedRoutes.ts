@@ -39,6 +39,9 @@ const btEdgeSchema = z.object({
     fromPoleId: z.string().min(1),
     toPoleId: z.string().min(1),
     lengthMeters: z.coerce.number().optional(),
+    conductors: z.array(z.object({
+        conductorName: z.string(),
+    }).passthrough()).optional(),
     removeOnExecution: z.boolean().optional(),
     edgeChangeFlag: z.enum(['existing', 'new', 'remove', 'replace']).optional(),
 }).passthrough();

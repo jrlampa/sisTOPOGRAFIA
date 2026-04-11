@@ -514,8 +514,19 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           {clientDemandByPole.slice(0, 5).map((item) => (
             <div key={item.poleId} className="flex items-center justify-between border-b border-cyan-200 py-0.5 last:border-b-0">
               <span>{item.poleId}</span>
-              <span>
+              <span className="flex items-center gap-1">
                 CLT {item.localClients} | {item.localTrechoDemandKva.toFixed(2)} kVA
+                {item.voltageV !== undefined && (
+                  <span className={`rounded px-1 py-0.5 text-[9px] font-bold ${
+                    item.cqtStatus === 'CRÍTICO'
+                      ? 'bg-red-100 text-red-700'
+                      : item.cqtStatus === 'ATENÇÃO'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-green-100 text-green-700'
+                  }`}>
+                    ΔV {item.dvAccumPercent!.toFixed(2)}%
+                  </span>
+                )}
               </span>
             </div>
           ))}

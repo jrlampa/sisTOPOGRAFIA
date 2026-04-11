@@ -1,12 +1,17 @@
 import { API_BASE_URL } from '../config/api';
 import type { BtTopology, BtProjectType } from '../types';
 
+export type BtCqtStatus = 'OK' | 'ATENÇÃO' | 'CRÍTICO';
+
 export interface BtPoleAccumulatedDemand {
   poleId: string;
   localClients: number;
   accumulatedClients: number;
   localTrechoDemandKva: number;
   accumulatedDemandKva: number;
+  voltageV?: number;
+  dvAccumPercent?: number;
+  cqtStatus?: BtCqtStatus;
 }
 
 export interface BtTransformerEstimatedDemand {

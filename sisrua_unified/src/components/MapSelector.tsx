@@ -136,7 +136,7 @@ interface MapSelectorProps {
     onBtDragPole?: (poleId: string, lat: number, lng: number) => void;
     onBtDragTransformer?: (transformerId: string, lat: number, lng: number) => void;
     criticalPoleId?: string | null;
-    accumulatedByPole?: { poleId: string; accumulatedClients: number; accumulatedDemandKva: number }[];
+    accumulatedByPole?: { poleId: string; accumulatedClients: number; accumulatedDemandKva: number; voltageV?: number; dvAccumPercent?: number; cqtStatus?: string }[];
     onKmlDrop?: (file: File) => void;
     mapStyle?: string;
     onMapStyleChange?: (style: string) => void;
@@ -1112,6 +1112,20 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                     <div className="mt-1 text-slate-700">
                                         <div>CLT acum.: {accumulatedByPoleMap.get(pole.id)!.accumulatedClients}</div>
                                         <div>Demanda acum.: {accumulatedByPoleMap.get(pole.id)!.accumulatedDemandKva.toFixed(2)} kVA</div>
+                                        {accumulatedByPoleMap.get(pole.id)!.voltageV !== undefined && (
+                                            <div className="mt-0.5 flex items-center gap-1">
+                                                <span>Tensão: {accumulatedByPoleMap.get(pole.id)!.voltageV!.toFixed(1)} V</span>
+                                                <span className={`rounded px-1 py-0.5 text-[9px] font-bold ${
+                                                    accumulatedByPoleMap.get(pole.id)!.cqtStatus === 'CRÍTICO'
+                                                        ? 'bg-red-100 text-red-700'
+                                                        : accumulatedByPoleMap.get(pole.id)!.cqtStatus === 'ATENÇÃO'
+                                                            ? 'bg-amber-100 text-amber-700'
+                                                            : 'bg-green-100 text-green-700'
+                                                }`}>
+                                                    ΔV {accumulatedByPoleMap.get(pole.id)!.dvAccumPercent!.toFixed(2)}% {accumulatedByPoleMap.get(pole.id)!.cqtStatus}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                                 <div className={`mt-0.5 font-semibold ${pole.verified ? 'text-green-600' : 'text-amber-600'}`}>

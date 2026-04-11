@@ -1,4 +1,5 @@
 import { constantsService } from './constantsService.js';
+import { CABOS_BASELINE } from '../constants/cqtLookupTables.js';
 
 type BtProjectType = 'ramais' | 'geral' | 'clandestino';
 
@@ -33,10 +34,15 @@ interface BtTransformer {
     readings: BtTransformerReading[];
 }
 
+interface BtEdgeConductorEntry {
+    conductorName: string;
+}
+
 interface BtEdge {
     fromPoleId: string;
     toPoleId: string;
     lengthMeters?: number;
+    conductors?: BtEdgeConductorEntry[];
     removeOnExecution?: boolean;
     edgeChangeFlag?: 'existing' | 'new' | 'remove' | 'replace';
 }
@@ -47,12 +53,17 @@ interface BtTopology {
     edges: BtEdge[];
 }
 
+export type BtCqtStatus = 'OK' | 'ATENÇÃO' | 'CRÍTICO';
+
 export interface BtPoleAccumulatedDemand {
     poleId: string;
     localClients: number;
     accumulatedClients: number;
     localTrechoDemandKva: number;
     accumulatedDemandKva: number;
+    voltageV?: number;
+    dvAccumPercent?: number;
+    cqtStatus?: BtCqtStatus;
 }
 
 export interface BtTransformerEstimatedDemand {
@@ -394,6 +405,130 @@ const calculateAccumulatedDemandByPole = (
     return results.sort((a, b) => b.accumulatedDemandKva - a.accumulatedDemandKva);
 };
 
+// ─── Voltage propagation ──────────────────────────────────────────────────────
+
+const VOLTAGE_PHASE_V = 127;
+const VOLTAGE_PHASE_FACTOR_MONO = 2;
+const DV_THRESHOLD_ATENCAO = 5;
+const DV_THRESHOLD_CRITICO = 8;
+
+const getCqtStatus = (dvPercent: number): BtCqtStatus => {
+    if (dvPercent > DV_THRESHOLD_CRITICO) return 'CRÍTICO';
+    if (dvPercent > DV_THRESHOLD_ATENCAO) return 'ATENÇÃO';
+    return 'OK';
+};
+
+/**
+ * Enriches accumulated demand results with voltage-drop fields.
+ *
+ * Algorithm: BFS from transformer poles (top-down), tracking the accumulated
+ * QT fraction (voltage-drop fraction) per pole. For each edge traversed, if
+ * the edge carries conductor information the partial QT is computed as:
+ *
+ *   qt_trecho = PHASE_FACTOR × P_accumulada_kVA × R_Ω_per_km × L_m / V_phase_V²
+ *
+ * where P_accumulada_kVA is the `accumulatedDemandKva` of the downstream pole
+ * (child node, further from the transformer).
+ * Then: voltageV = V_phase × (1 − qt_accumulated); dvAccumPercent = qt × 100.
+ */
+const enrichWithVoltage = (
+    results: BtPoleAccumulatedDemand[],
+    topology: BtTopology
+): BtPoleAccumulatedDemand[] => {
+    const activeEdges = topology.edges.filter((edge) => {
+        const edgeFlag = edge.edgeChangeFlag ?? (edge.removeOnExecution ? 'remove' : 'existing');
+        return edgeFlag !== 'remove';
+    });
+
+    // Check whether any edge carries conductor data — skip enrichment otherwise
+    const hasConductorData = activeEdges.some(
+        (edge) => (edge.conductors?.length ?? 0) > 0
+    );
+    if (!hasConductorData) {
+        return results;
+    }
+
+    const accumulatedDemandByPole = new Map<string, number>(
+        results.map((r) => [r.poleId, r.accumulatedDemandKva])
+    );
+
+    // Edge lookup by ordered pole pair (both directions)
+    const edgeByPair = new Map<string, BtEdge>();
+    for (const edge of activeEdges) {
+        edgeByPair.set(`${edge.fromPoleId}|${edge.toPoleId}`, edge);
+        edgeByPair.set(`${edge.toPoleId}|${edge.fromPoleId}`, edge);
+    }
+
+    const adjacentPoles = new Map<string, string[]>();
+    for (const pole of topology.poles) {
+        adjacentPoles.set(pole.id, []);
+    }
+    for (const edge of activeEdges) {
+        adjacentPoles.get(edge.fromPoleId)?.push(edge.toPoleId);
+        adjacentPoles.get(edge.toPoleId)?.push(edge.fromPoleId);
+    }
+
+    const transformerPoleIds = new Set(
+        topology.transformers
+            .filter((t) => !!t.poleId)
+            .map((t) => t.poleId as string)
+    );
+    const circuitBreakPoleIds = new Set(
+        topology.poles.filter((p) => p.circuitBreakPoint).map((p) => p.id)
+    );
+
+    // BFS — qtAccumulatedByPole: fraction of nominal voltage already dropped
+    const qtAccumulatedByPole = new Map<string, number>();
+    const queue: string[] = [];
+    for (const poleId of transformerPoleIds) {
+        qtAccumulatedByPole.set(poleId, 0);
+        queue.push(poleId);
+    }
+
+    while (queue.length > 0) {
+        const current = queue.shift();
+        if (!current) continue;
+        if (circuitBreakPoleIds.has(current) && !transformerPoleIds.has(current)) continue;
+
+        const qtAtCurrent = qtAccumulatedByPole.get(current) ?? 0;
+        for (const neighbor of adjacentPoles.get(current) ?? []) {
+            if (qtAccumulatedByPole.has(neighbor)) continue;
+
+            const edge = edgeByPair.get(`${current}|${neighbor}`);
+            const conductorName = edge?.conductors?.[0]?.conductorName;
+            const lengthM = edge?.lengthMeters ?? 0;
+
+            let qtTrecho = 0;
+            if (conductorName && lengthM > 0) {
+                const cabo = CABOS_BASELINE.find((c) => c.name === conductorName);
+                if (cabo) {
+                    const neighborAccumulatedKva = accumulatedDemandByPole.get(neighbor) ?? 0;
+                    qtTrecho =
+                        VOLTAGE_PHASE_FACTOR_MONO *
+                        neighborAccumulatedKva *
+                        cabo.resistance *
+                        lengthM /
+                        (VOLTAGE_PHASE_V ** 2);
+                }
+            }
+
+            qtAccumulatedByPole.set(neighbor, qtAtCurrent + qtTrecho);
+            queue.push(neighbor);
+        }
+    }
+
+    return results.map((r) => {
+        const qtAccum = qtAccumulatedByPole.get(r.poleId);
+        if (qtAccum === undefined || !Number.isFinite(qtAccum)) {
+            return r;
+        }
+        const dvAccumPercent = toFixed2(qtAccum * 100);
+        const voltageV = toFixed2(VOLTAGE_PHASE_V * (1 - qtAccum));
+        const cqtStatus = getCqtStatus(dvAccumPercent);
+        return { ...r, voltageV, dvAccumPercent, cqtStatus };
+    });
+};
+
 const calculateEstimatedDemandByTransformer = (
     topology: BtTopology,
     projectType: BtProjectType,
@@ -603,7 +738,10 @@ export const computeBtDerivedState = (
         getClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, totalClients)
     );
 
-    const accumulatedByPole = calculateAccumulatedDemandByPole(topology, projectType, clandestinoAreaM2);
+    const accumulatedByPole = enrichWithVoltage(
+        calculateAccumulatedDemandByPole(topology, projectType, clandestinoAreaM2),
+        topology
+    );
     const estimatedByTransformer = calculateEstimatedDemandByTransformer(topology, projectType, clandestinoAreaM2);
     const sectioningImpact = calculateSectioningImpact(topology, projectType, clandestinoAreaM2);
     const clandestinoDisplay = calculateClandestinoDisplay(topology, clandestinoAreaM2);

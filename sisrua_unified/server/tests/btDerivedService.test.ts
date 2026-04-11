@@ -322,3 +322,143 @@ describe('computeBtDerivedState – pointDemandKva', () => {
         expect(result.pointDemandKva).toBeCloseTo(3, 2);
     });
 });
+
+// ─── voltage propagation ────────────────────────────────────────────────────
+
+describe('computeBtDerivedState – voltage propagation', () => {
+    beforeEach(() => withoutClandestinoConstants());
+
+    it('does not add voltage fields when edges have no conductors', () => {
+        const topology = makeTopology();
+        const result = computeBtDerivedState(topology, 'geral', 0);
+        for (const entry of result.accumulatedByPole) {
+            expect(entry.voltageV).toBeUndefined();
+            expect(entry.dvAccumPercent).toBeUndefined();
+            expect(entry.cqtStatus).toBeUndefined();
+        }
+    });
+
+    it('adds voltageV=127 for transformer pole (zero drop)', () => {
+        const topology = {
+            poles: [
+                { id: 'p1', lat: -23.5, lng: -46.6, ramais: [{ quantity: 3, ramalType: 'Ramal BT' }] },
+                { id: 'p2', lat: -23.51, lng: -46.61, ramais: [{ quantity: 2, ramalType: 'Ramal BT' }] },
+            ],
+            transformers: [{ id: 'tr1', poleId: 'p1', demandKw: 15, readings: [{ id: 'r1' }] }],
+            edges: [
+                {
+                    fromPoleId: 'p1',
+                    toPoleId: 'p2',
+                    lengthMeters: 100,
+                    conductors: [{ conductorName: '95 Al - Arm' }],
+                },
+            ],
+        };
+        const result = computeBtDerivedState(topology, 'geral', 0);
+        const p1Entry = result.accumulatedByPole.find((e) => e.poleId === 'p1');
+        expect(p1Entry?.voltageV).toBe(127);
+        expect(p1Entry?.dvAccumPercent).toBe(0);
+        expect(p1Entry?.cqtStatus).toBe('OK');
+    });
+
+    it('computes positive voltage drop for downstream pole with known conductor', () => {
+        const topology = {
+            poles: [
+                { id: 'p1', lat: -23.5, lng: -46.6, ramais: [{ quantity: 3, ramalType: 'Ramal BT' }] },
+                { id: 'p2', lat: -23.51, lng: -46.61, ramais: [{ quantity: 2, ramalType: 'Ramal BT' }] },
+            ],
+            transformers: [{ id: 'tr1', poleId: 'p1', demandKw: 15, readings: [{ id: 'r1' }] }],
+            edges: [
+                {
+                    fromPoleId: 'p1',
+                    toPoleId: 'p2',
+                    lengthMeters: 100,
+                    conductors: [{ conductorName: '95 Al - Arm' }],
+                },
+            ],
+        };
+        const result = computeBtDerivedState(topology, 'geral', 0);
+        const p2Entry = result.accumulatedByPole.find((e) => e.poleId === 'p2');
+        expect(p2Entry?.voltageV).toBeDefined();
+        expect(p2Entry?.dvAccumPercent).toBeGreaterThan(0);
+        expect(p2Entry?.voltageV).toBeLessThan(127);
+    });
+
+    it('assigns CRÍTICO status when dV% exceeds 8', () => {
+        // Use a very long cable with high resistance conductor to force high dV%
+        // R = 2.6655 Ω/km for '13 Al - TX', MONO factor=2, V=127V, L=1000m, P=20kVA
+        // qt = 2 * 20 * 2.6655 * 1000 / (127^2) ≈ 3.31 → dV=331% (extreme)
+        const topology = {
+            poles: [
+                { id: 'p1', lat: -23.5, lng: -46.6, ramais: [] },
+                { id: 'p2', lat: -23.51, lng: -46.61, ramais: [{ quantity: 10, ramalType: 'Ramal BT' }] },
+            ],
+            transformers: [{ id: 'tr1', poleId: 'p1', demandKw: 100, readings: [{ id: 'r1' }] }],
+            edges: [
+                {
+                    fromPoleId: 'p1',
+                    toPoleId: 'p2',
+                    lengthMeters: 5000,
+                    conductors: [{ conductorName: '13 Al - TX' }],
+                },
+            ],
+        };
+        const result = computeBtDerivedState(topology, 'geral', 0);
+        const p2Entry = result.accumulatedByPole.find((e) => e.poleId === 'p2');
+        expect(p2Entry?.cqtStatus).toBe('CRÍTICO');
+        expect(p2Entry?.dvAccumPercent).toBeGreaterThan(8);
+    });
+
+    it('assigns ATENÇÃO status when dV% is between 5 and 8', () => {
+        // 95 Al - Arm: R=0.4197 Ω/km; qt = 2 * P * R * L / V²
+        // P=20 kVA (accumulatedDemandKva at p2), V=127V, V²=16129
+        // For dV≈6%: L = 0.06*16129/(2*20*0.4197) ≈ 57.6m → use 58m
+        // qt = 2*20*0.4197*58/16129 ≈ 0.0604 → dV≈6.04% → ATENÇÃO
+        const topology = {
+            poles: [
+                { id: 'p1', lat: -23.5, lng: -46.6, ramais: [] },
+                { id: 'p2', lat: -23.51, lng: -46.61, ramais: [{ quantity: 10, ramalType: 'Ramal BT' }] },
+            ],
+            transformers: [{ id: 'tr1', poleId: 'p1', demandKw: 20, readings: [{ id: 'r1' }] }],
+            edges: [
+                {
+                    fromPoleId: 'p1',
+                    toPoleId: 'p2',
+                    lengthMeters: 58,
+                    conductors: [{ conductorName: '95 Al - Arm' }],
+                },
+            ],
+        };
+        const result = computeBtDerivedState(topology, 'geral', 0);
+        const p2Entry = result.accumulatedByPole.find((e) => e.poleId === 'p2');
+        expect(p2Entry?.cqtStatus).toBe('ATENÇÃO');
+        expect(p2Entry?.dvAccumPercent).toBeGreaterThan(5);
+        expect(p2Entry?.dvAccumPercent).toBeLessThanOrEqual(8);
+    });
+
+    it('skips voltage enrichment when conductor name is unknown', () => {
+        const topology = {
+            poles: [
+                { id: 'p1', lat: -23.5, lng: -46.6, ramais: [] },
+                { id: 'p2', lat: -23.51, lng: -46.61, ramais: [{ quantity: 2, ramalType: 'Ramal BT' }] },
+            ],
+            transformers: [{ id: 'tr1', poleId: 'p1', demandKw: 5, readings: [{ id: 'r1' }] }],
+            edges: [
+                {
+                    fromPoleId: 'p1',
+                    toPoleId: 'p2',
+                    lengthMeters: 50,
+                    conductors: [{ conductorName: 'CONDUCTOR_UNKNOWN_XYZ' }],
+                },
+            ],
+        };
+        const result = computeBtDerivedState(topology, 'geral', 0);
+        // p1 = transformer → qt=0 → voltageV=127; p2 → unknown conductor → qt stays 0 from p1
+        const p1Entry = result.accumulatedByPole.find((e) => e.poleId === 'p1');
+        const p2Entry = result.accumulatedByPole.find((e) => e.poleId === 'p2');
+        expect(p1Entry?.voltageV).toBe(127);
+        // p2 accumulates 0 dV (unknown conductor), so voltageV should also be 127
+        expect(p2Entry?.voltageV).toBe(127);
+        expect(p2Entry?.dvAccumPercent).toBe(0);
+    });
+});
