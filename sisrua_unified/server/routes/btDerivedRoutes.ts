@@ -122,7 +122,16 @@ router.post('/derived', (req: Request, res: Response) => {
 
         return res.json(payload);
     } catch (error) {
-        logger.error('BT derived computation error', { error });
+        logger.error('BT derived computation error', { 
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+            projectType: req.body?.projectType,
+            topologySize: {
+                poles: req.body?.topology?.poles?.length,
+                transformers: req.body?.topology?.transformers?.length,
+                edges: req.body?.topology?.edges?.length
+            }
+        });
         return res.status(500).json({ error: 'Failed to compute BT derived state' });
     }
 });
