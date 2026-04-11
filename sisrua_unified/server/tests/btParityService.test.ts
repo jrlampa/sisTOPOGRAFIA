@@ -147,3 +147,77 @@ describe('btParityService – workbook parity (ESQ_ATUAL P0)', () => {
         expect(idempotency!.status).not.toBe('fail');
     });
 });
+
+describe('btParityService – REV0 workbook parity (CQTsimplificado_REV0 - Copia - Copia.xlsx)', () => {
+    let report: BtParitySuiteReport;
+
+    beforeAll(() => {
+        report = runBtParitySuite();
+    });
+
+    it('REV0_DB_INDICATORS scenario is present', () => {
+        const scenario = report.scenarios.find((s) => s.scenarioId === 'REV0_DB_INDICATORS');
+        expect(scenario).toBeDefined();
+    });
+
+    it('REV0_DB_INDICATORS scenario passes P0 gate (qtTrafo and totalDemandKva)', () => {
+        const scenario = report.scenarios.find((s) => s.scenarioId === 'REV0_DB_INDICATORS');
+        expect(scenario).toBeDefined();
+        expect(scenario!.priority).toBe('P0');
+        expect(scenario!.status).not.toBe('fail');
+        const qtTrafoMetric = scenario!.metrics.find((m) => m.name === 'qtTrafo');
+        expect(qtTrafoMetric).toBeDefined();
+        expect(qtTrafoMetric!.status).toBe('pass');
+        const demandMetric = scenario!.metrics.find((m) => m.name === 'totalDemandKva');
+        expect(demandMetric).toBeDefined();
+        expect(demandMetric!.status).toBe('pass');
+    });
+
+    it('REV0_DB_INDICATORS qtTrafo matches workbook DB!K10 formula (0.0183 + (101.956/225)*0.035)', () => {
+        const scenario = report.scenarios.find((s) => s.scenarioId === 'REV0_DB_INDICATORS');
+        const qtTrafoMetric = scenario!.metrics.find((m) => m.name === 'qtTrafo');
+        // DB!K10 = QT_MT + (DEM_ATUAL / TR_ATUAL) * Z% = 0.0183 + (101.956/225)*0.035
+        expect(qtTrafoMetric!.expected).toBeCloseTo(0.03415982222222222, 10);
+        expect(qtTrafoMetric!.actual).toBeCloseTo(0.03415982222222222, 10);
+    });
+
+    it('REV0_LINEAR scenario passes P0 gate', () => {
+        const scenario = report.scenarios.find((s) => s.scenarioId === 'REV0_LINEAR');
+        expect(scenario).toBeDefined();
+        expect(scenario!.priority).toBe('P0');
+        expect(scenario!.status).not.toBe('fail');
+    });
+
+    it('REV0_LINEAR demand accumulation correct (50 + 50 = 100 kVA)', () => {
+        const scenario = report.scenarios.find((s) => s.scenarioId === 'REV0_LINEAR');
+        const demandMetric = scenario!.metrics.find((m) => m.name === 'totalDemandKva');
+        expect(demandMetric).toBeDefined();
+        expect(demandMetric!.expected).toBe(100);
+        expect(demandMetric!.actual).toBeCloseTo(100, 9);
+        expect(demandMetric!.status).toBe('pass');
+    });
+
+    it('REV0_IDEMPOTENCY scenario passes P0 gate', () => {
+        const scenario = report.scenarios.find((s) => s.scenarioId === 'REV0_IDEMPOTENCY');
+        expect(scenario).toBeDefined();
+        expect(scenario!.priority).toBe('P0');
+        expect(scenario!.status).not.toBe('fail');
+    });
+
+    it('REV0_IDEMPOTENCY produces identical CQT global on two consecutive runs', () => {
+        const scenario = report.scenarios.find((s) => s.scenarioId === 'REV0_IDEMPOTENCY');
+        expect(scenario).toBeDefined();
+        const idempotencyMetric = scenario!.metrics.find((m) => m.name === 'idempotency_cqtGlobal');
+        expect(idempotencyMetric).toBeDefined();
+        expect(idempotencyMetric!.absDiff).toBe(0);
+        expect(idempotencyMetric!.status).toBe('pass');
+    });
+
+    it('all REV0 P0 scenarios pass the P0 gate', () => {
+        const rev0P0Failures = report.scenarios.filter(
+            (s) => s.scenarioId.startsWith('REV0_') && s.priority === 'P0' && s.status === 'fail'
+        );
+        expect(rev0P0Failures).toHaveLength(0);
+    });
+});
+
