@@ -1,7 +1,6 @@
 import React from 'react';
 import { BtEdge, BtPoleNode, BtTransformer } from '../../types';
 import { LEGACY_ID_ENTROPY } from '../../constants/magicNumbers';
-import type { BtClandestinoDisplay } from '../../services/btDerivedService';
 
 export type BtEdgeChangeFlag = NonNullable<BtEdge['edgeChangeFlag']>;
 export type BtPoleChangeFlag = NonNullable<BtPoleNode['nodeChangeFlag']>;
@@ -135,56 +134,6 @@ export const parseBr = (s: string): number => {
 };
 
 export const nextId = (prefix: string): string => `${prefix}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`;
-
-export function deriveBtPanelViewModel(args: {
-  projectType: 'ramais' | 'geral' | 'clandestino';
-  clandestinoDisplay: BtClandestinoDisplay;
-  transformers: BtTransformer[];
-  totalClandestinoClients: number;
-}) {
-  const { projectType, clandestinoDisplay, transformers, totalClandestinoClients } = args;
-  const isNormalProject = projectType !== 'clandestino';
-  const transformersWithReadings = transformers.filter((transformer) => transformer.readings.length > 0).length;
-  const transformersWithoutReadings = Math.max(0, transformers.length - transformersWithReadings);
-
-  const clandestinoDemandKw = projectType === 'clandestino' ? clandestinoDisplay.demandKw : 0;
-  const clandestinoAreaRange = { min: clandestinoDisplay.areaMin, max: clandestinoDisplay.areaMax };
-  const clandestinoDemandKva = projectType === 'clandestino' ? clandestinoDisplay.demandKva : null;
-  const clandestinoDiversificationFactor = projectType === 'clandestino' ? clandestinoDisplay.diversificationFactor : null;
-  const clandestinoFinalDemandKva = projectType === 'clandestino' ? clandestinoDisplay.finalDemandKva : 0;
-
-  const pointDemandCardClass = projectType === 'clandestino'
-    ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
-    : transformers.length === 0 || transformersWithReadings === 0
-      ? 'border-amber-300 bg-amber-50 text-amber-900'
-      : transformersWithoutReadings > 0
-        ? 'border-yellow-300 bg-yellow-50 text-yellow-900'
-        : 'border-emerald-300 bg-emerald-50 text-emerald-900';
-
-  const pointDemandStatus = !isNormalProject
-    ? null
-    : transformers.length === 0
-      ? 'Sem transformador cadastrado. A demanda ficará zerada até inserir ao menos 1 trafo.'
-      : transformersWithReadings === 0
-        ? 'Sem leituras de trafo. Preencha as leituras para calcular a demanda por ponto.'
-        : transformersWithoutReadings > 0
-          ? `Demanda parcial: ${transformersWithReadings}/${transformers.length} trafo(s) com leituras.`
-          : 'Demanda consolidada com leituras em todos os trafos.';
-
-  return {
-    isNormalProject,
-    transformersWithReadings,
-    transformersWithoutReadings,
-    clandestinoDemandKw,
-    clandestinoAreaRange,
-    clandestinoDemandKva,
-    clandestinoDiversificationFactor,
-    clandestinoFinalDemandKva,
-    totalClandestinoClients,
-    pointDemandCardClass,
-    pointDemandStatus,
-  };
-}
 
 export function NumericTextInput({
   value,

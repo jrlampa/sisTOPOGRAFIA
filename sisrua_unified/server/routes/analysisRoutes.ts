@@ -5,6 +5,41 @@ import { analysisSchema } from '../schemas/apiSchemas.js';
 
 const router = Router();
 const MAX_ERROR_MESSAGE_LENGTH = 200;
+const MAX_BODY_PREVIEW_LENGTH = 200;
+
+const getBodyMetadata = (body: unknown): {
+    hasBody: boolean;
+    bodyType: string;
+    topLevelKeyCount: number;
+    topLevelKeys: string[];
+    serializedSize: number;
+    bodyPreview: string;
+    bodyPreviewTruncated: boolean;
+} => {
+    const hasBody = body !== undefined && body !== null;
+    const bodyType = Array.isArray(body) ? 'array' : typeof body;
+    const topLevelKeys = body && typeof body === 'object' && !Array.isArray(body)
+        ? Object.keys(body as Record<string, unknown>).slice(0, 10)
+        : [];
+
+    const safeSerializedBody = (() => {
+        try {
+            return body === undefined ? '' : JSON.stringify(body) || '';
+        } catch {
+            return '[unserializable-body]';
+        }
+    })();
+
+    return {
+        hasBody,
+        bodyType,
+        topLevelKeyCount: topLevelKeys.length,
+        topLevelKeys,
+        serializedSize: safeSerializedBody.length,
+        bodyPreview: safeSerializedBody.slice(0, MAX_BODY_PREVIEW_LENGTH),
+        bodyPreviewTruncated: safeSerializedBody.length > MAX_BODY_PREVIEW_LENGTH
+    };
+};
 
 // AI Analyze Endpoint using Ollama local LLM
 router.post('/', async (req: Request, res: Response) => {
@@ -47,10 +82,11 @@ router.post('/', async (req: Request, res: Response) => {
         logger.info('Ollama AI analysis completed successfully', { locationName: location });
         return res.json(result);
     } catch (error: any) {
+        const bodyMetadata = getBodyMetadata(req.body);
         logger.error('Ollama analysis error', {
             error: error.message,
             stack: error.stack,
-            body: req.body,
+            request: bodyMetadata,
             errorType: error.constructor.name
         });
 

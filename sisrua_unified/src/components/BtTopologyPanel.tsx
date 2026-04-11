@@ -52,8 +52,7 @@ import {
   formatBr,
   parseBr,
   nextId,
-  NumericTextInput,
-  deriveBtPanelViewModel,
+  NumericTextInput
 } from './BtTopologyPanel/BtTopologyPanelUtils';
 
 const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
@@ -227,24 +226,30 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     });
   };
 
-  const totalClandestinoClients = btTopology.poles.reduce(
-    (acc, pole) => acc + (pole.ramais?.reduce((rAcc, r) => rAcc + r.quantity, 0) ?? 0),
-    0,
-  );
-  const {
-    clandestinoDemandKw,
-    clandestinoAreaRange,
-    clandestinoDemandKva,
-    clandestinoDiversificationFactor,
-    clandestinoFinalDemandKva,
-    pointDemandCardClass,
-    pointDemandStatus,
-  } = deriveBtPanelViewModel({
-    projectType,
-    clandestinoDisplay,
-    transformers: btTopology.transformers,
-    totalClandestinoClients,
-  });
+  const clandestinoDemandKw = projectType === 'clandestino' ? clandestinoDisplay.demandKw : 0;
+  const clandestinoAreaRange = { min: clandestinoDisplay.areaMin, max: clandestinoDisplay.areaMax };
+  const clandestinoDemandKva = projectType === 'clandestino' ? clandestinoDisplay.demandKva : null;
+  const clandestinoDiversificationFactor = projectType === 'clandestino' ? clandestinoDisplay.diversificationFactor : null;
+  const clandestinoFinalDemandKva = projectType === 'clandestino' ? clandestinoDisplay.finalDemandKva : 0;
+  const isNormalProject = projectType !== 'clandestino';
+  const transformersWithReadings = btTopology.transformers.filter((transformer) => transformer.readings.length > 0).length;
+  const transformersWithoutReadings = Math.max(0, btTopology.transformers.length - transformersWithReadings);
+  const pointDemandCardClass = projectType === 'clandestino'
+    ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
+    : btTopology.transformers.length === 0 || transformersWithReadings === 0
+      ? 'border-amber-300 bg-amber-50 text-amber-900'
+      : transformersWithoutReadings > 0
+        ? 'border-yellow-300 bg-yellow-50 text-yellow-900'
+        : 'border-emerald-300 bg-emerald-50 text-emerald-900';
+  const pointDemandStatus = !isNormalProject
+    ? null
+    : btTopology.transformers.length === 0
+      ? 'Sem transformador cadastrado. A demanda ficará zerada até inserir ao menos 1 trafo.'
+      : transformersWithReadings === 0
+        ? 'Sem leituras de trafo. Preencha as leituras para calcular a demanda por ponto.'
+        : transformersWithoutReadings > 0
+          ? `Demanda parcial: ${transformersWithReadings}/${btTopology.transformers.length} trafo(s) com leituras.`
+          : 'Demanda consolidada com leituras em todos os trafos.';
   const clientDemandByPole = [...accumulatedByPole]
     .sort((a, b) => b.localTrechoDemandKva - a.localTrechoDemandKva);
 
@@ -353,7 +358,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             : `Carga base clandestinos (${clandestinoAreaM2} m²): ${clandestinoDemandKw.toFixed(2)} kVA`}
           {clandestinoDemandKva !== null && (
             <div className="mt-1 text-amber-900">
-              Clientes: {totalClandestinoClients} | Fator: {clandestinoDiversificationFactor?.toFixed(2) ?? 'inválido'} | Demanda final: {clandestinoFinalDemandKva.toFixed(2)} kVA
+              Clientes: {btTopology.poles.reduce((acc, p) => acc + (p.ramais?.reduce((rAcc, r) => rAcc + r.quantity, 0) ?? 0), 0)} | Fator: {clandestinoDiversificationFactor?.toFixed(2) ?? 'inválido'} | Demanda final: {clandestinoFinalDemandKva.toFixed(2)} kVA
             </div>
           )}
         </div>

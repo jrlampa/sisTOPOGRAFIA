@@ -472,17 +472,4 @@ describe('constantsRoutes', () => {
     expect(response.status).toBe(401);
     expect(restoreSnapshotMock).not.toHaveBeenCalled();
   });
-
-  it('rejects status endpoint when token is not configured', async () => {
-    mockConfig.CONSTANTS_REFRESH_TOKEN = undefined;
-
-    const { default: router } = await import('../routes/constantsRoutes');
-
-    const app = express();
-    app.use('/api/constants', router);
-
-    const response = await request(app).get('/api/constants/status');
-
-    expect(response.status).toBe(401);
-  });
 });

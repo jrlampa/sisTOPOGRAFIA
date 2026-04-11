@@ -117,7 +117,18 @@ async function markTaskState(taskId: string, status: QueueRow['status'], error?:
   );
 }
 
-async function processPayload(payload: DxfTaskPayload): Promise<void> {
+async function processPayload(incomingPayload: any): Promise<void> {
+  // Defensive: Handle case where payload might be a string (depending on PG driver config)
+  const payload: DxfTaskPayload = typeof incomingPayload === 'string' 
+    ? JSON.parse(incomingPayload) 
+    : incomingPayload;
+
+  logger.info('[CloudTasksService] Processing payload', { 
+    taskId: payload.taskId, 
+    lat: payload.lat, 
+    lon: payload.lon, 
+    radius: payload.radius 
+  });
   await updateJobStatus(payload.taskId, 'processing', 15);
 
   await generateDxf({
@@ -281,9 +292,9 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
     await sqlClient.unsafe(
       `
         insert into dxf_tasks (task_id, status, payload, attempts, updated_at)
-        values ($1, 'queued', $2::jsonb, 0, now())
+        values ($1, 'queued', $2, 0, now())
       `,
-      [taskId, JSON.stringify(fullPayload)]
+      [taskId, fullPayload]
     );
 
     logger.info('DXF task queued in Supabase/Postgres', {

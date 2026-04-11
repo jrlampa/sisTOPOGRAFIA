@@ -37,9 +37,7 @@ export function AppShellLayout({
       }`}
     >
       <AppStatusStack {...appStatusStackProps} />
-
       <AppSettingsOverlay {...appSettingsOverlayProps} />
-
       <AppHeader
         canUndo={canUndo}
         canRedo={canRedo}
@@ -48,7 +46,6 @@ export function AppShellLayout({
         onOpenSettings={onOpenSettings}
         isDark={isDark}
       />
-
       <main className="flex-1 flex overflow-hidden relative">
         <SidebarWorkspace {...sidebarWorkspaceProps} />
         <MainMapWorkspace {...mainMapWorkspaceProps} />
