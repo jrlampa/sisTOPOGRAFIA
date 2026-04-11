@@ -21,6 +21,46 @@ type DxfCachePayload = {
 // Re-exported for backward-compat with tests that import DEFAULT_TTL_MS directly.
 export const DEFAULT_TTL_MS = config.CACHE_TTL_MS;
 const cacheStore = new Map<string, CacheEntry>();
+let cacheCleanupIntervalId: NodeJS.Timeout | null = null;
+
+const CACHE_CLEANUP_INTERVAL_MS = 60_000;
+
+const reportCacheSize = (): void => {
+    metricsService.recordCacheSize(cacheStore.size);
+};
+
+const purgeExpiredEntries = (): number => {
+    const now = Date.now();
+    let removed = 0;
+
+    for (const [key, entry] of cacheStore.entries()) {
+        if (entry.expiresAt <= now) {
+            cacheStore.delete(key);
+            removed += 1;
+            metricsService.recordCacheOperation('delete');
+        }
+    }
+
+    if (removed > 0) {
+        reportCacheSize();
+    }
+
+    return removed;
+};
+
+const ensureCacheCleanupInterval = (): void => {
+    if (cacheCleanupIntervalId || process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+        return;
+    }
+
+    cacheCleanupIntervalId = setInterval(() => {
+        purgeExpiredEntries();
+    }, CACHE_CLEANUP_INTERVAL_MS);
+
+    if (typeof cacheCleanupIntervalId.unref === 'function') {
+        cacheCleanupIntervalId.unref();
+    }
+};
 
 const stableSerialize = (value: unknown): string => {
     if (value === null || value === undefined) {
@@ -62,6 +102,8 @@ const createCacheKey = (payload: DxfCachePayload): string => {
 };
 
 const getCachedFilename = (key: string): string | null => {
+    ensureCacheCleanupInterval();
+
     const entry = cacheStore.get(key);
     if (!entry) {
         metricsService.recordCacheOperation('miss');
@@ -71,6 +113,8 @@ const getCachedFilename = (key: string): string | null => {
     if (entry.expiresAt <= Date.now()) {
         cacheStore.delete(key);
         metricsService.recordCacheOperation('miss');
+        metricsService.recordCacheOperation('delete');
+        reportCacheSize();
         return null;
     }
 
@@ -79,21 +123,35 @@ const getCachedFilename = (key: string): string | null => {
 };
 
 const setCachedFilename = (key: string, filename: string, ttlMs: number = DEFAULT_TTL_MS): void => {
+    ensureCacheCleanupInterval();
+
     cacheStore.set(key, {
         filename,
         expiresAt: Date.now() + ttlMs
     });
     metricsService.recordCacheOperation('set');
+    reportCacheSize();
 };
 
 const deleteCachedFilename = (key: string): void => {
+    ensureCacheCleanupInterval();
+
     cacheStore.delete(key);
     metricsService.recordCacheOperation('delete');
+    reportCacheSize();
+};
+
+const stopCacheCleanup = (): void => {
+    if (cacheCleanupIntervalId) {
+        clearInterval(cacheCleanupIntervalId);
+        cacheCleanupIntervalId = null;
+    }
 };
 
 export {
     createCacheKey,
     getCachedFilename,
     setCachedFilename,
-    deleteCachedFilename
+    deleteCachedFilename,
+    stopCacheCleanup
 };

@@ -1,7 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { logger } from '../utils/logger.js';
+import { config } from '../config.js';
 
 const router = Router();
+const isTestEnvironment = config.NODE_ENV === 'test';
 
 // ---------------------------------------------------------------------------
 // Stats computation (mirrors the former client-side calculateStats)
@@ -149,13 +151,25 @@ router.post('/', async (req: Request, res: Response) => {
     error: lastError instanceof Error ? lastError.message : String(lastError)
   });
 
-  // Resilient fallback so "ANALISE REGIÃO" keeps working even when Overpass is down.
-  const mock = buildMockOverpassPayload(lat, lng, radius);
-  const fallbackStats = computeOsmStats(mock.elements ?? []);
-  return res.status(200).json({ ...mock, _fallback: true, _stats: fallbackStats });
+  // Strict behavior: synthetic fallback is allowed only in test environment.
+  if (isTestEnvironment) {
+    const mock = buildMockOverpassPayload(lat, lng, radius);
+    const fallbackStats = computeOsmStats(mock.elements ?? []);
+    return res.status(200).json({ ...mock, _fallback: true, _stats: fallbackStats });
+  }
+
+  return res.status(503).json({
+    error: 'OSM provider unavailable',
+    message: 'Nao foi possivel obter dados do Overpass no momento. Tente novamente mais tarde.',
+    code: 'OVERPASS_UNAVAILABLE'
+  });
 });
 
 router.post('/mock', async (req: Request, res: Response) => {
+  if (!isTestEnvironment) {
+    return res.status(404).json({ error: 'Route not found' });
+  }
+
   const lat = Number(req.body?.lat);
   const lng = Number(req.body?.lng);
   const radius = Number(req.body?.radius ?? 300);

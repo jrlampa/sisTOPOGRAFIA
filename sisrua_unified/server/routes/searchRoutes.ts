@@ -28,9 +28,13 @@ router.post('/', async (req: Request, res: Response) => {
         } else {
             return res.status(404).json({ error: 'Location not found' });
         }
-    } catch (error: any) {
-        logger.error('Search error', { error });
-        return res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+        logger.error('Search error', {
+            error: error instanceof Error ? error.message : String(error),
+            query: typeof req.body?.query === 'string' ? req.body.query : undefined,
+            ip: req.ip
+        });
+        return res.status(500).json({ error: 'Search service temporarily unavailable' });
     }
 });
 

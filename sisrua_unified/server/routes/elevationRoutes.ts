@@ -5,6 +5,9 @@ import { logger } from '../utils/logger.js';
 import { elevationProfileSchema } from '../schemas/apiSchemas.js';
 
 const router = Router();
+const ELEVATION_INTERNAL_ERROR_RESPONSE = { error: 'Elevation service temporarily unavailable' };
+const MIN_STATS_RADIUS_M = 10;
+const MAX_STATS_RADIUS_M = 2_000;
 
 // Elevation Profile Endpoint
 router.post('/profile', async (req: Request, res: Response) => {
@@ -31,7 +34,7 @@ router.post('/profile', async (req: Request, res: Response) => {
             error: error.message,
             stack: error.stack
         });
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
     }
 });
 
@@ -92,7 +95,7 @@ ${profile.map((p: { elev: number }, i: number) => {
         }
     } catch (error: any) {
         logger.error('Elevation profile export error', { error: error.message });
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
     }
 });
 
@@ -108,6 +111,16 @@ router.get('/stats', async (req: Request, res: Response) => {
         const centerLat = parseFloat(lat as string);
         const centerLng = parseFloat(lng as string);
         const radiusM = parseInt(radius as string);
+
+        if (!Number.isFinite(centerLat) || !Number.isFinite(centerLng)) {
+            return res.status(400).json({ error: 'Invalid coordinates' });
+        }
+
+        if (!Number.isFinite(radiusM) || radiusM < MIN_STATS_RADIUS_M || radiusM > MAX_STATS_RADIUS_M) {
+            return res.status(400).json({
+                error: `Invalid radius: must be between ${MIN_STATS_RADIUS_M} and ${MAX_STATS_RADIUS_M} meters`
+            });
+        }
 
         const radiusDeg = radiusM / 111000.0;
         const north = centerLat + radiusDeg;
@@ -159,7 +172,7 @@ router.get('/stats', async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         logger.error('Elevation stats error', { error: error.message });
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
     }
 });
 
@@ -174,7 +187,7 @@ router.get('/cache/status', (req: Request, res: Response) => {
         });
     } catch (error: any) {
         logger.error('Cache status error', { error: error.message });
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
     }
 });
 
@@ -185,7 +198,7 @@ router.post('/cache/clear', (req: Request, res: Response) => {
         return res.json({ message: 'TOPODATA cache cleared successfully' });
     } catch (error: any) {
         logger.error('Cache clear error', { error: error.message });
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
     }
 });
 
@@ -234,7 +247,7 @@ router.post('/batch', async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         logger.error('Batch elevation error', { error: error.message });
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
     }
 });
 
@@ -278,7 +291,7 @@ router.get('/compare', async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         logger.error('Elevation comparison error', { error: error.message });
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
     }
 });
 
@@ -350,7 +363,7 @@ router.get('/slope', async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         logger.error('Slope analysis error', { error: error.message });
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
     }
 });
 

@@ -25,6 +25,8 @@ const EnvSchema = z.object({
 
     // ── Python engine ─────────────────────────────────────────────────────────
     PYTHON_COMMAND: z.string().optional(),
+    /** Maximum runtime for python DXF generation process before force-failing (ms). */
+    PYTHON_PROCESS_TIMEOUT_MS: z.coerce.number().positive().default(300_000),
     DOCKER_ENV: z.string().optional(),
 
     // ── DXF file management ───────────────────────────────────────────────────
@@ -80,14 +82,51 @@ const EnvSchema = z.object({
     // ── CORS ──────────────────────────────────────────────────────────────────
     /** Comma-separated list of allowed production origins for CORS (e.g. https://app.example.com) */
     CORS_ORIGIN: z.string().optional(),
+    /** Public backend URL used to build download links (e.g. https://api.example.com). */
+    APP_PUBLIC_URL: z.string().url().optional(),
+    /** Express trust proxy setting. Accepts boolean, number (hop count), or CSV/IP/netmask string. */
+    TRUST_PROXY: z.string().optional(),
 
     // ── Observability ─────────────────────────────────────────────────────────
     METRICS_ENABLED: z.coerce.boolean().default(true),
     /** Prefix for all Prometheus metric names */
     METRICS_PREFIX: z.string().default('sisrua'),
+    /**
+     * Optional Bearer token to protect the /metrics endpoint.
+     * When set, all requests to /metrics must include:
+     *   Authorization: Bearer <METRICS_TOKEN>
+     * When absent, the endpoint is served without authentication (suitable
+     * for internal-network Prometheus scrapers that are NOT publicly exposed).
+     */
+    METRICS_TOKEN: z.string().optional(),
 });
 
 type RawConfig = z.infer<typeof EnvSchema>;
+
+type TrustProxyConfig = boolean | number | string;
+
+function parseTrustProxyValue(value: string | undefined, nodeEnv: RawConfig['NODE_ENV']): TrustProxyConfig {
+    if (!value || value.trim().length === 0) {
+        // Explicit default by environment:
+        // - production: trust first proxy hop (common reverse-proxy setup)
+        // - development/test: disabled by default
+        return nodeEnv === 'production' ? 1 : false;
+    }
+
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') {
+        return true;
+    }
+    if (normalized === 'false') {
+        return false;
+    }
+
+    if (/^\d+$/.test(normalized)) {
+        return Number.parseInt(normalized, 10);
+    }
+
+    return value.trim();
+}
 
 function loadConfig() {
     const result = EnvSchema.safeParse(process.env);
@@ -117,8 +156,9 @@ function loadConfig() {
     const useDbConstantsClandestino: boolean = raw.USE_DB_CONSTANTS_CLANDESTINO === 'true';
     const useDbConstantsConfig: boolean = raw.USE_DB_CONSTANTS_CONFIG === 'true';
     const btRadialEnabled: boolean = raw.BT_RADIAL_ENABLED === 'true';
+    const trustProxy = parseTrustProxyValue(raw.TRUST_PROXY, raw.NODE_ENV);
 
-    return { ...raw, useFirestore, useSupabaseJobs, isDocker, useDbConstantsCqt, useDbConstantsClandestino, useDbConstantsConfig, btRadialEnabled } as const;
+    return { ...raw, useFirestore, useSupabaseJobs, isDocker, useDbConstantsCqt, useDbConstantsClandestino, useDbConstantsConfig, btRadialEnabled, trustProxy } as const;
 }
 
 export const config = loadConfig();

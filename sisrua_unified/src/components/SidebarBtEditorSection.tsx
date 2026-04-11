@@ -91,8 +91,8 @@ export function SidebarBtEditorSection({
     <>
       <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Editor BT</label>
-          <span className="text-[9px] text-slate-500 uppercase">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Editor BT</label>
+          <span className="text-[9px] text-slate-400 uppercase">
             {(settings.projectType ?? 'ramais').toUpperCase()} / {btNetworkScenario === 'asis' ? 'ATUAL' : 'PROJETO'}
           </span>
         </div>
@@ -100,13 +100,13 @@ export function SidebarBtEditorSection({
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => updateSettings({ ...settings, btNetworkScenario: 'asis', btEditorMode: 'none' })}
-            className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btNetworkScenario === 'asis' ? 'bg-cyan-700 text-white border-cyan-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
+            className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btNetworkScenario === 'asis' ? 'bg-cyan-700 text-white border-cyan-500' : 'text-slate-400 border-white/5 hover:text-slate-200'}`}
           >
             REDE ATUAL
           </button>
           <button
             onClick={() => updateSettings({ ...settings, btNetworkScenario: 'projeto' })}
-            className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btNetworkScenario === 'projeto' ? 'bg-indigo-700 text-white border-indigo-500' : 'text-slate-500 border-white/5 hover:text-slate-300'}`}
+            className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btNetworkScenario === 'projeto' ? 'bg-indigo-700 text-white border-indigo-500' : 'text-slate-400 border-white/5 hover:text-slate-200'}`}
           >
             REDE NOVA
           </button>

@@ -39,21 +39,21 @@ export function useOsmEngine() {
     const runAnalysis = async (center: GeoLocation, radius: number, enableAI: boolean) => {
         setIsProcessing(true);
         setError(null);
-        setStatusMessage('Starting audit...');
+        setStatusMessage('Iniciando análise...');
         setProgressValue(10);
 
         try {
             // 1. Fetch OSM Data
-            setStatusMessage('Scanning OSM Infrastructure...');
+            setStatusMessage('Consultando infraestrutura OSM...');
             const { elements: data, stats: backendStats } = await fetchOsmData(center.lat, center.lng, radius);
             if (data.length === 0) {
-                throw new Error("No architectural data found in this radius.");
+                throw new Error('Nenhum dado geográfico encontrado neste raio.');
             }
             setOsmData(data);
             setProgressValue(40);
 
             // 2. Fetch Terrain Data
-            setStatusMessage('Reconstructing Terrain Grid...');
+            setStatusMessage('Montando grade de terreno...');
             const terrain = await fetchElevationGrid(center, radius);
             setTerrainData(terrain);
             setProgressValue(70);
@@ -65,11 +65,11 @@ export function useOsmEngine() {
 
             // 4. Get analysis narrative
             if (enableAI) {
-                setStatusMessage('Generating analysis summary...');
-                const text = await analyzeArea(calculatedStats, center.label || "selected area", true);
+                setStatusMessage('Gerando resumo da análise...');
+                const text = await analyzeArea(calculatedStats, center.label || 'área selecionada', true);
                 setAnalysisText(text);
             } else {
-                setAnalysisText("Analysis summary disabled.");
+                setAnalysisText('Resumo de análise desabilitado.');
             }
 
             setProgressValue(100);
@@ -77,7 +77,7 @@ export function useOsmEngine() {
             setIsProcessing(false);
             return true;
         } catch (err: any) {
-            const errorMessage = err.message || "Audit failed.";
+            const errorMessage = err.message || 'Falha na análise.';
             setError(errorMessage);
             setStatusMessage('');
             // Reset loading state immediately on error, don't wait
