@@ -118,7 +118,7 @@ class BtExportHistoryService {
                 max: 2,
                 idle_timeout: 30,
                 connect_timeout: 5,
-                ssl: 'require',
+                ssl: config.NODE_ENV === 'production' ? 'require' : undefined,
             });
         }
 

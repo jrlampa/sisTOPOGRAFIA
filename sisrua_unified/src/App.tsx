@@ -1,6 +1,5 @@
 import React from 'react';
 import { GlobalState, BtEditorMode, BtNetworkScenario } from './types';
-import { DEFAULT_LOCATION } from './constants';
 import { useUndoRedo } from './hooks/useUndoRedo';
 import { useOsmEngine } from './hooks/useOsmEngine';
 import { useElevationProfile } from './hooks/useElevationProfile';
@@ -13,19 +12,15 @@ import { useBtExportHistory } from './hooks/useBtExportHistory';
 import { useBtDxfWorkflow } from './hooks/useBtDxfWorkflow';
 import { useProjectDataWorkflow } from './hooks/useProjectDataWorkflow';
 import { useAppAnalysisWorkflow } from './hooks/useAppAnalysisWorkflow';
-import {
-  EMPTY_BT_TOPOLOGY,
-} from './utils/btNormalization';
-import { AppHeader } from './components/AppHeader';
+import { EMPTY_BT_TOPOLOGY } from './utils/btNormalization';
 import { SidebarBtEditorSection } from './components/SidebarBtEditorSection';
 import { SidebarAnalysisResults } from './components/SidebarAnalysisResults';
 import { SidebarSelectionControls } from './components/SidebarSelectionControls';
 import { BtModalStack } from './components/BtModalStack';
-import { AppSettingsOverlay } from './components/AppSettingsOverlay';
-import { AppStatusStack } from './components/AppStatusStack';
 import { MainMapWorkspace } from './components/MainMapWorkspace';
 import { SidebarWorkspace } from './components/SidebarWorkspace';
-import { ThemeProvider } from './theme/ThemeProvider';
+import { AppShellLayout } from './components/AppShellLayout';
+import { INITIAL_APP_STATE } from './app/initialState';
 
 function App() {
   const {
@@ -36,53 +31,7 @@ function App() {
     canUndo,
     canRedo,
     saveSnapshot
-  } = useUndoRedo<GlobalState>({
-    center: DEFAULT_LOCATION,
-    radius: 500,
-    selectionMode: 'circle',
-    polygon: [],
-    measurePath: [],
-    settings: {
-      enableAI: true,
-      simplificationLevel: 'low',
-      orthogonalize: true,
-      contourRenderMode: 'spline',
-      projection: 'utm',
-      theme: 'dark',
-      mapProvider: 'vector',
-      contourInterval: 5,
-      projectType: 'ramais',
-      btNetworkScenario: 'asis',
-      btEditorMode: 'none',
-      btTransformerCalculationMode: 'automatic',
-      clandestinoAreaM2: 0,
-      layers: {
-        buildings: true,
-        roads: true,
-        curbs: true,
-        nature: true,
-        terrain: true,
-        contours: false,
-        slopeAnalysis: false,
-        furniture: true,
-        labels: true,
-        dimensions: false,
-        grid: false,
-        btNetwork: true
-      },
-      projectMetadata: {
-        projectName: 'PROJECT OSM-01',
-        companyName: 'ENG CORP',
-        engineerName: 'ENG. LEAD',
-        date: new Date().toLocaleDateString('pt-BR'),
-        scale: 'N/A',
-        revision: 'R00'
-      }
-    },
-    btTopology: EMPTY_BT_TOPOLOGY,
-    btExportSummary: null,
-    btExportHistory: []
-  });
+  } = useUndoRedo<GlobalState>(INITIAL_APP_STATE);
 
   // Derived state
   const { center, radius, selectionMode, polygon, settings } = appState;
@@ -390,22 +339,26 @@ function App() {
   };
 
   return (
-    <ThemeProvider theme={settings.theme}>
-      <div className="app-shell flex flex-col h-screen w-full font-sans transition-colors duration-500 overflow-hidden">
-
-      <AppStatusStack
-        toast={toast}
-        closeToast={closeToast}
-        sessionDraft={sessionDraft}
-        handleRestoreSession={handleRestoreSession}
-        handleDismissSession={handleDismissSession}
-        isProcessing={isProcessing}
-        isDownloading={isDownloading}
-        progressValue={progressValue}
-        statusMessage={statusMessage}
-        showDxfProgress={showDxfProgress}
-        dxfProgressLabel={dxfProgressLabel}
-        btExportSummaryProps={{
+    <AppShellLayout
+      isDark={isDark}
+      canUndo={canUndo}
+      canRedo={canRedo}
+      onUndo={undo}
+      onRedo={redo}
+      onOpenSettings={openSettings}
+      appStatusStackProps={{
+        toast,
+        closeToast,
+        sessionDraft,
+        handleRestoreSession,
+        handleDismissSession,
+        isProcessing,
+        isDownloading,
+        progressValue,
+        statusMessage,
+        showDxfProgress,
+        dxfProgressLabel,
+        btExportSummaryProps: {
           latestBtExport,
           btExportHistory,
           exportBtHistoryJson,
@@ -419,65 +372,49 @@ function App() {
           onHistoryProjectTypeFilterChange: setBtHistoryProjectTypeFilter,
           historyCqtScenarioFilter: btHistoryCqtScenarioFilter,
           onHistoryCqtScenarioFilterChange: setBtHistoryCqtScenarioFilter,
-        }}
-      />
-
-      <AppSettingsOverlay
-        showSettings={showSettings}
-        closeSettings={closeSettings}
-        settings={settings}
-        updateSettings={updateSettings}
-        selectionMode={selectionMode}
-        handleSelectionModeChange={handleSelectionModeChange}
-        radius={radius}
-        handleRadiusChange={handleRadiusChange}
-        polygon={polygon}
-        handleClearPolygon={handleClearPolygon}
-        hasData={!!osmData}
-        isDownloading={isDownloading}
-        handleDownloadDxf={handleDownloadDxf}
-        handleDownloadGeoJSON={handleDownloadGeoJSON}
-        handleSaveProject={handleSaveProject}
-        handleLoadProject={handleLoadProject}
-      />
-
-      {/* Premium Header */}
-      <AppHeader
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={undo}
-        onRedo={redo}
-        onOpenSettings={openSettings}
-      />
-
-      {/* Main Content Area */}
-      <main className="flex-1 flex overflow-hidden relative">
-
-        <SidebarWorkspace
-          isSidebarDockedForRamalModal={isSidebarDockedForRamalModal}
-          selectionControlsProps={sidebarSelectionControlsProps}
-          btEditorSectionProps={sidebarBtEditorSectionProps}
-          analysisResultsProps={sidebarAnalysisResultsProps}
-        />
-
-        <MainMapWorkspace
-          mapSelectorProps={mapSelectorProps}
-          floatingLayerPanelProps={{
-            settings,
-            onUpdateSettings: updateSettings,
-            isDark,
-          }}
-          elevationProfileData={elevationProfileData}
-          onCloseElevationProfile={() => {
-            clearProfile();
-            handleSelectionModeChange('circle');
-          }}
-          isDark={isDark}
-          btModalStackProps={btModalStackProps}
-        />
-      </main>
-      </div>
-    </ThemeProvider>
+        },
+      }}
+      appSettingsOverlayProps={{
+        showSettings,
+        closeSettings,
+        settings,
+        updateSettings,
+        selectionMode,
+        handleSelectionModeChange,
+        radius,
+        handleRadiusChange,
+        polygon,
+        handleClearPolygon,
+        hasData: !!osmData,
+        isDownloading,
+        handleDownloadDxf,
+        handleDownloadGeoJSON,
+        handleSaveProject,
+        handleLoadProject,
+      }}
+      sidebarWorkspaceProps={{
+        isSidebarDockedForRamalModal,
+        isDark,
+        selectionControlsProps: sidebarSelectionControlsProps,
+        btEditorSectionProps: sidebarBtEditorSectionProps,
+        analysisResultsProps: sidebarAnalysisResultsProps,
+      }}
+      mainMapWorkspaceProps={{
+        mapSelectorProps,
+        floatingLayerPanelProps: {
+          settings,
+          onUpdateSettings: updateSettings,
+          isDark,
+        },
+        elevationProfileData,
+        onCloseElevationProfile: () => {
+          clearProfile();
+          handleSelectionModeChange('circle');
+        },
+        isDark,
+        btModalStackProps,
+      }}
+    />
   );
 }
 

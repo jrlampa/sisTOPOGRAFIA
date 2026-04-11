@@ -5,7 +5,7 @@ const mockConfig = {
   useDbConstantsClandestino: true,
   useDbConstantsCqt: false,
   useDbConstantsConfig: true,
-  CONSTANTS_REFRESH_TOKEN: 'test-refresh-token',
+  CONSTANTS_REFRESH_TOKEN: 'test-refresh-token' as string | undefined,
   NODE_ENV: 'test'
 };
 
@@ -101,7 +101,9 @@ describe('constantsRoutes', () => {
     const app = express();
     app.use('/api/constants', router);
 
-    const response = await request(app).get('/api/constants/status');
+    const response = await request(app)
+      .get('/api/constants/status')
+      .set('x-constants-refresh-token', ADMIN_TOKEN);
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({

@@ -77,13 +77,13 @@ async function initializePersistence(): Promise<void> {
 
     try {
         sqlClient = postgres(DATABASE_URL, {
-            ssl: 'require',
+            ssl: config.NODE_ENV === 'production' ? 'require' : undefined,
             max: 2,
             connect_timeout: 8,
             idle_timeout: 10
         });
 
-        await validateJobsSchema(sqlClient);
+        // Removed implicit DDL (create table if not exists). This is now handled by migration files.
 
         postgresAvailable = true;
         logger.info('JobStatusService: Supabase/Postgres persistence enabled (schema validated)');

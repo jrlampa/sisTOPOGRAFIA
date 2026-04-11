@@ -9,7 +9,7 @@ describe('Constants', () => {
       expect(DEFAULT_LOCATION.label).toBeTypeOf('string');
     });
 
-    it('should match configured default coordinates', () => {
+    it('should be Rio de Janeiro coordinates', () => {
       expect(DEFAULT_LOCATION.lat).toBeCloseTo(-22.9068, 2);
       expect(DEFAULT_LOCATION.lng).toBeCloseTo(-43.1729, 2);
     });

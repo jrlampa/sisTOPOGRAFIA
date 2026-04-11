@@ -1,4 +1,5 @@
 import { constantsService } from './constantsService.js';
+import { logger } from '../utils/logger.js';
 
 type BtProjectType = 'ramais' | 'geral' | 'clandestino';
 
@@ -103,7 +104,12 @@ export interface BtDerivedResponse {
 
 const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
 
-const toFixed2 = (value: number): number => Number(value.toFixed(2));
+const toFixed2 = (value: number | undefined | null): number => {
+    if (value === undefined || value === null || !Number.isFinite(value)) {
+        return 0;
+    }
+    return Number(value.toFixed(2));
+};
 
 const getPoleClientsByProjectType = (projectType: BtProjectType, topology: BtTopology, poleId: string): number => {
     const pole = topology.poles.find((item) => item.id === poleId);
@@ -590,6 +596,14 @@ export const computeBtDerivedState = (
     projectType: BtProjectType,
     clandestinoAreaM2: number
 ): BtDerivedResponse => {
+    logger.info('[BtDerivedService] Starting computation', { 
+        projectType, 
+        clandestinoAreaM2,
+        poleCount: topology.poles.length,
+        transformerCount: topology.transformers.length,
+        edgeCount: topology.edges.length
+    });
+
     const summary = calculateSummary(topology);
 
     const totalClients = topology.poles.reduce((sum, pole) => {
@@ -608,6 +622,11 @@ export const computeBtDerivedState = (
     const sectioningImpact = calculateSectioningImpact(topology, projectType, clandestinoAreaM2);
     const clandestinoDisplay = calculateClandestinoDisplay(topology, clandestinoAreaM2);
     const transformersDerived = calculateTransformersDerived(topology);
+
+    logger.info('[BtDerivedService] Computation complete', {
+        pointDemandKva,
+        accumulatedByPoleCount: accumulatedByPole.length
+    });
 
     return {
         summary,

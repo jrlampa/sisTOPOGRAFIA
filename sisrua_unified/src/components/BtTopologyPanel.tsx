@@ -36,186 +36,24 @@ interface BtTopologyPanelProps {
   onBtRenameTransformer?: (transformerId: string, title: string) => void;
 }
 
-type BtEdgeChangeFlag = NonNullable<BtEdge['edgeChangeFlag']>;
-type BtPoleChangeFlag = NonNullable<BtPoleNode['nodeChangeFlag']>;
-type BtTransformerChangeFlag = NonNullable<BtTransformer['transformerChangeFlag']>;
-
-const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
-  if (edge.edgeChangeFlag) {
-    return edge.edgeChangeFlag;
-  }
-
-  return edge.removeOnExecution ? 'remove' : 'existing';
-};
-
-const getPoleChangeFlag = (pole: BtPoleNode): BtPoleChangeFlag => pole.nodeChangeFlag ?? 'existing';
-const getTransformerChangeFlag = (transformer: BtTransformer): BtTransformerChangeFlag => transformer.transformerChangeFlag ?? 'existing';
-
-const NORMAL_CLIENT_RAMAL_TYPES = [
-  '5 CC',
-  '8 CC',
-  '13 CC',
-  '21 CC',
-  '33 CC',
-  '53 CC',
-  '67 CC',
-  '85 CC',
-  '107 CC',
-  '127 CC',
-  '253 CC',
-  '13 DX 6 AWG',
-  '13 TX 6 AWG',
-  '13 QX 6 AWG',
-  '21 QX 4 AWG',
-  '53 QX 1/0',
-  '85 QX 3/0',
-  '107 QX 4/0',
-  '70 MMX',
-  '185 MMX'
-];
-const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
-const CONDUCTOR_NAMES = [
-  '70 Al - MX',
-  '185 Al - MX',
-  '240 Al - MX',
-  '25 Al - Arm',
-  '50 Al - Arm',
-  '95 Al - Arm',
-  '150 Al - Arm',
-  '240 Al - Arm',
-  '25 Al',
-  '35 Cu',
-  '70 Cu',
-  '95 Al',
-  '120 Cu',
-  '240 Al',
-  '240 Cu',
-  '500 Cu',
-  '10 Cu_CONC_bi',
-  '10 Cu_CONC_Tri',
-  '16 Al_CONC_bi',
-  '16 Al_CONC_Tri',
-  '13 Al - DX',
-  '13 Al - TX',
-  '13 Al - QX',
-  '21 Al - QX',
-  '53 Al - QX',
-  '6 AWG',
-  '2 AWG',
-  '1/0 AWG',
-  '3/0 AWG',
-  '4/0 AWG'
-];
-const numberFromInput = (value: string, decimals?: number): number => {
-  const normalized = value.replace(',', '.');
-  const parsed = Number(normalized);
-
-  if (!Number.isFinite(parsed)) {
-    return 0;
-  }
-
-  if (decimals === undefined) {
-    return parsed;
-  }
-
-  const factor = 10 ** decimals;
-  return Math.round(parsed * factor) / factor;
-};
-
-const normalizeNumericClipboardText = (raw: string): string => {
-  const trimmed = raw.trim();
-  if (!trimmed) {
-    return '';
-  }
-
-  // Keep only digits, sign and separators commonly found in spreadsheets/emails.
-  const cleaned = trimmed.replace(/\s+/g, '').replace(/[^0-9,.-]/g, '');
-  if (!cleaned) {
-    return '';
-  }
-
-  const lastComma = cleaned.lastIndexOf(',');
-  const lastDot = cleaned.lastIndexOf('.');
-
-  // If both separators exist, the rightmost one is treated as decimal separator.
-  if (lastComma !== -1 && lastDot !== -1) {
-    const decimalSeparator = lastComma > lastDot ? ',' : '.';
-    const thousandSeparator = decimalSeparator === ',' ? '.' : ',';
-    const withoutThousands = cleaned.split(thousandSeparator).join('');
-    return decimalSeparator === ','
-      ? withoutThousands.replace(',', '.')
-      : withoutThousands;
-  }
-
-  // Single separator case: comma is decimal in pt-BR user flow.
-  if (lastComma !== -1) {
-    return cleaned.replace(',', '.');
-  }
-
-  return cleaned;
-};
-
-const formatBr = (n: number, decimals = 2): string =>
-  n.toFixed(decimals).replace('.', ',');
-
-const parseBr = (s: string): number => {
-  const normalized = normalizeNumericClipboardText(s.trim());
-  return parseFloat(normalized);
-};
-
-const nextId = (prefix: string): string => `${prefix}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`;
-
-function NumericTextInput({
-  value,
-  decimals = 2,
-  onChange,
-  className,
-  title,
-  placeholder,
-}: {
-  value: number;
-  decimals?: number;
-  onChange: (val: number) => void;
-  className?: string;
-  title?: string;
-  placeholder?: string;
-}) {
-  const [editing, setEditing] = React.useState(false);
-  const [editDisplay, setEditDisplay] = React.useState('');
-
-  // While not editing, always derive display from parent value (always comma-formatted).
-  // While editing, display exactly what the user typed.
-  const display = editing ? editDisplay : formatBr(value, decimals);
-
-  return (
-    <input
-      type="text"
-      inputMode="decimal"
-      value={display}
-      title={title}
-      aria-label={title}
-      placeholder={placeholder}
-      onFocus={(e) => {
-        setEditing(true);
-        setEditDisplay(formatBr(value, decimals));
-        e.target.select();
-      }}
-      onBlur={() => {
-        setEditing(false);
-      }}
-      onClick={(e) => e.currentTarget.select()}
-      onChange={(e) => {
-        const raw = e.target.value;
-        setEditDisplay(raw);
-        const parsed = parseBr(raw);
-        if (Number.isFinite(parsed)) {
-          onChange(parsed);
-        }
-      }}
-      className={className}
-    />
-  );
-}
+import {
+  BtEdgeChangeFlag,
+  BtPoleChangeFlag,
+  BtTransformerChangeFlag,
+  getEdgeChangeFlag,
+  getPoleChangeFlag,
+  getTransformerChangeFlag,
+  NORMAL_CLIENT_RAMAL_TYPES,
+  CLANDESTINO_RAMAL_TYPE,
+  CONDUCTOR_NAMES,
+  numberFromInput,
+  selectAllInputText,
+  normalizeNumericClipboardText,
+  formatBr,
+  parseBr,
+  nextId,
+  NumericTextInput
+} from './BtTopologyPanel/BtTopologyPanelUtils';
 
 const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   btTopology,
@@ -529,7 +367,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             : `Carga base clandestinos (${clandestinoAreaM2} m²): ${clandestinoDemandKw.toFixed(2)} kVA`}
           {clandestinoDemandKva !== null && (
             <div className="mt-1 text-amber-900">
-              Clientes: {totalClandestinoClients} | Fator: {clandestinoDiversificationFactor?.toFixed(2) ?? 'inválido'} | Demanda final: {clandestinoFinalDemandKva.toFixed(2)} kVA
+              Clientes: {btTopology.poles.reduce((acc, p) => acc + (p.ramais?.reduce((rAcc, r) => rAcc + r.quantity, 0) ?? 0), 0)} | Fator: {clandestinoDiversificationFactor?.toFixed(2) ?? 'inválido'} | Demanda final: {clandestinoFinalDemandKva.toFixed(2)} kVA
             </div>
           )}
         </div>

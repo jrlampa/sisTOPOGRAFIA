@@ -49,6 +49,7 @@ app.set('trust proxy', config.trustProxy);
 
 // Ollama process management
 let ollamaProcess: ReturnType<typeof spawn> | null = null;
+const OLLAMA_MODEL = config.OLLAMA_MODEL;
 
 function resolveFrontendDistDirectory(): string {
     const candidates = [
@@ -61,7 +62,7 @@ function resolveFrontendDistDirectory(): string {
     return existing || candidates[0];
 }
 
-const dxfDirectory = resolveDxfDirectory();
+const dxfDirectory = config.DXF_DIRECTORY;
 const frontendDistDirectory = resolveFrontendDistDirectory();
 
 // Ensure DXF directory exists
@@ -98,7 +99,7 @@ const allowedOrigins =
     ? (config.CORS_ORIGIN
         ? config.CORS_ORIGIN.split(',').map((o) => o.trim())
         : [])
-    : ['http://localhost:5173', 'http://localhost:4173', 'http://127.0.0.1:5173']; // Vite dev/preview
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4173', 'http://127.0.0.1:5173']; // Vite dev/preview
 
 app.use(cors({
   origin: (origin, callback) => {

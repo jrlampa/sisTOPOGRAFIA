@@ -43,9 +43,10 @@ interface DxfOptions {
 
 export const generateDxf = (options: DxfOptions): Promise<string> => {
     return new Promise((resolve, reject) => {
+        logger.info('[PythonBridge] generateDxf call', { options });
         // Input validation for security
         if (options.lat === undefined || options.lon === undefined || options.radius === undefined) {
-            reject(new Error('Missing required parameters'));
+            reject(new Error(`Missing required parameters: lat=${options.lat}, lon=${options.lon}, radius=${options.radius}`));
             return;
         }
 
@@ -154,7 +155,7 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
                 if (code === 0) {
                     if (!stdoutData || stdoutData.trim().length === 0) {
                         handled = true;
-                        reject(new Error('Python script completed without output. Verify Python logs and output file generation.'));
+                        reject(new Error(`Python script '${selectedCommand}' completed successfully but without output stdout. Stderr: ${stderrData}`));
                         return;
                     }
                     handled = true;
@@ -163,7 +164,8 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
                 }
 
                 handled = true;
-                reject(new Error(`Python script failed with code ${code}\nStderr: ${stderrData}`));
+                const errorDetail = stderrData || stdoutData || 'No error output captured';
+                reject(new Error(`Python script '${selectedCommand}' failed with code ${code}\nDetails: ${errorDetail}`));
             });
 
             pythonProcess.on('error', (err: any) => {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { GlobalState } from '../types';
+import type { GlobalState, BtTopology } from '../types';
 import type {
   BtPoleAccumulatedDemand,
   BtTransformerEstimatedDemand,
@@ -68,7 +68,7 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
     let active = true;
 
     fetchBtDerivedState({
-      topology: btTopology,
+      topology: btTopology as BtTopology,
       projectType: settings.projectType ?? 'ramais',
       clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
     })
@@ -191,7 +191,7 @@ export function useBtDerivedState({ appState, setAppState }: UseBtDerivedStatePa
         btTopology: {
           ...btTopology,
           transformers: nextTransformers,
-        },
+        } as BtTopology,
       },
       false
     );
