@@ -173,7 +173,7 @@ describe('btParityService – REV0 workbook parity (CQTsimplificado_REV0 - Copia
         expect(demandMetric!.status).toBe('pass');
     });
 
-    it('REV0_DB_INDICATORS qtTrafo matches workbook DB!K10 formula (0.0183 + (101.956/225)*0.035)', () => {
+    it('REV0_DB_INDICATORS qtTrafo matches workbook DB!K10 formula', () => {
         const scenario = report.scenarios.find((s) => s.scenarioId === 'REV0_DB_INDICATORS');
         const qtTrafoMetric = scenario!.metrics.find((m) => m.name === 'qtTrafo');
         // DB!K10 = QT_MT + (DEM_ATUAL / TR_ATUAL) * Z% = 0.0183 + (101.956/225)*0.035

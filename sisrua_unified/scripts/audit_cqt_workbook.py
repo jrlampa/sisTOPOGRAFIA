@@ -30,7 +30,7 @@ def _resolve_default_workbook() -> str:
         candidates = sorted(_LIGHT_ESTUDO_DIR.glob("*.xlsx"))
         if candidates:
             return str(candidates[0])
-    # Also search the current directory for a REV0 file before falling back
+    # Also search the current directory for a REV0 file before falling back.
     rev0_candidates = sorted(Path(".").glob(_REV0_WORKBOOK_PATTERN))
     if rev0_candidates:
         return str(rev0_candidates[0])
