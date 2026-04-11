@@ -60,6 +60,7 @@ describe('useKmlImport', () => {
     await waitFor(() => {
       expect(mockOnImportSuccess).toHaveBeenCalled();
       const [result, filename] = mockOnImportSuccess.mock.calls[0];
+      expect(result.type).toBe('polygon');
       expect(result.points).toHaveLength(3);
       expect(filename).toBe('test');
     });
