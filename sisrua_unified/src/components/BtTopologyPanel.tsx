@@ -516,7 +516,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
               <span>{item.poleId}</span>
               <span className="flex items-center gap-1">
                 CLT {item.localClients} | {item.localTrechoDemandKva.toFixed(2)} kVA
-                {item.voltageV !== undefined && (
+                {item.voltageV !== undefined && item.dvAccumPercent !== undefined && (
                   <span className={`rounded px-1 py-0.5 text-[9px] font-bold ${
                     item.cqtStatus === 'CRÍTICO'
                       ? 'bg-red-100 text-red-700'

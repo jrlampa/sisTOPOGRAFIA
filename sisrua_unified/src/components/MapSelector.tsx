@@ -1108,26 +1108,29 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                     />
                                 )}
                                 {pole.id === criticalPoleId && <div className="mt-0.5 font-bold text-red-500">⚠ Ponto crítico</div>}
-                                {accumulatedByPoleMap.has(pole.id) && (
-                                    <div className="mt-1 text-slate-700">
-                                        <div>CLT acum.: {accumulatedByPoleMap.get(pole.id)!.accumulatedClients}</div>
-                                        <div>Demanda acum.: {accumulatedByPoleMap.get(pole.id)!.accumulatedDemandKva.toFixed(2)} kVA</div>
-                                        {accumulatedByPoleMap.get(pole.id)!.voltageV !== undefined && (
-                                            <div className="mt-0.5 flex items-center gap-1">
-                                                <span>Tensão: {accumulatedByPoleMap.get(pole.id)!.voltageV!.toFixed(1)} V</span>
-                                                <span className={`rounded px-1 py-0.5 text-[9px] font-bold ${
-                                                    accumulatedByPoleMap.get(pole.id)!.cqtStatus === 'CRÍTICO'
-                                                        ? 'bg-red-100 text-red-700'
-                                                        : accumulatedByPoleMap.get(pole.id)!.cqtStatus === 'ATENÇÃO'
-                                                            ? 'bg-amber-100 text-amber-700'
-                                                            : 'bg-green-100 text-green-700'
-                                                }`}>
-                                                    ΔV {accumulatedByPoleMap.get(pole.id)!.dvAccumPercent!.toFixed(2)}% {accumulatedByPoleMap.get(pole.id)!.cqtStatus}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                {accumulatedByPoleMap.has(pole.id) && (() => {
+                                    const poleAccum = accumulatedByPoleMap.get(pole.id)!;
+                                    return (
+                                        <div className="mt-1 text-slate-700">
+                                            <div>CLT acum.: {poleAccum.accumulatedClients}</div>
+                                            <div>Demanda acum.: {poleAccum.accumulatedDemandKva.toFixed(2)} kVA</div>
+                                            {poleAccum.voltageV !== undefined && poleAccum.dvAccumPercent !== undefined && (
+                                                <div className="mt-0.5 flex items-center gap-1">
+                                                    <span>Tensão: {poleAccum.voltageV.toFixed(1)} V</span>
+                                                    <span className={`rounded px-1 py-0.5 text-[9px] font-bold ${
+                                                        poleAccum.cqtStatus === 'CRÍTICO'
+                                                            ? 'bg-red-100 text-red-700'
+                                                            : poleAccum.cqtStatus === 'ATENÇÃO'
+                                                                ? 'bg-amber-100 text-amber-700'
+                                                                : 'bg-green-100 text-green-700'
+                                                    }`}>
+                                                        ΔV {poleAccum.dvAccumPercent.toFixed(2)}% {poleAccum.cqtStatus}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                                 <div className={`mt-0.5 font-semibold ${pole.verified ? 'text-green-600' : 'text-amber-600'}`}>
                                     {pole.verified ? '✓ Verificado' : '○ Não verificado'}
                                 </div>
