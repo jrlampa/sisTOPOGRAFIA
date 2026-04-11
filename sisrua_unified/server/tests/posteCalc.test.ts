@@ -4,7 +4,7 @@
  * Test cases derived from C:\myworld\EXCEL\LEGADO\CACUIA...xlsm Plan1 calculations
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "@jest/globals";
 import {
   calculatePosteAreas,
   calculateVentoPresn90,
@@ -14,6 +14,7 @@ import {
   verificarPoste,
   calcularMargem,
   calculatePosteLoad,
+  selecionarPosteDeCatalogo,
 } from "../core/mechanicalCalc/posteCalc";
 import {
   PosteInput,
@@ -191,9 +192,8 @@ describe("Mechanical Calc – CACUIA Parity", () => {
     // With bending moment of 500 daN·m, should select 11m/600
     const momentoFletorDaN_m = 500;
 
-    const { selecionarPosteDeCatalogo } =
-      await import("../core/mechanicalCalc/posteCalc");
-    const posteEscolhido = selecionarPosteDeCatalogo(
+    const { selecionarPosteDeCatalogo: selectPoste } = { selecionarPosteDeCatalogo };
+    const posteEscolhido = selectPoste(
       catalogo,
       momentoFletorDaN_m,
       10,

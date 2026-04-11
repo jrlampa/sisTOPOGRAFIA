@@ -4,7 +4,7 @@
  * Based on: C:\myworld\EXCEL\logica_cqt.md (SUGESTAO_CORTES heuristics)
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "@jest/globals";
 import {
   calculateScenarioScore,
   rankScenarios,

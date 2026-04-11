@@ -5,6 +5,7 @@ import { SidebarSelectionControls } from './SidebarSelectionControls';
 
 type Props = {
   isSidebarDockedForRamalModal: boolean;
+  isDark: boolean;
   selectionControlsProps: React.ComponentProps<typeof SidebarSelectionControls>;
   btEditorSectionProps: React.ComponentProps<typeof SidebarBtEditorSection>;
   analysisResultsProps: React.ComponentProps<typeof SidebarAnalysisResults>;
@@ -12,6 +13,7 @@ type Props = {
 
 export function SidebarWorkspace({
   isSidebarDockedForRamalModal,
+  isDark,
   selectionControlsProps,
   btEditorSectionProps,
   analysisResultsProps,
@@ -20,7 +22,7 @@ export function SidebarWorkspace({
     <motion.aside
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className={`app-sidebar border-r flex flex-col gap-8 overflow-y-auto z-20 shadow-2xl transition-all duration-300 scrollbar-hide ${isSidebarDockedForRamalModal ? 'w-0 p-0 opacity-0 pointer-events-none border-r-0' : 'w-[400px] p-8 opacity-100'}`}
+      className={`border-r flex flex-col gap-8 overflow-y-auto z-20 shadow-2xl transition-all duration-300 scrollbar-hide ${isSidebarDockedForRamalModal ? 'w-0 p-0 opacity-0 pointer-events-none border-r-0' : 'w-[400px] p-8 opacity-100'} ${isDark ? 'bg-[#020617] border-white/5' : 'bg-white border-slate-200'}`}
       aria-hidden={isSidebarDockedForRamalModal}
     >
       <SidebarSelectionControls {...selectionControlsProps} />

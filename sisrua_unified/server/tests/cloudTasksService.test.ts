@@ -22,23 +22,24 @@ jest.mock('../services/dxfCleanupService', () => ({
   scheduleDxfDeletion: jest.fn()
 }));
 
+const sqlTagMock = Object.assign(
+  jest.fn().mockResolvedValue([]),
+  { unsafe: unsafeMock, end: endMock }
+);
+
 jest.mock('postgres', () => ({
   __esModule: true,
-  default: jest.fn(() => ({
-    unsafe: unsafeMock,
-    end: endMock
-  }))
+  default: jest.fn(() => sqlTagMock)
 }));
 
 describe('cloudTasksService (Postgres queue)', () => {
   const originalEnv = process.env;
-  const testDatabaseUrl = process.env.TEST_DATABASE_URL || 'postgresql://user:password@localhost:5432/testdb?sslmode=require';
 
   beforeEach(() => {
     process.env = {
       ...originalEnv,
       NODE_ENV: 'test',
-      DATABASE_URL: testDatabaseUrl,
+      DATABASE_URL: 'postgresql://postgres:secret@localhost:5432/postgres?sslmode=require',
       USE_SUPABASE_JOBS: 'true'
     };
 

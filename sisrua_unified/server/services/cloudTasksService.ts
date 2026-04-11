@@ -358,7 +358,8 @@ export async function createDxfTask(payload: Omit<DxfTaskPayload, 'taskId'>): Pr
   startWorkerIfNeeded();
 
   if (postgresAvailable && sqlClient) {
-    await sqlClient`
+    await sqlClient.unsafe(
+      `
         insert into dxf_tasks (task_id, status, payload, attempts, updated_at)
         values ($1, 'queued', $2, 0, now())
       `,

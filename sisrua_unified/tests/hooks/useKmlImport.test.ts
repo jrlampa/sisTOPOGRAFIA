@@ -31,14 +31,11 @@ describe('useKmlImport', () => {
   });
 
   it('should import KML file successfully', async () => {
-    const mockParsed = {
-      type: 'polygon',
-      points: [
-        [-23.5505, -46.6333],
-        [-23.5515, -46.6343],
-        [-23.5525, -46.6353]
-      ]
-    };
+    const mockPoints = [
+      [-23.5505, -46.6333],
+      [-23.5515, -46.6343],
+      [-23.5525, -46.6353]
+    ];
 
     (parseKml as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       type: 'polygon',
