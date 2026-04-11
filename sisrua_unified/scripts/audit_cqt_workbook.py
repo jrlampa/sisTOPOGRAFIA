@@ -19,7 +19,7 @@ from openpyxl.utils.cell import get_column_letter
 #   3. Legacy fallback: root-level BECO DO MATA 7 workbook
 _LEGACY_WORKBOOK = "CQTsimplificado_BECO DO MATA 7 - PARIDADE_FINAL.xlsx"
 _LIGHT_ESTUDO_DIR = Path("Light_estudo")
-_REV0_WORKBOOK_PATTERN = "CQTsimplificado_REV0*"
+_REV0_WORKBOOK_PATTERN = "CQTsimplificado_REV0*.xlsx"
 
 
 def _resolve_default_workbook() -> str:
@@ -30,6 +30,10 @@ def _resolve_default_workbook() -> str:
         candidates = sorted(_LIGHT_ESTUDO_DIR.glob("*.xlsx"))
         if candidates:
             return str(candidates[0])
+    # Also search the current directory for a REV0 file before falling back
+    rev0_candidates = sorted(Path(".").glob(_REV0_WORKBOOK_PATTERN))
+    if rev0_candidates:
+        return str(rev0_candidates[0])
     return _LEGACY_WORKBOOK
 
 
@@ -364,11 +368,18 @@ def main() -> int:
 
     # Collect workbook paths to audit
     workbook_paths: list[Path] = []
-    if args.all and _LIGHT_ESTUDO_DIR.is_dir():
-        workbook_paths = sorted(_LIGHT_ESTUDO_DIR.glob("*.xlsx"))
+    if args.all:
+        if _LIGHT_ESTUDO_DIR.is_dir():
+            workbook_paths = sorted(_LIGHT_ESTUDO_DIR.glob("*.xlsx"))
+        # Also include root-level REV0 workbooks matched by the pattern
+        root_rev0 = sorted(Path(".").glob(_REV0_WORKBOOK_PATTERN))
+        for rev0_path in root_rev0:
+            if rev0_path not in workbook_paths:
+                workbook_paths.append(rev0_path)
         if not workbook_paths:
             print(
-                f"No .xlsx files found in {_LIGHT_ESTUDO_DIR}",
+                f"No .xlsx files found in {_LIGHT_ESTUDO_DIR} or matching "
+                f"'{_REV0_WORKBOOK_PATTERN}' in current directory",
                 file=sys.stderr,
             )
             return 2

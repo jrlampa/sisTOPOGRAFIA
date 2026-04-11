@@ -270,8 +270,8 @@ const SCENARIO_REV0_DB_INDICATORS: BtParityScenario = {
             id: 'TRAFO_225',
             rootNodeId: 'TRAFO',
             kva: CQT_REV0_BASELINE_TARGETS.db.k6TrAtual,
-            zPercent: 0.035,
-            qtMt: CQT_REV0_BASELINE_TARGETS.db.k10QtMttr - CQT_REV0_BASELINE_TARGETS.db.k8QtTr,
+            zPercent: CQT_REV0_BASELINE_TARGETS.db.zPercent,
+            qtMt: CQT_REV0_BASELINE_TARGETS.db.qtMt,
         },
         nodes: [
             { id: 'TRAFO', load: { localDemandKva: 0 } },
@@ -304,8 +304,8 @@ const SCENARIO_REV0_LINEAR: BtParityScenario = {
             id: 'TR225_REV0',
             rootNodeId: 'R',
             kva: CQT_REV0_BASELINE_TARGETS.db.k6TrAtual,
-            zPercent: 0.035,
-            qtMt: CQT_REV0_BASELINE_TARGETS.db.k10QtMttr - CQT_REV0_BASELINE_TARGETS.db.k8QtTr,
+            zPercent: CQT_REV0_BASELINE_TARGETS.db.zPercent,
+            qtMt: CQT_REV0_BASELINE_TARGETS.db.qtMt,
         },
         nodes: [
             { id: 'R', load: { localDemandKva: 0 } },
@@ -322,9 +322,9 @@ const SCENARIO_REV0_LINEAR: BtParityScenario = {
     },
     expected: {
         totalDemandKva: 100,
-        // qtTrafo = qtMt + (totalDemandKva/kva)*zPercent
-        //         = (k10 - k8) + (100/225)*0.035
-        qtTrafo: (CQT_REV0_BASELINE_TARGETS.db.k10QtMttr - CQT_REV0_BASELINE_TARGETS.db.k8QtTr) + (100 / 225) * 0.035,
+        // qtTrafo = qtMt + (totalDemandKva / kva) * zPercent
+        qtTrafo: CQT_REV0_BASELINE_TARGETS.db.qtMt +
+            (100 / CQT_REV0_BASELINE_TARGETS.db.k6TrAtual) * CQT_REV0_BASELINE_TARGETS.db.zPercent,
     },
 };
 

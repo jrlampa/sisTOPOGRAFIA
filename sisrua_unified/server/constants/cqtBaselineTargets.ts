@@ -56,6 +56,10 @@ export const CQT_REV0_BASELINE_TARGETS = {
         // DB!K8: QT_TR = (DEM_ATUAL / TR_ATUAL) * Z% = (101.956/225)*0.035
         k8QtTr: 0.015859822222222222,
         // DB!K10: QT_MTTR = QT_MT + QT_TR = 0.0183 + 0.015859822...
-        k10QtMttr: 0.03415982222222222
+        k10QtMttr: 0.03415982222222222,
+        // QT_MT = QT_MTTR - QT_TR (base MT line drop, same as BECO DO MATA 7)
+        qtMt: 0.0183,
+        // Transformer impedance factor (Z%)
+        zPercent: 0.035
     }
 } as const;
