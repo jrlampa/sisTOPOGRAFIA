@@ -46,16 +46,6 @@ const port = config.PORT;
 let ollamaProcess: ReturnType<typeof spawn> | null = null;
 const OLLAMA_MODEL = config.OLLAMA_MODEL;
 
-// Directory resolution
-function resolveDxfDirectory(): string {
-    const candidates = [
-        path.resolve(__dirname, '../public/dxf'),
-        path.resolve(__dirname, '../../../public/dxf')
-    ];
-    const existing = candidates.find((c) => fs.existsSync(c));
-    return existing || candidates[candidates.length - 1];
-}
-
 function resolveFrontendDistDirectory(): string {
     const candidates = [
         path.resolve(__dirname, '../dist'),
@@ -67,7 +57,7 @@ function resolveFrontendDistDirectory(): string {
     return existing || candidates[0];
 }
 
-const dxfDirectory = resolveDxfDirectory();
+const dxfDirectory = config.DXF_DIRECTORY;
 const frontendDistDirectory = resolveFrontendDistDirectory();
 
 // Ensure DXF directory exists

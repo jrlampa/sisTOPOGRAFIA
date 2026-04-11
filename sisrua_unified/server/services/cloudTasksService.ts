@@ -79,25 +79,13 @@ async function initializeQueuePersistence(): Promise<void> {
 
   try {
     sqlClient = postgres(config.DATABASE_URL, {
-      ssl: 'require',
+      ssl: config.NODE_ENV === 'production' ? 'require' : undefined,
       max: 2,
       connect_timeout: 8,
       idle_timeout: 10
     });
 
-    await sqlClient.unsafe(`
-      create table if not exists dxf_tasks (
-        task_id text primary key,
-        status text not null,
-        payload jsonb not null,
-        attempts integer not null default 0,
-        error text,
-        created_at timestamptz not null default now(),
-        updated_at timestamptz not null default now(),
-        started_at timestamptz,
-        finished_at timestamptz
-      )
-    `);
+    // Removed implicit DDL (create table if not exists). This is now handled by migration files.
 
     postgresAvailable = true;
     logger.info('DXF queue persistence enabled (Supabase/Postgres)');

@@ -47,24 +47,13 @@ async function initializePersistence(): Promise<void> {
 
     try {
         sqlClient = postgres(DATABASE_URL, {
-            ssl: 'require',
+            ssl: config.NODE_ENV === 'production' ? 'require' : undefined,
             max: 2,
             connect_timeout: 8,
             idle_timeout: 10
         });
 
-        await sqlClient.unsafe(`
-            create table if not exists ${JOBS_TABLE} (
-                id text primary key,
-                status text not null,
-                progress integer not null default 0,
-                result jsonb,
-                error text,
-                created_at timestamptz not null default now(),
-                updated_at timestamptz not null default now(),
-                attempts integer not null default 0
-            )
-        `);
+        // Removed implicit DDL (create table if not exists). This is now handled by migration files.
 
         postgresAvailable = true;
         logger.info('JobStatusService: Supabase/Postgres persistence enabled');

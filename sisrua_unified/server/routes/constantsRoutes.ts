@@ -22,18 +22,23 @@ const getDbConstantsNamespaces = (): string[] => [
 ];
 
 const isRefreshAuthorized = (req: Request): boolean => {
-    if (!config.CONSTANTS_REFRESH_TOKEN) {
-        return config.NODE_ENV !== 'production';
+    const expectedToken = config.CONSTANTS_REFRESH_TOKEN?.trim();
+    if (!expectedToken) {
+        return false;
     }
 
-    return req.get('x-constants-refresh-token') === config.CONSTANTS_REFRESH_TOKEN;
+    return req.get('x-constants-refresh-token') === expectedToken;
 };
 
 const getRefreshActor = (req: Request): string => {
     return req.get('x-refresh-actor') || req.ip || 'unknown';
 };
 
-router.get('/status', async (_req: Request, res: Response) => {
+router.get('/status', async (req: Request, res: Response) => {
+    if (!isRefreshAuthorized(req)) {
+        return res.status(401).json({ error: 'Unauthorized status request' });
+    }
+
     const lastRefreshEvent = await constantsService.getLastRefreshEvent();
 
     return res.json({

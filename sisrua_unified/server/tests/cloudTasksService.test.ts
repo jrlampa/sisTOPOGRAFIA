@@ -44,10 +44,8 @@ describe('cloudTasksService (Postgres queue)', () => {
     unsafeMock.mockReset();
     endMock.mockClear();
 
-    // 1) create table if not exists
-    // 2) insert queued row
+    // 1) insert queued row
     unsafeMock
-      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
 
     jest.resetModules();
@@ -81,6 +79,6 @@ describe('cloudTasksService (Postgres queue)', () => {
     expect(result.taskId).toBe('test-uuid');
     expect(result.taskName).toBe('pg-task-test-uuid');
     expect(result.alreadyCompleted).toBe(false);
-    expect(unsafeMock).toHaveBeenCalledTimes(2);
+    expect(unsafeMock).toHaveBeenCalledTimes(1);
   });
 });
