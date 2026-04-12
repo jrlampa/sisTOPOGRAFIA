@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { IbgeService } from '../services/ibgeService.js';
 import { logger } from '../utils/logger.js';
+import { ibgeCoordinatesSchema, ibgeUfSchema, ibgeMunicipioIdSchema } from '../schemas/apiSchemas.js';
 
 const router = Router();
 const IBGE_INTERNAL_ERROR_RESPONSE = { error: 'IBGE service temporarily unavailable' };
@@ -8,18 +9,15 @@ const IBGE_INTERNAL_ERROR_RESPONSE = { error: 'IBGE service temporarily unavaila
 // Get location info by coordinates (reverse geocoding)
 router.get('/location', async (req: Request, res: Response) => {
     try {
-        const { lat, lng } = req.query;
-
-        if (!lat || !lng) {
-            return res.status(400).json({ error: 'lat and lng query parameters required' });
+        const validation = ibgeCoordinatesSchema.safeParse(req.query);
+        if (!validation.success) {
+            return res.status(400).json({
+                error: 'Invalid coordinates',
+                details: validation.error.issues.map((i) => i.message).join(', '),
+            });
         }
 
-        const latitude = parseFloat(lat as string);
-        const longitude = parseFloat(lng as string);
-
-        if (isNaN(latitude) || isNaN(longitude)) {
-            return res.status(400).json({ error: 'Invalid coordinates' });
-        }
+        const { lat: latitude, lng: longitude } = validation.data;
 
         logger.info('IBGE reverse geocoding', { lat: latitude, lng: longitude });
 
@@ -50,8 +48,14 @@ router.get('/states', async (_req: Request, res: Response) => {
 // Get municipalities by state
 router.get('/municipios/:uf', async (req: Request, res: Response) => {
     try {
-        const { uf } = req.params;
-        const municipios = await IbgeService.getMunicipiosByState(uf.toUpperCase());
+        const validation = ibgeUfSchema.safeParse({ uf: req.params.uf?.toUpperCase() });
+        if (!validation.success) {
+            return res.status(400).json({
+                error: 'Invalid UF code',
+                details: validation.error.issues.map((i) => i.message).join(', '),
+            });
+        }
+        const municipios = await IbgeService.getMunicipiosByState(validation.data.uf);
         return res.json(municipios);
     } catch (error: any) {
         logger.error('IBGE municipios endpoint error', { error, uf: req.params.uf });
@@ -62,8 +66,15 @@ router.get('/municipios/:uf', async (req: Request, res: Response) => {
 // Get municipality boundary (GeoJSON)
 router.get('/boundary/municipio/:id', async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
-        const boundary = await IbgeService.getMunicipalityBoundary(id);
+        const validation = ibgeMunicipioIdSchema.safeParse({ id: req.params.id });
+        if (!validation.success) {
+            return res.status(400).json({
+                error: 'Invalid municipality id',
+                details: validation.error.issues.map((i) => i.message).join(', '),
+            });
+        }
+
+        const boundary = await IbgeService.getMunicipalityBoundary(validation.data.id);
 
         if (boundary) {
             return res.json(boundary);

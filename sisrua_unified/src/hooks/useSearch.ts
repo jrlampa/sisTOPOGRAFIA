@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { GeoLocation } from '../types';
 import { API_BASE_URL } from '../config/api';
+import { debounce } from '../utils/debounce';
+
+const DEBOUNCE_DELAY_MS = 400;
 
 interface UseSearchProps {
   onLocationFound: (location: GeoLocation) => void;
@@ -11,7 +14,7 @@ export function useSearch({ onLocationFound, onError }: UseSearchProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
-  const executeSearch = async (query: string) => {
+  const executeSearch = useCallback(async (query: string) => {
     const sanitizedQuery = query.trim();
 
     if (!sanitizedQuery) {
@@ -57,7 +60,11 @@ export function useSearch({ onLocationFound, onError }: UseSearchProps) {
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [onLocationFound, onError]);
+
+  // Debounced version for input-as-type scenarios (e.g. autocomplete).
+  // Stable ref ensures the debounced function is not recreated on every render.
+  const debouncedSearchRef = useRef(debounce(executeSearch, DEBOUNCE_DELAY_MS));
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +76,7 @@ export function useSearch({ onLocationFound, onError }: UseSearchProps) {
     setSearchQuery,
     isSearching,
     handleSearch,
-    executeSearch
+    executeSearch,
+    debouncedSearch: debouncedSearchRef.current,
   };
 }

@@ -1,4 +1,5 @@
 import { IbgeService } from './ibgeService.js';
+import { withRetry } from '../utils/withRetry.js';
 
 export interface GeoLocation {
     lat: number;
@@ -84,12 +85,20 @@ export class GeocodingService {
         url.searchParams.set('accept-language', 'pt-BR,pt,en');
 
         try {
-            const response = await fetch(url, {
-                signal: AbortSignal.timeout(8000),
-                headers: {
-                    'User-Agent': 'sisrua-unified/1.0 (geocoding)'
+            const response = await withRetry(
+                () => fetch(url, {
+                    signal: AbortSignal.timeout(8000),
+                    headers: {
+                        'User-Agent': 'sisrua-unified/1.0 (geocoding)'
+                    }
+                }),
+                {
+                    maxAttempts: 3,
+                    baseDelayMs: 300,
+                    label: 'Nominatim',
+                    isRetryable: (err) => !(err instanceof Error && err.name === 'TimeoutError'),
                 }
-            });
+            );
 
             if (!response.ok) {
                 return null;

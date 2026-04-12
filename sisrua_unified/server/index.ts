@@ -1,5 +1,6 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import 'dotenv/config';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
@@ -108,6 +109,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+app.use(compression());
 app.use(express.json({ limit: config.BODY_LIMIT }));
 app.use(requestMetrics);
 app.use(generalRateLimiter);

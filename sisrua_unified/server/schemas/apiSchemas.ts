@@ -90,3 +90,26 @@ export const batchRowSchema = z.object({
     radius: z.coerce.number().min(10).max(5000),
     mode: z.enum(['circle', 'polygon', 'bbox']).optional().default('circle')
 });
+
+// OSM Overpass query schema
+export const osmQuerySchema = z.object({
+    lat: z.coerce.number().min(-90).max(90),
+    lng: z.coerce.number().min(-180).max(180),
+    radius: z.coerce.number().min(1).max(50000),
+});
+
+// IBGE coordinates schema (query params)
+export const ibgeCoordinatesSchema = z.object({
+    lat: z.coerce.number().min(-90).max(90),
+    lng: z.coerce.number().min(-180).max(180),
+});
+
+// IBGE UF schema
+export const ibgeUfSchema = z.object({
+    uf: z.string().length(2).regex(/^[A-Z]{2}$/, 'UF must be 2 uppercase letters'),
+});
+
+// IBGE municipality id schema
+export const ibgeMunicipioIdSchema = z.object({
+    id: z.string().regex(/^\d{7}$/, 'Municipality id must be a 7-digit string'),
+});

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { logger } from '../utils/logger.js';
 import { config } from '../config.js';
+import { osmQuerySchema } from '../schemas/apiSchemas.js';
 
 const router = Router();
 const isTestEnvironment = config.NODE_ENV === 'test';
@@ -108,13 +109,19 @@ const fetchWithTimeout = async (url: string, body: string, timeoutMs: number): P
 };
 
 router.post('/', async (req: Request, res: Response) => {
-  const lat = Number(req.body?.lat);
-  const lng = Number(req.body?.lng);
-  const radius = Number(req.body?.radius);
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(radius) || radius <= 0) {
-    return res.status(400).json({ error: 'Invalid coordinates or radius' });
+  const validation = osmQuerySchema.safeParse(req.body);
+  if (!validation.success) {
+    logger.warn('OSM query validation failed', {
+      issues: validation.error.issues,
+      ip: req.ip,
+    });
+    return res.status(400).json({
+      error: 'Invalid request',
+      details: validation.error.issues.map((i) => i.message).join(', '),
+    });
   }
+
+  const { lat, lng, radius } = validation.data;
 
   const query = `
     [out:json][timeout:60];
