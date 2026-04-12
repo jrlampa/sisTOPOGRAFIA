@@ -1,5 +1,5 @@
-import { API_BASE_URL } from '../config/api';
-import type { BtTopology, BtProjectType } from '../types';
+import { API_BASE_URL } from "../config/api";
+import type { BtTopology, BtProjectType } from "../types";
 
 export interface BtPoleAccumulatedDemand {
   poleId: string;
@@ -7,6 +7,12 @@ export interface BtPoleAccumulatedDemand {
   accumulatedClients: number;
   localTrechoDemandKva: number;
   accumulatedDemandKva: number;
+  voltageV?: number;
+  dvAccumPercent?: number;
+  cqtStatus?: "OK" | "ATENÇÃO" | "CRÍTICO";
+  worstRamalVoltageV?: number;
+  worstRamalDvPercent?: number;
+  worstRamalStatus?: "OK" | "ATENÇÃO" | "CRÍTICO";
 }
 
 export interface BtTransformerEstimatedDemand {
@@ -63,18 +69,24 @@ interface FetchBtDerivedStateInput {
   clandestinoAreaM2: number;
 }
 
-export async function fetchBtDerivedState(input: FetchBtDerivedStateInput): Promise<BtDerivedResponse> {
+export async function fetchBtDerivedState(
+  input: FetchBtDerivedStateInput,
+): Promise<BtDerivedResponse> {
   const response = await fetch(`${API_BASE_URL}/bt/derived`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input)
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
   });
 
   if (!response.ok) {
-    let message = 'Failed to compute BT derived state';
+    let message = "Failed to compute BT derived state";
 
     try {
-      const payload = await response.json() as { error?: string; details?: string; message?: string };
+      const payload = (await response.json()) as {
+        error?: string;
+        details?: string;
+        message?: string;
+      };
       message = payload.details || payload.error || payload.message || message;
     } catch {
       // Keep default error message when response body is not JSON.
@@ -83,5 +95,5 @@ export async function fetchBtDerivedState(input: FetchBtDerivedStateInput): Prom
     throw new Error(message);
   }
 
-  return await response.json() as BtDerivedResponse;
+  return (await response.json()) as BtDerivedResponse;
 }

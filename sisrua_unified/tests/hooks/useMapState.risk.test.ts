@@ -81,7 +81,7 @@ describe('useMapState critical flows', () => {
       result.current.handleRestoreSession();
     });
 
-    expect(setAppState).toHaveBeenCalledWith(baseState, false);
+    expect(setAppState).toHaveBeenCalledWith(baseState, true);
     expect(clearSessionDraft).toHaveBeenCalledTimes(1);
     expect(result.current.toast?.message).toContain('Sessão anterior restaurada');
   });
