@@ -450,7 +450,6 @@ function App() {
       }}
       sidebarWorkspaceProps={{
         isSidebarDockedForRamalModal,
-        isDark,
         selectionControlsProps: sidebarSelectionControlsProps,
         btEditorSectionProps: sidebarBtEditorSectionProps,
         analysisResultsProps: sidebarAnalysisResultsProps,
