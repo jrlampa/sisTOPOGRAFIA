@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 type WorkbookSegment = {
   point: string;
@@ -55,23 +55,49 @@ const findSheetName = (sheetNames: string[], prefix: string): string => {
   return found;
 };
 
-const readWorkbookSegments = (
-  workbookFilePath: string,
-): { segments: WorkbookSegment[]; trafoPoint: string | null } => {
-  const wb = XLSX.readFile(workbookFilePath, {
-    cellDates: false,
-    cellNF: false,
-    cellFormula: false,
-  });
-  const geralSheetName = findSheetName(wb.SheetNames, "GERAL");
-  const ws = wb.Sheets[geralSheetName];
+/** Normalize an ExcelJS CellValue to a plain scalar. */
+function normalizeCellValue(v: ExcelJS.CellValue): string | number | null {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number") return v;
+  if (typeof v === "boolean") return v ? 1 : 0;
+  if (typeof v === "string") return v;
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v === "object") {
+    if ("richText" in v) return (v as ExcelJS.CellRichTextValue).richText.map((r: ExcelJS.RichText) => r.text).join("");
+    if ("result" in v) {
+      const res = (v as ExcelJS.CellFormulaValue).result;
+      if (res instanceof Error) return null;
+      return normalizeCellValue(res as ExcelJS.CellValue);
+    }
+    if ("text" in v) return (v as ExcelJS.CellHyperlinkValue).text;
+  }
+  return null;
+}
 
-  const rows = XLSX.utils.sheet_to_json<(string | number | null)[]>(ws, {
-    header: 1,
-    blankrows: false,
-    defval: null,
-    raw: true,
+/** Read worksheet rows as a 2-D array (equivalent to XLSX.utils.sheet_to_json with header:1). */
+function worksheetToRows(ws: ExcelJS.Worksheet): (string | number | null)[][] {
+  const rows: (string | number | null)[][] = [];
+  ws.eachRow({ includeEmpty: false }, (row: ExcelJS.Row) => {
+    const values = row.values as ExcelJS.CellValue[];
+    rows.push(values.slice(1).map(normalizeCellValue));
   });
+  return rows;
+}
+
+const readWorkbookSegments = async (
+  workbookFilePath: string,
+): Promise<{ segments: WorkbookSegment[]; trafoPoint: string | null }> => {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.readFile(workbookFilePath);
+
+  const geralSheetName = findSheetName(
+    wb.worksheets.map((ws) => ws.name),
+    "GERAL",
+  );
+  const ws = wb.getWorksheet(geralSheetName);
+  if (!ws) throw new Error(`Sheet '${geralSheetName}' not found in workbook.`);
+
+  const rows = worksheetToRows(ws);
 
   const headerRowIndex = rows.findIndex((row) => {
     const keys = row.map((cell) => normalize(cell));
@@ -161,8 +187,8 @@ const nextEdgeIdFactory = (existingIds: string[]) => {
   };
 };
 
-const main = () => {
-  const { segments, trafoPoint } = readWorkbookSegments(workbookPath);
+const main = async () => {
+  const { segments, trafoPoint } = await readWorkbookSegments(workbookPath);
 
   const raw = fs.readFileSync(sruaPath, "utf8");
   const parsed = JSON.parse(raw);
@@ -306,4 +332,7 @@ const main = () => {
   );
 };
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

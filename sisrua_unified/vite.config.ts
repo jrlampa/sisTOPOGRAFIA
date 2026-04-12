@@ -1,6 +1,7 @@
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 function parseSpaceSeparatedSources(value?: string): string[] {
   if (!value) {
@@ -91,7 +92,12 @@ export default defineConfig(({ mode }) => {
         }
       }
     },
-    plugins: [react(), cspMetaPlugin],
+    plugins: [
+      react(),
+      cspMetaPlugin,
+      // Polyfill Node.js built-ins (Buffer etc.) required by ExcelJS in the browser
+      nodePolyfills({ include: ['buffer', 'stream', 'util', 'events', 'process'] }),
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

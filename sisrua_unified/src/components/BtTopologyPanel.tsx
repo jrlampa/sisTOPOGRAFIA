@@ -632,7 +632,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
   const parseTopologyFromGeralSheet = (
     workbook: any,
-    XLSX: any,
+    xlsxUtils: { sheet_to_json: (sheet: any, opts: any) => any[][] },
   ): BtTopology | null => {
     const geralName = workbook.SheetNames.find((name: string) =>
       normalizeHeaderKey(name).startsWith("GERAL"),
@@ -647,7 +647,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     );
     const ramalSheet = ramalName ? workbook.Sheets[ramalName] : null;
 
-    const rows = XLSX.utils.sheet_to_json(sheet, {
+    const rows = xlsxUtils.sheet_to_json(sheet, {
       header: 1,
       blankrows: false,
       defval: "",
@@ -801,9 +801,9 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
   const importBulkRamaisFromWorkbook = async (file: File) => {
     try {
-      const XLSX = await import("xlsx");
+      const { readWorkbook, utils: xlsxUtils } = await import("../utils/workbookReader");
       const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: "array" });
+      const workbook = await readWorkbook(buffer);
       const sheetName =
         workbook.SheetNames.find(
           (name) => normalizeHeaderKey(name) === "RAMAL",
@@ -815,7 +815,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
       }
 
       const sheet = workbook.Sheets[sheetName];
-      const raw = XLSX.utils.sheet_to_csv(sheet, {
+      const raw = xlsxUtils.sheet_to_csv(sheet, {
         FS: "\t",
         blankrows: false,
       });
@@ -838,7 +838,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           : ` | Calculo: NORMAL (GERAL!I2=${workbookProjectSettings.geralI2Raw}; area GERAL!L2=${workbookProjectSettings.clandestinoAreaM2} m2).`
         : "";
 
-      const topologyFromWorkbook = parseTopologyFromGeralSheet(workbook, XLSX);
+      const topologyFromWorkbook = parseTopologyFromGeralSheet(workbook, xlsxUtils);
       if (topologyFromWorkbook) {
         const orderedPoles = [...topologyFromWorkbook.poles].sort((a, b) => {
           const na = Number(a.id.replace(/^P/, ""));

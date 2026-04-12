@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { computeBtDerivedState } from "../server/services/btDerivedService.js";
 
 type CompareRow = {
@@ -67,21 +67,49 @@ const extractPointNumber = (value: unknown): string | null => {
   return match ? String(Number.parseInt(match[0], 10)) : null;
 };
 
-const readExcelGeralPoints = (workbookPath: string): ExcelPointRow[] => {
-  const wb = XLSX.readFile(workbookPath, {
-    cellDates: false,
-    cellNF: false,
-    cellFormula: false,
-  });
-  const geralSheetName = findSheetName(wb.SheetNames, "GERAL");
-  const ws = wb.Sheets[geralSheetName];
+/** Normalize an ExcelJS CellValue to a plain scalar. */
+function normalizeCellValue(v: ExcelJS.CellValue): string | number | null {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number") return v;
+  if (typeof v === "boolean") return v ? 1 : 0;
+  if (typeof v === "string") return v;
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v === "object") {
+    if ("richText" in v) return (v as ExcelJS.CellRichTextValue).richText.map((r: ExcelJS.RichText) => r.text).join("");
+    if ("result" in v) {
+      const res = (v as ExcelJS.CellFormulaValue).result;
+      if (res instanceof Error) return null;
+      return normalizeCellValue(res as ExcelJS.CellValue);
+    }
+    if ("text" in v) return (v as ExcelJS.CellHyperlinkValue).text;
+  }
+  return null;
+}
 
-  const rows = XLSX.utils.sheet_to_json<(string | number | null)[]>(ws, {
-    header: 1,
-    blankrows: false,
-    defval: null,
-    raw: true,
+/** Read worksheet rows as a 2-D array (equivalent to XLSX.utils.sheet_to_json with header:1). */
+function worksheetToRows(ws: ExcelJS.Worksheet): (string | number | null)[][] {
+  const rows: (string | number | null)[][] = [];
+  ws.eachRow({ includeEmpty: false }, (row: ExcelJS.Row) => {
+    const values = row.values as ExcelJS.CellValue[];
+    // ExcelJS row.values is 1-indexed; index 0 is always undefined
+    const cells = values.slice(1).map(normalizeCellValue);
+    rows.push(cells);
   });
+  return rows;
+}
+
+const readExcelGeralPoints = async (workbookPath: string): Promise<ExcelPointRow[]> => {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.readFile(workbookPath);
+
+  const geralSheetName = findSheetName(
+    wb.worksheets.map((ws) => ws.name),
+    "GERAL",
+  );
+  const ws = wb.getWorksheet(geralSheetName);
+  if (!ws) throw new Error(`Sheet '${geralSheetName}' not found in workbook.`);
+
+  const rows = worksheetToRows(ws);
 
   const headerRowIndex = rows.findIndex((row) => {
     const keys = row.map((cell) => normalize(cell));
@@ -142,8 +170,8 @@ const round2 = (value: number | null): number | null => {
   return Number(value.toFixed(2));
 };
 
-const main = () => {
-  const excelPoints = readExcelGeralPoints(WORKBOOK_PATH);
+const main = async () => {
+  const excelPoints = await readExcelGeralPoints(WORKBOOK_PATH);
   const state = loadSruaState(SRUA_PATH);
 
   const topology = state.btTopology ?? {
@@ -278,4 +306,7 @@ const main = () => {
   console.log(JSON.stringify({ summary, topByAccum }, null, 2));
 };
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
