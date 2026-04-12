@@ -3,6 +3,7 @@ import { IbgeService } from '../services/ibgeService.js';
 import { logger } from '../utils/logger.js';
 
 const router = Router();
+const IBGE_INTERNAL_ERROR_RESPONSE = { error: 'IBGE service temporarily unavailable' };
 
 // Get location info by coordinates (reverse geocoding)
 router.get('/location', async (req: Request, res: Response) => {
@@ -31,7 +32,7 @@ router.get('/location', async (req: Request, res: Response) => {
         }
     } catch (error: any) {
         logger.error('IBGE location endpoint error', { error });
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json(IBGE_INTERNAL_ERROR_RESPONSE);
     }
 });
 
@@ -42,7 +43,7 @@ router.get('/states', async (_req: Request, res: Response) => {
         return res.json(states);
     } catch (error: any) {
         logger.error('IBGE states endpoint error', { error });
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json(IBGE_INTERNAL_ERROR_RESPONSE);
     }
 });
 
@@ -54,7 +55,7 @@ router.get('/municipios/:uf', async (req: Request, res: Response) => {
         return res.json(municipios);
     } catch (error: any) {
         logger.error('IBGE municipios endpoint error', { error, uf: req.params.uf });
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json(IBGE_INTERNAL_ERROR_RESPONSE);
     }
 });
 
@@ -71,7 +72,7 @@ router.get('/boundary/municipio/:id', async (req: Request, res: Response) => {
         }
     } catch (error: any) {
         logger.error('IBGE boundary endpoint error', { error, id: req.params.id });
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json(IBGE_INTERNAL_ERROR_RESPONSE);
     }
 });
 

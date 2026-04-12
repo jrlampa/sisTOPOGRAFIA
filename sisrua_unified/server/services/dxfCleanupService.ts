@@ -3,6 +3,7 @@ import path from 'path';
 import { logger } from '../utils/logger.js';
 import { config } from '../config.js';
 import { constantsService } from './constantsService.js';
+import { resolveDxfDirectory } from '../utils/dxfDirectory.js';
 
 interface ScheduledFile {
     filePath: string;
@@ -42,7 +43,7 @@ function getDxfDirectory(): string {
     if (configuredDxfDirectory) {
         return configuredDxfDirectory;
     }
-    return config.DXF_DIRECTORY;
+    return resolveDxfDirectory();
 }
 
 function companionFilesFor(dxfPath: string): string[] {

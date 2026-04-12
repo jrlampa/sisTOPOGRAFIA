@@ -62,6 +62,7 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({ settings, onUpd
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsExpanded(!isExpanded)}
+                aria-label={isExpanded ? 'Fechar painel de camadas' : 'Abrir painel de camadas'}
                 className="btn-enterprise flex items-center justify-center w-10 h-10 rounded-xl shadow-lg"
                 style={{ color: isExpanded ? 'var(--enterprise-blue)' : '#64748b' }}
             >

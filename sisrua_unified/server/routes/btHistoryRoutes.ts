@@ -19,6 +19,25 @@ const isCqtScenario = (value: unknown): value is 'atual' | 'proj1' | 'proj2' => 
     return value === 'atual' || value === 'proj1' || value === 'proj2';
 };
 
+const isSafeBtContextUrl = (value: string): boolean => {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+        return false;
+    }
+
+    // Prefer backend-generated local download URLs.
+    if (trimmed.startsWith('/downloads/')) {
+        return !trimmed.includes('..');
+    }
+
+    try {
+        const parsed = new URL(trimmed);
+        return (parsed.protocol === 'https:' || parsed.protocol === 'http:') && parsed.hostname.length > 0;
+    } catch {
+        return false;
+    }
+};
+
 const validateCreatePayload = (body: unknown): { ok: true; value: BtExportHistoryPayload } | { ok: false; error: string } => {
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
         return { ok: false, error: 'Payload inválido' };
@@ -34,7 +53,7 @@ const validateCreatePayload = (body: unknown): { ok: true; value: BtExportHistor
         return { ok: false, error: 'exportedAt inválido' };
     }
 
-    if (typeof payload.btContextUrl !== 'string' || payload.btContextUrl.trim().length === 0) {
+    if (typeof payload.btContextUrl !== 'string' || !isSafeBtContextUrl(payload.btContextUrl)) {
         return { ok: false, error: 'btContextUrl obrigatório' };
     }
 
@@ -80,7 +99,7 @@ const validateIngestPayload = (body: unknown): { ok: true; value: BtExportHistor
         return { ok: false, error: 'projectType inválido' };
     }
 
-    if (typeof payload.btContextUrl !== 'string' || payload.btContextUrl.trim().length === 0) {
+    if (typeof payload.btContextUrl !== 'string' || !isSafeBtContextUrl(payload.btContextUrl)) {
         return { ok: false, error: 'btContextUrl obrigatório' };
     }
 

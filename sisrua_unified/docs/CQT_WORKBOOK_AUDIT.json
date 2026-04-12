@@ -1,15 +1,16 @@
 {
   "summary": {
-    "workbook": "CQTsimplificado_BECO DO MATA 7 - PARIDADE_FINAL.xlsx",
+    "workbook": "C:\\Users\\jonat\\OneDrive - IM3 Brasil\\utils\\sisTOPOGRAFIA\\sisrua_unified\\CQTsimplificado_BECO DO MATA 7 - PARIDADE_FINAL.xlsx",
     "sheetCount": 13,
     "formulaCellCount": 6926,
     "visibleFormulaCells": 5976,
     "hiddenRowCount": 13,
     "hiddenColCount": 66,
-    "errorCellCount": 18,
+    "errorCellCount": 44,
     "errorByType": {
+      "#VALUE!": 8,
       "#DIV/0!": 16,
-      "#N/A": 2
+      "#N/A": 20
     },
     "formulaRefLiteralCount": 0,
     "externalReferenceFormulaCount": 3544,
@@ -30,6 +31,22 @@
     "Include hidden columns in extraction/audit pipelines; visible CQT outputs depend on them.",
     "Track parity state as value + error class (e.g., #VALUE!, #DIV/0!, #REF!) for robustness."
   ],
+  "parityCells": {
+    "atual": {
+      "RAMAL!AA30": 2.84,
+      "GERAL!P31": 118.69775108855391,
+      "GERAL!P32": 117.04688712724072,
+      "DB!K6": 225.0,
+      "DB!K7": 101.95599999999999,
+      "DB!K8": 0.015859822222222222,
+      "DB!K10": 0.03415982222222222
+    },
+    "proj1": {
+      "GERAL PROJ!P31": 120.83736598928087,
+      "GERAL PROJ!P32": 120.72752247511889
+    },
+    "proj2": {}
+  },
   "sheets": [
     {
       "name": "DB",
@@ -38,7 +55,7 @@
       "maxCol": 25,
       "formulaCells": 836,
       "visibleFormulaCells": 836,
-      "errorCells": 0,
+      "errorCells": 2,
       "hiddenRows": 0,
       "hiddenCols": 0
     },
@@ -71,7 +88,7 @@
       "maxCol": 32,
       "formulaCells": 306,
       "visibleFormulaCells": 237,
-      "errorCells": 0,
+      "errorCells": 4,
       "hiddenRows": 13,
       "hiddenCols": 4
     },
@@ -137,7 +154,7 @@
       "maxCol": 29,
       "formulaCells": 142,
       "visibleFormulaCells": 94,
-      "errorCells": 4,
+      "errorCells": 6,
       "hiddenRows": 0,
       "hiddenCols": 8
     },
@@ -148,7 +165,7 @@
       "maxCol": 17,
       "formulaCells": 240,
       "visibleFormulaCells": 212,
-      "errorCells": 0,
+      "errorCells": 3,
       "hiddenRows": 0,
       "hiddenCols": 1
     },
@@ -170,7 +187,7 @@
       "maxCol": 29,
       "formulaCells": 148,
       "visibleFormulaCells": 100,
-      "errorCells": 2,
+      "errorCells": 17,
       "hiddenRows": 0,
       "hiddenCols": 8
     }
@@ -179,6 +196,42 @@
     "formulaRefLiteral": [],
     "errors": [
       {
+        "sheet": "DB",
+        "cell": "K24",
+        "cached": "#VALUE!",
+        "formula": "=(K23/K22)*VLOOKUP(K22,TRAFOS_Z[],2,0)"
+      },
+      {
+        "sheet": "DB",
+        "cell": "K26",
+        "cached": "#VALUE!",
+        "formula": "=QT_MT+K24"
+      },
+      {
+        "sheet": "RAMAL",
+        "cell": "AE18",
+        "cached": "#VALUE!",
+        "formula": "=AE20/0.375"
+      },
+      {
+        "sheet": "RAMAL",
+        "cell": "AE20",
+        "cached": "#VALUE!",
+        "formula": "=AE24/AE22"
+      },
+      {
+        "sheet": "RAMAL",
+        "cell": "AE28",
+        "cached": "#VALUE!",
+        "formula": "=AE24/AE26"
+      },
+      {
+        "sheet": "RAMAL",
+        "cell": "AE30",
+        "cached": "#VALUE!",
+        "formula": "=IF(GERAL!M2=\"SIM\",RAMAL!$AB$35,AE$24/'GERAL PROJ2'!G9)"
+      },
+      {
         "sheet": "ESQ PROJ1",
         "cell": "J9",
         "cached": "#DIV/0!",
@@ -213,12 +266,42 @@
         "cell": "J11",
         "cached": "#N/A",
         "formula": "#N/A"
+      },
+      {
+        "sheet": "DIR PROJ1",
+        "cell": "K11",
+        "cached": "#N/A",
+        "formula": "=(VLOOKUP(Tabela71020[[#This Row],[CONDUTOR]],CABOS[],3,0)/VLOOKUP(Tabela71020[[#This Row],[CONDUTOR]],CABOS[],6,0))*(1+VLOOKUP(Tabela71020[[#This Row],[CONDUTOR]],CABOS[],5,0)*(Tabela71020[[#This Row],[T]]-20))"
       },
       {
         "sheet": "DIR PROJ1",
         "cell": "J12",
         "cached": "#N/A",
         "formula": "#N/A"
+      },
+      {
+        "sheet": "DIR PROJ1",
+        "cell": "K12",
+        "cached": "#N/A",
+        "formula": "=(VLOOKUP(Tabela71020[[#This Row],[CONDUTOR]],CABOS[],3,0)/VLOOKUP(Tabela71020[[#This Row],[CONDUTOR]],CABOS[],6,0))*(1+VLOOKUP(Tabela71020[[#This Row],[CONDUTOR]],CABOS[],5,0)*(Tabela71020[[#This Row],[T]]-20))"
+      },
+      {
+        "sheet": "GERAL PROJ2",
+        "cell": "P5",
+        "cached": "#VALUE!",
+        "formula": "=O5/0.85"
+      },
+      {
+        "sheet": "GERAL PROJ2",
+        "cell": "O6",
+        "cached": "#VALUE!",
+        "formula": "=O5/O3"
+      },
+      {
+        "sheet": "GERAL PROJ2",
+        "cell": "O16",
+        "cached": "#N/A",
+        "formula": "=INDEX(GERAL_PROJ2[PONTO],MATCH(MIN(GERAL_PROJ2[SNAP]),GERAL_PROJ2[SNAP],0))"
       },
       {
         "sheet": "ESQ PROJ2",
@@ -282,9 +365,15 @@
       },
       {
         "sheet": "DIR PROJ2",
-        "cell": "J12",
-        "cached": "#DIV/0!",
-        "formula": "#DIV/0!"
+        "cell": "J9",
+        "cached": "#N/A",
+        "formula": "=Tabela71023[[#This Row],[TEMP_AMB]]+60*(Tabela71023[[#This Row],[Ib]]/Tabela71023[[#This Row],[Iz]])"
+      },
+      {
+        "sheet": "DIR PROJ2",
+        "cell": "K9",
+        "cached": "#N/A",
+        "formula": "=(VLOOKUP(Tabela71023[[#This Row],[CONDUTOR]],CABOS[],3,0)/VLOOKUP(Tabela71023[[#This Row],[CONDUTOR]],CABOS[],6,0))*(1+VLOOKUP(Tabela71023[[#This Row],[CONDUTOR]],CABOS[],5,0)*(Tabela71023[[#This Row],[T]]-20))"
       }
     ],
     "externalReferences": [

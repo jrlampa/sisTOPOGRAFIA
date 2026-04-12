@@ -2,6 +2,8 @@ import { OverpassResponse, OsmElement } from '../types';
 import Logger from '../utils/logger';
 import { API_BASE_URL } from '../config/api';
 
+const IS_DEV = import.meta.env.DEV;
+
 type OverpassResponseWithStats = OverpassResponse & {
   _stats?: OsmStats;
 };
@@ -40,6 +42,11 @@ export const fetchOsmData = async (lat: number, lng: number, radius: number): Pr
     return { elements: data.elements, stats: data._stats ?? null };
   } catch (error) {
     Logger.error("Failed to fetch OSM data", error);
+
+    if (!IS_DEV) {
+      throw new Error(`OSM data unavailable: Cannot reach Overpass API for coordinates (${lat.toFixed(6)}, ${lng.toFixed(6)}). Ensure network connectivity and that API rate limits are not exceeded.`);
+    }
+
     Logger.info("Falling back to mock OSM data for testing");
     try {
       const mockResponse = await fetch(`${API_BASE_URL}/osm/mock`, {

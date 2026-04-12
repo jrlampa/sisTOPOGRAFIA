@@ -1,0 +1,286 @@
+name: PR – Frontend Quality Gate
+
+# ──────────────────────────────────────────────────────────────────
+# Dispara em PRs e pushs diretos apenas quando arquivos de frontend
+# forem alterados. Não inicia o backend e não exige banco de dados.
+# ──────────────────────────────────────────────────────────────────
+on:
+  pull_request:
+    branches: [dev, main, master]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'e2e/**'
+      - 'index.html'
+      - 'vite.config.ts'
+      - 'vitest.config.ts'
+      - 'vitest.risk.config.ts'
+      - 'playwright.a11y.config.ts'
+      - 'tailwind.config.js'
+      - 'postcss.config.js'
+      - '.eslintrc.cjs'
+      - 'tsconfig.json'
+      - 'tsconfig.node.json'
+      - 'lighthouserc.json'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches: [dev]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'index.html'
+      - 'vite.config.ts'
+      - 'vitest.config.ts'
+      - 'package.json'
+
+concurrency:
+  group: pr-frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # JOB 1 – Lint (apenas src/)
+  # ──────────────────────────────────────────────────────────────
+  lint-frontend:
+    name: Lint Frontend (src/)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint – src/
+        run: npm run lint:frontend
+
+  # ──────────────────────────────────────────────────────────────
+  # JOB 2 – Type-check frontend
+  # ──────────────────────────────────────────────────────────────
+  typecheck-frontend:
+    name: TypeScript Check (frontend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: tsc --noEmit (tsconfig.json)
+        run: npm run typecheck:frontend
+
+  # ──────────────────────────────────────────────────────────────
+  # JOB 3 – Testes unitários frontend
+  # ──────────────────────────────────────────────────────────────
+  test-frontend:
+    name: Testes Unitários Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Vitest – suite completa
+        run: npm run test:frontend
+        env:
+          NODE_ENV: test
+
+      - name: Vitest – suite de risco (gate por arquivo)
+        run: npm run test:frontend:risk
+        env:
+          NODE_ENV: test
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage-pr
+          path: coverage/frontend/
+          retention-days: 7
+
+  # ──────────────────────────────────────────────────────────────
+  # JOB 4 – Build de produção
+  # ──────────────────────────────────────────────────────────────
+  build-frontend:
+    name: Build Produção
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [lint-frontend, typecheck-frontend, test-frontend]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (tsc + vite)
+        run: npm run build
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-pr
+          path: dist/
+          retention-days: 1
+
+  # ──────────────────────────────────────────────────────────────
+  # JOB 5 – Smoke de acessibilidade (axe) contra build estático
+  # Sem backend, sem banco – usa apenas `vite preview`
+  # ──────────────────────────────────────────────────────────────
+  a11y-smoke:
+    name: A11y Smoke (axe-core)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build-frontend]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-pr
+          path: dist/
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Executar smoke a11y (axe WCAG 2.1 AA)
+        run: npm run a11y:smoke
+        env:
+          NODE_ENV: test
+
+      - name: Upload relatório a11y
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a11y-report-pr
+          path: playwright-report/a11y/
+          retention-days: 7
+
+  # ──────────────────────────────────────────────────────────────
+  # JOB 6 – Lighthouse CI (performance + a11y score)
+  # Usa o mesmo build estático via `vite preview`
+  # ──────────────────────────────────────────────────────────────
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build-frontend]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-pr
+          path: dist/
+
+      - name: Executar LHCI
+        # LHCI_GITHUB_APP_TOKEN (opcional) pode ser configurado como secret
+        # do repositório para integração com status checks do GitHub.
+        run: npm run lhci
+
+  # ──────────────────────────────────────────────────────────────
+  # JOB FINAL – Gate unificado de PR frontend
+  # ──────────────────────────────────────────────────────────────
+  frontend-pr-gate:
+    name: ✅ Frontend PR Gate
+    runs-on: ubuntu-latest
+    needs:
+      - lint-frontend
+      - typecheck-frontend
+      - test-frontend
+      - build-frontend
+      - a11y-smoke
+      - lighthouse
+    if: always()
+
+    steps:
+      - name: Verificar se todos os jobs passaram
+        run: |
+          echo "Lint:         ${{ needs.lint-frontend.result }}"
+          echo "TypeCheck:    ${{ needs.typecheck-frontend.result }}"
+          echo "Testes:       ${{ needs.test-frontend.result }}"
+          echo "Build:        ${{ needs.build-frontend.result }}"
+          echo "A11y Smoke:   ${{ needs.a11y-smoke.result }}"
+          echo "Lighthouse:   ${{ needs.lighthouse.result }}"
+
+          FAILED=""
+          # Lighthouse é warn-only (não bloqueia o gate)
+          for JOB in lint-frontend typecheck-frontend test-frontend build-frontend a11y-smoke; do
+            RESULT=$(
+              case $JOB in
+                lint-frontend)       echo "${{ needs.lint-frontend.result }}" ;;
+                typecheck-frontend)  echo "${{ needs.typecheck-frontend.result }}" ;;
+                test-frontend)       echo "${{ needs.test-frontend.result }}" ;;
+                build-frontend)      echo "${{ needs.build-frontend.result }}" ;;
+                a11y-smoke)          echo "${{ needs.a11y-smoke.result }}" ;;
+              esac
+            )
+            if [ "$RESULT" != "success" ] && [ "$RESULT" != "skipped" ]; then
+              FAILED="$FAILED $JOB($RESULT)"
+            fi
+          done
+
+          if [ -n "$FAILED" ]; then
+            echo "❌ Jobs falharam:$FAILED"
+            exit 1
+          fi
+          echo "✅ Todos os gates de frontend aprovados."

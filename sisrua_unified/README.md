@@ -89,8 +89,7 @@ sisrua_unified/
 │   └── constants.test.ts
 │
 ├── public/                  # Assets estáticos
-│   ├── dxf/                # DXFs gerados
-│   └── theme-override.css
+│   └── dxf/                # DXFs gerados
 │
 ├── test_files/             # Arquivos de teste (DXF, CSV)
 ├── docs/                   # Documentação

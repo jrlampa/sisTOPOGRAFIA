@@ -21,7 +21,7 @@ router.get('/:id', async (req: Request, res: Response) => {
         });
     } catch (err: any) {
         logger.error('Job status lookup failed', { error: err });
-        return res.status(500).json({ error: 'Failed to retrieve job status', details: err.message });
+        return res.status(500).json({ error: 'Failed to retrieve job status' });
     }
 });
 

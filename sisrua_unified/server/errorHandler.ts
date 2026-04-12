@@ -2,6 +2,7 @@
  * Centralized error handling utilities
  * Categorizes errors for better debugging and client feedback
  */
+import { config } from './config.js';
 
 export enum ErrorCategory {
   VALIDATION = 'ValidationError',
@@ -108,13 +109,13 @@ export function errorHandler(err: any, req: any, res: any, next: any) {
     const response: ApiErrorResponse = {
       error: err.message,
       code: err.code,
-      details: process.env.NODE_ENV === 'development' ? err.details : undefined,
+      details: config.NODE_ENV === 'development' ? err.details : undefined,
       requestId,
       timestamp: new Date().toISOString(),
     };
 
     // Log error in development
-    if (process.env.NODE_ENV === 'development') {
+    if (config.NODE_ENV === 'development') {
       console.error(`[${err.code}] ${err.message}`, {
         statusCode: err.statusCode,
         details: err.details,
@@ -133,13 +134,13 @@ export function errorHandler(err: any, req: any, res: any, next: any) {
 
   // Handle unknown errors
   const unknownError: ApiErrorResponse = {
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
+    error: config.NODE_ENV === 'development' ? err.message : 'Internal server error',
     code: ErrorCategory.INTERNAL,
     requestId,
     timestamp: new Date().toISOString(),
   };
 
-  if (process.env.NODE_ENV === 'development') {
+  if (config.NODE_ENV === 'development') {
     console.error('[InternalError] Unknown error', {
       error: err,
       stack: err.stack,

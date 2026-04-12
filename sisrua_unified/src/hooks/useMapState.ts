@@ -67,7 +67,7 @@ export function useMapState({
       return;
     }
 
-    setAppState(sessionDraft, true);
+    setAppState(sessionDraft, false);
     setSessionDraft(null);
     clearSessionDraft();
     showToast("Sessão anterior restaurada.", "success");

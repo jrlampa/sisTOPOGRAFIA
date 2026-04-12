@@ -3,15 +3,26 @@
 @tailwind utilities;
 
 /* ============================================
-   Enterprise Glassmorphism Light Theme
-   Design System Variables
-   ============================================ */
+  Theme Tokens (light defaults)
+  Runtime values are synchronized by ThemeProvider.
+  ============================================ */
 
 :root {
+  --app-shell-bg: #f8fafc;
+  --app-shell-fg: #0f172a;
+  --app-header-bg: rgba(255, 255, 255, 0.84);
+  --app-header-border: rgba(148, 163, 184, 0.35);
+  --app-sidebar-bg: rgba(255, 255, 255, 0.96);
+  --app-sidebar-border: rgba(148, 163, 184, 0.35);
+  --text-app-title: #0f172a;
+  --text-app-subtle: #475569;
+
   /* Glassmorphism Variables */
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.3);
-  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.34);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+  --glass-hover-bg: rgba(255, 255, 255, 0.85);
+  --glass-hover-shadow: 0 12px 48px 0 rgba(31, 38, 135, 0.12);
   
   /* Enterprise Color Palette */
   --enterprise-blue: #1e3a8a; /* Navy Blue */
@@ -19,18 +30,93 @@
   --enterprise-accent: #06b6d4; /* Cyan accent */
   
   /* Background Gradients */
-  --bg-gradient-start: #f0f2f5;
-  --bg-gradient-end: #e6e9ef;
+  --bg-gradient-start: #e0f2fe;
+  --bg-gradient-mid: #fbcfe8;
+  --bg-gradient-end: #fef3c7;
+}
+
+[data-theme='dark'] {
+  --app-shell-bg: #020617;
+  --app-shell-fg: #e2e8f0;
+  --app-header-bg: rgba(2, 6, 23, 0.84);
+  --app-header-border: rgba(148, 163, 184, 0.2);
+  --app-sidebar-bg: #020617;
+  --app-sidebar-border: rgba(148, 163, 184, 0.2);
+  --text-app-title: #f8fafc;
+  --text-app-subtle: #94a3b8;
+  --glass-bg: rgba(15, 23, 42, 0.64);
+  --glass-border: rgba(51, 65, 85, 0.6);
+  --glass-shadow: 0 10px 34px 0 rgba(2, 6, 23, 0.55);
+  --glass-hover-bg: rgba(15, 23, 42, 0.8);
+  --glass-hover-shadow: 0 14px 42px 0 rgba(2, 6, 23, 0.6);
+  --enterprise-blue: #60a5fa;
+  --enterprise-blue-light: #93c5fd;
+  --enterprise-accent: #22d3ee;
+  --bg-gradient-start: #020617;
+  --bg-gradient-mid: #0f172a;
+  --bg-gradient-end: #1e293b;
 }
 
 @layer base {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #06b6d4;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #0891b2;
+  }
+
   body {
-    background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 50%, var(--bg-gradient-end) 100%);
     background-attachment: fixed;
+    color: var(--app-shell-fg);
+    transition: background 250ms ease, color 250ms ease;
+  }
+
+  .glass {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(6, 182, 212, 0.2);
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
   }
 }
 
 @layer utilities {
+  .app-shell {
+    background-color: var(--app-shell-bg);
+    color: var(--app-shell-fg);
+  }
+
+  .app-header {
+    background-color: var(--app-header-bg);
+    border-color: var(--app-header-border);
+  }
+
+  .app-sidebar {
+    background-color: var(--app-sidebar-bg);
+    border-color: var(--app-sidebar-border);
+  }
+
+  .text-app-title {
+    color: var(--text-app-title);
+  }
+
+  .text-app-subtle {
+    color: var(--text-app-subtle);
+  }
+
   /* Glassmorphism Utility Classes */
   .glass-panel {
     background: var(--glass-bg);
@@ -45,8 +131,8 @@
   }
   
   .glass-panel-hover:hover {
-    background: rgba(255, 255, 255, 0.85);
-    box-shadow: 0 12px 48px 0 rgba(31, 38, 135, 0.12);
+    background: var(--glass-hover-bg);
+    box-shadow: var(--glass-hover-shadow);
   }
   
   .glass-overlay {
@@ -74,9 +160,9 @@
   }
   
   .btn-enterprise:hover {
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--glass-hover-bg);
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px 0 rgba(31, 38, 135, 0.15);
+    box-shadow: var(--glass-hover-shadow);
   }
 
   .text-enterprise-blue {

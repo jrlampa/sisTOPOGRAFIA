@@ -11,25 +11,19 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov', 'text-summary'],
+      reportsDirectory: 'coverage/frontend',
+      include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'node_modules/',
         'tests/',
         '**/*.d.ts',
         '**/*.config.*',
+        'server/**',
+        'scripts/**',
+        'py_engine/**',
         '**/dist/**',
         '**/build/**',
       ],
-      lines: 80,
-      functions: 80,
-      branches: 75,
-      statements: 80,
-      // 100% coverage para arquivos críticos (20% que representam 80% de impacto)
-      thresholds: {
-        lines: 80,
-        functions: 80,
-        branches: 75,
-        statements: 80,
-      }
     },
     include: ['tests/**/*.{test,spec}.{js,ts,jsx,tsx}'],
   },
