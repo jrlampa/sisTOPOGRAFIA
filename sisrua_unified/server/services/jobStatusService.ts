@@ -40,36 +40,6 @@ const MAX_JOB_AGE = config.JOB_MAX_AGE_MS;
 let cleanupIntervalId: NodeJS.Timeout | null = null;
 let initializationStarted = false;
 
-const REQUIRED_JOBS_COLUMNS = [
-    'id',
-    'status',
-    'progress',
-    'result',
-    'error',
-    'created_at',
-    'updated_at',
-    'attempts'
-] as const;
-
-async function validateJobsSchema(sql: SqlClient): Promise<void> {
-    const rows = await sql<[{ column_name: string }][]>`
-        select column_name
-        from information_schema.columns
-        where table_schema = 'public'
-          and table_name = ${JOBS_TABLE}
-    `;
-
-    const existing = new Set(rows.map((row) => row.column_name));
-    const missing = REQUIRED_JOBS_COLUMNS.filter((column) => !existing.has(column));
-
-    if (missing.length > 0) {
-        throw new Error(
-            `Missing required columns in public.${JOBS_TABLE}: ${missing.join(', ')}. ` +
-            'Apply database migrations before enabling Supabase/Postgres jobs persistence.'
-        );
-    }
-}
-
 async function initializePersistence(): Promise<void> {
     if (!USE_SUPABASE_JOBS || !DATABASE_URL || postgresAvailable) {
         return;
@@ -77,16 +47,16 @@ async function initializePersistence(): Promise<void> {
 
     try {
         sqlClient = postgres(DATABASE_URL, {
-            ssl: 'require',
+            ssl: config.NODE_ENV === 'production' ? 'require' : undefined,
             max: 2,
             connect_timeout: 8,
             idle_timeout: 10
         });
 
-        await validateJobsSchema(sqlClient);
+        // Removed implicit DDL (create table if not exists). This is now handled by migration files.
 
         postgresAvailable = true;
-        logger.info('JobStatusService: Supabase/Postgres persistence enabled (schema validated)');
+        logger.info('JobStatusService: Supabase/Postgres persistence enabled');
 
         // Load existing jobs from Postgres on startup
         await loadJobsFromPostgres();

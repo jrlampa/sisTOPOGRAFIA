@@ -1,6 +1,5 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
 import 'dotenv/config';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
@@ -9,17 +8,16 @@ import fs from 'fs';
 import swaggerUi from 'swagger-ui-express';
 
 import { config } from './config.js';
+import { OllamaService } from './services/ollamaService.js';
 import { startFirestoreMonitoring, stopFirestoreMonitoring } from './services/firestoreService.js';
 import { initializeDxfCleanup, markDxfDownloaded, stopDxfCleanup } from './services/dxfCleanupService.js';
-import { stopCacheCleanup } from './services/cacheService.js';
 import { stopTaskWorker } from './services/cloudTasksService.js';
 import { constantsService } from './services/constantsService.js';
 import { logger } from './utils/logger.js';
-import { analyzeRateLimiter, downloadsRateLimiter, generalRateLimiter, refreshRateLimitersFromCatalog } from './middleware/rateLimiter.js';
+import { generalRateLimiter, refreshRateLimitersFromCatalog } from './middleware/rateLimiter.js';
 import { requestMetrics } from './middleware/requestMetrics.js';
 import { specs } from './swagger.js';
-import { errorHandler, createError } from './errorHandler.js';
-import { resolveDxfDirectory } from './utils/dxfDirectory.js';
+import { errorHandler, createError, asyncHandler } from './errorHandler.js';
 
 // Import Routes
 import elevationRoutes from './routes/elevationRoutes.js';
@@ -44,11 +42,9 @@ const __dirname = path.dirname(__filename);
 const app: Express = express();
 const port = config.PORT;
 
-// Explicit trust proxy configuration is required for accurate req.ip behind reverse proxies.
-app.set('trust proxy', config.trustProxy);
-
 // Ollama process management
 let ollamaProcess: ReturnType<typeof spawn> | null = null;
+const OLLAMA_MODEL = config.OLLAMA_MODEL;
 
 function resolveFrontendDistDirectory(): string {
     const candidates = [
@@ -61,7 +57,7 @@ function resolveFrontendDistDirectory(): string {
     return existing || candidates[0];
 }
 
-const dxfDirectory = resolveDxfDirectory();
+const dxfDirectory = config.DXF_DIRECTORY;
 const frontendDistDirectory = resolveFrontendDistDirectory();
 
 // Ensure DXF directory exists
@@ -98,7 +94,7 @@ const allowedOrigins =
     ? (config.CORS_ORIGIN
         ? config.CORS_ORIGIN.split(',').map((o) => o.trim())
         : [])
-    : ['http://localhost:5173', 'http://localhost:4173', 'http://127.0.0.1:5173']; // Vite dev/preview
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4173', 'http://127.0.0.1:5173']; // Vite dev/preview
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -112,21 +108,17 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-app.use(helmet({
-    // Allow cross-origin resource fetches for current frontend/backend split deployments.
-    crossOriginResourcePolicy: { policy: 'cross-origin' }
-}));
 app.use(express.json({ limit: config.BODY_LIMIT }));
 app.use(requestMetrics);
 app.use(generalRateLimiter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // Controlled DXF download: stream file and delete it immediately after successful download.
-app.get('/downloads/:filename', downloadsRateLimiter, (req: Request, res: Response, next: NextFunction) => {
+app.get('/downloads/:filename', (req: Request, res: Response, next: NextFunction) => {
     const requested = req.params.filename || '';
     
     // Sanitize: allow only alphanumeric, dash, underscore, and dot
-    if (!/^[\w.-]+$/.test(requested)) {
+    if (!/^[\w\-\.]+$/.test(requested)) {
         return next(createError.validation('Invalid filename format', { received: requested }));
     }
     
@@ -183,7 +175,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/osm', osmRoutes);
 app.use('/api/ibge', ibgeRoutes);
 app.use('/api/inde', indeRoutes);
-app.use('/api/analyze', analyzeRateLimiter, analysisRoutes);
+app.use('/api/analyze', analysisRoutes);
 app.use('/api/constants', constantsRoutes);
 app.use('/api/bt-history', btHistoryRoutes);
 app.use('/api/bt', btDerivedRoutes);
@@ -209,19 +201,9 @@ app.use(errorHandler);
 
 // Start server
 app.listen(port, async () => {
-    logger.info('Backend online', {
-        service: 'sisRUA',
-        version: config.APP_VERSION,
-        port,
-        trustProxy: config.trustProxy,
-    });
+    logger.info('Backend online', { service: 'sisRUA', version: config.APP_VERSION, port });
     if (config.useSupabaseJobs) {
         logger.info('Supabase/Postgres jobs persistence is enabled');
-    }
-    if (!config.CONSTANTS_REFRESH_TOKEN?.trim()) {
-        logger.warn('CONSTANTS_REFRESH_TOKEN is not configured. Constants refresh admin endpoints will be unavailable.', {
-            environment: config.NODE_ENV,
-        });
     }
     const dbConstantsNamespaces: string[] = [
         ...(config.useDbConstantsCqt ? ['cqt'] : []),
@@ -242,31 +224,5 @@ app.listen(port, async () => {
 });
 
 // Graceful shutdown
-let shuttingDown = false;
-
-async function shutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {
-    if (shuttingDown) {
-        return;
-    }
-    shuttingDown = true;
-
-    logger.info('Shutdown signal received', { signal });
-    try {
-        await stopTaskWorker();
-    } catch (error) {
-        logger.error('Failed to stop task worker gracefully', { error });
-    }
-
-    stopDxfCleanup();
-    stopCacheCleanup();
-    stopOllama();
-    stopFirestoreMonitoring();
-    process.exit(0);
-}
-
-process.on('SIGTERM', () => {
-    void shutdown('SIGTERM');
-});
-process.on('SIGINT', () => {
-    void shutdown('SIGINT');
-});
+process.on('SIGTERM', () => { stopTaskWorker(); stopDxfCleanup(); stopOllama(); stopFirestoreMonitoring(); process.exit(0); });
+process.on('SIGINT', () => { stopTaskWorker(); stopDxfCleanup(); stopOllama(); stopFirestoreMonitoring(); process.exit(0); });

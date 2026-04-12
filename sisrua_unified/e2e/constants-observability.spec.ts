@@ -20,9 +20,23 @@ test.describe('Constants Catalog Observability', () => {
 
   test('constants status endpoint exposes flags and active policy snapshots', async ({ request }) => {
     const response = await request.get(`${BACKEND_BASE_URL}/api/constants/status`);
-    expect(response.ok()).toBeTruthy();
 
-    const body = await response.json();
+    let body: any;
+    if (response.ok()) {
+      body = await response.json();
+    } else {
+      expect(response.status()).toBe(401);
+      test.skip(!REFRESH_TOKEN, 'E2E_CONSTANTS_REFRESH_TOKEN not configured for protected constants status endpoint');
+
+      const withToken = await request.get(`${BACKEND_BASE_URL}/api/constants/status`, {
+        headers: {
+          'x-constants-refresh-token': REFRESH_TOKEN!,
+        },
+      });
+      expect(withToken.ok()).toBeTruthy();
+      body = await withToken.json();
+    }
+
     expect(body.flags).toBeDefined();
     expect(typeof body.flags.cqt).toBe('boolean');
     expect(typeof body.flags.clandestino).toBe('boolean');

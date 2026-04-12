@@ -83,7 +83,6 @@ router.post('/', async (req: Request, res: Response) => {
         return res.json(result);
     } catch (error: any) {
         const bodyMetadata = getBodyMetadata(req.body);
-
         logger.error('Ollama analysis error', {
             error: error.message,
             stack: error.stack,
@@ -91,12 +90,10 @@ router.post('/', async (req: Request, res: Response) => {
             errorType: error.constructor.name
         });
 
-        const sanitizedMessage = String(error.message || 'Unknown error').slice(0, MAX_ERROR_MESSAGE_LENGTH);
-
         return res.status(500).json({
             error: 'Analysis failed',
-            details: sanitizedMessage,
-            analysis: `**Erro na Análise AI**\n\nNão foi possível processar a análise. Erro: ${error.message}`
+            details: 'Internal Server Error',
+            analysis: `**Erro na Análise AI**\n\nNão foi possível processar a análise. Ocorreu um erro interno durante a comunicação com o serviço remoto.`
         });
     }
 });

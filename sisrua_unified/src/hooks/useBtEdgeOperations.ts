@@ -11,15 +11,15 @@
  * - Set replacement conductors
  */
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   GlobalState,
   GeoLocation,
   BtTopology,
   BtEdge,
-  AppSettings
-} from '../types';
-import { ToastType } from '../components/Toast';
+  AppSettings,
+} from "../types";
+import { ToastType } from "../components/Toast";
 import {
   EMPTY_BT_TOPOLOGY,
   DEFAULT_EDGE_CONDUCTOR,
@@ -27,12 +27,12 @@ import {
   getEdgeChangeFlag,
   normalizeBtEdge,
   distanceMeters,
-  nextSequentialId
-} from '../utils/btNormalization';
+  nextSequentialId,
+} from "../utils/btNormalization";
 import {
   LEGACY_ID_ENTROPY,
-  ENTITY_ID_PREFIXES
-} from '../constants/magicNumbers';
+  ENTITY_ID_PREFIXES,
+} from "../constants/magicNumbers";
 
 type Params = {
   appState: GlobalState;
@@ -45,13 +45,15 @@ export function useBtEdgeOperations({
   appState,
   setAppState,
   showToast,
-  findNearestPole
+  findNearestPole,
 }: Params) {
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
   const settings: AppSettings = appState.settings;
 
   // ── UI state for edge operations ───────────────────────────────────────────
-  const [pendingBtEdgeStartPoleId, setPendingBtEdgeStartPoleId] = useState<string | null>(null);
+  const [pendingBtEdgeStartPoleId, setPendingBtEdgeStartPoleId] = useState<
+    string | null
+  >(null);
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -60,46 +62,54 @@ export function useBtEdgeOperations({
   const handleBtMapClickAddEdge = (location: GeoLocation) => {
     const nearestPole = findNearestPole(location);
     if (!nearestPole) {
-      showToast('Nenhum poste próximo (raio de captura: 80m)', 'error');
+      showToast("Nenhum poste próximo (raio de captura: 80m)", "error");
       return;
     }
 
     if (!pendingBtEdgeStartPoleId) {
       setPendingBtEdgeStartPoleId(nearestPole.id);
-      showToast(`Origem selecionada: ${nearestPole.title}`, 'info');
+      showToast(`Origem selecionada: ${nearestPole.title}`, "info");
       return;
     }
 
     if (pendingBtEdgeStartPoleId === nearestPole.id) {
-      showToast('Selecione um segundo poste para concluir o condutor', 'info');
+      showToast("Selecione um segundo poste para concluir o condutor", "info");
       return;
     }
 
-    const fromPole = btTopology.poles.find((pole) => pole.id === pendingBtEdgeStartPoleId);
+    const fromPole = btTopology.poles.find(
+      (pole) => pole.id === pendingBtEdgeStartPoleId,
+    );
     if (!fromPole) {
       setPendingBtEdgeStartPoleId(null);
-      showToast('Poste de origem não encontrado', 'error');
+      showToast("Poste de origem não encontrado", "error");
       return;
     }
 
     const alreadyConnected = btTopology.edges.some(
       (edge) =>
         (edge.fromPoleId === fromPole.id && edge.toPoleId === nearestPole.id) ||
-        (edge.fromPoleId === nearestPole.id && edge.toPoleId === fromPole.id)
+        (edge.fromPoleId === nearestPole.id && edge.toPoleId === fromPole.id),
     );
 
     if (alreadyConnected) {
       setPendingBtEdgeStartPoleId(nearestPole.id);
-      showToast(`Já existe condutor entre ${fromPole.id} <-> ${nearestPole.id}. Nova origem: ${nearestPole.id}`, 'info');
+      showToast(
+        `Já existe condutor entre ${fromPole.id} <-> ${nearestPole.id}. Nova origem: ${nearestPole.id}`,
+        "info",
+      );
       return;
     }
 
-    const edgeId = nextSequentialId(btTopology.edges.map((edge) => edge.id), 'E');
+    const edgeId = nextSequentialId(
+      btTopology.edges.map((edge) => edge.id),
+      "E",
+    );
     const lengthMeters = Math.round(
       distanceMeters(
         { lat: fromPole.lat, lng: fromPole.lng },
-        { lat: nearestPole.lat, lng: nearestPole.lng }
-      )
+        { lat: nearestPole.lat, lng: nearestPole.lng },
+      ),
     );
 
     setAppState(
@@ -117,27 +127,39 @@ export function useBtEdgeOperations({
               conductors: [],
               replacementFromConductors: [],
               removeOnExecution: false,
-              edgeChangeFlag: 'existing'
-            }
-          ]
-        }
+              edgeChangeFlag: "existing",
+            },
+          ],
+        },
       },
-      true
+      true,
     );
 
     setPendingBtEdgeStartPoleId(nearestPole.id);
-    showToast(`Condutor ${edgeId} criado (${lengthMeters}m). Nova origem: ${nearestPole.id}`, 'success');
+    showToast(
+      `Condutor ${edgeId} criado (${lengthMeters}m). Nova origem: ${nearestPole.id}`,
+      "success",
+    );
   };
 
   const handleBtDeleteEdge = (edgeId: string) => {
     setAppState(
-      { ...appState, btTopology: { ...btTopology, edges: btTopology.edges.filter((e) => e.id !== edgeId) } },
-      true
+      {
+        ...appState,
+        btTopology: {
+          ...btTopology,
+          edges: btTopology.edges.filter((e) => e.id !== edgeId),
+        },
+      },
+      true,
     );
-    showToast(`Condutor ${edgeId} removido`, 'info');
+    showToast(`Condutor ${edgeId} removido`, "info");
   };
 
-  const handleBtSetEdgeChangeFlag = (edgeId: string, edgeChangeFlag: BtEdgeChangeFlag) => {
+  const handleBtSetEdgeChangeFlag = (
+    edgeId: string,
+    edgeChangeFlag: BtEdgeChangeFlag,
+  ) => {
     setAppState(
       {
         ...appState,
@@ -147,59 +169,82 @@ export function useBtEdgeOperations({
             if (edge.id !== edgeId) {
               return edge;
             }
-            return normalizeBtEdge({ ...edge, edgeChangeFlag, removeOnExecution: edgeChangeFlag === 'remove' });
-          })
-        }
+            return normalizeBtEdge({
+              ...edge,
+              edgeChangeFlag,
+              removeOnExecution: edgeChangeFlag === "remove",
+            });
+          }),
+        },
       },
-      true
+      true,
     );
 
     const statusLabel =
-      edgeChangeFlag === 'remove'
-        ? 'REMOÇÃO'
-        : edgeChangeFlag === 'new'
-          ? 'NOVO'
-          : edgeChangeFlag === 'replace'
-            ? 'SUBSTITUIÇÃO'
-            : 'EXISTENTE';
+      edgeChangeFlag === "remove"
+        ? "REMOÇÃO"
+        : edgeChangeFlag === "new"
+          ? "NOVO"
+          : edgeChangeFlag === "replace"
+            ? "SUBSTITUIÇÃO"
+            : "EXISTENTE";
 
-    showToast(`Trecho ${edgeId} marcado como ${statusLabel}.`, 'info');
+    showToast(`Trecho ${edgeId} marcado como ${statusLabel}.`, "info");
   };
 
-  const handleBtToggleEdgeRemoval = (edgeId: string, removeOnExecution: boolean) => {
-    handleBtSetEdgeChangeFlag(edgeId, removeOnExecution ? 'remove' : 'existing');
+  const handleBtToggleEdgeRemoval = (
+    edgeId: string,
+    removeOnExecution: boolean,
+  ) => {
+    handleBtSetEdgeChangeFlag(
+      edgeId,
+      removeOnExecution ? "remove" : "existing",
+    );
   };
 
-  const handleBtSetEdgeReplacementFromConductors = (edgeId: string, conductors: BtEdge['conductors']) => {
+  const handleBtSetEdgeReplacementFromConductors = (
+    edgeId: string,
+    conductors: BtEdge["conductors"],
+  ) => {
     setAppState(
       {
         ...appState,
         btTopology: {
           ...btTopology,
           edges: btTopology.edges.map((edge) =>
-            edge.id !== edgeId ? edge : normalizeBtEdge({ ...edge, replacementFromConductors: conductors })
-          )
-        }
+            edge.id !== edgeId
+              ? edge
+              : normalizeBtEdge({
+                  ...edge,
+                  replacementFromConductors: conductors,
+                }),
+          ),
+        },
       },
-      true
+      true,
     );
   };
 
-  const handleBtQuickAddEdgeConductor = (edgeId: string, conductorName: string) => {
+  const handleBtQuickAddEdgeConductor = (
+    edgeId: string,
+    conductorName: string,
+  ) => {
     const edge = btTopology.edges.find((candidate) => candidate.id === edgeId);
     if (!edge) {
-      showToast('Condutor não encontrado', 'error');
+      showToast("Condutor não encontrado", "error");
       return;
     }
 
     const selectedConductor = conductorName || DEFAULT_EDGE_CONDUCTOR;
     const conductors = [...edge.conductors];
-    const existingIndex = conductors.findIndex((entry) => entry.conductorName === selectedConductor);
+    const existingIndex = conductors.findIndex(
+      (entry) => entry.conductorName === selectedConductor,
+    );
     if (existingIndex === -1) {
       conductors.push({
         id: `${ENTITY_ID_PREFIXES.CONDUCTOR}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`,
         quantity: 1,
-        conductorName: selectedConductor
+        conductorName: selectedConductor,
       });
     } else {
       const target = conductors[existingIndex];
@@ -212,26 +257,29 @@ export function useBtEdgeOperations({
         btTopology: {
           ...btTopology,
           edges: btTopology.edges.map((candidate) =>
-            candidate.id === edgeId ? { ...candidate, conductors } : candidate
-          )
-        }
+            candidate.id === edgeId ? { ...candidate, conductors } : candidate,
+          ),
+        },
       },
-      true
+      true,
     );
-    showToast(`+1 ${selectedConductor} no trecho ${edgeId}.`, 'success');
+    showToast(`+1 ${selectedConductor} no trecho ${edgeId}.`, "success");
   };
 
-  const handleBtQuickRemoveEdgeConductor = (edgeId: string, conductorName: string) => {
+  const handleBtQuickRemoveEdgeConductor = (
+    edgeId: string,
+    conductorName: string,
+  ) => {
     const edge = btTopology.edges.find((candidate) => candidate.id === edgeId);
     if (!edge) {
-      showToast('Condutor não encontrado', 'error');
+      showToast("Condutor não encontrado", "error");
       return;
     }
 
     const selectedConductor = conductorName || DEFAULT_EDGE_CONDUCTOR;
     const conductors = [...edge.conductors];
     if (conductors.length === 0) {
-      showToast(`Trecho ${edgeId} sem condutor para reduzir.`, 'info');
+      showToast(`Trecho ${edgeId} sem condutor para reduzir.`, "info");
       return;
     }
 
@@ -241,7 +289,10 @@ export function useBtEdgeOperations({
       .find(({ entry }) => entry.conductorName === selectedConductor)?.index;
 
     if (targetIndex === undefined) {
-      showToast(`Trecho ${edgeId} sem ${selectedConductor} para reduzir.`, 'info');
+      showToast(
+        `Trecho ${edgeId} sem ${selectedConductor} para reduzir.`,
+        "info",
+      );
       return;
     }
 
@@ -258,13 +309,44 @@ export function useBtEdgeOperations({
         btTopology: {
           ...btTopology,
           edges: btTopology.edges.map((candidate) =>
-            candidate.id === edgeId ? { ...candidate, conductors } : candidate
-          )
-        }
+            candidate.id === edgeId ? { ...candidate, conductors } : candidate,
+          ),
+        },
       },
-      true
+      true,
     );
-    showToast(`-1 ${selectedConductor} no trecho ${edgeId}.`, 'success');
+    showToast(`-1 ${selectedConductor} no trecho ${edgeId}.`, "success");
+  };
+
+  const handleBtSetEdgeLengthMeters = (
+    edgeId: string,
+    lengthMeters: number,
+  ) => {
+    const sanitized = Number.isFinite(lengthMeters)
+      ? Math.max(0, Number(lengthMeters.toFixed(2)))
+      : 0;
+
+    setAppState(
+      {
+        ...appState,
+        btTopology: {
+          ...btTopology,
+          edges: btTopology.edges.map((edge) =>
+            edge.id === edgeId
+              ? {
+                  ...edge,
+                  cqtLengthMeters: sanitized,
+                }
+              : edge,
+          ),
+        },
+      },
+      true,
+    );
+    showToast(
+      `Metragem CQT do trecho ${edgeId} atualizada para ${sanitized.toFixed(2)} m.`,
+      "success",
+    );
   };
 
   return {
@@ -279,6 +361,7 @@ export function useBtEdgeOperations({
     handleBtToggleEdgeRemoval,
     handleBtSetEdgeReplacementFromConductors,
     handleBtQuickAddEdgeConductor,
-    handleBtQuickRemoveEdgeConductor
+    handleBtQuickRemoveEdgeConductor,
+    handleBtSetEdgeLengthMeters,
   };
 }

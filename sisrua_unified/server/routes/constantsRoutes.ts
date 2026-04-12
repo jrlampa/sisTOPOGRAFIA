@@ -34,7 +34,11 @@ const getRefreshActor = (req: Request): string => {
     return req.get('x-refresh-actor') || req.ip || 'unknown';
 };
 
-router.get('/status', async (_req: Request, res: Response) => {
+router.get('/status', async (req: Request, res: Response) => {
+    if (!isRefreshAuthorized(req)) {
+        return res.status(401).json({ error: 'Unauthorized status request' });
+    }
+
     const lastRefreshEvent = await constantsService.getLastRefreshEvent();
 
     return res.json({

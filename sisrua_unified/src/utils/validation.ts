@@ -12,9 +12,9 @@ export const LatLngSchema = z.object({
   label: z.string().optional(),
 });
 
-export const RadiusSchema = z.number().min(100).max(50000).int();
+export const RadiusSchema = z.number().min(10).max(50000).int();
 
-export const PolygonSchema = z.array(LatLngSchema).min(3).max(1000);
+export const PolygonSchema = z.array(LatLngSchema).max(1000);
 
 // ── DXF export inputs ───────────────────────────────────────────────────────
 
@@ -100,7 +100,11 @@ export function validateDxfExportInputs(
     LatLngSchema.parse(center);
     RadiusSchema.parse(radius);
     SelectionModeSchema.parse(selectionMode);
-    PolygonSchema.parse(polygon);
+    if (selectionMode === 'polygon') {
+      PolygonSchema.min(3).parse(polygon);
+    } else {
+      PolygonSchema.parse(polygon);
+    }
     LayerConfigSchema.parse(layers);
     return true;
   } catch {

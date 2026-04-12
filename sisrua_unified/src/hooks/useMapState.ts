@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { AppSettings, GeoLocation, GlobalState, SelectionMode } from '../types';
-import type { ToastType } from '../components/Toast';
-import { clearSessionDraft, loadSessionDraft } from './useAutoSave';
-import { DEFAULT_LOCATION } from '../constants';
+import { useEffect, useMemo, useRef, useState } from "react";
+import type {
+  AppSettings,
+  GeoLocation,
+  GlobalState,
+  SelectionMode,
+} from "../types";
+import type { ToastType } from "../components/Toast";
+import { clearSessionDraft, loadSessionDraft } from "./useAutoSave";
+import { DEFAULT_LOCATION } from "../constants";
 
 interface UseMapStateParams {
   appState: GlobalState;
@@ -19,91 +24,79 @@ export function useMapState({
   loadElevationProfile,
   clearProfile,
 }: UseMapStateParams) {
-  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: ToastType;
+  } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [sessionDraft, setSessionDraft] = useState<GlobalState | null>(null);
-  const appStateRef = useRef(appState);
+  const latestAppStateRef = useRef(appState);
 
   const { polygon, measurePath, selectionMode } = appState;
 
   useEffect(() => {
-    appStateRef.current = appState;
+    latestAppStateRef.current = appState;
   }, [appState]);
-
-  const applyAppState = useCallback(
-    (buildNextState: (current: GlobalState) => GlobalState, commit = true) => {
-      const nextState = buildNextState(appStateRef.current);
-      appStateRef.current = nextState;
-      setAppState(nextState, commit);
-    },
-    [setAppState]
-  );
 
   useEffect(() => {
     const draft = loadSessionDraft();
     if (draft && (draft.state.btTopology?.poles.length ?? 0) > 0) {
       setSessionDraft(draft.state);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const showToast = useCallback((message: string, type: ToastType) => {
+  const showToast = (message: string, type: ToastType) => {
     setToast({ message, type });
-  }, []);
+  };
 
-  const closeToast = useCallback(() => {
+  const closeToast = () => {
     setToast(null);
-  }, []);
+  };
 
-  const openSettings = useCallback(() => {
+  const openSettings = () => {
     setShowSettings(true);
-  }, []);
+  };
 
-  const closeSettings = useCallback(() => {
+  const closeSettings = () => {
     setShowSettings(false);
-  }, []);
+  };
 
-  const handleRestoreSession = useCallback(() => {
+  const handleRestoreSession = () => {
     if (!sessionDraft) {
       return;
     }
 
     setAppState(sessionDraft, false);
-    appStateRef.current = sessionDraft;
     setSessionDraft(null);
     clearSessionDraft();
-    showToast('Sessão anterior restaurada.', 'success');
-  }, [sessionDraft, setAppState, showToast]);
+    showToast("Sessão anterior restaurada.", "success");
+  };
 
-  const handleDismissSession = useCallback(() => {
+  const handleDismissSession = () => {
     setSessionDraft(null);
     clearSessionDraft();
-  }, []);
+  };
 
-  const updateSettings = useCallback(
-    (newSettings: AppSettings) => {
-      applyAppState((current) => ({ ...current, settings: newSettings }), true);
-    },
-    [applyAppState]
-  );
+  const updateSettings = (newSettings: AppSettings) => {
+    setAppState({ ...appState, settings: newSettings }, true);
+  };
 
-  const handleMapClick = useCallback(
-    (newCenter: GeoLocation) => {
-      applyAppState((current) => ({ ...current, center: newCenter }), true);
-      clearData();
-    },
-    [applyAppState, clearData]
-  );
+  const handleMapClick = (newCenter: GeoLocation) => {
+    setAppState({ ...appState, center: newCenter }, true);
+    clearData();
+  };
 
-  const handleSelectionModeChange = useCallback(
-    (mode: SelectionMode) => {
-      applyAppState((current) => ({ ...current, selectionMode: mode, polygon: [], measurePath: [] }), true);
-    },
-    [applyAppState]
-  );
+  const handleSelectionModeChange = (mode: SelectionMode) => {
+    setAppState(
+      { ...appState, selectionMode: mode, polygon: [], measurePath: [] },
+      true,
+    );
+  };
 
-  const handleMeasurePathChange = useCallback(async (path: [number, number][]) => {
+  const handleMeasurePathChange = async (path: [number, number][]) => {
     const geoPath = path.map((point) => ({ lat: point[0], lng: point[1] }));
-    applyAppState((current) => ({ ...current, measurePath: geoPath }), false);
+    setAppState({ ...appState, measurePath: geoPath }, false);
 
     if (geoPath.length === 2) {
       await loadElevationProfile(geoPath[0], geoPath[1]);
@@ -111,74 +104,63 @@ export function useMapState({
     }
 
     clearProfile();
-  }, [applyAppState, clearProfile, loadElevationProfile]);
+  };
 
-  const handleRadiusChange = useCallback(
-    (nextRadius: number) => {
-      applyAppState((current) => ({ ...current, radius: nextRadius }), false);
-    },
-    [applyAppState]
-  );
+  const handleRadiusChange = (nextRadius: number) => {
+    setAppState({ ...appState, radius: nextRadius }, false);
+  };
 
-  const handleClearPolygon = useCallback(() => {
-    applyAppState((current) => ({ ...current, polygon: [] }), true);
-  }, [applyAppState]);
+  const handleClearPolygon = () => {
+    setAppState({ ...appState, polygon: [] }, true);
+  };
 
-  const handlePolygonChange = useCallback((points: [number, number][]) => {
+  const handlePolygonChange = (points: [number, number][]) => {
     const geoPoints = points.map((point) => ({ lat: point[0], lng: point[1] }));
-    applyAppState((current) => ({ ...current, polygon: geoPoints }), true);
-  }, [applyAppState]);
+    setAppState({ ...appState, polygon: geoPoints }, true);
+  };
 
   // Set center to current geolocation on mount (only when center is the default placeholder)
   useEffect(() => {
-    const currentState = appStateRef.current;
     const isDefaultCenter =
-      currentState.center.lat === DEFAULT_LOCATION.lat &&
-      currentState.center.lng === DEFAULT_LOCATION.lng;
+      appState.center.lat === DEFAULT_LOCATION.lat &&
+      appState.center.lng === DEFAULT_LOCATION.lng;
 
-    if (!isDefaultCenter || !navigator.geolocation) {
-      return;
-    }
-
-    let cancelled = false;
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        if (cancelled) {
-          return;
-        }
-
-        applyAppState(
-          (state) => ({
-            ...state,
-            center: {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-              label: 'Local Atual',
+    if (isDefaultCenter && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const latest = latestAppStateRef.current;
+          setAppState(
+            {
+              ...latest,
+              center: {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                label: "Current Location",
+              },
             },
-          }),
-          false
-        );
-      },
-      () => {
-        // Geolocation permission denied — keep default
-      }
-    );
+            false,
+          );
+        },
+        (_err) => {
+          // Geolocation permission denied — keep default
+        },
+      );
+    }
+    // Only run on mount; appState.center must be captured but not trigger re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [applyAppState]);
-
-  const isPolygonValid = selectionMode === 'polygon' && polygon.length >= 3;
+  const isPolygonValid = selectionMode === "polygon" && polygon.length >= 3;
 
   const polygonPoints = useMemo(
     () => polygon.map((point) => [point.lat, point.lng] as [number, number]),
-    [polygon]
+    [polygon],
   );
 
   const measurePathPoints = useMemo(
-    () => measurePath.map((point) => [point.lat, point.lng] as [number, number]),
-    [measurePath]
+    () =>
+      measurePath.map((point) => [point.lat, point.lng] as [number, number]),
+    [measurePath],
   );
 
   return {

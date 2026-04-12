@@ -1,27 +1,51 @@
-import React, { Suspense } from 'react';
-import { Layers, Loader2, Settings } from 'lucide-react';
-import { motion } from 'framer-motion';
-
-const HistoryControls = React.lazy(() => import('./HistoryControls'));
-
-const InlineSuspenseFallback = ({ label }: { label: string }) => (
-  <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-    <Loader2 size={14} className="animate-spin" />
-    {label}
-  </div>
-);
+import React from "react";
+import { FolderOpen, Layers, Save, Settings } from "lucide-react";
+import { motion } from "framer-motion";
+import HistoryControls from "./HistoryControls";
 
 interface AppHeaderProps {
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  onSaveProject: () => void;
+  onOpenProject: (file: File) => void;
   onOpenSettings: () => void;
+  isDark: boolean;
 }
 
-export function AppHeader({ canUndo, canRedo, onUndo, onRedo, onOpenSettings }: AppHeaderProps) {
+export function AppHeader({
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  onSaveProject,
+  onOpenProject,
+  onOpenSettings,
+  isDark,
+}: AppHeaderProps) {
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleOpenProjectClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleProjectFileChange: React.ChangeEventHandler<HTMLInputElement> = (
+    event,
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      onOpenProject(file);
+    }
+
+    // Allow selecting the same file repeatedly.
+    event.currentTarget.value = "";
+  };
+
   return (
-    <header className="app-header h-20 border-b flex items-center justify-between px-8 shrink-0 z-30 transition-all backdrop-blur-md">
+    <header
+      className={`h-20 border-b flex items-center justify-between px-8 shrink-0 z-30 transition-all ${isDark ? "border-white/5 bg-[#020617]/80 backdrop-blur-md" : "border-slate-200 bg-white/80 backdrop-blur-md"}`}
+    >
       <div className="flex items-center gap-4">
         <motion.div
           whileHover={{ rotate: 180 }}
@@ -30,22 +54,56 @@ export function AppHeader({ canUndo, canRedo, onUndo, onRedo, onOpenSettings }: 
           <Layers size={22} className="text-white" />
         </motion.div>
         <div>
-          <h1 className="text-app-title text-xl font-black tracking-tighter flex items-center gap-2">
-            SIS RUA <span className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-[10px] font-mono border border-blue-500/20">UNIFIED</span>
+          <h1 className="text-xl font-black tracking-tighter text-white flex items-center gap-2">
+            SIS RUA{" "}
+            <span className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-[10px] font-mono border border-blue-500/20">
+              UNIFIED
+            </span>
           </h1>
-          <p className="text-app-subtle text-[10px] font-bold uppercase tracking-[0.3em]">Análise Geo Avançada</p>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em]">
+            Análise Geo Avançada
+          </p>
         </div>
       </div>
 
       <div className="flex items-center gap-6">
-        <Suspense fallback={<InlineSuspenseFallback label="Carregando histórico" />}>
-          <HistoryControls
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onUndo={onUndo}
-            onRedo={onRedo}
+        <HistoryControls
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={onUndo}
+          onRedo={onRedo}
+        />
+
+        <div className="flex items-center gap-2">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onSaveProject}
+            className="p-2.5 glass rounded-xl text-slate-300 hover:text-white transition-colors shadow-lg"
+            title="Salvar projeto"
+          >
+            <Save size={18} />
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleOpenProjectClick}
+            className="p-2.5 glass rounded-xl text-slate-300 hover:text-white transition-colors shadow-lg"
+            title="Abrir projeto"
+          >
+            <FolderOpen size={18} />
+          </motion.button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".srua,.json"
+            title="Selecionar arquivo de projeto"
+            aria-label="Selecionar arquivo de projeto"
+            onChange={handleProjectFileChange}
+            className="hidden"
           />
-        </Suspense>
+        </div>
 
         <motion.button
           whileHover={{ scale: 1.05 }}
