@@ -64,3 +64,11 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Local virtual environments
+.venv/
+venv/
+
+# Local backups and temporary comparison outputs
+sisrua_unified - Copia/
+tmp-*.json

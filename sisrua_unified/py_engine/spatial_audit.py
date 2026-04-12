@@ -1,4 +1,5 @@
 import geopandas as gpd
+import pandas as pd
 from shapely.geometry import Point, LineString
 
 try:
@@ -25,7 +26,7 @@ def run_spatial_audit(gdf):
     # Identify categories safely
     def has_col_val(col, val):
         if col not in gdf.columns:
-            return gpd.pd.Series([False] * len(gdf))
+            return pd.Series([False] * len(gdf))
         return gdf[col] == val
 
     # Filter features by type
@@ -119,7 +120,7 @@ def _combine_analysis_features(analysis_features, crs):
     
     try:
         # Use ignore_index=True to prevent index overlap errors
-        combined_df = gpd.pd.concat(analysis_features, ignore_index=True)
+        combined_df = pd.concat(analysis_features, ignore_index=True)
         return gpd.GeoDataFrame(combined_df, crs=crs)
     except Exception as e:
         Logger.warn(f"Audit concat fallback triggered: {e}")

@@ -84,3 +84,8 @@ coverage-final.json
 *.njsproj
 *.sln
 *.sw?
+
+# Local post-analysis residue
+tmp-*.json
+dev_server*.log
+server_debug.log

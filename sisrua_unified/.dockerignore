@@ -83,3 +83,10 @@ test_files
 tmp
 temp
 *.tmp
+
+# Local residue and dev-only artifacts
+tmp-*.json
+dev_server*.log
+server_debug.log
+.venv
+venv

@@ -1,775 +1,190 @@
-# 10 Sugestões de Melhorias para o Projeto sisRUA Unified
+# MELHORIAS SUGERIDAS
 
-**Data:** 16 de Fevereiro de 2026  
-**Versão:** 1.0  
-**Projeto:** sisRUA Unified - Sistema de Exportação OSM para DXF
-
----
-
-## 📋 Resumo Executivo
-
-Este documento apresenta 10 sugestões prioritárias de implementações, refinamentos e melhorias para o projeto sisRUA Unified, baseadas na análise do código atual e melhores práticas de desenvolvimento.
+Data: 12 de Abril de 2026
+Versao: 4.0
+Status: Backlog consolidado — implementacoes verificadas + 60 sugestoes por area (Frontend, Backend, BD, Metricas, Conformidade, Supply Chain)
 
 ---
 
-## 🎯 Sugestões de Melhorias
+## Status das 10 Melhorias Originais (Batch 1)
 
-### 1. **Implementar Cache Inteligente para Requisições OSM**
+Levantamento realizado diretamente no codigo-fonte em 12/04/2026.
 
-**Prioridade:** 🔴 Alta  
-**Impacto:** Performance e custos  
-**Esforço:** Médio (2-3 dias)
-
-**Descrição:**  
-Implementar um sistema de cache persistente para requisições ao OpenStreetMap, reduzindo chamadas à API e melhorando o tempo de resposta.
-
-**Implementação:**
-```typescript
-// src/services/cacheService.ts
-interface CacheEntry {
-  data: any;
-  timestamp: number;
-  ttl: number;
-}
-
-class CacheService {
-  private cache = new Map<string, CacheEntry>();
-  
-  async get(key: string): Promise<any | null> {
-    const entry = this.cache.get(key);
-    if (entry && Date.now() - entry.timestamp < entry.ttl) {
-      return entry.data;
-    }
-    return null;
-  }
-  
-  async set(key: string, data: any, ttl: number = 3600000): Promise<void> {
-    this.cache.set(key, { data, timestamp: Date.now(), ttl });
-  }
-}
-```
-
-**Benefícios:**
-- ✅ Redução de 70-80% nas chamadas à API OSM
-- ✅ Tempo de resposta até 10x mais rápido para áreas já consultadas
-- ✅ Menor consumo de recursos de rede
-- ✅ Melhor experiência do usuário em consultas repetidas
+| #   | Melhoria                         | Status       | Evidencia no codigo                                                        |
+| --- | -------------------------------- | ------------ | -------------------------------------------------------------------------- |
+| 1   | Cache inteligente OSM            | Implementado | `CACHE_TTL_MS` em config.ts, cache de DXF com TTL configuravel             |
+| 2   | Logs estruturados com Winston    | Implementado | `server/utils/logger.ts`, winston com timestamp + JSON                     |
+| 3   | Fila assincrona para geracao DXF | Implementado | Cloud Tasks via `jobStatusService.ts`, nao usa Bull/Redis                  |
+| 4   | Validacao de entrada com Zod     | Parcial      | Zod em config.ts e validation.ts; nao uniforme em todas as rotas           |
+| 5   | Rate limiting                    | Implementado | `server/middleware/rateLimiter.ts`, geral + especifico por endpoint        |
+| 6   | Testes E2E                       | Parcial      | Playwright configurado (`playwright.config.ts`); cobertura incompleta      |
+| 7   | PWA                              | Pendente     | Nenhuma configuracao de service worker ou manifest encontrada              |
+| 8   | Analytics/monitoramento          | Parcial      | `requestId` em erros, metricas de job; sem painel/analytics de uso externo |
+| 9   | Batch export (CSV → ZIP)         | Pendente     | Nenhuma rota de batch com upload CSV encontrada                            |
+| 10  | Documentacao Swagger/OpenAPI     | Implementado | `server/swagger/`, `swagger-ui-express` ativo em `/api-docs`               |
 
 ---
 
-### 2. **Adicionar Sistema de Logs Estruturados com Winston**
+---
 
-**Prioridade:** 🟡 Média  
-**Impacto:** Debugging e monitoramento  
-**Esforço:** Baixo (1-2 dias)
+## Proximas 60 Sugestoes — Batch 2 e Batch 3
 
-**Descrição:**  
-Substituir os console.log existentes por um sistema de logs estruturado usando Winston, com níveis de log, rotação de arquivos e integração com serviços de monitoramento.
+### Frontend (10 sugestoes)
 
-**Implementação:**
-```typescript
-// server/utils/logger.ts
-import winston from 'winston';
+| #    | Sugestao                                                                        | Prioridade | Status                                                                                           |
+| ---- | ------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------ |
+| F-01 | Implementar debounce na busca de enderecos para reduzir chamadas de API         | Alta       | Parcial — debounce existe em coordenadas e autosave, mas a busca de endereco OSM ainda nao usa   |
+| F-02 | Adicionar validacao visual em tempo real para coordenadas e campos obrigatorios | Alta       | Parcial — Zod em validation.ts, mas feedback visual inline nao uniforme                          |
+| F-03 | Criar componente unico de modal de confirmacao para operacoes criticas          | Media      | Pendente — modais de confirmacao estao inline sem componente central reutilizavel                |
+| F-04 | Implementar paginacao ou virtualizacao em listas grandes                        | Media      | Implementado — `usePagination` e `PaginationControls` ativos no historico BT                     |
+| F-05 | Adicionar modo escuro com persistencia em localStorage                          | Alta       | Implementado — `ThemeProvider`, tema persistido via appState em localStorage                     |
+| F-06 | Criar toasts padronizados para sucesso, erro, alerta e informacao               | Alta       | Implementado — `Toast`, `ToastType`, `showToast` em uso amplo                                    |
+| F-07 | Implementar atalhos de teclado para acoes frequentes no mapa e editor           | Baixa      | Pendente — aria-labels presentes, mas atalhos de teclado nao foram implementados                 |
+| F-08 | Adicionar carregamento com skeleton e indicador de progresso em exportacoes     | Media      | Parcial — `isDownloading`, `jobProgress` e `jobId` disponíveis; skeleton visual nao implementado |
+| F-09 | Criar filtro de camadas com busca por nome e salvamento de preferencia          | Media      | Parcial — `FloatingLayerPanel` existe; busca por nome e persistencia nao confirmadas             |
+| F-10 | Melhorar acessibilidade com navegacao por teclado e atributos aria              | Media      | Parcial — muitos aria-labels presentes; navegacao por teclado end-to-end nao coberta             |
 
-export const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
-  transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
-    new winston.transports.Console({
-      format: winston.format.simple()
-    })
-  ]
-});
+### Backend (10 sugestoes)
 
-// Uso:
-logger.info('DXF generation started', { lat, lon, radius });
-logger.error('Python bridge failed', { error: err.message });
-```
+| #    | Sugestao                                                                     | Prioridade | Status                                                                                         |
+| ---- | ---------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------- |
+| B-01 | Implementar rate limit por IP e por usuario para proteger endpoints criticos | Alta       | Implementado — `rateLimiter.ts` por IP com janelas configuráveis; por usuario nao implementado |
+| B-02 | Adicionar fila assincrona para geracao DXF e tarefas de analise pesada       | Alta       | Implementado — Cloud Tasks; sem Bull/Redis                                                     |
+| B-03 | Padronizar validacao de entrada com schema unico em todas as rotas           | Alta       | Parcial — Zod no config e rotas principais; rotas secundarias sem validacao uniforme           |
+| B-04 | Implementar retry com backoff exponencial para chamadas externas             | Media      | Parcial — retry simples no pythonBridge; sem backoff exponencial                               |
+| B-05 | Adicionar logs estruturados com correlacao por request id                    | Alta       | Implementado — winston JSON + requestId no errorHandler                                        |
+| B-06 | Criar endpoint de health check detalhado por dependencia                     | Media      | Implementado — `/health` principal + sub-endpoints Firestore e Storage                         |
+| B-07 | Implementar cache de respostas frequentes com TTL configuravel               | Alta       | Implementado — `CACHE_TTL_MS` via config; cache de DXF em memoria                              |
+| B-08 | Padronizar paginacao, ordenacao e filtros nas rotas de listagem              | Media      | Parcial — orderBy em alguns servicos; sem padrao API uniforme                                  |
+| B-09 | Adicionar compressao gzip para respostas grandes                             | Media      | Pendente — middleware de compressao nao encontrado                                             |
+| B-10 | Implementar controle de permissao granular por perfil de usuario             | Alta       | Parcial — autorizacao de storage em rotas; RBAC formal nao implementado                        |
 
-**Benefícios:**
-- ✅ Logs estruturados para análise automatizada
-- ✅ Rotação automática de arquivos de log
-- ✅ Diferentes níveis de verbosidade (debug, info, warn, error)
-- ✅ Fácil integração com ferramentas de monitoramento (ELK, Datadog)
+### Banco de dados (10 sugestoes)
+
+| #    | Sugestao                                                                     | Prioridade | Status                                                                                    |
+| ---- | ---------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------- |
+| D-01 | Criar indices compostos para consultas mais frequentes por usuario e data    | Alta       | Parcial — indices em jobs, constants e bt_export_history; outras tabelas sem cobertura    |
+| D-02 | Adicionar soft delete com coluna deleted_at em entidades de negocio          | Media      | Pendente — nenhuma migracao com deleted_at encontrada                                     |
+| D-03 | Implementar tabela de auditoria para CREATE, UPDATE e DELETE                 | Alta       | Parcial — auditoria apenas em constants_catalog via trigger; demais tabelas sem cobertura |
+| D-04 | Criar materialized views para relatorios de alto custo                       | Media      | Parcial — `005_constants_refresh_stats_views.sql` existe; outras areas sem views          |
+| D-05 | Particionar tabelas historicas por periodo para manter performance           | Baixa      | Pendente — nenhuma particao encontrada nas migrations                                     |
+| D-06 | Adicionar constraints de integridade referencial onde ainda estiver faltando | Alta       | Parcial — FK presentes em algumas tabelas; cobertura nao uniforme                         |
+| D-07 | Criar rotina automatica de manutencao (vacuum/analyze) em horarios de baixa  | Media      | Pendente — nenhuma rotina agendada encontrada                                             |
+| D-08 | Implementar estrategia de backup incremental com validacao de restore        | Alta       | Pendente — nenhum script ou documentacao de backup incremental                            |
+| D-09 | Adicionar indice geoespacial para consultas por area e intersecao            | Alta       | Pendente — sem extensao PostGIS nem indices geoespaciais nas migrations                   |
+| D-10 | Criar pipeline de sincronizacao incremental para dados OSM                   | Media      | Pendente — importacao OSM e-to-end e sem pipeline incremental                             |
 
 ---
 
-### 3. **Implementar Fila de Processamento para DXF Generation**
+### Metricas de Engenharia & Boas Praticas (10 sugestoes)
 
-**Prioridade:** 🔴 Alta  
-**Impacto:** Escalabilidade e performance  
-**Esforço:** Alto (4-5 dias)
-
-**Descrição:**  
-Implementar uma fila de processamento (usando Bull/BullMQ) para gerenciar requisições de geração de DXF, evitando sobrecarga do servidor e permitindo processamento assíncrono.
-
-**Implementação:**
-```typescript
-// server/queue/dxfQueue.ts
-import Queue from 'bull';
-
-export const dxfQueue = new Queue('dxf-generation', {
-  redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379')
-  }
-});
-
-// Processar jobs
-dxfQueue.process(async (job) => {
-  const { lat, lon, radius, mode } = job.data;
-  const result = await generateDxf(lat, lon, radius, mode);
-  return result;
-});
-
-// API endpoint
-app.post('/api/dxf', async (req, res) => {
-  const job = await dxfQueue.add({
-    lat: req.body.lat,
-    lon: req.body.lon,
-    radius: req.body.radius,
-    mode: req.body.mode
-  });
-  
-  res.json({ jobId: job.id });
-});
-
-// Status endpoint
-app.get('/api/dxf/status/:jobId', async (req, res) => {
-  const job = await dxfQueue.getJob(req.params.jobId);
-  res.json({ 
-    status: await job.getState(),
-    progress: job.progress()
-  });
-});
-```
-
-**Benefícios:**
-- ✅ Processamento assíncrono de múltiplas requisições
-- ✅ Priorização de jobs (usuários premium, tamanho da área)
-- ✅ Retry automático em caso de falha
-- ✅ Monitoramento de progresso em tempo real
-- ✅ Escalabilidade horizontal (múltiplos workers)
+| #    | Sugestao                                                                                                                   | Prioridade | Status                                                                                                      |
+| ---- | -------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| M-01 | Coletar metricas DORA: Deployment Frequency, Lead Time for Changes, MTTR e Change Failure Rate                             | Alta       | Pendente — sem coleta ou painel de metricas DORA                                                            |
+| M-02 | Definir SLO/SLI formais e error budget: disponibilidade >= 99.5%, geracao DXF p95 < 30s, taxa de falhas < 0.5%             | Alta       | Parcial — plano menciona SLO/SLI; sem definicao formal publicada e painel ativo                             |
+| M-03 | Integrar analise estatica de qualidade: cobertura >= 80%, complexidade ciclomatica <= 10, debito tecnico mensurado         | Alta       | Parcial — cobertura por pytest/vitest; sem SonarQube ou equivalente integrado ao pipeline                   |
+| M-04 | Definir performance budget: LCP < 2.5s, CLS < 0.1, INP < 200ms (Core Web Vitals) com medicao continua no CI              | Media      | Pendente — sem monitoramento de Core Web Vitals nem budget definido                                         |
+| M-05 | Monitorar latencia de API por percentil: p50, p95, p99 por endpoint; alertar quando p95 ultrapassar o SLO definido         | Alta       | Parcial — requestId em logs; sem agregacao de latencia por percentil                                        |
+| M-06 | Implementar rastreamento distribuido com correlation IDs propagados entre frontend, backend e py_engine                    | Media      | Parcial — requestId em erros; sem propagacao de trace entre camadas                                         |
+| M-07 | Estabelecer alertas de confiabilidade: MTTD < 5 min, MTTR < 1h, MTBF > 30 dias, com escalation automatico                 | Alta       | Pendente — sem alertas automaticos nem politica de escalation definida                                      |
+| M-08 | Medir metricas de pipeline CI/CD: tempo de build, tempo de teste, taxa de flakiness e frequencia de deploys                | Media      | Pendente — sem coleta de metricas de pipeline                                                               |
+| M-09 | Monitorar KPIs de negocio: taxa de sucesso DXF, tempo medio de processamento, jobs por hora, taxa de reuso de cache        | Alta       | Parcial — status de jobs disponivel; sem agregacao de KPIs nem painel de acompanhamento                     |
+| M-10 | Adotar supply chain security: SBOM (CycloneDX ou SPDX), auditoria de CVEs e politica formal de atualizacao de dependencias | Alta       | Parcial — requirements.txt e package.json atualizados; sem SBOM formal nem politica de CVE documentada      |
 
 ---
 
-### 4. **Adicionar Validação de Input com Zod**
+### Conformidade, LGPD & Etica (10 sugestoes)
 
-**Prioridade:** 🟡 Média  
-**Impacto:** Segurança e confiabilidade  
-**Esforço:** Médio (2-3 dias)
-
-**Descrição:**  
-Implementar validação robusta de inputs usando Zod, garantindo que dados inválidos sejam rejeitados antes do processamento.
-
-**Implementação:**
-```typescript
-// server/schemas/dxfRequest.ts
-import { z } from 'zod';
-
-export const DxfRequestSchema = z.object({
-  lat: z.number().min(-90).max(90),
-  lon: z.number().min(-180).max(180),
-  radius: z.number().min(10).max(5000),
-  mode: z.enum(['point', 'polygon', 'bbox']),
-  polygon: z.array(z.array(z.number())).optional(),
-  layers: z.array(z.string()).optional(),
-  projection: z.enum(['utm', 'local']).default('local')
-});
-
-// Middleware de validação
-app.post('/api/dxf', (req, res) => {
-  try {
-    const validated = DxfRequestSchema.parse(req.body);
-    // Continuar processamento...
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        error: 'Invalid input',
-        details: error.errors
-      });
-    }
-  }
-});
-```
-
-**Benefícios:**
-- ✅ Validação type-safe em tempo de execução
-- ✅ Mensagens de erro detalhadas e amigáveis
-- ✅ Redução de bugs relacionados a dados inválidos
-- ✅ Documentação automática de schemas de API
+| #    | Sugestao                                                                                                                                  | Prioridade | Status                                                                                               |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------- |
+| C-01 | Implementar Privacy by Design (LGPD Art. 46): minimizacao de dados coletados e anonimizacao de coordenadas brutas em logs e cache         | Alta       | Pendente — logs incluem coordenadas brutas sem anonimizacao formal                                   |
+| C-02 | Nomear Encarregado de Dados (DPO) e publicar canal de contato oficial conforme LGPD Art. 41                                               | Alta       | Pendente — sem referencia a DPO no projeto                                                           |
+| C-03 | Elaborar Relatorio de Impacto a Protecao de Dados Pessoais (RIPD/DPIA) conforme LGPD Art. 38                                             | Alta       | Pendente — sem RIPD/DPIA produzido                                                                   |
+| C-04 | Definir politica formal de retencao e descarte: logs (90 dias), DXF (180 dias), cache OSM (TTL 7 dias), dados de analise (1 ano)          | Alta       | Parcial — CACHE_TTL_MS definido; demais categorias sem politica formal documentada                   |
+| C-05 | Implementar atendimento a direitos do titular: acesso, correcao, portabilidade e exclusao de dados (LGPD Arts. 18-22)                     | Alta       | Pendente — sem endpoints nem fluxo operacional para direitos do titular                              |
+| C-06 | Criar procedimento de notificacao de incidentes de seguranca a ANPD e titulares (LGPD Art. 48) com prazo de comunicacao de ate 72h        | Alta       | Pendente — sem procedimento de notificacao formal                                                    |
+| C-07 | Adotar codigo de etica baseado em ACM Code of Ethics (2018) e IEEE Code of Ethics: responsabilidade publica, privacidade, nao-maleficencia, honestidade e transparencia — adaptado por papel (engenheiro, operador, gestor) | Media      | Pendente — sem politica de etica formal no projeto                                    |
+| C-08 | Garantir acessibilidade digital WCAG 2.1 Nivel AA conforme Lei Brasileira de Inclusao (LBI n. 13.146/2015) e ABNT NBR 17060               | Media      | Parcial — aria-labels presentes; auditoria WCAG 2.1 AA nao realizada                                |
+| C-09 | Implementar consentimento explicito e rastreavel para uso de dados de localizacao do usuario (LGPD Art. 7, inciso I)                      | Alta       | Pendente — sem fluxo de consentimento implementado                                                   |
+| C-10 | Realizar revisao periodica de seguranca baseada em OWASP Top 10 (2021) com reporte de conformidade semestral e registro de acoes          | Alta       | Parcial — SECURITY_CHECKLIST.md existe; sem processo de revisao periodica formal                     |
 
 ---
 
-### 5. **Implementar Rate Limiting e Throttling**
+### Supply Chain, ERP & Lista de Materiais (10 sugestoes)
 
-**Prioridade:** 🔴 Alta  
-**Impacto:** Segurança e disponibilidade  
-**Esforço:** Baixo (1 dia)
-
-**Descrição:**  
-Adicionar rate limiting para proteger a API contra abuso e garantir disponibilidade para todos os usuários.
-
-**Implementação:**
-```typescript
-// server/middleware/rateLimiter.ts
-import rateLimit from 'express-rate-limit';
-import RedisStore from 'rate-limit-redis';
-
-// Rate limiter geral
-export const generalLimiter = rateLimit({
-  store: new RedisStore({
-    client: redisClient,
-    prefix: 'rl:general:'
-  }),
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // 100 requisições por janela
-  message: 'Too many requests from this IP'
-});
-
-// Rate limiter específico para DXF
-export const dxfLimiter = rateLimit({
-  store: new RedisStore({
-    client: redisClient,
-    prefix: 'rl:dxf:'
-  }),
-  windowMs: 60 * 60 * 1000, // 1 hora
-  max: 10, // 10 DXFs por hora
-  message: 'DXF generation limit exceeded'
-});
-
-// Aplicar
-app.use('/api/', generalLimiter);
-app.post('/api/dxf', dxfLimiter, dxfHandler);
-```
-
-**Benefícios:**
-- ✅ Proteção contra ataques DDoS
-- ✅ Garantia de disponibilidade do serviço
-- ✅ Controle de custos de infraestrutura
-- ✅ Possibilidade de implementar tiers (free, premium)
+| #    | Sugestao                                                                                                                                  | Prioridade | Status                                                                                                                          |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| S-01 | Criar middleware de supply para normalizacao de itens (descricao canonica + atributos: bitola, material, isolacao, tensao, fabricante)  | Alta       | Pendente — nao existe camada unica de normalizacao de materiais                                                                  |
+| S-02 | Implementar matching inteligente (NLP + regras deterministicas) para evitar divergencias de orcamento entre fornecedores                  | Alta       | Pendente — sem mecanismo de equivalencia semantica para descricoes tecnicas                                                      |
+| S-03 | Construir base de equivalencia tecnica entre fabricantes (WEG, Schneider, Siemens) e distribuidores (Sonepar, Rexel)                    | Alta       | Pendente — sem catalogo de substitutos tecnicos                                                                                  |
+| S-04 | Integrar indiretamente via ERP do cliente (TOTVS Protheus, SAP ERP, Omie), evitando acoplamento direto com fornecedor                    | Alta       | Pendente — sem conector ERP padrao                                                                                               |
+| S-05 | Automatizar fluxo de procurement: requisicao de compra, envio de cotacao e controle de pedido                                            | Alta       | Pendente — fluxo manual sem orquestracao ponta-a-ponta                                                                           |
+| S-06 | Definir estrategia hibrida de integracao: API do ERP quando disponivel; RPA quando nao houver API                                        | Media      | Pendente — sem fallback RPA formal                                                                                               |
+| S-07 | Implementar ingestao e conciliacao de XML de NF-e (ponto critico Brasil), vinculando item fiscal ao item tecnico normalizado             | Alta       | Pendente — sem parser/conciliador de NF-e no pipeline                                                                            |
+| S-08 | Criar motor de cotacao multi-fornecedor com score ponderado (preco, prazo, homologacao tecnica, historico de entrega, risco de ruptura)  | Media      | Pendente — sem engine de ranking de fornecedores                                                                                 |
+| S-09 | Implementar governanca de catalogo (versionamento, aprovacao tecnica, trilha de auditoria e rollback)                                    | Media      | Pendente — sem processo de governanca para alteracoes de equivalencia                                                            |
+| S-10 | Definir KPIs de supply chain: acuracia de matching >= 98%, lead time de compra, saving por substituicao, taxa de ruptura, OTIF          | Alta       | Pendente — sem metricas formais de suprimentos                                                                                   |
 
 ---
 
-### 6. **Adicionar Testes de Integração E2E**
-
-**Prioridade:** 🟡 Média  
-**Impacto:** Qualidade e confiança  
-**Esforço:** Alto (5-6 dias)
-
-**Descrição:**  
-Implementar testes end-to-end usando Playwright ou Cypress para validar fluxos completos da aplicação.
-
-**Implementação:**
-```typescript
-// e2e/dxfGeneration.spec.ts
-import { test, expect } from '@playwright/test';
-
-test.describe('DXF Generation Flow', () => {
-  test('should generate DXF from map selection', async ({ page }) => {
-    // Navegar para aplicação
-    await page.goto('http://localhost:3000');
-    
-    // Selecionar área no mapa
-    await page.click('[data-testid="map-container"]');
-    
-    // Preencher formulário
-    await page.fill('[data-testid="radius-input"]', '500');
-    await page.selectOption('[data-testid="mode-select"]', 'point');
-    
-    // Gerar DXF
-    await page.click('[data-testid="generate-button"]');
-    
-    // Aguardar conclusão
-    await expect(page.locator('[data-testid="download-link"]')).toBeVisible({
-      timeout: 30000
-    });
-    
-    // Verificar download
-    const downloadPromise = page.waitForEvent('download');
-    await page.click('[data-testid="download-link"]');
-    const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/\.dxf$/);
-  });
-  
-  test('should handle UTM coordinates', async ({ page }) => {
-    await page.goto('http://localhost:3000');
-    
-    // Buscar por coordenadas UTM
-    await page.fill('[data-testid="search-input"]', '23K 315000 7395000');
-    await page.click('[data-testid="search-button"]');
-    
-    // Verificar que mapa centralizou
-    await expect(page.locator('[data-testid="map-marker"]')).toBeVisible();
-  });
-});
-```
-
-**Benefícios:**
-- ✅ Validação de fluxos completos da aplicação
-- ✅ Detecção de regressões em UI
-- ✅ Confiança para fazer mudanças
-- ✅ Documentação viva dos casos de uso
-
----
-
-### 7. **Implementar Progressive Web App (PWA)**
-
-**Prioridade:** 🟢 Baixa  
-**Impacto:** Experiência do usuário  
-**Esforço:** Médio (3-4 dias)
-
-**Descrição:**  
-Transformar a aplicação em PWA, permitindo instalação, uso offline e melhor performance em dispositivos móveis.
-
-**Implementação:**
-```typescript
-// vite.config.ts
-import { VitePWA } from 'vite-plugin-pwa';
-
-export default defineConfig({
-  plugins: [
-    react(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      manifest: {
-        name: 'sisRUA Unified',
-        short_name: 'sisRUA',
-        description: 'Sistema de Exportação OSM para DXF',
-        theme_color: '#4F46E5',
-        icons: [
-          {
-            src: '/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: '/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          }
-        ]
-      },
-      workbox: {
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/api\.open-elevation\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'elevation-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7 // 1 semana
-              }
-            }
-          }
-        ]
-      }
-    })
-  ]
-});
-```
-
-**Benefícios:**
-- ✅ Instalação como app nativo
-- ✅ Funcionamento offline para consultas cacheadas
-- ✅ Melhor performance em mobile
-- ✅ Notificações push (futuro)
-- ✅ Maior engajamento dos usuários
-
----
-
-### 8. **Adicionar Monitoramento e Analytics**
-
-**Prioridade:** 🟡 Média  
-**Impacto:** Insights de negócio  
-**Esforço:** Baixo (1-2 dias)
-
-**Descrição:**  
-Implementar monitoramento de performance e analytics de uso para entender comportamento dos usuários e identificar gargalos.
-
-**Implementação:**
-```typescript
-// src/utils/analytics.ts
-import posthog from 'posthog-js';
-
-// Inicializar
-posthog.init(process.env.VITE_POSTHOG_KEY!, {
-  api_host: 'https://app.posthog.com'
-});
-
-// Eventos personalizados
-export const trackEvent = (event: string, properties?: any) => {
-  posthog.capture(event, properties);
-};
-
-// Uso
-trackEvent('dxf_generation_started', {
-  mode: 'point',
-  radius: 500,
-  projection: 'utm'
-});
-
-trackEvent('dxf_generation_completed', {
-  duration: 12.5,
-  fileSize: 245000
-});
-
-// Performance monitoring
-import { onCLS, onFID, onLCP } from 'web-vitals';
-
-onCLS(metric => trackEvent('performance_cls', metric));
-onFID(metric => trackEvent('performance_fid', metric));
-onLCP(metric => trackEvent('performance_lcp', metric));
-```
-
-**Server-side:**
-```typescript
-// server/middleware/monitoring.ts
-import { performance } from 'perf_hooks';
-
-export const monitoringMiddleware = (req, res, next) => {
-  const start = performance.now();
-  
-  res.on('finish', () => {
-    const duration = performance.now() - start;
-    
-    logger.info('Request completed', {
-      method: req.method,
-      path: req.path,
-      status: res.statusCode,
-      duration,
-      userAgent: req.get('user-agent')
-    });
-    
-    // Enviar para sistema de monitoramento
-    if (duration > 5000) {
-      logger.warn('Slow request detected', { path: req.path, duration });
-    }
-  });
-  
-  next();
-};
-```
-
-**Benefícios:**
-- ✅ Insights sobre uso do sistema
-- ✅ Identificação de gargalos de performance
-- ✅ Monitoramento de erros em produção
-- ✅ Dados para decisões de produto
-
----
-
-### 9. **Implementar Sistema de Exportação em Batch**
-
-**Prioridade:** 🟡 Média  
-**Impacto:** Produtividade do usuário  
-**Esforço:** Alto (4-5 dias)
-
-**Descrição:**  
-Permitir que usuários façam upload de CSV com múltiplas localizações e gerem DXFs em batch, com download em arquivo ZIP.
-
-**Implementação:**
-```typescript
-// server/services/batchService.ts
-import AdmZip from 'adm-zip';
-import csvParser from 'csv-parser';
-
-interface BatchRequest {
-  locations: Array<{
-    name: string;
-    lat: number;
-    lon: number;
-    radius: number;
-  }>;
-}
-
-export async function processBatch(csvFile: Buffer): Promise<Buffer> {
-  const locations = await parseCSV(csvFile);
-  const zip = new AdmZip();
-  
-  for (const location of locations) {
-    try {
-      const dxfPath = await generateDxf({
-        lat: location.lat,
-        lon: location.lon,
-        radius: location.radius,
-        mode: 'point'
-      });
-      
-      const fileName = `${location.name.replace(/\s/g, '_')}.dxf`;
-      zip.addLocalFile(dxfPath, '', fileName);
-      
-    } catch (error) {
-      logger.error(`Failed to generate DXF for ${location.name}`, error);
-      // Adicionar arquivo de erro
-      zip.addFile(
-        `${location.name}_ERROR.txt`,
-        Buffer.from(`Error: ${error.message}`)
-      );
-    }
-  }
-  
-  return zip.toBuffer();
-}
-
-// API endpoint
-app.post('/api/batch/dxf', upload.single('csv'), async (req, res) => {
-  const zipBuffer = await processBatch(req.file.buffer);
-  
-  res.setHeader('Content-Type', 'application/zip');
-  res.setHeader('Content-Disposition', 'attachment; filename=batch_dxf.zip');
-  res.send(zipBuffer);
-});
-```
-
-**Frontend:**
-```typescript
-// src/components/BatchUpload.tsx
-export function BatchUpload() {
-  const handleUpload = async (file: File) => {
-    const formData = new FormData();
-    formData.append('csv', file);
-    
-    const response = await fetch('/api/batch/dxf', {
-      method: 'POST',
-      body: formData
-    });
-    
-    const blob = await response.blob();
-    downloadBlob(blob, 'batch_dxf.zip');
-  };
-  
-  return (
-    <div>
-      <input 
-        type="file" 
-        accept=".csv"
-        onChange={(e) => handleUpload(e.target.files[0])} 
-      />
-      <p>Upload CSV com colunas: name,lat,lon,radius</p>
-    </div>
-  );
-}
-```
-
-**Benefícios:**
-- ✅ Processamento de múltiplos locais simultaneamente
-- ✅ Economia de tempo para usuários profissionais
-- ✅ Possibilidade de processar projetos grandes
-- ✅ Diferencial competitivo
-
----
-
-### 10. **Adicionar Documentação Interativa com Swagger/OpenAPI**
-
-**Prioridade:** 🟡 Média  
-**Impacto:** Developer experience  
-**Esforço:** Médio (2-3 dias)
-
-**Descrição:**  
-Documentar a API REST com Swagger/OpenAPI, permitindo visualização interativa, testes e geração automática de clientes.
-
-**Implementação:**
-```typescript
-// server/swagger.ts
-import swaggerJsdoc from 'swagger-jsdoc';
-import swaggerUi from 'swagger-ui-express';
-
-const options = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'sisRUA Unified API',
-      version: '1.2.0',
-      description: 'API para geração de arquivos DXF a partir de dados OpenStreetMap',
-      contact: {
-        name: 'API Support',
-        email: 'support@sisrua.com'
-      }
-    },
-    servers: [
-      {
-        url: 'http://localhost:3001',
-        description: 'Development server'
-      },
-      {
-        url: 'https://api.sisrua.com',
-        description: 'Production server'
-      }
-    ]
-  },
-  apis: ['./server/**/*.ts']
-};
-
-const specs = swaggerJsdoc(options);
-
-// Adicionar ao Express
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
-
-/**
- * @swagger
- * /api/dxf:
- *   post:
- *     summary: Gera arquivo DXF
- *     description: Gera arquivo DXF 2.5D a partir de coordenadas e raio
- *     tags: [DXF]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - lat
- *               - lon
- *               - radius
- *             properties:
- *               lat:
- *                 type: number
- *                 minimum: -90
- *                 maximum: 90
- *                 example: -23.5505
- *               lon:
- *                 type: number
- *                 minimum: -180
- *                 maximum: 180
- *                 example: -46.6333
- *               radius:
- *                 type: number
- *                 minimum: 10
- *                 maximum: 5000
- *                 example: 500
- *     responses:
- *       200:
- *         description: DXF gerado com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 downloadUrl:
- *                   type: string
- *                   example: /downloads/dxf_1234567890.dxf
- *       400:
- *         description: Parâmetros inválidos
- *       500:
- *         description: Erro ao gerar DXF
- */
-app.post('/api/dxf', dxfHandler);
-```
-
-**Benefícios:**
-- ✅ Documentação sempre atualizada
-- ✅ Interface interativa para testar API
-- ✅ Geração automática de clientes (TypeScript, Python, etc)
-- ✅ Melhor onboarding de desenvolvedores
-- ✅ Validação automática de schemas
-
----
-
-## 📊 Matriz de Priorização
-
-| # | Sugestão | Prioridade | Impacto | Esforço | ROI |
-|---|----------|------------|---------|---------|-----|
-| 1 | Cache Inteligente | 🔴 Alta | Alto | Médio | ⭐⭐⭐⭐⭐ |
-| 2 | Logs Estruturados | 🟡 Média | Médio | Baixo | ⭐⭐⭐⭐ |
-| 3 | Fila de Processamento | 🔴 Alta | Muito Alto | Alto | ⭐⭐⭐⭐⭐ |
-| 4 | Validação com Zod | 🟡 Média | Alto | Médio | ⭐⭐⭐⭐ |
-| 5 | Rate Limiting | 🔴 Alta | Alto | Baixo | ⭐⭐⭐⭐⭐ |
-| 6 | Testes E2E | 🟡 Média | Alto | Alto | ⭐⭐⭐ |
-| 7 | PWA | 🟢 Baixa | Médio | Médio | ⭐⭐⭐ |
-| 8 | Analytics | 🟡 Média | Médio | Baixo | ⭐⭐⭐⭐ |
-| 9 | Batch Export | 🟡 Média | Alto | Alto | ⭐⭐⭐⭐ |
-| 10 | API Docs (Swagger) | 🟡 Média | Médio | Médio | ⭐⭐⭐ |
-
----
-
-## 🗓️ Roadmap Sugerido
-
-### Sprint 1 (Semana 1-2): Fundação
-- ✅ Implementar Rate Limiting (#5)
-- ✅ Adicionar Logs Estruturados (#2)
-- ✅ Implementar Validação com Zod (#4)
-
-### Sprint 2 (Semana 3-4): Performance
-- ✅ Implementar Cache Inteligente (#1)
-- ✅ Configurar Fila de Processamento (#3)
-
-### Sprint 3 (Semana 5-6): Qualidade
-- ✅ Adicionar Testes E2E (#6)
-- ✅ Implementar Analytics (#8)
-
-### Sprint 4 (Semana 7-8): Features Avançadas
-- ✅ Sistema de Batch Export (#9)
-- ✅ Documentação Swagger (#10)
-
-### Sprint 5 (Semana 9-10): Otimização
-- ✅ Implementar PWA (#7)
-- ✅ Refinamentos finais
-
----
-
-## 💰 Estimativa de Custos
-
-| Item | Tempo Dev | Custo Estimado |
-|------|-----------|----------------|
-| Cache Inteligente | 2-3 dias | R$ 4.000 |
-| Logs Estruturados | 1-2 dias | R$ 2.000 |
-| Fila de Processamento | 4-5 dias | R$ 8.000 |
-| Validação Zod | 2-3 dias | R$ 4.000 |
-| Rate Limiting | 1 dia | R$ 1.500 |
-| Testes E2E | 5-6 dias | R$ 10.000 |
-| PWA | 3-4 dias | R$ 6.000 |
-| Analytics | 1-2 dias | R$ 2.000 |
-| Batch Export | 4-5 dias | R$ 8.000 |
-| Swagger Docs | 2-3 dias | R$ 4.000 |
-| **Total** | **25-34 dias** | **R$ 49.500** |
-
-*Valores baseados em taxa de R$ 1.500/dia para desenvolvedor sênior*
-
----
-
-## 🎯 Recomendações Finais
-
-### Implementação Imediata (Próximos 30 dias)
-1. **Rate Limiting** - Proteção essencial
-2. **Logs Estruturados** - Facilita debugging
-3. **Cache Inteligente** - Melhora performance significativa
-
-### Implementação Curto Prazo (60-90 dias)
-4. **Fila de Processamento** - Essencial para escalar
-5. **Validação Zod** - Aumenta confiabilidade
-6. **Analytics** - Insights valiosos
-
-### Implementação Médio Prazo (3-6 meses)
-7. **Testes E2E** - Aumenta confiança em releases
-8. **Batch Export** - Feature diferencial
-9. **Swagger Docs** - Facilita integrações
-
-### Implementação Longo Prazo (6-12 meses)
-10. **PWA** - Melhor experiência mobile
-
----
-
-## 📝 Conclusão
-
-As 10 sugestões apresentadas formam um plano abrangente para levar o projeto sisRUA Unified ao próximo nível de maturidade, performance e usabilidade. A implementação sequencial dessas melhorias resultará em:
-
-- **↑ 70-80%** de melhoria em performance (cache + fila)
-- **↓ 90%** de redução em incidentes de produção (logs + monitoring)
-- **↑ 5x** de capacidade de processamento (fila + rate limiting)
-- **↑ 100%** de confiança em deploys (testes E2E)
-- **↑ 50%** de satisfação do usuário (PWA + batch + analytics)
-
-O investimento total estimado de **R$ 49.500** pode ser distribuído ao longo de 10 semanas, com benefícios mensuráveis em cada sprint.
-
----
-
-**Documento elaborado por:** GitHub Copilot Agent  
-**Para dúvidas ou discussão:** Agendar reunião com time técnico
+## Prioridades para Proxima Sprint
+
+Alta prioridade imediata (P0):
+
+1. F-01 — Debounce na busca de enderecos (complementar o que existe)
+2. F-02 — Validacao visual inline em todos os campos obrigatorios
+3. B-03 — Schema Zod uniforme em todas as rotas
+4. B-04 — Retry com backoff exponencial nas chamadas externas
+5. B-09 — Compressao gzip
+6. D-03 — Auditoria de CREATE/UPDATE/DELETE nas tabelas de negocio
+7. D-08 — Estrategia de backup incremental com validacao
+8. D-09 — Indice geoespacial (PostGIS)
+9. C-01 — Privacy by Design: anonimizacao de coordenadas em logs (LGPD Art. 46)
+10. C-03 — RIPD/DPIA (LGPD Art. 38)
+11. C-04 — Politica formal de retencao e descarte de dados
+12. C-05 — Atendimento a direitos do titular (LGPD Arts. 18-22)
+13. C-06 — Procedimento de notificacao a ANPD (LGPD Art. 48, 72h)
+14. M-07 — Alertas de confiabilidade (MTTD/MTTR/MTBF)
+15. M-09 — KPIs de negocio: taxa de sucesso DXF e reuso de cache
+16. M-10 — SBOM formal e politica de gestao de CVEs
+17. S-01 — Middleware de supply com normalizacao canonica de itens
+18. S-02 — Matching inteligente NLP + regras tecnicas
+19. S-04 — Integracao indireta via ERP do cliente (TOTVS/SAP/Omie)
+20. S-05 — Automacao de requisicao, cotacao e controle de pedido
+21. S-07 — Leitura e conciliacao de XML de NF-e
+22. S-10 — KPIs de supply chain e metas operacionais
+
+Media prioridade (P1):
+
+1. F-03 — Componente global de confirmacao
+2. F-08 — Skeleton visual em exportacoes
+3. F-09 — Filtro de camadas com busca e persistencia
+4. B-08 — Paginacao/ordenacao padronizada nas rotas
+5. B-10 — RBAC por perfil de usuario
+6. D-01 — Indices compostos em todas as tabelas de negocio
+7. D-04 — Materialized views para relatorios
+8. D-10 — Pipeline OSM incremental
+9. C-02 — Nomear DPO e publicar canal de contato (LGPD Art. 41)
+10. C-07 — Codigo de etica corporativo (ACM/IEEE adaptado)
+11. C-09 — Consentimento explicito para dados de localizacao
+12. C-10 — Revisao periodica OWASP Top 10 semestral
+13. M-01 — Metricas DORA (Deployment Frequency, Lead Time, MTTR, CFR)
+14. M-02 — SLO/SLI formais e error budget publicados
+15. M-03 — Analise estatica de qualidade integrada ao pipeline
+16. M-05 — Latencia de API por percentil (p50/p95/p99)
+17. S-03 — Base de equivalencia tecnica WEG/Schneider/Siemens + distribuidores
+18. S-06 — Estrategia hibrida API ERP + fallback RPA
+19. S-08 — Motor de cotacao multi-fornecedor com score ponderado
+20. S-09 — Governanca de catalogo com auditoria e rollback
+
+Baixa prioridade / backlog (P2):
+
+1. F-07 — Atalhos de teclado
+2. F-10 — Acessibilidade end-to-end
+3. D-02 — Soft delete
+4. D-05 — Particionamento de tabelas historicas
+5. D-07 — Rotina de vacuum/analyze
+6. C-08 — Auditoria WCAG 2.1 AA (LBI n. 13.146/2015)
+7. M-04 — Performance budget Core Web Vitals com medicao continua
+8. M-06 — Rastreamento distribuido ponta-a-ponta
+9. M-08 — Metricas de pipeline CI/CD automatizadas

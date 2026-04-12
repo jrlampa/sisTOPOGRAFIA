@@ -15,7 +15,6 @@ import os
 
 try:
     import rasterio
-    from rasterio.sample import sample_gen
     HAS_RASTERIO = True
 except ImportError:
     HAS_RASTERIO = False
