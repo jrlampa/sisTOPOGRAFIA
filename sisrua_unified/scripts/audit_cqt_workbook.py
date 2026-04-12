@@ -19,6 +19,7 @@ from openpyxl.utils.cell import get_column_letter
 #   3. Legacy fallback: root-level BECO DO MATA 7 workbook
 _LEGACY_WORKBOOK = "CQTsimplificado_BECO DO MATA 7 - PARIDADE_FINAL.xlsx"
 _LIGHT_ESTUDO_DIR = Path("Light_estudo")
+_REV0_WORKBOOK_PATTERN = "CQTsimplificado_REV0*.xlsx"
 
 
 def _resolve_default_workbook() -> str:
@@ -29,6 +30,10 @@ def _resolve_default_workbook() -> str:
         candidates = sorted(_LIGHT_ESTUDO_DIR.glob("*.xlsx"))
         if candidates:
             return str(candidates[0])
+    # Also search the current directory for a REV0 file before falling back.
+    rev0_candidates = sorted(Path(".").glob(_REV0_WORKBOOK_PATTERN))
+    if rev0_candidates:
+        return str(rev0_candidates[0])
     return _LEGACY_WORKBOOK
 
 
@@ -350,38 +355,79 @@ def main() -> int:
         action="store_true",
         help="Exit non-zero when critical risk flags are found",
     )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help=(
+            "Audit all workbooks found in Light_estudo/ including REV0 variants "
+            f"(pattern: {_REV0_WORKBOOK_PATTERN})"
+        ),
+    )
 
     args = parser.parse_args()
 
-    workbook_path = Path(args.workbook)
-    if not workbook_path.exists():
-        print(f"Workbook not found: {workbook_path}", file=sys.stderr)
-        return 2
-
-    report = analyze_workbook(workbook_path)
-
-    if args.stdout:
-        print(json.dumps(report, ensure_ascii=False, indent=2))
+    # Collect workbook paths to audit
+    workbook_paths: list[Path] = []
+    if args.all:
+        if _LIGHT_ESTUDO_DIR.is_dir():
+            workbook_paths = sorted(_LIGHT_ESTUDO_DIR.glob("*.xlsx"))
+        # Also include root-level REV0 workbooks matched by the pattern
+        root_rev0 = sorted(Path(".").glob(_REV0_WORKBOOK_PATTERN))
+        for rev0_path in root_rev0:
+            if rev0_path not in workbook_paths:
+                workbook_paths.append(rev0_path)
+        if not workbook_paths:
+            print(
+                f"No .xlsx files found in {_LIGHT_ESTUDO_DIR} or matching "
+                f"'{_REV0_WORKBOOK_PATTERN}' in current directory",
+                file=sys.stderr,
+            )
+            return 2
     else:
-        output_path = Path(args.output)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(
-            json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-        print(f"CQT workbook audit generated at: {output_path}")
-        print(
-            f"Risk level: {report['risk']['level']} "
-            f"(score={report['risk']['score']})"
-        )
+        p = Path(args.workbook)
+        if not p.exists():
+            print(f"Workbook not found: {p}", file=sys.stderr)
+            return 2
+        workbook_paths = [p]
 
-    if args.check and report["risk"]["checkFailed"]:
+    overall_check_failed = False
+
+    for workbook_path in workbook_paths:
+        report = analyze_workbook(workbook_path)
+
+        if args.stdout:
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+        else:
+            # Derive per-workbook output path when auditing multiple files
+            if len(workbook_paths) > 1:
+                stem = workbook_path.stem.replace(" ", "_")
+                output_path = Path(args.output).with_name(
+                    f"CQT_WORKBOOK_AUDIT_{stem}.json"
+                )
+            else:
+                output_path = Path(args.output)
+
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(
+                json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            print(f"CQT workbook audit generated at: {output_path}")
+            print(
+                f"  Workbook: {workbook_path.name}"
+            )
+            print(
+                f"  Risk level: {report['risk']['level']} "
+                f"(score={report['risk']['score']})"
+            )
+
+        if args.check and report["risk"]["checkFailed"]:
+            overall_check_failed = True
+
+    if overall_check_failed:
         check_error = (
-            "CQT workbook audit check failed: " "critical structural flags detected."
+            "CQT workbook audit check failed: critical structural flags detected."
         )
-        print(
-            check_error,
-            file=sys.stderr,
-        )
+        print(check_error, file=sys.stderr)
         return 1
 
     return 0
