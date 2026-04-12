@@ -5,7 +5,7 @@ export interface GeoLocation {
 }
 
 export interface OsmNode {
-  type: 'node';
+  type: "node";
   id: number;
   lat: number;
   lon: number;
@@ -13,7 +13,7 @@ export interface OsmNode {
 }
 
 export interface OsmWay {
-  type: 'way';
+  type: "way";
   id: number;
   nodes: number[];
   tags?: Record<string, string>;
@@ -28,7 +28,7 @@ export interface OsmMember {
 }
 
 export interface OsmRelation {
-  type: 'relation';
+  type: "relation";
   id: number;
   members: OsmMember[];
   tags?: Record<string, string>;
@@ -82,7 +82,7 @@ export interface ProjectMetadata {
 
 export interface Violation {
   id: string;
-  type: 'warning' | 'critical' | 'info';
+  type: "warning" | "critical" | "info";
   message: string;
   location: GeoLocation;
 }
@@ -103,16 +103,21 @@ export interface LayerConfig {
   btNetwork: boolean;
 }
 
-export type ProjectionType = 'local' | 'utm';
-export type AppTheme = 'light' | 'dark';
-export type MapProvider = 'vector' | 'satellite';
-export type SimplificationLevel = 'off' | 'low' | 'medium' | 'high';
-export type ContourRenderMode = 'spline' | 'polyline';
-export type BtProjectType = 'ramais' | 'geral' | 'clandestino';
-export type BtEditorMode = 'none' | 'move-pole' | 'add-pole' | 'add-transformer' | 'add-edge';
-export type BtNetworkScenario = 'asis' | 'projeto' | 'proj1' | 'proj2';
-export type BtTransformerCalculationMode = 'automatic' | 'manual';
-export type BtCqtScenario = 'atual' | 'proj1' | 'proj2';
+export type ProjectionType = "local" | "utm";
+export type AppTheme = "light" | "dark";
+export type MapProvider = "vector" | "satellite";
+export type SimplificationLevel = "off" | "low" | "medium" | "high";
+export type ContourRenderMode = "spline" | "polyline";
+export type BtProjectType = "ramais" | "geral" | "clandestino";
+export type BtEditorMode =
+  | "none"
+  | "move-pole"
+  | "add-pole"
+  | "add-transformer"
+  | "add-edge";
+export type BtNetworkScenario = "asis" | "projeto" | "proj1" | "proj2";
+export type BtTransformerCalculationMode = "automatic" | "manual";
+export type BtCqtScenario = "atual" | "proj1" | "proj2";
 
 export interface BtCqtDmdiInputs {
   clandestinoEnabled: boolean;
@@ -138,7 +143,7 @@ export interface BtCqtComputationInputs {
   };
   branches?: Array<{
     trechoId: string;
-    fase: 'MONO' | 'BIF' | 'TRI';
+    fase: "MONO" | "BIF" | "TRI";
     acumuladaKva: number;
     eta: number;
     tensaoTrifasicaV: number;
@@ -146,7 +151,7 @@ export interface BtCqtComputationInputs {
     lengthMeters?: number;
     temperatureC?: number;
     ponto?: string;
-    lado?: 'ESQUERDO' | 'DIREITO';
+    lado?: "ESQUERDO" | "DIREITO";
   }>;
 }
 
@@ -169,7 +174,7 @@ export interface BtPoleNode {
   title: string;
   ramais?: BtPoleRamalEntry[];
   verified?: boolean;
-  nodeChangeFlag?: 'existing' | 'new' | 'remove' | 'replace';
+  nodeChangeFlag?: "existing" | "new" | "remove" | "replace";
   circuitBreakPoint?: boolean;
 }
 
@@ -196,7 +201,7 @@ export interface BtTransformer {
   demandKw: number;
   readings: BtTransformerReading[];
   verified?: boolean;
-  transformerChangeFlag?: 'existing' | 'new' | 'remove' | 'replace';
+  transformerChangeFlag?: "existing" | "new" | "remove" | "replace";
 }
 
 export interface BtEdge {
@@ -204,11 +209,13 @@ export interface BtEdge {
   fromPoleId: string;
   toPoleId: string;
   lengthMeters?: number;
+  // Optional electrical length used only for CQT calculations (not map geometry).
+  cqtLengthMeters?: number;
   conductors: BtRamalEntry[];
   replacementFromConductors?: BtRamalEntry[];
   verified?: boolean;
   removeOnExecution?: boolean;
-  edgeChangeFlag?: 'existing' | 'new' | 'remove' | 'replace';
+  edgeChangeFlag?: "existing" | "new" | "remove" | "replace";
 }
 
 export interface BtTopology {
@@ -228,7 +235,7 @@ export interface BtExportSummary {
     p31?: number;
     p32?: number;
     k10QtMttr?: number;
-    parityStatus?: 'complete' | 'partial' | 'missing';
+    parityStatus?: "complete" | "partial" | "missing";
     parityPassed?: number;
     parityFailed?: number;
   };
@@ -263,7 +270,7 @@ export interface AppSettings {
   clandestinoAreaM2?: number;
 }
 
-export type SelectionMode = 'circle' | 'polygon' | 'measure';
+export type SelectionMode = "circle" | "polygon" | "measure";
 
 export interface GlobalState {
   center: GeoLocation;

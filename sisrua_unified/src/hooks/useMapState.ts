@@ -1,8 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { AppSettings, GeoLocation, GlobalState, SelectionMode } from '../types';
-import type { ToastType } from '../components/Toast';
-import { clearSessionDraft, loadSessionDraft } from './useAutoSave';
-import { DEFAULT_LOCATION } from '../constants';
+import { useEffect, useMemo, useRef, useState } from "react";
+import type {
+  AppSettings,
+  GeoLocation,
+  GlobalState,
+  SelectionMode,
+} from "../types";
+import type { ToastType } from "../components/Toast";
+import { clearSessionDraft, loadSessionDraft } from "./useAutoSave";
+import { DEFAULT_LOCATION } from "../constants";
 
 interface UseMapStateParams {
   appState: GlobalState;
@@ -19,18 +24,26 @@ export function useMapState({
   loadElevationProfile,
   clearProfile,
 }: UseMapStateParams) {
-  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: ToastType;
+  } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [sessionDraft, setSessionDraft] = useState<GlobalState | null>(null);
+  const latestAppStateRef = useRef(appState);
 
   const { polygon, measurePath, selectionMode } = appState;
+
+  useEffect(() => {
+    latestAppStateRef.current = appState;
+  }, [appState]);
 
   useEffect(() => {
     const draft = loadSessionDraft();
     if (draft && (draft.state.btTopology?.poles.length ?? 0) > 0) {
       setSessionDraft(draft.state);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const showToast = (message: string, type: ToastType) => {
@@ -54,10 +67,10 @@ export function useMapState({
       return;
     }
 
-    setAppState(sessionDraft, false);
+    setAppState(sessionDraft, true);
     setSessionDraft(null);
     clearSessionDraft();
-    showToast('Sessão anterior restaurada.', 'success');
+    showToast("Sessão anterior restaurada.", "success");
   };
 
   const handleDismissSession = () => {
@@ -75,7 +88,10 @@ export function useMapState({
   };
 
   const handleSelectionModeChange = (mode: SelectionMode) => {
-    setAppState({ ...appState, selectionMode: mode, polygon: [], measurePath: [] }, true);
+    setAppState(
+      { ...appState, selectionMode: mode, polygon: [], measurePath: [] },
+      true,
+    );
   };
 
   const handleMeasurePathChange = async (path: [number, number][]) => {
@@ -106,42 +122,45 @@ export function useMapState({
   // Set center to current geolocation on mount (only when center is the default placeholder)
   useEffect(() => {
     const isDefaultCenter =
-      appState.center.lat === DEFAULT_LOCATION.lat && appState.center.lng === DEFAULT_LOCATION.lng;
-    
+      appState.center.lat === DEFAULT_LOCATION.lat &&
+      appState.center.lng === DEFAULT_LOCATION.lng;
+
     if (isDefaultCenter && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          const latest = latestAppStateRef.current;
           setAppState(
             {
-              ...appState,
+              ...latest,
               center: {
                 lat: position.coords.latitude,
                 lng: position.coords.longitude,
-                label: 'Current Location',
+                label: "Current Location",
               },
             },
-            false
+            false,
           );
         },
         (_err) => {
           // Geolocation permission denied — keep default
-        }
+        },
       );
     }
-  // Only run on mount; appState.center must be captured but not trigger re-runs
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Only run on mount; appState.center must be captured but not trigger re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const isPolygonValid = selectionMode === 'polygon' && polygon.length >= 3;
+  const isPolygonValid = selectionMode === "polygon" && polygon.length >= 3;
 
   const polygonPoints = useMemo(
     () => polygon.map((point) => [point.lat, point.lng] as [number, number]),
-    [polygon]
+    [polygon],
   );
 
   const measurePathPoints = useMemo(
-    () => measurePath.map((point) => [point.lat, point.lng] as [number, number]),
-    [measurePath]
+    () =>
+      measurePath.map((point) => [point.lat, point.lng] as [number, number]),
+    [measurePath],
   );
 
   return {

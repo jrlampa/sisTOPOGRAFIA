@@ -1,52 +1,83 @@
-import { useEffect, useRef, useState } from 'react';
-import type { BtExportHistoryEntry, BtExportSummary, GlobalState } from '../types';
-import type { ToastType } from '../components/Toast';
+import { useEffect, useRef, useState } from "react";
+import type {
+  BtExportHistoryEntry,
+  BtExportSummary,
+  GlobalState,
+} from "../types";
+import type { ToastType } from "../components/Toast";
 import {
   clearBtExportHistoryRemote,
   ingestBtExportHistory,
   listBtExportHistory,
-} from '../services/btExportHistoryService';
-import { MAX_BT_EXPORT_HISTORY } from '../utils/btNormalization';
+} from "../services/btExportHistoryService";
+import { MAX_BT_EXPORT_HISTORY } from "../utils/btNormalization";
 
 type Params = {
   appState: GlobalState;
   setAppState: (state: GlobalState, addToHistory: boolean) => void;
   showToast: (message: string, type: ToastType) => void;
-  projectType: 'ramais' | 'clandestino';
+  projectType: "ramais" | "clandestino";
 };
 
-export function useBtExportHistory({ appState, setAppState, showToast, projectType }: Params) {
+export function useBtExportHistory({
+  appState,
+  setAppState,
+  showToast,
+  projectType,
+}: Params) {
   const btHistoryHydratedRef = useRef(false);
+  const latestAppStateRef = useRef(appState);
   const [btHistoryTotal, setBtHistoryTotal] = useState(0);
   const [btHistoryLoading, setBtHistoryLoading] = useState(false);
-  const [btHistoryProjectTypeFilter, setBtHistoryProjectTypeFilter] = useState<'all' | 'ramais' | 'clandestino'>('all');
-  const [btHistoryCqtScenarioFilter, setBtHistoryCqtScenarioFilter] = useState<'all' | 'atual' | 'proj1' | 'proj2'>('all');
+  const [btHistoryProjectTypeFilter, setBtHistoryProjectTypeFilter] = useState<
+    "all" | "ramais" | "clandestino"
+  >("all");
+  const [btHistoryCqtScenarioFilter, setBtHistoryCqtScenarioFilter] = useState<
+    "all" | "atual" | "proj1" | "proj2"
+  >("all");
 
   const btExportSummary = appState.btExportSummary ?? null;
   const btExportHistory = appState.btExportHistory ?? [];
   const latestBtExport = btExportSummary ?? btExportHistory[0] ?? null;
   const btHistoryCanLoadMore = btExportHistory.length < btHistoryTotal;
 
+  useEffect(() => {
+    latestAppStateRef.current = appState;
+  }, [appState]);
+
   const resolveBtHistoryFilters = () => ({
-    projectType: btHistoryProjectTypeFilter === 'all' ? undefined : btHistoryProjectTypeFilter,
-    cqtScenario: btHistoryCqtScenarioFilter === 'all' ? undefined : btHistoryCqtScenarioFilter,
+    projectType:
+      btHistoryProjectTypeFilter === "all"
+        ? undefined
+        : btHistoryProjectTypeFilter,
+    cqtScenario:
+      btHistoryCqtScenarioFilter === "all"
+        ? undefined
+        : btHistoryCqtScenarioFilter,
   });
 
   const loadBtHistoryPage = async (offset: number, append: boolean) => {
     setBtHistoryLoading(true);
     try {
-      const page = await listBtExportHistory(MAX_BT_EXPORT_HISTORY, offset, resolveBtHistoryFilters());
+      const page = await listBtExportHistory(
+        MAX_BT_EXPORT_HISTORY,
+        offset,
+        resolveBtHistoryFilters(),
+      );
       setBtHistoryTotal(page.total);
 
+      const latestState = latestAppStateRef.current;
+      const latestHistory = latestState.btExportHistory ?? [];
+
       const nextEntries = append
-        ? [...(appState.btExportHistory ?? []), ...page.entries]
+        ? [...latestHistory, ...page.entries]
         : page.entries;
 
       const latestFromDb = nextEntries[0] ?? null;
       setAppState(
         {
-          ...appState,
-          btExportSummary: appState.btExportSummary ?? latestFromDb,
+          ...latestState,
+          btExportSummary: latestState.btExportSummary ?? latestFromDb,
           btExportHistory: nextEntries,
         },
         false,
@@ -67,6 +98,7 @@ export function useBtExportHistory({ appState, setAppState, showToast, projectTy
   };
 
   const appendBtHistoryEntry = (entry: BtExportHistoryEntry) => {
+    const latestState = latestAppStateRef.current;
     const nextBtExportSummary: BtExportSummary = {
       btContextUrl: entry.btContextUrl,
       criticalPoleId: entry.criticalPoleId,
@@ -81,29 +113,55 @@ export function useBtExportHistory({ appState, setAppState, showToast, projectTy
       totalTransformers: entry.totalTransformers,
     };
 
-    const nextHistory = [entry, ...(appState.btExportHistory ?? [])].slice(0, MAX_BT_EXPORT_HISTORY);
-    setAppState({ ...appState, btExportSummary: nextBtExportSummary, btExportHistory: nextHistory }, false);
+    const nextHistory = [entry, ...(latestState.btExportHistory ?? [])].slice(
+      0,
+      MAX_BT_EXPORT_HISTORY,
+    );
+    setAppState(
+      {
+        ...latestState,
+        btExportSummary: nextBtExportSummary,
+        btExportHistory: nextHistory,
+      },
+      false,
+    );
 
-    const cqtScenarioLabel = entry.cqt?.scenario ? ` | CQT ${entry.cqt.scenario.toUpperCase()}` : '';
-    showToast(`Resumo BT: ponto crítico ${entry.criticalPoleId} (${entry.criticalAccumulatedDemandKva.toFixed(2)})${cqtScenarioLabel}.`, 'info');
+    const cqtScenarioLabel = entry.cqt?.scenario
+      ? ` | CQT ${entry.cqt.scenario.toUpperCase()}`
+      : "";
+    showToast(
+      `Resumo BT: ponto crítico ${entry.criticalPoleId} (${entry.criticalAccumulatedDemandKva.toFixed(2)})${cqtScenarioLabel}.`,
+      "info",
+    );
   };
 
   const handleClearBtExportHistory = async () => {
     try {
-      const result = await clearBtExportHistoryRemote(resolveBtHistoryFilters());
+      const result = await clearBtExportHistoryRemote(
+        resolveBtHistoryFilters(),
+      );
       await loadBtHistoryPage(0, false);
 
       if (result.deletedCount > 0) {
-        showToast(`Histórico BT limpo no servidor (${result.deletedCount} registro(s)).`, 'success');
+        showToast(
+          `Histórico BT limpo no servidor (${result.deletedCount} registro(s)).`,
+          "success",
+        );
       } else {
-        showToast('Nenhum registro BT correspondente ao filtro para limpar.', 'info');
+        showToast(
+          "Nenhum registro BT correspondente ao filtro para limpar.",
+          "info",
+        );
       }
     } catch {
-      showToast('Falha ao limpar histórico BT no servidor.', 'error');
+      showToast("Falha ao limpar histórico BT no servidor.", "error");
     }
   };
 
-  const ingestBtContextHistory = async (btContextUrl: string, btContext: unknown) => {
+  const ingestBtContextHistory = async (
+    btContextUrl: string,
+    btContext: unknown,
+  ) => {
     try {
       const result = await ingestBtExportHistory({
         btContextUrl,
@@ -117,7 +175,7 @@ export function useBtExportHistory({ appState, setAppState, showToast, projectTy
 
       appendBtHistoryEntry(result.entry);
     } catch {
-      showToast('Falha ao consolidar resumo BT no backend.', 'error');
+      showToast("Falha ao consolidar resumo BT no backend.", "error");
     }
   };
 
