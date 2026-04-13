@@ -377,3 +377,6 @@ docker-compose up -d
 - TypeScript: ✅ Sem erros em roleService + permissionHandler
 - Tipos: ✅ Union type `UserRole` com 4 papéis válidos
 - Error handling: ✅ Try-catch com logging e fallback
+
+- Testes unitários: ✅ `permissionHandler.test.ts` (20 testes) + `roleService.test.ts` (25 testes) — 45 testes passando
+- Mock de DB: ✅ roleService mockado em testes; zero dependência de banco em CI

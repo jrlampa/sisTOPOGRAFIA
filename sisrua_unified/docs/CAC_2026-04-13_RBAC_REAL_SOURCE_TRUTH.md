@@ -116,6 +116,8 @@ const permissionsMatrix: Record<UserRole, Permission[]> = {
 - ✅ Tipos: Union `UserRole = 'admin' | 'technician' | 'viewer' | 'guest'`
 - ✅ Cache: TTL configurável, invalidação explícita e automática
 - ✅ Logging: Grant/deny com context (userId, role, permission, path, requestId)
+- ✅ Testes: 45 testes unitários (permissionHandler.test.ts: 20, roleService.test.ts: 25) todos passando
+- ✅ Mock DB: roleService mockado em testes com jest.mock('postgres'); zero dependência real de banco em CI
 
 ## Critério de Aceite
 
@@ -124,6 +126,7 @@ const permissionsMatrix: Record<UserRole, Permission[]> = {
 3. ✅ **Enforcement por recurso/operação**: Matriz granular (read/write/delete/admin/export_dxf/bt_calculate)
 4. ✅ **Auditoria completa**: Tabela `user_roles_audit` com trigger automático
 5. ✅ **Zero brecha**: Sem mais mapeamento inseguro userId → admin
+6. ✅ **Testes automatizados**: 45 testes unitários cobrindo todos os papéis, permissões, cache e erros
 
 ## Residual Risks
 
