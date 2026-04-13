@@ -202,7 +202,7 @@ export function SidebarBtEditorSection({
             }}
             className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2 space-y-2 transition-all"
           >
-            <div className="text-[10px] font-semibold text-blue-200 uppercase tracking-wider">
+            <div className="text-[10px] font-semibold text-blue-800 dark:text-blue-200 uppercase tracking-wider">
               Inserir poste por coordenadas
             </div>
             <div className="relative group">
@@ -215,7 +215,7 @@ export function SidebarBtEditorSection({
                 placeholder="-22.9068 -43.1729 ou 23K 635806 7462003"
                 aria-label="Coordenadas do poste"
                 aria-describedby="bt-coordinate-feedback"
-                className={`w-full rounded-lg border bg-slate-900/90 p-2.5 text-[11px] font-mono transition-all outline-none shadow-[0_0_10px_rgba(15,23,42,0.18)] ${getValidationInputClassName(coordinateValidation.state)}`}
+                className={`w-full rounded-lg border bg-white/70 dark:bg-slate-900/90 backdrop-blur-md p-2.5 text-[11px] font-mono transition-all outline-none text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm dark:shadow-[0_0_10px_rgba(15,23,42,0.18)] ${getValidationInputClassName(coordinateValidation.state)}`}
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1 items-center">
                 {btPoleCoordinateInput &&

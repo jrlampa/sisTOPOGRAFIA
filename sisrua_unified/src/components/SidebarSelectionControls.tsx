@@ -46,7 +46,7 @@ export function SidebarSelectionControls({
       {/* Search Card */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+          <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
             Area Alvo
           </label>
         </div>
@@ -59,10 +59,10 @@ export function SidebarSelectionControls({
               aria-describedby="area-alvo-feedback"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full bg-slate-900 border rounded-xl py-3 pl-12 pr-20 text-sm focus:outline-none focus:ring-2 transition-all shadow-inner ${getValidationInputClassName(searchValidation.state)}`}
+              className={`w-full bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-xl py-3 pl-12 pr-20 text-sm focus:outline-none focus:ring-2 transition-all shadow-inner text-slate-800 dark:text-slate-200 placeholder:text-slate-500 ${getValidationInputClassName(searchValidation.state)}`}
             />
             <Search
-              className="absolute left-4 top-3.5 text-slate-600 group-focus-within:text-blue-500 transition-colors"
+              className="absolute left-4 top-3.5 text-slate-400 dark:text-slate-600 group-focus-within:text-blue-500 transition-colors"
               size={18}
             />
             <AnimatePresence>
@@ -115,26 +115,26 @@ export function SidebarSelectionControls({
       <div className="space-y-6">
         <div className="flex flex-col gap-1.5">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+            <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
               Modo de Selecao
             </label>
           </div>
-          <div className="flex p-1 bg-slate-900 rounded-xl border border-white/5">
+          <div className="flex p-1 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-xl border border-slate-200 dark:border-white/5 shadow-sm">
             <button
               onClick={() => onSelectionModeChange("circle")}
-              className={`flex-1 text-[10px] font-bold py-2 rounded-lg transition-all ${selectionMode === "circle" ? "bg-slate-800 text-blue-400 shadow-xl border border-white/5" : "text-slate-400 hover:text-slate-200"}`}
+              className={`flex-1 text-[10px] font-bold py-2 rounded-lg transition-all ${selectionMode === "circle" ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-md border border-slate-200 dark:border-white/5" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}`}
             >
               RAIO
             </button>
             <button
               onClick={() => onSelectionModeChange("polygon")}
-              className={`flex-1 text-[10px] font-bold py-2 rounded-lg transition-all ${selectionMode === "polygon" ? "bg-slate-800 text-blue-400 shadow-xl border border-white/5" : "text-slate-400 hover:text-slate-200"}`}
+              className={`flex-1 text-[10px] font-bold py-2 rounded-lg transition-all ${selectionMode === "polygon" ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-md border border-slate-200 dark:border-white/5" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}`}
             >
               POLIGONO
             </button>
             <button
               onClick={() => onSelectionModeChange("measure")}
-              className={`flex-none px-3 py-2 rounded-lg transition-all ${selectionMode === "measure" ? "bg-emerald-600 text-white shadow-xl shadow-emerald-500/10" : "text-slate-400 hover:text-slate-200"}`}
+              className={`flex-none px-3 py-2 rounded-lg transition-all ${selectionMode === "measure" ? "bg-emerald-500 dark:bg-emerald-600 text-white shadow-md shadow-emerald-500/20" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}`}
               title="Modo Perfil"
             >
               <TrendingUp size={14} />
@@ -149,14 +149,14 @@ export function SidebarSelectionControls({
             className="space-y-4"
           >
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+              <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
                 Raio da Regiao
               </label>
-              <div className="bg-slate-900 border border-white/5 px-2.5 py-1 rounded-lg">
-                <span className="text-xs font-mono font-bold text-blue-400">
+              <div className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-white/5 px-2.5 py-1 rounded-lg shadow-sm">
+                <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
                   {radius}
                 </span>
-                <span className="text-[10px] text-slate-400 ml-1">METROS</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1">METROS</span>
               </div>
             </div>
             <div className="relative pt-1">
@@ -170,9 +170,9 @@ export function SidebarSelectionControls({
                 onMouseDown={saveSnapshot}
                 onTouchStart={saveSnapshot}
                 onChange={(e) => onRadiusChange(parseInt(e.target.value, 10))}
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400"
+                className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-600 dark:hover:accent-blue-400 shadow-inner"
               />
-              <div className="flex justify-between mt-2 text-[9px] font-bold text-slate-400 uppercase">
+              <div className="flex justify-between mt-2 text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">
                 <span>{MIN_RADIUS}m</span>
                 <span>{MAX_RADIUS}m</span>
               </div>
@@ -192,10 +192,10 @@ export function SidebarSelectionControls({
           disabled={
             isProcessing || (selectionMode === "polygon" && !isPolygonValid)
           }
-          className={`group w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-black text-xs tracking-widest uppercase transition-all shadow-2xl ${
+          className={`group w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-black text-xs tracking-widest uppercase transition-all shadow-xl ${
             isProcessing || (selectionMode === "polygon" && !isPolygonValid)
-              ? "bg-slate-800 text-slate-600 cursor-not-allowed border border-white/5"
-              : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-blue-500/30"
+              ? "bg-slate-200/50 dark:bg-slate-800/50 backdrop-blur-md text-slate-400 dark:text-slate-600 cursor-not-allowed border border-slate-300/50 dark:border-white/5"
+              : "bg-gradient-to-r from-blue-600 to-indigo-600 shadow-blue-500/20 text-white hover:shadow-blue-500/40"
           }`}
         >
           {isProcessing ? (
