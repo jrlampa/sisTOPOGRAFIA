@@ -54,10 +54,10 @@ const isRefreshAuthorized = (req: Request): boolean => {
   const receivedBuf = Buffer.from(receivedToken);
 
   // timingSafeEqual requires equal-length buffers.
-  // When lengths differ, perform a dummy self-comparison to keep timing
-  // consistent, then return false.
+  // When lengths differ, compare against a zero-filled dummy buffer of the
+  // same length as expectedBuf to keep timing consistent, then return false.
   if (expectedBuf.length !== receivedBuf.length) {
-    crypto.timingSafeEqual(expectedBuf, expectedBuf);
+    crypto.timingSafeEqual(expectedBuf, Buffer.alloc(expectedBuf.length));
     return false;
   }
 
