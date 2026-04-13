@@ -64,14 +64,10 @@ class OSMController:
         Logger.info("Step 1/5: Fetching OSM features...", progress=10)
         gdf = self._fetch_features(tags)
         if gdf is None or gdf.empty:
-            Logger.info("No architectural features found in area.", "warning")
-            # Always write a valid (empty) DXF so the download URL is not a 404
-            import ezdxf
-
-            empty_doc = ezdxf.new("R2013")
-            empty_doc.saveas(self.output_file)
-            Logger.success(f"Empty DXF saved (no features): {self.output_file}")
-            return
+            raise RuntimeError(
+                "Nenhuma feição OSM encontrada na área selecionada. "
+                "Tente um raio maior ou verifique se a região possui dados no OpenStreetMap."
+            )
 
         # 3. Spatial GIS Audit (Authoritative Logic)
         Logger.info("Step 2/5: Running spatial audit...", progress=30)
@@ -131,7 +127,7 @@ class OSMController:
             return fetch_osm_data(self.lat, self.lon, self.radius, tags, crs=self.crs)
         except Exception as e:
             Logger.error(f"OSM Fetch Error: {str(e)}")
-            return None
+            raise
 
     def _run_audit(self, gdf):
         """Runs spatial analysis on the fetched features."""
