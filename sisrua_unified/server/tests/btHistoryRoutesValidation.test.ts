@@ -15,6 +15,11 @@ jest.mock('../services/btExportHistoryService', () => ({
   }
 }));
 
+// Allow all permissions so these tests exercise payload validation, not auth.
+jest.mock('../middleware/permissionHandler', () => ({
+  requirePermission: () => (_req: unknown, _res: unknown, next: () => void) => next(),
+}));
+
 describe('btHistoryRoutes btContextUrl validation', () => {
   afterEach(() => {
     jest.resetModules();
@@ -39,7 +44,8 @@ describe('btHistoryRoutes btContextUrl validation', () => {
       });
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ error: 'btContextUrl obrigatório' });
+    expect(response.body.error).toBe('Payload inválido');
+    expect(response.body.details).toBeDefined();
     expect(createMock).not.toHaveBeenCalled();
   });
 

@@ -275,11 +275,12 @@ class ConstantsService {
         }
     }
 
-    async getRefreshEvents(limit = 20): Promise<ConstantsRefreshEvent[]> {
+    async getRefreshEvents(limit = 20, offset = 0): Promise<ConstantsRefreshEvent[]> {
         const sql = this.getSqlClient();
         if (!sql) return [];
 
         const safeLimit = Math.max(1, Math.min(limit, 100));
+        const safeOffset = Math.max(0, offset);
 
         try {
             const rows = await sql<RefreshEventRow[]>`
@@ -287,6 +288,7 @@ class ConstantsService {
                 FROM constants_refresh_events
                 ORDER BY created_at DESC
                 LIMIT ${safeLimit}
+                OFFSET ${safeOffset}
             `;
 
             return rows.map((row) => ({
@@ -447,11 +449,12 @@ class ConstantsService {
      * Returns snapshots ordered newest-first, without the data payload to keep
      * the list response small.
      */
-    async listSnapshots(limit = 20, namespace?: string): Promise<Omit<CatalogSnapshot, 'data'>[]> {
+    async listSnapshots(limit = 20, offset = 0, namespace?: string): Promise<Omit<CatalogSnapshot, 'data'>[]> {
         const sql = this.getSqlClient();
         if (!sql) return [];
 
         const safeLimit = Math.max(1, Math.min(limit, 100));
+        const safeOffset = Math.max(0, offset);
 
         try {
             const rows = namespace
@@ -461,12 +464,14 @@ class ConstantsService {
                     WHERE  namespace = ${namespace}
                     ORDER  BY created_at DESC
                     LIMIT  ${safeLimit}
+                    OFFSET ${safeOffset}
                   `
                 : await sql<SnapshotRow[]>`
                     SELECT id, namespace, actor, label, entry_count, created_at
                     FROM   constants_catalog_snapshots
                     ORDER  BY created_at DESC
                     LIMIT  ${safeLimit}
+                    OFFSET ${safeOffset}
                   `;
 
             return rows.map((row) => ({

@@ -28,6 +28,11 @@ jest.mock('../services/metricsService', () => ({
   },
 }));
 
+// Allow all permissions so this test exercises error-sanitization logic, not auth.
+jest.mock('../middleware/permissionHandler', () => ({
+  requirePermission: () => (_req: unknown, _res: unknown, next: () => void) => next(),
+}));
+
 describe('dxfRoutes error sanitization', () => {
   afterEach(() => {
     jest.resetModules();

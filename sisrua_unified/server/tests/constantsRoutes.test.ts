@@ -51,6 +51,11 @@ jest.mock('../middleware/rateLimiter', () => ({
   refreshRateLimitersFromCatalog: refreshRateLimitersFromCatalogMock
 }));
 
+// Allow all RBAC checks to pass through so tests can focus on token-based auth and business logic.
+jest.mock('../middleware/permissionHandler', () => ({
+  requirePermission: () => (_req: unknown, _res: unknown, next: () => void) => next(),
+}));
+
 describe('constantsRoutes', () => {
   const ADMIN_TOKEN = 'test-refresh-token';
 
@@ -155,7 +160,7 @@ describe('constantsRoutes', () => {
       .set('x-constants-refresh-token', ADMIN_TOKEN);
 
     expect(response.status).toBe(200);
-    expect(getRefreshEventsMock).toHaveBeenCalledWith(5);
+    expect(getRefreshEventsMock).toHaveBeenCalledWith(5, 0);
     expect(response.body).toEqual({
       events: [
         {
@@ -167,7 +172,8 @@ describe('constantsRoutes', () => {
           createdAt: '2026-04-07T01:00:00.000Z'
         }
       ],
-      limit: 5
+      limit: 5,
+      offset: 0
     });
   });
 
@@ -395,10 +401,11 @@ describe('constantsRoutes', () => {
       .set('x-constants-refresh-token', ADMIN_TOKEN);
 
     expect(response.status).toBe(200);
-    expect(listSnapshotsMock).toHaveBeenCalledWith(5, undefined);
+    expect(listSnapshotsMock).toHaveBeenCalledWith(5, 0, undefined);
     expect(response.body.snapshots).toHaveLength(1);
     expect(response.body.snapshots[0].id).toBe(5);
     expect(response.body.snapshots[0].namespace).toBe('config');
+    expect(response.body.offset).toBe(0);
   });
 
   it('rejects snapshots list without token when token protection is configured', async () => {

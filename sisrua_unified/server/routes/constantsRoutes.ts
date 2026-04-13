@@ -9,14 +9,16 @@ import { constantsService } from "../services/constantsService.js";
 import { getDxfCleanupPolicySnapshot } from "../services/dxfCleanupService.js";
 import { logger } from "../utils/logger.js";
 import { z } from "zod";
+import { listQueryBaseSchema } from "../schemas/apiSchemas.js";
+import { requirePermission } from "../middleware/permissionHandler.js";
 
 const router = Router();
 
-const refreshEventsQuerySchema = z.object({
+const refreshEventsQuerySchema = listQueryBaseSchema.extend({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
-const snapshotsQuerySchema = z.object({
+const snapshotsQuerySchema = listQueryBaseSchema.extend({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   namespace: z.string().trim().min(1).optional(),
 });
@@ -48,10 +50,18 @@ const isRefreshAuthorized = (req: Request): boolean => {
   }
 
   const receivedToken = req.get("x-constants-refresh-token") || "";
-  return crypto.timingSafeEqual(
-    Buffer.from(receivedToken),
-    Buffer.from(expectedToken)
-  );
+  const expectedBuf = Buffer.from(expectedToken);
+  const receivedBuf = Buffer.from(receivedToken);
+
+  // timingSafeEqual requires equal-length buffers.
+  // When lengths differ, perform a dummy self-comparison to keep timing
+  // consistent, then return false.
+  if (expectedBuf.length !== receivedBuf.length) {
+    crypto.timingSafeEqual(expectedBuf, expectedBuf);
+    return false;
+  }
+
+  return crypto.timingSafeEqual(receivedBuf, expectedBuf);
 };
 
 const getRefreshActor = (req: Request): string => {
@@ -95,13 +105,13 @@ router.get("/refresh-events", async (req: Request, res: Response) => {
       });
   }
 
-  const { limit } = validation.data;
-  const events = await constantsService.getRefreshEvents(limit);
+  const { limit, offset } = validation.data;
+  const events = await constantsService.getRefreshEvents(limit, offset);
 
-  return res.json({ events, limit: Math.max(1, Math.min(limit, 100)) });
+  return res.json({ events, limit: Math.max(1, Math.min(limit, 100)), offset });
 });
 
-router.post("/refresh", async (req: Request, res: Response) => {
+router.post("/refresh", requirePermission("admin"), async (req: Request, res: Response) => {
   const actor = getRefreshActor(req);
   const startedAt = Date.now();
 
@@ -199,13 +209,13 @@ router.get("/snapshots", async (req: Request, res: Response) => {
       });
   }
 
-  const { limit, namespace } = validation.data;
-  const snapshots = await constantsService.listSnapshots(limit, namespace);
+  const { limit, offset, namespace } = validation.data;
+  const snapshots = await constantsService.listSnapshots(limit, offset, namespace);
 
-  return res.json({ snapshots, limit: Math.max(1, Math.min(limit, 100)) });
+  return res.json({ snapshots, limit: Math.max(1, Math.min(limit, 100)), offset });
 });
 
-router.post("/snapshots/:id/restore", async (req: Request, res: Response) => {
+router.post("/snapshots/:id/restore", requirePermission("admin"), async (req: Request, res: Response) => {
   if (!isRefreshAuthorized(req)) {
     return res.status(401).json({ error: "Unauthorized restore request" });
   }
