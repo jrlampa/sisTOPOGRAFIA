@@ -161,9 +161,9 @@ describe('constantsService', () => {
 
     const { constantsService } = await import('../services/constantsService');
 
-    const events = await constantsService.getRefreshEvents(10);
+    const events = await constantsService.getRefreshEvents({ limit: 10 });
 
-    expect(events).toEqual([
+    expect(events.events).toEqual([
       {
         namespaces: ['config'],
         success: false,
@@ -268,14 +268,14 @@ describe('constantsService', () => {
 
       const { constantsService } = await import('../services/constantsService');
 
-      const list = await constantsService.listSnapshots(5);
+      const list = await constantsService.listSnapshots({ limit: 5 });
 
-      expect(list).toHaveLength(1);
-      expect(list[0].id).toBe(10);
-      expect(list[0].label).toBe('pre-deploy');
-      expect(list[0].entryCount).toBe(3);
+      expect(list.snapshots).toHaveLength(1);
+      expect(list.snapshots[0].id).toBe(10);
+      expect(list.snapshots[0].label).toBe('pre-deploy');
+      expect(list.snapshots[0].entryCount).toBe(3);
       // Listing must NOT expose the data payload.
-      expect((list[0] as Record<string, unknown>)['data']).toBeUndefined();
+      expect((list.snapshots[0] as Record<string, unknown>)['data']).toBeUndefined();
     });
 
     it('restores in-memory cache from a stored snapshot', async () => {

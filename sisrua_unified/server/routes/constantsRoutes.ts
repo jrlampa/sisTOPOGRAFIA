@@ -11,6 +11,7 @@ import { logger } from "../utils/logger.js";
 import { z } from "zod";
 import { createListQuerySchema } from "../schemas/apiSchemas.js";
 import { buildListMeta } from "../utils/listing.js";
+import { requirePermission } from "../middleware/permissionHandler.js";
 
 const router = Router();
 
@@ -73,14 +74,18 @@ const isRefreshAuthorized = (req: Request): boolean => {
   }
 
   const receivedToken = req.get("x-constants-refresh-token") || "";
-  if (receivedToken.length !== expectedToken.length) {
+  const expectedBuf = Buffer.from(expectedToken);
+  const receivedBuf = Buffer.from(receivedToken);
+
+  // timingSafeEqual requires equal-length buffers.
+  // When lengths differ, compare against a zero-filled dummy buffer of the
+  // same length as expectedBuf to keep timing consistent, then return false.
+  if (expectedBuf.length !== receivedBuf.length) {
+    crypto.timingSafeEqual(expectedBuf, Buffer.alloc(expectedBuf.length));
     return false;
   }
 
-  return crypto.timingSafeEqual(
-    Buffer.from(receivedToken),
-    Buffer.from(expectedToken),
-  );
+  return crypto.timingSafeEqual(receivedBuf, expectedBuf);
 };
 
 const getRefreshActor = (req: Request): string => {
@@ -157,7 +162,7 @@ router.get("/refresh-events", async (req: Request, res: Response) => {
   });
 });
 
-router.post("/refresh", async (req: Request, res: Response) => {
+router.post("/refresh", requirePermission("admin"), async (req: Request, res: Response) => {
   const actor = getRefreshActor(req);
   const startedAt = Date.now();
 
@@ -286,7 +291,7 @@ router.get("/snapshots", async (req: Request, res: Response) => {
   });
 });
 
-router.post("/snapshots/:id/restore", async (req: Request, res: Response) => {
+router.post("/snapshots/:id/restore", requirePermission("admin"), async (req: Request, res: Response) => {
   if (!isRefreshAuthorized(req)) {
     return res.status(401).json({ error: "Unauthorized restore request" });
   }

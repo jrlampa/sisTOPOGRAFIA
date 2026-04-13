@@ -51,6 +51,11 @@ jest.mock('../middleware/rateLimiter', () => ({
   refreshRateLimitersFromCatalog: refreshRateLimitersFromCatalogMock
 }));
 
+// Allow all RBAC checks to pass through so tests can focus on token-based auth and business logic.
+jest.mock('../middleware/permissionHandler', () => ({
+  requirePermission: () => (_req: unknown, _res: unknown, next: () => void) => next(),
+}));
+
 describe('constantsRoutes', () => {
   const ADMIN_TOKEN = 'test-refresh-token';
 

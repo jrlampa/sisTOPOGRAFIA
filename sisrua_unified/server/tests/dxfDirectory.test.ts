@@ -9,6 +9,11 @@ jest.mock('../pythonBridge', () => ({
   generateDxf: jest.fn().mockResolvedValue(undefined)
 }));
 
+// Allow all RBAC checks to pass through so this test focuses on DXF directory path integration.
+jest.mock('../middleware/permissionHandler', () => ({
+  requirePermission: () => (_req: unknown, _res: unknown, next: () => void) => next(),
+}));
+
 import request from 'supertest';
 import express from 'express';
 import { config } from '../config';

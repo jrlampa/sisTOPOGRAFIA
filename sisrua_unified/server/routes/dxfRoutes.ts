@@ -19,6 +19,7 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 import { resolveDxfDirectory } from "../utils/dxfDirectory.js";
+import { requirePermission } from "../middleware/permissionHandler.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -231,7 +232,7 @@ function extractCqtSummary(btContext: unknown): Record<string, unknown> | null {
 }
 
 // DXF Generation Endpoint
-router.post("/", dxfRateLimiter, async (req: Request, res: Response) => {
+router.post("/", dxfRateLimiter, requirePermission("export_dxf"), async (req: Request, res: Response) => {
   try {
     const validation = dxfRequestSchema.safeParse(req.body);
     if (!validation.success) {
@@ -372,6 +373,7 @@ router.post(
   "/batch",
   dxfRateLimiter,
   upload.single("csv"),
+  requirePermission("export_dxf"),
   async (req: Request, res: Response) => {
     try {
       if (!req.file) {

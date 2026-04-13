@@ -1,0 +1,250 @@
+import type { UserRole } from '../services/roleService';
+
+// Mock logger first (before any other import)
+jest.mock('../utils/logger', () => ({
+    logger: {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        debug: jest.fn(),
+    }
+}));
+
+// Mock config
+jest.mock('../config', () => ({
+    config: {
+        DB_HOST: 'localhost',
+        DB_PORT: 5432,
+        DB_NAME: 'test',
+        DB_USER: 'test',
+        DB_PASSWORD: 'test',
+        DB_SSL: 'false',
+    }
+}));
+
+// Mock the postgres client
+const mockSql = jest.fn();
+jest.mock('postgres', () => {
+    return jest.fn(() => mockSql);
+});
+
+import {
+    getUserRole,
+    setUserRole,
+    clearRoleCache,
+    clearUserRoleCache,
+    getUsersByRole,
+    getRoleStatistics,
+} from '../services/roleService';
+
+describe('RoleService', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        clearRoleCache();
+    });
+
+    describe('getUserRole', () => {
+        it('should return guest for undefined userId', async () => {
+            const role = await getUserRole(undefined);
+            expect(role).toBe('guest');
+            expect(mockSql).not.toHaveBeenCalled();
+        });
+
+        it('should return guest for empty string userId', async () => {
+            const role = await getUserRole('');
+            expect(role).toBe('guest');
+            expect(mockSql).not.toHaveBeenCalled();
+        });
+
+        it('should return guest for whitespace-only userId', async () => {
+            const role = await getUserRole('   ');
+            expect(role).toBe('guest');
+            expect(mockSql).not.toHaveBeenCalled();
+        });
+
+        it('should return role from database for valid userId', async () => {
+            mockSql.mockResolvedValueOnce([{ user_id: 'user-1', role: 'admin' }]);
+            const role = await getUserRole('user-1');
+            expect(role).toBe('admin');
+        });
+
+        it('should return viewer if user not found in database', async () => {
+            mockSql.mockResolvedValueOnce([]);
+            const role = await getUserRole('unknown-user');
+            expect(role).toBe('viewer');
+        });
+
+        it('should return viewer on database error (safe fallback)', async () => {
+            mockSql.mockRejectedValueOnce(new Error('Connection refused'));
+            const role = await getUserRole('any-user');
+            expect(role).toBe('viewer');
+        });
+
+        it('should cache result and not call DB again', async () => {
+            mockSql.mockResolvedValueOnce([{ user_id: 'cached-user', role: 'technician' }]);
+            const role1 = await getUserRole('cached-user');
+            const role2 = await getUserRole('cached-user');
+            expect(role1).toBe('technician');
+            expect(role2).toBe('technician');
+            // DB called only once due to cache hit on second call
+            expect(mockSql).toHaveBeenCalledTimes(1);
+        });
+
+        it('should trim whitespace from userId before lookup', async () => {
+            mockSql.mockResolvedValueOnce([{ user_id: 'user-trim', role: 'viewer' }]);
+            const role = await getUserRole('  user-trim  ');
+            expect(role).toBe('viewer');
+        });
+
+        it('should support all valid UserRole values', async () => {
+            const roles: UserRole[] = ['admin', 'technician', 'viewer', 'guest'];
+            for (const expectedRole of roles) {
+                clearRoleCache();
+                mockSql.mockResolvedValueOnce([{ user_id: 'test-user', role: expectedRole }]);
+                const role = await getUserRole('test-user');
+                expect(role).toBe(expectedRole);
+            }
+        });
+    });
+
+    describe('clearRoleCache', () => {
+        it('should clear all cached roles', async () => {
+            // Prime cache
+            mockSql.mockResolvedValueOnce([{ user_id: 'cache-user', role: 'admin' }]);
+            await getUserRole('cache-user');
+            expect(mockSql).toHaveBeenCalledTimes(1);
+
+            clearRoleCache();
+
+            // After clear, DB is called again
+            mockSql.mockResolvedValueOnce([{ user_id: 'cache-user', role: 'admin' }]);
+            await getUserRole('cache-user');
+            expect(mockSql).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    describe('clearUserRoleCache', () => {
+        it('should clear cache for specific user only', async () => {
+            // Prime caches for two users
+            mockSql
+                .mockResolvedValueOnce([{ user_id: 'user-a', role: 'admin' }])
+                .mockResolvedValueOnce([{ user_id: 'user-b', role: 'viewer' }]);
+            await getUserRole('user-a');
+            await getUserRole('user-b');
+            expect(mockSql).toHaveBeenCalledTimes(2);
+
+            clearUserRoleCache('user-a');
+
+            // user-a must hit DB again; user-b should use cache
+            mockSql.mockResolvedValueOnce([{ user_id: 'user-a', role: 'technician' }]);
+            const roleA = await getUserRole('user-a');
+            const roleB = await getUserRole('user-b');
+            expect(roleA).toBe('technician');
+            expect(roleB).toBe('viewer');
+            expect(mockSql).toHaveBeenCalledTimes(3);
+        });
+    });
+
+    describe('setUserRole', () => {
+        it('should return false for empty userId', async () => {
+            const result = await setUserRole('', 'admin', 'system');
+            expect(result).toBe(false);
+            expect(mockSql).not.toHaveBeenCalled();
+        });
+
+        it('should return true and invalidate cache on successful update', async () => {
+            // Prime cache
+            mockSql.mockResolvedValueOnce([{ user_id: 'upd-user', role: 'viewer' }]);
+            await getUserRole('upd-user');
+
+            // setUserRole should succeed
+            mockSql.mockResolvedValueOnce([{ user_id: 'upd-user', role: 'admin' }]);
+            const result = await setUserRole('upd-user', 'admin', 'admin-user', 'promotion');
+            expect(result).toBe(true);
+
+            // Cache invalidated: DB queried on next getUserRole
+            mockSql.mockResolvedValueOnce([{ user_id: 'upd-user', role: 'admin' }]);
+            await getUserRole('upd-user');
+            expect(mockSql).toHaveBeenCalledTimes(3);
+        });
+
+        it('should return false on database error', async () => {
+            mockSql.mockRejectedValueOnce(new Error('Write failed'));
+            const result = await setUserRole('err-user', 'admin', 'system');
+            expect(result).toBe(false);
+        });
+
+        it('should return false if database returns empty rows', async () => {
+            mockSql.mockResolvedValueOnce([]);
+            const result = await setUserRole('no-rows-user', 'viewer', 'system');
+            expect(result).toBe(false);
+        });
+
+        it('should accept optional reason parameter', async () => {
+            mockSql.mockResolvedValueOnce([{ user_id: 'reason-user', role: 'technician' }]);
+            const result = await setUserRole('reason-user', 'technician', 'admin', 'Novo técnico');
+            expect(result).toBe(true);
+        });
+
+        it('should work without reason parameter', async () => {
+            mockSql.mockResolvedValueOnce([{ user_id: 'no-reason-user', role: 'viewer' }]);
+            const result = await setUserRole('no-reason-user', 'viewer', 'admin');
+            expect(result).toBe(true);
+        });
+    });
+
+    describe('getUsersByRole', () => {
+        it('should return list of users for a given role', async () => {
+            const mockUsers = [
+                { user_id: 'u1', role: 'technician' as UserRole, assigned_at: '2026-01-01', last_updated: '2026-01-01' },
+                { user_id: 'u2', role: 'technician' as UserRole, assigned_at: '2026-01-02', last_updated: '2026-01-02' },
+            ];
+            mockSql.mockResolvedValueOnce(mockUsers);
+            const users = await getUsersByRole('technician');
+            expect(users).toHaveLength(2);
+            expect(users[0].user_id).toBe('u1');
+        });
+
+        it('should return empty array on database error', async () => {
+            mockSql.mockRejectedValueOnce(new Error('Query failed'));
+            const users = await getUsersByRole('admin');
+            expect(users).toEqual([]);
+        });
+
+        it('should return empty array if no users found', async () => {
+            mockSql.mockResolvedValueOnce([]);
+            const users = await getUsersByRole('guest');
+            expect(users).toEqual([]);
+        });
+    });
+
+    describe('getRoleStatistics', () => {
+        it('should return distribution of roles', async () => {
+            mockSql.mockResolvedValueOnce([
+                { role: 'admin', count: 2 },
+                { role: 'technician', count: 5 },
+                { role: 'viewer', count: 10 },
+            ]);
+            const stats = await getRoleStatistics();
+            expect(stats.admin).toBe(2);
+            expect(stats.technician).toBe(5);
+            expect(stats.viewer).toBe(10);
+            expect(stats.guest).toBe(0);
+        });
+
+        it('should return zeros for all roles on database error', async () => {
+            mockSql.mockRejectedValueOnce(new Error('Stats query failed'));
+            const stats = await getRoleStatistics();
+            expect(stats).toEqual({ admin: 0, technician: 0, viewer: 0, guest: 0 });
+        });
+
+        it('should return zeros for roles not returned from DB', async () => {
+            mockSql.mockResolvedValueOnce([{ role: 'admin', count: 1 }]);
+            const stats = await getRoleStatistics();
+            expect(stats.admin).toBe(1);
+            expect(stats.technician).toBe(0);
+            expect(stats.viewer).toBe(0);
+            expect(stats.guest).toBe(0);
+        });
+    });
+});

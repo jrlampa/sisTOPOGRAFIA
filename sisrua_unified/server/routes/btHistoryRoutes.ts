@@ -7,6 +7,7 @@ import {
 import { z } from "zod";
 import { createListQuerySchema } from "../schemas/apiSchemas.js";
 import { buildListMeta } from "../utils/listing.js";
+import { requirePermission } from "../middleware/permissionHandler.js";
 
 const router = Router();
 
@@ -129,7 +130,7 @@ router.get("/", async (req: Request, res: Response) => {
   });
 });
 
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", requirePermission("write"), async (req: Request, res: Response) => {
   const validation = createHistoryPayloadSchema.safeParse(req.body);
   if (!validation.success) {
     return res
@@ -143,7 +144,7 @@ router.post("/", async (req: Request, res: Response) => {
   return res.status(201).json({ ok: true, stored });
 });
 
-router.post("/ingest", async (req: Request, res: Response) => {
+router.post("/ingest", requirePermission("write"), async (req: Request, res: Response) => {
   const validation = ingestHistoryPayloadSchema.safeParse(req.body);
   if (!validation.success) {
     return res
@@ -166,7 +167,7 @@ router.post("/ingest", async (req: Request, res: Response) => {
   return res.status(201).json({ ok: true, ...result });
 });
 
-router.delete("/", async (req: Request, res: Response) => {
+router.delete("/", requirePermission("delete"), async (req: Request, res: Response) => {
   const validation = clearHistoryQuerySchema.safeParse(req.query);
   if (!validation.success) {
     return res
