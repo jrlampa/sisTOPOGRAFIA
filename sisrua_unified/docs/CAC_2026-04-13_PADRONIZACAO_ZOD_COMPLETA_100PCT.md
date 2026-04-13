@@ -10,6 +10,7 @@
 ## Contexto
 
 Após a CAC anterior (2026-04-12) que migrou 7 rotas críticas para Zod, havia remanescência:
+
 - 72% de cobertura Zod em rotas com entrada crítica
 - Validação manual dispersa em 3 rotas (dxfRoutes, constantsRoutes, elevationRoutes)
 - Endpoints de catálogo sem validação explícita (btCalculationRoutes)
@@ -27,16 +28,19 @@ Após a CAC anterior (2026-04-12) que migrou 7 rotas críticas para Zod, havia r
 ### 1. dxfRoutes.ts (Lines 24–34, 116–143, 308–320)
 
 **Schema-driven Protocol Conversion:**
+
 - `protocolSchema`: Zod refine para garantir 'http' | 'https'
 - `normalizeProtocol()` agora usa `protocolSchema.parse()` internamente
 - Eliminado manual split/toLowerCase logic
 
 **CQT Summary Extraction with Validation:**
+
 - `cqtSummarySchema`: Zod object com campos opcionais tipados
 - `extractCqtSummary()` agora valida resultado final contra schema
 - Retorna `null` se validação falha (fallback seguro)
 
 **File Upload Validation (CRITICAL):**
+
 - `batchFileSchema`: Zod validation para `buffer`, `mimetype`, `originalname`
   - Buffer size: máximo 50MB, mínimo não-vazio
   - MIME types aceitos: CSV, XLS, XLSX
@@ -46,10 +50,12 @@ Após a CAC anterior (2026-04-12) que migrou 7 rotas críticas para Zod, havia r
 ### 2. constantsRoutes.ts (Lines 2, 33–41)
 
 **Import Correction:**
+
 - Adicionado `import crypto from "crypto"` (L2)
 - Confirmado `timingSafeEqual` usage em `isRefreshAuthorized()`
 
 **Endpoint /clandestino Query Validation:**
+
 - `clandestineQuerySchema`: Zod object `{}.strict()` para garantir sem query params inesperados
 - Validação antes de lógica de negócio
 - Retorna 400 se query inválida
@@ -57,6 +63,7 @@ Após a CAC anterior (2026-04-12) que migrou 7 rotas críticas para Zod, havia r
 ### 3. elevationRoutes.ts (Lines 231–275)
 
 **Cache Endpoints with Explicit Validation:**
+
 - `cacheStatusQuerySchema` e `cacheClearBodySchema`: Empty strict Zod objects
 - Validação aplicada em `GET /cache/status` e `POST /cache/clear`
 - Garante que não há query/body inesperado
@@ -64,6 +71,7 @@ Após a CAC anterior (2026-04-12) que migrou 7 rotas críticas para Zod, havia r
 ### 4. btCalculationRoutes.ts (Lines 73–167)
 
 **Catalog + Parity Endpoints Query Validation:**
+
 - `emptyCatalogQuerySchema` e `emptyParityQuerySchema`: Zod objects vazios com `.strict()`
 - Validação aplicada em:
   - `GET /catalog` (L93)

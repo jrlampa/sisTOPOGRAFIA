@@ -5,7 +5,8 @@ import {
   BtExportHistoryIngestPayload,
 } from "../services/btExportHistoryService.js";
 import { z } from "zod";
-import { listQueryBaseSchema } from "../schemas/apiSchemas.js";
+import { createListQuerySchema } from "../schemas/apiSchemas.js";
+import { buildListMeta } from "../utils/listing.js";
 import { requirePermission } from "../middleware/permissionHandler.js";
 
 const router = Router();
@@ -35,11 +36,19 @@ const isSafeBtContextUrl = (value: string): boolean => {
   }
 };
 
-const listHistoryQuerySchema = listQueryBaseSchema.extend({
-  limit: z.coerce.number().int().min(1).max(200).default(50),
+const listHistoryQuerySchema = createListQuerySchema(
+  {
+    defaultLimit: 50,
+    maxLimit: 200,
+    sortBy: ["exportedAt"],
+    defaultSortBy: "exportedAt",
+    defaultSortOrder: "desc",
+  },
+  {
   projectType: projectTypeSchema.optional(),
   cqtScenario: cqtScenarioSchema.optional(),
-});
+  },
+);
 
 const createHistoryPayloadSchema = z.object({
   exportedAt: z.string().datetime({ offset: true }),
@@ -88,13 +97,37 @@ router.get("/", async (req: Request, res: Response) => {
       });
   }
 
-  const { limit, offset, projectType, cqtScenario } = validation.data;
+  const { limit, offset, sortBy, sortOrder, projectType, cqtScenario } =
+    validation.data;
 
-  const result = await btExportHistoryService.list(limit, offset, {
-    projectType,
-    cqtScenario,
+  const result = await btExportHistoryService.list(
+    limit,
+    offset,
+    {
+      projectType,
+      cqtScenario,
+    },
+    {
+      sortBy: sortBy as "exportedAt",
+      sortOrder,
+    },
+  );
+
+  return res.json({
+    ...result,
+    meta: buildListMeta({
+      limit: result.limit,
+      offset: result.offset,
+      total: result.total,
+      returned: result.entries.length,
+      sortBy,
+      sortOrder,
+      filters: {
+        projectType: projectType ?? null,
+        cqtScenario: cqtScenario ?? null,
+      },
+    }),
   });
-  return res.json(result);
 });
 
 router.post("/", requirePermission("write"), async (req: Request, res: Response) => {

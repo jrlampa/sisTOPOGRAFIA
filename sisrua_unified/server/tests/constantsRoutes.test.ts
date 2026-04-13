@@ -139,16 +139,21 @@ describe('constantsRoutes', () => {
   });
 
   it('returns refresh events list for authorized operational access', async () => {
-    getRefreshEventsMock.mockResolvedValue([
-      {
-        namespaces: ['config'],
-        success: true,
-        httpStatus: 200,
-        actor: 'ops',
-        durationMs: 90,
-        createdAt: '2026-04-07T01:00:00.000Z'
-      }
-    ]);
+    getRefreshEventsMock.mockResolvedValue({
+      events: [
+        {
+          namespaces: ['config'],
+          success: true,
+          httpStatus: 200,
+          actor: 'ops',
+          durationMs: 90,
+          createdAt: '2026-04-07T01:00:00.000Z'
+        }
+      ],
+      total: 1,
+      limit: 5,
+      offset: 2
+    });
 
     const { default: router } = await import('../routes/constantsRoutes');
 
@@ -156,11 +161,21 @@ describe('constantsRoutes', () => {
     app.use('/api/constants', router);
 
     const response = await request(app)
-      .get('/api/constants/refresh-events?limit=5')
+      .get('/api/constants/refresh-events?limit=5&offset=2&sortBy=actor&sortOrder=asc&actor=ops')
       .set('x-constants-refresh-token', ADMIN_TOKEN);
 
     expect(response.status).toBe(200);
-    expect(getRefreshEventsMock).toHaveBeenCalledWith(5, 0);
+    expect(getRefreshEventsMock).toHaveBeenCalledWith({
+      limit: 5,
+      offset: 2,
+      sortBy: 'actor',
+      sortOrder: 'asc',
+      filters: {
+        actor: 'ops',
+        namespace: undefined,
+        success: undefined
+      }
+    });
     expect(response.body).toEqual({
       events: [
         {
@@ -172,8 +187,23 @@ describe('constantsRoutes', () => {
           createdAt: '2026-04-07T01:00:00.000Z'
         }
       ],
+      total: 1,
       limit: 5,
-      offset: 0
+      offset: 2,
+      meta: {
+        limit: 5,
+        offset: 2,
+        total: 1,
+        returned: 1,
+        hasMore: false,
+        sortBy: 'actor',
+        sortOrder: 'asc',
+        filters: {
+          actor: 'ops',
+          namespace: null,
+          success: null
+        }
+      }
     });
   });
 
@@ -380,16 +410,21 @@ describe('constantsRoutes', () => {
   });
 
   it('lists catalog snapshots for authorized request', async () => {
-    listSnapshotsMock.mockResolvedValue([
-      {
-        id: 5,
-        namespace: 'config',
-        actor: 'ops',
-        label: null,
-        entryCount: 4,
-        createdAt: '2026-04-07T13:00:00.000Z'
-      }
-    ]);
+    listSnapshotsMock.mockResolvedValue({
+      snapshots: [
+        {
+          id: 5,
+          namespace: 'config',
+          actor: 'ops',
+          label: null,
+          entryCount: 4,
+          createdAt: '2026-04-07T13:00:00.000Z'
+        }
+      ],
+      total: 1,
+      limit: 5,
+      offset: 1
+    });
 
     const { default: router } = await import('../routes/constantsRoutes');
 
@@ -397,15 +432,36 @@ describe('constantsRoutes', () => {
     app.use('/api/constants', router);
 
     const response = await request(app)
-      .get('/api/constants/snapshots?limit=5')
+      .get('/api/constants/snapshots?limit=5&offset=1&sortBy=namespace&sortOrder=asc&namespace=config')
       .set('x-constants-refresh-token', ADMIN_TOKEN);
 
     expect(response.status).toBe(200);
-    expect(listSnapshotsMock).toHaveBeenCalledWith(5, 0, undefined);
+    expect(listSnapshotsMock).toHaveBeenCalledWith({
+      limit: 5,
+      offset: 1,
+      sortBy: 'namespace',
+      sortOrder: 'asc',
+      filters: {
+        namespace: 'config',
+        actor: undefined
+      }
+    });
     expect(response.body.snapshots).toHaveLength(1);
     expect(response.body.snapshots[0].id).toBe(5);
     expect(response.body.snapshots[0].namespace).toBe('config');
-    expect(response.body.offset).toBe(0);
+    expect(response.body.meta).toEqual({
+      limit: 5,
+      offset: 1,
+      total: 1,
+      returned: 1,
+      hasMore: false,
+      sortBy: 'namespace',
+      sortOrder: 'asc',
+      filters: {
+        namespace: 'config',
+        actor: null
+      }
+    });
   });
 
   it('rejects snapshots list without token when token protection is configured', async () => {

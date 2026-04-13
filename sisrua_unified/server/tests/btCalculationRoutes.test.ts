@@ -50,7 +50,7 @@ jest.mock('../services/btParityService', () => ({
         totals: { total: 0, pass: 0, warn: 0, fail: 0, p0Pass: 0, p0Fail: 0, p1Pass: 0, p1Fail: 0, p2Pass: 0, p2Fail: 0 },
         p0Gate: true,
     })),
-    listBtParityScenarios: jest.fn(() => []),
+    listBtParityScenarios: jest.fn(() => [{ id: 'A1' }, { id: 'B2' }]),
 }));
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -215,10 +215,11 @@ describe('btCalculationRoutes – parity endpoints', () => {
         expect(typeof res.body.p0Gate).toBe('boolean');
     });
 
-    it('GET /parity/scenarios returns array', async () => {
+    it('GET /parity/scenarios returns paginated list payload with meta', async () => {
         const app = buildApp();
-        const res = await request(app).get('/parity/scenarios');
+        const res = await request(app).get('/parity/scenarios?search=b&sortOrder=desc');
         expect(res.status).toBe(200);
-        expect(Array.isArray(res.body)).toBe(true);
+        expect(res.body.scenarios).toEqual([{ id: 'B2' }]);
+        expect(res.body.meta.filters.search).toBe('b');
     });
 });

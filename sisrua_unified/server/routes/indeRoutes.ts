@@ -2,6 +2,8 @@ import { Router, Request, Response } from "express";
 import { IndeService } from "../services/indeService.js";
 import { logger } from "../utils/logger.js";
 import { z } from "zod";
+import { createListQuerySchema } from "../schemas/apiSchemas.js";
+import { buildListMeta, comparePrimitiveValues } from "../utils/listing.js";
 
 const router = Router();
 const INDE_INTERNAL_ERROR_RESPONSE = {
@@ -21,10 +23,18 @@ const bboxQueryObjectSchema = z.object({
   north: z.coerce.number().min(-90).max(90),
 });
 
-const featuresQuerySchema = bboxQueryObjectSchema
-  .extend({
-    limit: z.coerce.number().int().min(1).max(5000).default(1000),
-  })
+const featuresQuerySchema = createListQuerySchema(
+  {
+    defaultLimit: 1000,
+    maxLimit: 5000,
+    sortBy: ["id"],
+    defaultSortBy: "id",
+    defaultSortOrder: "asc",
+  },
+  {
+    ...bboxQueryObjectSchema.shape,
+  },
+)
   .refine((data) => data.west < data.east && data.south < data.north, {
     message: "Invalid bounding box. Expected west<east and south<north.",
   });
@@ -77,20 +87,15 @@ router.get("/features/:source", async (req: Request, res: Response) => {
 
     const queryValidation = featuresQuerySchema.safeParse(req.query);
     if (!queryValidation.success) {
-      const bboxIssue = queryValidation.error.issues.find(
-        (i) => i.path.length === 0 || ["west", "east", "south", "north"].some((f) => i.path.includes(f)),
-      );
-      const errorMessage = bboxIssue
-        ? "Invalid bounding box. Expected west<east and south<north."
-        : "Parâmetros inválidos";
       return res.status(400).json({
-        error: errorMessage,
+        error: "Parâmetros inválidos",
         details: queryValidation.error.issues,
       });
     }
 
     const { source } = sourceValidation.data;
-    const { layer, west, south, east, north, limit } = queryValidation.data;
+    const { layer, west, south, east, north, limit, offset, sortBy, sortOrder } =
+      queryValidation.data;
 
     const features = await IndeService.getFeaturesByBBox(
       layer,
@@ -103,7 +108,36 @@ router.get("/features/:source", async (req: Request, res: Response) => {
     );
 
     if (features) {
-      return res.json(features);
+      const originalFeatures = Array.isArray(features.features)
+        ? [...features.features]
+        : [];
+      const sortedFeatures =
+        sortBy === "id"
+          ? originalFeatures.sort((left, right) =>
+              comparePrimitiveValues(left?.id, right?.id, sortOrder),
+            )
+          : originalFeatures;
+      const paginatedFeatures = sortedFeatures.slice(offset, offset + limit);
+
+      return res.json({
+        ...features,
+        features: paginatedFeatures,
+        total: originalFeatures.length,
+        limit,
+        offset,
+        meta: buildListMeta({
+          limit,
+          offset,
+          total: originalFeatures.length,
+          returned: paginatedFeatures.length,
+          sortBy,
+          sortOrder,
+          filters: {
+            source,
+            layer,
+          },
+        }),
+      });
     } else {
       return res.status(404).json({ error: "No features found" });
     }
@@ -127,19 +161,8 @@ router.get("/wms/:source", async (req: Request, res: Response) => {
 
     const queryValidation = wmsQuerySchema.safeParse(req.query);
     if (!queryValidation.success) {
-      const dimensionIssue = queryValidation.error.issues.find((i) =>
-        ["width", "height"].some((f) => i.path.includes(f)),
-      );
-      const bboxIssue = !dimensionIssue && queryValidation.error.issues.find(
-        (i) => i.path.length === 0 || ["west", "east", "south", "north"].some((f) => i.path.includes(f)),
-      );
-      const errorMessage = dimensionIssue
-        ? "Invalid width/height. Expected values between 64 and 4096."
-        : bboxIssue
-          ? "Invalid bounding box. Expected west<east and south<north."
-          : "Parâmetros inválidos";
       return res.status(400).json({
-        error: errorMessage,
+        error: "Parâmetros inválidos",
         details: queryValidation.error.issues,
       });
     }

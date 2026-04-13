@@ -5,17 +5,6 @@ import { z } from 'zod';
  * Ensures all input data meets security and business requirements
  */
 
-/**
- * Base schema for all listing/pagination endpoints.
- * Convention única: limit + offset + sortOrder para todas as rotas listáveis.
- * Routes may extend this schema with domain-specific filters.
- */
-export const listQueryBaseSchema = z.object({
-    limit: z.coerce.number().int().min(1).max(200).default(20),
-    offset: z.coerce.number().int().min(0).default(0),
-    sortOrder: z.enum(['asc', 'desc']).default('desc'),
-});
-
 // Search endpoint schema
 export const searchSchema = z.object({
     query: z.string()
@@ -134,4 +123,43 @@ export const osmRequestSchema = z.object({
     lng: z.coerce.number().min(-180).max(180),
     radius: z.coerce.number().min(10).max(5000)
 });
+
+export const listSortOrderSchema = z.enum(['asc', 'desc']);
+
+export type ListSortOrder = z.infer<typeof listSortOrderSchema>;
+
+interface CreateListQuerySchemaOptions<TSortBy extends string> {
+    defaultLimit?: number;
+    maxLimit?: number;
+    sortBy: readonly [TSortBy, ...TSortBy[]];
+    defaultSortBy?: TSortBy;
+    defaultSortOrder?: ListSortOrder;
+}
+
+export function createListQuerySchema<
+    TSortBy extends string,
+    TFilters extends z.ZodRawShape = {}
+>(
+    options: CreateListQuerySchemaOptions<TSortBy>,
+    filtersShape?: TFilters,
+) {
+    const {
+        defaultLimit = 20,
+        maxLimit = 100,
+        sortBy,
+        defaultSortBy = sortBy[0],
+        defaultSortOrder = 'desc',
+    } = options;
+    const sortByValues = [...sortBy] as [TSortBy, ...TSortBy[]];
+
+    return z
+        .object({
+            limit: z.coerce.number().int().min(1).max(maxLimit).default(defaultLimit),
+            offset: z.coerce.number().int().min(0).default(0),
+            sortBy: z.enum(sortByValues).default(defaultSortBy),
+            sortOrder: listSortOrderSchema.default(defaultSortOrder),
+            ...(filtersShape ?? {}),
+        })
+        .strict();
+}
 

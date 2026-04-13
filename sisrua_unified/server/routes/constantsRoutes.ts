@@ -9,19 +9,43 @@ import { constantsService } from "../services/constantsService.js";
 import { getDxfCleanupPolicySnapshot } from "../services/dxfCleanupService.js";
 import { logger } from "../utils/logger.js";
 import { z } from "zod";
-import { listQueryBaseSchema } from "../schemas/apiSchemas.js";
+import { createListQuerySchema } from "../schemas/apiSchemas.js";
+import { buildListMeta } from "../utils/listing.js";
 import { requirePermission } from "../middleware/permissionHandler.js";
 
 const router = Router();
 
-const refreshEventsQuerySchema = listQueryBaseSchema.extend({
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-});
+const refreshEventsQuerySchema = createListQuerySchema(
+  {
+    defaultLimit: 20,
+    maxLimit: 100,
+    sortBy: ["createdAt", "actor", "httpStatus", "durationMs", "success"],
+    defaultSortBy: "createdAt",
+    defaultSortOrder: "desc",
+  },
+  {
+    actor: z.string().trim().min(1).optional(),
+    namespace: z.string().trim().min(1).optional(),
+    success: z
+      .enum(["true", "false"])
+      .transform((value) => value === "true")
+      .optional(),
+  },
+);
 
-const snapshotsQuerySchema = listQueryBaseSchema.extend({
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+const snapshotsQuerySchema = createListQuerySchema(
+  {
+    defaultLimit: 20,
+    maxLimit: 100,
+    sortBy: ["createdAt", "namespace", "actor", "entryCount"],
+    defaultSortBy: "createdAt",
+    defaultSortOrder: "desc",
+  },
+  {
   namespace: z.string().trim().min(1).optional(),
-});
+    actor: z.string().trim().min(1).optional(),
+  },
+);
 
 const snapshotRestoreParamsSchema = z.object({
   id: z.coerce.number().int().positive(),
@@ -97,18 +121,45 @@ router.get("/refresh-events", async (req: Request, res: Response) => {
 
   const validation = refreshEventsQuerySchema.safeParse(req.query);
   if (!validation.success) {
-    return res
-      .status(400)
-      .json({
-        error: "Invalid query parameters",
-        details: validation.error.issues,
-      });
+    return res.status(400).json({
+      error: "Invalid query parameters",
+      details: validation.error.issues,
+    });
   }
 
-  const { limit, offset } = validation.data;
-  const events = await constantsService.getRefreshEvents(limit, offset);
+  const { limit, offset, sortBy, sortOrder, actor, namespace, success } =
+    validation.data;
+  const result = await constantsService.getRefreshEvents({
+    limit,
+    offset,
+    sortBy: sortBy as "createdAt" | "actor" | "httpStatus" | "durationMs" | "success",
+    sortOrder,
+    filters: {
+      actor,
+      namespace,
+      success,
+    },
+  });
 
-  return res.json({ events, limit: Math.max(1, Math.min(limit, 100)), offset });
+  return res.json({
+    events: result.events,
+    total: result.total,
+    limit: result.limit,
+    offset: result.offset,
+    meta: buildListMeta({
+      limit: result.limit,
+      offset: result.offset,
+      total: result.total,
+      returned: result.events.length,
+      sortBy,
+      sortOrder,
+      filters: {
+        actor: actor ?? null,
+        namespace: namespace ?? null,
+        success: typeof success === "boolean" ? success : null,
+      },
+    }),
+  });
 });
 
 router.post("/refresh", requirePermission("admin"), async (req: Request, res: Response) => {
@@ -201,18 +252,43 @@ router.get("/snapshots", async (req: Request, res: Response) => {
 
   const validation = snapshotsQuerySchema.safeParse(req.query);
   if (!validation.success) {
-    return res
-      .status(400)
-      .json({
-        error: "Invalid query parameters",
-        details: validation.error.issues,
-      });
+    return res.status(400).json({
+      error: "Invalid query parameters",
+      details: validation.error.issues,
+    });
   }
 
-  const { limit, offset, namespace } = validation.data;
-  const snapshots = await constantsService.listSnapshots(limit, offset, namespace);
+  const { limit, offset, sortBy, sortOrder, namespace, actor } =
+    validation.data;
+  const result = await constantsService.listSnapshots({
+    limit,
+    offset,
+    sortBy: sortBy as "createdAt" | "namespace" | "actor" | "entryCount",
+    sortOrder,
+    filters: {
+      namespace,
+      actor,
+    },
+  });
 
-  return res.json({ snapshots, limit: Math.max(1, Math.min(limit, 100)), offset });
+  return res.json({
+    snapshots: result.snapshots,
+    total: result.total,
+    limit: result.limit,
+    offset: result.offset,
+    meta: buildListMeta({
+      limit: result.limit,
+      offset: result.offset,
+      total: result.total,
+      returned: result.snapshots.length,
+      sortBy,
+      sortOrder,
+      filters: {
+        namespace: namespace ?? null,
+        actor: actor ?? null,
+      },
+    }),
+  });
 });
 
 router.post("/snapshots/:id/restore", requirePermission("admin"), async (req: Request, res: Response) => {

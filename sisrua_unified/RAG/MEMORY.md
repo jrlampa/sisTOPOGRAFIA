@@ -186,9 +186,9 @@ docker-compose up -d
 
 ---
 
-**Última Atualização**: 2026-04-03
+**Última Atualização**: 2026-04-13
 **Branch Ativa**: dev
-**Versão**: 1.2.0
+**Versão**: 1.3.0
 
 ---
 
@@ -257,6 +257,61 @@ docker-compose up -d
   - consistência WCAG 2.1 A/AA.
 
 ### Evidência atual e gap
+
+---
+
+## 📌 Atualização Operacional (2026-04-12) - Contrato Transversal de Listagem
+
+### Diretriz
+
+- Rotas listáveis do backend passam a seguir convenção única para paginação, ordenação e filtros.
+- O objetivo é reduzir contratos ad hoc por endpoint e padronizar consumo por frontend, testes e integrações.
+
+### Contrato adotado
+
+- Query padrão:
+  - `limit`
+  - `offset`
+  - `sortBy`
+  - `sortOrder`
+  - filtros específicos por rota, validados por Zod
+- Resposta padrão:
+  - coleção principal mantida por compatibilidade (`entries`, `events`, `snapshots`, `states`, `municipios`, `features`, `data`, `scenarios`)
+  - `total`
+  - `limit`
+  - `offset`
+  - `meta`
+    - `limit`
+    - `offset`
+    - `total`
+    - `returned`
+    - `hasMore`
+    - `sortBy`
+    - `sortOrder`
+    - `filters`
+
+### Helpers centrais
+
+- `server/schemas/apiSchemas.ts`
+  - `createListQuerySchema()`
+  - `listSortOrderSchema`
+- `server/utils/listing.ts`
+  - `buildListMeta()`
+  - `comparePrimitiveValues()`
+
+### Rotas cobertas nesta etapa
+
+- `server/routes/btHistoryRoutes.ts`
+- `server/routes/constantsRoutes.ts`
+- `server/routes/ibgeRoutes.ts`
+- `server/routes/indeRoutes.ts`
+- `server/routes/mechanicalAndAnalysisRoutes.ts`
+- `server/routes/btCalculationRoutes.ts` (`/parity/scenarios`)
+
+### Observação importante
+
+- Filtros continuam específicos do domínio de cada rota, mas agora sob convenção única de validação e retorno em `meta.filters`.
+- Compatibilidade retroativa foi preservada sempre que possível, mantendo a chave principal da coleção.
 
 - Há base existente com labels e smoke test Axe em `e2e/a11y-smoke.spec.ts`.
 - Gap identificado: cobertura ainda concentrada na raiz e sem matriz ampla por fluxo crítico e estados interativos.
@@ -378,5 +433,102 @@ docker-compose up -d
 - Tipos: ✅ Union type `UserRole` com 4 papéis válidos
 - Error handling: ✅ Try-catch com logging e fallback
 
-- Testes unitários: ✅ `permissionHandler.test.ts` (20 testes) + `roleService.test.ts` (25 testes) — 45 testes passando
-- Mock de DB: ✅ roleService mockado em testes; zero dependência de banco em CI
+---
+
+## 📌 Atualização Operacional (2026-04-13) – Auditoria e Soft Delete em Tabelas de Negócio
+
+### Contexto
+
+A auditoria e soft delete estavam concentrados apenas em `constants_catalog` (019). As tabelas de negócio `jobs`, `dxf_tasks`, `bt_export_history` e `user_roles` não tinham cobertura equivalente.
+
+### Implementação (021_audit_soft_delete_business_tables.sql)
+
+- Função `proc_audit_log_generic()` – versão aprimorada que aceita PK de qualquer tipo (TEXT, SERIAL, BIGSERIAL, UUID)
+- Coluna `deleted_at TIMESTAMPTZ` adicionada em: `jobs`, `dxf_tasks`, `bt_export_history`, `user_roles`
+- Índices parciais `WHERE deleted_at IS NULL` para consultas ativas em todas as tabelas
+- Triggers `trg_audit_*` em todas as 4 tabelas de negócio
+- Vista operacional `v_soft_deleted_summary` consolidando itens soft-deleted
+
+### Padrão de Soft Delete (aplicar em todas as tabelas cobertas)
+
+```sql
+UPDATE public.jobs SET deleted_at = now() WHERE id = $1;   -- delete
+UPDATE public.jobs SET deleted_at = NULL  WHERE id = $1;   -- restore
+SELECT * FROM public.jobs WHERE deleted_at IS NULL;         -- listagem ativa
+```
+
+---
+
+## 📌 Atualização Operacional (2026-04-13) – Estratégia de Backup e Restore Abrangente
+
+### Contexto
+
+Existia apenas restore de snapshots do catálogo em `constantsRoutes.ts`. Não havia estratégia abrangente cobrindo outras tabelas, retenção, verificação e rotina automatizada.
+
+### Implementação (022_database_backup_restore.sql)
+
+- Schema `backup` com tabelas de snapshot lógico: `constants_catalog_snapshot`, `user_roles_snapshot`, `bt_export_history_snapshot`
+- `backup.backup_manifest` – inventário de todos os backups com status e expiração
+- `private.backup_critical_tables(type, retention)` – executa snapshots completos
+- `private.cleanup_expired_backups()` – remoção em cascata de backups expirados
+- `private.verify_backup_integrity()` – healthcheck automatizado
+
+### Política de Retenção
+
+| Tipo     | Frequência       | Retenção     | Cron          |
+|----------|------------------|--------------|---------------|
+| Diário   | 02:00 UTC        | 30 dias      | `0 2 * * *`   |
+| Semanal  | Dom 01:00 UTC    | 84 dias      | `0 1 * * 0`   |
+| Verificação | 06:00 UTC     | —            | `0 6 * * *`   |
+
+---
+
+## 📌 Atualização Operacional (2026-04-13) – Performance de Banco com Recursos Avançados
+
+### Contexto
+
+Havia índices compostos pontuais na 019, mas sem BRIN, GIN/trgm, materialized views ou índices geoespaciais operacionais.
+
+### Implementação (023_advanced_performance_indexes.sql)
+
+- **BRIN indexes** em `created_at`/`changed_at` das tabelas de série temporal (custo ~1% de B-tree)
+- **GIN/pg_trgm** em `namespace` e `key` do catálogo para busca textual eficiente (`LIKE '%termo%'`)
+- **GIN em JSONB** em `bt_export_history.metadata` e `audit_logs.new_data`
+- **Índices compostos** de auditoria: `(table_name, action, changed_at)`, `(changed_by, changed_at)`
+- **3 Materialized Views** operacionais:
+  - `mv_bt_history_daily_summary` – resumo diário de exportações BT
+  - `mv_audit_stats` – estatísticas de auditoria por tabela/ação
+  - `mv_constants_namespace_summary` – resumo do catálogo por namespace
+- **Refresh automático** via `private.refresh_materialized_views()` + pg_cron a cada hora
+
+---
+
+## 📌 Atualização Operacional (2026-04-13) – Manutenção Recorrente Abrangente
+
+### Contexto
+
+Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de logs, relatório de saúde ou governança de operações de manutenção.
+
+### Implementação (024_db_maintenance_schedule.sql)
+
+- `private.maintenance_log` – tabela de governança: todas as funções de manutenção registram início, fim e status
+- `private.audit_logs_archive` – cold storage para audit_logs >90 dias
+- `private.archive_old_audit_logs()` – archival em lotes de 50k com SKIP LOCKED
+- `private.db_health_report()` – métricas de saúde: cache hit ratio, dead tuples, locks, tamanho do banco
+- `private.v_maintenance_schedule` – view consolidada com todos os 11 jobs cron do sistema
+
+### Cronograma Completo (11 jobs pg_cron)
+
+| Job                               | Cron         | Propósito                             |
+|-----------------------------------|--------------|---------------------------------------|
+| `cleanup_old_jobs_daily`          | `20 3 * * *` | Limpeza de jobs terminais (017)       |
+| `backup_critical_tables_daily`    | `0 2 * * *`  | Backup diário (022)                   |
+| `backup_critical_tables_weekly`   | `0 1 * * 0`  | Backup semanal 84 dias (022)          |
+| `cleanup_expired_backups_weekly`  | `0 4 * * 5`  | Retenção de backups (022)             |
+| `verify_backup_integrity_daily`   | `0 6 * * *`  | Healthcheck de backups (022)          |
+| `refresh_materialized_views_hourly` | `5 * * * *` | Refresh MVs (023)                    |
+| `vacuum_analyze_jobs_daily`       | `10 3 * * *` | VACUUM jobs + dxf_tasks (024)         |
+| `vacuum_analyze_audit_weekly`     | `30 2 * * 0` | VACUUM audit_logs + bt + catalog (024)|
+| `archive_old_audit_logs_nightly`  | `30 3 * * *` | Archival audit_logs >90 dias (024)    |
+| `db_health_report_daily`          | `0 7 * * *`  | Relatório de saúde do banco (024)     |
+| `cleanup_maintenance_log_monthly` | `0 5 1 * *`  | Purga de maintenance_log (024)        |
