@@ -242,3 +242,26 @@ docker-compose up -d
 
 - Build frontend validado com sucesso (`npm --prefix sisrua_unified run build`).
 - Preview atualizado após mudança.
+
+---
+
+## 📌 Atualização Operacional (2026-04-12) - Acessibilidade Transversal
+
+### Diretriz
+
+- Acessibilidade passa a ser requisito transversal do produto (não apenas correção pontual).
+- Todo fluxo crítico deve ser validado em:
+  - navegação por teclado;
+  - visibilidade de foco;
+  - nome/label acessível de controles;
+  - consistência WCAG 2.1 A/AA.
+
+### Evidência atual e gap
+
+- Há base existente com labels e smoke test Axe em `e2e/a11y-smoke.spec.ts`.
+- Gap identificado: cobertura ainda concentrada na raiz e sem matriz ampla por fluxo crítico e estados interativos.
+
+### Critério operacional adotado
+
+- Novas mudanças em componentes críticos devem incluir evidência de a11y por fluxo.
+- Regressão de acessibilidade crítica deve bloquear aceitação funcional da entrega.
