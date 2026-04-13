@@ -1,4 +1,4 @@
-import { Download } from "lucide-react";
+import { Download, X } from "lucide-react";
 import { usePagination, PaginationControls } from "../hooks/usePagination";
 import type { BtExportSummary, BtExportHistoryEntry } from "../types";
 
@@ -8,6 +8,7 @@ interface BtExportSummaryBannerProps {
   exportBtHistoryJson: () => void;
   exportBtHistoryCsv: () => void;
   clearBtExportHistory: () => void;
+  onClose?: () => void;
   btHistoryTotal?: number;
   btHistoryLoading?: boolean;
   btHistoryCanLoadMore?: boolean;
@@ -28,6 +29,7 @@ export function BtExportSummaryBanner({
   exportBtHistoryJson,
   exportBtHistoryCsv,
   clearBtExportHistory,
+  onClose,
   btHistoryTotal = 0,
   btHistoryLoading = false,
   btHistoryCanLoadMore = false,
@@ -69,6 +71,16 @@ export function BtExportSummaryBanner({
           >
             Limpar
           </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              aria-label="Fechar resumo BT exportado"
+              title="Fechar"
+              className="inline-flex h-6 w-6 items-center justify-center rounded border border-cyan-500/40 text-cyan-200 hover:bg-cyan-500/10"
+            >
+              <X size={12} />
+            </button>
+          )}
         </div>
       </div>
 

@@ -11,6 +11,14 @@ const jobIdParamSchema = z.object({
 // Job Status Endpoint
 router.get("/:id", async (req: Request, res: Response) => {
   try {
+    res.setHeader(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate, private",
+    );
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
+
     const validation = jobIdParamSchema.safeParse(req.params);
     if (!validation.success) {
       return res
