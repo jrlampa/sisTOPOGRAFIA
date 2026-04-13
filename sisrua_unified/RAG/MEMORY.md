@@ -265,3 +265,29 @@ docker-compose up -d
 
 - Novas mudanças em componentes críticos devem incluir evidência de a11y por fluxo.
 - Regressão de acessibilidade crítica deve bloquear aceitação funcional da entrega.
+
+---
+
+## 📌 Atualização Operacional (2026-04-12) - Padronização Zod em Rotas Backend
+
+### Diretriz
+
+- Validação de entrada padronizada por rota com Zod como padrão único.
+- Redução de validações manuais ad-hoc para diminuir divergência de comportamento e manutenção.
+
+### Escopo implementado
+
+- Rotas migradas para validação Zod de `body/query/params`:
+  - `server/routes/btHistoryRoutes.ts`
+  - `server/routes/constantsRoutes.ts`
+  - `server/routes/elevationRoutes.ts` (`/batch`)
+  - `server/routes/ibgeRoutes.ts`
+  - `server/routes/indeRoutes.ts`
+  - `server/routes/jobRoutes.ts`
+  - `server/routes/mechanicalAndAnalysisRoutes.ts`
+
+### Resultado
+
+- Entradas críticas passaram a ter contrato explícito por endpoint.
+- Endpoints com parâmetros agora retornam erro 400 consistente com `details` de schema em caso inválido.
+- Validação manual dispersa foi substituída por schema-driven validation nos fluxos migrados.

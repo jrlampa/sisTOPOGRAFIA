@@ -27,8 +27,102 @@ import {
   VentoInput,
   PosteCatalogEntry,
 } from "../core/mechanicalCalc/types.js";
+import { z } from "zod";
 
 const router = Router();
+
+const componentSchema = z.object({
+  fx: z.coerce.number(),
+  fy: z.coerce.number(),
+});
+
+const forcaSchema = z.object({
+  componente: componentSchema,
+  momentoKnM: z.coerce.number(),
+});
+
+const posteSchema = z.object({
+  alturaM: z.coerce.number().positive(),
+  diametroTopoMm: z.coerce.number().positive(),
+  diametroBaseMm: z.coerce.number().positive(),
+  rupturaKnM: z.coerce.number().positive(),
+  pesoKg: z.coerce.number().positive().optional(),
+  materialTipo: z.string().trim().min(1).optional(),
+});
+
+const mechanicalPosteCalculateSchema = z.object({
+  poste: posteSchema,
+  forcas: z.array(forcaSchema).min(1),
+});
+
+const posteCatalogEntrySchema = z.object({
+  modelo: z.string().trim().min(1),
+  alturaM: z.coerce.number().positive(),
+  diametroTopoMm: z.coerce.number().positive(),
+  diametroBaseMm: z.coerce.number().positive(),
+  rupturaKnM: z.coerce.number().positive(),
+  pesoKg: z.coerce.number().positive().optional(),
+  materialTipo: z.string().trim().min(1).optional(),
+});
+
+const mechanicalPosteSelectSchema = z.object({
+  momentoFletorDaN_m: z.coerce.number().positive(),
+  margemSegurancaPercent: z.coerce
+    .number()
+    .min(0)
+    .max(100)
+    .optional()
+    .default(10),
+  catalogo: z.array(posteCatalogEntrySchema).min(1),
+});
+
+const conductorSchema = z.object({
+  codigo: z.string().trim().min(1),
+  vaoM: z.coerce.number().positive(),
+  diametroExternoM: z.coerce.number().positive(),
+  alturaInstalacaoM: z.coerce.number().positive().optional(),
+});
+
+const ventoSchema = z.object({
+  velocidadeMs: z.coerce.number().positive(),
+  coeficienteArrasto: z.coerce.number().positive(),
+  fatorRugosidade: z.coerce.number().positive().optional(),
+  fatorTopografico: z.coerce.number().positive().optional(),
+});
+
+const conductorForcesSchema = z.object({
+  condutor: conductorSchema,
+  vento: ventoSchema,
+});
+
+const ladoResultadoSchema = z
+  .object({
+    lado: z.enum(["ESQUERDO", "DIREITO"]),
+    cargaTotalKva: z.coerce.number().nonnegative(),
+    cqtPercent: z.coerce.number().nonnegative(),
+    momentoFletorDaN_m: z.coerce.number().nonnegative(),
+    withinLimits: z.boolean().optional(),
+  })
+  .passthrough();
+
+const scenarioInputSchema = z
+  .object({
+    cenarioId: z.string().trim().min(1),
+    trafoKva: z.coerce.number().positive(),
+    resultadosEsq: ladoResultadoSchema,
+    resultadosDir: ladoResultadoSchema,
+    resultadoTrafo: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough();
+
+const scenarioAnalyzeSchema = z.object({
+  scenarios: z.array(scenarioInputSchema).min(1),
+});
+
+const scenarioCompareSchema = z.object({
+  cenarioBase: scenarioInputSchema,
+  cenarioAlternativo: scenarioInputSchema,
+});
 
 // ─── Error handler middleware ────────────────────────────────────────────────
 
@@ -55,16 +149,21 @@ const asyncHandler =
 router.post(
   "/poste/calculate",
   asyncHandler(async (req: Request, res: Response) => {
-    const { poste, forcas } = req.body;
-
-    if (!poste || !forcas || !Array.isArray(forcas)) {
-      return res
-        .status(400)
-        .json({ error: "Invalid request: poste and forcas required" });
+    const validation = mechanicalPosteCalculateSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Invalid request",
+        details: validation.error.issues,
+      });
     }
 
+    const { poste, forcas } = validation.data;
+
     try {
-      const resultado = calculatePosteLoad(poste as PosteInput, forcas);
+      const resultado = calculatePosteLoad(
+        poste as unknown as PosteInput,
+        forcas as unknown as any,
+      );
 
       return res.status(200).json({
         success: true,
@@ -91,15 +190,16 @@ router.post(
 router.post(
   "/poste/select",
   asyncHandler(async (req: Request, res: Response) => {
-    const { momentoFletorDaN_m, margemSegurancaPercent, catalogo } = req.body;
-
-    if (!momentoFletorDaN_m || !catalogo) {
-      return res
-        .status(400)
-        .json({
-          error: "Invalid request: momentoFletorDaN_m and catalogo required",
-        });
+    const validation = mechanicalPosteSelectSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Invalid request",
+        details: validation.error.issues,
+      });
     }
+
+    const { momentoFletorDaN_m, margemSegurancaPercent, catalogo } =
+      validation.data;
 
     try {
       const posteEscolhido = selecionarPosteDeCatalogo(
@@ -139,24 +239,26 @@ router.post(
 router.post(
   "/conductor/forces",
   asyncHandler(async (req: Request, res: Response) => {
-    const { condutor, vento } = req.body;
-
-    if (!condutor || !vento) {
-      return res
-        .status(400)
-        .json({ error: "Invalid request: condutor and vento required" });
+    const validation = conductorForcesSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Invalid request",
+        details: validation.error.issues,
+      });
     }
+
+    const { condutor, vento } = validation.data;
 
     try {
       const forcas = calculateForceVento({
-        ...(condutor as ConductorForceInput),
-        ...(vento as VentoInput),
+        ...(condutor as unknown as ConductorForceInput),
+        ...(vento as unknown as VentoInput),
       });
 
       const resultante = calculateResultantForce(
         forcas.componenteFxN / 9.81,
         forcas.componenteFyN / 9.81,
-        (condutor as any).alturaInstalacaoM || 8,
+        condutor.alturaInstalacaoM || 8,
       );
 
       return res.status(200).json({
@@ -196,16 +298,20 @@ router.post(
 router.post(
   "/analyze",
   asyncHandler(async (req: Request, res: Response) => {
-    const { scenarios } = req.body;
-
-    if (!scenarios || !Array.isArray(scenarios)) {
-      return res
-        .status(400)
-        .json({ error: "Invalid request: scenarios array required" });
+    const validation = scenarioAnalyzeSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Invalid request",
+        details: validation.error.issues,
+      });
     }
 
+    const { scenarios } = validation.data;
+
     try {
-      const ranking = rankScenarios(scenarios as ScenarioScoreInput[]);
+      const ranking = rankScenarios(
+        scenarios as unknown as ScenarioScoreInput[],
+      );
 
       return res.status(200).json({
         success: true,
@@ -236,22 +342,22 @@ router.post(
 router.post(
   "/compare",
   asyncHandler(async (req: Request, res: Response) => {
-    const { cenarioBase, cenarioAlternativo } = req.body;
-
-    if (!cenarioBase || !cenarioAlternativo) {
-      return res
-        .status(400)
-        .json({
-          error: "Invalid request: cenarioBase and cenarioAlternativo required",
-        });
+    const validation = scenarioCompareSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Invalid request",
+        details: validation.error.issues,
+      });
     }
+
+    const { cenarioBase, cenarioAlternativo } = validation.data;
 
     try {
       const scoreBase = calculateScenarioScore(
-        cenarioBase as ScenarioScoreInput,
+        cenarioBase as unknown as ScenarioScoreInput,
       );
       const scoreAlternativo = calculateScenarioScore(
-        cenarioAlternativo as ScenarioScoreInput,
+        cenarioAlternativo as unknown as ScenarioScoreInput,
       );
 
       const delta = compararCenarios(scoreBase, scoreAlternativo);
