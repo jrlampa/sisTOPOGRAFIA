@@ -124,3 +124,42 @@ export const osmRequestSchema = z.object({
     radius: z.coerce.number().min(10).max(5000)
 });
 
+export const listSortOrderSchema = z.enum(['asc', 'desc']);
+
+export type ListSortOrder = z.infer<typeof listSortOrderSchema>;
+
+interface CreateListQuerySchemaOptions<TSortBy extends string> {
+    defaultLimit?: number;
+    maxLimit?: number;
+    sortBy: readonly [TSortBy, ...TSortBy[]];
+    defaultSortBy?: TSortBy;
+    defaultSortOrder?: ListSortOrder;
+}
+
+export function createListQuerySchema<
+    TSortBy extends string,
+    TFilters extends z.ZodRawShape = {}
+>(
+    options: CreateListQuerySchemaOptions<TSortBy>,
+    filtersShape?: TFilters,
+) {
+    const {
+        defaultLimit = 20,
+        maxLimit = 100,
+        sortBy,
+        defaultSortBy = sortBy[0],
+        defaultSortOrder = 'desc',
+    } = options;
+    const sortByValues = [...sortBy] as [TSortBy, ...TSortBy[]];
+
+    return z
+        .object({
+            limit: z.coerce.number().int().min(1).max(maxLimit).default(defaultLimit),
+            offset: z.coerce.number().int().min(0).default(0),
+            sortBy: z.enum(sortByValues).default(defaultSortBy),
+            sortOrder: listSortOrderSchema.default(defaultSortOrder),
+            ...(filtersShape ?? {}),
+        })
+        .strict();
+}
+

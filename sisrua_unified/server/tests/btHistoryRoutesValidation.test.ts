@@ -39,7 +39,8 @@ describe('btHistoryRoutes btContextUrl validation', () => {
       });
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ error: 'btContextUrl obrigatório' });
+    expect(response.body.error).toBe('Payload inválido');
+    expect(JSON.stringify(response.body.details)).toContain('btContextUrl inválido');
     expect(createMock).not.toHaveBeenCalled();
   });
 
@@ -61,5 +62,56 @@ describe('btHistoryRoutes btContextUrl validation', () => {
 
     expect(response.status).toBe(201);
     expect(ingestMock).toHaveBeenCalled();
+  });
+
+  it('applies list contract with pagination, sorting metadata and filters on GET /', async () => {
+    listMock.mockResolvedValueOnce({
+      entries: [{ criticalPoleId: 'P2' }],
+      total: 4,
+      limit: 2,
+      offset: 1,
+    });
+
+    const { default: router } = await import('../routes/btHistoryRoutes');
+    const app = express();
+    app.use(express.json());
+    app.use('/api/bt-history', router);
+
+    const response = await request(app)
+      .get('/api/bt-history')
+      .query({
+        limit: '2',
+        offset: '1',
+        sortBy: 'exportedAt',
+        sortOrder: 'asc',
+        projectType: 'ramais',
+      });
+
+    expect(response.status).toBe(200);
+    expect(listMock).toHaveBeenCalledWith(
+      2,
+      1,
+      {
+        projectType: 'ramais',
+        cqtScenario: undefined,
+      },
+      {
+        sortBy: 'exportedAt',
+        sortOrder: 'asc',
+      },
+    );
+    expect(response.body.meta).toEqual({
+      limit: 2,
+      offset: 1,
+      total: 4,
+      returned: 1,
+      hasMore: true,
+      sortBy: 'exportedAt',
+      sortOrder: 'asc',
+      filters: {
+        projectType: 'ramais',
+        cqtScenario: null,
+      },
+    });
   });
 });

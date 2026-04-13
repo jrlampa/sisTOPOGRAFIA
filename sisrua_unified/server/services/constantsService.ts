@@ -13,6 +13,8 @@
 import postgres from 'postgres';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
+import type { ListSortOrder } from '../schemas/apiSchemas.js';
+import { comparePrimitiveValues } from '../utils/listing.js';
 
 interface CatalogRow {
     namespace: string;
@@ -102,6 +104,47 @@ export interface ConstantsRefreshEvent {
     durationMs?: number;
     errorMessage?: string;
     createdAt?: string;
+}
+
+export interface ConstantsRefreshEventsListFilters {
+    namespace?: string;
+    actor?: string;
+    success?: boolean;
+}
+
+export interface ConstantsRefreshEventsListOptions {
+    limit?: number;
+    offset?: number;
+    sortBy?: 'createdAt' | 'actor' | 'httpStatus' | 'durationMs' | 'success';
+    sortOrder?: ListSortOrder;
+    filters?: ConstantsRefreshEventsListFilters;
+}
+
+export interface ConstantsRefreshEventsListResult {
+    events: ConstantsRefreshEvent[];
+    total: number;
+    limit: number;
+    offset: number;
+}
+
+export interface ConstantsSnapshotsListFilters {
+    namespace?: string;
+    actor?: string;
+}
+
+export interface ConstantsSnapshotsListOptions {
+    limit?: number;
+    offset?: number;
+    sortBy?: 'createdAt' | 'namespace' | 'actor' | 'entryCount';
+    sortOrder?: ListSortOrder;
+    filters?: ConstantsSnapshotsListFilters;
+}
+
+export interface ConstantsSnapshotsListResult {
+    snapshots: Array<Omit<CatalogSnapshot, 'data'>>;
+    total: number;
+    limit: number;
+    offset: number;
 }
 
 // Cache TTL: 24 hours. Values are warmed at startup; this TTL prevents stale
@@ -275,21 +318,27 @@ class ConstantsService {
         }
     }
 
-    async getRefreshEvents(limit = 20): Promise<ConstantsRefreshEvent[]> {
+    async getRefreshEvents(
+        options: ConstantsRefreshEventsListOptions = {},
+    ): Promise<ConstantsRefreshEventsListResult> {
         const sql = this.getSqlClient();
-        if (!sql) return [];
+        const safeLimit = Math.max(1, Math.min(options.limit ?? 20, 100));
+        const safeOffset = Math.max(0, options.offset ?? 0);
+        const safeSortBy = options.sortBy ?? 'createdAt';
+        const safeSortOrder = options.sortOrder ?? 'desc';
+        const filters = options.filters ?? {};
 
-        const safeLimit = Math.max(1, Math.min(limit, 100));
+        if (!sql) {
+            return { events: [], total: 0, limit: safeLimit, offset: safeOffset };
+        }
 
         try {
             const rows = await sql<RefreshEventRow[]>`
                 SELECT namespaces, success, http_status, actor, duration_ms, error_message, created_at
                 FROM constants_refresh_events
-                ORDER BY created_at DESC
-                LIMIT ${safeLimit}
             `;
 
-            return rows.map((row) => ({
+            const allEvents = rows.map((row) => ({
                 namespaces: row.namespaces,
                 success: row.success,
                 httpStatus: row.http_status,
@@ -298,11 +347,76 @@ class ConstantsService {
                 errorMessage: row.error_message ?? undefined,
                 createdAt: row.created_at,
             }));
+
+            const filteredEvents = allEvents.filter((event) => {
+                if (
+                    filters.namespace &&
+                    !event.namespaces.includes(filters.namespace)
+                ) {
+                    return false;
+                }
+
+                if (filters.actor && event.actor !== filters.actor) {
+                    return false;
+                }
+
+                if (
+                    typeof filters.success === 'boolean' &&
+                    event.success !== filters.success
+                ) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            const sortedEvents = filteredEvents.sort((left, right) => {
+                switch (safeSortBy) {
+                    case 'actor':
+                        return comparePrimitiveValues(
+                            left.actor,
+                            right.actor,
+                            safeSortOrder,
+                        );
+                    case 'httpStatus':
+                        return comparePrimitiveValues(
+                            left.httpStatus,
+                            right.httpStatus,
+                            safeSortOrder,
+                        );
+                    case 'durationMs':
+                        return comparePrimitiveValues(
+                            left.durationMs,
+                            right.durationMs,
+                            safeSortOrder,
+                        );
+                    case 'success':
+                        return comparePrimitiveValues(
+                            left.success,
+                            right.success,
+                            safeSortOrder,
+                        );
+                    case 'createdAt':
+                    default:
+                        return comparePrimitiveValues(
+                            left.createdAt,
+                            right.createdAt,
+                            safeSortOrder,
+                        );
+                }
+            });
+
+            return {
+                events: sortedEvents.slice(safeOffset, safeOffset + safeLimit),
+                total: sortedEvents.length,
+                limit: safeLimit,
+                offset: safeOffset,
+            };
         } catch (err: unknown) {
             logger.warn('[ConstantsService] failed to list refresh events', {
                 error: err instanceof Error ? err.message : String(err),
             });
-            return [];
+            return { events: [], total: 0, limit: safeLimit, offset: safeOffset };
         }
     }
 
@@ -447,29 +561,27 @@ class ConstantsService {
      * Returns snapshots ordered newest-first, without the data payload to keep
      * the list response small.
      */
-    async listSnapshots(limit = 20, namespace?: string): Promise<Omit<CatalogSnapshot, 'data'>[]> {
+    async listSnapshots(
+        options: ConstantsSnapshotsListOptions = {},
+    ): Promise<ConstantsSnapshotsListResult> {
         const sql = this.getSqlClient();
-        if (!sql) return [];
+        const safeLimit = Math.max(1, Math.min(options.limit ?? 20, 100));
+        const safeOffset = Math.max(0, options.offset ?? 0);
+        const safeSortBy = options.sortBy ?? 'createdAt';
+        const safeSortOrder = options.sortOrder ?? 'desc';
+        const filters = options.filters ?? {};
 
-        const safeLimit = Math.max(1, Math.min(limit, 100));
+        if (!sql) {
+            return { snapshots: [], total: 0, limit: safeLimit, offset: safeOffset };
+        }
 
         try {
-            const rows = namespace
-                ? await sql<SnapshotRow[]>`
-                    SELECT id, namespace, actor, label, entry_count, created_at
-                    FROM   constants_catalog_snapshots
-                    WHERE  namespace = ${namespace}
-                    ORDER  BY created_at DESC
-                    LIMIT  ${safeLimit}
-                  `
-                : await sql<SnapshotRow[]>`
-                    SELECT id, namespace, actor, label, entry_count, created_at
-                    FROM   constants_catalog_snapshots
-                    ORDER  BY created_at DESC
-                    LIMIT  ${safeLimit}
-                  `;
+            const rows = await sql<SnapshotRow[]>`
+                SELECT id, namespace, actor, label, entry_count, created_at
+                FROM constants_catalog_snapshots
+            `;
 
-            return rows.map((row) => ({
+            const allSnapshots = rows.map((row) => ({
                 id: Number(row.id),
                 namespace: row.namespace,
                 actor: row.actor,
@@ -477,11 +589,63 @@ class ConstantsService {
                 entryCount: row.entry_count,
                 createdAt: row.created_at,
             }));
+
+            const filteredSnapshots = allSnapshots.filter((snapshot) => {
+                if (filters.namespace && snapshot.namespace !== filters.namespace) {
+                    return false;
+                }
+
+                if (filters.actor && snapshot.actor !== filters.actor) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            const sortedSnapshots = filteredSnapshots.sort((left, right) => {
+                switch (safeSortBy) {
+                    case 'namespace':
+                        return comparePrimitiveValues(
+                            left.namespace,
+                            right.namespace,
+                            safeSortOrder,
+                        );
+                    case 'actor':
+                        return comparePrimitiveValues(
+                            left.actor,
+                            right.actor,
+                            safeSortOrder,
+                        );
+                    case 'entryCount':
+                        return comparePrimitiveValues(
+                            left.entryCount,
+                            right.entryCount,
+                            safeSortOrder,
+                        );
+                    case 'createdAt':
+                    default:
+                        return comparePrimitiveValues(
+                            left.createdAt,
+                            right.createdAt,
+                            safeSortOrder,
+                        );
+                }
+            });
+
+            return {
+                snapshots: sortedSnapshots.slice(
+                    safeOffset,
+                    safeOffset + safeLimit,
+                ),
+                total: sortedSnapshots.length,
+                limit: safeLimit,
+                offset: safeOffset,
+            };
         } catch (err: unknown) {
             logger.warn('[ConstantsService] failed to list snapshots', {
                 error: err instanceof Error ? err.message : String(err),
             });
-            return [];
+            return { snapshots: [], total: 0, limit: safeLimit, offset: safeOffset };
         }
     }
 

@@ -45,4 +45,38 @@ describe('indeRoutes bbox validation', () => {
     expect(response.body.error).toContain('Invalid width/height');
     expect(getWmsMapUrlMock).not.toHaveBeenCalled();
   });
+
+  it('applies list contract on /features/:source with paging metadata', async () => {
+    getFeaturesByBBoxMock.mockResolvedValueOnce({
+      type: 'FeatureCollection',
+      features: [
+        { id: 2, type: 'Feature', properties: {} },
+        { id: 1, type: 'Feature', properties: {} }
+      ]
+    });
+
+    const { default: router } = await import('../routes/indeRoutes');
+    const app = express();
+    app.use('/api/inde', router);
+
+    const response = await request(app)
+      .get('/api/inde/features/ibge')
+      .query({
+        layer: 'foo',
+        west: '-49',
+        south: '-23',
+        east: '-46',
+        north: '-21',
+        limit: '1',
+        offset: '0',
+        sortBy: 'id',
+        sortOrder: 'asc'
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.features).toEqual([
+      { id: 1, type: 'Feature', properties: {} }
+    ]);
+    expect(response.body.meta.total).toBe(2);
+  });
 });

@@ -28,6 +28,8 @@ import {
   PosteCatalogEntry,
 } from "../core/mechanicalCalc/types.js";
 import { z } from "zod";
+import { createListQuerySchema } from "../schemas/apiSchemas.js";
+import { buildListMeta, comparePrimitiveValues } from "../utils/listing.js";
 
 const router = Router();
 
@@ -123,6 +125,46 @@ const scenarioCompareSchema = z.object({
   cenarioBase: scenarioInputSchema,
   cenarioAlternativo: scenarioInputSchema,
 });
+
+const posteCatalogListQuerySchema = createListQuerySchema(
+  {
+    defaultLimit: 100,
+    maxLimit: 500,
+    sortBy: ["modelo", "alturaM", "rupturaKnM", "materialTipo"],
+    defaultSortBy: "modelo",
+    defaultSortOrder: "asc",
+  },
+  {
+    materialTipo: z.string().trim().min(1).optional(),
+    search: z.string().trim().min(1).optional(),
+  },
+);
+
+const conductorCatalogListQuerySchema = createListQuerySchema(
+  {
+    defaultLimit: 100,
+    maxLimit: 500,
+    sortBy: ["codigo", "diametroMm", "pesoKgPerM"],
+    defaultSortBy: "codigo",
+    defaultSortOrder: "asc",
+  },
+  {
+    search: z.string().trim().min(1).optional(),
+  },
+);
+
+const windCatalogListQuerySchema = createListQuerySchema(
+  {
+    defaultLimit: 100,
+    maxLimit: 200,
+    sortBy: ["tipo", "coeficiente"],
+    defaultSortBy: "tipo",
+    defaultSortOrder: "asc",
+  },
+  {
+    search: z.string().trim().min(1).optional(),
+  },
+);
 
 // ─── Error handler middleware ────────────────────────────────────────────────
 
@@ -384,6 +426,14 @@ router.post(
  * Retrieve standard pole catalog
  */
 router.get("/catalog/postes", (req: Request, res: Response) => {
+  const validation = posteCatalogListQuerySchema.safeParse(req.query);
+  if (!validation.success) {
+    return res.status(400).json({
+      error: "Invalid query parameters",
+      details: validation.error.issues,
+    });
+  }
+
   const catalogo: PosteCatalogEntry[] = [
     {
       modelo: "DT 11m/300",
@@ -423,9 +473,69 @@ router.get("/catalog/postes", (req: Request, res: Response) => {
     },
   ];
 
+  const { limit, offset, sortBy, sortOrder, materialTipo, search } =
+    validation.data;
+  const filteredCatalogo = catalogo
+    .filter((item) => {
+      if (
+        materialTipo &&
+        item.materialTipo?.toLowerCase() !== materialTipo.toLowerCase()
+      ) {
+        return false;
+      }
+
+      if (
+        search &&
+        !item.modelo.toLowerCase().includes(search.toLowerCase()) &&
+        !item.materialTipo?.toLowerCase().includes(search.toLowerCase())
+      ) {
+        return false;
+      }
+
+      return true;
+    })
+    .sort((left, right) => {
+      switch (sortBy) {
+        case "alturaM":
+          return comparePrimitiveValues(left.alturaM, right.alturaM, sortOrder);
+        case "rupturaKnM":
+          return comparePrimitiveValues(
+            left.rupturaKnM,
+            right.rupturaKnM,
+            sortOrder,
+          );
+        case "materialTipo":
+          return comparePrimitiveValues(
+            left.materialTipo,
+            right.materialTipo,
+            sortOrder,
+          );
+        case "modelo":
+        default:
+          return comparePrimitiveValues(left.modelo, right.modelo, sortOrder);
+      }
+    });
+
+  const items = filteredCatalogo.slice(offset, offset + limit);
+
   return res.status(200).json({
     success: true,
-    data: catalogo,
+    data: items,
+    total: filteredCatalogo.length,
+    limit,
+    offset,
+    meta: buildListMeta({
+      limit,
+      offset,
+      total: filteredCatalogo.length,
+      returned: items.length,
+      sortBy,
+      sortOrder,
+      filters: {
+        materialTipo: materialTipo ?? null,
+        search: search ?? null,
+      },
+    }),
   });
 });
 
@@ -435,6 +545,14 @@ router.get("/catalog/postes", (req: Request, res: Response) => {
  * Retrieve conductor reference table (abbreviated)
  */
 router.get("/catalog/condutores", (req: Request, res: Response) => {
+  const validation = conductorCatalogListQuerySchema.safeParse(req.query);
+  if (!validation.success) {
+    return res.status(400).json({
+      error: "Invalid query parameters",
+      details: validation.error.issues,
+    });
+  }
+
   const condutores = [
     { codigo: "CA 1/0 AWG", diametroMm: 8.25, pesoKgPerM: 0.117 },
     { codigo: "CA 3/0 AWG", diametroMm: 10.4, pesoKgPerM: 0.186 },
@@ -444,9 +562,50 @@ router.get("/catalog/condutores", (req: Request, res: Response) => {
     { codigo: "70 Al", diametroMm: 10.31, pesoKgPerM: 0.192 },
   ];
 
+  const { limit, offset, sortBy, sortOrder, search } = validation.data;
+  const filteredCondutores = condutores
+    .filter((item) =>
+      search ? item.codigo.toLowerCase().includes(search.toLowerCase()) : true,
+    )
+    .sort((left, right) => {
+      switch (sortBy) {
+        case "diametroMm":
+          return comparePrimitiveValues(
+            left.diametroMm,
+            right.diametroMm,
+            sortOrder,
+          );
+        case "pesoKgPerM":
+          return comparePrimitiveValues(
+            left.pesoKgPerM,
+            right.pesoKgPerM,
+            sortOrder,
+          );
+        case "codigo":
+        default:
+          return comparePrimitiveValues(left.codigo, right.codigo, sortOrder);
+      }
+    });
+
+  const items = filteredCondutores.slice(offset, offset + limit);
+
   return res.status(200).json({
     success: true,
-    data: condutores,
+    data: items,
+    total: filteredCondutores.length,
+    limit,
+    offset,
+    meta: buildListMeta({
+      limit,
+      offset,
+      total: filteredCondutores.length,
+      returned: items.length,
+      sortBy,
+      sortOrder,
+      filters: {
+        search: search ?? null,
+      },
+    }),
   });
 });
 
@@ -456,6 +615,14 @@ router.get("/catalog/condutores", (req: Request, res: Response) => {
  * Wind drag coefficient table by conductor type
  */
 router.get("/catalog/vento-coeficientes", (req: Request, res: Response) => {
+  const validation = windCatalogListQuerySchema.safeParse(req.query);
+  if (!validation.success) {
+    return res.status(400).json({
+      error: "Invalid query parameters",
+      details: validation.error.issues,
+    });
+  }
+
   const coeficientes = [
     { tipo: "PRIMARIO", coeficiente: 1.2 },
     { tipo: "SECUNDARIO", coeficiente: 1.0 },
@@ -465,9 +632,44 @@ router.get("/catalog/vento-coeficientes", (req: Request, res: Response) => {
     { tipo: "PARA_RAIO", coeficiente: 1.2 },
   ];
 
+  const { limit, offset, sortBy, sortOrder, search } = validation.data;
+  const filteredCoeficientes = coeficientes
+    .filter((item) =>
+      search ? item.tipo.toLowerCase().includes(search.toLowerCase()) : true,
+    )
+    .sort((left, right) => {
+      switch (sortBy) {
+        case "coeficiente":
+          return comparePrimitiveValues(
+            left.coeficiente,
+            right.coeficiente,
+            sortOrder,
+          );
+        case "tipo":
+        default:
+          return comparePrimitiveValues(left.tipo, right.tipo, sortOrder);
+      }
+    });
+
+  const items = filteredCoeficientes.slice(offset, offset + limit);
+
   return res.status(200).json({
     success: true,
-    data: coeficientes,
+    data: items,
+    total: filteredCoeficientes.length,
+    limit,
+    offset,
+    meta: buildListMeta({
+      limit,
+      offset,
+      total: filteredCoeficientes.length,
+      returned: items.length,
+      sortBy,
+      sortOrder,
+      filters: {
+        search: search ?? null,
+      },
+    }),
   });
 });
 

@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
+import type { ListSortOrder } from '../schemas/apiSchemas.js';
 
 export interface BtExportHistoryPayload {
     exportedAt: string;
@@ -41,6 +42,11 @@ export interface BtExportHistoryClearResult {
 export interface BtExportHistoryListFilters {
     projectType?: 'ramais' | 'clandestino';
     cqtScenario?: 'atual' | 'proj1' | 'proj2';
+}
+
+export interface BtExportHistoryListSort {
+    sortBy?: 'exportedAt';
+    sortOrder?: ListSortOrder;
 }
 
 export interface BtExportHistoryIngestPayload {
@@ -285,9 +291,16 @@ class BtExportHistoryService {
         return { stored, entry };
     }
 
-    async list(limit: number, offset: number, filters: BtExportHistoryListFilters = {}): Promise<BtExportHistoryListResult> {
+    async list(
+        limit: number,
+        offset: number,
+        filters: BtExportHistoryListFilters = {},
+        sort: BtExportHistoryListSort = {},
+    ): Promise<BtExportHistoryListResult> {
         const safeLimit = Math.max(1, Math.min(limit, 200));
         const safeOffset = Math.max(0, offset);
+        const safeSortBy = sort.sortBy ?? 'exportedAt';
+        const safeSortOrder = sort.sortOrder ?? 'desc';
 
         const sql = this.getSql();
         if (!sql) {
@@ -322,9 +335,6 @@ class BtExportHistoryService {
                 FROM bt_export_history
                 WHERE (${filterProjectType}::text IS NULL OR project_type = ${filterProjectType})
                                     AND (${filterCqtScenario}::text IS NULL OR cqt_scenario = ${filterCqtScenario})
-                ORDER BY created_at DESC
-                LIMIT ${safeLimit}
-                OFFSET ${safeOffset}
             `;
 
             const totalRows = await sql<Array<{ total: string }>>`
@@ -334,8 +344,24 @@ class BtExportHistoryService {
                                     AND (${filterCqtScenario}::text IS NULL OR cqt_scenario = ${filterCqtScenario})
             `;
 
+            const sortedRows = rows.sort((left, right) => {
+                if (safeSortBy !== 'exportedAt') {
+                    return 0;
+                }
+
+                const leftTime = Date.parse(left.created_at);
+                const rightTime = Date.parse(right.created_at);
+                const delta = leftTime - rightTime;
+                return safeSortOrder === 'asc' ? delta : -delta;
+            });
+
+            const paginatedRows = sortedRows.slice(
+                safeOffset,
+                safeOffset + safeLimit,
+            );
+
             return {
-                entries: rows.map((row) => this.mapRowToEntry(row)),
+                entries: paginatedRows.map((row) => this.mapRowToEntry(row)),
                 total: Number(totalRows[0]?.total ?? '0'),
                 limit: safeLimit,
                 offset: safeOffset,

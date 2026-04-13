@@ -10,6 +10,7 @@
 ## Contexto
 
 Middleware `permissionHandler.ts` existia com placeholder desde origem:
+
 - Linha 16: `const userRole = userId ? 'admin' : 'guest'`
 - Todas as usuárias com ID recebiam permissão 'admin' automaticamente
 - Sem persistência, sem auditoria, sem enforcement real
@@ -28,6 +29,7 @@ Middleware `permissionHandler.ts` existia com placeholder desde origem:
 ### 1. Migração SQL (020_user_roles_rbac.sql)
 
 **Estrutura:**
+
 - Enum `user_role`: 4 papéis (admin, technician, viewer, guest)
 - Tabela `user_roles` (PK: user_id)
   - L12-20: Campos com constraint + default
@@ -37,19 +39,23 @@ Middleware `permissionHandler.ts` existia com placeholder desde origem:
   - Índices para auditoria temporal
 
 **Triggers Automáticos:**
+
 - `update_user_roles_timestamp()` (L46-50): Atualiza `last_updated` automaticamente
 - `audit_user_roles_changes()` (L54-67): Log automático em INSERT + UPDATE
 
 **Views for Operations:**
+
 - `v_user_roles_summary` (L83–92): Relatório de distribuição de papéis
 
 ### 2. RoleService (server/services/roleService.ts)
 
 **Cache Strategy:**
+
 ```typescript
 const roleCache = new Map<string, { role: UserRole; expiresAt: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 ```
+
 - Reduz latência e carga de banco
 - Invalidação automática após 5 min
 - Invalidação manual em `setUserRole()`
@@ -77,26 +83,30 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 ### 3. PermissionHandler (server/middleware/permissionHandler.ts)
 
 **Antes (Placeholder):**
+
 ```typescript
-const userRole = userId ? 'admin' : 'guest'; // ❌ INSEGURO
+const userRole = userId ? "admin" : "guest"; // ❌ INSEGURO
 ```
 
 **Depois (Real RBAC):**
+
 ```typescript
 const userRole = await getUserRole(userId); // ✅ Fonte confiável
 ```
 
 **Matriz de Permissões (Declarativa):**
+
 ```typescript
 const permissionsMatrix: Record<UserRole, Permission[]> = {
-    'admin': ['read', 'write', 'delete', 'admin', 'export_dxf', 'bt_calculate'],
-    'technician': ['read', 'write', 'export_dxf', 'bt_calculate'],
-    'viewer': ['read'],
-    'guest': []
+  admin: ["read", "write", "delete", "admin", "export_dxf", "bt_calculate"],
+  technician: ["read", "write", "export_dxf", "bt_calculate"],
+  viewer: ["read"],
+  guest: [],
 };
 ```
 
 **Enforcement Flow:**
+
 1. Extrair userId de headers/locals (L48–49)
 2. Chamar `getUserRole()` — recuperar de banco (com cache) (L51)
 3. Resolver permissões via matriz (L56)
@@ -105,6 +115,7 @@ const permissionsMatrix: Record<UserRole, Permission[]> = {
 6. Fallback seguro em erro: negar (L83–90)
 
 **Error Handling:**
+
 - Try-catch abrangente com logging
 - Falha de permissão = erro 401 com detalhes (required vs. provided)
 - Erro de banco = negar acesso + log crítico

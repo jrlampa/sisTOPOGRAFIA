@@ -1,51 +1,119 @@
-# 🚀 Plano Estratégico de Melhorias e Implementações
+# Plano Estratégico de Melhorias e Implementações
 
-Atuando como **Fullstack Sênior** e com base nas premissas inegociáveis de arquitetura limpa (Clean Code, DDD, Thin Frontend / Smart Backend, Segurança, Modularidade e foco primário em testes unitários e E2E), elaboramos abaixo o planejamento de melhorias estratégicas em três frentes principais: **Frontend, Backend e Banco de Dados**.
+Este documento consolida melhorias arquiteturais e de produto para o SIS RUA Unified, partindo de um princípio importante: a plataforma não "mistura" capacidades; ela **integra** análise topográfica, geração DXF, cálculo BT/CQT, edição operacional e dados geoespaciais em um fluxo técnico único.
 
----
+O objetivo das propostas abaixo é aumentar três ganhos ao mesmo tempo:
 
-## 🎨 1. Área: Frontend (Interface, UX/UI e Clients)
-Foco em manter a aplicação leve (*Thin Frontend*), inteiramente em **pt-BR**, e voltada inteiramente à reatividade sem acúmulo de processamentos de engenharia.
-
-1. **Adoção Estrita do Padrão "Thin Frontend":** Mover toda e qualquer lógica matemática, validações em 2.5D e conversões de coordenadas topográficas para o Backend, garantindo que o Frontend atue exclusivamente como interface de exibição e interatividade.
-2. **Eliminação de Dados Mockados:** Substituir completamente quaisquer instâncias estáticas ('mocks') por chamadas efetivas às APIs do Backend, consumindo dados transacionais dinâmicos reais em componentes visuais.
-3. **Estratégia de Code Splitting e Lazy Loading:** Particionar a entrega de componentes visuais densos (como motores de mapas e views de manipulação web 2.5D), de modo que sejam carregados e parseados apenas por demanda (Lazy).
-4. **Refatoração por Limite de Linhas (500 Lines Rule):** Criar alertas nos linters de frontend e separar componentes/telas que superem 500 linhas em *HOCs*, hooks personalizados e micro-componentes com Princípio de Responsabilidade Única (SRP).
-5. **Integração de WebSockets / SSE para Processos Assíncronos:** Otimizar a comunicação cliente-servidor escutando os eventos de finalização da geração demorada dos arquivos `.dxf` ao invés de usar `polling` (requisições sucessivas temporizadas).
-6. **Implementação de Local-First/PWA Resiliente:** Incorporar Service Workers e cache dinâmico robusto no navegador para suportar perdas de conectividade, oferecendo um sistema responsivo ao usuário mesmo offline.
-7. **Suite Completa de Testes E2E (Cypress/Playwright):** Automatizar fluxos completos de usabilidade focando nos parâmetros de coordenadas base (ex: 100m - `23K 788547 7634925`), garantindo o fluxo inteiro via robôs.
-8. **UI/UX em pt-BR Validada (Storybook):** Implementar e catalogar todos os modais, formulários, alertas e caixas de ferramentas estritamente em Português-BR usando um ambiente isolado como *Storybook* focado no Design System.
-9. **Tratamento Seguro de Erros (Error Boundaries Globais):** Evitar o "white screen of death" no React e capturar exceções silenciosas, reencaminhando diagnósticos ao backend anonimamente para rastreamento de falhas na renderização do cliente.
-10. **Acessibilidade e Componentes Zero Custo:** Usar tipografias web gratuitas, bibliotecas open-source limpas de UI sem vendor lock-in a serviços pagos e auditar a acessibilidade visual (constrastes de visibilidade GIS).
+1. **Valor percebido pelo usuário final**
+2. **Escalabilidade técnica e operacional**
+3. **Clareza de posicionamento do produto como plataforma integrada de engenharia**
 
 ---
 
-## ⚙️ 2. Área: Backend (Core, DDD, Accoreconsole.exe, APIs)
-Foco na construção de um **Smart Backend**, arquitetado fundamentalmente via DDD, capaz de gerar cálculos avançados em engenharia topográfica (via Python, Node.js e .DXF testável de modo headless).
+## Direção Central
 
-1. **Consolidação do Padrão Domain-Driven Design (DDD):** Desacoplar por completo todas as camadas (Domínio, Aplicação, Infraestrutura, Apresentação), isolando a lógica de negócios da leitura/escrita e ferramentas terceiras.
-2. **Arquitetura "Docker First" para o Motor DXF:** Empacotar e orquestrar a dependência física/Windows de modo escalável em containers. Centralizar a execução primária e headless do `accoreconsole.exe` via Docker.
-3. **Testes Headless em DXFs:** Implementar rotinas mandatórias automatizadas unitárias via scripts .LISP e APIs em `accoreconsole.exe` para testar integridade de cotas, metadados geométricos e conversões topográficas nos `.dxf` gerados.
-4. **Middleware de Sanitização e Rate Limiting:** Higienização absoluta de todo JSON/Payload na camada de borda para evitar SQL/NoSQL Injection e bloqueios agressivos (XSS, HPP, etc). Segurança nativa e zero trust (Zero Trust Network Access).
-5. **Garantia Geométrica 2.5D:** Impor conversores que vetem tentativas de introdução de cálculos geométricos que usem Z vertical real em cálculos de face (3D), forçando quebra para elevação relativa simulada (2.5D) conforme definido em regra.
-6. **Garantia de "Zero custo a todo custo":** Integrar no service layer múltiplos *Fallbacks* e circuitos limitadores dinâmicos que façam round-robin exclusivamente por provedores cartográficos públicos de APIs e bases vetoriais de elevação abertos (IBGE, OpenTopoData).
-7. **Motor Híbrido de Auditoria:** Arquivar de maneira atômica e centralizada todas as mudanças estruturais e chamadas críticas das interfaces de edição (padrão Event Sourcing em escala menor), mantendo a base auditável para o `ciclo-5-auditoria`.
-8. **Otimização Extensiva de Engine Python/Matemática:** Otimizar ao extremo a complexidade ciclomatica no core/engenharia legado para lidar dinamicamente com os testes em 500m & 1km (-22.15018, -42.92185) por microssegunudos.
-9. **Gerenciamento de Contexto LLM RAG:** Disponibilizar e preencher um mecanismo vector store na camada backend para gerenciar a 'memória' de desenvolvimento dos papéis da equipe ('Tech Lead', 'Estagiário') durante logs de falhas das próprias regras ou fluxos de conversação diária.
-10. **Refatoração e Design Patterns no Controller:** Mover processamentos síncronos e massivos de vetores no Controller principal para sub-rotinas em *Background Jobs/Workers* via RabbitMQ ou Redis Queues com responsabilidades isoladas e únicas.
+Antes de detalhar frontend, backend e banco, vale registrar a direção arquitetural desejada:
+
+1. **Fluxo unificado de estudo técnico:** entrada da área, análise, edição, validação, geração de artefatos, histórico e relatório final devem operar como partes do mesmo processo, e não como módulos percebidos como independentes.
+2. **Produto orientado a projetos:** o sistema deve evoluir de ferramenta operacional para plataforma de projetos de engenharia, com contexto persistente, versionamento, auditoria e rastreabilidade.
+3. **Thin Frontend / Smart Backend:** manter a interface reativa e clara, enquanto regras, cálculos, consistência e orquestração pesada ficam concentrados no backend e engines especializadas.
+4. **Arquitetura voltada à previsibilidade:** jobs longos, filas, validações e históricos precisam ser transparentes para o usuário, com status persistente e recuperação confiável.
+5. **Saída técnica + saída executiva:** além do DXF e dos cálculos, o sistema deve produzir síntese operacional e documentação que ajudem tomada de decisão.
 
 ---
 
-## 🗄️ 3. Área: Banco de Dados (Persistência, Performance e Indexação)
-Construção de uma camada extremamente íntegra, segura e rápida, perfeitamente casada com serviços Geoespaciais.
+## 1. Área: Frontend (Interface, UX/UI e Experiência do Operador)
 
-1. **Indexação Espacial NATIVA e Eficiente:** Implementar PostGIS (GiST Indexes, R-Tree) para viabilizar cálculos vertiginosos que resolvem bounds de teste nos diâmetros (100m, 500m, 1km) fornecidos globalmente, sem sofrer perdas por "table scan".
-2. **Camadas Abstratas via Pattern Repository:** Bloquear vazamentos das especificidades do Banco de Dados para os Controllers. Interações limitadas rigorosamente a implementações de interfaces DDD.
-3. **Atomicidade e Transações Ácidas Absolutas:** Otimização de bloqueios de leitura/escrita otimistas em geração de estudos de rede. Inserções em lote ou falham todas, ou passam todas. Sem lixo de meio de tração percorrido.
-4. **Desacoplamento JSONB vs Relacional:** Separar a parte fortemente transacional e estrita (Usuários, Relatórios) da persistência massiva que requer modularidade extrema (Atributos brutos de engenharia/plotagem e configurações GIS em JSONB).
-5. **Rotinas Crônicas de Limpeza (Sweeping/Cron Db):** Configurar triggers, Stored Procedures e expurgos periódicos para limpar logs de testes headless abandonados e restos de gerações DXFs não gravadas para fins de purificação de Storage.
-6. **Políticas de Criptografia At-Rest:** Anonimizar dados diretos do usuário sensíveis no banco e garantir total anonimização em despejos (dumps) feitos para uso futuro pela role de DEVOPS/QA em testes de laboratório paralelos.
-7. **Pool Management Agressivo Pró-Docker:** Mapear e corrigir a fadiga de conexões de banco em contêineres Docker mal balanceados através do uso de gerenciadores de pools como *PgBouncer* ou implementações ajustáveis para microserviços.
-8. **Testes de Integração com Banco Próprio (Chaos Test):** Orquestrar containers de banco de dados efêmeros "TestContainer" no ciclo de CI/CD para estressar I/O e validações de constraints antes de um commit ser aceito em `DEV`.
-9. **Reestruturação das Migrations (Schema via ORM Otimizado):** Manter atualizado o controle absoluto nas revisões de banco num fluxo State-based e Migration-based versionados rigidamente ao lado do `.gitignore` para consistência universal no time.
-10. **Segregação de Leituras vs Gravações (CQRS light):** Dividir a arquitetura seletiva para consultas gigantes (como gerar toda uma planta e os históricos longínquos de postes e RUA) versus a inserção veloz e única de uma coordenada 23K unitária gerando melhor aproveitamento de IO e modularidade para o Back.
+Foco em manter a aplicação leve, inteiramente em **pt-BR**, com forte orientação a fluxos reais de operação técnica e menor carga cognitiva para o usuário.
+
+1. **Consolidar o frontend como orquestrador de fluxo:** a interface deve evidenciar que análise topográfica, BT/CQT, DXF e camadas geoespaciais fazem parte do mesmo estudo técnico, com etapas claras e encadeadas.
+2. **Evoluir para uma experiência orientada a projetos:** introduzir fluxos de abertura, retomada e duplicação de estudos, com contexto persistente por projeto, ao invés de depender apenas do estado local da sessão.
+3. **Templates por caso de uso:** oferecer modelos como `estudo BT`, `clandestino`, `ramais`, `análise topográfica preliminar` e `exportação DXF`, reduzindo fricção inicial e padronizando entrada.
+4. **Onboarding guiado e modo demonstrativo:** incluir exemplo carregado, checklist inicial, instruções contextuais e mensagens de validação mais pedagógicas para acelerar adoção por novos usuários.
+5. **Code splitting e lazy loading:** particionar módulos densos de mapa, edição e visualizações avançadas para reduzir tempo de carga inicial e melhorar responsividade.
+6. **Refatoração por limite de complexidade:** quebrar componentes e telas extensas em microcomponentes e hooks especializados, especialmente áreas críticas da edição BT e do shell principal da aplicação.
+7. **Substituir polling por SSE ou WebSockets nos jobs longos:** geração de DXF e processamentos assíncronos devem refletir progresso em tempo real, com feedback contínuo e menor ruído de rede.
+8. **Fila visível e previsível para o operador:** exibir status de job, etapa atual, reprocessamento, recuperação de erro e histórico recente com linguagem operacional clara.
+9. **PWA resiliente e local-first quando fizer sentido:** preservar preferências, contexto de edição e artefatos leves para reduzir impacto de instabilidade de conectividade.
+10. **Design system operacional em pt-BR:** consolidar modais, formulários, feedbacks, banners, toasts e estados vazios em um catálogo consistente, preferencialmente com Storybook.
+11. **Validações cada vez mais preventivas:** mover o máximo possível da descoberta de erro para antes do processamento pesado, com feedback inline, mensagens de causa e próxima ação recomendada.
+12. **Acessibilidade e legibilidade cartográfica:** revisar contraste, hierarquia visual, foco de teclado e leitura de camadas GIS para reduzir fadiga de uso em rotinas longas.
+
+---
+
+## 2. Área: Backend (Core, Regras, Orquestração e APIs)
+
+Foco na construção de um **Smart Backend** que concentre domínio, consistência e integração entre motores técnicos, sem fragmentar a experiência do usuário.
+
+1. **Consolidação explícita do domínio integrado:** tratar topografia, BT/CQT, DXF, histórico e relatórios como partes de um mesmo domínio de estudo técnico, e não como serviços isolados sem linguagem comum.
+2. **Adoção progressiva de DDD:** organizar camadas de Domínio, Aplicação, Infraestrutura e Apresentação, isolando regra de negócio de adaptadores externos e detalhes de transporte.
+3. **Backend orientado a projetos e estudos:** criar agregados e serviços de aplicação para `Projeto`, `Estudo`, `Execução`, `Artefato`, `Relatório` e `Histórico`, facilitando rastreabilidade e governança.
+4. **Persistência real de jobs e status:** remover dependências de estado em memória para status críticos, permitindo retomada após reinício, auditoria de execução e visão histórica confiável.
+5. **Arquitetura de processamento assíncrono previsível:** jobs de DXF, análises pesadas e auditorias devem ser tratados como primeira classe, com fila, retries, cancelamento e eventos de progresso.
+6. **Docker-first para o motor técnico:** manter empacotamento reprodutível do stack Node + Python + dependências específicas, reduzindo variabilidade entre desenvolvimento, validação e produção.
+7. **Testes headless dos artefatos técnicos:** validar estruturalmente DXFs, outputs de cálculo e consistência geométrica por rotinas automatizadas que reduzam retrabalho humano.
+8. **Garantia geométrica 2.5D e contratos de domínio:** formalizar invariantes do domínio para impedir deriva semântica entre interface, backend e engine Python.
+9. **Fallbacks para fontes públicas de dados geoespaciais:** orquestrar provedores como IBGE, INDE e fontes abertas de elevação com circuit breakers, cache e priorização por qualidade/disponibilidade.
+10. **Motor híbrido de auditoria e trilha operacional:** registrar mudanças relevantes, execuções críticas, exportações e decisões de processamento de modo auditável e consultável.
+11. **APIs voltadas a resultado de negócio:** além de endpoints técnicos isolados, expor contratos que representem jornadas completas, como criar estudo, executar análise, gerar artefato e publicar relatório.
+12. **Observabilidade orientada a produto:** medir tempo até primeiro resultado, taxa de falha por etapa, abandono de fluxo, retrabalho e tempo médio de geração por tipo de estudo.
+13. **Refatoração dos controladores para orquestração leve:** manter controllers finos, com validação de borda e delegação para serviços coesos, reduzindo acoplamento e risco de regressão.
+14. **RAG e LLM apenas como apoio operacional:** se utilizados, devem servir a documentação, diagnóstico e recuperação de contexto, sem competir com o núcleo determinístico do domínio.
+
+---
+
+## 3. Área: Banco de Dados (Persistência, Performance e Governança)
+
+Construção de uma camada íntegra, segura e preparada para sustentar uma plataforma de engenharia com histórico, auditoria e artefatos versionados.
+
+1. **Modelo orientado a projeto e estudo:** persistir entidades que representem cliente, projeto, estudo, execução, artefato gerado, relatório e histórico de revisão.
+2. **Persistência auditável de jobs e exportações:** registrar enfileiramento, progresso, conclusão, falhas e reprocessamentos para DXF e demais rotinas assíncronas.
+3. **Indexação espacial nativa e eficiente:** evoluir para PostGIS com índices espaciais adequados, viabilizando consultas geográficas de alta performance e menor custo computacional.
+4. **Separação entre dado transacional e dado técnico semi-estruturado:** usar modelo relacional para entidades centrais e JSONB quando houver ganho real para atributos variáveis de engenharia.
+5. **Versionamento de estudos e snapshots:** suportar histórico de alterações relevantes, comparação entre versões e reprodutibilidade de resultados técnicos.
+6. **Transações e atomicidade em fluxos críticos:** garantir consistência em operações que envolvam múltiplas escritas, como geração de estudo, atualização de topologia e publicação de artefatos.
+7. **Criptografia e anonimização:** proteger dados sensíveis de usuário, operação e cliente tanto em repouso quanto em dumps de teste e ambientes auxiliares.
+8. **Políticas de retenção e limpeza:** expurgar temporários, artefatos órfãos, logs transitórios e resíduos de execuções expiradas sem comprometer rastreabilidade relevante.
+9. **Gestão de conexões e pool tuning:** preparar a persistência para execução conteinerizada e workloads assíncronos sem exaustão de conexões.
+10. **Estratégia sólida de migrations:** manter evolução de schema versionada, revisável e reproduzível, com validação automatizada em CI.
+11. **Read models e CQRS light onde houver ganho real:** separar consultas analíticas e históricos volumosos de operações transacionais críticas, sem complexidade desnecessária.
+12. **Testes de integração com banco efêmero:** validar constraints, índices, concorrência e compatibilidade de migrations antes de promover mudanças.
+
+---
+
+## 4. Melhorias de Produto com Impacto Arquitetural
+
+Estas melhorias não são apenas de UX ou negócio; elas têm implicações diretas na arquitetura e ajudam a transformar a base atual em um SaaS mais forte.
+
+1. **Projetos, equipes e permissões:** suportar multiusuário real com papéis, trilhas por usuário e governança de acesso por projeto.
+2. **Histórico operacional consultável:** permitir retomada de estudos, comparação de resultados, reabertura e reprocessamento com contexto preservado.
+3. **Relatório final além do DXF:** gerar também saída executiva e técnica com resumo, inconsistências, métricas, mapa e anexos.
+4. **Templates e padronização por cliente ou operação:** viabilizar presets de parâmetros, layout, regras e exportações por cenário de uso.
+5. **Catálogo de artefatos e versões:** reunir DXFs, relatórios, planilhas e snapshots técnicos dentro do mesmo contexto do estudo.
+6. **Métricas de adoção e eficiência:** acompanhar tempo de execução, volume processado, erros evitados por validação e taxa de reaproveitamento de templates.
+7. **Integrações externas pragmáticas:** evoluir APIs e importações para planilhas, sistemas corporativos, CAD/GIS e fluxos internos da operação.
+
+---
+
+## 5. Priorização Recomendada
+
+Para maximizar impacto sem dispersar esforço, a sequência recomendada é:
+
+1. **Persistência de projetos, estudos e jobs**
+2. **Fluxo unificado com templates por caso de uso**
+3. **Status em tempo real e histórico confiável de execução**
+4. **Relatórios finais e catálogo de artefatos**
+5. **Refatoração progressiva de frontend e backend para reduzir acoplamento**
+6. **Evolução da base de dados para modelo orientado a projeto + geoespacial robusto**
+7. **Colaboração multiusuário, permissões e integrações externas**
+
+---
+
+## Resultado Esperado
+
+Com essa evolução, o SIS RUA Unified deixa de ser percebido apenas como conjunto de ferramentas técnicas e passa a se posicionar de forma mais clara como:
+
+- **plataforma integrada de estudos de engenharia**
+- **sistema auditável e reproduzível para operação técnica**
+- **ambiente de geração de artefatos com contexto, histórico e governança**
+- **SaaS especializado com diferencial na integração entre análise, cálculo, geoespacial e entrega final**
