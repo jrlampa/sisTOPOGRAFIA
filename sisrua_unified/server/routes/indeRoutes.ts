@@ -77,8 +77,14 @@ router.get("/features/:source", async (req: Request, res: Response) => {
 
     const queryValidation = featuresQuerySchema.safeParse(req.query);
     if (!queryValidation.success) {
+      const bboxIssue = queryValidation.error.issues.find(
+        (i) => i.path.length === 0 || ["west", "east", "south", "north"].some((f) => i.path.includes(f)),
+      );
+      const errorMessage = bboxIssue
+        ? "Invalid bounding box. Expected west<east and south<north."
+        : "Parâmetros inválidos";
       return res.status(400).json({
-        error: "Parâmetros inválidos",
+        error: errorMessage,
         details: queryValidation.error.issues,
       });
     }
@@ -121,8 +127,19 @@ router.get("/wms/:source", async (req: Request, res: Response) => {
 
     const queryValidation = wmsQuerySchema.safeParse(req.query);
     if (!queryValidation.success) {
+      const dimensionIssue = queryValidation.error.issues.find((i) =>
+        ["width", "height"].some((f) => i.path.includes(f)),
+      );
+      const bboxIssue = !dimensionIssue && queryValidation.error.issues.find(
+        (i) => i.path.length === 0 || ["west", "east", "south", "north"].some((f) => i.path.includes(f)),
+      );
+      const errorMessage = dimensionIssue
+        ? "Invalid width/height. Expected values between 64 and 4096."
+        : bboxIssue
+          ? "Invalid bounding box. Expected west<east and south<north."
+          : "Parâmetros inválidos";
       return res.status(400).json({
-        error: "Parâmetros inválidos",
+        error: errorMessage,
         details: queryValidation.error.issues,
       });
     }
