@@ -73,6 +73,10 @@ const isRefreshAuthorized = (req: Request): boolean => {
   }
 
   const receivedToken = req.get("x-constants-refresh-token") || "";
+  if (receivedToken.length !== expectedToken.length) {
+    return false;
+  }
+
   return crypto.timingSafeEqual(
     Buffer.from(receivedToken),
     Buffer.from(expectedToken),

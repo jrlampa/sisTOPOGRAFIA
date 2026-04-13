@@ -28,7 +28,8 @@ describe('indeRoutes bbox validation', () => {
       .query({ layer: 'foo', west: '200', south: '-10', east: '-40', north: '-20', limit: '100' });
 
     expect(response.status).toBe(400);
-    expect(response.body.error).toContain('Invalid bounding box');
+    expect(response.body.error).toContain('Parâmetros inválidos');
+    expect(JSON.stringify(response.body.details)).toContain('Invalid bounding box');
     expect(getFeaturesByBBoxMock).not.toHaveBeenCalled();
   });
 
@@ -42,7 +43,8 @@ describe('indeRoutes bbox validation', () => {
       .query({ layer: 'foo', west: '-49', south: '-23', east: '-46', north: '-21', width: '99999', height: '768' });
 
     expect(response.status).toBe(400);
-    expect(response.body.error).toContain('Invalid width/height');
+    expect(response.body.error).toContain('Parâmetros inválidos');
+    expect(JSON.stringify(response.body.details)).toContain('Number must be less than or equal to 4096');
     expect(getWmsMapUrlMock).not.toHaveBeenCalled();
   });
 

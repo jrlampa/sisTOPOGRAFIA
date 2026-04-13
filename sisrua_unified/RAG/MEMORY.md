@@ -258,6 +258,61 @@ docker-compose up -d
 
 ### Evidência atual e gap
 
+---
+
+## 📌 Atualização Operacional (2026-04-12) - Contrato Transversal de Listagem
+
+### Diretriz
+
+- Rotas listáveis do backend passam a seguir convenção única para paginação, ordenação e filtros.
+- O objetivo é reduzir contratos ad hoc por endpoint e padronizar consumo por frontend, testes e integrações.
+
+### Contrato adotado
+
+- Query padrão:
+  - `limit`
+  - `offset`
+  - `sortBy`
+  - `sortOrder`
+  - filtros específicos por rota, validados por Zod
+- Resposta padrão:
+  - coleção principal mantida por compatibilidade (`entries`, `events`, `snapshots`, `states`, `municipios`, `features`, `data`, `scenarios`)
+  - `total`
+  - `limit`
+  - `offset`
+  - `meta`
+    - `limit`
+    - `offset`
+    - `total`
+    - `returned`
+    - `hasMore`
+    - `sortBy`
+    - `sortOrder`
+    - `filters`
+
+### Helpers centrais
+
+- `server/schemas/apiSchemas.ts`
+  - `createListQuerySchema()`
+  - `listSortOrderSchema`
+- `server/utils/listing.ts`
+  - `buildListMeta()`
+  - `comparePrimitiveValues()`
+
+### Rotas cobertas nesta etapa
+
+- `server/routes/btHistoryRoutes.ts`
+- `server/routes/constantsRoutes.ts`
+- `server/routes/ibgeRoutes.ts`
+- `server/routes/indeRoutes.ts`
+- `server/routes/mechanicalAndAnalysisRoutes.ts`
+- `server/routes/btCalculationRoutes.ts` (`/parity/scenarios`)
+
+### Observação importante
+
+- Filtros continuam específicos do domínio de cada rota, mas agora sob convenção única de validação e retorno em `meta.filters`.
+- Compatibilidade retroativa foi preservada sempre que possível, mantendo a chave principal da coleção.
+
 - Há base existente com labels e smoke test Axe em `e2e/a11y-smoke.spec.ts`.
 - Gap identificado: cobertura ainda concentrada na raiz e sem matriz ampla por fluxo crítico e estados interativos.
 
