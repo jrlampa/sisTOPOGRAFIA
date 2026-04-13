@@ -16,7 +16,7 @@ export function sanitizeString(input: string, maxLength = 255): string {
     throw new Error('Input must be a string');
   }
 
-  let sanitized = input
+  const sanitized = input
     .trim()
     .substring(0, maxLength)
     // Remove script tags and event handlers

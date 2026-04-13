@@ -162,6 +162,10 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   const resolveRamalTypeFromHeader = (header: string): string | null => {
     const key = normalizeHeaderKey(header);
 
+    if (key === "33AA") return "5 CC";
+    if (key === "33AC") return "8 CC";
+    if (key === "53AA") return "13 CC";
+    if (key === "53AC") return "21 CC";
     if (key.includes("13DX") || key.includes("13ALDX")) return "13 DX 6 AWG";
     if (key.includes("13TX") || key.includes("13ALTX")) return "13 TX 6 AWG";
     if (key.includes("13QX") || key.includes("13ALQX")) return "13 QX 6 AWG";

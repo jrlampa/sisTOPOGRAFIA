@@ -43,7 +43,6 @@ export function useMapState({
     if (draft && (draft.state.btTopology?.poles.length ?? 0) > 0) {
       setSessionDraft(draft.state);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const showToast = (message: string, type: ToastType) => {

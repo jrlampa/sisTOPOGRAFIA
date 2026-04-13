@@ -8,7 +8,6 @@ jest.mock("../services/constantsService", () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 let computeBtDerivedState: typeof import("../services/btDerivedService.js").computeBtDerivedState;
 
 beforeAll(async () => {

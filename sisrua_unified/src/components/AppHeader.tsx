@@ -60,7 +60,7 @@ export function AppHeader({
               UNIFIED
             </span>
           </h1>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em]">
+          <p className="text-[10px] text-slate-300 font-bold uppercase tracking-[0.3em]">
             Análise Geo Avançada
           </p>
         </div>
@@ -81,6 +81,7 @@ export function AppHeader({
             onClick={onSaveProject}
             className="p-2.5 glass rounded-xl text-slate-300 hover:text-white transition-colors shadow-lg"
             title="Salvar projeto"
+            aria-label="Salvar projeto"
           >
             <Save size={18} />
           </motion.button>
@@ -91,6 +92,7 @@ export function AppHeader({
             onClick={handleOpenProjectClick}
             className="p-2.5 glass rounded-xl text-slate-300 hover:text-white transition-colors shadow-lg"
             title="Abrir projeto"
+            aria-label="Abrir projeto"
           >
             <FolderOpen size={18} />
           </motion.button>
@@ -110,6 +112,8 @@ export function AppHeader({
           whileTap={{ scale: 0.95 }}
           onClick={onOpenSettings}
           className="p-2.5 glass rounded-xl text-slate-300 hover:text-white transition-colors shadow-lg"
+          title="Abrir configurações"
+          aria-label="Abrir configurações"
         >
           <Settings size={20} />
         </motion.button>

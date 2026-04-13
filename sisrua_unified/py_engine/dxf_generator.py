@@ -1319,16 +1319,45 @@ class DXFGenerator:
         except Exception as e:
             Logger.error(f"Error adding logo block reference: {e}")
 
-    def save(self):
-        # Professional finalization
+    def _count_modelspace_entities(self):
+        return sum(1 for _ in self.msp)
+
+    def _run_finalize_step(self, label, fn):
         try:
-            self.add_legend()
-            self.add_bt_summary()
-            self.add_title_block(
-                client=self.project_info.get("client", "CLIENTE PADRÃO"),
-                project=self.project_info.get("project", "EXTRACAO ESPACIAL OSM"),
+            fn()
+        except Exception as e:
+            Logger.error(f"DXF finalize step failed ({label}): {e}")
+
+    def save(self):
+        initial_entities = self._count_modelspace_entities()
+        if initial_entities <= 0:
+            raise RuntimeError("DXF export aborted: model space has no entities")
+
+        try:
+            # Cosmetic steps are best-effort and cannot block persistence.
+            self._run_finalize_step("legend", self.add_legend)
+            self._run_finalize_step("bt_summary", self.add_bt_summary)
+            self._run_finalize_step(
+                "title_block",
+                lambda: self.add_title_block(
+                    client=self.project_info.get("client", "CLIENTE PADRÃO"),
+                    project=self.project_info.get("project", "EXTRACAO ESPACIAL OSM"),
+                ),
             )
+
             self.doc.saveas(self.filename)
-            Logger.info(f"DXF saved successfully: {os.path.basename(self.filename)}")
+            final_entities = self._count_modelspace_entities()
+            output_size = os.path.getsize(self.filename)
+
+            if final_entities <= 0:
+                raise RuntimeError("DXF saved without model-space entities")
+            if output_size <= 0:
+                raise RuntimeError("DXF saved with zero-byte size")
+
+            Logger.info(
+                f"DXF saved successfully: {os.path.basename(self.filename)} "
+                f"({final_entities} entities, {output_size} bytes)"
+            )
         except Exception as e:
             Logger.error(f"DXF Save Error: {e}")
+            raise
