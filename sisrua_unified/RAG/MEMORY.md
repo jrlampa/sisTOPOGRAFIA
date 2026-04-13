@@ -303,14 +303,14 @@ docker-compose up -d
 ### Escopo
 
 **CRITICAL (Security-sensitive + Consistency):**
+
 1. `dxfRoutes.ts` - Convertido `normalizeProtocol` e `extractCqtSummary` para Zod schemas; adicionado validação de file MIME/size para `/batch`
 2. `constantsRoutes.ts` - Confirmado `timingSafeEqual` em `isRefreshAuthorized`; adicionado schema `clandestineQuerySchema` para `/clandestino`
 
-**HIGH (Mixed Zod + Manual paths):**
-3. `elevationRoutes.ts` - Adicionado `cacheStatusQuerySchema` e `cacheClearBodySchema` para `/cache/status` e `/cache/clear`
-4. `btCalculationRoutes.ts` - Adicionado `emptyCatalogQuerySchema` e `emptyParityQuerySchema` para `/catalog`, `/catalog/version`, `/parity`, `/parity/scenarios`
+**HIGH (Mixed Zod + Manual paths):** 3. `elevationRoutes.ts` - Adicionado `cacheStatusQuerySchema` e `cacheClearBodySchema` para `/cache/status` e `/cache/clear` 4. `btCalculationRoutes.ts` - Adicionado `emptyCatalogQuerySchema` e `emptyParityQuerySchema` para `/catalog`, `/catalog/version`, `/parity`, `/parity/scenarios`
 
 **MEDIUM (Completeness):**
+
 - Endpoints sem entrada (health checks): `firestoreRoutes`, `storageRoutes`, `metricsRoutes` — sem validação por design (0 input)
 - Endpoints intentionally stateless (leitura direta): `ibgeRoutes /states` — documentado
 
@@ -326,3 +326,54 @@ docker-compose up -d
 - TypeScript typecheck: ✅ Sem erros nos 4 arquivos de rotas modificados
 - Schemas: ✅ 14 novos schemas introduzidos (7 anteriores + 7 novos em HGH/MEDIUM)
 - E2E tests: ✅ Expandidos com keyboard navigation + Axe WCAG audit (smoke test updated)
+
+---
+
+## 📌 Atualização Operacional (2026-04-13) - RBAC Real com Fonte Confiável
+
+### Diretriz
+
+**Substituir RBAC placeholder por enforcement real.** Todos os usuários devem ter seu papel recuperado de fonte confiável (tabela `user_roles` no banco de dados) com cache e fallback seguro.
+
+### Implementação
+
+**Tabela de Banco de Dados (`migrations/020_user_roles_rbac.sql`):**
+
+- `user_roles`: Mapping de user_id → role com auditoriaassignado_at, assigned_by, reason
+- `user_roles_audit`: Log de todas as mudanças de papel (compliance)
+- Enum `user_role`: admin | technician | viewer | guest
+- Triggers automáticos para auditoria e timestamp
+- View `v_user_roles_summary` para relatórios
+
+**RoleService (`server/services/roleService.ts`):**
+
+- `getUserRole(userId)`: Recuperar papel com cache in-memory (TTL 5min)
+- `setUserRole(userId, role, assignedBy, reason)`: Atribuir/atualizar papel
+- `getUsersByRole(role)`: Listar usuários por papel (relatórios)
+- `getRoleStatistics()`: Distribuição de papéis no sistema
+- Cache automático + invalidação
+- Fallback seguro: viewer em caso de erro de banco
+
+**PermissionHandler (`server/middleware/permissionHandler.ts`):**
+
+- Eliminado placeholder `const userRole = userId ? 'admin' : 'guest'`
+- Conectado ao roleService: `const userRole = await getUserRole(userId)`
+- Matriz de permissões declarativa (admin → [read, write, delete, admin, export_dxf, bt_calculate], etc.)
+- Logging de grant/deny com context completo
+- Fallback seguro: negar em caso de erro
+
+### Resultado
+
+- ✅ Papel de cada usuário vem de **fonte confiável** (banco de dados)
+- ✅ **Cache** reduz latência e carga de banco
+- ✅ **Auditoria** completa de mudanças de papel
+- ✅ **Fallback seguro** em ambos os pontos (roleService + middleware)
+- ✅ Permissões **granulares** por papel (admin > technician > viewer > guest)
+- ✅ Zero brecha de segurança: sem mais placeholder
+
+### Validação Técnica
+
+- SQL syntax: ✅ Migração sem erros
+- TypeScript: ✅ Sem erros em roleService + permissionHandler
+- Tipos: ✅ Union type `UserRole` com 4 papéis válidos
+- Error handling: ✅ Try-catch com logging e fallback
