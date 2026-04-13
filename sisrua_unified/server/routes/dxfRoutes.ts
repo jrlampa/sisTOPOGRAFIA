@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
+import { z } from 'zod';
 import { createDxfTask } from '../services/cloudTasksService.js';
 import {
     createCacheKey,
@@ -13,7 +14,7 @@ import { dxfRateLimiter } from '../middleware/rateLimiter.js';
 import { metricsService } from '../services/metricsService.js';
 import { config } from '../config.js';
 import { attachCqtSnapshotToBtContext } from '../services/cqtContextService.js';
-import { parseBatchCsv } from '../services/batchService.js';
+import { parseBatchCsv, parseBatchFile } from '../services/batchService.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -21,8 +22,42 @@ import { resolveDxfDirectory } from '../utils/dxfDirectory.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-
 const router = Router();
+
+// ─── Input Validation Schemas ────────────────────────────────────────────
+
+// Protocol normalization: ensure only 'http' or 'https'
+const protocolSchema = z.string()
+    .transform(v => v.split(',')[0].trim().toLowerCase())
+    .refine(v => v === 'http' || v === 'https', { 
+        message: 'Protocol must be "http" or "https"' 
+    });
+
+// CQT summary extraction from btContext with full type safety
+const cqtSummarySchema = z.object({
+    scenario: z.string().optional(),
+    dmdi: z.number().optional(),
+    p31: z.number().optional(),
+    p32: z.number().optional(),
+    k10QtMttr: z.number().optional(),
+    parityStatus: z.string().optional(),
+    parityPassed: z.number().optional(),
+    parityFailed: z.number().optional(),
+}).nullish();
+
+// File upload validation: MIME type and buffer size
+const batchFileSchema = z.object({
+    buffer: z.instanceof(Buffer)
+        .refine(buf => buf.byteLength > 0, { message: 'File is empty' })
+        .refine(buf => buf.byteLength <= 50 * 1024 * 1024, { message: 'File exceeds 50MB limit' }),
+    mimetype: z.string()
+        .refine(mime => ['text/csv', 'application/vnd.ms-excel', 
+                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(mime),
+                { message: 'Invalid file type. Allowed: CSV, XLS, XLSX' }),
+    originalname: z.string().optional(),
+}).strict();
+
+// ────────────────────────────────────────────────────────────────────────
 
 const DEFAULT_ALLOWED_HOSTS = new Set(['localhost', '127.0.0.1']);
 
@@ -82,12 +117,11 @@ const normalizeProtocol = (value: unknown): 'http' | 'https' | null => {
         return null;
     }
 
-    const token = value.split(',')[0].trim().toLowerCase();
-    if (token === 'http' || token === 'https') {
-        return token;
+    try {
+        return protocolSchema.parse(value);
+    } catch {
+        return null;
     }
-
-    return null;
 };
 
 // Exported for focused unit tests.
@@ -126,7 +160,7 @@ function extractCqtSummary(btContext: unknown): Record<string, unknown> | null {
         return null;
     }
 
-    const context = btContext as Record<string, unknown>;
+    const context = btContext as Record<string, any>;
     const cqtSnapshotRaw = context.cqtSnapshot;
     if (!cqtSnapshotRaw || typeof cqtSnapshotRaw !== 'object') {
         return null;
@@ -135,7 +169,7 @@ function extractCqtSummary(btContext: unknown): Record<string, unknown> | null {
     const cqtSnapshot = cqtSnapshotRaw as Record<string, any>;
     const parity = cqtSnapshot.parity as Record<string, any> | undefined;
 
-    return {
+    const summary = {
         scenario: typeof cqtSnapshot.scenario === 'string' ? cqtSnapshot.scenario : undefined,
         dmdi: typeof cqtSnapshot.dmdi?.dmdi === 'number' ? cqtSnapshot.dmdi.dmdi : undefined,
         p31: typeof cqtSnapshot.geral?.p31CqtNoPonto === 'number' ? cqtSnapshot.geral.p31CqtNoPonto : undefined,
@@ -145,6 +179,13 @@ function extractCqtSummary(btContext: unknown): Record<string, unknown> | null {
         parityPassed: typeof parity?.passed === 'number' ? parity.passed : undefined,
         parityFailed: typeof parity?.failed === 'number' ? parity.failed : undefined
     };
+
+    // Validate extracted summary against schema
+    try {
+        return cqtSummarySchema.parse(summary) ?? null;
+    } catch {
+        return null;
+    }
 }
 
 // DXF Generation Endpoint
@@ -253,6 +294,20 @@ router.post('/batch', dxfRateLimiter, upload.single('csv'), async (req: Request,
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
+        // Validate file MIME type and buffer size
+        const fileValidation = batchFileSchema.safeParse({
+            buffer: req.file.buffer,
+            mimetype: req.file.mimetype,
+            originalname: req.file.originalname
+        });
+
+        if (!fileValidation.success) {
+            return res.status(400).json({
+                error: 'Invalid file',
+                details: fileValidation.error.issues
+            });
+        }
+
         const rows = await parseBatchFile(req.file.buffer, req.file.mimetype);
         const results = [];
         const errors = [];
@@ -271,6 +326,16 @@ router.post('/batch', dxfRateLimiter, upload.single('csv'), async (req: Request,
             const outputFile = path.join(dxfDirectory, filename);
             const baseUrl = getBaseUrl(req);
             const downloadUrl = `${baseUrl}/downloads/${filename}`;
+            
+            // Generate cache key for batch row (used for potential deduplication)
+            const cacheKey = createCacheKey({
+                lat, lon, radius,
+                mode: mode || 'circle',
+                polygon: null,
+                layers: {},
+                contourRenderMode: 'spline',
+                btContext: null
+            });
 
             try {
                 const { taskId } = await createDxfTask({
@@ -281,7 +346,7 @@ router.post('/batch', dxfRateLimiter, upload.single('csv'), async (req: Request,
                     projection: 'local',
                     contourRenderMode: 'spline',
                     btContext: null,
-                    outputFile, filename, downloadUrl
+                    outputFile, filename, downloadUrl, cacheKey
                 });
 
                 results.push({ name, line, taskId, status: 'queued' });

@@ -103,11 +103,22 @@ router.post('/calculate', requireBtRadialEnabled, (req: Request, res: Response) 
     }
 });
 
+// Schemas for read-only endpoints (no input validation needed, but explicit for consistency)
+const emptyCatalogQuerySchema = z.object({}).strict();
+const emptyParityQuerySchema = z.object({}).strict();
+
 /**
  * GET /api/bt/catalog
  * Return conductor/transformer catalog with version and checksum.
  */
 router.get('/catalog', (req: Request, res: Response) => {
+    const validation = emptyCatalogQuerySchema.safeParse(req.query);
+    if (!validation.success) {
+        return res.status(400).json({
+            error: 'Invalid query parameters',
+            details: validation.error.issues,
+        });
+    }
     const catalog = getBtCatalog();
     return res.json(catalog);
 });
@@ -117,6 +128,13 @@ router.get('/catalog', (req: Request, res: Response) => {
  * Return only the catalog version info (lightweight health check).
  */
 router.get('/catalog/version', (req: Request, res: Response) => {
+    const validation = emptyCatalogQuerySchema.safeParse(req.query);
+    if (!validation.success) {
+        return res.status(400).json({
+            error: 'Invalid query parameters',
+            details: validation.error.issues,
+        });
+    }
     return res.json(getCatalogVersion());
 });
 
@@ -126,6 +144,13 @@ router.get('/catalog/version', (req: Request, res: Response) => {
  * Available regardless of feature flag (used by CI).
  */
 router.get('/parity', (req: Request, res: Response) => {
+    const validation = emptyParityQuerySchema.safeParse(req.query);
+    if (!validation.success) {
+        return res.status(400).json({
+            error: 'Invalid query parameters',
+            details: validation.error.issues,
+        });
+    }
     try {
         const report = runBtParitySuite();
         const status = report.p0Gate ? 200 : 422;
@@ -141,6 +166,13 @@ router.get('/parity', (req: Request, res: Response) => {
  * List available parity scenarios without running them.
  */
 router.get('/parity/scenarios', (req: Request, res: Response) => {
+    const validation = emptyParityQuerySchema.safeParse(req.query);
+    if (!validation.success) {
+        return res.status(400).json({
+            error: 'Invalid query parameters',
+            details: validation.error.issues,
+        });
+    }
     return res.json(listBtParityScenarios());
 });
 

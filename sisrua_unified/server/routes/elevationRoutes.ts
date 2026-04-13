@@ -227,8 +227,20 @@ router.get("/stats", async (req: Request, res: Response) => {
   }
 });
 
+// Cache query schema (currently no params, but kept for consistency/future expansion)
+const cacheStatusQuerySchema = z.object({}).strict();
+const cacheClearBodySchema = z.object({}).strict();
+
 // TOPODATA Cache Status
 router.get("/cache/status", (req: Request, res: Response) => {
+  const validation = cacheStatusQuerySchema.safeParse(req.query);
+  if (!validation.success) {
+    return res.status(400).json({
+      error: "Invalid query parameters",
+      details: validation.error.issues,
+    });
+  }
+
   try {
     const stats = TopodataService.getCacheStats();
     return res.json({
@@ -244,6 +256,14 @@ router.get("/cache/status", (req: Request, res: Response) => {
 
 // Clear Cache
 router.post("/cache/clear", (req: Request, res: Response) => {
+  const validation = cacheClearBodySchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({
+      error: "Invalid request body",
+      details: validation.error.issues,
+    });
+  }
+
   try {
     TopodataService.clearCache();
     return res.json({ message: "TOPODATA cache cleared successfully" });

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import crypto from "crypto";
 import { config } from "../config.js";
 import {
   getRateLimitPolicySnapshot,
@@ -46,7 +47,11 @@ const isRefreshAuthorized = (req: Request): boolean => {
     return false;
   }
 
-  return req.get("x-constants-refresh-token") === expectedToken;
+  const receivedToken = req.get("x-constants-refresh-token") || "";
+  return crypto.timingSafeEqual(
+    Buffer.from(receivedToken),
+    Buffer.from(expectedToken)
+  );
 };
 
 const getRefreshActor = (req: Request): string => {
@@ -236,7 +241,17 @@ router.post("/snapshots/:id/restore", async (req: Request, res: Response) => {
   });
 });
 
-router.get("/clandestino", (_req: Request, res: Response) => {
+const clandestineQuerySchema = z.object({}).strict();
+
+router.get("/clandestino", (req: Request, res: Response) => {
+  const validation = clandestineQuerySchema.safeParse(req.query);
+  if (!validation.success) {
+    return res.status(400).json({
+      error: "Invalid query parameters",
+      details: validation.error.issues,
+    });
+  }
+
   if (!config.useDbConstantsClandestino) {
     return res
       .status(404)
