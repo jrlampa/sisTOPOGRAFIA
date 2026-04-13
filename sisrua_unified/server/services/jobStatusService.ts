@@ -22,6 +22,9 @@ export interface JobInfo {
 // In-memory storage for job statuses (fallback when Postgres is unavailable)
 const jobs = new Map<string, JobInfo>();
 
+// Safety limit to prevent memory buffer overflow and DB connection exhaustion under stress
+export const MAX_SYSTEM_CAPACITY = 2000;
+
 // Supabase/Postgres integration
 const USE_SUPABASE_JOBS = config.useSupabaseJobs;
 const DATABASE_URL = config.DATABASE_URL;
@@ -184,6 +187,13 @@ function ensureInitialized(): void {
 
 export function createJob(id: string): JobInfo {
     ensureInitialized();
+
+    if (jobs.size >= MAX_SYSTEM_CAPACITY) {
+        logger.error('System Overloaded: Maximum job capacity reached', { currentJobs: jobs.size, max_capacity: MAX_SYSTEM_CAPACITY });
+        const err = new Error('CapacityError: O sistema atingiu a capacidade máxima. Tente novamente mais tarde.');
+        (err as any).code = 'ERR_CAPACITY';
+        throw err;
+    }
 
     const job: JobInfo = {
         id,

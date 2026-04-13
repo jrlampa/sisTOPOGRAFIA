@@ -288,13 +288,14 @@ function App() {
   );
 
   const confirmQuickRemoveEdgeConductor = React.useCallback(
-    (edgeId: string) => {
+    (edgeId: string, conductorName: string) => {
       requestCriticalConfirmation({
         title: "Reduzir condutores do trecho?",
-        message: `Será removido 1 condutor do trecho ${edgeId}.`,
+        message: `Será removida 1 unidade do condutor ${conductorName} no trecho ${edgeId}.`,
         confirmLabel: "Reduzir condutor",
         tone: "warning",
-        onConfirm: () => handleBtQuickRemoveEdgeConductor(edgeId),
+        onConfirm: () =>
+          handleBtQuickRemoveEdgeConductor(edgeId, conductorName),
       });
     },
     [handleBtQuickRemoveEdgeConductor, requestCriticalConfirmation],

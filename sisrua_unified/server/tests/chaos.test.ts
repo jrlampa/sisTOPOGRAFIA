@@ -55,7 +55,7 @@ jest.mock('../config', () => ({
 }));
 
 // ── Imports pós-mock ───────────────────────────────────────────────────────────
-import { createJob, getJob, updateJobStatus, failJob, completeJob, stopCleanupInterval } from '../services/jobStatusService';
+import { createJob, getJob, updateJobStatus, failJob, completeJob, stopCleanupInterval, MAX_SYSTEM_CAPACITY } from '../services/jobStatusService';
 import { createCacheKey, setCachedFilename, getCachedFilename, clearCache } from '../services/cacheService';
 import { IbgeService } from '../services/ibgeService';
 import { TopodataService } from '../services/topodataService';
@@ -625,5 +625,50 @@ describe('[C8] Relatório: propertyTest em massa (50 cenários)', () => {
       const key = createCacheKey({ lat, lon: lng, radius, mode: 'chaos', polygon: null, layers: [], btContext: undefined, contourRenderMode: undefined });
       expect(getCachedFilename(key)).toBeNull();
     });
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// [C9] Teste Progressivo de Estresse (Capacidade Máxima)
+// ══════════════════════════════════════════════════════════════════════════════
+describe('[C9] Caos: Teste de Estresse Progressivo (Capacity Limit)', () => {
+  afterAll(() => stopCleanupInterval());
+
+  it('o sistema deve suportar criação progressiva de jobs e parar ao atingir o MAX_SYSTEM_CAPACITY sem crashar', async () => {
+    let crashed = false;
+    let reachedLimit = false;
+    let numberOfJobsCreated = 0;
+
+    try {
+      // Loop infinito com safe break, até o limite cap de MAX_SYSTEM_CAPACITY ser engatilhado
+      for (let i = 0; i < MAX_SYSTEM_CAPACITY + 100; i++) {
+        // Criar iterativamente para simular progressão
+        createJob(`stress-job-${i}`);
+        numberOfJobsCreated++;
+        
+        // Simular que uma porcentagem desses jobs está processando e completando
+        if (i % 5 === 0) {
+          await updateJobStatus(`stress-job-${i}`, 'processing', 20);
+        }
+      }
+    } catch (err: any) {
+      if (err.code === 'ERR_CAPACITY') {
+        reachedLimit = true;
+      } else {
+        crashed = true;
+        console.error('Falha inesperada no estresse:', err);
+      }
+    }
+
+    // O Node.js/Jest não deve crashar subitamente (crashed = false)
+    expect(crashed).toBe(false);
+
+    // O limite DEVE ter sido atingido e forçado o throw seguro
+    expect(reachedLimit).toBe(true);
+    
+    // O sistema garantiu espaço até o teto estrito predefinido
+    // Subtraímos os jobs que já podem estar polutindo testes paralelos
+    expect(numberOfJobsCreated).toBeLessThanOrEqual(MAX_SYSTEM_CAPACITY);
+    expect(numberOfJobsCreated).toBeGreaterThan(MAX_SYSTEM_CAPACITY - 500); // Garante que a maioria foi processada antes do block
   });
 });
