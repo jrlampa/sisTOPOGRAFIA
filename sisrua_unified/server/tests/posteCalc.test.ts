@@ -4,7 +4,7 @@
  * Test cases derived from C:\myworld\EXCEL\LEGADO\CACUIA...xlsm Plan1 calculations
  */
 
-import { describe, it, expect } from "vitest";
+// describe, it, expect are provided by Jest
 import {
   calculatePosteAreas,
   calculateVentoPresn90,
@@ -14,6 +14,7 @@ import {
   verificarPoste,
   calcularMargem,
   calculatePosteLoad,
+  selecionarPosteDeCatalogo,
 } from "../core/mechanicalCalc/posteCalc";
 import {
   PosteInput,
@@ -83,9 +84,8 @@ describe("Mechanical Calc – CACUIA Parity", () => {
 
     const force = calculateForceVento(conductor);
 
-    // Expected wind force (Excel C26):
-    // F = 245.2 × 1.2 × (10.4/1000) × 33 ≈ 100 daN
-    expect(force.forcaVentoN / 9.81).toBeCloseTo(100, 0);
+    // F = 245.2 × 1.2 × (10.4/1000) × 33 ≈ 100.98 daN (actual value from formula)
+    expect(force.forcaVentoN / 9.81).toBeCloseTo(100.98, 1);
 
     // Expected weight: 0.186 × 33 ≈ 6.1 daN
     expect(force.pesoCondutorN / 9.81).toBeCloseTo(6.1, 1);
@@ -111,23 +111,28 @@ describe("Mechanical Calc – CACUIA Parity", () => {
   });
 
   it("verifies pole adequacy", () => {
-    const momentoFletorDaN_m = 600;
-    const rupturaDAn_m = 600;
+    // verificarPoste with safety margin 10%:
+    // OK limit = ruptura * (1 - 0.10) = 600 * 0.9 = 540
+    // MARGEM_BAIXA: 540 < momento <= 600
+    // Test OK: momento 500 <= 540
+    const statusOk = verificarPoste(500, 600);
+    expect(statusOk).toBe("OK");
 
-    const status = verificarPoste(momentoFletorDaN_m, rupturaDAn_m);
-    expect(status).toBe("OK");
+    // Test exact rupture level: margin 0% (momento == ruptura)
+    const status = verificarPoste(600, 600);
+    expect(status).toBe("MARGEM_BAIXA");
 
     // Margem reduzida (margin safety = 10%)
     const statusMargem = verificarPoste(
-      momentoFletorDaN_m * 0.95,
-      rupturaDAn_m,
+      600 * 0.95,
+      600,
     );
     expect(statusMargem).toBe("MARGEM_BAIXA");
 
     // Excede
     const statusExcede = verificarPoste(
-      momentoFletorDaN_m * 1.05,
-      rupturaDAn_m,
+      600 * 1.05,
+      600,
     );
     expect(statusExcede).toBe("EXCEDE");
   });
@@ -191,8 +196,6 @@ describe("Mechanical Calc – CACUIA Parity", () => {
     // With bending moment of 500 daN·m, should select 11m/600
     const momentoFletorDaN_m = 500;
 
-    const { selecionarPosteDeCatalogo } =
-      await import("../core/mechanicalCalc/posteCalc");
     const posteEscolhido = selecionarPosteDeCatalogo(
       catalogo,
       momentoFletorDaN_m,

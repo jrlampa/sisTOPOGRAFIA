@@ -1,11 +1,25 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Upload, DownloadCloud, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { getDxfJobStatus } from '../services/dxfService';
-import { API_BASE_URL } from '../config/api';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Upload,
+  DownloadCloud,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
+} from "lucide-react";
+import {
+  FormFieldMessage,
+  getValidationPanelClassName,
+} from "./FormFieldFeedback";
+import { getDxfJobStatus } from "../services/dxfService";
+import { API_BASE_URL } from "../config/api";
+import {
+  validateBatchUploadFile,
+  type InlineValidationResult,
+} from "../utils/validation";
 
 type BatchResult = {
   name: string;
-  status: 'queued' | 'cached' | 'completed' | 'failed';
+  status: "queued" | "cached" | "completed" | "failed";
   jobId?: string | number;
   url?: string;
   error?: string;
@@ -31,29 +45,40 @@ type BatchUploadProps = {
 const API_URL = API_BASE_URL;
 
 const parseBatchResponse = async (response: Response): Promise<unknown> => {
-  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+  const contentType = (
+    response.headers.get("content-type") || ""
+  ).toLowerCase();
   const rawBody = await response.text();
 
   if (!rawBody || rawBody.trim().length === 0) {
-    throw new Error(`Batch endpoint returned empty response body (HTTP ${response.status})`);
+    throw new Error(
+      `Batch endpoint returned empty response body (HTTP ${response.status})`,
+    );
   }
 
-  if (!contentType.includes('application/json')) {
-    throw new Error(`Batch endpoint returned non-JSON response (HTTP ${response.status})`);
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      `Batch endpoint returned non-JSON response (HTTP ${response.status})`,
+    );
   }
 
   try {
     return JSON.parse(rawBody);
   } catch {
-    throw new Error(`Batch endpoint returned invalid JSON (HTTP ${response.status})`);
+    throw new Error(
+      `Batch endpoint returned invalid JSON (HTTP ${response.status})`,
+    );
   }
 };
 
 const sanitizeFileName = (name: string) =>
-  name.toLowerCase().replace(/[^a-z0-9-_]+/g, '_').slice(0, 40) || 'batch';
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]+/g, "_")
+    .slice(0, 40) || "batch";
 
 const triggerDownload = (url: string, name: string) => {
-  const anchor = document.createElement('a');
+  const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = `${sanitizeFileName(name)}.dxf`;
   document.body.appendChild(anchor);
@@ -66,6 +91,8 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
   const [errors, setErrors] = useState<BatchError[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadValidation, setUploadValidation] =
+    useState<InlineValidationResult>(validateBatchUploadFile(null));
   const itemsRef = useRef(items);
 
   useEffect(() => {
@@ -73,48 +100,75 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
   }, [items]);
 
   const pendingJobs = useMemo(
-    () => items.filter((item) => item.status === 'queued' && item.jobId),
-    [items]
+    () => items.filter((item) => item.status === "queued" && item.jobId),
+    [items],
   );
 
-  const allCompleted = items.length > 0 && items.every((item) =>
-    (item.status === 'completed' || item.status === 'cached') && !!item.url
-  );
+  const allCompleted =
+    items.length > 0 &&
+    items.every(
+      (item) =>
+        (item.status === "completed" || item.status === "cached") && !!item.url,
+    );
 
   const handleUpload = async (file: File) => {
+    const validation = validateBatchUploadFile(file);
+    setUploadValidation(validation);
+
+    if (!validation.isValid) {
+      setItems([]);
+      setErrors([{ line: 0, message: validation.message }]);
+      onError(validation.message);
+      return;
+    }
+
     setIsUploading(true);
     setErrors([]);
 
     try {
       const formData = new FormData();
-      formData.append('csv', file);
+      formData.append("csv", file);
 
       const response = await fetch(`${API_URL}/dxf/batch`, {
-        method: 'POST',
-        body: formData
+        method: "POST",
+        body: formData,
       });
 
       const payload = await parseBatchResponse(response);
       if (!response.ok) {
         const errorMessage =
-          typeof payload === 'object' &&
+          typeof payload === "object" &&
           payload !== null &&
-          typeof (payload as Record<string, unknown>).error === 'string'
-            ? ((payload as Record<string, string>).error)
-            : 'Falha no envio em lote';
+          typeof (payload as Record<string, unknown>).error === "string"
+            ? (payload as Record<string, string>).error
+            : "Falha no envio em lote";
         throw new Error(errorMessage);
       }
-
 
       const batchResponse = payload as BatchResponse;
       setItems(batchResponse.results || []);
       setErrors(batchResponse.errors || []);
+      setUploadValidation({
+        state:
+          batchResponse.errors && batchResponse.errors.length > 0
+            ? "error"
+            : "success",
+        message:
+          batchResponse.errors && batchResponse.errors.length > 0
+            ? `Arquivo processado com ${batchResponse.errors.length} inconsistência(s) que exigem correção.`
+            : `Arquivo "${file.name}" enviado com sucesso. Acompanhe o andamento abaixo.`,
+        isValid: !(batchResponse.errors && batchResponse.errors.length > 0),
+      });
       if (batchResponse.errors && batchResponse.errors.length > 0) {
-        onError(`Erros no CSV: ${batchResponse.errors.length} linha(s) com erro`);
+        onError(
+          `Erros no CSV: ${batchResponse.errors.length} linha(s) com erro`,
+        );
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Falha no envio em lote';
+      const message =
+        error instanceof Error ? error.message : "Falha no envio em lote";
       setErrors([{ line: 0, message }]);
+      setUploadValidation({ state: "error", message, isValid: false });
       onError(message);
       setItems([]);
     } finally {
@@ -128,62 +182,72 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
     }
 
     const intervalId = window.setInterval(async () => {
-      const currentPending = itemsRef.current.filter((item) => item.status === 'queued' && item.jobId);
+      const currentPending = itemsRef.current.filter(
+        (item) => item.status === "queued" && item.jobId,
+      );
       if (currentPending.length === 0) {
         return;
       }
 
-      const updates = await Promise.all(currentPending.map(async (item) => {
-        try {
-          const status = await getDxfJobStatus(String(item.jobId));
-          if (status.status === 'completed') {
+      const updates = await Promise.all(
+        currentPending.map(async (item) => {
+          try {
+            const status = await getDxfJobStatus(String(item.jobId));
+            if (status.status === "completed") {
+              return {
+                jobId: item.jobId,
+                status: "completed" as const,
+                url: status.result?.url,
+                progress: 100,
+              };
+            }
+
+            if (status.status === "failed") {
+              onError(`Batch DXF failed: ${item.name}`);
+              return {
+                jobId: item.jobId,
+                status: "failed" as const,
+                error: status.error || "DXF generation failed",
+              };
+            }
+
             return {
               jobId: item.jobId,
-              status: 'completed' as const,
-              url: status.result?.url,
-              progress: 100
+              status: "queued" as const,
+              progress:
+                typeof status.progress === "number"
+                  ? status.progress
+                  : item.progress,
             };
-          }
-
-          if (status.status === 'failed') {
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "DXF generation failed";
             onError(`Batch DXF failed: ${item.name}`);
             return {
               jobId: item.jobId,
-              status: 'failed' as const,
-              error: status.error || 'DXF generation failed'
+              status: "failed" as const,
+              error: message,
             };
+          }
+        }),
+      );
+
+      setItems((prev) =>
+        prev.map((item) => {
+          const update = updates.find((entry) => entry.jobId === item.jobId);
+          if (!update) {
+            return item;
           }
 
           return {
-            jobId: item.jobId,
-            status: 'queued' as const,
-            progress: typeof status.progress === 'number' ? status.progress : item.progress
+            ...item,
+            status: update.status,
+            url: update.url || item.url,
+            error: update.error || item.error,
+            progress: update.progress ?? item.progress,
           };
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'DXF generation failed';
-          onError(`Batch DXF failed: ${item.name}`);
-          return {
-            jobId: item.jobId,
-            status: 'failed' as const,
-            error: message
-          };
-        }
-      }));
-
-      setItems((prev) => prev.map((item) => {
-        const update = updates.find((entry) => entry.jobId === item.jobId);
-        if (!update) {
-          return item;
-        }
-
-        return {
-          ...item,
-          status: update.status,
-          url: update.url || item.url,
-          error: update.error || item.error,
-          progress: update.progress ?? item.progress
-        };
-      }));
+        }),
+      );
     }, 5000);
 
     return () => window.clearInterval(intervalId);
@@ -191,7 +255,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
 
   useEffect(() => {
     if (allCompleted) {
-      onInfo('DXF em lote concluído. Pronto para baixar.');
+      onInfo("DXF em lote concluído. Pronto para baixar.");
     }
   }, [allCompleted, onInfo]);
 
@@ -218,14 +282,17 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
           <Upload size={18} />
         </div>
         <div className="flex flex-col">
-          <span className="text-xs font-black uppercase tracking-wider text-slate-400">Processamento em Lote</span>
-          <span className="text-sm font-semibold text-slate-100">Enviar CSV/Excel e gerar exportações</span>
+          <span className="text-xs font-black uppercase tracking-wider text-slate-400">
+            Processamento em Lote
+          </span>
+          <span className="text-sm font-semibold text-slate-100">
+            Enviar CSV/Excel e gerar exportações
+          </span>
         </div>
       </div>
 
-
       <label
-        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-6 text-center text-xs font-semibold uppercase tracking-widest transition ${isDragging ? 'border-emerald-400 bg-emerald-500/10 text-emerald-200' : 'border-slate-700 text-slate-400 hover:border-slate-500'}`}
+        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-6 text-center text-xs font-semibold uppercase tracking-widest transition ${isDragging ? "border-emerald-400 bg-emerald-500/10 text-emerald-200" : getValidationPanelClassName(uploadValidation.state)}`}
         onDragOver={(event) => {
           event.preventDefault();
           setIsDragging(true);
@@ -239,11 +306,21 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
             Enviando CSV...
           </span>
         ) : (
-          <span>Arraste CSV ou Planilha Excel aqui ou clique para selecionar</span>
+          <span>
+            Arraste CSV ou Planilha Excel aqui ou clique para selecionar
+          </span>
         )}
-        <input type="file" accept=".csv, .xlsx, .xlsm" className="hidden" onChange={handleFileSelect} />
+        <input
+          type="file"
+          accept=".csv, .xlsx, .xlsm"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
       </label>
-
+      <FormFieldMessage
+        tone={uploadValidation.state}
+        message={uploadValidation.message}
+      />
 
       {errors.length > 0 && (
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-200">
@@ -253,7 +330,9 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
           </div>
           <ul className="space-y-1">
             {errors.map((err, index) => (
-              <li key={`${err.line}-${index}`}>Linha {err.line || '-'}: {err.message}</li>
+              <li key={`${err.line}-${index}`}>
+                Linha {err.line || "-"}: {err.message}
+              </li>
             ))}
           </ul>
         </div>
@@ -262,32 +341,44 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
       {items.length > 0 && (
         <div className="flex flex-col gap-2">
           {items.map((item) => (
-            <div key={`${item.name}-${item.jobId ?? 'cached'}`} className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-xs text-slate-200">
+            <div
+              key={`${item.name}-${item.jobId ?? "cached"}`}
+              className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-xs text-slate-200"
+            >
               <div className="flex flex-col">
                 <span className="font-semibold">{item.name}</span>
-                <span className="text-[10px] uppercase tracking-wider text-slate-500">{{
-                  queued: 'Na fila',
-                  cached: 'Em cache',
-                  completed: 'Concluído',
-                  failed: 'Erro'
-                }[item.status] ?? item.status}</span>
+                <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                  {{
+                    queued: "Na fila",
+                    cached: "Em cache",
+                    completed: "Concluído",
+                    failed: "Erro",
+                  }[item.status] ?? item.status}
+                </span>
               </div>
               <div className="flex items-center gap-2">
-                {(item.status === 'completed' || item.status === 'cached') && item.url && (
-                  <button
-                    onClick={() => triggerDownload(item.url as string, item.name)}
-                    className="rounded-lg bg-emerald-500/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-200"
-                  >
-                    Baixar
-                  </button>
+                {(item.status === "completed" || item.status === "cached") &&
+                  item.url && (
+                    <button
+                      onClick={() =>
+                        triggerDownload(item.url as string, item.name)
+                      }
+                      className="rounded-lg bg-emerald-500/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-200"
+                    >
+                      Baixar
+                    </button>
+                  )}
+                {item.status === "queued" && (
+                  <span className="text-[10px] text-slate-400">
+                    {item.progress ?? 0}%
+                  </span>
                 )}
-                {item.status === 'queued' && (
-                  <span className="text-[10px] text-slate-400">{item.progress ?? 0}%</span>
+                {item.status === "failed" && (
+                  <span className="text-[10px] text-rose-300">
+                    {item.error || "Erro"}
+                  </span>
                 )}
-                {item.status === 'failed' && (
-                  <span className="text-[10px] text-rose-300">{item.error || 'Erro'}</span>
-                )}
-                {(item.status === 'completed' || item.status === 'cached') && (
+                {(item.status === "completed" || item.status === "cached") && (
                   <CheckCircle2 size={14} className="text-emerald-400" />
                 )}
               </div>
@@ -298,7 +389,11 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
 
       {allCompleted && (
         <button
-          onClick={() => items.forEach((item) => item.url && triggerDownload(item.url, item.name))}
+          onClick={() =>
+            items.forEach(
+              (item) => item.url && triggerDownload(item.url, item.name),
+            )
+          }
           className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-600/20"
         >
           <DownloadCloud size={16} />

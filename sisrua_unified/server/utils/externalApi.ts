@@ -36,7 +36,7 @@ export async function fetchWithRetry(
             }
 
             if (!retryableStatuses.includes(response.status)) {
-                return response;
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             // Retryable error status

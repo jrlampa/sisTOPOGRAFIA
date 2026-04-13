@@ -22,6 +22,7 @@ import { MainMapWorkspace } from "./components/MainMapWorkspace";
 import { SidebarWorkspace } from "./components/SidebarWorkspace";
 import { AppShellLayout } from "./components/AppShellLayout";
 import { INITIAL_APP_STATE } from "./app/initialState";
+import { persistAppSettings } from "./utils/preferencesPersistence";
 
 function App() {
   const {
@@ -69,6 +70,10 @@ function App() {
 
   // Auto-save: persist appState to localStorage with debounce
   useAutoSave(appState);
+
+  React.useEffect(() => {
+    persistAppSettings(settings);
+  }, [settings]);
 
   const {
     profileData: elevationProfileData,
@@ -136,7 +141,10 @@ function App() {
 
   // Sync theme with document attribute for CSS variables
   React.useEffect(() => {
-    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+    document.documentElement.setAttribute(
+      "data-theme",
+      isDark ? "dark" : "light",
+    );
   }, [isDark]);
 
   const {
@@ -277,10 +285,11 @@ function App() {
   // Keyboard Shortcuts
   useKeyboardShortcuts({
     onCancel: () => {
-      updateSettings({ ...settings, btEditorMode: 'none' });
-      handleSelectionModeChange('circle');
+      updateSettings({ ...settings, btEditorMode: "none" });
+      handleSelectionModeChange("circle");
     },
-    onSetEditorMode: (mode) => updateSettings({ ...settings, btEditorMode: mode }),
+    onSetEditorMode: (mode) =>
+      updateSettings({ ...settings, btEditorMode: mode }),
     onSetSelectionMode: (mode) => handleSelectionModeChange(mode),
     onUndo: undo,
     onRedo: redo,

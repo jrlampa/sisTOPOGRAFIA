@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { GeoLocation } from '../types';
-import { API_BASE_URL } from '../config/api';
+import { useState, useEffect, useRef } from "react";
+import { GeoLocation } from "../types";
+import { API_BASE_URL } from "../config/api";
+import { getSearchQueryFeedback, shouldAutoSearch } from "../utils/validation";
 
 interface UseSearchProps {
   onLocationFound: (location: GeoLocation) => void;
@@ -8,40 +9,48 @@ interface UseSearchProps {
   debounceMs?: number;
 }
 
-export function useSearch({ onLocationFound, onError, debounceMs = 600 }: UseSearchProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+export function useSearch({
+  onLocationFound,
+  onError,
+  debounceMs = 600,
+}: UseSearchProps) {
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSearchRef = useRef<string>('');
 
   const executeSearch = async (query: string) => {
     const sanitizedQuery = query.trim();
+    const validation = getSearchQueryFeedback(sanitizedQuery);
 
-    if (!sanitizedQuery || sanitizedQuery === lastSearchRef.current) {
+    if (!validation.isValid) {
+      onError(validation.message);
       return;
     }
 
-    lastSearchRef.current = sanitizedQuery;
     setIsSearching(true);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: sanitizedQuery })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: sanitizedQuery }),
       });
 
       if (!response.ok) {
-        let apiErrorMessage = 'Location not found';
+        let apiErrorMessage = "Location not found";
 
         try {
-          const errorPayload = await response.json() as {
+          const errorPayload = (await response.json()) as {
             details?: string;
             error?: string;
             message?: string;
           };
 
-          apiErrorMessage = errorPayload.details || errorPayload.error || errorPayload.message || apiErrorMessage;
+          apiErrorMessage =
+            errorPayload.details ||
+            errorPayload.error ||
+            errorPayload.message ||
+            apiErrorMessage;
         } catch {
           // Keep fallback message when response body is not JSON.
         }
@@ -54,10 +63,10 @@ export function useSearch({ onLocationFound, onError, debounceMs = 600 }: UseSea
       if (location) {
         onLocationFound(location);
       } else {
-        throw new Error('No location data received');
+        throw new Error("No location data received");
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Search failed';
+      const message = error instanceof Error ? error.message : "Search failed";
       onError(message);
     } finally {
       setIsSearching(false);
@@ -70,7 +79,7 @@ export function useSearch({ onLocationFound, onError, debounceMs = 600 }: UseSea
       clearTimeout(timeoutRef.current);
     }
 
-    if (searchQuery.trim().length > 3) {
+    if (shouldAutoSearch(searchQuery)) {
       timeoutRef.current = setTimeout(() => {
         executeSearch(searchQuery);
       }, debounceMs);
@@ -92,7 +101,6 @@ export function useSearch({ onLocationFound, onError, debounceMs = 600 }: UseSea
     setSearchQuery,
     isSearching,
     handleSearch,
-    executeSearch
+    executeSearch,
   };
 }
-

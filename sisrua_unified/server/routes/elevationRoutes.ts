@@ -116,11 +116,13 @@ router.get('/stats', async (req: Request, res: Response) => {
     try {
         const validation = elevationStatsSchema.safeParse(req.query);
         if (!validation.success) {
+            const hasRadiusError = validation.error.issues.some(i => i.path.includes('radius'));
             return res.status(400).json({ 
-                error: 'Invalid request', 
+                error: hasRadiusError ? 'Invalid radius' : 'Invalid request', 
                 details: validation.error.issues 
             });
         }
+
 
         const { lat: centerLat, lng: centerLng, radius: radiusM } = validation.data;
 

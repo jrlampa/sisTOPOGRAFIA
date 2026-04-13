@@ -198,7 +198,7 @@ function gerarRecomendacao(
     issues.push("CQT elevado (recomenda-se <5%)");
   }
 
-  if (balancScore < 0.7) {
+  if (balancScore < 70) {
     issues.push("Desbalanceamento entre lados (rebalancear cargas)");
   }
 
