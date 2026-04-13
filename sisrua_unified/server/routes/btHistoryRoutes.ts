@@ -5,6 +5,8 @@ import {
   BtExportHistoryIngestPayload,
 } from "../services/btExportHistoryService.js";
 import { z } from "zod";
+import { listQueryBaseSchema } from "../schemas/apiSchemas.js";
+import { requirePermission } from "../middleware/permissionHandler.js";
 
 const router = Router();
 
@@ -33,9 +35,8 @@ const isSafeBtContextUrl = (value: string): boolean => {
   }
 };
 
-const listHistoryQuerySchema = z.object({
+const listHistoryQuerySchema = listQueryBaseSchema.extend({
   limit: z.coerce.number().int().min(1).max(200).default(50),
-  offset: z.coerce.number().int().min(0).default(0),
   projectType: projectTypeSchema.optional(),
   cqtScenario: cqtScenarioSchema.optional(),
 });
@@ -96,7 +97,7 @@ router.get("/", async (req: Request, res: Response) => {
   return res.json(result);
 });
 
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", requirePermission("write"), async (req: Request, res: Response) => {
   const validation = createHistoryPayloadSchema.safeParse(req.body);
   if (!validation.success) {
     return res
@@ -110,7 +111,7 @@ router.post("/", async (req: Request, res: Response) => {
   return res.status(201).json({ ok: true, stored });
 });
 
-router.post("/ingest", async (req: Request, res: Response) => {
+router.post("/ingest", requirePermission("write"), async (req: Request, res: Response) => {
   const validation = ingestHistoryPayloadSchema.safeParse(req.body);
   if (!validation.success) {
     return res
@@ -133,7 +134,7 @@ router.post("/ingest", async (req: Request, res: Response) => {
   return res.status(201).json({ ok: true, ...result });
 });
 
-router.delete("/", async (req: Request, res: Response) => {
+router.delete("/", requirePermission("delete"), async (req: Request, res: Response) => {
   const validation = clearHistoryQuerySchema.safeParse(req.query);
   if (!validation.success) {
     return res

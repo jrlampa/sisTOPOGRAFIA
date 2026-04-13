@@ -5,6 +5,17 @@ import { z } from 'zod';
  * Ensures all input data meets security and business requirements
  */
 
+/**
+ * Base schema for all listing/pagination endpoints.
+ * Convention única: limit + offset + sortOrder para todas as rotas listáveis.
+ * Routes may extend this schema with domain-specific filters.
+ */
+export const listQueryBaseSchema = z.object({
+    limit: z.coerce.number().int().min(1).max(200).default(20),
+    offset: z.coerce.number().int().min(0).default(0),
+    sortOrder: z.enum(['asc', 'desc']).default('desc'),
+});
+
 // Search endpoint schema
 export const searchSchema = z.object({
     query: z.string()
