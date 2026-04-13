@@ -5,6 +5,7 @@
 **Sis RUA (Sistema de Reconhecimento Urbano e Ambiental)** - Extrator de dados OSM para DXF 2.5D com integração de APIs brasileiras de dados topográficos.
 
 ### Objetivo Principal
+
 Fornecer extração de dados geoespaciais de alta precisão para projetos de engenharia, arquitetura e topografia no Brasil, com elevação 30m (TOPODATA) e integração de dados oficiais (IBGE, INDE).
 
 ---
@@ -12,12 +13,14 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 ## 🏗️ Arquitetura
 
 ### Padrões Arquiteturais
+
 - **DDD (Domain-Driven Design)**: Separação por domínios (elevação, geocoding, exportação)
 - **Thin Frontend / Smart Backend**: Lógica pesada no servidor
 - **Docker First**: Containerização nativa
 - **Clean Code**: Responsabilidade única, modularidade
 
 ### Stack Tecnológico
+
 ```
 Frontend: React + TypeScript + TailwindCSS + Leaflet
 Backend: Node.js + Express + TypeScript
@@ -59,14 +62,16 @@ sisrua_unified/
 ## 🔗 APIs e Integrações
 
 ### APIs Brasileiras (Zero Custo)
-| API | Dados | Resolução |
-|-----|-------|-----------|
-| **TOPODATA** | Elevação | 30m (Brasil) |
-| **IBGE** | Geocoding, limites | - |
-| **INDE** | WMS/WFS dados oficiais | - |
-| **OpenStreetMap** | Vias, edificações | - |
+
+| API               | Dados                  | Resolução    |
+| ----------------- | ---------------------- | ------------ |
+| **TOPODATA**      | Elevação               | 30m (Brasil) |
+| **IBGE**          | Geocoding, limites     | -            |
+| **INDE**          | WMS/WFS dados oficiais | -            |
+| **OpenStreetMap** | Vias, edificações      | -            |
 
 ### AI Local
+
 - **Ollama** com llama3.2 (substituiu Groq/cloud)
 - Iniciado automaticamente pelo backend
 - Zero custo, 100% privado
@@ -76,22 +81,26 @@ sisrua_unified/
 ## 🎯 Funcionalidades Core
 
 ### 1. Extração OSM
+
 - Edificações, vias, elementos naturais
 - Filtros por tags
 - Exportação DXF 2.5D (não 3D)
 
 ### 2. Elevação de Alta Precisão
+
 - TOPODATA 30m para território brasileiro
 - Fallback Open-Elevation 90m internacional
 - Cache de tiles GeoTIFF
 - Perfil de elevação, estatísticas, slope
 
 ### 3. Metadados BIM (Half-way BIM)
+
 - CSV com área, perímetro, elevação
 - Metadados de elevação no DXF
 - Estrutura para futura integração BIM completa
 
 ### 4. Análise AI
+
 - Análise urbana via Ollama
 - Sugestões de infraestrutura
 - Relatórios em português
@@ -116,16 +125,19 @@ sisrua_unified/
 ## 📊 Cobertura de Testes
 
 ### Testes Unitários
+
 - Serviços de elevação
 - Geocoding
 - Validação de schemas
 
 ### Testes E2E
+
 - Geração de DXF
 - Integração APIs
 - Interface UI
 
 ### Scripts de Teste
+
 - `scripts/test-apis-brasileiras.ps1`: Testa TOPODATA, IBGE, INDE
 - `tests/`: Testes automatizados
 
@@ -134,12 +146,14 @@ sisrua_unified/
 ## 🚀 Deploy
 
 ### Desenvolvimento
+
 ```bash
 npm run server  # Inicia backend + Ollama
 npm run dev     # Inicia frontend
 ```
 
 ### Produção (Docker)
+
 ```bash
 docker-compose up -d
 ```
@@ -157,12 +171,14 @@ docker-compose up -d
 ## 🔧 Próximos Passos
 
 ### Prioridade Alta
+
 1. [ ] Modularizar arquivos >500 linhas
 2. [ ] Implementar sanitização completa de dados
 3. [ ] Expandir half-way BIM
 4. [ ] Melhorar cobertura de testes
 
 ### Melhorias Futuras
+
 - [ ] Integração completa BIM (IFC)
 - [ ] Cache distribuído (Redis)
 - [ ] Processamento paralelo
@@ -173,3 +189,26 @@ docker-compose up -d
 **Última Atualização**: 2026-04-03
 **Branch Ativa**: dev
 **Versão**: 1.2.0
+
+---
+
+## 📌 Atualização Operacional (2026-04-12)
+
+### Correção BT no mapa (postes/condutores)
+
+- Corrigida colisão de panes do Leaflet que gerava erro em runtime: `A pane with this name already exists: bt-poles-pane`.
+- Refatorados nomes de panes BT para serem únicos por instância do componente com `React.useId()`:
+  - `bt-edges-pane-${id}`
+  - `bt-poles-pane-${id}`
+  - `bt-transformers-pane-${id}`
+- Removido bloco duplicado de renderização de postes em `MapSelector.tsx`.
+- Reforçada legibilidade dos marcadores de postes (ícone maior e com halo/sombra), mantendo fallback visual.
+
+### Validação
+
+- Build frontend validado com sucesso (`npm --prefix sisrua_unified run build`).
+- Preview atualizado após correção.
+
+### Observação de operação
+
+- Como o app usa PWA, mudanças visuais podem exigir hard refresh para evitar cache antigo.

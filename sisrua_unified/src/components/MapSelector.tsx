@@ -573,6 +573,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   geojson,
 }) => {
   const topology = btTopology ?? { poles: [], transformers: [], edges: [] };
+  const paneIdSuffix = React.useId().replace(/:/g, "-");
+  const btEdgesPaneName = `bt-edges-pane-${paneIdSuffix}`;
+  const btPolesPaneName = `bt-poles-pane-${paneIdSuffix}`;
+  const btTransformersPaneName = `bt-transformers-pane-${paneIdSuffix}`;
+
   const polesById = React.useMemo(() => {
     return new Map(topology.poles.map((pole) => [pole.id, pole]));
   }, [topology.poles]);
@@ -619,29 +624,29 @@ const MapSelector: React.FC<MapSelectorProps> = ({
 
     if (hasTransformer) {
       const bg = getFlagColor(poleFlag, verified ? "#15803d" : "#7c3aed");
-      const size = isCritical ? 18 : isPending ? 16 : 14;
+      const size = isCritical ? 22 : isPending ? 20 : 18;
       return L.divIcon({
         className: "bt-pole-transformer-icon",
-        html: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="filter: drop-shadow(0 0 0 ${bg}66);"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
+        html: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="filter: drop-shadow(0 0 2px rgba(15, 23, 42, 0.45));"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
       });
     }
 
     let bg = "#2563eb";
-    let size = 12;
+    let size = 16;
     if (isCritical) {
       bg = "#ef4444";
-      size = 16;
+      size = 20;
     } else if (isPending) {
       bg = "#f59e0b";
-      size = 14;
+      size = 18;
     } else {
       bg = getFlagColor(poleFlag, verified ? "#16a34a" : "#2563eb");
     }
     return L.divIcon({
       className: "bt-pole-icon",
-      html: `<div style="background:${bg};border:2px solid #ffffff;width:${size}px;height:${size}px;border-radius:9999px;box-shadow:0 0 0 2px ${bg}40;"></div>`,
+      html: `<div style="background:${bg};border:2px solid #ffffff;width:${size}px;height:${size}px;border-radius:9999px;box-shadow:0 0 0 2px ${bg}50, 0 1px 4px rgba(15, 23, 42, 0.45);"></div>`,
       iconSize: [size, size],
       iconAnchor: [size / 2, size / 2],
     });
@@ -766,7 +771,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtMapClick={onBtMapClick}
         />
 
-        <Pane name="bt-edges-pane" style={{ zIndex: 420 }}>
+        <Pane name={btEdgesPaneName} style={{ zIndex: 420 }}>
           {(topology.edges || []).map((edge) => {
             const from = polesById.get(edge.fromPoleId);
             const to = polesById.get(edge.toPoleId);
@@ -1124,310 +1129,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           })}
         </Pane>
 
-        <Pane name="bt-poles-pane" style={{ zIndex: 470 }}>
-          {(topology.poles || []).map((pole) => (
-            <Marker
-              key={`${pole.id}-${pole.verified ? "v" : "u"}-${pole.id === criticalPoleId ? "c" : "n"}-${pole.id === pendingBtEdgeStartPoleId ? "p" : "x"}-${poleHasTransformer.get(pole.id) ? "t" : "nt"}`}
-              position={[pole.lat, pole.lng]}
-              icon={makePoleIcon(pole.id, !!pole.verified)}
-              zIndexOffset={1200}
-              draggable={
-                btEditorMode !== "add-edge" &&
-                btEditorMode !== "add-transformer"
-              }
-              eventHandlers={{
-                click: () => {
-                  if (
-                    (btEditorMode === "add-edge" ||
-                      btEditorMode === "add-transformer") &&
-                    onBtMapClick
-                  ) {
-                    onBtMapClick({
-                      lat: pole.lat,
-                      lng: pole.lng,
-                      label: pole.title,
-                    });
-                  }
-                },
-                dragend: (e) => {
-                  const { lat, lng } = (e.target as L.Marker).getLatLng();
-                  onBtDragPole?.(pole.id, lat, lng);
-                },
-              }}
-            >
-              <Tooltip
-                permanent
-                direction="top"
-                offset={[0, -8]}
-                opacity={0.85}
-              >
-                <span className="text-[10px] font-semibold">{pole.title}</span>
-              </Tooltip>
-              <Popup>
-                <div className="text-xs">
-                  {(() => {
-                    const poleAccumulated = accumulatedByPoleMap.get(pole.id);
-                    const cqtClass =
-                      poleAccumulated?.cqtStatus === "CRÍTICO"
-                        ? "text-red-600"
-                        : poleAccumulated?.cqtStatus === "ATENÇÃO"
-                          ? "text-amber-600"
-                          : "text-emerald-700";
-
-                    return (
-                      <>
-                        <strong>{pole.title}</strong>
-                        <div>{pole.id}</div>
-                        {onBtRenamePole && (
-                          <input
-                            type="text"
-                            value={pole.title}
-                            title={`Nome do poste ${pole.id}`}
-                            placeholder="Nome do poste"
-                            onChange={(e) =>
-                              onBtRenamePole(pole.id, e.target.value)
-                            }
-                            className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
-                          />
-                        )}
-                        {pole.id === criticalPoleId && (
-                          <div className="mt-0.5 font-bold text-red-500">
-                            ⚠ Ponto crítico
-                          </div>
-                        )}
-                        {poleAccumulated && (
-                          <div className="mt-1 text-slate-700">
-                            <div>
-                              CLT acum.: {poleAccumulated.accumulatedClients}
-                            </div>
-                            <div>
-                              Demanda acum.:{" "}
-                              {poleAccumulated.accumulatedDemandKva.toFixed(2)}{" "}
-                              kVA
-                            </div>
-                            {(typeof poleAccumulated.voltageV === "number" ||
-                              typeof poleAccumulated.dvAccumPercent ===
-                                "number") && (
-                              <div
-                                className={`mt-0.5 font-semibold ${cqtClass}`}
-                              >
-                                Tensão:{" "}
-                                {typeof poleAccumulated.voltageV === "number"
-                                  ? poleAccumulated.voltageV.toFixed(2)
-                                  : "-"}{" "}
-                                V{" | "}
-                                dV:{" "}
-                                {typeof poleAccumulated.dvAccumPercent ===
-                                "number"
-                                  ? poleAccumulated.dvAccumPercent.toFixed(2)
-                                  : "-"}
-                                %
-                                {poleAccumulated.cqtStatus
-                                  ? ` | ${poleAccumulated.cqtStatus}`
-                                  : ""}
-                              </div>
-                            )}
-                            {(typeof poleAccumulated.worstRamalVoltageV ===
-                              "number" ||
-                              typeof poleAccumulated.worstRamalDvPercent ===
-                                "number") && (
-                              <div
-                                className={`mt-0.5 font-semibold ${cqtClass}`}
-                              >
-                                Ramal:{" "}
-                                {typeof poleAccumulated.worstRamalVoltageV ===
-                                "number"
-                                  ? poleAccumulated.worstRamalVoltageV.toFixed(
-                                      2,
-                                    )
-                                  : "-"}{" "}
-                                V{" | "}
-                                dV:{" "}
-                                {typeof poleAccumulated.worstRamalDvPercent ===
-                                "number"
-                                  ? poleAccumulated.worstRamalDvPercent.toFixed(
-                                      2,
-                                    )
-                                  : "-"}
-                                %
-                                {poleAccumulated.worstRamalStatus
-                                  ? ` | ${poleAccumulated.worstRamalStatus}`
-                                  : ""}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        <div
-                          className={`mt-0.5 font-semibold ${pole.verified ? "text-green-600" : "text-amber-600"}`}
-                        >
-                          {pole.verified ? "✓ Verificado" : "○ Não verificado"}
-                        </div>
-                        <div className="mt-0.5 text-slate-700">
-                          Flag:{" "}
-                          <strong>
-                            {getPoleChangeFlag(pole) === "new"
-                              ? "Novo"
-                              : getPoleChangeFlag(pole) === "remove"
-                                ? "Remoção"
-                                : getPoleChangeFlag(pole) === "replace"
-                                  ? "Substituição"
-                                  : "Existente"}
-                          </strong>
-                        </div>
-                        {(pole.circuitBreakPoint ?? false) && (
-                          <div className="mt-0.5 font-bold text-sky-700">
-                            Separação física ativa: circuito interrompido neste
-                            poste.
-                          </div>
-                        )}
-                        {onBtSetPoleChangeFlag && (
-                          <div className={POPUP_FLAG_GRID_CLASS}>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onBtSetPoleChangeFlag(pole.id, "existing");
-                              }}
-                              className={getFlagButtonClass(
-                                getPoleChangeFlag(pole) === "existing",
-                                "existing",
-                              )}
-                            >
-                              Existente
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onBtSetPoleChangeFlag(pole.id, "new");
-                              }}
-                              className={getFlagButtonClass(
-                                getPoleChangeFlag(pole) === "new",
-                                "new",
-                              )}
-                            >
-                              Novo
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onBtSetPoleChangeFlag(pole.id, "replace");
-                              }}
-                              className={getFlagButtonClass(
-                                getPoleChangeFlag(pole) === "replace",
-                                "replace",
-                              )}
-                            >
-                              Substituição
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onBtSetPoleChangeFlag(pole.id, "remove");
-                              }}
-                              className={getFlagButtonClass(
-                                getPoleChangeFlag(pole) === "remove",
-                                "remove",
-                              )}
-                            >
-                              Remoção
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onBtTogglePoleCircuitBreak?.(
-                                  pole.id,
-                                  !(pole.circuitBreakPoint ?? false),
-                                );
-                              }}
-                              title="Separa fisicamente o circuito neste poste"
-                              className={`h-6 rounded border text-[10px] font-bold tracking-[-0.2px] ${pole.circuitBreakPoint ? "border-sky-400 bg-sky-100 font-mono text-sky-700" : "border-slate-400 bg-white font-mono text-slate-600 hover:bg-slate-50"}`}
-                            >
-                              -| |-
-                            </button>
-                          </div>
-                        )}
-                        <div className={POPUP_TOOLBAR_CLASS}>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onBtDeletePole?.(pole.id);
-                            }}
-                            className={getIconActionButtonClass("danger")}
-                            title="Deletar poste"
-                            aria-label="Deletar poste"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onBtToggleTransformerOnPole?.(pole.id);
-                            }}
-                            title={
-                              poleHasTransformer.get(pole.id)
-                                ? "Remover transformador do poste"
-                                : "Adicionar transformador ao poste"
-                            }
-                            aria-label={
-                              poleHasTransformer.get(pole.id)
-                                ? "Remover transformador do poste"
-                                : "Adicionar transformador ao poste"
-                            }
-                            className={getIconActionButtonClass(
-                              "violet",
-                              poleHasTransformer.get(pole.id) ?? false,
-                            )}
-                          >
-                            <Triangle
-                              size={12}
-                              className="rotate-180 fill-current"
-                            />
-                          </button>
-                          {onBtQuickAddPoleRamal && (
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onBtQuickAddPoleRamal(pole.id);
-                              }}
-                              title="Informar ramais"
-                              aria-label="Informar ramais"
-                              className={getIconActionButtonClass("sky")}
-                            >
-                              <Plus size={12} />
-                            </button>
-                          )}
-                          {onBtQuickRemovePoleRamal && (
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onBtQuickRemovePoleRamal(pole.id);
-                              }}
-                              title="Reduzir ramais"
-                              aria-label="Reduzir ramais"
-                              className={getIconActionButtonClass("slate")}
-                            >
-                              <Minus size={12} />
-                            </button>
-                          )}
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </Pane>
-
-        <Pane name="bt-poles-pane" style={{ zIndex: 470 }}>
+        <Pane name={btPolesPaneName} style={{ zIndex: 470 }}>
           {(topology.poles || []).map((pole) => (
             <React.Fragment
               key={`${pole.id}-${pole.verified ? "v" : "u"}-${pole.id === criticalPoleId ? "c" : "n"}-${pole.id === pendingBtEdgeStartPoleId ? "p" : "x"}-${poleHasTransformer.get(pole.id) ? "t" : "nt"}`}
@@ -1760,7 +1462,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           ))}
         </Pane>
 
-        <Pane name="bt-transformers-pane" style={{ zIndex: 480 }}>
+        <Pane name={btTransformersPaneName} style={{ zIndex: 480 }}>
           {(topology.transformers || []).map((transformer) => (
             <Marker
               key={`${transformer.id}-${transformer.verified ? "v" : "u"}`}
