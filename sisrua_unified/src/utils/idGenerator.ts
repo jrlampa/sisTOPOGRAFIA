@@ -37,10 +37,10 @@ export function generateEntityIds(prefix: string, count: number): string[] {
   const baseTimestamp = Date.now();
   
   for (let i = 0; i < count; i++) {
-    // Add offset to timestamp to ensure uniqueness even in same millisecond
-    const offsetTimestamp = baseTimestamp + Math.floor(i / ID_ENTROPY_MAX);
-    const entropy = (Math.floor(Math.random() * ID_ENTROPY_MAX) + i) % ID_ENTROPY_MAX;
-    ids.push(`${prefix}${offsetTimestamp}${entropy}`);
+    // Use index i directly as the unique sequence component — guarantees zero collisions
+    // within a batch. The timestamp disambiguates cross-batch calls.
+    const randomSalt = Math.floor(Math.random() * 1000); // extra randomness for readability
+    ids.push(`${prefix}${baseTimestamp}${String(i).padStart(6, '0')}${randomSalt}`);
   }
   
   return ids;

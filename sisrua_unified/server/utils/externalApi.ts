@@ -9,6 +9,19 @@ interface RetryOptions {
 }
 
 /**
+ * Sentinel error class for non-retryable HTTP errors.
+ * Using a distinct class ensures the outer catch does NOT swallow it.
+ */
+class NonRetryableError extends Error {
+    public readonly status: number;
+    constructor(status: number) {
+        super(`HTTP error! status: ${status}`);
+        this.name = 'NonRetryableError';
+        this.status = status;
+    }
+}
+
+/**
  * Utilitário de fetch resiliente com Exponential Backoff
  */
 export async function fetchWithRetry(
@@ -35,16 +48,22 @@ export async function fetchWithRetry(
                 return response;
             }
 
+            // Non-retryable status: throw immediately and escape the loop
             if (!retryableStatuses.includes(response.status)) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new NonRetryableError(response.status);
             }
 
-            // Retryable error status
+            // Retryable error status — record and continue
             const errorMsg = `API Request failed with status ${response.status} (Attempt ${attempt + 1}/${maxRetries + 1})`;
             logger.warn(errorMsg, { url, attempt });
             lastError = new Error(errorMsg);
 
         } catch (error) {
+            // Re-throw non-retryable errors immediately without delay
+            if (error instanceof NonRetryableError) {
+                throw error;
+            }
+
             const errorMsg = `API Request network error: ${error instanceof Error ? error.message : 'Unknown error'} (Attempt ${attempt + 1}/${maxRetries + 1})`;
             logger.error(errorMsg, { url, attempt });
             lastError = error instanceof Error ? error : new Error(errorMsg);

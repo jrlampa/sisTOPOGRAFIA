@@ -3,7 +3,9 @@ import {
   MapContainer,
   TileLayer,
   Marker,
+  Pane,
   Circle,
+  CircleMarker,
   useMapEvents,
   GeoJSON,
   Polygon,
@@ -764,792 +766,1168 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtMapClick={onBtMapClick}
         />
 
-        {(topology.edges || []).map((edge) => {
-          const from = polesById.get(edge.fromPoleId);
-          const to = polesById.get(edge.toPoleId);
-          if (!from || !to) {
-            return null;
-          }
+        <Pane name="bt-edges-pane" style={{ zIndex: 420 }}>
+          {(topology.edges || []).map((edge) => {
+            const from = polesById.get(edge.fromPoleId);
+            const to = polesById.get(edge.toPoleId);
+            if (!from || !to) {
+              return null;
+            }
 
-          const edgeChangeFlag = getEdgeChangeFlag(edge);
-          const edgeVisual = getEdgeVisualConfig(edge);
-          const edgeFlagLabel =
-            edgeChangeFlag === "remove"
-              ? "Remoção"
-              : edgeChangeFlag === "new"
-                ? "Novo"
-                : edgeChangeFlag === "replace"
-                  ? "Substituição"
-                  : "Existente";
+            const edgeChangeFlag = getEdgeChangeFlag(edge);
+            const edgeVisual = getEdgeVisualConfig(edge);
+            const edgeFlagLabel =
+              edgeChangeFlag === "remove"
+                ? "Remoção"
+                : edgeChangeFlag === "new"
+                  ? "Novo"
+                  : edgeChangeFlag === "replace"
+                    ? "Substituição"
+                    : "Existente";
 
-          const selectedConductor =
-            edgeConductorSelection[edge.id] ??
-            edge.conductors[edge.conductors.length - 1]?.conductorName ??
-            CONDUCTOR_OPTIONS[0];
-          const selectedReplacementFromConductor =
-            edgeReplacementFromSelection[edge.id] ??
-            edge.replacementFromConductors?.[
-              edge.replacementFromConductors.length - 1
-            ]?.conductorName ??
-            CONDUCTOR_OPTIONS[0];
+            const selectedConductor =
+              edgeConductorSelection[edge.id] ??
+              edge.conductors[edge.conductors.length - 1]?.conductorName ??
+              CONDUCTOR_OPTIONS[0];
+            const selectedReplacementFromConductor =
+              edgeReplacementFromSelection[edge.id] ??
+              edge.replacementFromConductors?.[
+                edge.replacementFromConductors.length - 1
+              ]?.conductorName ??
+              CONDUCTOR_OPTIONS[0];
 
-          const edgePopup = (
-            <Popup>
-              <div className="text-xs">
-                <div>
-                  <strong>{edge.id}</strong>
-                </div>
-                <div className="mt-0.5 text-slate-700">
-                  {from.title} {"<->"} {to.title}
-                </div>
-                <div className="mt-1 text-slate-700">
-                  Flag: <strong>{edgeFlagLabel}</strong>
-                </div>
-                <div className="mt-1 text-slate-700">Condutor</div>
-                <div className="mt-0.5">
-                  <select
-                    value={selectedConductor}
-                    aria-label={`Condutor do trecho ${edge.id}`}
-                    title={`Condutor do trecho ${edge.id}`}
-                    onChange={(e) => {
-                      const conductorName = e.target.value;
-                      setEdgeConductorSelection((current) => ({
-                        ...current,
-                        [edge.id]: conductorName,
-                      }));
-                    }}
-                    className={POPUP_SELECT_CLASS}
-                  >
-                    {CONDUCTOR_OPTIONS.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mt-1.5 text-slate-700">
-                  Metragem:{" "}
-                  {typeof (edge.cqtLengthMeters ?? edge.lengthMeters) ===
-                  "number"
-                    ? `${edge.cqtLengthMeters ?? edge.lengthMeters} m`
-                    : "-"}
-                </div>
-                {onBtSetEdgeLengthMeters && (
-                  <div className="mt-1">
-                    <label className="mb-0.5 block text-slate-700">
-                      Ajustar metragem CQT (m)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      defaultValue={
-                        typeof (edge.cqtLengthMeters ?? edge.lengthMeters) ===
-                        "number"
-                          ? Number(edge.cqtLengthMeters ?? edge.lengthMeters)
-                          : 0
-                      }
-                      onBlur={(e) => {
-                        const parsed = Number(e.target.value);
-                        if (!Number.isFinite(parsed) || parsed < 0) {
-                          e.target.value = String(
-                            Number(
-                              edge.cqtLengthMeters ?? edge.lengthMeters ?? 0,
-                            ),
-                          );
-                          return;
-                        }
-                        onBtSetEdgeLengthMeters(edge.id, parsed);
-                      }}
-                      className="w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[11px] text-slate-700"
-                      title={`Metragem CQT do trecho ${edge.id}`}
-                    />
+            const edgePopup = (
+              <Popup>
+                <div className="text-xs">
+                  <div>
+                    <strong>{edge.id}</strong>
                   </div>
-                )}
-                {edgeChangeFlag === "replace" && (
-                  <>
-                    <div className="mt-1.5 text-slate-700">
-                      Condutor que sai
-                    </div>
-                    <div className="mt-0.5">
-                      <select
-                        value={selectedReplacementFromConductor}
-                        aria-label={`Condutor de saída do trecho ${edge.id}`}
-                        title={`Condutor de saída do trecho ${edge.id}`}
-                        onChange={(e) => {
-                          const conductorName = e.target.value;
-                          setEdgeReplacementFromSelection((current) => ({
-                            ...current,
-                            [edge.id]: conductorName,
-                          }));
+                  <div className="mt-0.5 text-slate-700">
+                    {from.title} {"<->"} {to.title}
+                  </div>
+                  <div className="mt-1 text-slate-700">
+                    Flag: <strong>{edgeFlagLabel}</strong>
+                  </div>
+                  <div className="mt-1 text-slate-700">Condutor</div>
+                  <div className="mt-0.5">
+                    <select
+                      value={selectedConductor}
+                      aria-label={`Condutor do trecho ${edge.id}`}
+                      title={`Condutor do trecho ${edge.id}`}
+                      onChange={(e) => {
+                        const conductorName = e.target.value;
+                        setEdgeConductorSelection((current) => ({
+                          ...current,
+                          [edge.id]: conductorName,
+                        }));
+                      }}
+                      className={POPUP_SELECT_CLASS}
+                    >
+                      {CONDUCTOR_OPTIONS.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mt-1.5 text-slate-700">
+                    Metragem:{" "}
+                    {typeof (edge.cqtLengthMeters ?? edge.lengthMeters) ===
+                    "number"
+                      ? `${edge.cqtLengthMeters ?? edge.lengthMeters} m`
+                      : "-"}
+                  </div>
+                  {onBtSetEdgeLengthMeters && (
+                    <div className="mt-1">
+                      <label className="mb-0.5 block text-slate-700">
+                        Ajustar metragem CQT (m)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        defaultValue={
+                          typeof (edge.cqtLengthMeters ?? edge.lengthMeters) ===
+                          "number"
+                            ? Number(edge.cqtLengthMeters ?? edge.lengthMeters)
+                            : 0
+                        }
+                        onBlur={(e) => {
+                          const parsed = Number(e.target.value);
+                          if (!Number.isFinite(parsed) || parsed < 0) {
+                            e.target.value = String(
+                              Number(
+                                edge.cqtLengthMeters ?? edge.lengthMeters ?? 0,
+                              ),
+                            );
+                            return;
+                          }
+                          onBtSetEdgeLengthMeters(edge.id, parsed);
                         }}
-                        className={POPUP_SELECT_CLASS}
-                      >
-                        {CONDUCTOR_OPTIONS.map((name) => (
-                          <option key={name} value={name}>
-                            {name}
-                          </option>
-                        ))}
-                      </select>
+                        className="w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[11px] text-slate-700"
+                        title={`Metragem CQT do trecho ${edge.id}`}
+                      />
                     </div>
-                    {onBtSetEdgeReplacementFromConductors && (
+                  )}
+                  {edgeChangeFlag === "replace" && (
+                    <>
+                      <div className="mt-1.5 text-slate-700">
+                        Condutor que sai
+                      </div>
+                      <div className="mt-0.5">
+                        <select
+                          value={selectedReplacementFromConductor}
+                          aria-label={`Condutor de saída do trecho ${edge.id}`}
+                          title={`Condutor de saída do trecho ${edge.id}`}
+                          onChange={(e) => {
+                            const conductorName = e.target.value;
+                            setEdgeReplacementFromSelection((current) => ({
+                              ...current,
+                              [edge.id]: conductorName,
+                            }));
+                          }}
+                          className={POPUP_SELECT_CLASS}
+                        >
+                          {CONDUCTOR_OPTIONS.map((name) => (
+                            <option key={name} value={name}>
+                              {name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {onBtSetEdgeReplacementFromConductors && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onBtSetEdgeReplacementFromConductors(edge.id, [
+                              {
+                                id: `${ENTITY_ID_PREFIXES.CONDUCTOR_REPLACEMENT}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`,
+                                quantity: 1,
+                                conductorName: selectedReplacementFromConductor,
+                              },
+                            ]);
+                          }}
+                          className="mt-1.5 h-6 w-full rounded border border-amber-500 bg-amber-50 text-[11px] font-bold text-amber-800 transition-colors hover:bg-amber-100"
+                        >
+                          Definir condutor que sai
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {edge.conductors.length > 0 ? (
+                    <div className="mt-0.5 text-slate-700">
+                      {edge.conductors.map((entry) => (
+                        <div key={entry.id}>
+                          {entry.quantity} x {entry.conductorName}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-0.5 text-slate-500">
+                      Sem condutor informado
+                    </div>
+                  )}
+                  {edgeChangeFlag === "replace" && (
+                    <div className="mt-0.5 text-amber-900">
+                      {(edge.replacementFromConductors ?? []).length > 0 ? (
+                        (edge.replacementFromConductors ?? []).map((entry) => (
+                          <div key={entry.id}>
+                            Sai: {entry.quantity} x {entry.conductorName}
+                          </div>
+                        ))
+                      ) : (
+                        <div>Sem condutor de saída definido</div>
+                      )}
+                    </div>
+                  )}
+                  <div
+                    className={`mt-0.5 font-semibold ${edge.verified ? "text-green-600" : "text-amber-600"}`}
+                  >
+                    {edge.verified ? "✓ Verificado" : "○ Não verificado"}
+                  </div>
+                  {onBtSetEdgeChangeFlag && (
+                    <div className={POPUP_FLAG_GRID_CLASS}>
                       <button
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          onBtSetEdgeReplacementFromConductors(edge.id, [
-                            {
-                              id: `${ENTITY_ID_PREFIXES.CONDUCTOR_REPLACEMENT}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`,
-                              quantity: 1,
-                              conductorName: selectedReplacementFromConductor,
-                            },
-                          ]);
+                          onBtSetEdgeChangeFlag(edge.id, "existing");
                         }}
-                        className="mt-1.5 h-6 w-full rounded border border-amber-500 bg-amber-50 text-[11px] font-bold text-amber-800 transition-colors hover:bg-amber-100"
+                        className={getFlagButtonClass(
+                          edgeChangeFlag === "existing",
+                          "existing",
+                        )}
                       >
-                        Definir condutor que sai
+                        Existente
                       </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onBtSetEdgeChangeFlag(edge.id, "new");
+                        }}
+                        className={getFlagButtonClass(
+                          edgeChangeFlag === "new",
+                          "new",
+                        )}
+                      >
+                        Novo
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onBtSetEdgeChangeFlag(edge.id, "replace");
+                        }}
+                        className={getFlagButtonClass(
+                          edgeChangeFlag === "replace",
+                          "replace",
+                        )}
+                      >
+                        Substituição
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onBtSetEdgeChangeFlag(edge.id, "remove");
+                        }}
+                        className={getFlagButtonClass(
+                          edgeChangeFlag === "remove",
+                          "remove",
+                        )}
+                      >
+                        Remoção
+                      </button>
+                    </div>
+                  )}
+                  <div className={POPUP_TOOLBAR_CLASS}>
+                    {onBtDeleteEdge && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onBtDeleteEdge(edge.id);
+                        }}
+                        title="Deletar trecho"
+                        aria-label="Deletar trecho"
+                        className={getIconActionButtonClass("danger")}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                    {onBtQuickAddEdgeConductor && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onBtQuickAddEdgeConductor(edge.id, selectedConductor);
+                        }}
+                        title="Informar condutor"
+                        aria-label="Informar condutor"
+                        className={getIconActionButtonClass("sky")}
+                      >
+                        <Plus size={12} />
+                      </button>
+                    )}
+                    {onBtQuickRemoveEdgeConductor && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onBtQuickRemoveEdgeConductor(
+                            edge.id,
+                            selectedConductor,
+                          );
+                        }}
+                        title="Retirar condutor"
+                        aria-label="Retirar condutor"
+                        className={getIconActionButtonClass("slate")}
+                      >
+                        <Minus size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </Popup>
+            );
+
+            return (
+              <React.Fragment key={edge.id}>
+                <Polyline
+                  positions={[
+                    [from.lat, from.lng],
+                    [to.lat, to.lng],
+                  ]}
+                  pathOptions={{
+                    color: "#000000",
+                    weight: EDGE_HIT_AREA_WEIGHT,
+                    opacity: 0.01,
+                    lineCap: "round",
+                    lineJoin: "round",
+                  }}
+                >
+                  {edgePopup}
+                </Polyline>
+                <Polyline
+                  positions={[
+                    [from.lat, from.lng],
+                    [to.lat, to.lng],
+                  ]}
+                  pathOptions={{
+                    color: "#ffffff",
+                    weight: edgeVisual.weight + 3,
+                    opacity: 0.72,
+                    dashArray: edgeVisual.dashArray,
+                    interactive: false,
+                    lineCap: "round",
+                    lineJoin: "round",
+                  }}
+                />
+                <Polyline
+                  positions={[
+                    [from.lat, from.lng],
+                    [to.lat, to.lng],
+                  ]}
+                  pathOptions={{
+                    color: edgeVisual.color,
+                    weight: edgeVisual.weight,
+                    opacity: 0.98,
+                    dashArray: edgeVisual.dashArray,
+                    interactive: false,
+                    lineCap: "round",
+                    lineJoin: "round",
+                  }}
+                />
+                {edgeChangeFlag === "remove" && (
+                  <>
+                    {getRemovalMarkersForEdge(from, to).map(
+                      (position, markerIndex) => (
+                        <Marker
+                          key={`${edge.id}-removal-x-${markerIndex}`}
+                          position={position}
+                          icon={L.divIcon({
+                            className: "bt-edge-remove-label",
+                            html: '<div class="bt-edge-remove-glyph">X</div>',
+                            iconSize: [12, 12],
+                            iconAnchor: [6, 6],
+                          })}
+                          interactive={false}
+                        />
+                      ),
                     )}
                   </>
                 )}
-                {edge.conductors.length > 0 ? (
-                  <div className="mt-0.5 text-slate-700">
-                    {edge.conductors.map((entry) => (
-                      <div key={entry.id}>
-                        {entry.quantity} x {entry.conductorName}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-0.5 text-slate-500">
-                    Sem condutor informado
-                  </div>
-                )}
-                {edgeChangeFlag === "replace" && (
-                  <div className="mt-0.5 text-amber-900">
-                    {(edge.replacementFromConductors ?? []).length > 0 ? (
-                      (edge.replacementFromConductors ?? []).map((entry) => (
-                        <div key={entry.id}>
-                          Sai: {entry.quantity} x {entry.conductorName}
-                        </div>
-                      ))
-                    ) : (
-                      <div>Sem condutor de saída definido</div>
-                    )}
-                  </div>
-                )}
-                <div
-                  className={`mt-0.5 font-semibold ${edge.verified ? "text-green-600" : "text-amber-600"}`}
-                >
-                  {edge.verified ? "✓ Verificado" : "○ Não verificado"}
-                </div>
-                {onBtSetEdgeChangeFlag && (
-                  <div className={POPUP_FLAG_GRID_CLASS}>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBtSetEdgeChangeFlag(edge.id, "existing");
-                      }}
-                      className={getFlagButtonClass(
-                        edgeChangeFlag === "existing",
-                        "existing",
-                      )}
-                    >
-                      Existente
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBtSetEdgeChangeFlag(edge.id, "new");
-                      }}
-                      className={getFlagButtonClass(
-                        edgeChangeFlag === "new",
-                        "new",
-                      )}
-                    >
-                      Novo
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBtSetEdgeChangeFlag(edge.id, "replace");
-                      }}
-                      className={getFlagButtonClass(
-                        edgeChangeFlag === "replace",
-                        "replace",
-                      )}
-                    >
-                      Substituição
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBtSetEdgeChangeFlag(edge.id, "remove");
-                      }}
-                      className={getFlagButtonClass(
-                        edgeChangeFlag === "remove",
-                        "remove",
-                      )}
-                    >
-                      Remoção
-                    </button>
-                  </div>
-                )}
-                <div className={POPUP_TOOLBAR_CLASS}>
-                  {onBtDeleteEdge && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBtDeleteEdge(edge.id);
-                      }}
-                      title="Deletar trecho"
-                      aria-label="Deletar trecho"
-                      className={getIconActionButtonClass("danger")}
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  )}
-                  {onBtQuickAddEdgeConductor && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBtQuickAddEdgeConductor(edge.id, selectedConductor);
-                      }}
-                      title="Informar condutor"
-                      aria-label="Informar condutor"
-                      className={getIconActionButtonClass("sky")}
-                    >
-                      <Plus size={12} />
-                    </button>
-                  )}
-                  {onBtQuickRemoveEdgeConductor && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBtQuickRemoveEdgeConductor(
-                          edge.id,
-                          selectedConductor,
-                        );
-                      }}
-                      title="Retirar condutor"
-                      aria-label="Retirar condutor"
-                      className={getIconActionButtonClass("slate")}
-                    >
-                      <Minus size={12} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </Popup>
-          );
+              </React.Fragment>
+            );
+          })}
+        </Pane>
 
-          return (
-            <React.Fragment key={edge.id}>
-              {/* Invisible hit-area to make conductor selection easy on dense maps */}
-              <Polyline
-                positions={[
-                  [from.lat, from.lng],
-                  [to.lat, to.lng],
-                ]}
+        <Pane name="bt-poles-pane" style={{ zIndex: 470 }}>
+          {(topology.poles || []).map((pole) => (
+            <Marker
+              key={`${pole.id}-${pole.verified ? "v" : "u"}-${pole.id === criticalPoleId ? "c" : "n"}-${pole.id === pendingBtEdgeStartPoleId ? "p" : "x"}-${poleHasTransformer.get(pole.id) ? "t" : "nt"}`}
+              position={[pole.lat, pole.lng]}
+              icon={makePoleIcon(pole.id, !!pole.verified)}
+              zIndexOffset={1200}
+              draggable={
+                btEditorMode !== "add-edge" &&
+                btEditorMode !== "add-transformer"
+              }
+              eventHandlers={{
+                click: () => {
+                  if (
+                    (btEditorMode === "add-edge" ||
+                      btEditorMode === "add-transformer") &&
+                    onBtMapClick
+                  ) {
+                    onBtMapClick({
+                      lat: pole.lat,
+                      lng: pole.lng,
+                      label: pole.title,
+                    });
+                  }
+                },
+                dragend: (e) => {
+                  const { lat, lng } = (e.target as L.Marker).getLatLng();
+                  onBtDragPole?.(pole.id, lat, lng);
+                },
+              }}
+            >
+              <Tooltip
+                permanent
+                direction="top"
+                offset={[0, -8]}
+                opacity={0.85}
+              >
+                <span className="text-[10px] font-semibold">{pole.title}</span>
+              </Tooltip>
+              <Popup>
+                <div className="text-xs">
+                  {(() => {
+                    const poleAccumulated = accumulatedByPoleMap.get(pole.id);
+                    const cqtClass =
+                      poleAccumulated?.cqtStatus === "CRÍTICO"
+                        ? "text-red-600"
+                        : poleAccumulated?.cqtStatus === "ATENÇÃO"
+                          ? "text-amber-600"
+                          : "text-emerald-700";
+
+                    return (
+                      <>
+                        <strong>{pole.title}</strong>
+                        <div>{pole.id}</div>
+                        {onBtRenamePole && (
+                          <input
+                            type="text"
+                            value={pole.title}
+                            title={`Nome do poste ${pole.id}`}
+                            placeholder="Nome do poste"
+                            onChange={(e) =>
+                              onBtRenamePole(pole.id, e.target.value)
+                            }
+                            className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
+                          />
+                        )}
+                        {pole.id === criticalPoleId && (
+                          <div className="mt-0.5 font-bold text-red-500">
+                            ⚠ Ponto crítico
+                          </div>
+                        )}
+                        {poleAccumulated && (
+                          <div className="mt-1 text-slate-700">
+                            <div>
+                              CLT acum.: {poleAccumulated.accumulatedClients}
+                            </div>
+                            <div>
+                              Demanda acum.:{" "}
+                              {poleAccumulated.accumulatedDemandKva.toFixed(2)}{" "}
+                              kVA
+                            </div>
+                            {(typeof poleAccumulated.voltageV === "number" ||
+                              typeof poleAccumulated.dvAccumPercent ===
+                                "number") && (
+                              <div
+                                className={`mt-0.5 font-semibold ${cqtClass}`}
+                              >
+                                Tensão:{" "}
+                                {typeof poleAccumulated.voltageV === "number"
+                                  ? poleAccumulated.voltageV.toFixed(2)
+                                  : "-"}{" "}
+                                V{" | "}
+                                dV:{" "}
+                                {typeof poleAccumulated.dvAccumPercent ===
+                                "number"
+                                  ? poleAccumulated.dvAccumPercent.toFixed(2)
+                                  : "-"}
+                                %
+                                {poleAccumulated.cqtStatus
+                                  ? ` | ${poleAccumulated.cqtStatus}`
+                                  : ""}
+                              </div>
+                            )}
+                            {(typeof poleAccumulated.worstRamalVoltageV ===
+                              "number" ||
+                              typeof poleAccumulated.worstRamalDvPercent ===
+                                "number") && (
+                              <div
+                                className={`mt-0.5 font-semibold ${cqtClass}`}
+                              >
+                                Ramal:{" "}
+                                {typeof poleAccumulated.worstRamalVoltageV ===
+                                "number"
+                                  ? poleAccumulated.worstRamalVoltageV.toFixed(
+                                      2,
+                                    )
+                                  : "-"}{" "}
+                                V{" | "}
+                                dV:{" "}
+                                {typeof poleAccumulated.worstRamalDvPercent ===
+                                "number"
+                                  ? poleAccumulated.worstRamalDvPercent.toFixed(
+                                      2,
+                                    )
+                                  : "-"}
+                                %
+                                {poleAccumulated.worstRamalStatus
+                                  ? ` | ${poleAccumulated.worstRamalStatus}`
+                                  : ""}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div
+                          className={`mt-0.5 font-semibold ${pole.verified ? "text-green-600" : "text-amber-600"}`}
+                        >
+                          {pole.verified ? "✓ Verificado" : "○ Não verificado"}
+                        </div>
+                        <div className="mt-0.5 text-slate-700">
+                          Flag:{" "}
+                          <strong>
+                            {getPoleChangeFlag(pole) === "new"
+                              ? "Novo"
+                              : getPoleChangeFlag(pole) === "remove"
+                                ? "Remoção"
+                                : getPoleChangeFlag(pole) === "replace"
+                                  ? "Substituição"
+                                  : "Existente"}
+                          </strong>
+                        </div>
+                        {(pole.circuitBreakPoint ?? false) && (
+                          <div className="mt-0.5 font-bold text-sky-700">
+                            Separação física ativa: circuito interrompido neste
+                            poste.
+                          </div>
+                        )}
+                        {onBtSetPoleChangeFlag && (
+                          <div className={POPUP_FLAG_GRID_CLASS}>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onBtSetPoleChangeFlag(pole.id, "existing");
+                              }}
+                              className={getFlagButtonClass(
+                                getPoleChangeFlag(pole) === "existing",
+                                "existing",
+                              )}
+                            >
+                              Existente
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onBtSetPoleChangeFlag(pole.id, "new");
+                              }}
+                              className={getFlagButtonClass(
+                                getPoleChangeFlag(pole) === "new",
+                                "new",
+                              )}
+                            >
+                              Novo
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onBtSetPoleChangeFlag(pole.id, "replace");
+                              }}
+                              className={getFlagButtonClass(
+                                getPoleChangeFlag(pole) === "replace",
+                                "replace",
+                              )}
+                            >
+                              Substituição
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onBtSetPoleChangeFlag(pole.id, "remove");
+                              }}
+                              className={getFlagButtonClass(
+                                getPoleChangeFlag(pole) === "remove",
+                                "remove",
+                              )}
+                            >
+                              Remoção
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onBtTogglePoleCircuitBreak?.(
+                                  pole.id,
+                                  !(pole.circuitBreakPoint ?? false),
+                                );
+                              }}
+                              title="Separa fisicamente o circuito neste poste"
+                              className={`h-6 rounded border text-[10px] font-bold tracking-[-0.2px] ${pole.circuitBreakPoint ? "border-sky-400 bg-sky-100 font-mono text-sky-700" : "border-slate-400 bg-white font-mono text-slate-600 hover:bg-slate-50"}`}
+                            >
+                              -| |-
+                            </button>
+                          </div>
+                        )}
+                        <div className={POPUP_TOOLBAR_CLASS}>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onBtDeletePole?.(pole.id);
+                            }}
+                            className={getIconActionButtonClass("danger")}
+                            title="Deletar poste"
+                            aria-label="Deletar poste"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onBtToggleTransformerOnPole?.(pole.id);
+                            }}
+                            title={
+                              poleHasTransformer.get(pole.id)
+                                ? "Remover transformador do poste"
+                                : "Adicionar transformador ao poste"
+                            }
+                            aria-label={
+                              poleHasTransformer.get(pole.id)
+                                ? "Remover transformador do poste"
+                                : "Adicionar transformador ao poste"
+                            }
+                            className={getIconActionButtonClass(
+                              "violet",
+                              poleHasTransformer.get(pole.id) ?? false,
+                            )}
+                          >
+                            <Triangle
+                              size={12}
+                              className="rotate-180 fill-current"
+                            />
+                          </button>
+                          {onBtQuickAddPoleRamal && (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onBtQuickAddPoleRamal(pole.id);
+                              }}
+                              title="Informar ramais"
+                              aria-label="Informar ramais"
+                              className={getIconActionButtonClass("sky")}
+                            >
+                              <Plus size={12} />
+                            </button>
+                          )}
+                          {onBtQuickRemovePoleRamal && (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onBtQuickRemovePoleRamal(pole.id);
+                              }}
+                              title="Reduzir ramais"
+                              aria-label="Reduzir ramais"
+                              className={getIconActionButtonClass("slate")}
+                            >
+                              <Minus size={12} />
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </Pane>
+
+        <Pane name="bt-poles-pane" style={{ zIndex: 470 }}>
+          {(topology.poles || []).map((pole) => (
+            <React.Fragment
+              key={`${pole.id}-${pole.verified ? "v" : "u"}-${pole.id === criticalPoleId ? "c" : "n"}-${pole.id === pendingBtEdgeStartPoleId ? "p" : "x"}-${poleHasTransformer.get(pole.id) ? "t" : "nt"}`}
+            >
+              <CircleMarker
+                center={[pole.lat, pole.lng]}
+                radius={
+                  pole.id === criticalPoleId
+                    ? 9
+                    : pole.id === pendingBtEdgeStartPoleId
+                      ? 8
+                      : 7
+                }
                 pathOptions={{
-                  color: "#000000",
-                  weight: EDGE_HIT_AREA_WEIGHT,
-                  // Keep it practically invisible but still reliably clickable in Leaflet.
-                  opacity: 0.01,
-                  lineCap: "round",
-                  lineJoin: "round",
+                  color: "#ffffff",
+                  weight: 2,
+                  opacity: 1,
+                  fillColor: getFlagColor(
+                    getPoleChangeFlag(pole),
+                    pole.verified ? "#16a34a" : "#2563eb",
+                  ),
+                  fillOpacity: 0.95,
+                }}
+                interactive={false}
+              />
+              <Marker
+                position={[pole.lat, pole.lng]}
+                icon={makePoleIcon(pole.id, !!pole.verified)}
+                zIndexOffset={1200}
+                draggable={
+                  btEditorMode !== "add-edge" &&
+                  btEditorMode !== "add-transformer"
+                }
+                eventHandlers={{
+                  click: () => {
+                    if (
+                      (btEditorMode === "add-edge" ||
+                        btEditorMode === "add-transformer") &&
+                      onBtMapClick
+                    ) {
+                      onBtMapClick({
+                        lat: pole.lat,
+                        lng: pole.lng,
+                        label: pole.title,
+                      });
+                    }
+                  },
+                  dragend: (e) => {
+                    const { lat, lng } = (e.target as L.Marker).getLatLng();
+                    onBtDragPole?.(pole.id, lat, lng);
+                  },
                 }}
               >
-                {edgePopup}
-              </Polyline>
-              <Polyline
-                positions={[
-                  [from.lat, from.lng],
-                  [to.lat, to.lng],
-                ]}
-                pathOptions={{
-                  color: edgeVisual.color,
-                  weight: edgeVisual.weight,
-                  opacity: 0.9,
-                  dashArray: edgeVisual.dashArray,
-                  interactive: false,
-                }}
-              />
-              {edgeChangeFlag === "remove" && (
-                <>
-                  {getRemovalMarkersForEdge(from, to).map(
-                    (position, markerIndex) => (
-                      <Marker
-                        key={`${edge.id}-removal-x-${markerIndex}`}
-                        position={position}
-                        icon={L.divIcon({
-                          className: "bt-edge-remove-label",
-                          html: '<div class="bt-edge-remove-glyph">X</div>',
-                          iconSize: [12, 12],
-                          iconAnchor: [6, 6],
-                        })}
-                        interactive={false}
-                      />
-                    ),
-                  )}
-                </>
-              )}
-            </React.Fragment>
-          );
-        })}
-
-        {(topology.poles || []).map((pole) => (
-          <Marker
-            key={`${pole.id}-${pole.verified ? "v" : "u"}-${pole.id === criticalPoleId ? "c" : "n"}-${pole.id === pendingBtEdgeStartPoleId ? "p" : "x"}-${poleHasTransformer.get(pole.id) ? "t" : "nt"}`}
-            position={[pole.lat, pole.lng]}
-            icon={makePoleIcon(pole.id, !!pole.verified)}
-            draggable={
-              btEditorMode !== "add-edge" && btEditorMode !== "add-transformer"
-            }
-            eventHandlers={{
-              click: () => {
-                if (
-                  (btEditorMode === "add-edge" ||
-                    btEditorMode === "add-transformer") &&
-                  onBtMapClick
-                ) {
-                  onBtMapClick({
-                    lat: pole.lat,
-                    lng: pole.lng,
-                    label: pole.title,
-                  });
-                }
-              },
-              dragend: (e) => {
-                const { lat, lng } = (e.target as L.Marker).getLatLng();
-                onBtDragPole?.(pole.id, lat, lng);
-              },
-            }}
-          >
-            <Tooltip permanent direction="top" offset={[0, -8]} opacity={0.85}>
-              <span className="text-[10px] font-semibold">{pole.title}</span>
-            </Tooltip>
-            <Popup>
-              <div className="text-xs">
-                {(() => {
-                  const poleAccumulated = accumulatedByPoleMap.get(pole.id);
-                  const cqtClass =
-                    poleAccumulated?.cqtStatus === "CRÍTICO"
-                      ? "text-red-600"
-                      : poleAccumulated?.cqtStatus === "ATENÇÃO"
-                        ? "text-amber-600"
-                        : "text-emerald-700";
-
-                  return (
-                    <>
-                      <strong>{pole.title}</strong>
-                      <div>{pole.id}</div>
-                      {onBtRenamePole && (
-                        <input
-                          type="text"
-                          value={pole.title}
-                          title={`Nome do poste ${pole.id}`}
-                          placeholder="Nome do poste"
-                          onChange={(e) =>
-                            onBtRenamePole(pole.id, e.target.value)
-                          }
-                          className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
-                        />
-                      )}
-                      {pole.id === criticalPoleId && (
-                        <div className="mt-0.5 font-bold text-red-500">
-                          ⚠ Ponto crítico
-                        </div>
-                      )}
-                      {poleAccumulated && (
-                        <div className="mt-1 text-slate-700">
-                          <div>
-                            CLT acum.: {poleAccumulated.accumulatedClients}
-                          </div>
-                          <div>
-                            Demanda acum.:{" "}
-                            {poleAccumulated.accumulatedDemandKva.toFixed(2)}{" "}
-                            kVA
-                          </div>
-                          {(typeof poleAccumulated.voltageV === "number" ||
-                            typeof poleAccumulated.dvAccumPercent ===
-                              "number") && (
-                            <div className={`mt-0.5 font-semibold ${cqtClass}`}>
-                              Tensão:{" "}
-                              {typeof poleAccumulated.voltageV === "number"
-                                ? poleAccumulated.voltageV.toFixed(2)
-                                : "-"}{" "}
-                              V{" | "}
-                              dV:{" "}
-                              {typeof poleAccumulated.dvAccumPercent ===
-                              "number"
-                                ? poleAccumulated.dvAccumPercent.toFixed(2)
-                                : "-"}
-                              %
-                              {poleAccumulated.cqtStatus
-                                ? ` | ${poleAccumulated.cqtStatus}`
-                                : ""}
-                            </div>
-                          )}
-                          {(typeof poleAccumulated.worstRamalVoltageV ===
-                            "number" ||
-                            typeof poleAccumulated.worstRamalDvPercent ===
-                              "number") && (
-                            <div className={`mt-0.5 font-semibold ${cqtClass}`}>
-                              Ramal:{" "}
-                              {typeof poleAccumulated.worstRamalVoltageV ===
-                              "number"
-                                ? poleAccumulated.worstRamalVoltageV.toFixed(2)
-                                : "-"}{" "}
-                              V{" | "}
-                              dV:{" "}
-                              {typeof poleAccumulated.worstRamalDvPercent ===
-                              "number"
-                                ? poleAccumulated.worstRamalDvPercent.toFixed(2)
-                                : "-"}
-                              %
-                              {poleAccumulated.worstRamalStatus
-                                ? ` | ${poleAccumulated.worstRamalStatus}`
-                                : ""}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      <div
-                        className={`mt-0.5 font-semibold ${pole.verified ? "text-green-600" : "text-amber-600"}`}
-                      >
-                        {pole.verified ? "✓ Verificado" : "○ Não verificado"}
-                      </div>
-                      <div className="mt-0.5 text-slate-700">
-                        Flag:{" "}
-                        <strong>
-                          {getPoleChangeFlag(pole) === "new"
-                            ? "Novo"
-                            : getPoleChangeFlag(pole) === "remove"
-                              ? "Remoção"
-                              : getPoleChangeFlag(pole) === "replace"
-                                ? "Substituição"
-                                : "Existente"}
-                        </strong>
-                      </div>
-                      {(pole.circuitBreakPoint ?? false) && (
-                        <div className="mt-0.5 font-bold text-sky-700">
-                          Separação física ativa: circuito interrompido neste
-                          poste.
-                        </div>
-                      )}
-                      {onBtSetPoleChangeFlag && (
-                        <div className={POPUP_FLAG_GRID_CLASS}>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onBtSetPoleChangeFlag(pole.id, "existing");
-                            }}
-                            className={getFlagButtonClass(
-                              getPoleChangeFlag(pole) === "existing",
-                              "existing",
-                            )}
-                          >
-                            Existente
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onBtSetPoleChangeFlag(pole.id, "new");
-                            }}
-                            className={getFlagButtonClass(
-                              getPoleChangeFlag(pole) === "new",
-                              "new",
-                            )}
-                          >
-                            Novo
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onBtSetPoleChangeFlag(pole.id, "replace");
-                            }}
-                            className={getFlagButtonClass(
-                              getPoleChangeFlag(pole) === "replace",
-                              "replace",
-                            )}
-                          >
-                            Substituição
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onBtSetPoleChangeFlag(pole.id, "remove");
-                            }}
-                            className={getFlagButtonClass(
-                              getPoleChangeFlag(pole) === "remove",
-                              "remove",
-                            )}
-                          >
-                            Remoção
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onBtTogglePoleCircuitBreak?.(
-                                pole.id,
-                                !(pole.circuitBreakPoint ?? false),
-                              );
-                            }}
-                            title="Separa fisicamente o circuito neste poste"
-                            className={`h-6 rounded border text-[10px] font-bold tracking-[-0.2px] ${pole.circuitBreakPoint ? "border-sky-400 bg-sky-100 font-mono text-sky-700" : "border-slate-400 bg-white font-mono text-slate-600 hover:bg-slate-50"}`}
-                          >
-                            -| |-
-                          </button>
-                        </div>
-                      )}
-                      <div className={POPUP_TOOLBAR_CLASS}>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onBtDeletePole?.(pole.id);
-                          }}
-                          className={getIconActionButtonClass("danger")}
-                          title="Deletar poste"
-                          aria-label="Deletar poste"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onBtToggleTransformerOnPole?.(pole.id);
-                          }}
-                          title={
-                            poleHasTransformer.get(pole.id)
-                              ? "Remover transformador do poste"
-                              : "Adicionar transformador ao poste"
-                          }
-                          aria-label={
-                            poleHasTransformer.get(pole.id)
-                              ? "Remover transformador do poste"
-                              : "Adicionar transformador ao poste"
-                          }
-                          className={getIconActionButtonClass(
-                            "violet",
-                            poleHasTransformer.get(pole.id) ?? false,
-                          )}
-                        >
-                          <Triangle
-                            size={12}
-                            className="rotate-180 fill-current"
-                          />
-                        </button>
-                        {onBtQuickAddPoleRamal && (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onBtQuickAddPoleRamal(pole.id);
-                            }}
-                            title="Informar ramais"
-                            aria-label="Informar ramais"
-                            className={getIconActionButtonClass("sky")}
-                          >
-                            <Plus size={12} />
-                          </button>
-                        )}
-                        {onBtQuickRemovePoleRamal && (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onBtQuickRemovePoleRamal(pole.id);
-                            }}
-                            title="Reduzir ramais"
-                            aria-label="Reduzir ramais"
-                            className={getIconActionButtonClass("slate")}
-                          >
-                            <Minus size={12} />
-                          </button>
-                        )}
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-
-        {(topology.transformers || []).map((transformer) => (
-          <Marker
-            key={`${transformer.id}-${transformer.verified ? "v" : "u"}`}
-            position={[transformer.lat, transformer.lng]}
-            icon={makeTransformerIcon(
-              !!transformer.verified,
-              getTransformerChangeFlag(transformer),
-            )}
-            draggable={false}
-            eventHandlers={{
-              click: () => {
-                if (
-                  (btEditorMode === "add-edge" ||
-                    btEditorMode === "add-transformer") &&
-                  onBtMapClick
-                ) {
-                  const linkedPole = transformer.poleId
-                    ? polesById.get(transformer.poleId)
-                    : null;
-                  if (linkedPole) {
-                    onBtMapClick({
-                      lat: linkedPole.lat,
-                      lng: linkedPole.lng,
-                      label: linkedPole.title,
-                    });
-                    return;
-                  }
-
-                  onBtMapClick({
-                    lat: transformer.lat,
-                    lng: transformer.lng,
-                    label: transformer.title,
-                  });
-                }
-              },
-              dragend: (e) => {
-                const { lat, lng } = (e.target as L.Marker).getLatLng();
-                onBtDragTransformer?.(transformer.id, lat, lng);
-              },
-            }}
-          >
-            <Tooltip
-              permanent
-              direction="bottom"
-              offset={[0, 8]}
-              opacity={0.85}
-            >
-              <span className="text-[10px] font-semibold">
-                {transformer.title}
-              </span>
-            </Tooltip>
-            <Popup>
-              <div className="text-xs">
-                <strong>{transformer.title}</strong>
-                <div>{transformer.id}</div>
-                {onBtRenameTransformer && (
-                  <input
-                    type="text"
-                    value={transformer.title}
-                    onChange={(e) =>
-                      onBtRenameTransformer(transformer.id, e.target.value)
-                    }
-                    title="Nome do transformador"
-                    className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
-                  />
-                )}
-                <div>Demanda: {transformer.demandKw} kW</div>
-                <div
-                  className={`mt-0.5 font-semibold ${transformer.verified ? "text-green-600" : "text-amber-600"}`}
+                <Tooltip
+                  permanent
+                  direction="top"
+                  offset={[0, -8]}
+                  opacity={0.85}
                 >
-                  {transformer.verified ? "✓ Verificado" : "○ Não verificado"}
-                </div>
-                <div className="mt-0.5 text-slate-700">
-                  Flag:{" "}
-                  <strong>
-                    {getTransformerChangeFlag(transformer) === "new"
-                      ? "Novo"
-                      : getTransformerChangeFlag(transformer) === "remove"
-                        ? "Remoção"
-                        : getTransformerChangeFlag(transformer) === "replace"
-                          ? "Substituição"
-                          : "Existente"}
-                  </strong>
-                </div>
-                {onBtSetTransformerChangeFlag && (
-                  <div className={POPUP_FLAG_GRID_CLASS}>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBtSetTransformerChangeFlag(
-                          transformer.id,
-                          "existing",
-                        );
-                      }}
-                      className={getFlagButtonClass(
-                        getTransformerChangeFlag(transformer) === "existing",
-                        "existing",
-                      )}
-                    >
-                      Existente
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBtSetTransformerChangeFlag(transformer.id, "new");
-                      }}
-                      className={getFlagButtonClass(
-                        getTransformerChangeFlag(transformer) === "new",
-                        "new",
-                      )}
-                    >
-                      Novo
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBtSetTransformerChangeFlag(transformer.id, "replace");
-                      }}
-                      className={getFlagButtonClass(
-                        getTransformerChangeFlag(transformer) === "replace",
-                        "replace",
-                      )}
-                    >
-                      Substituição
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBtSetTransformerChangeFlag(transformer.id, "remove");
-                      }}
-                      className={getFlagButtonClass(
-                        getTransformerChangeFlag(transformer) === "remove",
-                        "remove",
-                      )}
-                    >
-                      Remoção
-                    </button>
+                  <span className="text-[10px] font-semibold">
+                    {pole.title}
+                  </span>
+                </Tooltip>
+                <Popup>
+                  <div className="text-xs">
+                    {(() => {
+                      const poleAccumulated = accumulatedByPoleMap.get(pole.id);
+                      const cqtClass =
+                        poleAccumulated?.cqtStatus === "CRÍTICO"
+                          ? "text-red-600"
+                          : poleAccumulated?.cqtStatus === "ATENÇÃO"
+                            ? "text-amber-600"
+                            : "text-emerald-700";
+
+                      return (
+                        <>
+                          <strong>{pole.title}</strong>
+                          <div>{pole.id}</div>
+                          {onBtRenamePole && (
+                            <input
+                              type="text"
+                              value={pole.title}
+                              title={`Nome do poste ${pole.id}`}
+                              placeholder="Nome do poste"
+                              onChange={(e) =>
+                                onBtRenamePole(pole.id, e.target.value)
+                              }
+                              className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
+                            />
+                          )}
+                          {pole.id === criticalPoleId && (
+                            <div className="mt-0.5 font-bold text-red-500">
+                              ⚠ Ponto crítico
+                            </div>
+                          )}
+                          {poleAccumulated && (
+                            <div className="mt-1 text-slate-700">
+                              <div>
+                                CLT acum.: {poleAccumulated.accumulatedClients}
+                              </div>
+                              <div>
+                                Demanda acum.:{" "}
+                                {poleAccumulated.accumulatedDemandKva.toFixed(
+                                  2,
+                                )}{" "}
+                                kVA
+                              </div>
+                              {(typeof poleAccumulated.voltageV === "number" ||
+                                typeof poleAccumulated.dvAccumPercent ===
+                                  "number") && (
+                                <div
+                                  className={`mt-0.5 font-semibold ${cqtClass}`}
+                                >
+                                  Tensão:{" "}
+                                  {typeof poleAccumulated.voltageV === "number"
+                                    ? poleAccumulated.voltageV.toFixed(2)
+                                    : "-"}{" "}
+                                  V{" | "}
+                                  dV:{" "}
+                                  {typeof poleAccumulated.dvAccumPercent ===
+                                  "number"
+                                    ? poleAccumulated.dvAccumPercent.toFixed(2)
+                                    : "-"}
+                                  %
+                                  {poleAccumulated.cqtStatus
+                                    ? ` | ${poleAccumulated.cqtStatus}`
+                                    : ""}
+                                </div>
+                              )}
+                              {(typeof poleAccumulated.worstRamalVoltageV ===
+                                "number" ||
+                                typeof poleAccumulated.worstRamalDvPercent ===
+                                  "number") && (
+                                <div
+                                  className={`mt-0.5 font-semibold ${cqtClass}`}
+                                >
+                                  Ramal:{" "}
+                                  {typeof poleAccumulated.worstRamalVoltageV ===
+                                  "number"
+                                    ? poleAccumulated.worstRamalVoltageV.toFixed(
+                                        2,
+                                      )
+                                    : "-"}{" "}
+                                  V{" | "}
+                                  dV:{" "}
+                                  {typeof poleAccumulated.worstRamalDvPercent ===
+                                  "number"
+                                    ? poleAccumulated.worstRamalDvPercent.toFixed(
+                                        2,
+                                      )
+                                    : "-"}
+                                  %
+                                  {poleAccumulated.worstRamalStatus
+                                    ? ` | ${poleAccumulated.worstRamalStatus}`
+                                    : ""}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          <div
+                            className={`mt-0.5 font-semibold ${pole.verified ? "text-green-600" : "text-amber-600"}`}
+                          >
+                            {pole.verified
+                              ? "✓ Verificado"
+                              : "○ Não verificado"}
+                          </div>
+                          <div className="mt-0.5 text-slate-700">
+                            Flag:{" "}
+                            <strong>
+                              {getPoleChangeFlag(pole) === "new"
+                                ? "Novo"
+                                : getPoleChangeFlag(pole) === "remove"
+                                  ? "Remoção"
+                                  : getPoleChangeFlag(pole) === "replace"
+                                    ? "Substituição"
+                                    : "Existente"}
+                            </strong>
+                          </div>
+                          {(pole.circuitBreakPoint ?? false) && (
+                            <div className="mt-0.5 font-bold text-sky-700">
+                              Separação física ativa: circuito interrompido
+                              neste poste.
+                            </div>
+                          )}
+                          {onBtSetPoleChangeFlag && (
+                            <div className={POPUP_FLAG_GRID_CLASS}>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  onBtSetPoleChangeFlag(pole.id, "existing");
+                                }}
+                                className={getFlagButtonClass(
+                                  getPoleChangeFlag(pole) === "existing",
+                                  "existing",
+                                )}
+                              >
+                                Existente
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  onBtSetPoleChangeFlag(pole.id, "new");
+                                }}
+                                className={getFlagButtonClass(
+                                  getPoleChangeFlag(pole) === "new",
+                                  "new",
+                                )}
+                              >
+                                Novo
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  onBtSetPoleChangeFlag(pole.id, "replace");
+                                }}
+                                className={getFlagButtonClass(
+                                  getPoleChangeFlag(pole) === "replace",
+                                  "replace",
+                                )}
+                              >
+                                Substituição
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  onBtSetPoleChangeFlag(pole.id, "remove");
+                                }}
+                                className={getFlagButtonClass(
+                                  getPoleChangeFlag(pole) === "remove",
+                                  "remove",
+                                )}
+                              >
+                                Remoção
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  onBtTogglePoleCircuitBreak?.(
+                                    pole.id,
+                                    !(pole.circuitBreakPoint ?? false),
+                                  );
+                                }}
+                                title="Separa fisicamente o circuito neste poste"
+                                className={`h-6 rounded border text-[10px] font-bold tracking-[-0.2px] ${pole.circuitBreakPoint ? "border-sky-400 bg-sky-100 font-mono text-sky-700" : "border-slate-400 bg-white font-mono text-slate-600 hover:bg-slate-50"}`}
+                              >
+                                -| |-
+                              </button>
+                            </div>
+                          )}
+                          <div className={POPUP_TOOLBAR_CLASS}>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onBtDeletePole?.(pole.id);
+                              }}
+                              className={getIconActionButtonClass("danger")}
+                              title="Deletar poste"
+                              aria-label="Deletar poste"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onBtToggleTransformerOnPole?.(pole.id);
+                              }}
+                              title={
+                                poleHasTransformer.get(pole.id)
+                                  ? "Remover transformador do poste"
+                                  : "Adicionar transformador ao poste"
+                              }
+                              aria-label={
+                                poleHasTransformer.get(pole.id)
+                                  ? "Remover transformador do poste"
+                                  : "Adicionar transformador ao poste"
+                              }
+                              className={getIconActionButtonClass(
+                                "violet",
+                                poleHasTransformer.get(pole.id) ?? false,
+                              )}
+                            >
+                              <Triangle
+                                size={12}
+                                className="rotate-180 fill-current"
+                              />
+                            </button>
+                            {onBtQuickAddPoleRamal && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  onBtQuickAddPoleRamal(pole.id);
+                                }}
+                                title="Informar ramais"
+                                aria-label="Informar ramais"
+                                className={getIconActionButtonClass("sky")}
+                              >
+                                <Plus size={12} />
+                              </button>
+                            )}
+                            {onBtQuickRemovePoleRamal && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  onBtQuickRemovePoleRamal(pole.id);
+                                }}
+                                title="Reduzir ramais"
+                                aria-label="Reduzir ramais"
+                                className={getIconActionButtonClass("slate")}
+                              >
+                                <Minus size={12} />
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
-                )}
-                {onBtDeleteTransformer && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onBtDeleteTransformer(transformer.id);
-                    }}
-                    className="mt-1 inline-flex h-6 items-center rounded border border-red-500 bg-red-500/10 px-2 text-[11px] text-red-500 transition-colors hover:bg-red-100"
+                </Popup>
+              </Marker>
+            </React.Fragment>
+          ))}
+        </Pane>
+
+        <Pane name="bt-transformers-pane" style={{ zIndex: 480 }}>
+          {(topology.transformers || []).map((transformer) => (
+            <Marker
+              key={`${transformer.id}-${transformer.verified ? "v" : "u"}`}
+              position={[transformer.lat, transformer.lng]}
+              icon={makeTransformerIcon(
+                !!transformer.verified,
+                getTransformerChangeFlag(transformer),
+              )}
+              zIndexOffset={1400}
+              draggable={false}
+              eventHandlers={{
+                click: () => {
+                  if (
+                    (btEditorMode === "add-edge" ||
+                      btEditorMode === "add-transformer") &&
+                    onBtMapClick
+                  ) {
+                    const linkedPole = transformer.poleId
+                      ? polesById.get(transformer.poleId)
+                      : null;
+                    if (linkedPole) {
+                      onBtMapClick({
+                        lat: linkedPole.lat,
+                        lng: linkedPole.lng,
+                        label: linkedPole.title,
+                      });
+                      return;
+                    }
+
+                    onBtMapClick({
+                      lat: transformer.lat,
+                      lng: transformer.lng,
+                      label: transformer.title,
+                    });
+                  }
+                },
+                dragend: (e) => {
+                  const { lat, lng } = (e.target as L.Marker).getLatLng();
+                  onBtDragTransformer?.(transformer.id, lat, lng);
+                },
+              }}
+            >
+              <Tooltip
+                permanent
+                direction="bottom"
+                offset={[0, 8]}
+                opacity={0.85}
+              >
+                <span className="text-[10px] font-semibold">
+                  {transformer.title}
+                </span>
+              </Tooltip>
+              <Popup>
+                <div className="text-xs">
+                  <strong>{transformer.title}</strong>
+                  <div>{transformer.id}</div>
+                  {onBtRenameTransformer && (
+                    <input
+                      type="text"
+                      value={transformer.title}
+                      onChange={(e) =>
+                        onBtRenameTransformer(transformer.id, e.target.value)
+                      }
+                      title="Nome do transformador"
+                      className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
+                    />
+                  )}
+                  <div>Demanda: {transformer.demandKw} kW</div>
+                  <div
+                    className={`mt-0.5 font-semibold ${transformer.verified ? "text-green-600" : "text-amber-600"}`}
                   >
-                    Deletar trafo
-                  </button>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+                    {transformer.verified ? "✓ Verificado" : "○ Não verificado"}
+                  </div>
+                  <div className="mt-0.5 text-slate-700">
+                    Flag:{" "}
+                    <strong>
+                      {getTransformerChangeFlag(transformer) === "new"
+                        ? "Novo"
+                        : getTransformerChangeFlag(transformer) === "remove"
+                          ? "Remoção"
+                          : getTransformerChangeFlag(transformer) === "replace"
+                            ? "Substituição"
+                            : "Existente"}
+                    </strong>
+                  </div>
+                  {onBtSetTransformerChangeFlag && (
+                    <div className={POPUP_FLAG_GRID_CLASS}>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onBtSetTransformerChangeFlag(
+                            transformer.id,
+                            "existing",
+                          );
+                        }}
+                        className={getFlagButtonClass(
+                          getTransformerChangeFlag(transformer) === "existing",
+                          "existing",
+                        )}
+                      >
+                        Existente
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onBtSetTransformerChangeFlag(transformer.id, "new");
+                        }}
+                        className={getFlagButtonClass(
+                          getTransformerChangeFlag(transformer) === "new",
+                          "new",
+                        )}
+                      >
+                        Novo
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onBtSetTransformerChangeFlag(
+                            transformer.id,
+                            "replace",
+                          );
+                        }}
+                        className={getFlagButtonClass(
+                          getTransformerChangeFlag(transformer) === "replace",
+                          "replace",
+                        )}
+                      >
+                        Substituição
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onBtSetTransformerChangeFlag(
+                            transformer.id,
+                            "remove",
+                          );
+                        }}
+                        className={getFlagButtonClass(
+                          getTransformerChangeFlag(transformer) === "remove",
+                          "remove",
+                        )}
+                      >
+                        Remoção
+                      </button>
+                    </div>
+                  )}
+                  {onBtDeleteTransformer && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onBtDeleteTransformer(transformer.id);
+                      }}
+                      className="mt-1 inline-flex h-6 items-center rounded border border-red-500 bg-red-500/10 px-2 text-[11px] text-red-500 transition-colors hover:bg-red-100"
+                    >
+                      Deletar trafo
+                    </button>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </Pane>
 
         {geojson && <GeoJSON data={geojson} />}
       </MapContainer>

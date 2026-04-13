@@ -33,8 +33,8 @@ describe('idGenerator', () => {
         const count = 1000;
         const ids = generateEntityIds('C', count);
         const uniqueIds = new Set(ids);
-        // Allow for up to 1 collision due to modulo entropy math in the algorithm
-        expect(uniqueIds.size).toBeGreaterThanOrEqual(count - 1);
+        // Fixed algorithm uses sequential index — zero collisions guaranteed
+        expect(uniqueIds.size).toBe(count);
     });
 
     it('should include the timestamp in the generated ID', () => {
