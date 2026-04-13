@@ -212,3 +212,33 @@ docker-compose up -d
 ### Observação de operação
 
 - Como o app usa PWA, mudanças visuais podem exigir hard refresh para evitar cache antigo.
+
+---
+
+## 📌 Atualização Operacional (2026-04-12) - Padronização de Modais Críticos
+
+### Escopo
+
+- Expandida a padronização de confirmações para ações destrutivas e sensíveis no fluxo BT.
+- Eliminado uso de confirmações nativas dispersas (`window.confirm`) em favor de um padrão único de modal.
+
+### Implementação
+
+- Criado contrato único de confirmação crítica em `BtModals.tsx`:
+  - `CriticalConfirmationConfig`
+  - `CriticalActionModal`
+- Integrado ao stack central de modais em `BtModalStack.tsx`.
+- Centralizado no `App.tsx` o estado/callback de confirmação crítica para:
+  - exclusão de poste;
+  - exclusão de trecho;
+  - exclusão de transformador;
+  - redução de ramais em poste;
+  - redução de condutor em trecho.
+- `BtTopologyPanel.tsx` passou a acionar confirmação central para:
+  - aplicar ramais no primeiro poste importado;
+  - apagar trecho BT selecionado.
+
+### Validação
+
+- Build frontend validado com sucesso (`npm --prefix sisrua_unified run build`).
+- Preview atualizado após mudança.
