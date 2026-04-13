@@ -23,6 +23,7 @@ import type {
   BtTransformerChangeFlag,
 } from "../utils/btNormalization";
 import { getCoordinateInputFeedback } from "../utils/validation";
+import type { CriticalConfirmationConfig } from "./BtModals";
 
 const BtTopologyPanel = React.lazy(() => import("./BtTopologyPanel"));
 
@@ -74,6 +75,7 @@ export interface SidebarBtEditorSectionProps {
   ) => void;
   btClandestinoDisplay: BtClandestinoDisplay;
   btTransformersDerived: BtTransformerDerived[];
+  requestCriticalConfirmation: (config: CriticalConfirmationConfig) => void;
 }
 
 export function SidebarBtEditorSection({
@@ -106,6 +108,7 @@ export function SidebarBtEditorSection({
   handleBtSetTransformerChangeFlag,
   btClandestinoDisplay,
   btTransformersDerived,
+  requestCriticalConfirmation,
 }: SidebarBtEditorSectionProps) {
   const coordinateValidation = getCoordinateInputFeedback(
     btPoleCoordinateInput,
@@ -302,6 +305,7 @@ export function SidebarBtEditorSection({
           onBtSetTransformerChangeFlag={handleBtSetTransformerChangeFlag}
           clandestinoDisplay={btClandestinoDisplay}
           transformersDerived={btTransformersDerived}
+          onRequestCriticalConfirmation={requestCriticalConfirmation}
         />
       </Suspense>
     </>

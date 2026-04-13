@@ -1,25 +1,49 @@
 import {
+  CriticalActionModal,
   ClandestinoToNormalModal,
+  CriticalConfirmationConfig,
   NormalRamalModal,
   NormalToClandestinoModal,
   ResetBtTopologyModal,
-} from './BtModals';
+} from "./BtModals";
 
 type Props = {
-  normalRamalModal: React.ComponentProps<typeof NormalRamalModal>['modal'];
-  setNormalRamalModal: React.ComponentProps<typeof NormalRamalModal>['setModal'];
-  handleConfirmNormalRamalModal: React.ComponentProps<typeof NormalRamalModal>['onConfirm'];
-  clandestinoToNormalModal: React.ComponentProps<typeof ClandestinoToNormalModal>['modal'];
-  setClandestinoToNormalModal: React.ComponentProps<typeof ClandestinoToNormalModal>['setModal'];
-  handleClandestinoToNormalClassifyLater: React.ComponentProps<typeof ClandestinoToNormalModal>['onClassifyLater'];
-  handleClandestinoToNormalConvertNow: React.ComponentProps<typeof ClandestinoToNormalModal>['onConvertNow'];
-  normalToClandestinoModal: React.ComponentProps<typeof NormalToClandestinoModal>['modal'];
-  setNormalToClandestinoModal: React.ComponentProps<typeof NormalToClandestinoModal>['setModal'];
-  handleNormalToClandestinoKeepClients: React.ComponentProps<typeof NormalToClandestinoModal>['onKeepClients'];
-  handleNormalToClandestinoZeroNormalClients: React.ComponentProps<typeof NormalToClandestinoModal>['onZeroNormalClients'];
+  normalRamalModal: React.ComponentProps<typeof NormalRamalModal>["modal"];
+  setNormalRamalModal: React.ComponentProps<
+    typeof NormalRamalModal
+  >["setModal"];
+  handleConfirmNormalRamalModal: React.ComponentProps<
+    typeof NormalRamalModal
+  >["onConfirm"];
+  clandestinoToNormalModal: React.ComponentProps<
+    typeof ClandestinoToNormalModal
+  >["modal"];
+  setClandestinoToNormalModal: React.ComponentProps<
+    typeof ClandestinoToNormalModal
+  >["setModal"];
+  handleClandestinoToNormalClassifyLater: React.ComponentProps<
+    typeof ClandestinoToNormalModal
+  >["onClassifyLater"];
+  handleClandestinoToNormalConvertNow: React.ComponentProps<
+    typeof ClandestinoToNormalModal
+  >["onConvertNow"];
+  normalToClandestinoModal: React.ComponentProps<
+    typeof NormalToClandestinoModal
+  >["modal"];
+  setNormalToClandestinoModal: React.ComponentProps<
+    typeof NormalToClandestinoModal
+  >["setModal"];
+  handleNormalToClandestinoKeepClients: React.ComponentProps<
+    typeof NormalToClandestinoModal
+  >["onKeepClients"];
+  handleNormalToClandestinoZeroNormalClients: React.ComponentProps<
+    typeof NormalToClandestinoModal
+  >["onZeroNormalClients"];
   resetConfirmOpen: boolean;
   handleConfirmResetBtTopology: () => void;
   setResetConfirmOpen: (open: boolean) => void;
+  criticalConfirmationModal: CriticalConfirmationConfig | null;
+  closeCriticalConfirmationModal: () => void;
 };
 
 export function BtModalStack({
@@ -37,6 +61,8 @@ export function BtModalStack({
   resetConfirmOpen,
   handleConfirmResetBtTopology,
   setResetConfirmOpen,
+  criticalConfirmationModal,
+  closeCriticalConfirmationModal,
 }: Props) {
   return (
     <>
@@ -61,6 +87,10 @@ export function BtModalStack({
         open={resetConfirmOpen}
         onConfirm={handleConfirmResetBtTopology}
         onCancel={() => setResetConfirmOpen(false)}
+      />
+      <CriticalActionModal
+        modal={criticalConfirmationModal}
+        onClose={closeCriticalConfirmationModal}
       />
     </>
   );

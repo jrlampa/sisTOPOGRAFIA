@@ -23,6 +23,7 @@ import { SidebarWorkspace } from "./components/SidebarWorkspace";
 import { AppShellLayout } from "./components/AppShellLayout";
 import { INITIAL_APP_STATE } from "./app/initialState";
 import { persistAppSettings } from "./utils/preferencesPersistence";
+import type { CriticalConfirmationConfig } from "./components/BtModals";
 
 function App() {
   const {
@@ -220,6 +221,85 @@ function App() {
     handleNormalToClandestinoZeroNormalClients,
   } = useBtCrudHandlers({ appState, setAppState, showToast });
 
+  const [criticalConfirmationModal, setCriticalConfirmationModal] =
+    React.useState<CriticalConfirmationConfig | null>(null);
+
+  const requestCriticalConfirmation = React.useCallback(
+    (config: CriticalConfirmationConfig) => {
+      setCriticalConfirmationModal(config);
+    },
+    [],
+  );
+
+  const closeCriticalConfirmationModal = React.useCallback(() => {
+    setCriticalConfirmationModal(null);
+  }, []);
+
+  const confirmDeletePole = React.useCallback(
+    (poleId: string) => {
+      requestCriticalConfirmation({
+        title: "Excluir poste BT?",
+        message: `O poste ${poleId} será removido da topologia. Esta ação não pode ser desfeita.`,
+        confirmLabel: "Excluir poste",
+        tone: "danger",
+        onConfirm: () => handleBtDeletePole(poleId),
+      });
+    },
+    [handleBtDeletePole, requestCriticalConfirmation],
+  );
+
+  const confirmDeleteEdge = React.useCallback(
+    (edgeId: string) => {
+      requestCriticalConfirmation({
+        title: "Excluir condutor BT?",
+        message: `O trecho ${edgeId} será removido da topologia. Esta ação não pode ser desfeita.`,
+        confirmLabel: "Excluir condutor",
+        tone: "danger",
+        onConfirm: () => handleBtDeleteEdge(edgeId),
+      });
+    },
+    [handleBtDeleteEdge, requestCriticalConfirmation],
+  );
+
+  const confirmDeleteTransformer = React.useCallback(
+    (transformerId: string) => {
+      requestCriticalConfirmation({
+        title: "Excluir transformador?",
+        message: `O transformador ${transformerId} será removido da topologia. Esta ação não pode ser desfeita.`,
+        confirmLabel: "Excluir transformador",
+        tone: "danger",
+        onConfirm: () => handleBtDeleteTransformer(transformerId),
+      });
+    },
+    [handleBtDeleteTransformer, requestCriticalConfirmation],
+  );
+
+  const confirmQuickRemovePoleRamal = React.useCallback(
+    (poleId: string) => {
+      requestCriticalConfirmation({
+        title: "Reduzir ramais do poste?",
+        message: `Será removido 1 ramal do poste ${poleId}.`,
+        confirmLabel: "Reduzir ramal",
+        tone: "warning",
+        onConfirm: () => handleBtQuickRemovePoleRamal(poleId),
+      });
+    },
+    [handleBtQuickRemovePoleRamal, requestCriticalConfirmation],
+  );
+
+  const confirmQuickRemoveEdgeConductor = React.useCallback(
+    (edgeId: string) => {
+      requestCriticalConfirmation({
+        title: "Reduzir condutores do trecho?",
+        message: `Será removido 1 condutor do trecho ${edgeId}.`,
+        confirmLabel: "Reduzir condutor",
+        tone: "warning",
+        onConfirm: () => handleBtQuickRemoveEdgeConductor(edgeId),
+      });
+    },
+    [handleBtQuickRemoveEdgeConductor, requestCriticalConfirmation],
+  );
+
   const {
     btEdgeFlyToTarget,
     btPoleFlyToTarget,
@@ -309,15 +389,15 @@ function App() {
     btTopology,
     onBtMapClick: handleBtMapClick,
     pendingBtEdgeStartPoleId,
-    onBtDeletePole: handleBtDeletePole,
-    onBtDeleteEdge: handleBtDeleteEdge,
-    onBtDeleteTransformer: handleBtDeleteTransformer,
+    onBtDeletePole: confirmDeletePole,
+    onBtDeleteEdge: confirmDeleteEdge,
+    onBtDeleteTransformer: confirmDeleteTransformer,
     onBtSetEdgeChangeFlag: handleBtSetEdgeChangeFlag,
     onBtToggleTransformerOnPole: handleBtToggleTransformerOnPole,
     onBtQuickAddPoleRamal: handleBtQuickAddPoleRamal,
-    onBtQuickRemovePoleRamal: handleBtQuickRemovePoleRamal,
+    onBtQuickRemovePoleRamal: confirmQuickRemovePoleRamal,
     onBtQuickAddEdgeConductor: handleBtQuickAddEdgeConductor,
-    onBtQuickRemoveEdgeConductor: handleBtQuickRemoveEdgeConductor,
+    onBtQuickRemoveEdgeConductor: confirmQuickRemoveEdgeConductor,
     onBtSetEdgeLengthMeters: handleBtSetEdgeLengthMeters,
     onBtSetEdgeReplacementFromConductors:
       handleBtSetEdgeReplacementFromConductors,
@@ -353,6 +433,8 @@ function App() {
     resetConfirmOpen,
     handleConfirmResetBtTopology,
     setResetConfirmOpen,
+    criticalConfirmationModal,
+    closeCriticalConfirmationModal,
   };
 
   const sidebarSelectionControlsProps: React.ComponentProps<
@@ -405,6 +487,7 @@ function App() {
     handleBtSetTransformerChangeFlag,
     btClandestinoDisplay,
     btTransformersDerived,
+    requestCriticalConfirmation,
   };
 
   const sidebarAnalysisResultsProps: React.ComponentProps<

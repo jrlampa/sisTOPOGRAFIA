@@ -21,6 +21,7 @@ import {
   CURRENT_TO_DEMAND_CONVERSION,
   DEFAULT_TEMPERATURE_FACTOR,
 } from "../constants/btPhysicalConstants";
+import type { CriticalConfirmationConfig } from "./BtModals";
 
 interface BtTopologyPanelProps {
   btTopology: BtTopology;
@@ -60,6 +61,7 @@ interface BtTopologyPanelProps {
   onClandestinoAreaChange?: (nextAreaM2: number) => void;
   onBtRenamePole?: (poleId: string, title: string) => void;
   onBtRenameTransformer?: (transformerId: string, title: string) => void;
+  onRequestCriticalConfirmation?: (config: CriticalConfirmationConfig) => void;
 }
 
 interface BulkImportReviewState {
@@ -112,6 +114,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   onClandestinoAreaChange,
   onBtRenamePole,
   onBtRenameTransformer,
+  onRequestCriticalConfirmation,
 }) => {
   const {
     selectedPoleId,
@@ -877,11 +880,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         onTopologyChange(firstPoleTopology);
         focusPoleInMap(firstPole.id);
 
-        const shouldApplyPoleRamais = window.confirm(
-          `Primeiro poste aplicado: ${firstPole.id}.\n\nDeseja aplicar agora os ramais deste ponto usando o número do ponto no arquivo importado?`,
-        );
-
-        if (shouldApplyPoleRamais) {
+        const applyFirstPoleRamais = () => {
           const singlePoleResult = buildBulkRamaisForSinglePole(
             raw,
             firstPoleTopology,
@@ -892,15 +891,32 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             setBulkRamalFeedback(
               `${singlePoleResult.feedback} | Poste em revisão: ${firstPole.id} (1/${reviewState.orderedPoleIds.length}). Use Próximo para seguir poste a poste.${workbookSettingsLabel}`,
             );
-          } else {
-            setBulkRamalFeedback(
-              `Poste em revisão: ${firstPole.id} (1/${reviewState.orderedPoleIds.length}). Não foi possível aplicar ramais por ponto.${workbookSettingsLabel}`,
-            );
+            return;
           }
-        } else {
+
+          setBulkRamalFeedback(
+            `Poste em revisão: ${firstPole.id} (1/${reviewState.orderedPoleIds.length}). Não foi possível aplicar ramais por ponto.${workbookSettingsLabel}`,
+          );
+        };
+
+        const skipFirstPoleRamais = () => {
           setBulkRamalFeedback(
             `Poste em revisão: ${firstPole.id} (1/${reviewState.orderedPoleIds.length}). Ramais não aplicados para este ponto (pendente). Use Aplicar/Pular/Próximo.${workbookSettingsLabel}`,
           );
+        };
+
+        if (onRequestCriticalConfirmation) {
+          onRequestCriticalConfirmation({
+            title: "Aplicar ramais no primeiro poste?",
+            message: `Primeiro poste aplicado: ${firstPole.id}.\n\nDeseja aplicar agora os ramais deste ponto usando o número do ponto no arquivo importado?`,
+            confirmLabel: "Aplicar agora",
+            cancelLabel: "Fazer depois",
+            tone: "warning",
+            onConfirm: applyFirstPoleRamais,
+            onCancel: skipFirstPoleRamais,
+          });
+        } else {
+          skipFirstPoleRamais();
         }
       } else {
         setBulkImportReview(null);
@@ -2152,19 +2168,27 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <button
                           onClick={() => {
-                            const confirmed = window.confirm(
-                              `Apagar o trecho ${selectedEdge.id}?`,
-                            );
-                            if (!confirmed) {
+                            const deleteSelectedEdge = () => {
+                              onTopologyChange({
+                                ...btTopology,
+                                edges: btTopology.edges.filter(
+                                  (edge) => edge.id !== selectedEdge.id,
+                                ),
+                              });
+                            };
+
+                            if (onRequestCriticalConfirmation) {
+                              onRequestCriticalConfirmation({
+                                title: "Apagar trecho BT?",
+                                message: `Apagar o trecho ${selectedEdge.id}? Esta ação não pode ser desfeita.`,
+                                confirmLabel: "Apagar trecho",
+                                tone: "danger",
+                                onConfirm: deleteSelectedEdge,
+                              });
                               return;
                             }
 
-                            onTopologyChange({
-                              ...btTopology,
-                              edges: btTopology.edges.filter(
-                                (edge) => edge.id !== selectedEdge.id,
-                              ),
-                            });
+                            deleteSelectedEdge();
                           }}
                           className="inline-flex h-8 items-center gap-1 rounded border border-rose-500/40 px-2 text-xs text-rose-600 hover:bg-rose-50"
                           title="Apagar trecho selecionado"

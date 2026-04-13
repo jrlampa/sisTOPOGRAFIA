@@ -7,6 +7,16 @@ import { NORMAL_CLIENT_RAMAL_TYPES } from "../utils/btNormalization";
 import type { PendingNormalClassificationPole } from "../utils/btNormalization";
 import { getPositiveIntegerFeedback } from "../utils/validation";
 
+export interface CriticalConfirmationConfig {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  cancelLabel?: string;
+  tone?: "danger" | "warning" | "info";
+  onConfirm: () => void;
+  onCancel?: () => void;
+}
+
 // ── NormalRamalModal ──────────────────────────────────────────────────────────
 
 interface NormalRamalModalState {
@@ -326,6 +336,73 @@ export function ResetBtTopologyModal({
                 className="rounded border border-rose-500 bg-rose-600 px-3 py-1.5 text-xs text-white hover:bg-rose-500"
               >
                 Zerar
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+interface CriticalActionModalProps {
+  modal: CriticalConfirmationConfig | null;
+  onClose: () => void;
+}
+
+export function CriticalActionModal({
+  modal,
+  onClose,
+}: CriticalActionModalProps) {
+  const tone = modal?.tone ?? "warning";
+
+  const toneClassName =
+    tone === "danger"
+      ? "border-rose-400 bg-rose-600 text-white hover:bg-rose-500"
+      : tone === "info"
+        ? "border-blue-500 bg-blue-600 text-white hover:bg-blue-500"
+        : "border-amber-500 bg-amber-500 text-white hover:bg-amber-400";
+
+  return (
+    <AnimatePresence>
+      {modal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[995] flex items-center justify-center bg-black/55 p-4"
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            className="w-full max-w-md rounded-xl border border-slate-300 bg-white p-5 shadow-2xl"
+          >
+            <div className="text-base font-semibold text-slate-900">
+              {modal.title}
+            </div>
+            <p className="mt-2 whitespace-pre-line text-sm text-slate-600">
+              {modal.message}
+            </p>
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  modal.onCancel?.();
+                  onClose();
+                }}
+                className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
+              >
+                {modal.cancelLabel ?? "Cancelar"}
+              </button>
+              <button
+                onClick={() => {
+                  modal.onConfirm();
+                  onClose();
+                }}
+                className={`rounded border px-3 py-1.5 text-xs ${toneClassName}`}
+              >
+                {modal.confirmLabel}
               </button>
             </div>
           </motion.div>
