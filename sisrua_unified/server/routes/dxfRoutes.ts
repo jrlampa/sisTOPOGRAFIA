@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import { createDxfTask } from '../services/cloudTasksService.js';
 import {
     createCacheKey,
@@ -7,14 +8,19 @@ import {
 } from '../services/cacheService.js';
 import { logger } from '../utils/logger.js';
 import { dxfRequestSchema } from '../schemas/dxfRequest.js';
+import { batchRowSchema } from '../schemas/apiSchemas.js';
 import { dxfRateLimiter } from '../middleware/rateLimiter.js';
 import { metricsService } from '../services/metricsService.js';
 import { config } from '../config.js';
 import { attachCqtSnapshotToBtContext } from '../services/cqtContextService.js';
+import { parseBatchCsv } from '../services/batchService.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { resolveDxfDirectory } from '../utils/dxfDirectory.js';
+
+const upload = multer({ storage: multer.memoryStorage() });
+
 
 const router = Router();
 
@@ -240,4 +246,64 @@ router.post('/', dxfRateLimiter, async (req: Request, res: Response) => {
     }
 });
 
+// Batch DXF Generation via File (CSV or Excel)
+router.post('/batch', dxfRateLimiter, upload.single('csv'), async (req: Request, res: Response) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const rows = await parseBatchFile(req.file.buffer, req.file.mimetype);
+        const results = [];
+        const errors = [];
+
+
+        for (const { row, line } of rows) {
+            const validation = batchRowSchema.safeParse(row);
+            if (!validation.success) {
+                errors.push({ line, details: validation.error.issues });
+                continue;
+            }
+
+            const { lat, lon, radius, mode, name } = validation.data;
+            const filename = `batch_${name}_${Date.now()}.dxf`;
+            const dxfDirectory = resolveDxfDirectory();
+            const outputFile = path.join(dxfDirectory, filename);
+            const baseUrl = getBaseUrl(req);
+            const downloadUrl = `${baseUrl}/downloads/${filename}`;
+
+            try {
+                const { taskId } = await createDxfTask({
+                    lat, lon, radius,
+                    mode: mode || 'circle',
+                    polygon: '[]',
+                    layers: {},
+                    projection: 'local',
+                    contourRenderMode: 'spline',
+                    btContext: null,
+                    outputFile, filename, downloadUrl
+                });
+
+                results.push({ name, line, taskId, status: 'queued' });
+            } catch (err: any) {
+                errors.push({ name, line, error: err.message });
+            }
+        }
+
+        return res.json({
+            status: 'batch_processed',
+            total: rows.length,
+            queued: results.length,
+            failed: errors.length,
+            results,
+            errors
+        });
+
+    } catch (err: any) {
+        logger.error('Batch DXF processing failed', { error: err.message });
+        return res.status(500).json({ error: 'Batch processing failed' });
+    }
+});
+
 export default router;
+

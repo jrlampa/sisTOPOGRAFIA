@@ -1,24 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { GeoLocation } from '../types';
 import { API_BASE_URL } from '../config/api';
 
 interface UseSearchProps {
   onLocationFound: (location: GeoLocation) => void;
   onError: (message: string) => void;
+  debounceMs?: number;
 }
 
-export function useSearch({ onLocationFound, onError }: UseSearchProps) {
+export function useSearch({ onLocationFound, onError, debounceMs = 600 }: UseSearchProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSearchRef = useRef<string>('');
 
   const executeSearch = async (query: string) => {
     const sanitizedQuery = query.trim();
 
-    if (!sanitizedQuery) {
+    if (!sanitizedQuery || sanitizedQuery === lastSearchRef.current) {
       return;
     }
 
+    lastSearchRef.current = sanitizedQuery;
     setIsSearching(true);
+    
     try {
       const response = await fetch(`${API_BASE_URL}/search`, {
         method: 'POST',
@@ -59,8 +64,26 @@ export function useSearch({ onLocationFound, onError }: UseSearchProps) {
     }
   };
 
+  // Debounce logic
+  useEffect(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    if (searchQuery.trim().length > 3) {
+      timeoutRef.current = setTimeout(() => {
+        executeSearch(searchQuery);
+      }, debounceMs);
+    }
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [searchQuery, debounceMs]);
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     await executeSearch(searchQuery);
   };
 
@@ -72,3 +95,4 @@ export function useSearch({ onLocationFound, onError }: UseSearchProps) {
     executeSearch
   };
 }
+

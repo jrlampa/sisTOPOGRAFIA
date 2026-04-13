@@ -2,7 +2,14 @@ import { Router, Request, Response } from 'express';
 import { ElevationService } from '../services/elevationService.js';
 import { TopodataService } from '../services/topodataService.js';
 import { logger } from '../utils/logger.js';
-import { elevationProfileSchema } from '../schemas/apiSchemas.js';
+import { 
+    elevationProfileSchema, 
+    elevationExportSchema, 
+    elevationStatsSchema, 
+    elevationCompareSchema, 
+    elevationSlopeSchema 
+} from '../schemas/apiSchemas.js';
+
 
 const router = Router();
 const ELEVATION_INTERNAL_ERROR_RESPONSE = { error: 'Elevation service temporarily unavailable' };
@@ -41,11 +48,16 @@ router.post('/profile', async (req: Request, res: Response) => {
 // Elevation Profile Export Endpoint
 router.post('/profile/export', async (req: Request, res: Response) => {
     try {
-        const { start, end, steps = 50, format = 'csv' } = req.body;
-
-        if (!start || !end || (format !== 'csv' && format !== 'kml')) {
-            return res.status(400).json({ error: 'Required: start, end, format (csv|kml)' });
+        const validation = elevationExportSchema.safeParse(req.body);
+        if (!validation.success) {
+            return res.status(400).json({ 
+                error: 'Invalid request', 
+                details: validation.error.issues 
+            });
         }
+
+        const { start, end, steps, format } = validation.data;
+
 
         logger.info('Exporting elevation profile', { start, end, steps, format });
 
@@ -102,15 +114,16 @@ ${profile.map((p: { elev: number }, i: number) => {
 // Elevation Statistics Endpoint
 router.get('/stats', async (req: Request, res: Response) => {
     try {
-        const { lat, lng, radius = 500 } = req.query;
-
-        if (!lat || !lng) {
-            return res.status(400).json({ error: 'Required: lat, lng' });
+        const validation = elevationStatsSchema.safeParse(req.query);
+        if (!validation.success) {
+            return res.status(400).json({ 
+                error: 'Invalid request', 
+                details: validation.error.issues 
+            });
         }
 
-        const centerLat = parseFloat(lat as string);
-        const centerLng = parseFloat(lng as string);
-        const radiusM = parseInt(radius as string);
+        const { lat: centerLat, lng: centerLng, radius: radiusM } = validation.data;
+
 
         if (!Number.isFinite(centerLat) || !Number.isFinite(centerLng)) {
             return res.status(400).json({ error: 'Invalid coordinates' });
@@ -254,14 +267,16 @@ router.post('/batch', async (req: Request, res: Response) => {
 // Elevation Comparison Endpoint
 router.get('/compare', async (req: Request, res: Response) => {
     try {
-        const { lat, lng } = req.query;
-
-        if (!lat || !lng) {
-            return res.status(400).json({ error: 'Required: lat, lng' });
+        const validation = elevationCompareSchema.safeParse(req.query);
+        if (!validation.success) {
+            return res.status(400).json({ 
+                error: 'Invalid request', 
+                details: validation.error.issues 
+            });
         }
 
-        const latitude = parseFloat(lat as string);
-        const longitude = parseFloat(lng as string);
+        const { lat: latitude, lng: longitude } = validation.data;
+
 
         logger.info('Comparing elevation sources', { lat: latitude, lng: longitude });
 
@@ -298,15 +313,16 @@ router.get('/compare', async (req: Request, res: Response) => {
 // Slope Analysis Endpoint
 router.get('/slope', async (req: Request, res: Response) => {
     try {
-        const { lat, lng, radius = 100 } = req.query;
-
-        if (!lat || !lng) {
-            return res.status(400).json({ error: 'Required: lat, lng' });
+        const validation = elevationSlopeSchema.safeParse(req.query);
+        if (!validation.success) {
+            return res.status(400).json({ 
+                error: 'Invalid request', 
+                details: validation.error.issues 
+            });
         }
 
-        const centerLat = parseFloat(lat as string);
-        const centerLng = parseFloat(lng as string);
-        const radiusM = parseInt(radius as string);
+        const { lat: centerLat, lng: centerLng, radius: radiusM } = validation.data;
+
 
         logger.info('Calculating slope', { centerLat, centerLng, radiusM });
 

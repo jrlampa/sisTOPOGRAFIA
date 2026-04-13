@@ -154,31 +154,46 @@ export function SidebarBtEditorSection({
               e.preventDefault();
               handleBtInsertPoleByCoordinates();
             }}
-            className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2 space-y-2"
+            className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2 space-y-2 transition-all"
           >
-            <div className="text-[10px] font-semibold text-blue-200">Inserir poste por coordenadas</div>
-            <input
-              type="text"
-              value={btPoleCoordinateInput}
-              onChange={(e) => {
-                const value = e.target.value;
-                // Update UI immediately for responsiveness
-                setBtPoleCoordinateInput(value);
-                // Debounce the processing/validation if needed (for future use)
-                debouncedSetCoordinateInput(value);
-              }}
-              placeholder="-22.9068 -43.1729 ou 23K 635806 7462003"
-              aria-label="Coordenadas do poste"
-              className="w-full rounded border border-blue-500/40 bg-slate-900 p-2 text-[11px] text-blue-100 placeholder:text-slate-500"
-            />
+            <div className="text-[10px] font-semibold text-blue-200 uppercase tracking-wider">Inserir poste por coordenadas</div>
+            <div className="relative group">
+              <input
+                type="text"
+                value={btPoleCoordinateInput}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setBtPoleCoordinateInput(value);
+                  debouncedSetCoordinateInput(value);
+                }}
+                placeholder="-22.9068 -43.1729 ou 23K 635806 7462003"
+                aria-label="Coordenadas do poste"
+                className={`w-full rounded-lg border bg-slate-900/90 p-2.5 text-[11px] font-mono transition-all outline-none ${
+                  !btPoleCoordinateInput 
+                    ? 'border-blue-500/40 text-blue-100 placeholder:text-slate-500' 
+                    : /^-?\1?\d+(\.\d+)?\s+-?\d+(\.\d+)?$/.test(btPoleCoordinateInput.trim()) || /^\d{2}[A-Z]\s+\d+(\.\d+)?\s+\d+(\.\d+)?$/.test(btPoleCoordinateInput.trim())
+                      ? 'border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.1)] text-emerald-100'
+                      : 'border-rose-500/60 shadow-[0_0_10px_rgba(244,63,94,0.1)] text-rose-100'
+                }`}
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1 items-center">
+                 {btPoleCoordinateInput && (
+                    /^-?\d+(\.\d+)?\s+-?\d+(\.\d+)?$/.test(btPoleCoordinateInput.trim()) || /^\d{2}[A-Z]\s+\d+(\.\d+)?\s+\d+(\.\d+)?$/.test(btPoleCoordinateInput.trim())
+                    ? <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    : <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                 )}
+              </div>
+            </div>
             <button
               type="submit"
-              className="w-full rounded border border-blue-500 bg-blue-600 px-2 py-1.5 text-[10px] font-bold text-white hover:bg-blue-500"
+              disabled={!btPoleCoordinateInput.trim()}
+              className="w-full rounded-lg border border-blue-500 bg-blue-600 px-2 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-900/20 transition-all hover:bg-blue-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               INSERIR POR COORDENADA
             </button>
           </form>
         )}
+
 
         {btEditorMode === 'move-pole' && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-xs font-medium leading-snug text-amber-900 shadow-sm">

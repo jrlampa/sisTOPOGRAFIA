@@ -5,12 +5,15 @@ import { config } from '../config.js';
 import { constantsService } from '../services/constantsService.js';
 
 /**
- * Custom key generator that uses the client IP address
- * This respects X-Forwarded-For when trust proxy is enabled
- * Uses ipKeyGenerator to properly handle both IPv4 and IPv6 addresses
- * Fixes: ValidationError about IPv6 addresses bypassing rate limits
+ * Custom key generator that prioritizes User ID over IP address.
+ * 1. Checks for 'x-user-id' header (set by frontend).
+ * 2. Falls back to ipKeyGenerator for IP-based limiting.
  */
 const keyGenerator = (req: Request): string => {
+    const userId = req.headers['x-user-id'];
+    if (userId && typeof userId === 'string') {
+        return `user:${userId}`;
+    }
     return ipKeyGenerator(req.ip || 'unknown');
 };
 

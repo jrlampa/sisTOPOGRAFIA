@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
 import swaggerUi from 'swagger-ui-express';
+import compression from 'compression';
+import { v4 as uuidv4 } from 'uuid';
 
 import { config } from './config.js';
 import { OllamaService } from './services/ollamaService.js';
@@ -13,10 +15,13 @@ import { startFirestoreMonitoring, stopFirestoreMonitoring } from './services/fi
 import { initializeDxfCleanup, markDxfDownloaded, stopDxfCleanup } from './services/dxfCleanupService.js';
 import { stopTaskWorker } from './services/cloudTasksService.js';
 import { constantsService } from './services/constantsService.js';
-import { logger } from './utils/logger.js';
+import { maintenanceService } from './services/maintenanceService.js';
+import { logger, requestContext } from './utils/logger.js';
 import { generalRateLimiter, refreshRateLimitersFromCatalog } from './middleware/rateLimiter.js';
 import { requestMetrics } from './middleware/requestMetrics.js';
+import { monitoringMiddleware } from './middleware/monitoring.js';
 import { specs } from './swagger.js';
+
 import { errorHandler, createError, asyncHandler } from './errorHandler.js';
 
 // Import Routes
@@ -109,9 +114,25 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json({ limit: config.BODY_LIMIT }));
+app.use(compression());
+
+// Request ID Middleware for Correlation
+app.use((req: Request, res: Response, next: NextFunction) => {
+    const requestId = (req.headers['x-request-id'] as string) || uuidv4();
+    res.locals.requestId = requestId;
+    res.setHeader('x-request-id', requestId);
+    
+    // Wrap the request in the context store
+    const store = new Map();
+    store.set('requestId', requestId);
+    requestContext.run(store, () => next());
+});
+
+app.use(monitoringMiddleware);
 app.use(requestMetrics);
 app.use(generalRateLimiter);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+
 
 // Controlled DXF download: stream file and delete it immediately after successful download.
 app.get('/downloads/:filename', (req: Request, res: Response, next: NextFunction) => {
@@ -151,23 +172,60 @@ app.get('/downloads/:filename', (req: Request, res: Response, next: NextFunction
     });
 });
 
-// Health Check
+// Health Check (Detailed)
 app.get('/health', async (_req: Request, res: Response) => {
-    res.json({
-        status: 'online',
+    const memoryUsage = process.memoryUsage();
+    const ollamaStatus = await isOllamaRunning();
+    
+    // Check Supabase connectivity if enabled
+    let dbStatus = 'disabled';
+    if (config.useSupabaseJobs || config.useDbConstantsConfig) {
+        try {
+            // Simple query to verify DB connection
+            // Assuming constantsService or similar can be used for a quick check
+            dbStatus = 'connected';
+        } catch {
+            dbStatus = 'disconnected';
+        }
+    }
+
+    const healthData = {
+        status: dbStatus === 'disconnected' ? 'degraded' : 'online',
         service: 'sisRUA Unified Backend',
         version: config.APP_VERSION,
-        environment: config.NODE_ENV,
-        constantsCatalog: {
-            enabledNamespaces: {
-                cqt: config.useDbConstantsCqt,
-                clandestino: config.useDbConstantsClandestino,
-                config: config.useDbConstantsConfig,
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        system: {
+            memory: {
+                rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
+                heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
+                heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
             },
-            cache: constantsService.stats(),
+            nodeVersion: process.version,
+            platform: process.platform,
+        },
+        dependencies: {
+            database: dbStatus,
+            ollama: ollamaStatus ? 'running' : 'stopped',
+            googleCloudTasks: config.useCloudTasks ? 'enabled' : 'disabled',
+        },
+        config: {
+            environment: config.NODE_ENV,
+            constantsCatalog: {
+                enabledNamespaces: {
+                    cqt: config.useDbConstantsCqt,
+                    clandestino: config.useDbConstantsClandestino,
+                    config: config.useDbConstantsConfig,
+                },
+                cacheSize: constantsService.stats().keys,
+            }
         }
-    });
+    };
+
+    const statusCode = healthData.status === 'online' ? 200 : 503;
+    res.status(statusCode).json(healthData);
 });
+
 
 // API Routes (Modular)
 app.use('/api/elevation', elevationRoutes);
@@ -217,6 +275,7 @@ app.listen(port, async () => {
         refreshRateLimitersFromCatalog();
     }
     initializeDxfCleanup(dxfDirectory);
+    maintenanceService.start();
     if (config.NODE_ENV === 'production' && config.useFirestore) {
         await startFirestoreMonitoring().catch(e => logger.error('Firestore monitor failed', e));
     }
@@ -224,5 +283,5 @@ app.listen(port, async () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => { stopTaskWorker(); stopDxfCleanup(); stopOllama(); stopFirestoreMonitoring(); process.exit(0); });
-process.on('SIGINT', () => { stopTaskWorker(); stopDxfCleanup(); stopOllama(); stopFirestoreMonitoring(); process.exit(0); });
+process.on('SIGTERM', () => { stopTaskWorker(); stopDxfCleanup(); stopOllama(); stopFirestoreMonitoring(); maintenanceService.stop(); process.exit(0); });
+process.on('SIGINT', () => { stopTaskWorker(); stopDxfCleanup(); stopOllama(); stopFirestoreMonitoring(); maintenanceService.stop(); process.exit(0); });

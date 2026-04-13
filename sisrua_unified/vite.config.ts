@@ -1,6 +1,8 @@
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
+
 
 function parseSpaceSeparatedSources(value?: string): string[] {
   if (!value) {
@@ -91,7 +93,47 @@ export default defineConfig(({ mode }) => {
         }
       }
     },
-    plugins: [react(), cspMetaPlugin],
+    plugins: [
+      react(),
+      cspMetaPlugin,
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['favicon.ico', 'logo.png'],
+        manifest: {
+          name: 'sisRUA Unified',
+          short_name: 'sisRUA',
+          description: 'Exportação Profissional OSM para DXF 2.5D',
+          theme_color: '#4F46E5',
+          background_color: '#0F172A',
+          display: 'standalone',
+          icons: [
+            {
+              src: 'logo.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any maskable'
+            }
+          ]
+        },
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/overpass-api\.de\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'osm-data-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 // 24 hours
+                }
+              }
+            }
+          ]
+        }
+      })
+    ],
+
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

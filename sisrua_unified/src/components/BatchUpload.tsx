@@ -87,9 +87,9 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('csv', file);
 
-      const response = await fetch(`${API_URL}/batch/dxf`, {
+      const response = await fetch(`${API_URL}/dxf/batch`, {
         method: 'POST',
         body: formData
       });
@@ -104,6 +104,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
             : 'Falha no envio em lote';
         throw new Error(errorMessage);
       }
+
 
       const batchResponse = payload as BatchResponse;
       setItems(batchResponse.results || []);
@@ -217,10 +218,11 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
           <Upload size={18} />
         </div>
         <div className="flex flex-col">
-          <span className="text-xs font-black uppercase tracking-wider text-slate-400">DXF em Lote</span>
-          <span className="text-sm font-semibold text-slate-100">Enviar CSV e gerar exportações</span>
+          <span className="text-xs font-black uppercase tracking-wider text-slate-400">Processamento em Lote</span>
+          <span className="text-sm font-semibold text-slate-100">Enviar CSV/Excel e gerar exportações</span>
         </div>
       </div>
+
 
       <label
         className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-6 text-center text-xs font-semibold uppercase tracking-widest transition ${isDragging ? 'border-emerald-400 bg-emerald-500/10 text-emerald-200' : 'border-slate-700 text-slate-400 hover:border-slate-500'}`}
@@ -237,10 +239,11 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
             Enviando CSV...
           </span>
         ) : (
-          <span>Arraste CSV aqui ou clique para selecionar</span>
+          <span>Arraste CSV ou Planilha Excel aqui ou clique para selecionar</span>
         )}
-        <input type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
+        <input type="file" accept=".csv, .xlsx, .xlsm" className="hidden" onChange={handleFileSelect} />
       </label>
+
 
       {errors.length > 0 && (
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-200">

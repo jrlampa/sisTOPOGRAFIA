@@ -26,6 +26,32 @@ export const elevationProfileSchema = z.object({
     steps: z.number().int().min(2).max(100).optional().default(25)
 });
 
+// Elevation export schema
+export const elevationExportSchema = elevationProfileSchema.extend({
+    format: z.enum(['csv', 'kml']).default('csv')
+});
+
+// Elevation stats schema
+export const elevationStatsSchema = z.object({
+    lat: z.coerce.number().min(-90).max(90),
+    lng: z.coerce.number().min(-180).max(180),
+    radius: z.coerce.number().min(10).max(2000).optional().default(500)
+});
+
+// Elevation compare schema
+export const elevationCompareSchema = z.object({
+    lat: z.coerce.number().min(-90).max(90),
+    lng: z.coerce.number().min(-180).max(180)
+});
+
+// Elevation slope schema
+export const elevationSlopeSchema = z.object({
+    lat: z.coerce.number().min(-90).max(90),
+    lng: z.coerce.number().min(-180).max(180),
+    radius: z.coerce.number().min(10).max(1000).optional().default(100)
+});
+
+
 // Analysis endpoint schema
 export const analysisSchema = z.object({
     stats: z.object({
@@ -84,9 +110,17 @@ export const batchRowSchema = z.object({
     name: z.string()
         .min(1, 'Name required')
         .max(100, 'Name too long')
-        .regex(/^[a-zA-Z0-9_-]+$/, 'Name must be alphanumeric with underscores/hyphens only'),
+        .regex(/^[a-zA-Z0-9_\s-]+$/, 'Name contains invalid characters'), // Relaxed slightly to allow spaces
     lat: z.coerce.number().min(-90).max(90),
     lon: z.coerce.number().min(-180).max(180),
     radius: z.coerce.number().min(10).max(5000),
     mode: z.enum(['circle', 'polygon', 'bbox']).optional().default('circle')
 });
+
+// OSM request schema
+export const osmRequestSchema = z.object({
+    lat: z.coerce.number().min(-90).max(90),
+    lng: z.coerce.number().min(-180).max(180),
+    radius: z.coerce.number().min(10).max(5000)
+});
+

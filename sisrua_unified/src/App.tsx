@@ -12,6 +12,7 @@ import { useBtExportHistory } from "./hooks/useBtExportHistory";
 import { useBtDxfWorkflow } from "./hooks/useBtDxfWorkflow";
 import { useProjectDataWorkflow } from "./hooks/useProjectDataWorkflow";
 import { useAppAnalysisWorkflow } from "./hooks/useAppAnalysisWorkflow";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { EMPTY_BT_TOPOLOGY } from "./utils/btNormalization";
 import { SidebarBtEditorSection } from "./components/SidebarBtEditorSection";
 import { SidebarAnalysisResults } from "./components/SidebarAnalysisResults";
@@ -132,6 +133,11 @@ function App() {
     btSectioningImpact.unservedClients,
     showToast,
   ]);
+
+  // Sync theme with document attribute for CSS variables
+  React.useEffect(() => {
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+  }, [isDark]);
 
   const {
     latestBtExport,
@@ -266,6 +272,19 @@ function App() {
     jobId,
     jobStatus,
     jobProgress,
+  });
+
+  // Keyboard Shortcuts
+  useKeyboardShortcuts({
+    onCancel: () => {
+      updateSettings({ ...settings, btEditorMode: 'none' });
+      handleSelectionModeChange('circle');
+    },
+    onSetEditorMode: (mode) => updateSettings({ ...settings, btEditorMode: mode }),
+    onSetSelectionMode: (mode) => handleSelectionModeChange(mode),
+    onUndo: undo,
+    onRedo: redo,
+    enabled: true,
   });
 
   const mapSelectorProps = {
