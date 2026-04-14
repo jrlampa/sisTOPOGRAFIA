@@ -1,4 +1,5 @@
 import type { BtExportHistoryEntry } from '../types';
+import { buildApiHeaders } from './apiHeaders';
 
 export interface BtExportHistoryPage {
   entries: BtExportHistoryEntry[];
@@ -50,7 +51,9 @@ export const listBtExportHistory = async (
   offset: number,
   filters?: BtExportHistoryFilters,
 ): Promise<BtExportHistoryPage> => {
-  const response = await fetch(buildUrl(limit, offset, filters));
+  const response = await fetch(buildUrl(limit, offset, filters), {
+    headers: buildApiHeaders(),
+  });
   if (!response.ok) {
     throw new Error(`Falha ao listar histórico BT (HTTP ${response.status})`);
   }
@@ -67,9 +70,9 @@ export const listBtExportHistory = async (
 export const createBtExportHistory = async (entry: BtExportHistoryEntry): Promise<boolean> => {
   const response = await fetch('/api/bt-history', {
     method: 'POST',
-    headers: {
+    headers: buildApiHeaders({
       'Content-Type': 'application/json',
-    },
+    }),
     body: JSON.stringify(entry),
   });
 
@@ -84,9 +87,9 @@ export const createBtExportHistory = async (entry: BtExportHistoryEntry): Promis
 export const ingestBtExportHistory = async (payload: BtExportHistoryIngestPayload): Promise<BtExportHistoryIngestResponse> => {
   const response = await fetch('/api/bt-history/ingest', {
     method: 'POST',
-    headers: {
+    headers: buildApiHeaders({
       'Content-Type': 'application/json',
-    },
+    }),
     body: JSON.stringify(payload),
   });
 
@@ -119,7 +122,7 @@ export async function clearBtExportHistoryRemote(options: {
   const endpoint = query ? `/api/bt-history?${query}` : '/api/bt-history';
   const response = await fetch(endpoint, {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildApiHeaders({ 'Content-Type': 'application/json' }),
   });
 
   const payload = (await response.json().catch(() => ({}))) as {

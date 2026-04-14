@@ -29,6 +29,7 @@ export interface BtTransformer {
   /** Transformer nameplate rating in kVA, sent from frontend as projectPowerKva. */
   projectPowerKva?: number;
   readings: BtTransformerReading[];
+  transformerChangeFlag?: "existing" | "new" | "remove" | "replace";
 }
 
 export interface BtEdge {

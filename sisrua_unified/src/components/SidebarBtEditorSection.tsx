@@ -23,9 +23,10 @@ import type {
   BtTransformerChangeFlag,
 } from "../utils/btNormalization";
 import { getCoordinateInputFeedback } from "../utils/validation";
+import { lazyWithRecovery } from "../utils/dynamicImportRecovery";
 import type { CriticalConfirmationConfig } from "./BtModals";
 
-const BtTopologyPanel = React.lazy(() => import("./BtTopologyPanel"));
+const BtTopologyPanel = lazyWithRecovery(() => import("./BtTopologyPanel"), "bt-topology-panel");
 
 type TransformerDebugById = Record<
   string,

@@ -2,10 +2,11 @@ import React, { Suspense } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { BtModalStack } from './BtModalStack';
+import { lazyWithRecovery } from '../utils/dynamicImportRecovery';
 
-const MapSelector = React.lazy(() => import('./MapSelector'));
-const FloatingLayerPanel = React.lazy(() => import('./FloatingLayerPanel'));
-const ElevationProfile = React.lazy(() => import('./ElevationProfile'));
+const MapSelector = lazyWithRecovery(() => import('./MapSelector'), 'map-selector');
+const FloatingLayerPanel = lazyWithRecovery(() => import('./FloatingLayerPanel'), 'floating-layer-panel');
+const ElevationProfile = lazyWithRecovery(() => import('./ElevationProfile'), 'elevation-profile');
 
 const MapSuspenseFallback = () => (
   <div className="absolute inset-0 flex items-center justify-center bg-slate-950 text-slate-300">

@@ -105,7 +105,15 @@ export const normalizeBtPoles = (poles: BtPoleNode[]): BtPoleNode[] => poles.map
 
 export const normalizeBtTransformer = (transformer: BtTransformer): BtTransformer => ({
   ...transformer,
-  transformerChangeFlag: getTransformerChangeFlag(transformer)
+  transformerChangeFlag: getTransformerChangeFlag(transformer),
+  replacementFromKva:
+    getTransformerChangeFlag(transformer) === 'replace'
+      ? (transformer.replacementFromKva ?? transformer.projectPowerKva ?? transformer.demandKw ?? 0)
+      : transformer.replacementFromKva,
+  replacementToKva:
+    getTransformerChangeFlag(transformer) === 'replace'
+      ? (transformer.replacementToKva ?? transformer.projectPowerKva ?? transformer.demandKw ?? 0)
+      : transformer.replacementToKva
 });
 
 export const normalizeBtTransformers = (transformers: BtTransformer[]): BtTransformer[] =>

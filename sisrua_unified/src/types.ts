@@ -202,6 +202,8 @@ export interface BtTransformer {
   readings: BtTransformerReading[];
   verified?: boolean;
   transformerChangeFlag?: "existing" | "new" | "remove" | "replace";
+  replacementFromKva?: number;
+  replacementToKva?: number;
 }
 
 export interface BtEdge {

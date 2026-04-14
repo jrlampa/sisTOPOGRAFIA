@@ -262,6 +262,20 @@ export function useBtCrudHandlers({ appState, setAppState, showToast }: Params) 
       return false;
     }
 
+    const transformerReplacementMissingInfo = btTopology.transformers.find(
+      (transformer) =>
+        (transformer.transformerChangeFlag ?? 'existing') === 'replace' &&
+        (!(typeof transformer.replacementFromKva === 'number' && transformer.replacementFromKva > 0) ||
+          !(typeof transformer.replacementToKva === 'number' && transformer.replacementToKva > 0))
+    );
+    if (transformerReplacementMissingInfo) {
+      showToast(
+        `Transformador ${transformerReplacementMissingInfo.id} marcado para substituição, mas sem trafo que sai e/ou entra.`,
+        'error'
+      );
+      return false;
+    }
+
     if (settings.projectType === 'ramais') {
       const transformerWithoutReadings = btTopology.transformers.find(
         (transformer) => transformer.readings.length === 0

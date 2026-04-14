@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { logger } from "../utils/logger.js";
 import { createError } from "../errorHandler.js";
 import { getUserRole, type UserRole } from "../services/roleService.js";
+import { config } from "../config.js";
 
 export type Permission =
   | "read"
@@ -35,12 +36,45 @@ const permissionsMatrix: Record<UserRole, Permission[]> = {
  */
 export const requirePermission = (requiredPermission: Permission) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const userId = (req.headers["x-user-id"] as string) || res.locals.userId;
+    const headerUserId = req.headers["x-user-id"] as string | undefined;
+    let userId = headerUserId || (res.locals.userId as string | undefined);
     const requestId = res.locals.requestId;
 
     try {
-      // Recuperar papel do usuário de fonte confiável (banco de dados com cache)
-      const userRole = await getUserRole(userId);
+      const hostname = (req.hostname || "").toLowerCase();
+      const requestIp = (req.ip || "").toLowerCase();
+      const isLoopbackHost =
+        hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+      const isLoopbackIp =
+        requestIp === "::1" ||
+        requestIp === "127.0.0.1" ||
+        requestIp === "::ffff:127.0.0.1";
+      // O frontend envia 'x-user-id: system-admin' quando em localhost.
+      // O fallback também deve ser aplicado para esse userId sentinel,
+      // evitando dependência de banco em ambiente de desenvolvimento local.
+      const isLocalAdminSentinel =
+        (userId?.trim() ?? "") === "system-admin";
+      const shouldApplyLocalFallback =
+        config.NODE_ENV !== "production" &&
+        (!userId || userId.trim().length === 0 || isLocalAdminSentinel) &&
+        (isLoopbackHost || isLoopbackIp);
+
+      let userRole: UserRole;
+      if (shouldApplyLocalFallback) {
+        userId = "system-admin";
+        userRole = "admin";
+        logger.warn("Applying local RBAC fallback user", {
+          userId,
+          userRole,
+          requestId,
+          path: req.path,
+          hostname,
+          requestIp,
+        });
+      } else {
+        // Recuperar papel do usuário de fonte confiável (banco de dados com cache)
+        userRole = await getUserRole(userId);
+      }
 
       // Resolver permissões para este papel
       const userPermissions = permissionsMatrix[userRole] || [];

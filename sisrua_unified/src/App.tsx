@@ -198,6 +198,8 @@ function App() {
     handleBtSetPoleChangeFlag,
     handleBtTogglePoleCircuitBreak,
     handleBtSetTransformerChangeFlag,
+    handleBtSetTransformerReplacementFromKva,
+    handleBtSetTransformerReplacementToKva,
     handleBtToggleEdgeRemoval,
     handleBtSetEdgeReplacementFromConductors,
     handleBtDeleteTransformer,
@@ -413,6 +415,10 @@ function App() {
     onBtSetPoleChangeFlag: handleBtSetPoleChangeFlag,
     onBtTogglePoleCircuitBreak: handleBtTogglePoleCircuitBreak,
     onBtSetTransformerChangeFlag: handleBtSetTransformerChangeFlag,
+    onBtSetTransformerReplacementFromKva:
+      handleBtSetTransformerReplacementFromKva,
+    onBtSetTransformerReplacementToKva:
+      handleBtSetTransformerReplacementToKva,
     onBtDragPole: handleBtDragPole,
     onBtDragTransformer: handleBtDragTransformer,
     criticalPoleId: btCriticalPoleId,

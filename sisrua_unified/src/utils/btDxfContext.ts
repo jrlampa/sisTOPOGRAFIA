@@ -2,6 +2,8 @@ import type { AppSettings, BtCqtComputationInputs, BtNetworkScenario, BtTopology
 import {
   calculateAccumulatedDemandByPole,
   calculateClandestinoDemandKvaByAreaAndClients,
+  getEffectiveTransformerDemandKva,
+  getEffectiveTransformerProjectPowerKva,
   type BtPoleAccumulatedDemand,
 } from './btCalculations';
 import {
@@ -58,7 +60,10 @@ export function buildBtDxfContext({
     return sum + poleClients;
   }, 0);
 
-  const aa24DemandBase = btTopology.transformers.reduce((sum, transformer) => sum + (transformer.demandKw ?? 0), 0);
+  const aa24DemandBase = btTopology.transformers.reduce(
+    (sum, transformer) => sum + getEffectiveTransformerDemandKva(transformer),
+    0,
+  );
   const ab35LookupDmdi = calculateClandestinoDemandKvaByAreaAndClients(
     settings.clandestinoAreaM2 ?? 0,
     totalClientsX
@@ -110,7 +115,11 @@ export function buildBtDxfContext({
       ab35LookupDmdi,
     },
     db: {
-      trAtual: btTopology.transformers.reduce((sum, transformer) => sum + (transformer.projectPowerKva ?? 0), 0),
+      trAtual: btTopology.transformers.reduce(
+        (sum, transformer) =>
+          sum + getEffectiveTransformerProjectPowerKva(transformer),
+        0,
+      ),
       demAtual: aa24DemandBase,
       qtMt: 0,
     },
@@ -153,8 +162,8 @@ export function buildBtDxfContext({
             lng: transformer.lng,
             title: transformer.title,
             transformerChangeFlag: getTransformerChangeFlag(transformer),
-            projectPowerKva: transformer.projectPowerKva ?? 0,
-            demandKw: transformer.demandKw,
+            projectPowerKva: getEffectiveTransformerProjectPowerKva(transformer),
+            demandKw: getEffectiveTransformerDemandKva(transformer),
             verified: transformer.verified ?? false,
           })),
           edges: btTopology.edges.map((edge) => ({

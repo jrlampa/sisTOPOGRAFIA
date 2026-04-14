@@ -146,7 +146,10 @@ export const calculateTransformerOwnershipData = (
 
   const transformerPoleEntries = topology.transformers
     .filter(
-      (transformer) => transformer.poleId && allPoleIds.has(transformer.poleId),
+      (transformer) =>
+        transformer.poleId &&
+        allPoleIds.has(transformer.poleId) &&
+        (transformer.transformerChangeFlag ?? "existing") !== "remove",
     )
     .map((transformer) => ({
       transformerId: transformer.id,
@@ -252,6 +255,10 @@ export const calculateAccumulatedDemandByPole = (
 
   const transformerPoleIds = new Set(
     topology.transformers
+      .filter(
+        (transformer) =>
+          (transformer.transformerChangeFlag ?? "existing") !== "remove",
+      )
       .map((transformer) => transformer.poleId)
       .filter(
         (poleId): poleId is string =>
@@ -299,10 +306,12 @@ export const calculateAccumulatedDemandByPole = (
     (sum, value) => sum + value,
     0,
   );
-  const transformerDemandKva = topology.transformers.reduce(
-    (sum, transformer) => sum + transformer.demandKw,
-    0,
-  );
+  const transformerDemandKva = topology.transformers
+    .filter(
+      (transformer) =>
+        (transformer.transformerChangeFlag ?? "existing") !== "remove",
+    )
+    .reduce((sum, transformer) => sum + transformer.demandKw, 0);
 
   const localWeightedRamalByPole = new Map<string, number>();
   let hasUnknownRamalWeight = false;
@@ -489,6 +498,9 @@ export const calculateEstimatedDemandByTransformer = (
     0,
   );
   const measuredDemandKw = topology.transformers.reduce((sum, transformer) => {
+    if ((transformer.transformerChangeFlag ?? "existing") === "remove") {
+      return sum;
+    }
     if (transformer.readings.length === 0) {
       return sum;
     }
@@ -530,10 +542,12 @@ export const calculateSummary = (topology: BtTopology) => {
     (acc, edge) => acc + (edge.lengthMeters || 0),
     0,
   );
-  const transformerDemandKw = topology.transformers.reduce(
-    (acc, transformer) => acc + (transformer.demandKw || 0),
-    0,
-  );
+  const transformerDemandKw = topology.transformers
+    .filter(
+      (transformer) =>
+        (transformer.transformerChangeFlag ?? "existing") !== "remove",
+    )
+    .reduce((acc, transformer) => acc + (transformer.demandKw || 0), 0);
 
   return {
     poles: topology.poles.length,

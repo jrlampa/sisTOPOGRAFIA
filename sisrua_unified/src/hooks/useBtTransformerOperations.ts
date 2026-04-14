@@ -208,6 +208,54 @@ export function useBtTransformerOperations({
     );
   };
 
+  const handleBtSetTransformerReplacementFromKva = (
+    transformerId: string,
+    replacementFromKva: number,
+  ) => {
+    const safeValue = Number.isFinite(replacementFromKva)
+      ? Math.max(0, Number(replacementFromKva.toFixed(2)))
+      : 0;
+
+    setAppState(
+      {
+        ...appState,
+        btTopology: {
+          ...btTopology,
+          transformers: btTopology.transformers.map((transformer) =>
+            transformer.id === transformerId
+              ? normalizeBtTransformer({ ...transformer, replacementFromKva: safeValue })
+              : transformer
+          )
+        }
+      },
+      true
+    );
+  };
+
+  const handleBtSetTransformerReplacementToKva = (
+    transformerId: string,
+    replacementToKva: number,
+  ) => {
+    const safeValue = Number.isFinite(replacementToKva)
+      ? Math.max(0, Number(replacementToKva.toFixed(2)))
+      : 0;
+
+    setAppState(
+      {
+        ...appState,
+        btTopology: {
+          ...btTopology,
+          transformers: btTopology.transformers.map((transformer) =>
+            transformer.id === transformerId
+              ? normalizeBtTransformer({ ...transformer, replacementToKva: safeValue })
+              : transformer
+          )
+        }
+      },
+      true
+    );
+  };
+
   return {
     // ── Handlers ───────────────────────────────────────────────────────────
     handleBtMapClickAddTransformer,
@@ -215,6 +263,8 @@ export function useBtTransformerOperations({
     handleBtToggleTransformerOnPole,
     handleBtDragTransformer,
     handleBtRenameTransformer,
-    handleBtSetTransformerChangeFlag
+    handleBtSetTransformerChangeFlag,
+    handleBtSetTransformerReplacementFromKva,
+    handleBtSetTransformerReplacementToKva
   };
 }

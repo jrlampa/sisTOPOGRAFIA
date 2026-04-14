@@ -60,21 +60,25 @@ class OSMController:
             Logger.error("No infrastructure layers selected!")
             return
 
-        # 2. Fetch Features
+        # 2. Fetch Features (OSM é contexto de fundo — opcional)
         Logger.info("Step 1/5: Fetching OSM features...", progress=10)
         gdf = self._fetch_features(tags)
-        if gdf is None or gdf.empty:
-            raise RuntimeError(
+        osm_available = gdf is not None and not gdf.empty
+        if not osm_available:
+            Logger.info(
                 "Nenhuma feição OSM encontrada na área selecionada. "
-                "Tente um raio maior ou verifique se a região possui dados no OpenStreetMap."
+                "O DXF será gerado apenas com a topologia BT."
             )
 
-        # 3. Spatial GIS Audit (Authoritative Logic)
-        Logger.info("Step 2/5: Running spatial audit...", progress=30)
-        analysis_gdf = self._run_audit(gdf)
-
-        # 4. Preview Data (GeoJSON)
-        self._send_geojson_preview(gdf, analysis_gdf)
+        # 3. Spatial GIS Audit (Authoritative Logic) — pula se sem dados OSM
+        analysis_gdf = None
+        if osm_available:
+            Logger.info("Step 2/5: Running spatial audit...", progress=30)
+            analysis_gdf = self._run_audit(gdf)
+            # 4. Preview Data (GeoJSON)
+            self._send_geojson_preview(gdf, analysis_gdf)
+        else:
+            Logger.info("Step 2/5: Spatial audit skipped (no OSM data).", progress=30)
 
         # 5. Coordinate Offset & CAD Export
         # AUTHORITATIVE FIX: Check if we want Georeferenced (Absolute) or Localized (0,0)
@@ -92,15 +96,26 @@ class OSMController:
             dxf_gen._offset_initialized = True
 
         dxf_gen.project_info = self.project_metadata
-        dxf_gen.bt_context = self._build_bt_context_for_dxf(gdf.crs)
 
-        dxf_gen.add_features(
-            gdf
-        )  # Features set the offset ONLY if not initialized above
+        # CRS para bt_context: usa CRS do GDF OSM se disponível, caso contrário
+        # resolve via coordenadas centrais do projeto.
+        if osm_available:
+            bt_crs = gdf.crs
+        else:
+            epsg_code = sirgas2000_utm_epsg(self.lat, self.lon)
+            from pyproj import CRS as ProjCRS
+            bt_crs = ProjCRS.from_epsg(epsg_code)
+
+        dxf_gen.bt_context = self._build_bt_context_for_dxf(bt_crs)
+
+        if osm_available:
+            dxf_gen.add_features(
+                gdf
+            )  # Features set the offset ONLY if not initialized above
         dxf_gen.add_bt_topology()
 
         # 6. Terrain & Contours (Optional)
-        if self.layers_config.get("terrain", False):
+        if self.layers_config.get("terrain", False) and osm_available:
             self._process_terrain(gdf, dxf_gen)
 
         # 7. Cartographic Elements
@@ -110,7 +125,8 @@ class OSMController:
         # 8. Save & Cleanup
         Logger.info("Step 5/5: Finalizing export package...", progress=90)
         dxf_gen.save()
-        self._export_csv_metadata(gdf)
+        if osm_available:
+            self._export_csv_metadata(gdf)
         Logger.success(f"Audit Complete: Generated {self.output_file}")
 
     def _fetch_features(self, tags):

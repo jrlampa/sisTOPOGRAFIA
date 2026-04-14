@@ -2,8 +2,9 @@ import React, { Suspense } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import type { AppSettings, GeoLocation, SelectionMode } from "../types";
+import { lazyWithRecovery } from "../utils/dynamicImportRecovery";
 
-const SettingsModal = React.lazy(() => import("./SettingsModal"));
+const SettingsModal = lazyWithRecovery(() => import("./SettingsModal"), "settings-modal");
 
 type Props = {
   showSettings: boolean;

@@ -16,6 +16,7 @@ import {
   validateBatchUploadFile,
   type InlineValidationResult,
 } from "../utils/validation";
+import { buildApiHeaders } from "../services/apiHeaders";
 
 type BatchResult = {
   name: string;
@@ -131,6 +132,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
 
       const response = await fetch(`${API_URL}/dxf/batch`, {
         method: "POST",
+        headers: buildApiHeaders(),
         body: formData,
       });
 

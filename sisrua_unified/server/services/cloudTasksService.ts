@@ -388,12 +388,39 @@ export async function createDxfTask(
   createJob(taskId);
 
   if (postgresAvailable && sqlClient) {
-    await sqlClient.unsafe(
-      `INSERT INTO dxf_tasks (task_id, status, payload, attempts, idempotency_key, updated_at)
-       VALUES ($1, 'queued', $2, 0, $3, now())
-       ON CONFLICT (idempotency_key) WHERE status NOT IN ('failed', 'cancelled') DO NOTHING`,
-      [taskId, fullPayload, payload.cacheKey],
-    );
+    try {
+      await sqlClient.unsafe(
+        `INSERT INTO dxf_tasks (task_id, status, payload, attempts, idempotency_key, updated_at)
+         VALUES ($1, 'queued', $2, 0, $3, now())`,
+        [taskId, fullPayload, payload.cacheKey],
+      );
+    } catch (error: any) {
+      if (error?.code === "23505") {
+        const duplicate = (await sqlClient.unsafe(
+          `SELECT task_id, status FROM dxf_tasks
+           WHERE idempotency_key = $1 AND status NOT IN ('failed')
+           LIMIT 1`,
+          [payload.cacheKey],
+        )) as Array<{ task_id: string; status: string }>;
+
+        if (duplicate.length > 0) {
+          const duplicateTaskId = duplicate[0].task_id;
+          logger.info("DXF task duplicate detected — returning existing task", {
+            duplicateTaskId,
+            status: duplicate[0].status,
+            cacheKey: payload.cacheKey,
+          });
+
+          return {
+            taskId: duplicateTaskId,
+            taskName: `pg-task-${duplicateTaskId}`,
+            alreadyCompleted: duplicate[0].status === "completed",
+          };
+        }
+      }
+
+      throw error;
+    }
 
     logger.info("DXF task queued in Supabase/Postgres", {
       taskId,

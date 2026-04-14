@@ -9,6 +9,15 @@ except (ImportError, ValueError):
     from .utils.logger import Logger
     from .constants import MAX_FETCH_RADIUS_METERS
 
+# osmnx raises this when the query area has no matching features
+try:
+    from osmnx._errors import InsufficientResponseError as _OsmnxInsufficientError
+except ImportError:
+    try:
+        from osmnx.errors import InsufficientResponseError as _OsmnxInsufficientError
+    except ImportError:
+        _OsmnxInsufficientError = None
+
 
 def _clip_to_boundary(gdf_proj, lat, lon, radius, polygon):
     """
@@ -95,7 +104,22 @@ def fetch_osm_data(lat, lon, radius, tags, crs='auto', polygon=None):
                 
             Logger.info(f"Fetching OSM data from ({lat}, {lon}) radius={radius}m (CRS={crs})")
             gdf = ox.features.features_from_point((lat, lon), tags, dist=radius)
-        
+
+    except Exception as _osm_exc:
+        # osmnx raises InsufficientResponseError when no features match the
+        # query.  Treat this as an empty result rather than a hard crash so the
+        # rest of the pipeline (BT topology, terrain, etc.) can still run.
+        _is_empty = (
+            (_OsmnxInsufficientError is not None and isinstance(_osm_exc, _OsmnxInsufficientError))
+            or "InsufficientResponseError" in type(_osm_exc).__name__
+            or "No matching features" in str(_osm_exc)
+        )
+        if _is_empty:
+            Logger.info(f"OSM returned no matching features for the selected area: {_osm_exc}")
+            return gpd.GeoDataFrame()
+        raise
+
+    try:
         if gdf.empty:
             Logger.info("No features found in the specified area")
             return gpd.GeoDataFrame()

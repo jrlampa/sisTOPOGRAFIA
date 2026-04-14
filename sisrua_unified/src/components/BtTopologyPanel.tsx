@@ -1912,11 +1912,15 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                   const demandMaxKw =
                     currentMaxA * CURRENT_TO_DEMAND_CONVERSION;
                   const correctedDemandKw = demandMaxKw * temperatureFactor;
+                  const replacementEntryKva =
+                    getTransformerChangeFlag(selectedTransformer) === "replace"
+                      ? selectedTransformer.replacementToKva
+                      : null;
                   const effectiveDemandKw = hasReadings
                     ? correctedDemandKw
-                    : (selectedTransformer.demandKw ?? 0);
+                    : replacementEntryKva ?? (selectedTransformer.demandKw ?? 0);
                   const projectPowerKva =
-                    selectedTransformer.projectPowerKva ?? 0;
+                    replacementEntryKva ?? (selectedTransformer.projectPowerKva ?? 0);
                   const loadingPct =
                     projectPowerKva > 0
                       ? (effectiveDemandKw / projectPowerKva) * 100
@@ -2074,6 +2078,12 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                       </button>
 
                       <div className="rounded border border-slate-300 bg-white p-2 text-[10px] text-slate-700 space-y-1">
+                        {getTransformerChangeFlag(selectedTransformer) ===
+                          "replace" && (
+                          <div className="mb-1 rounded border border-emerald-300 bg-emerald-50 px-2 py-1 text-emerald-800">
+                            Substituição ativa: cálculos usando trafo que entra ({formatBr(replacementEntryKva ?? 0)} kVA).
+                          </div>
+                        )}
                         <div>
                           Demanda corrigida: {formatBr(effectiveDemandKw)} kVA
                         </div>

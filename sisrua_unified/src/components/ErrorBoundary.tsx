@@ -1,6 +1,11 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertCircle } from 'lucide-react';
 import Logger from '../utils/logger';
+import {
+  attemptDynamicImportRecovery,
+  isDynamicImportError,
+  recoverFromDynamicImportError,
+} from '../utils/dynamicImportRecovery';
 
 interface Props {
   children: ReactNode;
@@ -37,6 +42,10 @@ class ErrorBoundary extends Component<Props, State> {
       error,
       errorInfo
     });
+
+    if (isDynamicImportError(error)) {
+      void attemptDynamicImportRecovery(error, 'error-boundary');
+    }
   }
 
   handleReset = () => {
@@ -45,6 +54,15 @@ class ErrorBoundary extends Component<Props, State> {
       error: null,
       errorInfo: null
     });
+  };
+
+  handleReload = async () => {
+    if (isDynamicImportError(this.state.error)) {
+      await recoverFromDynamicImportError();
+      return;
+    }
+
+    window.location.reload();
   };
 
   render() {
@@ -96,7 +114,7 @@ class ErrorBoundary extends Component<Props, State> {
                 Tentar Novamente
               </button>
               <button
-                onClick={() => window.location.reload()}
+                onClick={this.handleReload}
                 className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-3 px-6 rounded-xl font-bold transition-colors"
               >
                 Recarregar Página

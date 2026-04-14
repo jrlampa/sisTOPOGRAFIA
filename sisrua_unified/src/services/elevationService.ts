@@ -1,14 +1,23 @@
-import { GeoLocation, TerrainGrid, TerrainPoint } from '../types';
-import Logger from '../utils/logger';
+import { GeoLocation, TerrainGrid, TerrainPoint } from "../types";
+import Logger from "../utils/logger";
+const generateRequestId = () => {
+  return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
 
-export const fetchElevationGrid = async (center: GeoLocation, radius: number, gridSize: number = 12): Promise<TerrainGrid> => {
+export const fetchElevationGrid = async (
+  center: GeoLocation,
+  radius: number,
+  gridSize: number = 12,
+): Promise<TerrainGrid> => {
+  const requestId = generateRequestId();
   // Bounding box calculation
   const R = 6378137; // Earth radius
 
   // Calculate delta Lat/Lng for the radius
   const dLat = (radius / R) * (180 / Math.PI);
   // Adjust lng delta based on latitude
-  const dLng = (radius / (R * Math.cos(center.lat * Math.PI / 180))) * (180 / Math.PI);
+  const dLng =
+    (radius / (R * Math.cos((center.lat * Math.PI) / 180))) * (180 / Math.PI);
 
   // We want a square grid covering the circle
   const minLat = center.lat - dLat;
@@ -21,7 +30,9 @@ export const fetchElevationGrid = async (center: GeoLocation, radius: number, gr
   const effectiveGridSize = Math.min(gridSize, MAX_GRID_SIZE);
 
   if (effectiveGridSize < gridSize) {
-    Logger.warn(`Reducing elevation grid size to ${effectiveGridSize}x${effectiveGridSize} to respect Open-Meteo limits`);
+    Logger.warn(
+      `Reducing elevation grid size to ${effectiveGridSize}x${effectiveGridSize} to respect Open-Meteo limits`,
+    );
   }
 
   const latStep = (maxLat - minLat) / (effectiveGridSize - 1);
@@ -40,17 +51,25 @@ export const fetchElevationGrid = async (center: GeoLocation, radius: number, gr
 
   // Open-Meteo Elevation API
   // Note: Open-Meteo takes comma-separated lists. URL length limits apply, but 144 points is fine.
-  const url = `https://api.open-meteo.com/v1/elevation?latitude=${lats.map(l => l.toFixed(6)).join(',')}&longitude=${lngs.map(l => l.toFixed(6)).join(',')}`;
+  const url = `https://api.open-meteo.com/v1/elevation?latitude=${lats.map((l) => l.toFixed(6)).join(",")}&longitude=${lngs.map((l) => l.toFixed(6)).join(",")}`;
 
   try {
-    Logger.debug(`Fetching elevation grid for ${effectiveGridSize}x${effectiveGridSize} points`);
+    Logger.debug(
+      `[${requestId}] Fetching elevation grid for ${effectiveGridSize}x${effectiveGridSize} points`,
+    );
     const response = await fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch terrain data');
+    if (!response.ok) {
+      const msg = `Serviço de elevação indisponível (HTTP ${response.status})`;
+      Logger.error(`[${requestId}] ${msg}`);
+      throw new Error(`${msg}. [${requestId}]`);
+    }
     const data = await response.json();
     const elevations = data.elevation as number[];
 
     if (!elevations || elevations.length !== lats.length) {
-      throw new Error("Invalid elevation data received");
+      const msg = `Dados de elevação inválidos recebidos`;
+      Logger.error(`[${requestId}] ${msg}`);
+      throw new Error(`${msg}. [${requestId}]`);
     }
 
     // Reconstruct into 2D grid
@@ -62,18 +81,19 @@ export const fetchElevationGrid = async (center: GeoLocation, radius: number, gr
         row.push({
           lat: lats[idx],
           lng: lngs[idx],
-          elevation: elevations[idx] || 0
+          elevation: elevations[idx] || 0,
         });
         idx++;
       }
       grid.push(row);
     }
-    
-    Logger.info(`Elevation grid fetched successfully with ${elevations.length} points`);
-    return grid;
 
+    Logger.info(
+      `Elevation grid fetched successfully with ${elevations.length} points`,
+    );
+    return grid;
   } catch (error) {
-    Logger.error("Elevation API Error", error);
+    Logger.error(`[${requestId}] Elevation API Error`, error);
     // Return flat grid on error so app doesn't crash, just flat terrain
     const grid: TerrainGrid = [];
     for (let i = 0; i < effectiveGridSize; i++) {
@@ -82,7 +102,7 @@ export const fetchElevationGrid = async (center: GeoLocation, radius: number, gr
         row.push({
           lat: minLat + i * latStep,
           lng: minLng + j * lngStep,
-          elevation: 0
+          elevation: 0,
         });
       }
       grid.push(row);
@@ -94,21 +114,24 @@ export const fetchElevationGrid = async (center: GeoLocation, radius: number, gr
 /**
  * Fetches elevation profile from backend (Smart Backend Refinement)
  */
-export const fetchElevationProfile = async (start: GeoLocation, end: GeoLocation) => {
+export const fetchElevationProfile = async (
+  start: GeoLocation,
+  end: GeoLocation,
+) => {
   try {
-    Logger.debug('Fetching elevation profile');
-    const response = await fetch('/api/elevation/profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ start, end, steps: 25 })
+    Logger.debug("Fetching elevation profile");
+    const response = await fetch("/api/elevation/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start, end, steps: 25 }),
     });
 
-    if (!response.ok) throw new Error('Failed to fetch elevation profile');
+    if (!response.ok) throw new Error("Failed to fetch elevation profile");
     const data = await response.json();
-    Logger.info('Elevation profile fetched successfully');
+    Logger.info("Elevation profile fetched successfully");
     return data.profile;
   } catch (error) {
-    Logger.error('Error fetching elevation profile:', error);
+    Logger.error("Error fetching elevation profile:", error);
     return [];
   }
 };

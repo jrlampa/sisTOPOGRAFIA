@@ -27,7 +27,15 @@ import {
   GeoLocation,
 } from "../types";
 import type { BtPoleAccumulatedDemand } from "../services/btDerivedService";
-import { Minus, Plus, Trash2, Triangle } from "lucide-react";
+import {
+  AlertCircle,
+  Gauge,
+  Minus,
+  Plus,
+  Tag,
+  Trash2,
+  Triangle,
+} from "lucide-react";
 import {
   LEGACY_ID_ENTROPY,
   ENTITY_ID_PREFIXES,
@@ -69,7 +77,7 @@ const CONDUCTOR_OPTIONS = [
 const EDGE_HIT_AREA_WEIGHT = 28;
 const LEAFLET_ICON_BASE_URL = import.meta.env.BASE_URL;
 const POPUP_SELECT_CLASS =
-  "w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[11px] text-slate-700";
+  "w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[11px] text-slate-700 transition-all duration-150 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100";
 const POPUP_TOOLBAR_CLASS = "mt-1.5 flex items-center gap-2";
 const POPUP_FLAG_GRID_CLASS = "mt-1.5 grid grid-cols-2 gap-1.5";
 
@@ -78,21 +86,21 @@ const getFlagButtonClass = (
   variant: "existing" | "new" | "replace" | "remove",
 ) => {
   const baseClass =
-    "h-6 rounded border bg-white text-[10px] font-bold transition-colors";
+    "h-7 rounded border bg-white px-1.5 text-[11px] font-semibold leading-none transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-1";
 
   if (variant === "new") {
-    return `${baseClass} border-green-500 text-green-700 ${isActive ? "bg-green-100" : "hover:bg-green-50"}`;
+    return `${baseClass} border-green-500 text-green-700 focus:ring-green-200 ${isActive ? "bg-green-100 shadow-sm" : "hover:bg-green-50 hover:shadow-sm"}`;
   }
 
   if (variant === "replace") {
-    return `${baseClass} border-yellow-400 text-yellow-700 ${isActive ? "bg-yellow-100" : "hover:bg-yellow-50"}`;
+    return `${baseClass} border-yellow-400 text-yellow-700 focus:ring-yellow-200 ${isActive ? "bg-yellow-100 shadow-sm" : "hover:bg-yellow-50 hover:shadow-sm"}`;
   }
 
   if (variant === "remove") {
-    return `${baseClass} border-red-500 text-red-700 ${isActive ? "bg-red-100" : "hover:bg-red-50"}`;
+    return `${baseClass} border-red-500 text-red-700 focus:ring-red-200 ${isActive ? "bg-red-100 shadow-sm" : "hover:bg-red-50 hover:shadow-sm"}`;
   }
 
-  return `${baseClass} border-fuchsia-500 text-fuchsia-700 ${isActive ? "bg-fuchsia-100" : "hover:bg-fuchsia-50"}`;
+  return `${baseClass} border-fuchsia-500 text-fuchsia-700 focus:ring-fuchsia-200 ${isActive ? "bg-fuchsia-100 shadow-sm" : "hover:bg-fuchsia-50 hover:shadow-sm"}`;
 };
 
 const getIconActionButtonClass = (
@@ -100,21 +108,53 @@ const getIconActionButtonClass = (
   active = false,
 ) => {
   const baseClass =
-    "inline-flex h-6 w-7 items-center justify-center rounded border transition-colors";
+    "inline-flex h-6 w-7 items-center justify-center rounded border transition-all duration-150 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-1";
 
   if (variant === "danger") {
-    return `${baseClass} border-red-500 text-red-500 ${active ? "bg-red-100" : "bg-red-500/10 hover:bg-red-100"}`;
+    return `${baseClass} border-red-500 text-red-500 focus:ring-red-200 ${active ? "bg-red-100" : "bg-red-500/10 hover:bg-red-100 hover:shadow-sm"}`;
   }
 
   if (variant === "sky") {
-    return `${baseClass} border-sky-500 text-sky-600 bg-sky-500/10 hover:bg-sky-100`;
+    return `${baseClass} border-sky-500 text-sky-600 bg-sky-500/10 hover:bg-sky-100 hover:shadow-sm focus:ring-sky-200`;
   }
 
   if (variant === "violet") {
-    return `${baseClass} ${active ? "border-violet-700 text-violet-700 bg-violet-100" : "border-slate-500 text-slate-600 bg-slate-100 hover:bg-slate-200"}`;
+    return `${baseClass} focus:ring-violet-200 ${active ? "border-violet-700 text-violet-700 bg-violet-100" : "border-slate-500 text-slate-600 bg-slate-100 hover:bg-slate-200 hover:shadow-sm"}`;
   }
 
-  return `${baseClass} border-slate-500 text-slate-700 bg-slate-100 hover:bg-slate-200`;
+  return `${baseClass} border-slate-500 text-slate-700 bg-slate-100 hover:bg-slate-200 hover:shadow-sm focus:ring-slate-200`;
+};
+
+const getEdgeFlagLabel = (flag: BtEdgeChangeFlag): string => {
+  if (flag === "new") return "Novo";
+  if (flag === "remove") return "Remoção";
+  if (flag === "replace") return "Substituição";
+  return "Existente";
+};
+
+const getPoleFlagLabel = (flag: BtPoleChangeFlag): string => {
+  if (flag === "new") return "Novo";
+  if (flag === "remove") return "Remoção";
+  if (flag === "replace") return "Substituição";
+  return "Existente";
+};
+
+const getFlagBadgeClass = (
+  flag: "existing" | "new" | "remove" | "replace",
+): string => {
+  if (flag === "new") {
+    return "border border-green-700 bg-green-100 text-green-900";
+  }
+
+  if (flag === "remove") {
+    return "border border-red-700 bg-red-100 text-red-900";
+  }
+
+  if (flag === "replace") {
+    return "border border-amber-700 bg-amber-100 text-amber-900";
+  }
+
+  return "border border-fuchsia-700 bg-fuchsia-100 text-fuchsia-900";
 };
 
 // Fix for default marker icon in React Leaflet
@@ -191,6 +231,14 @@ interface MapSelectorProps {
     transformerId: string,
     transformerChangeFlag: "existing" | "new" | "remove" | "replace",
   ) => void;
+  onBtSetTransformerReplacementFromKva?: (
+    transformerId: string,
+    replacementFromKva: number,
+  ) => void;
+  onBtSetTransformerReplacementToKva?: (
+    transformerId: string,
+    replacementToKva: number,
+  ) => void;
   onBtDragPole?: (poleId: string, lat: number, lng: number) => void;
   onBtDragTransformer?: (
     transformerId: string,
@@ -261,6 +309,47 @@ const getFlagColor = (
   if (flag === "replace") return "#facc15";
   return fallback;
 };
+
+const getTransformerFlagLabel = (flag: BtTransformerChangeFlag): string => {
+  if (flag === "new") return "Novo";
+  if (flag === "remove") return "Remoção";
+  if (flag === "replace") return "Substituição";
+  return "Existente";
+};
+
+const getTransformerFlagBadgeClass = (
+  flag: BtTransformerChangeFlag,
+): string => {
+  if (flag === "new") {
+    return "border border-green-700 bg-green-100 text-green-900";
+  }
+
+  if (flag === "remove") {
+    return "border border-red-700 bg-red-100 text-red-900";
+  }
+
+  if (flag === "replace") {
+    return "border border-amber-700 bg-amber-100 text-amber-900";
+  }
+
+  return "border border-fuchsia-700 bg-fuchsia-100 text-fuchsia-900";
+};
+
+const getVerificationBadgeClass = (verified?: boolean): string => {
+  return verified
+    ? "border border-green-700 bg-green-100 text-green-900"
+    : "border border-amber-700 bg-amber-100 text-amber-900";
+};
+
+const getTransformerCorrectedDemandKva = (transformer: BtTransformer): number =>
+  transformer.demandKw ?? 0;
+
+const getTransformerProjectPowerKva = (
+  transformer: BtTransformer,
+): number | null =>
+  typeof transformer.projectPowerKva === "number"
+    ? transformer.projectPowerKva
+    : null;
 
 interface SelectionManagerProps {
   center: GeoLocation;
@@ -562,6 +651,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onBtSetPoleChangeFlag,
   onBtTogglePoleCircuitBreak,
   onBtSetTransformerChangeFlag,
+  onBtSetTransformerReplacementFromKva,
+  onBtSetTransformerReplacementToKva,
   onBtDragPole,
   onBtDragTransformer,
   criticalPoleId,
@@ -577,6 +668,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   const btEdgesPaneName = `bt-edges-pane-${paneIdSuffix}`;
   const btPolesPaneName = `bt-poles-pane-${paneIdSuffix}`;
   const btTransformersPaneName = `bt-transformers-pane-${paneIdSuffix}`;
+  const btPopupsPaneName = `bt-popups-pane-${paneIdSuffix}`;
 
   const polesById = React.useMemo(() => {
     return new Map(topology.poles.map((pole) => [pole.id, pole]));
@@ -591,6 +683,10 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   >({});
   const [edgeReplacementFromSelection, setEdgeReplacementFromSelection] =
     React.useState<Record<string, string>>({});
+  const [transformerReplacementFromSelection, setTransformerReplacementFromSelection] =
+    React.useState<Record<string, number>>({});
+  const [transformerReplacementToSelection, setTransformerReplacementToSelection] =
+    React.useState<Record<string, number>>({});
 
   const poleHasTransformer = React.useMemo(() => {
     const byPole = new Map<string, boolean>();
@@ -771,6 +867,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtMapClick={onBtMapClick}
         />
 
+        <Pane name={btPopupsPaneName} style={{ zIndex: 700 }} />
         <Pane name={btEdgesPaneName} style={{ zIndex: 420 }}>
           {(topology.edges || []).map((edge) => {
             const from = polesById.get(edge.fromPoleId);
@@ -781,14 +878,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
 
             const edgeChangeFlag = getEdgeChangeFlag(edge);
             const edgeVisual = getEdgeVisualConfig(edge);
-            const edgeFlagLabel =
-              edgeChangeFlag === "remove"
-                ? "Remoção"
-                : edgeChangeFlag === "new"
-                  ? "Novo"
-                  : edgeChangeFlag === "replace"
-                    ? "Substituição"
-                    : "Existente";
+            const edgeFlagLabel = getEdgeFlagLabel(edgeChangeFlag);
 
             const selectedConductor =
               edgeConductorSelection[edge.id] ??
@@ -802,18 +892,47 @@ const MapSelector: React.FC<MapSelectorProps> = ({
               CONDUCTOR_OPTIONS[0];
 
             const edgePopup = (
-              <Popup>
-                <div className="text-xs">
-                  <div>
-                    <strong>{edge.id}</strong>
+              <Popup pane={btPopupsPaneName}>
+                <div className="min-w-[240px] space-y-2 text-xs text-slate-800">
+                  <div className="border-b border-slate-200 pb-1.5">
+                    <strong className="block text-sm leading-none text-slate-900">
+                      {edge.id}
+                    </strong>
+                    <div className="mt-0.5 text-[11px] text-slate-500">
+                      {from.title} {"<->"} {to.title}
+                    </div>
                   </div>
-                  <div className="mt-0.5 text-slate-700">
-                    {from.title} {"<->"} {to.title}
+
+                  <div className="grid grid-cols-2 gap-2 rounded border border-slate-200 bg-slate-50 p-2">
+                    <div>
+                      <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-slate-500">
+                        <Tag className="h-3 w-3" />
+                        Flag
+                      </div>
+                      <span
+                        className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold ${getFlagBadgeClass(edgeChangeFlag)}`}
+                      >
+                        {edgeFlagLabel}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-slate-500">
+                        <AlertCircle className="h-3 w-3" />
+                        Status
+                      </div>
+                      <span
+                        className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold ${getVerificationBadgeClass(edge.verified)}`}
+                      >
+                        {edge.verified ? "✓ Verificado" : "○ Não verificado"}
+                      </span>
+                    </div>
                   </div>
+
                   <div className="mt-1 text-slate-700">
-                    Flag: <strong>{edgeFlagLabel}</strong>
+                    {edgeChangeFlag === "replace"
+                      ? "Condutor que entra"
+                      : "Condutor"}
                   </div>
-                  <div className="mt-1 text-slate-700">Condutor</div>
                   <div className="mt-0.5">
                     <select
                       value={selectedConductor}
@@ -924,6 +1043,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                     <div className="mt-0.5 text-slate-700">
                       {edge.conductors.map((entry) => (
                         <div key={entry.id}>
+                          {edgeChangeFlag === "replace" ? "Entra: " : ""}
                           {entry.quantity} x {entry.conductorName}
                         </div>
                       ))}
@@ -946,11 +1066,6 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                       )}
                     </div>
                   )}
-                  <div
-                    className={`mt-0.5 font-semibold ${edge.verified ? "text-green-600" : "text-amber-600"}`}
-                  >
-                    {edge.verified ? "✓ Verificado" : "○ Não verificado"}
-                  </div>
                   {onBtSetEdgeChangeFlag && (
                     <div className={POPUP_FLAG_GRID_CLASS}>
                       <button
@@ -1080,12 +1195,12 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                     [from.lat, from.lng],
                     [to.lat, to.lng],
                   ]}
+                  interactive={false}
                   pathOptions={{
                     color: "#ffffff",
                     weight: edgeVisual.weight + 3,
                     opacity: 0.72,
                     dashArray: edgeVisual.dashArray,
-                    interactive: false,
                     lineCap: "round",
                     lineJoin: "round",
                   }}
@@ -1095,12 +1210,12 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                     [from.lat, from.lng],
                     [to.lat, to.lng],
                   ]}
+                  interactive={false}
                   pathOptions={{
                     color: edgeVisual.color,
                     weight: edgeVisual.weight,
                     opacity: 0.98,
                     dashArray: edgeVisual.dashArray,
-                    interactive: false,
                     lineCap: "round",
                     lineJoin: "round",
                   }}
@@ -1159,6 +1274,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                 position={[pole.lat, pole.lng]}
                 icon={makePoleIcon(pole.id, !!pole.verified)}
                 zIndexOffset={1200}
+                bubblingMouseEvents={false}
                 draggable={
                   btEditorMode !== "add-edge" &&
                   btEditorMode !== "add-transformer"
@@ -1193,10 +1309,12 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                     {pole.title}
                   </span>
                 </Tooltip>
-                <Popup>
-                  <div className="text-xs">
+                <Popup pane={btPopupsPaneName}>
+                  <div className="min-w-[240px] text-xs text-slate-800">
                     {(() => {
                       const poleAccumulated = accumulatedByPoleMap.get(pole.id);
+                      const poleFlag = getPoleChangeFlag(pole);
+                      const poleFlagLabel = getPoleFlagLabel(poleFlag);
                       const cqtClass =
                         poleAccumulated?.cqtStatus === "CRÍTICO"
                           ? "text-red-600"
@@ -1205,9 +1323,16 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                             : "text-emerald-700";
 
                       return (
-                        <>
-                          <strong>{pole.title}</strong>
-                          <div>{pole.id}</div>
+                        <div className="space-y-2">
+                          <div className="border-b border-slate-200 pb-1.5">
+                            <strong className="block text-sm leading-none text-slate-900">
+                              {pole.title}
+                            </strong>
+                            <div className="mt-0.5 text-[11px] text-slate-500">
+                              {pole.id}
+                            </div>
+                          </div>
+
                           {onBtRenamePole && (
                             <input
                               type="text"
@@ -1217,9 +1342,37 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                               onChange={(e) =>
                                 onBtRenamePole(pole.id, e.target.value)
                               }
-                              className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
+                              className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
                             />
                           )}
+
+                          <div className="grid grid-cols-2 gap-2 rounded border border-slate-200 bg-slate-50 p-2">
+                            <div>
+                              <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-slate-500">
+                                <Tag className="h-3 w-3" />
+                                Flag
+                              </div>
+                              <span
+                                className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold ${getFlagBadgeClass(poleFlag)}`}
+                              >
+                                {poleFlagLabel}
+                              </span>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-slate-500">
+                                <AlertCircle className="h-3 w-3" />
+                                Status
+                              </div>
+                              <span
+                                className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold ${getVerificationBadgeClass(pole.verified)}`}
+                              >
+                                {pole.verified
+                                  ? "✓ Verificado"
+                                  : "○ Não verificado"}
+                              </span>
+                            </div>
+                          </div>
+
                           {pole.id === criticalPoleId && (
                             <div className="mt-0.5 font-bold text-red-500">
                               ⚠ Ponto crítico
@@ -1289,25 +1442,6 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                               )}
                             </div>
                           )}
-                          <div
-                            className={`mt-0.5 font-semibold ${pole.verified ? "text-green-600" : "text-amber-600"}`}
-                          >
-                            {pole.verified
-                              ? "✓ Verificado"
-                              : "○ Não verificado"}
-                          </div>
-                          <div className="mt-0.5 text-slate-700">
-                            Flag:{" "}
-                            <strong>
-                              {getPoleChangeFlag(pole) === "new"
-                                ? "Novo"
-                                : getPoleChangeFlag(pole) === "remove"
-                                  ? "Remoção"
-                                  : getPoleChangeFlag(pole) === "replace"
-                                    ? "Substituição"
-                                    : "Existente"}
-                            </strong>
-                          </div>
                           {(pole.circuitBreakPoint ?? false) && (
                             <div className="mt-0.5 font-bold text-sky-700">
                               Separação física ativa: circuito interrompido
@@ -1323,7 +1457,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                   onBtSetPoleChangeFlag(pole.id, "existing");
                                 }}
                                 className={getFlagButtonClass(
-                                  getPoleChangeFlag(pole) === "existing",
+                                    poleFlag === "existing",
                                   "existing",
                                 )}
                               >
@@ -1336,7 +1470,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                   onBtSetPoleChangeFlag(pole.id, "new");
                                 }}
                                 className={getFlagButtonClass(
-                                  getPoleChangeFlag(pole) === "new",
+                                    poleFlag === "new",
                                   "new",
                                 )}
                               >
@@ -1349,7 +1483,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                   onBtSetPoleChangeFlag(pole.id, "replace");
                                 }}
                                 className={getFlagButtonClass(
-                                  getPoleChangeFlag(pole) === "replace",
+                                    poleFlag === "replace",
                                   "replace",
                                 )}
                               >
@@ -1362,7 +1496,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                                   onBtSetPoleChangeFlag(pole.id, "remove");
                                 }}
                                 className={getFlagButtonClass(
-                                  getPoleChangeFlag(pole) === "remove",
+                                    poleFlag === "remove",
                                   "remove",
                                 )}
                               >
@@ -1452,7 +1586,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                               </button>
                             )}
                           </div>
-                        </>
+                        </div>
                       );
                     })()}
                   </div>
@@ -1463,8 +1597,22 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         </Pane>
 
         <Pane name={btTransformersPaneName} style={{ zIndex: 480 }}>
-          {(topology.transformers || []).map((transformer) => (
-            <Marker
+          {(topology.transformers || []).map((transformer) => {
+            const correctedDemandKva = getTransformerCorrectedDemandKva(transformer);
+            const projectPowerKva = getTransformerProjectPowerKva(transformer);
+            const selectedReplacementFromKva =
+              transformerReplacementFromSelection[transformer.id] ??
+              transformer.replacementFromKva ??
+              projectPowerKva ??
+              correctedDemandKva;
+            const selectedReplacementToKva =
+              transformerReplacementToSelection[transformer.id] ??
+              transformer.replacementToKva ??
+              projectPowerKva ??
+              correctedDemandKva;
+
+            return (
+              <Marker
               key={`${transformer.id}-${transformer.verified ? "v" : "u"}`}
               position={[transformer.lat, transformer.lng]}
               icon={makeTransformerIcon(
@@ -1515,10 +1663,16 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                   {transformer.title}
                 </span>
               </Tooltip>
-              <Popup>
-                <div className="text-xs">
-                  <strong>{transformer.title}</strong>
-                  <div>{transformer.id}</div>
+              <Popup pane={btPopupsPaneName}>
+                <div className="min-w-[240px] space-y-2 text-xs text-slate-800">
+                  <div className="border-b border-slate-200 pb-1.5">
+                    <strong className="block text-sm leading-none text-slate-900">
+                      {transformer.title}
+                    </strong>
+                    <div className="mt-0.5 text-[11px] text-slate-500">
+                      {transformer.id}
+                    </div>
+                  </div>
                   {onBtRenameTransformer && (
                     <input
                       type="text"
@@ -1527,26 +1681,48 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         onBtRenameTransformer(transformer.id, e.target.value)
                       }
                       title="Nome do transformador"
-                      className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
+                      className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
                     />
                   )}
-                  <div>Demanda: {transformer.demandKw} kW</div>
-                  <div
-                    className={`mt-0.5 font-semibold ${transformer.verified ? "text-green-600" : "text-amber-600"}`}
-                  >
-                    {transformer.verified ? "✓ Verificado" : "○ Não verificado"}
+                  <div className="grid grid-cols-2 gap-2 rounded border border-slate-200 bg-slate-50 p-2">
+                    <div>
+                      <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-slate-500">
+                        <Gauge className="h-3 w-3" />
+                        Demanda corrigida
+                      </div>
+                      <div className="font-semibold text-slate-900">
+                        {correctedDemandKva.toFixed(2)} kVA
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-slate-500">
+                        <AlertCircle className="h-3 w-3" />
+                        Status
+                      </div>
+                      <div
+                        className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold ${getVerificationBadgeClass(transformer.verified)}`}
+                      >
+                        {transformer.verified
+                          ? "✓ Verificado"
+                          : "○ Não verificado"}
+                      </div>
+                    </div>
                   </div>
-                  <div className="mt-0.5 text-slate-700">
-                    Flag:{" "}
-                    <strong>
-                      {getTransformerChangeFlag(transformer) === "new"
-                        ? "Novo"
-                        : getTransformerChangeFlag(transformer) === "remove"
-                          ? "Remoção"
-                          : getTransformerChangeFlag(transformer) === "replace"
-                            ? "Substituição"
-                            : "Existente"}
-                    </strong>
+
+                  <div className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700">
+                    Trafo proj: {projectPowerKva === null ? "-" : `${projectPowerKva.toFixed(2)} kVA`}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-slate-700">
+                    <Tag className="h-3.5 w-3.5 text-slate-500" />
+                    <span>Flag:</span>
+                    <span
+                      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold ${getTransformerFlagBadgeClass(getTransformerChangeFlag(transformer))}`}
+                    >
+                      {getTransformerFlagLabel(
+                        getTransformerChangeFlag(transformer),
+                      )}
+                    </span>
                   </div>
                   {onBtSetTransformerChangeFlag && (
                     <div className={POPUP_FLAG_GRID_CLASS}>
@@ -1593,7 +1769,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                           "replace",
                         )}
                       >
-                        Substituição
+                        Substituir
                       </button>
                       <button
                         onClick={(e) => {
@@ -1613,6 +1789,102 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                       </button>
                     </div>
                   )}
+
+                  {getTransformerChangeFlag(transformer) === "replace" && (
+                    <>
+                      <div className="space-y-1 rounded border border-amber-200 bg-amber-50 p-2">
+                        <div className="text-[11px] font-semibold text-amber-900">
+                          Trafo que sai (kVA)
+                        </div>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={selectedReplacementFromKva}
+                          aria-label={`Trafo que sai do ${transformer.id}`}
+                          title={`Trafo que sai do ${transformer.id}`}
+                          onChange={(e) => {
+                            const parsed = Number(e.target.value);
+                            setTransformerReplacementFromSelection((current) => ({
+                              ...current,
+                              [transformer.id]: Number.isFinite(parsed)
+                                ? Math.max(0, parsed)
+                                : 0,
+                            }));
+                          }}
+                          className="w-full rounded border border-amber-300 bg-white px-1.5 py-0.5 text-[11px] text-amber-900"
+                        />
+                        {onBtSetTransformerReplacementFromKva && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onBtSetTransformerReplacementFromKva(
+                                transformer.id,
+                                selectedReplacementFromKva,
+                              );
+                            }}
+                            className="h-6 w-full rounded border border-amber-500 bg-amber-100 text-[11px] font-semibold text-amber-900 transition-colors hover:bg-amber-200"
+                          >
+                            Definir trafo que sai
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="space-y-1 rounded border border-emerald-200 bg-emerald-50 p-2">
+                        <div className="text-[11px] font-semibold text-emerald-900">
+                          Trafo que entra (kVA)
+                        </div>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={selectedReplacementToKva}
+                          aria-label={`Trafo que entra no ${transformer.id}`}
+                          title={`Trafo que entra no ${transformer.id}`}
+                          onChange={(e) => {
+                            const parsed = Number(e.target.value);
+                            setTransformerReplacementToSelection((current) => ({
+                              ...current,
+                              [transformer.id]: Number.isFinite(parsed)
+                                ? Math.max(0, parsed)
+                                : 0,
+                            }));
+                          }}
+                          className="w-full rounded border border-emerald-300 bg-white px-1.5 py-0.5 text-[11px] text-emerald-900"
+                        />
+                        {onBtSetTransformerReplacementToKva && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onBtSetTransformerReplacementToKva(
+                                transformer.id,
+                                selectedReplacementToKva,
+                              );
+                            }}
+                            className="h-6 w-full rounded border border-emerald-500 bg-emerald-100 text-[11px] font-semibold text-emerald-900 transition-colors hover:bg-emerald-200"
+                          >
+                            Definir trafo que entra
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700">
+                        <div>
+                          Sai: {(transformer.replacementFromKva ?? 0).toFixed(2)}
+                          {" "}
+                          kVA
+                        </div>
+                        <div>
+                          Entra: {(transformer.replacementToKva ?? 0).toFixed(2)}
+                          {" "}
+                          kVA
+                        </div>
+                      </div>
+                    </>
+                  )}
+
                   {onBtDeleteTransformer && (
                     <button
                       onClick={(e) => {
@@ -1620,15 +1892,18 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                         e.stopPropagation();
                         onBtDeleteTransformer(transformer.id);
                       }}
-                      className="mt-1 inline-flex h-6 items-center rounded border border-red-500 bg-red-500/10 px-2 text-[11px] text-red-500 transition-colors hover:bg-red-100"
+                      title="Excluir transformador"
+                      aria-label="Excluir transformador"
+                      className={getIconActionButtonClass("danger")}
                     >
-                      Deletar trafo
+                      <Trash2 size={12} />
                     </button>
                   )}
                 </div>
               </Popup>
             </Marker>
-          ))}
+            );
+          })}
         </Pane>
 
         {geojson && <GeoJSON data={geojson} />}

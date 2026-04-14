@@ -1,4 +1,9 @@
-import { BtProjectType, BtTransformerReading, BtTopology } from "../types";
+import {
+  BtProjectType,
+  BtTransformer,
+  BtTransformerReading,
+  BtTopology,
+} from "../types";
 import {
   CLANDESTINO_AREA_TO_KVA,
   CLANDESTINO_CLIENT_TO_DIVERSIF_FACTOR,
@@ -187,6 +192,28 @@ export const calculateTransformerMonthlyBill = (
   return readings.reduce((acc, reading) => acc + (reading.billedBrl ?? 0), 0);
 };
 
+export const getEffectiveTransformerDemandKva = (
+  transformer: BtTransformer,
+): number => {
+  const flag = transformer.transformerChangeFlag ?? "existing";
+  if (flag === "replace" && typeof transformer.replacementToKva === "number") {
+    return transformer.replacementToKva;
+  }
+
+  return transformer.demandKw ?? 0;
+};
+
+export const getEffectiveTransformerProjectPowerKva = (
+  transformer: BtTransformer,
+): number => {
+  const flag = transformer.transformerChangeFlag ?? "existing";
+  if (flag === "replace" && typeof transformer.replacementToKva === "number") {
+    return transformer.replacementToKva;
+  }
+
+  return transformer.projectPowerKva ?? 0;
+};
+
 const parseInteger = (value: number): number | null => {
   if (!Number.isFinite(value)) {
     return null;
@@ -349,7 +376,10 @@ const calculateTransformerOwnershipData = (
 
   const transformerPoleEntries = topology.transformers
     .filter(
-      (transformer) => transformer.poleId && allPoleIds.has(transformer.poleId),
+      (transformer) =>
+        transformer.poleId &&
+        allPoleIds.has(transformer.poleId) &&
+        (transformer.transformerChangeFlag ?? "existing") !== "remove",
     )
     .map((transformer) => ({
       transformerId: transformer.id,
@@ -493,7 +523,7 @@ export const calculateBtSummary = (topology: BtTopology) => {
     0,
   );
   const transformerDemandKw = topology.transformers.reduce(
-    (acc, transformer) => acc + transformer.demandKw,
+    (acc, transformer) => acc + getEffectiveTransformerDemandKva(transformer),
     0,
   );
 
@@ -546,6 +576,10 @@ export const calculateAccumulatedDemandByPole = (
 
   const transformerPoleIds = new Set(
     topology.transformers
+      .filter(
+        (transformer) =>
+          (transformer.transformerChangeFlag ?? "existing") !== "remove",
+      )
       .map((transformer) => transformer.poleId)
       .filter(
         (poleId): poleId is string =>
@@ -596,10 +630,15 @@ export const calculateAccumulatedDemandByPole = (
     (sum, value) => sum + value,
     0,
   );
-  const transformerDemandKva = topology.transformers.reduce(
-    (sum, transformer) => sum + transformer.demandKw,
-    0,
-  );
+  const transformerDemandKva = topology.transformers
+    .filter(
+      (transformer) =>
+        (transformer.transformerChangeFlag ?? "existing") !== "remove",
+    )
+    .reduce(
+      (sum, transformer) => sum + getEffectiveTransformerDemandKva(transformer),
+      0,
+    );
 
   const localWeightedRamalByPole = new Map<string, number>();
   let hasUnknownRamalWeight = false;
@@ -788,11 +827,14 @@ export const calculateEstimatedDemandByTransformer = (
     0,
   );
   const measuredDemandKw = topology.transformers.reduce((sum, transformer) => {
+    if ((transformer.transformerChangeFlag ?? "existing") === "remove") {
+      return sum;
+    }
     if (transformer.readings.length === 0) {
       return sum;
     }
 
-    return sum + (transformer.demandKw ?? 0);
+    return sum + getEffectiveTransformerDemandKva(transformer);
   }, 0);
   const demandPerClientKw =
     totalClients > 0 ? measuredDemandKw / totalClients : 0;
@@ -804,7 +846,9 @@ export const calculateEstimatedDemandByTransformer = (
       return {
         transformerId: transformer.id,
         assignedClients,
-        estimatedDemandKw: Number((transformer.demandKw ?? 0).toFixed(2)),
+        estimatedDemandKw: Number(
+          getEffectiveTransformerDemandKva(transformer).toFixed(2),
+        ),
       };
     }
 
@@ -856,11 +900,14 @@ export const calculateSectioningImpact = (
     0,
   );
   const measuredDemandKw = topology.transformers.reduce((sum, transformer) => {
+    if ((transformer.transformerChangeFlag ?? "existing") === "remove") {
+      return sum;
+    }
     if (transformer.readings.length === 0) {
       return sum;
     }
 
-    return sum + (transformer.demandKw ?? 0);
+    return sum + getEffectiveTransformerDemandKva(transformer);
   }, 0);
   const demandPerClientKw =
     totalClients > 0 ? measuredDemandKw / totalClients : 0;
@@ -1018,6 +1065,18 @@ export const findTransformerConflictsWithoutSectioning = (
         new Set(componentTransformerIds),
       ).sort((a, b) => a.localeCompare(b));
       if (uniqueTransformerIds.length >= 2) {
+        // Suppress conflict when the group is a planned replacement:
+        // all transformers are either "remove" (RET) or "new" (NOVO).
+        const groupFlags = uniqueTransformerIds.map((id) => {
+          const t = topology.transformers.find((tr) => tr.id === id);
+          return t?.transformerChangeFlag ?? "existing";
+        });
+        const isReplacementOnly = groupFlags.every(
+          (f) => f === "remove" || f === "new",
+        );
+        if (isReplacementOnly) {
+          continue;
+        }
         conflicts.push({
           poleIds: componentPoleIds,
           transformerIds: uniqueTransformerIds,

@@ -3,10 +3,11 @@ import { AlertCircle, Download, Loader2, Mountain } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { AnalysisStats, TerrainGrid } from '../types';
 import type { ToastType } from './Toast';
+import BatchUpload from './BatchUpload';
+import { lazyWithRecovery } from '../utils/dynamicImportRecovery';
 
-const Dashboard = React.lazy(() => import('./Dashboard'));
-const DxfLegend = React.lazy(() => import('./DxfLegend'));
-const BatchUpload = React.lazy(() => import('./BatchUpload'));
+const Dashboard = lazyWithRecovery(() => import('./Dashboard'), 'dashboard');
+const DxfLegend = lazyWithRecovery(() => import('./DxfLegend'), 'dxf-legend');
 
 const InlineSuspenseFallback = ({ label }: { label: string }) => (
   <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -71,12 +72,10 @@ export function SidebarAnalysisResults({
               <DxfLegend />
             </Suspense>
 
-            <Suspense fallback={<InlineSuspenseFallback label="Carregando importação em lote" />}>
-              <BatchUpload
-                onError={(message) => showToast(message, 'error')}
-                onInfo={(message) => showToast(message, 'info')}
-              />
-            </Suspense>
+            <BatchUpload
+              onError={(message) => showToast(message, 'error')}
+              onInfo={(message) => showToast(message, 'info')}
+            />
 
             <div className="flex items-center gap-3 p-4 glass rounded-2xl">
               <div className={`p-2 rounded-lg ${terrainData ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-800 text-slate-600'}`}>
