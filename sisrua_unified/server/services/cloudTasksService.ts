@@ -70,7 +70,7 @@ function persistBtContextSidecar(
   const sidecarPath = `${base}_bt_context.json`;
   const payload = {
     generatedAt: new Date().toISOString(),
-    artifactSha256: artifactSha256 ?? null,  // Roadmap #72: hash de proveniência
+    artifactSha256: artifactSha256 ?? null, // Roadmap #72: hash de proveniência
     btContext,
   };
 
@@ -186,10 +186,14 @@ async function processPayload(incomingPayload: any): Promise<void> {
       sha256: artifactSha256,
     });
     if (postgresAvailable && sqlClient) {
-      await sqlClient.unsafe(
-        `UPDATE dxf_tasks SET artifact_sha256 = $2 WHERE task_id = $1`,
-        [payload.taskId, artifactSha256],
-      ).catch((err) => logger.warn("Falha ao persistir artifact_sha256", { err }));
+      await sqlClient
+        .unsafe(
+          `UPDATE dxf_tasks SET artifact_sha256 = $2 WHERE task_id = $1`,
+          [payload.taskId, artifactSha256],
+        )
+        .catch((err) =>
+          logger.warn("Falha ao persistir artifact_sha256", { err }),
+        );
     }
   }
 

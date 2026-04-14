@@ -39,10 +39,15 @@ export function AppShellLayout({
 
   return (
     <div
-      className={`flex flex-col h-screen w-full font-sans transition-colors duration-500 overflow-hidden ${
+      className={`relative flex flex-col h-screen w-full font-sans transition-colors duration-500 overflow-hidden ${
         isDark ? "bg-[#020617] text-slate-200" : "bg-slate-50 text-slate-900"
       }`}
     >
+      <div className="app-shell-atmosphere" aria-hidden="true">
+        <span className="app-shell-orb app-shell-orb-1" />
+        <span className="app-shell-orb app-shell-orb-2" />
+        <span className="app-shell-orb app-shell-orb-3" />
+      </div>
       <AppStatusStack {...appStatusStackProps} />
       <AppSettingsOverlay {...appSettingsOverlayProps} />
       <AppHeader
@@ -57,7 +62,7 @@ export function AppShellLayout({
         backendStatus={backendHealth.status}
         backendResponseTimeMs={backendHealth.responseTimeMs}
       />
-      <main className="flex-1 flex overflow-hidden relative">
+      <main className="flex-1 flex overflow-hidden relative z-10">
         <SidebarWorkspace {...sidebarWorkspaceProps} />
         <MainMapWorkspace {...mainMapWorkspaceProps} />
       </main>

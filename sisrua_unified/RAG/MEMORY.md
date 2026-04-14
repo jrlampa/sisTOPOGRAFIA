@@ -167,26 +167,31 @@ docker-compose up -d
 O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md), focado em 5 grandes fases de maturidade:
 
 ### Fase 1: Estabilização & Orquestração (Current)
+
 - [ ] **Ponto 1 & 5**: Modularização do `dxf_generator.py` e Orquestração de Jobs Idempotentes.
 - [ ] **Ponto 23 & 36**: Compliance LGPD Operacional e Security Supply Chain (SBOM).
 - [ ] **Ponto 28 & 30**: Governança de Identidade (SCIM) e RBAC/ABAC Fino.
 
 ### Fase 2: Engenharia 2.0 & BIM
+
 - [ ] **Ponto 6 & 7**: Geração IFC 4.x e Registro de Proveniência Técnica.
 - [ ] **Ponto 43 & 45**: Integração SINAPI Master e Ciclo de Vida do Ativo (LCC).
 - [ ] **Ponto 35 & 37**: Multi-tenancy Seguro e BCP/DR com exercícios validados.
 
 ### Fase 3: Inteligência & Resiliência
+
 - [ ] **Ponto 11 & 14**: RAG de Normas Técnicas e Análise Preditiva de Carga.
 - [ ] **Ponto 17 & 19**: Operação SRE 24x7 e Injeção de Falhas (Chaos Engineering).
 - [ ] **Ponto 49 & 50**: Gestão de Vulnerabilidades e Pentests Periódicos.
 
 ### Fase 4: Operação de Campo & ESG
+
 - [ ] **Ponto 66 & 67**: Medição de Obras para Pagamento e Rastreabilidade QR Code.
 - [ ] **Ponto 59 & 63**: AR Field Viewer e Treinamento de Segurança VR (NR-10).
 - [ ] **Ponto 46 & 48**: RIPD Ambiental Automático e Créditos de Carbono.
 
 ### Fase 5: Fronteira & Vision 2027
+
 - [ ] **Ponto 71 & 89**: Federated Learning e Notarização em Blockchain.
 - [ ] **Ponto 65 & 83**: Suporte HoloLens 2 e Tele-Engenharia Remota.
 - [ ] **Ponto 85 & 87**: Detector Antifraude Orçamentária e Investor Discovery Pack.
@@ -333,6 +338,55 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 **Verificação atual**:
 
 - 11 de 11 jobs ativos
+
+---
+
+## 📌 Atualização Operacional (2026-04-14) - Evolução de Frontend SaaS
+
+### Escopo
+
+- Evolução visual da camada frontend com foco em UX/UI industrial em pt-BR.
+- Mudanças restritas à apresentação: sem alteração de contratos de API, payloads, rotas backend ou schema de banco.
+
+### Implementação
+
+- Atualizados tokens de tema em `src/index.css` com nova direção visual enterprise (paleta verde/azul, superfícies translúcidas e atmosfera em camadas).
+- Adicionadas tipografias de interface para reforço de hierarquia visual (`Manrope` + `Sora`) e maior legibilidade.
+- Ajustado `AppShellLayout.tsx` com camada atmosférica decorativa sem impacto funcional.
+- Refinado `AppHeader.tsx` com melhor contraste light/dark, rótulos em pt-BR e botões de ação com feedback visual mais claro.
+- Reestruturado `SidebarWorkspace.tsx` para separar blocos em painéis visuais consistentes e responsivos.
+
+### Validação
+
+- Build frontend validado com sucesso (`npm --prefix sisrua_unified run build`).
+- Preview atualizado e ativo (`npm --prefix sisrua_unified run preview`).
+
+### Iteração complementar (mesma data)
+
+- Refinados componentes de operação diária para legibilidade e consistência visual:
+  - `src/components/SidebarSelectionControls.tsx`
+  - `src/components/MainMapWorkspace.tsx`
+  - `src/components/SidebarAnalysisResults.tsx`
+- Ajustes focados em UX/UI e internacionalização pt-BR (acentuação e rótulos), sem alterar lógica de negócio.
+- Validação adicional executada com sucesso:
+  - Build (`npm --prefix sisrua_unified run build`)
+  - Modo integrado frontend+backend (`npm --prefix sisrua_unified run dev`)
+
+### Iteração complementar 2 (mesma data)
+
+- Evolução focada em acessibilidade visual e consistência de feedback do frontend:
+  - `src/components/Toast.tsx`
+  - `src/components/ProgressIndicator.tsx`
+  - `src/components/SessionRecoveryBanner.tsx`
+  - `src/components/DxfProgressBadge.tsx`
+  - `src/components/BtExportSummaryBanner.tsx`
+- Melhorias aplicadas:
+  - contraste light/dark e legibilidade de textos;
+  - foco visível para navegação por teclado (`focus-visible`);
+  - responsividade para telas menores;
+  - remoção de estilo inline no indicador de progresso.
+- Garantia de escopo:
+  - sem alteração em contratos de API, lógica de backend ou banco.
 - cache hit ratio: 99.97%
 - dead tuples críticos: 54
 - blocked locks: 0

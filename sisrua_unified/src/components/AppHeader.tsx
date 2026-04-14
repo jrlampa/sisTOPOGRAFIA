@@ -30,6 +30,8 @@ export function AppHeader({
   backendResponseTimeMs,
 }: AppHeaderProps) {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const actionButtonClass =
+    "rounded-xl border px-3 py-2 transition-colors shadow-sm backdrop-blur-sm";
 
   const backendStatusLabel =
     backendStatus === "online"
@@ -63,25 +65,44 @@ export function AppHeader({
 
   return (
     <header
-      className={`h-20 border-b flex items-center justify-between px-8 shrink-0 z-30 transition-all ${isDark ? "border-white/5 bg-[#020617]/80 backdrop-blur-md" : "border-slate-200 bg-white/80 backdrop-blur-md"}`}
+      className={`h-20 border-b flex items-center justify-between px-5 md:px-8 shrink-0 z-30 transition-all ${
+        isDark
+          ? "border-white/10 bg-slate-950/70 backdrop-blur-lg"
+          : "border-emerald-900/10 bg-white/70 backdrop-blur-lg"
+      }`}
     >
       <div className="flex items-center gap-4">
         <motion.div
-          whileHover={{ rotate: 180 }}
-          className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20"
+          whileHover={{ rotate: 16, scale: 1.04 }}
+          transition={{ type: "spring", stiffness: 200, damping: 14 }}
+          className="w-11 h-11 bg-gradient-to-br from-sky-600 via-blue-600 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-500/30"
         >
-          <Layers size={22} className="text-white" />
+          <Layers size={22} className="text-white" aria-hidden="true" />
         </motion.div>
         <div>
-          <h1 className="text-xl font-black tracking-tighter text-white flex items-center gap-2">
-            SIS RUA{" "}
-            <span className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-[10px] font-mono border border-blue-500/20">
+          <h1
+            className={`font-display text-lg md:text-xl font-extrabold tracking-tight flex items-center gap-2 ${
+              isDark ? "text-slate-50" : "text-slate-900"
+            }`}
+          >
+            sisTOPOGRAFIA
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-mono border ${
+                isDark
+                  ? "bg-cyan-500/10 text-cyan-300 border-cyan-400/30"
+                  : "bg-emerald-500/10 text-emerald-700 border-emerald-700/25"
+              }`}
+            >
               UNIFIED
             </span>
           </h1>
           <div className="flex items-center gap-2 pt-0.5">
-            <p className="text-[10px] text-slate-300 font-bold uppercase tracking-[0.3em]">
-              Análise Geo Avançada
+            <p
+              className={`text-[10px] font-bold uppercase tracking-[0.28em] ${
+                isDark ? "text-slate-300" : "text-slate-600"
+              }`}
+            >
+              Plataforma Geoespacial 2.5D
             </p>
             <span
               className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${backendStatusClasses}`}
@@ -117,10 +138,14 @@ export function AppHeader({
 
         <div className="flex items-center gap-2">
           <motion.button
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: 1.03, y: -1 }}
             whileTap={{ scale: 0.95 }}
             onClick={onSaveProject}
-            className="p-2.5 glass rounded-xl text-slate-300 hover:text-white transition-colors shadow-lg"
+            className={`${actionButtonClass} ${
+              isDark
+                ? "border-white/10 bg-slate-900/70 text-slate-200 hover:bg-slate-800"
+                : "border-emerald-900/10 bg-white/80 text-slate-700 hover:bg-white"
+            }`}
             title="Salvar projeto"
             aria-label="Salvar projeto"
           >
@@ -128,10 +153,14 @@ export function AppHeader({
           </motion.button>
 
           <motion.button
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: 1.03, y: -1 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleOpenProjectClick}
-            className="p-2.5 glass rounded-xl text-slate-300 hover:text-white transition-colors shadow-lg"
+            className={`${actionButtonClass} ${
+              isDark
+                ? "border-white/10 bg-slate-900/70 text-slate-200 hover:bg-slate-800"
+                : "border-emerald-900/10 bg-white/80 text-slate-700 hover:bg-white"
+            }`}
             title="Abrir projeto"
             aria-label="Abrir projeto"
           >
@@ -149,10 +178,14 @@ export function AppHeader({
         </div>
 
         <motion.button
-          whileHover={{ scale: 1.05 }}
+          whileHover={{ scale: 1.03, y: -1 }}
           whileTap={{ scale: 0.95 }}
           onClick={onOpenSettings}
-          className="p-2.5 glass rounded-xl text-slate-300 hover:text-white transition-colors shadow-lg"
+          className={`${actionButtonClass} ${
+            isDark
+              ? "border-cyan-400/20 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20"
+              : "border-sky-700/20 bg-sky-600/10 text-sky-700 hover:bg-sky-600/20"
+          }`}
           title="Abrir configurações"
           aria-label="Abrir configurações"
         >

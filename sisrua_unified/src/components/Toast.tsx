@@ -51,19 +51,19 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 4000 }
             exit={{ opacity: 0, scale: 0.9, y: -20, x: 20 }}
             role="alert"
             aria-live="polite"
-            className={`fixed top-4 right-4 z-[1000] flex items-center gap-4 p-4 rounded-2xl glass border-t ${borderColors[type]} ${bgColors[type]} shadow-2xl max-w-sm w-full transition-colors`}
+            className={`fixed top-4 right-4 z-[1000] flex items-center gap-4 p-4 rounded-2xl border ${borderColors[type]} ${bgColors[type]} max-w-sm w-[calc(100vw-2rem)] md:w-full transition-colors shadow-2xl backdrop-blur-lg bg-[var(--surface-strong)]`}
         >
-            <div className="shrink-0 p-2 rounded-xl bg-slate-800/50">
+            <div className="shrink-0 p-2 rounded-xl bg-slate-900/70 dark:bg-slate-800/70">
                 {icons[type]}
             </div>
-            <p className="text-[11px] font-semibold text-slate-100 flex-1 leading-relaxed">
+            <p className="text-[11px] font-semibold text-slate-800 dark:text-slate-100 flex-1 leading-relaxed">
                 {message}
             </p>
             <motion.button
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onClose}
-                className="text-slate-500 hover:text-white transition-colors p-1"
+                className="text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors p-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
                 aria-label="Fechar notificação"
             >
                 <X size={16} />
