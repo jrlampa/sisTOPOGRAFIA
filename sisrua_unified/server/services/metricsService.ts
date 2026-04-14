@@ -7,9 +7,49 @@
  *   - DXF generation outcome counter (cache_hit | generated | failed)
  *   - DXF cache operation counter (hit | miss | set | delete)
  *   - DXF cache current size gauge
+ *   - Anomaly detection (rolling mean/stddev per metric, z-score alerting)
+ *   - SLO compliance tracking (sliding-window observation store)
  */
 import client from 'prom-client';
 import { config } from '../config.js';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export interface AnomalyAlert {
+    metric: string;
+    currentValue: number;
+    mean: number;
+    stddev: number;
+    zScore: number;
+    timestamp: string;
+}
+
+interface RollingStat {
+    /** Welford online algorithm accumulators */
+    count: number;
+    mean: number;
+    /** Running sum of squared deviations (M2) */
+    m2: number;
+    lastValue: number;
+    lastTimestamp: string;
+}
+
+interface SloObservation {
+    met: boolean;
+    timestamp: number;
+}
+
+// ── Internal stores ───────────────────────────────────────────────────────────
+
+const rollingStats = new Map<string, RollingStat>();
+const sloStore = new Map<string, SloObservation[]>();
+
+/** Minimum observations required before anomaly detection is meaningful. */
+const ANOMALY_MIN_SAMPLES = 10;
+/** Z-score threshold for anomaly flagging. */
+const ANOMALY_Z_THRESHOLD = 3;
+/** Default SLO compliance window: last 60 minutes. */
+const DEFAULT_SLO_WINDOW_MS = 60 * 60 * 1000;
 
 const prefix = `${config.METRICS_PREFIX}_`;
 
@@ -110,6 +150,93 @@ export const metricsService = {
 
     recordCacheSize(size: number): void {
         cacheSizeGauge.set(size);
+    },
+
+    // ── Anomaly detection ─────────────────────────────────────────────────────
+
+    /**
+     * Record a numeric observation for a named metric and update its rolling
+     * statistics using Welford's online algorithm (O(1) memory per metric).
+     */
+    recordMetricObservation(metricName: string, value: number): void {
+        const now = new Date().toISOString();
+        if (!rollingStats.has(metricName)) {
+            rollingStats.set(metricName, { count: 0, mean: 0, m2: 0, lastValue: value, lastTimestamp: now });
+        }
+        const stat = rollingStats.get(metricName)!;
+        stat.count++;
+        const delta = value - stat.mean;
+        stat.mean += delta / stat.count;
+        stat.m2 += delta * (value - stat.mean);
+        stat.lastValue = value;
+        stat.lastTimestamp = now;
+    },
+
+    /**
+     * Returns anomaly alerts for all metrics where the latest observation
+     * deviates more than ANOMALY_Z_THRESHOLD standard deviations from the mean
+     * (requires at least ANOMALY_MIN_SAMPLES observations).
+     */
+    checkAnomalies(): AnomalyAlert[] {
+        const alerts: AnomalyAlert[] = [];
+        for (const [metric, stat] of rollingStats) {
+            if (stat.count < ANOMALY_MIN_SAMPLES) continue;
+            const variance = stat.count > 1 ? stat.m2 / (stat.count - 1) : 0;
+            const stddev = Math.sqrt(variance);
+            if (stddev === 0) continue;
+            const zScore = (stat.lastValue - stat.mean) / stddev;
+            if (Math.abs(zScore) > ANOMALY_Z_THRESHOLD) {
+                alerts.push({
+                    metric,
+                    currentValue: stat.lastValue,
+                    mean: stat.mean,
+                    stddev,
+                    zScore,
+                    timestamp: stat.lastTimestamp,
+                });
+            }
+        }
+        return alerts;
+    },
+
+    /** Returns the rolling statistics for a named metric (for diagnostics). */
+    getMetricStats(metricName: string): { mean: number; stddev: number; count: number } | null {
+        const stat = rollingStats.get(metricName);
+        if (!stat) return null;
+        const variance = stat.count > 1 ? stat.m2 / (stat.count - 1) : 0;
+        return { mean: stat.mean, stddev: Math.sqrt(variance), count: stat.count };
+    },
+
+    // ── SLO compliance ────────────────────────────────────────────────────────
+
+    /**
+     * Record whether a single SLO target was met at the current moment.
+     */
+    recordSloObservation(sloName: string, met: boolean): void {
+        if (!sloStore.has(sloName)) {
+            sloStore.set(sloName, []);
+        }
+        sloStore.get(sloName)!.push({ met, timestamp: Date.now() });
+    },
+
+    /**
+     * Returns the fraction of SLO observations within the given window that
+     * were met (0–1).  Returns 1.0 when no observations are present.
+     */
+    getSloCompliance(sloName: string, windowMs = DEFAULT_SLO_WINDOW_MS): number {
+        const observations = sloStore.get(sloName);
+        if (!observations || observations.length === 0) return 1;
+        const cutoff = Date.now() - windowMs;
+        const recent = observations.filter(o => o.timestamp >= cutoff);
+        if (recent.length === 0) return 1;
+        const metCount = recent.filter(o => o.met).length;
+        return metCount / recent.length;
+    },
+
+    /** Clears in-memory anomaly and SLO state (useful for testing). */
+    _resetObservabilityState(): void {
+        rollingStats.clear();
+        sloStore.clear();
     },
 
     async getMetrics(): Promise<string> {

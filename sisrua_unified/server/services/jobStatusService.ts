@@ -1,4 +1,5 @@
 import { logger } from '../utils/logger.js';
+import { createHash } from 'crypto';
 import postgres from 'postgres';
 import { config } from '../config.js';
 
@@ -17,10 +18,13 @@ export interface JobInfo {
     createdAt: Date;
     updatedAt: Date;
     attempts?: number; // For idempotency tracking
+    idempotencyKey?: string; // SHA-256 of job parameters for deduplication
 }
 
 // In-memory storage for job statuses (fallback when Postgres is unavailable)
 const jobs = new Map<string, JobInfo>();
+// Secondary index: idempotencyKey -> jobId for O(1) deduplication lookup
+const jobsByIdempotencyKey = new Map<string, string>();
 
 // Safety limit to prevent memory buffer overflow and DB connection exhaustion under stress
 export const MAX_SYSTEM_CAPACITY = 2000;
@@ -86,7 +90,7 @@ async function loadJobsFromPostgres(): Promise<void> {
         `, [MAX_JOB_AGE]);
 
         rows.forEach((row: any) => {
-            jobs.set(String(row.id), {
+            const job: JobInfo = {
                 id: String(row.id),
                 status: row.status as JobStatus,
                 progress: Number(row.progress || 0),
@@ -94,8 +98,13 @@ async function loadJobsFromPostgres(): Promise<void> {
                 error: row.error ?? undefined,
                 createdAt: row.created_at ? new Date(row.created_at) : new Date(),
                 updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(),
-                attempts: Number(row.attempts || 0)
-            });
+                attempts: Number(row.attempts || 0),
+                idempotencyKey: row.idempotency_key ?? undefined
+            };
+            jobs.set(job.id, job);
+            if (job.idempotencyKey) {
+                jobsByIdempotencyKey.set(job.idempotencyKey, job.id);
+            }
         });
 
         logger.info('Loaded jobs from Supabase/Postgres', { count: rows.length });
@@ -111,8 +120,8 @@ async function persistJob(job: JobInfo): Promise<void> {
 
     try {
         await sqlClient.unsafe(`
-            insert into ${JOBS_TABLE} (id, status, progress, result, error, created_at, updated_at, attempts)
-            values ($1, $2, $3, $4::jsonb, $5, $6, $7, $8)
+            insert into ${JOBS_TABLE} (id, status, progress, result, error, created_at, updated_at, attempts, idempotency_key)
+            values ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9)
             on conflict (id)
             do update set
                 status = excluded.status,
@@ -120,7 +129,8 @@ async function persistJob(job: JobInfo): Promise<void> {
                 result = excluded.result,
                 error = excluded.error,
                 updated_at = excluded.updated_at,
-                attempts = excluded.attempts
+                attempts = excluded.attempts,
+                idempotency_key = excluded.idempotency_key
         `, [
             job.id,
             job.status,
@@ -129,7 +139,8 @@ async function persistJob(job: JobInfo): Promise<void> {
             job.error || null,
             job.createdAt,
             job.updatedAt,
-            job.attempts || 0
+            job.attempts || 0,
+            job.idempotencyKey || null
         ]);
     } catch (error) {
         logger.error('Failed to persist job to Supabase/Postgres', { jobId: job.id, error });
@@ -145,6 +156,9 @@ function startCleanupInterval() {
         const now = Date.now();
         for (const [id, job] of jobs.entries()) {
             if (now - job.createdAt.getTime() > MAX_JOB_AGE) {
+                if (job.idempotencyKey) {
+                    jobsByIdempotencyKey.delete(job.idempotencyKey);
+                }
                 jobs.delete(id);
                 logger.info('Cleaned up old job', { jobId: id });
             }
@@ -185,7 +199,7 @@ function ensureInitialized(): void {
     });
 }
 
-export function createJob(id: string): JobInfo {
+export function createJob(id: string, idempotencyKey?: string): JobInfo {
     ensureInitialized();
 
     if (jobs.size >= MAX_SYSTEM_CAPACITY) {
@@ -201,14 +215,18 @@ export function createJob(id: string): JobInfo {
         progress: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
-        attempts: 0
+        attempts: 0,
+        idempotencyKey
     };
     jobs.set(id, job);
+    if (idempotencyKey) {
+        jobsByIdempotencyKey.set(idempotencyKey, id);
+    }
     
     // Persist to Firestore if available
     persistJob(job).catch(err => logger.error('Failed to persist new job', { jobId: id, error: err }));
     
-    logger.info('Job created', { jobId: id });
+    logger.info('Job created', { jobId: id, idempotencyKey });
     return job;
 }
 
@@ -294,4 +312,41 @@ export function shouldProcessJob(id: string): boolean {
     }
     
     return true;
+}
+
+const TERMINAL_STATES: JobStatus[] = ['completed', 'failed'];
+
+/**
+ * Compute a SHA-256 idempotency key from arbitrary job parameters.
+ * The input object is deterministically serialised (keys sorted) before hashing.
+ */
+export function computeIdempotencyKey(params: Record<string, unknown>): string {
+    const canonical = JSON.stringify(params, Object.keys(params).sort());
+    return createHash('sha256').update(canonical).digest('hex');
+}
+
+/**
+ * Find an existing active job by idempotency key or create a new one.
+ *
+ * - If a job with the same key exists and is **not** in a terminal state
+ *   (`completed` | `failed`), the existing job is returned (deduplication).
+ * - Otherwise a new job is created with the given *id*.
+ */
+export function findOrCreateJob(id: string, idempotencyKey: string): JobInfo {
+    ensureInitialized();
+
+    const existingId = jobsByIdempotencyKey.get(idempotencyKey);
+    if (existingId) {
+        const existing = jobs.get(existingId);
+        if (existing && !TERMINAL_STATES.includes(existing.status)) {
+            logger.info('Returning existing job (idempotency deduplication)', {
+                jobId: existingId, idempotencyKey, status: existing.status
+            });
+            return existing;
+        }
+        // Terminal state — allow a fresh job to be created below
+        jobsByIdempotencyKey.delete(idempotencyKey);
+    }
+
+    return createJob(id, idempotencyKey);
 }
