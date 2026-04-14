@@ -371,6 +371,18 @@ Legenda:
 
 ---
 
+## ✅ Double Check de Pontos já Implementados (2026-04-14)
+
+| Ponto | Status | Evidência |
+| ----- | ------ | --------- |
+| 90. SRE Runbooks para queda de conexão de APIs | ✅ Implementado | `docs/sre/RUNBOOKS.md` (RB-01: perda de conexão com APIs externas) |
+| 91. Policy Gates para dependências vulneráveis (SBOM Check) | ✅ Implementado | `.github/workflows/security-supply-chain.yml` + `package.json` (`security:sbom:node`) |
+| 93. Log de Auditoria exportável em SIEM | ✅ Implementado | `server/routes/auditRoutes.ts` + `migrations/038_audit_context_siem.sql` |
+| 96. Monitoramento de SLA de APIs de terceiros | ✅ Implementado | `server/services/metricsService.ts` + `server/utils/externalApi.ts` |
+| 99. Self-healing automático de workers Python OOM | ✅ Implementado | `server/pythonBridge.ts` (tratamento explícito de OOM com retry) |
+
+---
+
 ## 🏁 Workflow de Encerramento
 
 Ao final de cada task:
