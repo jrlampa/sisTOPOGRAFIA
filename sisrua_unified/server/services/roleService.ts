@@ -11,19 +11,14 @@ interface UserRoleRecord {
   last_updated: string;
 }
 
-// Initialize database connection
-const sql = postgres({
-  host: config.DB_HOST,
-  port: config.DB_PORT,
-  database: config.DB_NAME,
-  username: config.DB_USER,
-  password: config.DB_PASSWORD,
-  ssl: config.DB_SSL !== "false",
-  max: 5,
-  connection: {
-    timeout: 10000,
-  },
-});
+// Initialize database connection using unified DATABASE_URL
+const sql = config.DATABASE_URL
+  ? postgres(config.DATABASE_URL, {
+      ssl: config.NODE_ENV === "production" ? "require" : undefined,
+      max: 5,
+      connect_timeout: 10,
+    })
+  : null;
 
 /**
  * RBAC Service
@@ -59,8 +54,11 @@ export async function getUserRole(
   }
 
   try {
+    if (!sql) {
+      logger.debug("DB not available, defaulting role to viewer", { userId: normalizedUserId });
+      return "viewer";
+    }
     const rows = await sql<UserRoleRecord[]>`
-            SELECT user_id, role FROM user_roles WHERE user_id = ${normalizedUserId}
         `;
 
     if (rows && rows.length > 0) {
@@ -135,8 +133,11 @@ export async function setUserRole(
   const normalizedUserId = userId.trim();
 
   try {
+    if (!sql) {
+      logger.warn("DB not available, cannot set user role");
+      return false;
+    }
     const rows = await sql<UserRoleRecord[]>`
-            INSERT INTO user_roles (user_id, role, assigned_by, reason)
             VALUES (${normalizedUserId}, ${role}, ${assignedBy.trim()}, ${reason || null})
             ON CONFLICT (user_id) DO UPDATE
             SET role = ${role}, assigned_by = ${assignedBy.trim()}, reason = ${reason || null}
@@ -177,9 +178,8 @@ export async function getUsersByRole(
   role: UserRole,
 ): Promise<UserRoleRecord[]> {
   try {
+    if (!sql) return [];
     const rows = await sql<UserRoleRecord[]>`
-            SELECT user_id, role, assigned_at, last_updated
-            FROM user_roles
             WHERE role = ${role}
             ORDER BY last_updated DESC
         `;
@@ -200,6 +200,7 @@ export async function getUsersByRole(
  */
 export async function getRoleStatistics(): Promise<Record<UserRole, number>> {
   try {
+    if (!sql) return { admin: 0, technician: 0, viewer: 0, guest: 0 };
     const rows = await sql<{ role: UserRole; count: number }[]>`
             SELECT role, COUNT(*) as count
             FROM user_roles

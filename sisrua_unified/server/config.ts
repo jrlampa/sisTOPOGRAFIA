@@ -68,8 +68,12 @@ const EnvSchema = z.object({
   // ── Supabase / Postgres jobs persistence ─────────────────────────────────
   /** Connection URL used for Supabase/Postgres persistence when enabled. */
   DATABASE_URL: z.string().optional(),
+  /** Alias accepted for compatibility with Supabase-focused env files. */
+  SUPABASE_DB_URL: z.string().optional(),
   /** Explicit opt-in/out for Supabase jobs persistence. Defaults to true when DATABASE_URL exists. */
   USE_SUPABASE_JOBS: z.string().optional(),
+  /** Explicit opt-in/out for DB cleanup jobs in maintenance service. */
+  MAINTENANCE_DB_CLEANUP_ENABLED: z.string().optional(),
 
   // ── Constants catalog (DB-backed lookup tables) ────────────────────────────
   /** Enable reading CQT lookup tables (cabos/trafos/disjuntores) from DB. Defaults to false. */
@@ -137,6 +141,20 @@ function parseTrustProxyValue(
   return value.trim();
 }
 
+function normalizeDatabaseUrl(
+  primary: string | undefined,
+  alias: string | undefined,
+): string | undefined {
+  const raw = (primary ?? alias)?.trim();
+  if (!raw) {
+    return undefined;
+  }
+
+  // Remove surrounding quotes often introduced by copy/paste in .env files.
+  const unquoted = raw.replace(/^['"]|['"]$/g, "").trim();
+  return unquoted.length > 0 ? unquoted : undefined;
+}
+
 function loadConfig() {
   const result = EnvSchema.safeParse(process.env);
 
@@ -147,12 +165,21 @@ function loadConfig() {
   }
 
   const raw: RawConfig = result.data;
+  const databaseUrl = normalizeDatabaseUrl(
+    raw.DATABASE_URL,
+    raw.SUPABASE_DB_URL,
+  );
 
   // Derived values — computed once at startup, never recalculated.
   const useSupabaseJobs: boolean =
     raw.USE_SUPABASE_JOBS !== undefined
       ? raw.USE_SUPABASE_JOBS === "true"
-      : !!raw.DATABASE_URL;
+      : !!databaseUrl;
+
+  const maintenanceDbCleanupEnabled: boolean =
+    raw.MAINTENANCE_DB_CLEANUP_ENABLED !== undefined
+      ? raw.MAINTENANCE_DB_CLEANUP_ENABLED === "true"
+      : useSupabaseJobs || raw.USE_DB_CONSTANTS_CONFIG === "true";
 
   const useFirestore: boolean =
     raw.USE_FIRESTORE !== undefined
@@ -170,8 +197,10 @@ function loadConfig() {
 
   return {
     ...raw,
+    DATABASE_URL: databaseUrl,
     useFirestore,
     useSupabaseJobs,
+    maintenanceDbCleanupEnabled,
     isDocker,
     useDbConstantsCqt,
     useDbConstantsClandestino,

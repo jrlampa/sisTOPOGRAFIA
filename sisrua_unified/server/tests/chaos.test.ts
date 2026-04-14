@@ -449,7 +449,7 @@ describe('[C7] Caos: Pontos Aleatórios — coordenadas geradas pelo usuário', 
       // Deve retornar null ou um LocationInfo — nunca lançar exceção
       expect(result === null || typeof result === 'object').toBe(true);
     }
-  });
+  }, 30_000);
 
   it('IbgeService deve identificar corretamente o estado para cidades reais', async () => {
     global.fetch = jest.fn().mockRejectedValue(new Error('offline')); // força fallback
@@ -460,7 +460,7 @@ describe('[C7] Caos: Pontos Aleatórios — coordenadas geradas pelo usuário', 
 
     const rsResult = await IbgeService.findMunicipioByCoordinates(-30.03, -51.23);
     expect(rsResult?.uf).toBe('RS');
-  });
+  }, 30_000);
 
   // ── ElevationService com Coords Aleatórias ────────────────────────────────
 

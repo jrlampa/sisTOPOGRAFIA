@@ -72,6 +72,19 @@ interface BulkImportReviewState {
   workbookSettingsLabel: string;
 }
 
+const MAX_WORKBOOK_UPLOAD_BYTES = 5 * 1024 * 1024;
+const ALLOWED_WORKBOOK_EXTENSIONS = [".xlsx", ".xlsm", ".xlsb"];
+
+const hasAllowedWorkbookExtension = (filename: string): boolean => {
+  const normalized = filename.toLowerCase();
+  return ALLOWED_WORKBOOK_EXTENSIONS.some((ext) => normalized.endsWith(ext));
+};
+
+const sanitizeWorkbookText = (raw: string): string => {
+  // Remove NULs/control chars that can be abused in malformed spreadsheets.
+  return raw.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+};
+
 import {
   BtEdgeChangeFlag,
   BtPoleChangeFlag,
@@ -808,9 +821,29 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
   const importBulkRamaisFromWorkbook = async (file: File) => {
     try {
+      if (!hasAllowedWorkbookExtension(file.name)) {
+        setBulkRamalFeedback(
+          "Arquivo inválido. Envie planilha .xlsx, .xlsm ou .xlsb.",
+        );
+        return;
+      }
+
+      if (file.size <= 0 || file.size > MAX_WORKBOOK_UPLOAD_BYTES) {
+        setBulkRamalFeedback(
+          "Arquivo inválido: tamanho deve ser maior que 0 e até 5 MB.",
+        );
+        return;
+      }
+
       const XLSX = await import("xlsx");
       const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: "array" });
+      const workbook = XLSX.read(buffer, {
+        type: "array",
+        dense: true,
+        WTF: false,
+        cellFormula: false,
+      });
+
       const sheetName =
         workbook.SheetNames.find(
           (name) => normalizeHeaderKey(name) === "RAMAL",
@@ -822,17 +855,36 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
       }
 
       const sheet = workbook.Sheets[sheetName];
-      const raw = XLSX.utils.sheet_to_csv(sheet, {
-        FS: "\t",
-        blankrows: false,
-      });
+      const raw = sanitizeWorkbookText(
+        XLSX.utils.sheet_to_csv(sheet, {
+          FS: "\t",
+          blankrows: false,
+          strip: true,
+        }),
+      );
+
+      if (raw.length > 300_000) {
+        setBulkRamalFeedback(
+          "Planilha muito grande para importação segura. Reduza o conteúdo da aba RAMAL.",
+        );
+        return;
+      }
 
       if (!raw.trim()) {
         setBulkRamalFeedback(`A aba ${sheetName} esta vazia.`);
         return;
       }
 
-      setBulkRamalText(raw);
+      if (!raw.includes("\t")) {
+        setBulkRamalFeedback(
+          `A aba ${sheetName} não possui formato tabular esperado para importação.`,
+        );
+        return;
+      }
+
+      const sanitizedRaw = raw.replace(/^[=+\-@]/gm, "'");
+      setBulkRamalText(sanitizedRaw);
+
       const workbookProjectSettings = parseWorkbookProjectSettings(workbook);
       if (workbookProjectSettings) {
         onProjectTypeChange?.(workbookProjectSettings.projectType);
@@ -863,7 +915,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         }
 
         const reviewState: BulkImportReviewState = {
-          raw,
+          raw: sanitizedRaw,
           topologyFromWorkbook,
           orderedPoleIds: orderedPoles.map((pole) => pole.id),
           currentPoleIndex: 0,
@@ -886,7 +938,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
         const applyFirstPoleRamais = () => {
           const singlePoleResult = buildBulkRamaisForSinglePole(
-            raw,
+            sanitizedRaw,
             firstPoleTopology,
             firstPole.id,
           );
@@ -899,35 +951,18 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           }
 
           setBulkRamalFeedback(
-            `Poste em revisão: ${firstPole.id} (1/${reviewState.orderedPoleIds.length}). Não foi possível aplicar ramais por ponto.${workbookSettingsLabel}`,
+            `Poste ${firstPole.id} sem ramais válidos para importar.${workbookSettingsLabel}`,
           );
         };
 
-        const skipFirstPoleRamais = () => {
-          setBulkRamalFeedback(
-            `Poste em revisão: ${firstPole.id} (1/${reviewState.orderedPoleIds.length}). Ramais não aplicados para este ponto (pendente). Use Aplicar/Pular/Próximo.${workbookSettingsLabel}`,
-          );
-        };
+        setTimeout(applyFirstPoleRamais, 0);
+        return;
+      }
 
-        if (onRequestCriticalConfirmation) {
-          onRequestCriticalConfirmation({
-            title: "Aplicar ramais no primeiro poste?",
-            message: `Primeiro poste aplicado: ${firstPole.id}.\n\nDeseja aplicar agora os ramais deste ponto usando o número do ponto no arquivo importado?`,
-            confirmLabel: "Aplicar agora",
-            cancelLabel: "Fazer depois",
-            tone: "warning",
-            onConfirm: applyFirstPoleRamais,
-            onCancel: skipFirstPoleRamais,
-          });
-        } else {
-          skipFirstPoleRamais();
-        }
-      } else {
-        setBulkImportReview(null);
-        applyBulkRamalInsertFromRaw(raw);
-        if (workbookSettingsLabel) {
-          setBulkRamalFeedback((prev) => `${prev}${workbookSettingsLabel}`);
-        }
+      setBulkImportReview(null);
+      applyBulkRamalInsertFromRaw(sanitizedRaw);
+      if (workbookSettingsLabel) {
+        setBulkRamalFeedback((prev) => `${prev}${workbookSettingsLabel}`);
       }
     } catch (error) {
       const message =

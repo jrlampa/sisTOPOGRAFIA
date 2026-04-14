@@ -155,6 +155,12 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
 
     // Item 17: mede duração end-to-end para SLO de geração DXF
     const generationStartMs = Date.now();
+    const rssBeforeMb = Math.round(process.memoryUsage().rss / (1024 * 1024));
+    metricsService.recordMetricObservation(
+      "node_rss_mb_before_python",
+      rssBeforeMb,
+    );
+    logger.info("Python spawn pre-flight memory snapshot", { rssBeforeMb });
 
     const runWithCommand = (index: number) => {
       const selectedCommand = commandCandidates[index];
@@ -204,11 +210,19 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
 
         clearProcessTimeout();
         const durationSec = (Date.now() - generationStartMs) / 1000;
+        const rssAfterMb = Math.round(
+          process.memoryUsage().rss / (1024 * 1024),
+        );
+        metricsService.recordMetricObservation(
+          "node_rss_mb_after_python",
+          rssAfterMb,
+        );
 
         logger.info("Python process exited", {
           command: selectedCommand,
           exitCode: code,
           durationSec,
+          rssAfterMb,
         });
 
         if (code === 0) {
