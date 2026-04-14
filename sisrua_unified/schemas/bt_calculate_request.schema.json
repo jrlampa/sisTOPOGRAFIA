@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bt_calculate_request.schema.json",
+  "title": "BtCalculateRequest",
+  "description": "Input payload for BT radial network calculation (calculateBtRadial).",
+  "type": "object",
+  "required": ["transformer", "nodes", "edges", "phase"],
+  "additionalProperties": false,
+  "properties": {
+    "transformer": {
+      "$ref": "#/definitions/BtRadialTransformer"
+    },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/BtRadialNode" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/BtRadialEdge" }
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["MONO", "BIF", "TRI"],
+      "description": "Network phase configuration."
+    },
+    "temperatureC": {
+      "type": "number",
+      "description": "Conductor temperature in Celsius (default 75)."
+    },
+    "nominalVoltageV": {
+      "type": "number",
+      "description": "Phase voltage in Volts (default 127 for Brazilian 127/220 V BT)."
+    },
+    "eta": {
+      "type": "number",
+      "description": "Power factor / demand coincidence factor."
+    }
+  },
+  "definitions": {
+    "BtRadialTransformer": {
+      "type": "object",
+      "required": ["id", "rootNodeId", "kva", "zPercent", "qtMt"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "rootNodeId": { "type": "string", "minLength": 1 },
+        "kva": { "type": "number", "exclusiveMinimum": 0 },
+        "zPercent": { "type": "number", "exclusiveMinimum": 0 },
+        "qtMt": { "type": "number" }
+      }
+    },
+    "BtRadialNodeLoad": {
+      "type": "object",
+      "required": ["localDemandKva"],
+      "additionalProperties": false,
+      "properties": {
+        "localDemandKva": { "type": "number", "minimum": 0 },
+        "ramal": {
+          "type": "object",
+          "required": ["conductorId", "lengthMeters"],
+          "additionalProperties": false,
+          "properties": {
+            "conductorId": { "type": "string", "minLength": 1 },
+            "lengthMeters": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "BtRadialNode": {
+      "type": "object",
+      "required": ["id", "load"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "load": { "$ref": "#/definitions/BtRadialNodeLoad" }
+      }
+    },
+    "BtRadialEdge": {
+      "type": "object",
+      "required": ["fromNodeId", "toNodeId", "conductorId", "lengthMeters"],
+      "additionalProperties": false,
+      "properties": {
+        "fromNodeId": { "type": "string", "minLength": 1 },
+        "toNodeId": { "type": "string", "minLength": 1 },
+        "conductorId": { "type": "string", "minLength": 1 },
+        "lengthMeters": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}
