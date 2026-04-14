@@ -23,9 +23,12 @@ import type {
   BtTransformerChangeFlag,
 } from "../utils/btNormalization";
 import { getCoordinateInputFeedback } from "../utils/validation";
+import { lazyWithRetry } from "../utils/lazyWithRetry";
 import type { CriticalConfirmationConfig } from "./BtModals";
 
-const BtTopologyPanel = React.lazy(() => import("./BtTopologyPanel"));
+const BtTopologyPanel = React.lazy(() =>
+  lazyWithRetry(() => import("./BtTopologyPanel")),
+);
 
 type TransformerDebugById = Record<
   string,
@@ -33,7 +36,7 @@ type TransformerDebugById = Record<
 >;
 
 const InlineSuspenseFallback = ({ label }: { label: string }) => (
-  <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+  <div className="flex items-center justify-center gap-2 rounded-xl border-2 border-amber-800/25 bg-amber-50 p-4 text-xs font-semibold uppercase tracking-wide text-amber-900 shadow-[4px_4px_0_rgba(124,45,18,0.16)] dark:border-amber-500/45 dark:bg-zinc-900 dark:text-amber-100 dark:shadow-[4px_4px_0_rgba(251,146,60,0.22)]">
     <Loader2 size={14} className="animate-spin" />
     {label}
   </div>
@@ -118,10 +121,10 @@ export function SidebarBtEditorSection({
     <>
       <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+          <label className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-800 dark:text-amber-100">
             Editor BT
           </label>
-          <span className="text-[9px] text-slate-400 uppercase">
+          <span className="text-[9px] uppercase text-amber-700 dark:text-amber-300">
             {(settings.projectType ?? "ramais").toUpperCase()} /{" "}
             {btNetworkScenario === "asis" ? "ATUAL" : "PROJETO"}
           </span>
@@ -136,7 +139,7 @@ export function SidebarBtEditorSection({
                 btEditorMode: "none",
               })
             }
-            className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btNetworkScenario === "asis" ? "bg-cyan-700 text-white border-cyan-500" : "text-slate-400 border-white/5 hover:text-slate-200"}`}
+            className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btNetworkScenario === "asis" ? "border-cyan-600 bg-cyan-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             REDE ATUAL
           </button>
@@ -144,7 +147,7 @@ export function SidebarBtEditorSection({
             onClick={() =>
               updateSettings({ ...settings, btNetworkScenario: "projeto" })
             }
-            className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btNetworkScenario === "projeto" ? "bg-indigo-700 text-white border-indigo-500" : "text-slate-400 border-white/5 hover:text-slate-200"}`}
+            className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btNetworkScenario === "projeto" ? "border-fuchsia-600 bg-fuchsia-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             REDE NOVA
           </button>
@@ -155,7 +158,7 @@ export function SidebarBtEditorSection({
             onClick={() =>
               updateSettings({ ...settings, btEditorMode: "none" })
             }
-            className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === "none" ? "bg-slate-800 text-slate-100 border-white/10" : "text-slate-500 border-white/5 hover:text-slate-300"}`}
+            className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "none" ? "border-slate-900 bg-slate-900 text-slate-100 dark:border-slate-700 dark:bg-zinc-800" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             NAVEGAR
           </button>
@@ -163,7 +166,7 @@ export function SidebarBtEditorSection({
             onClick={() =>
               updateSettings({ ...settings, btEditorMode: "move-pole" })
             }
-            className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === "move-pole" ? "bg-amber-600 text-white border-amber-500" : "text-slate-500 border-white/5 hover:text-slate-300"}`}
+            className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "move-pole" ? "border-amber-600 bg-amber-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             MOVER
           </button>
@@ -171,7 +174,7 @@ export function SidebarBtEditorSection({
             onClick={() =>
               updateSettings({ ...settings, btEditorMode: "add-pole" })
             }
-            className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === "add-pole" ? "bg-blue-600 text-white border-blue-500" : "text-slate-500 border-white/5 hover:text-slate-300"}`}
+            className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-pole" ? "border-blue-600 bg-blue-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             + POSTE
           </button>
@@ -180,7 +183,7 @@ export function SidebarBtEditorSection({
               clearPendingBtEdge();
               updateSettings({ ...settings, btEditorMode: "add-edge" });
             }}
-            className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === "add-edge" ? "bg-emerald-600 text-white border-emerald-500" : "text-slate-500 border-white/5 hover:text-slate-300"}`}
+            className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-edge" ? "border-emerald-600 bg-emerald-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             + CONDUTOR
           </button>
@@ -188,7 +191,7 @@ export function SidebarBtEditorSection({
             onClick={() =>
               updateSettings({ ...settings, btEditorMode: "add-transformer" })
             }
-            className={`text-[10px] font-bold py-2 rounded-lg border transition-all ${btEditorMode === "add-transformer" ? "bg-violet-600 text-white border-violet-500" : "text-slate-500 border-white/5 hover:text-slate-300"}`}
+            className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-transformer" ? "border-violet-600 bg-violet-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             + TRAFO
           </button>
@@ -200,7 +203,7 @@ export function SidebarBtEditorSection({
               e.preventDefault();
               handleBtInsertPoleByCoordinates();
             }}
-            className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2 space-y-2 transition-all"
+            className="rounded-xl border-2 border-blue-700/35 bg-blue-50 p-2.5 space-y-2 transition-all dark:border-blue-500/40 dark:bg-blue-950/25"
           >
             <div className="text-[10px] font-semibold text-blue-800 dark:text-blue-200 uppercase tracking-wider">
               Inserir poste por coordenadas
@@ -215,7 +218,7 @@ export function SidebarBtEditorSection({
                 placeholder="-22.9068 -43.1729 ou 23K 635806 7462003"
                 aria-label="Coordenadas do poste"
                 aria-describedby="bt-coordinate-feedback"
-                className={`w-full rounded-lg border bg-white/70 dark:bg-slate-900/90 backdrop-blur-md p-2.5 text-[11px] font-mono transition-all outline-none text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm dark:shadow-[0_0_10px_rgba(15,23,42,0.18)] ${getValidationInputClassName(coordinateValidation.state)}`}
+                className={`w-full rounded-xl border-2 border-blue-700/25 bg-white p-2.5 text-[11px] font-mono text-blue-950 shadow-inner transition-all outline-none placeholder-blue-400 dark:border-blue-500/45 dark:bg-zinc-950 dark:text-blue-100 dark:placeholder-blue-300/60 ${getValidationInputClassName(coordinateValidation.state)}`}
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1 items-center">
                 {btPoleCoordinateInput &&
@@ -255,13 +258,13 @@ export function SidebarBtEditorSection({
           </div>
         )}
         {settings.projectType === "clandestino" && (
-          <div className="text-[10px] text-amber-300 bg-amber-900/20 border border-amber-500/20 rounded-lg p-2">
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-[10px] text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-300">
             Área clandestina: {settings.clandestinoAreaM2 ?? 0} m²
           </div>
         )}
         {settings.projectType !== "clandestino" &&
           pendingNormalClassificationPoles.length > 0 && (
-            <div className="text-[10px] text-rose-300 bg-rose-900/20 border border-rose-500/30 rounded-lg p-2">
+            <div className="rounded-lg border border-rose-300 bg-rose-50 p-2 text-[10px] text-rose-800 dark:border-rose-700/50 dark:bg-rose-950/30 dark:text-rose-300">
               Classificação pendente em{" "}
               {pendingNormalClassificationPoles.length} poste(s). DXF bloqueado
               até classificar.
@@ -270,14 +273,14 @@ export function SidebarBtEditorSection({
 
         <button
           onClick={handleResetBtTopology}
-          className="w-full text-[10px] font-bold py-2 rounded-lg border border-rose-500/40 text-rose-300 hover:bg-rose-500/10 transition-all"
+          className="w-full rounded-xl border border-rose-300 py-2 text-[10px] font-bold text-rose-700 transition-all hover:bg-rose-50 dark:border-rose-700/50 dark:text-rose-300 dark:hover:bg-rose-950/30"
           title="Remover toda a topologia BT"
         >
           ZERAR BT (LIMPAR TUDO)
         </button>
       </div>
 
-      <div className="h-px bg-white/5 mx-2" />
+      <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
 
       <Suspense
         fallback={<InlineSuspenseFallback label="Carregando painel BT" />}
