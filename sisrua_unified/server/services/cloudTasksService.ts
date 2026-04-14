@@ -56,6 +56,22 @@ let workerStarted = false;
 let workerInterval: NodeJS.Timeout | null = null;
 let activeWorkers = 0;
 
+const TOPOLOGY_ONLY_WARNING =
+  "Sem dados no servidor, DXF gerado com topologia.";
+
+function extractTopologyOnlyWarning(
+  pythonOutput: string,
+): string | undefined {
+  const normalizedOutput = pythonOutput.toLowerCase();
+  const hasNoOsmIndicator =
+    normalizedOutput.includes("nenhuma feição osm encontrada") ||
+    normalizedOutput.includes("nenhuma feicao osm encontrada") ||
+    normalizedOutput.includes("dxf será gerado apenas com a topologia bt") ||
+    normalizedOutput.includes("dxf sera gerado apenas com a topologia bt");
+
+  return hasNoOsmIndicator ? TOPOLOGY_ONLY_WARNING : undefined;
+}
+
 function persistBtContextSidecar(
   outputFile: string,
   btContext: Record<string, unknown> | null | undefined,
@@ -165,7 +181,7 @@ async function processPayload(incomingPayload: any): Promise<void> {
   });
   await updateJobStatus(payload.taskId, "processing", 15);
 
-  await generateDxf({
+  const pythonOutput = await generateDxf({
     lat: payload.lat,
     lon: payload.lon,
     radius: payload.radius,
@@ -177,6 +193,7 @@ async function processPayload(incomingPayload: any): Promise<void> {
     btContext: payload.btContext ?? null,
     outputFile: payload.outputFile,
   });
+  const warning = extractTopologyOnlyWarning(pythonOutput);
 
   // Roadmap #72: SHA-256 do artefato DXF gerado para proveniência e integridade
   const artifactSha256 = computeArtifactSha256(payload.outputFile);
@@ -212,6 +229,7 @@ async function processPayload(incomingPayload: any): Promise<void> {
     filename: payload.filename,
     btContextUrl,
     ...(artifactSha256 ? { artifactSha256 } : {}),
+    ...(warning ? { warning } : {}),
   });
 }
 

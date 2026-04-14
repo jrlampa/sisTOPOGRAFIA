@@ -14,6 +14,7 @@ export interface JobInfo {
     filename: string;
     btContextUrl?: string;
     artifactSha256?: string;
+    warning?: string;
   };
   error?: string;
   createdAt: Date;
@@ -324,7 +325,6 @@ export async function getJobWithPersistence(
 
   return fetchJobFromPostgres(id);
 }
-
 export async function updateJobStatus(
   id: string,
   status: JobStatus,
@@ -355,6 +355,7 @@ export async function completeJob(
     filename: string;
     btContextUrl?: string;
     artifactSha256?: string;
+    warning?: string;
   },
 ): Promise<void> {
   ensureInitialized();
