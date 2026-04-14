@@ -1,5 +1,6 @@
 import math
 import os
+import datetime
 
 import numpy as np
 from ezdxf.enums import TextEntityAlignment
@@ -295,8 +296,6 @@ class DXFLayoutMixin:
         self, client="N/A", project="Projeto Urbanístico", designer="sisRUA AI"
     ):
         """Creates a professional A3 Title Block in Paper Space"""
-        import datetime
-
         layout = self.doc.layout("Layout1")
 
         width, height = 420, 297

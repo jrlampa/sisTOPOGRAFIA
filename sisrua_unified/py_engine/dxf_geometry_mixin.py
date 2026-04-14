@@ -61,7 +61,7 @@ class DXFGeometryMixin:
         """Maps OSM tags to DXF Layers"""
         # Power Infrastructure
         if "power" in tags and not pd.isna(tags["power"]):
-            if tags["power"] in ["line", "tower", "substation"]:
+            if tags["power"] in ["line", "tower", "substation"]:  # High Voltage usually
                 return "INFRA_POWER_HV"
             return "INFRA_POWER_LV"
 
@@ -160,7 +160,7 @@ class DXFGeometryMixin:
 
         merged_results = []
         processed = set()
-        dist_threshold = 0.5
+        dist_threshold = 0.5  # Max 50cm gap for auto-merging
 
         for i, (line, tags) in enumerate(lines_with_tags):
             if i in processed:
