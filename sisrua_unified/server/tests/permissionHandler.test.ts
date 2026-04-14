@@ -1,4 +1,4 @@
-import { requirePermission, Permission } from '../middleware/permissionHandler';
+import { requirePermission } from '../middleware/permissionHandler';
 import { Request, Response, NextFunction } from 'express';
 import type { UserRole } from '../services/roleService';
 

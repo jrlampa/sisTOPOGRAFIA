@@ -4,7 +4,6 @@ import {
   removeRule,
   clearRules,
   listRules,
-  type PolicyRule,
   type PolicySubject,
 } from '../services/abacPolicyService';
 

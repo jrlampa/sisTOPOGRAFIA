@@ -235,7 +235,7 @@ export class IndeService {
      */
     static async getMunicipalityBoundary(
         municipioName: string,
-        uf: string
+        _uf: string
     ): Promise<GeoJsonFeatureCollection | null> {
         // Common layer names for municipalities in INDE
         const possibleLayers = [

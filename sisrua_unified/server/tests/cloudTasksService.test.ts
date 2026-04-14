@@ -45,9 +45,10 @@ describe('cloudTasksService (Postgres queue)', () => {
     unsafeMock.mockReset();
     endMock.mockClear();
 
-    // 1) insert queued row
-    unsafeMock
-      .mockResolvedValueOnce([]);
+    // 1) idempotency check — no existing task for this cacheKey
+    unsafeMock.mockResolvedValueOnce([]);
+    // 2) insert queued row
+    unsafeMock.mockResolvedValueOnce([]);
 
     jest.resetModules();
   });
@@ -80,6 +81,6 @@ describe('cloudTasksService (Postgres queue)', () => {
     expect(result.taskId).toBe('test-uuid');
     expect(result.taskName).toBe('pg-task-test-uuid');
     expect(result.alreadyCompleted).toBe(false);
-    expect(unsafeMock).toHaveBeenCalledTimes(1);
+    expect(unsafeMock).toHaveBeenCalledTimes(2);
   });
 });

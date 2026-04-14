@@ -138,7 +138,7 @@ interface CreateListQuerySchemaOptions<TSortBy extends string> {
 
 export function createListQuerySchema<
     TSortBy extends string,
-    TFilters extends z.ZodRawShape = {}
+    TFilters extends z.ZodRawShape = Record<string, never>
 >(
     options: CreateListQuerySchemaOptions<TSortBy>,
     filtersShape?: TFilters,

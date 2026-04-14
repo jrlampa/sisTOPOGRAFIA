@@ -1,5 +1,4 @@
 import { logger } from '../utils/logger.js';
-import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 
@@ -132,7 +131,7 @@ export class TopodataService {
     /**
      * Read elevation from GeoTIFF using Python bridge
      */
-    private static async readElevationFromTiff(tiffPath: string, lat: number, lng: number): Promise<number> {
+    private static async readElevationFromTiff(_tiffPath: string, _lat: number, _lng: number): Promise<number> {
         // This would call Python with rasterio
         // For now, return placeholder - implement Python script next
         return 0; // Placeholder

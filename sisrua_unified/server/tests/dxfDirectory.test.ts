@@ -25,8 +25,6 @@ jest.mock("../middleware/permissionHandler", () => ({
 import request from "supertest";
 import express from "express";
 import { config } from "../config";
-import fs from "fs";
-import path from "path";
 
 describe("DXF Directory Path Integration", () => {
   let app: express.Application;
@@ -58,11 +56,10 @@ describe("DXF Directory Path Integration", () => {
     // We ensure that when the file is there, it's inside config.DXF_DIRECTORY
     if (res.body.url) {
       const fileName = res.body.url.split("/").pop();
-      const localFile = path.join(config.DXF_DIRECTORY, fileName);
-
       // To prevent stalling the test if generation takes time without a mock,
       // the fundamental test here verifies the logical coupling is correct
       expect(res.body.url).toContain("/downloads/");
+      expect(typeof fileName).toBe("string");
     }
   });
 });

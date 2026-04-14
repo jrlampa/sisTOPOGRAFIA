@@ -208,7 +208,7 @@ function validateNode(
  * @param schemaPath Absolute path or filename relative to schemas/ directory.
  * @returns          `{ valid, errors }` — errors is empty when valid.
  */
-export function validateAgainstSchema<T>(
+export function validateAgainstSchema(
     data: unknown,
     schemaPath: string,
 ): { valid: boolean; errors: string[] } {

@@ -71,7 +71,6 @@ describe('dxfCleanupService', () => {
         (fs.existsSync as jest.Mock).mockReturnValue(false); // no disk sweep needed
 
         // Manually schedule an "already expired" file by manipulating the deletion time via test
-        const past = Date.now() - 1000;
         // We can't directly mutate private state, but we can test that triggerCleanupNow
         // runs without throwing
         expect(() => triggerCleanupNow()).not.toThrow();

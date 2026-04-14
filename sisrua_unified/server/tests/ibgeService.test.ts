@@ -4,7 +4,7 @@
  * Network calls are mocked — zero real HTTP requests.
  */
 
-import { IbgeService, LocationInfo } from '../services/ibgeService';
+import { IbgeService } from '../services/ibgeService';
 
 jest.mock('../utils/logger', () => ({
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() }

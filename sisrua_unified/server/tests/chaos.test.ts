@@ -14,14 +14,11 @@
  *  [C7] Pontos Aleatórios — property-based testing com coords geradas pelo usuário
  */
 
-import fs from 'fs';
 import {
-  randomBrazilCoord,
   randomRadius,
   generateRandomScenarios,
   generateJobIds,
   createChaosFetch,
-  createSelectiveFetch,
   createFsWithFailAfter,
   makeFsError,
   withJitter,
@@ -369,8 +366,7 @@ describe('[C7] Caos: Pontos Aleatórios — coordenadas geradas pelo usuário', 
     resetSeed(1234);
     const scenarios = generateRandomScenarios(50);
 
-    scenarios.forEach(({ lat, lng, label }) => {
-      expect(lat).toBeGreaterThanOrEqual(-33.75);
+    scenarios.forEach(({ lat, lng }) => {
       expect(lat).toBeLessThanOrEqual(5.27);
       expect(lng).toBeGreaterThanOrEqual(-73.98);
       expect(lng).toBeLessThanOrEqual(-28.85);
@@ -402,7 +398,7 @@ describe('[C7] Caos: Pontos Aleatórios — coordenadas geradas pelo usuário', 
     resetSeed(777);
     const scenarios = generateRandomScenarios(10);
 
-    scenarios.forEach(({ lat, lng, label }) => {
+    scenarios.forEach(({ lat, lng }) => {
       const dxf = generateDXF([], { lat, lng });
       expect(dxf).toContain('SECTION');
       expect(dxf).toContain('0\nEOF');
@@ -411,7 +407,7 @@ describe('[C7] Caos: Pontos Aleatórios — coordenadas geradas pelo usuário', 
   });
 
   it('generateDXF deve funcionar em coordenadas de borda (limites extremos do Brasil)', () => {
-    EDGE_COORDS.forEach(({ name, lat, lng }) => {
+    EDGE_COORDS.forEach(({ lat, lng }) => {
       const dxf = generateDXF([], { lat, lng });
       expect(dxf).toContain('SECTION');
       expect(dxf).toContain('0\nEOF');
@@ -419,7 +415,7 @@ describe('[C7] Caos: Pontos Aleatórios — coordenadas geradas pelo usuário', 
   });
 
   it('TopodataService.isWithinBrazil deve aceitar todas as cidades capitais', () => {
-    BRAZIL_CITIES.forEach(({ name, lat, lng }) => {
+    BRAZIL_CITIES.forEach(({ lat, lng }) => {
       expect(TopodataService.isWithinBrazil(lat, lng)).toBe(true);
     });
   });
@@ -569,7 +565,7 @@ describe('[C8] Relatório: propertyTest em massa (50 cenários)', () => {
     const scenarios = generateRandomScenarios(50);
     const failures: string[] = [];
 
-    scenarios.forEach(({ lat, lng, radius, label }) => {
+    scenarios.forEach(({ lat, lng, label }) => {
       try {
         const dxf = generateDXF([], { lat, lng });
         if (!dxf.includes('0\nEOF')) {

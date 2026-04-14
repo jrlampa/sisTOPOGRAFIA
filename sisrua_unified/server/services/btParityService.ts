@@ -17,7 +17,6 @@
  */
 
 import { calculateBtRadial, type BtRadialTopologyInput } from './btRadialCalculationService.js';
-import { lookupConductorById } from './btCatalogService.js';
 import { CQT_REV0_BASELINE_TARGETS } from '../constants/cqtBaselineTargets.js';
 
 // ─── Scenario types ───────────────────────────────────────────────────────────

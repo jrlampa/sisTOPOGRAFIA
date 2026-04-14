@@ -9,7 +9,6 @@ import {
   diffSnapshots,
   pruneSnapshots,
   _resetStoreForTesting,
-  DomainSnapshot,
 } from '../services/domainSnapshotService';
 
 beforeEach(() => {

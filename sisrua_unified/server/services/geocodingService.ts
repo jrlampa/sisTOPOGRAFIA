@@ -353,7 +353,7 @@ export class GeocodingService {
                     lat: sumLat / coords.length
                 };
             }
-        } catch (e) {
+        } catch {
             // Silent fail
         }
         return null;

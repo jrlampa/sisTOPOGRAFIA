@@ -90,5 +90,6 @@ describe('externalApi: fetchWithRetry', () => {
         });
 
         expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(result).toBeDefined();
     }, 10000);
 });

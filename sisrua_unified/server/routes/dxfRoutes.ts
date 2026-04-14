@@ -14,7 +14,7 @@ import { dxfRateLimiter } from "../middleware/rateLimiter.js";
 import { metricsService } from "../services/metricsService.js";
 import { config } from "../config.js";
 import { attachCqtSnapshotToBtContext } from "../services/cqtContextService.js";
-import { parseBatchCsv, parseBatchFile } from "../services/batchService.js";
+import { parseBatchFile } from "../services/batchService.js";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";

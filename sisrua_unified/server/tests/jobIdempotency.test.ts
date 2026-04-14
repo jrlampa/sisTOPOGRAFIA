@@ -10,7 +10,6 @@
  */
 
 import {
-    createJob,
     completeJob,
     failJob,
     updateJobStatus,

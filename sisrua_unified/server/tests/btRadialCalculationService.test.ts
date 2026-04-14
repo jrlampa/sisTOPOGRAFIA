@@ -368,7 +368,7 @@ describe('btRadialCalculationService – workbook parity (ESQ ATUAL baseline)', 
      * QT_TR = (101.956/225) * 0.035 = 0.015859822...
      * QT_MTTR = 0.0183 + 0.015859822... = 0.034159822...
      */
-    const EXPECTED_QT_MTTR = 0.034159822222222222;
+    const EXPECTED_QT_MTTR = 0.03415982222222222;
 
     it('qtTrafo matches workbook DB K10 (QT_MTTR) for 225 kVA scenario', () => {
         const input: BtRadialTopologyInput = {

@@ -10,7 +10,6 @@ import compression from "compression";
 import { v4 as uuidv4 } from "uuid";
 
 import { config } from "./config.js";
-import { OllamaService } from "./services/ollamaService.js";
 import {
   startFirestoreMonitoring,
   stopFirestoreMonitoring,
@@ -32,7 +31,7 @@ import { requestMetrics } from "./middleware/requestMetrics.js";
 import { monitoringMiddleware } from "./middleware/monitoring.js";
 import { specs } from "./swagger.js";
 
-import { errorHandler, createError, asyncHandler } from "./errorHandler.js";
+import { errorHandler, createError } from "./errorHandler.js";
 
 // Import Routes
 import elevationRoutes from "./routes/elevationRoutes.js";
@@ -59,7 +58,6 @@ const port = config.PORT;
 
 // Ollama process management
 let ollamaProcess: ReturnType<typeof spawn> | null = null;
-const OLLAMA_MODEL = config.OLLAMA_MODEL;
 
 function resolveFrontendDistDirectory(): string {
   const candidates = [
@@ -173,7 +171,7 @@ app.get(
     const requested = req.params.filename || "";
 
     // Sanitize: allow only alphanumeric, dash, underscore, and dot
-    if (!/^[\w\-\.]+$/.test(requested)) {
+    if (!/^[\w\-.]+$/.test(requested)) {
       return next(
         createError.validation("Invalid filename format", {
           received: requested,

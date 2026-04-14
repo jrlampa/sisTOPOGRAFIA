@@ -101,7 +101,7 @@ export const createError = {
  * @param res Express response
  * @param next Express next function
  */
-export function errorHandler(err: any, req: any, res: any, next: any) {
+export function errorHandler(err: any, req: any, res: any, _next: any) {
   const requestId = req.id || `req-${Date.now()}`;
 
   // Handle our custom ApiError
