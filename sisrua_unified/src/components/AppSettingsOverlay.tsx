@@ -1,9 +1,9 @@
-import React, { Suspense } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
-import type { AppSettings, GeoLocation, SelectionMode } from '../types';
+import React, { Suspense } from "react";
+import { AnimatePresence } from "framer-motion";
+import { Loader2 } from "lucide-react";
+import type { AppSettings, GeoLocation, SelectionMode } from "../types";
 
-const SettingsModal = React.lazy(() => import('./SettingsModal'));
+const SettingsModal = React.lazy(() => import("./SettingsModal"));
 
 type Props = {
   showSettings: boolean;
@@ -47,9 +47,15 @@ export function AppSettingsOverlay({
       {showSettings && (
         <Suspense
           fallback={
-            <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              <Loader2 size={14} className="animate-spin" />
-              Carregando configuracoes
+            <div className="fixed inset-0 z-50 flex items-center justify-center glass-overlay p-4">
+              <div
+                role="status"
+                aria-live="polite"
+                className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400/20 bg-slate-900/70 p-4 text-xs font-semibold uppercase tracking-wide text-slate-200 backdrop-blur-md"
+              >
+                <Loader2 size={14} className="animate-spin" />
+                Carregando configurações
+              </div>
             </div>
           }
         >

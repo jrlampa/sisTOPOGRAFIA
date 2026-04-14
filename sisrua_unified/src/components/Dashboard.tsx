@@ -15,39 +15,39 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
   ];
 
   return (
-    <div className="glass-panel p-6 rounded-xl shadow-lg space-y-6">
+    <div className="glass-panel p-6 rounded-xl shadow-lg space-y-6 border border-slate-200/70 dark:border-white/10 bg-white/75 dark:bg-slate-900/55">
       
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="glass-panel-hover p-4 rounded-lg">
-          <p className="text-slate-600 text-xs uppercase tracking-wider font-semibold">Objetos</p>
-          <p className="text-2xl font-bold text-slate-800">{stats.totalBuildings + stats.totalRoads + stats.totalNature}</p>
+        <div className="glass-panel-hover p-4 rounded-lg border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-900/55">
+          <p className="text-slate-600 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">Objetos</p>
+          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{stats.totalBuildings + stats.totalRoads + stats.totalNature}</p>
         </div>
-        <div className="glass-panel-hover p-4 rounded-lg">
-          <p className="text-slate-600 text-xs uppercase tracking-wider font-semibold">Altura Máx.</p>
-          <p className="text-2xl font-bold" style={{ color: 'var(--enterprise-blue)' }}>{stats.maxHeight.toFixed(1)}m</p>
+        <div className="glass-panel-hover p-4 rounded-lg border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-900/55">
+          <p className="text-slate-600 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">Altura Máx.</p>
+          <p className="text-2xl font-bold text-enterprise-blue">{stats.maxHeight.toFixed(1)}m</p>
         </div>
-        <div className="glass-panel-hover p-4 rounded-lg">
-          <p className="text-slate-600 text-xs uppercase tracking-wider font-semibold">Altura Média</p>
-          <p className="text-2xl font-bold" style={{ color: 'var(--enterprise-blue)' }}>{stats.avgHeight.toFixed(1)}m</p>
+        <div className="glass-panel-hover p-4 rounded-lg border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-900/55">
+          <p className="text-slate-600 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">Altura Média</p>
+          <p className="text-2xl font-bold text-enterprise-blue">{stats.avgHeight.toFixed(1)}m</p>
         </div>
-        <div className="glass-panel-hover p-4 rounded-lg">
-          <p className="text-slate-600 text-xs uppercase tracking-wider font-semibold">Densidade</p>
-          <p className="text-2xl font-bold text-purple-600">
+        <div className="glass-panel-hover p-4 rounded-lg border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-900/55">
+          <p className="text-slate-600 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">Densidade</p>
+          <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
             {stats.totalBuildings > 500 ? 'Alta' : stats.totalBuildings > 100 ? 'Média' : 'Baixa'}
           </p>
         </div>
       </div>
 
-      <div className="glass-panel p-4 rounded-lg border-l-4" style={{ borderLeftColor: 'var(--enterprise-blue)' }}>
-        <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--enterprise-blue)' }}>Resumo da Análise</h3>
-        <p className="text-slate-700 text-sm leading-relaxed italic">
+      <div className="glass-panel p-4 rounded-lg border-l-4 border-enterprise-blue bg-white/70 dark:bg-slate-900/55">
+        <h3 className="text-sm font-semibold mb-1 text-enterprise-blue">Resumo da análise</h3>
+        <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed italic">
           "{analysisText}"
         </p>
       </div>
 
       {/* Chart */}
-      <div className="h-48 w-full glass-panel p-4 rounded-lg">
+      <div className="h-48 w-full glass-panel p-4 rounded-lg border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-900/55">
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <BarChart data={data} layout="vertical">
              <XAxis type="number" hide />
