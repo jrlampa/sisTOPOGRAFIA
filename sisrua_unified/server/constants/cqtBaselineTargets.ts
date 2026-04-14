@@ -33,3 +33,33 @@ export const CQT_BASELINE_TARGETS = {
         k26QtMttr3: 0.06587946666666666
     }
 } as const;
+
+/**
+ * Baseline targets for the REV0 workbook:
+ *   CQTsimplificado_REV0 - Copia - Copia.xlsx
+ *
+ * This workbook applies the same DB parameters (transformer 225 kVA, Z%=3.5%,
+ * DEM_ATUAL=101.956 kVA) as the BECO DO MATA 7 reference workbook, so the
+ * derived DB indicators (K6/K7/K8/K10) and global QT_MTTR are identical.
+ * The file is placed in Light_estudo/ following the same convention and is
+ * discovered automatically by the audit script when present.
+ */
+export const CQT_REV0_BASELINE_TARGETS = {
+    workbook: 'Light_estudo/CQTsimplificado_REV0 - Copia - Copia.xlsx',
+    workbookLegacyFallback: 'CQTsimplificado_REV0 - Copia - Copia.xlsx',
+    tolerance: 1e-9,
+    db: {
+        // DB!K6: TR_ATUAL — same transformer in both workbooks (225 kVA)
+        k6TrAtual: 225,
+        // DB!K7: DEM_ATUAL — same feeder demand (101.956 kVA)
+        k7DemAtual: 101.95599999999999,
+        // DB!K8: QT_TR = (DEM_ATUAL / TR_ATUAL) * Z% = (101.956/225)*0.035
+        k8QtTr: 0.015859822222222222,
+        // DB!K10: QT_MTTR = QT_MT + QT_TR = 0.0183 + 0.015859822...
+        k10QtMttr: 0.03415982222222222,
+        // QT_MT = QT_MTTR - QT_TR (base MT line drop, same as BECO DO MATA 7)
+        qtMt: 0.0183,
+        // Transformer impedance factor (Z%)
+        zPercent: 0.035
+    }
+} as const;

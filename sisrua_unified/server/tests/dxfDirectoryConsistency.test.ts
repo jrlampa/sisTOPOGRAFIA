@@ -28,6 +28,11 @@ jest.mock('../services/metricsService', () => ({
   },
 }));
 
+// Allow all RBAC checks to pass through so this test focuses on DXF directory consistency.
+jest.mock('../middleware/permissionHandler', () => ({
+  requirePermission: () => (_req: unknown, _res: unknown, next: () => void) => next(),
+}));
+
 describe('DXF directory consistency', () => {
   const originalEnv = process.env;
 

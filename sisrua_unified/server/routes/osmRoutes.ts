@@ -1,9 +1,19 @@
 import { Router, Request, Response } from 'express';
 import { logger } from '../utils/logger.js';
 import { config } from '../config.js';
+import { osmRequestSchema } from '../schemas/apiSchemas.js';
 
 const router = Router();
 const isTestEnvironment = config.NODE_ENV === 'test';
+
+// Simple memory-based cache for OSM requests
+// In production, consider Redis or persistent storage
+const osmCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours as per user preference
+
+function getCacheKey(lat: number, lng: number, radius: number): string {
+    return `${lat.toFixed(6)},${lng.toFixed(6)},${radius}`;
+}
 
 // ---------------------------------------------------------------------------
 // Stats computation (mirrors the former client-side calculateStats)
@@ -108,12 +118,22 @@ const fetchWithTimeout = async (url: string, body: string, timeoutMs: number): P
 };
 
 router.post('/', async (req: Request, res: Response) => {
-  const lat = Number(req.body?.lat);
-  const lng = Number(req.body?.lng);
-  const radius = Number(req.body?.radius);
+  const validation = osmRequestSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({ 
+        error: 'Invalid coordinates or radius',
+        details: validation.error.issues 
+    });
+  }
 
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(radius) || radius <= 0) {
-    return res.status(400).json({ error: 'Invalid coordinates or radius' });
+  const { lat, lng, radius } = validation.data;
+
+  // Check Cache
+  const cacheKey = getCacheKey(lat, lng, radius);
+  const cached = osmCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+    logger.info('OSM Cache Hit', { lat, lng, radius });
+    return res.json(cached.data);
   }
 
   const query = `
@@ -136,7 +156,13 @@ router.post('/', async (req: Request, res: Response) => {
 
       const data = await response.json();
       const stats = computeOsmStats(data.elements ?? []);
-      return res.json({ ...data, _stats: stats });
+      const result = { ...data, _stats: stats };
+
+      // Set Cache
+      osmCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      logger.info('OSM Cache Set', { lat, lng, radius });
+
+      return res.json(result);
     } catch (error) {
       lastError = error;
       const message = error instanceof Error ? error.message : String(error);
@@ -155,7 +181,8 @@ router.post('/', async (req: Request, res: Response) => {
   if (isTestEnvironment) {
     const mock = buildMockOverpassPayload(lat, lng, radius);
     const fallbackStats = computeOsmStats(mock.elements ?? []);
-    return res.status(200).json({ ...mock, _fallback: true, _stats: fallbackStats });
+    const result = { ...mock, _fallback: true, _stats: fallbackStats };
+    return res.status(200).json(result);
   }
 
   return res.status(503).json({
@@ -170,15 +197,15 @@ router.post('/mock', async (req: Request, res: Response) => {
     return res.status(404).json({ error: 'Route not found' });
   }
 
-  const lat = Number(req.body?.lat);
-  const lng = Number(req.body?.lng);
-  const radius = Number(req.body?.radius ?? 300);
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(radius) || radius <= 0) {
+  const validation = osmRequestSchema.safeParse(req.body);
+  if (!validation.success) {
     return res.status(400).json({ error: 'Invalid coordinates or radius' });
   }
+
+  const { lat, lng, radius } = validation.data;
 
   return res.json(buildMockOverpassPayload(lat, lng, radius));
 });
 
 export default router;
+

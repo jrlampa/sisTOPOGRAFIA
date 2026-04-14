@@ -1,10 +1,11 @@
-import { AnimatePresence } from 'framer-motion';
-import type { GlobalState } from '../types';
-import Toast, { ToastType } from './Toast';
-import ProgressIndicator from './ProgressIndicator';
-import { SessionRecoveryBanner } from './SessionRecoveryBanner';
-import { DxfProgressBadge } from './DxfProgressBadge';
-import { BtExportSummaryBanner } from './BtExportSummaryBanner';
+import { useEffect, useState } from "react";
+import { AnimatePresence } from "framer-motion";
+import type { GlobalState } from "../types";
+import Toast, { ToastType } from "./Toast";
+import ProgressIndicator from "./ProgressIndicator";
+import { SessionRecoveryBanner } from "./SessionRecoveryBanner";
+import { DxfProgressBadge } from "./DxfProgressBadge";
+import { BtExportSummaryBanner } from "./BtExportSummaryBanner";
 
 type Props = {
   toast: { message: string; type: ToastType } | null;
@@ -35,6 +36,20 @@ export function AppStatusStack({
   dxfProgressLabel,
   btExportSummaryProps,
 }: Props) {
+  const [isBtSummaryVisible, setIsBtSummaryVisible] = useState(true);
+
+  useEffect(() => {
+    if (
+      btExportSummaryProps.latestBtExport ||
+      btExportSummaryProps.btExportHistory.length > 0
+    ) {
+      setIsBtSummaryVisible(true);
+    }
+  }, [
+    btExportSummaryProps.latestBtExport?.btContextUrl,
+    btExportSummaryProps.btExportHistory.length,
+  ]);
+
   return (
     <>
       <AnimatePresence>
@@ -44,7 +59,7 @@ export function AppStatusStack({
             message={toast.message}
             type={toast.type}
             onClose={closeToast}
-            duration={toast.type === 'error' ? 8000 : 4000}
+            duration={toast.type === "error" ? 8000 : 4000}
           />
         )}
       </AnimatePresence>
@@ -63,7 +78,12 @@ export function AppStatusStack({
 
       <DxfProgressBadge visible={showDxfProgress} label={dxfProgressLabel} />
 
-      <BtExportSummaryBanner {...btExportSummaryProps} />
+      {isBtSummaryVisible && (
+        <BtExportSummaryBanner
+          {...btExportSummaryProps}
+          onClose={() => setIsBtSummaryVisible(false)}
+        />
+      )}
     </>
   );
 }

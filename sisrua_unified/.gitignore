@@ -74,6 +74,14 @@ htmlcov/
 .pytest_cache/
 coverage-final.json
 
+# Runtime output / temporários
+tmp/
+chaos_output.txt
+.lighthouseci/
+
+# Artifacts (brain cache, RAG outputs gerados)
+artifacts/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

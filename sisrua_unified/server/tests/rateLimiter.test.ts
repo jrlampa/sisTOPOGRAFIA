@@ -92,6 +92,14 @@ describe('Rate Limiter Middleware', () => {
                 dxf: {
                     windowMs: 3600000,
                     limit: 10
+                },
+                downloads: {
+                    windowMs: 900000,
+                    limit: 50
+                },
+                analyze: {
+                    windowMs: 300000,
+                    limit: 20
                 }
             });
         });
@@ -117,6 +125,14 @@ describe('Rate Limiter Middleware', () => {
                 dxf: {
                     windowMs: 1800000,
                     limit: 25
+                },
+                downloads: {
+                    windowMs: 900000,
+                    limit: 50
+                },
+                analyze: {
+                    windowMs: 300000,
+                    limit: 20
                 }
             });
         });

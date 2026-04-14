@@ -14,7 +14,7 @@ describe('useSearch', () => {
     vi.clearAllMocks();
   });
 
-  it('should initialize with empty search query', () => {
+  it('should initialize with empty search query and not-searching state', () => {
     const { result } = renderHook(() =>
       useSearch({
         onLocationFound: mockOnLocationFound,
@@ -26,7 +26,7 @@ describe('useSearch', () => {
     expect(result.current.isSearching).toBe(false);
   });
 
-  it('should update search query', () => {
+  it('should update search query state', () => {
     const { result } = renderHook(() =>
       useSearch({
         onLocationFound: mockOnLocationFound,
@@ -41,12 +41,8 @@ describe('useSearch', () => {
     expect(result.current.searchQuery).toBe('São Paulo');
   });
 
-  it('should search successfully', async () => {
-    const mockLocation = {
-      lat: -23.5505,
-      lng: -46.6333,
-      label: 'São Paulo'
-    };
+  it('should execute search and call onLocationFound on success', async () => {
+    const mockLocation = { lat: -23.5505, lng: -46.6333, label: 'São Paulo' };
 
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
@@ -54,15 +50,8 @@ describe('useSearch', () => {
     });
 
     const { result } = renderHook(() =>
-      useSearch({
-        onLocationFound: mockOnLocationFound,
-        onError: mockOnError
-      })
+      useSearch({ onLocationFound: mockOnLocationFound, onError: mockOnError })
     );
-
-    act(() => {
-      result.current.setSearchQuery('São Paulo');
-    });
 
     await act(async () => {
       await result.current.executeSearch('São Paulo');
@@ -73,33 +62,26 @@ describe('useSearch', () => {
     });
   });
 
-  it('should handle search error', async () => {
+  it('should call onError when API returns not-ok', async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: false
+      ok: false,
+      json: async () => ({ details: 'Location not found' })
     });
 
     const { result } = renderHook(() =>
-      useSearch({
-        onLocationFound: mockOnLocationFound,
-        onError: mockOnError
-      })
+      useSearch({ onLocationFound: mockOnLocationFound, onError: mockOnError })
     );
 
     await act(async () => {
-      await result.current.executeSearch('Invalid Location');
+      await result.current.executeSearch('Nowhere');
     });
 
-    await waitFor(() => {
-      expect(mockOnError).toHaveBeenCalledWith('Location not found');
-    });
+    expect(mockOnError).toHaveBeenCalledWith('Location not found');
   });
 
-  it('should not search with empty query', async () => {
+  it('should not trigger fetch with empty query', async () => {
     const { result } = renderHook(() =>
-      useSearch({
-        onLocationFound: mockOnLocationFound,
-        onError: mockOnError
-      })
+      useSearch({ onLocationFound: mockOnLocationFound, onError: mockOnError })
     );
 
     await act(async () => {
@@ -107,5 +89,42 @@ describe('useSearch', () => {
     });
 
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('should call onError when query fails validation (too short)', async () => {
+    const { result } = renderHook(() =>
+      useSearch({ onLocationFound: mockOnLocationFound, onError: mockOnError })
+    );
+
+    await act(async () => {
+      await result.current.executeSearch('ab'); // Too short
+    });
+
+    // fetch should not have been called — validation stopped it
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(mockOnError).toHaveBeenCalled();
+  });
+
+  it('should call preventDefault on form submit', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => ({ lat: 0, lng: 0 })
+    });
+
+    const { result } = renderHook(() =>
+      useSearch({ onLocationFound: mockOnLocationFound, onError: mockOnError })
+    );
+
+    const mockEvent = { preventDefault: vi.fn() } as any;
+
+    await act(async () => {
+      result.current.setSearchQuery('Query B');
+    });
+
+    await act(async () => {
+      await result.current.handleSearch(mockEvent);
+    });
+
+    expect(mockEvent.preventDefault).toHaveBeenCalled();
   });
 });

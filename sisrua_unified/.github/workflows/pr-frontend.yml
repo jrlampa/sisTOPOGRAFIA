@@ -8,31 +8,31 @@ on:
   pull_request:
     branches: [dev, main, master]
     paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'e2e/**'
-      - 'index.html'
-      - 'vite.config.ts'
-      - 'vitest.config.ts'
-      - 'vitest.risk.config.ts'
-      - 'playwright.a11y.config.ts'
-      - 'tailwind.config.js'
-      - 'postcss.config.js'
-      - '.eslintrc.cjs'
-      - 'tsconfig.json'
-      - 'tsconfig.node.json'
-      - 'lighthouserc.json'
-      - 'package.json'
-      - 'package-lock.json'
+      - "src/**"
+      - "tests/**"
+      - "e2e/**"
+      - "index.html"
+      - "vite.config.ts"
+      - "vitest.config.ts"
+      - "vitest.risk.config.ts"
+      - "playwright.a11y.config.ts"
+      - "tailwind.config.js"
+      - "postcss.config.js"
+      - ".eslintrc.cjs"
+      - "tsconfig.json"
+      - "tsconfig.node.json"
+      - "lighthouserc.json"
+      - "package.json"
+      - "package-lock.json"
   push:
     branches: [dev]
     paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'index.html'
-      - 'vite.config.ts'
-      - 'vitest.config.ts'
-      - 'package.json'
+      - "src/**"
+      - "tests/**"
+      - "index.html"
+      - "vite.config.ts"
+      - "vitest.config.ts"
+      - "package.json"
 
 concurrency:
   group: pr-frontend-${{ github.ref }}
@@ -54,8 +54,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -78,8 +78,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -102,8 +102,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -120,7 +120,7 @@ jobs:
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
-        if: always()
+        if: ${{ always() && !env.ACT }}
         with:
           name: frontend-coverage-pr
           path: coverage/frontend/
@@ -142,8 +142,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -153,6 +153,7 @@ jobs:
 
       - name: Upload dist
         uses: actions/upload-artifact@v4
+        if: ${{ !env.ACT }}
         with:
           name: dist-pr
           path: dist/
@@ -175,8 +176,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -197,7 +198,7 @@ jobs:
 
       - name: Upload relatório a11y
         uses: actions/upload-artifact@v4
-        if: always()
+        if: ${{ always() && !env.ACT }}
         with:
           name: a11y-report-pr
           path: playwright-report/a11y/
@@ -220,8 +221,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci

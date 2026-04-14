@@ -1,36 +1,68 @@
-import { BtProjectType, BtTransformerReading, BtTopology } from '../types';
+import { BtProjectType, BtTransformerReading, BtTopology } from "../types";
 import {
   CLANDESTINO_AREA_TO_KVA,
   CLANDESTINO_CLIENT_TO_DIVERSIF_FACTOR,
   CLANDESTINO_MAX_AREA_M2,
   CLANDESTINO_MAX_CLIENTS,
   CLANDESTINO_MIN_AREA_M2,
-  CLANDESTINO_MIN_CLIENTS
-} from '../constants/clandestinoWorkbookRules';
+  CLANDESTINO_MIN_CLIENTS,
+} from "../constants/clandestinoWorkbookRules";
 
 const HOURS_PER_MONTH_REFERENCE = 720;
-const CLANDESTINO_RAMAL_TYPE = 'Clandestino';
+const CLANDESTINO_RAMAL_TYPE = "Clandestino";
 const CURRENT_TO_DEMAND_CONVERSION = 0.375;
 
-let activeClandestinoAreaToKva: Record<number, number> = CLANDESTINO_AREA_TO_KVA;
-let activeClandestinoClientToDiversifFactor: Record<number, number> = CLANDESTINO_CLIENT_TO_DIVERSIF_FACTOR;
+// Workbook RAMAL!B5:U5 coefficients used by V = SUM(tipo * peso)
+// and TOTAL_DO_TRECHO = AA24 * (V / W16).
+const RAMAL_WEIGHT_BY_TYPE_ATUAL = new Map<string, number>([
+  ["5 CC", 66],
+  ["8 CC", 88],
+  ["13 CC", 116],
+  ["21 CC", 151],
+  ["33 CC", 205],
+  ["53 CC", 272],
+  ["67 CC", 313],
+  ["85 CC", 366],
+  ["107 CC", 418],
+  ["127 CC", 466],
+  ["253 CC", 710],
+  ["13 DX 6 AWG", 78],
+  ["13 TX 6 AWG", 80],
+  ["13 QX 6 AWG", 72],
+  ["21 QX 4 AWG", 95],
+  ["53 QX 1/0", 165],
+  ["85 QX 3/0", 220],
+  ["107 QX 4/0", 254],
+  ["70 MMX", 227],
+  ["185 MMX", 423],
+]);
+
+let activeClandestinoAreaToKva: Record<number, number> =
+  CLANDESTINO_AREA_TO_KVA;
+let activeClandestinoClientToDiversifFactor: Record<number, number> =
+  CLANDESTINO_CLIENT_TO_DIVERSIF_FACTOR;
 let clandestinoRulesLoadPromise: Promise<boolean> | null = null;
 
 const isLookupRecord = (value: unknown): value is Record<string, number> => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;
   }
 
-  return Object.values(value).every((item) => typeof item === 'number' && Number.isFinite(item));
+  return Object.values(value).every(
+    (item) => typeof item === "number" && Number.isFinite(item),
+  );
 };
 
-const toNumericRecord = (value: Record<string, number>): Record<number, number> => (
+const toNumericRecord = (
+  value: Record<string, number>,
+): Record<number, number> =>
   Object.fromEntries(
     Object.entries(value)
       .map(([key, item]) => [Number(key), item])
-      .filter(([key, item]) => Number.isInteger(key) && typeof item === 'number')
-  ) as Record<number, number>
-);
+      .filter(
+        ([key, item]) => Number.isInteger(key) && typeof item === "number",
+      ),
+  ) as Record<number, number>;
 
 export const loadClandestinoWorkbookRules = async (): Promise<boolean> => {
   if (clandestinoRulesLoadPromise) {
@@ -39,13 +71,13 @@ export const loadClandestinoWorkbookRules = async (): Promise<boolean> => {
 
   clandestinoRulesLoadPromise = (async () => {
     try {
-      const response = await fetch('/api/constants/clandestino');
+      const response = await fetch("/api/constants/clandestino");
       if (!response.ok) {
         return false;
       }
 
       const payload: unknown = await response.json();
-      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
         return false;
       }
 
@@ -54,12 +86,17 @@ export const loadClandestinoWorkbookRules = async (): Promise<boolean> => {
         clientToDiversifFactor?: unknown;
       };
 
-      if (!isLookupRecord(areaToKva) || !isLookupRecord(clientToDiversifFactor)) {
+      if (
+        !isLookupRecord(areaToKva) ||
+        !isLookupRecord(clientToDiversifFactor)
+      ) {
         return false;
       }
 
       activeClandestinoAreaToKva = toNumericRecord(areaToKva);
-      activeClandestinoClientToDiversifFactor = toNumericRecord(clientToDiversifFactor);
+      activeClandestinoClientToDiversifFactor = toNumericRecord(
+        clientToDiversifFactor,
+      );
       return true;
     } catch {
       return false;
@@ -69,35 +106,64 @@ export const loadClandestinoWorkbookRules = async (): Promise<boolean> => {
   return clandestinoRulesLoadPromise;
 };
 
-const getPoleClientsByProjectType = (projectType: BtProjectType, topology: BtTopology, poleId: string): number => {
+const getPoleClientsByProjectType = (
+  projectType: BtProjectType,
+  topology: BtTopology,
+  poleId: string,
+): number => {
   const pole = topology.poles.find((item) => item.id === poleId);
   if (!pole) {
     return 0;
   }
 
   const ramais = pole.ramais ?? [];
-  if (projectType === 'clandestino') {
+  if (projectType === "clandestino") {
     return ramais
       .filter((ramal) => ramal.ramalType === CLANDESTINO_RAMAL_TYPE)
       .reduce((sum, ramal) => sum + ramal.quantity, 0);
   }
 
-  return ramais
-    // Backward compatibility: legacy ramais without `ramalType` are considered normal.
-    .filter((ramal) => ramal.ramalType !== CLANDESTINO_RAMAL_TYPE)
-    .reduce((sum, ramal) => sum + ramal.quantity, 0);
+  return (
+    ramais
+      // Backward compatibility: legacy ramais without `ramalType` are considered normal.
+      .filter((ramal) => ramal.ramalType !== CLANDESTINO_RAMAL_TYPE)
+      .reduce((sum, ramal) => sum + ramal.quantity, 0)
+  );
 };
 
-export const calculateTransformerEnergyKwh = (readings: BtTransformerReading[]): number => {
+const getRamalWeightByType = (ramalType?: string): number | null => {
+  if (!ramalType || typeof ramalType !== "string") {
+    return null;
+  }
+
+  const normalized = ramalType.trim().toUpperCase();
+  for (const [type, weight] of RAMAL_WEIGHT_BY_TYPE_ATUAL.entries()) {
+    if (type.toUpperCase() === normalized) {
+      return weight;
+    }
+  }
+
+  return null;
+};
+
+export const calculateTransformerEnergyKwh = (
+  readings: BtTransformerReading[],
+): number => {
   return readings.reduce((acc, reading) => {
-    if (!reading.unitRateBrlPerKwh || reading.unitRateBrlPerKwh <= 0 || !reading.billedBrl) {
+    if (
+      !reading.unitRateBrlPerKwh ||
+      reading.unitRateBrlPerKwh <= 0 ||
+      !reading.billedBrl
+    ) {
       return acc;
     }
     return acc + reading.billedBrl / reading.unitRateBrlPerKwh;
   }, 0);
 };
 
-export const calculateTransformerDemandKw = (readings: BtTransformerReading[]): number => {
+export const calculateTransformerDemandKw = (
+  readings: BtTransformerReading[],
+): number => {
   if (readings.length === 0) {
     return 0;
   }
@@ -112,10 +178,12 @@ export const calculateTransformerDemandKw = (readings: BtTransformerReading[]): 
   });
 
   // Use the highest corrected demand among informed readings.
-  return Number((Math.max(...correctedDemands, 0)).toFixed(2));
+  return Number(Math.max(...correctedDemands, 0).toFixed(2));
 };
 
-export const calculateTransformerMonthlyBill = (readings: BtTransformerReading[]): number => {
+export const calculateTransformerMonthlyBill = (
+  readings: BtTransformerReading[],
+): number => {
   return readings.reduce((acc, reading) => acc + (reading.billedBrl ?? 0), 0);
 };
 
@@ -130,12 +198,12 @@ const parseInteger = (value: number): number | null => {
 
 export const getClandestinoAreaRange = () => ({
   min: CLANDESTINO_MIN_AREA_M2,
-  max: CLANDESTINO_MAX_AREA_M2
+  max: CLANDESTINO_MAX_AREA_M2,
 });
 
 export const getClandestinoClientsRange = () => ({
   min: CLANDESTINO_MIN_CLIENTS,
-  max: CLANDESTINO_MAX_CLIENTS
+  max: CLANDESTINO_MAX_CLIENTS,
 });
 
 export const getClandestinoKvaByArea = (areaM2: number): number | null => {
@@ -147,7 +215,9 @@ export const getClandestinoKvaByArea = (areaM2: number): number | null => {
   return activeClandestinoAreaToKva[areaKey] ?? null;
 };
 
-export const getClandestinoDiversificationFactorByClients = (clients: number): number | null => {
+export const getClandestinoDiversificationFactorByClients = (
+  clients: number,
+): number | null => {
   const clientsKey = parseInteger(clients);
   if (clientsKey === null) {
     return null;
@@ -156,9 +226,13 @@ export const getClandestinoDiversificationFactorByClients = (clients: number): n
   return activeClandestinoClientToDiversifFactor[clientsKey] ?? null;
 };
 
-export const calculateClandestinoDemandKvaByAreaAndClients = (areaM2: number, clients: number): number => {
+export const calculateClandestinoDemandKvaByAreaAndClients = (
+  areaM2: number,
+  clients: number,
+): number => {
   const baseKva = getClandestinoKvaByArea(areaM2);
-  const diversificationFactor = getClandestinoDiversificationFactorByClients(clients);
+  const diversificationFactor =
+    getClandestinoDiversificationFactorByClients(clients);
 
   if (baseKva === null || diversificationFactor === null) {
     return 0;
@@ -216,7 +290,10 @@ export interface BtTransformerConflictGroup {
   transformerIds: string[];
 }
 
-const distanceMetersBetween = (a: { lat: number; lng: number }, b: { lat: number; lng: number }): number => {
+const distanceMetersBetween = (
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): number => {
   const earthRadius = 6371000;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
   const dLng = ((b.lng - a.lng) * Math.PI) / 180;
@@ -237,16 +314,21 @@ interface TransformerOwnershipData {
 
 const calculateTransformerOwnershipData = (
   topology: BtTopology,
-  projectType: BtProjectType
+  projectType: BtProjectType,
 ): TransformerOwnershipData => {
   const allPoleIds = new Set(topology.poles.map((pole) => pole.id));
   const circuitBreakPoleIds = new Set(
-    topology.poles.filter((pole) => pole.circuitBreakPoint).map((pole) => pole.id)
+    topology.poles
+      .filter((pole) => pole.circuitBreakPoint)
+      .map((pole) => pole.id),
   );
 
   const localClientByPole = new Map<string, number>();
   for (const pole of topology.poles) {
-    localClientByPole.set(pole.id, getPoleClientsByProjectType(projectType, topology, pole.id));
+    localClientByPole.set(
+      pole.id,
+      getPoleClientsByProjectType(projectType, topology, pole.id),
+    );
   }
 
   const adjacentPoles = new Map<string, string[]>();
@@ -255,8 +337,9 @@ const calculateTransformerOwnershipData = (
   }
 
   const activeEdges = topology.edges.filter((edge) => {
-    const edgeFlag = edge.edgeChangeFlag ?? (edge.removeOnExecution ? 'remove' : 'existing');
-    return edgeFlag !== 'remove';
+    const edgeFlag =
+      edge.edgeChangeFlag ?? (edge.removeOnExecution ? "remove" : "existing");
+    return edgeFlag !== "remove";
   });
 
   for (const edge of activeEdges) {
@@ -265,8 +348,13 @@ const calculateTransformerOwnershipData = (
   }
 
   const transformerPoleEntries = topology.transformers
-    .filter((transformer) => transformer.poleId && allPoleIds.has(transformer.poleId))
-    .map((transformer) => ({ transformerId: transformer.id, poleId: transformer.poleId as string }));
+    .filter(
+      (transformer) => transformer.poleId && allPoleIds.has(transformer.poleId),
+    )
+    .map((transformer) => ({
+      transformerId: transformer.id,
+      poleId: transformer.poleId as string,
+    }));
 
   const distanceToTransformer = new Map<string, number>();
   const ownerTransformerByPole = new Map<string, string>();
@@ -276,9 +364,13 @@ const calculateTransformerOwnershipData = (
 
   const queue: Array<{ poleId: string; transformerId: string }> = [];
   for (const entry of transformerPoleEntries) {
-    const knownDistance = distanceToTransformer.get(entry.poleId) ?? Number.POSITIVE_INFINITY;
+    const knownDistance =
+      distanceToTransformer.get(entry.poleId) ?? Number.POSITIVE_INFINITY;
     const knownOwner = ownerTransformerByPole.get(entry.poleId);
-    if (knownDistance > 0 || (knownDistance === 0 && (!knownOwner || entry.transformerId < knownOwner))) {
+    if (
+      knownDistance > 0 ||
+      (knownDistance === 0 && (!knownOwner || entry.transformerId < knownOwner))
+    ) {
       distanceToTransformer.set(entry.poleId, 0);
       ownerTransformerByPole.set(entry.poleId, entry.transformerId);
     }
@@ -291,7 +383,8 @@ const calculateTransformerOwnershipData = (
       continue;
     }
 
-    const currentDistance = distanceToTransformer.get(current.poleId) ?? Number.POSITIVE_INFINITY;
+    const currentDistance =
+      distanceToTransformer.get(current.poleId) ?? Number.POSITIVE_INFINITY;
     const owner = ownerTransformerByPole.get(current.poleId);
     if (!owner || owner !== current.transformerId) {
       continue;
@@ -303,11 +396,15 @@ const calculateTransformerOwnershipData = (
 
     const neighbors = adjacentPoles.get(current.poleId) ?? [];
     for (const neighborId of neighbors) {
-      const knownDistance = distanceToTransformer.get(neighborId) ?? Number.POSITIVE_INFINITY;
+      const knownDistance =
+        distanceToTransformer.get(neighborId) ?? Number.POSITIVE_INFINITY;
       const knownOwner = ownerTransformerByPole.get(neighborId);
       const nextDistance = currentDistance + 1;
 
-      if (nextDistance < knownDistance || (nextDistance === knownDistance && (!knownOwner || owner < knownOwner))) {
+      if (
+        nextDistance < knownDistance ||
+        (nextDistance === knownDistance && (!knownOwner || owner < knownOwner))
+      ) {
         distanceToTransformer.set(neighborId, nextDistance);
         ownerTransformerByPole.set(neighborId, owner);
         queue.push({ poleId: neighborId, transformerId: owner });
@@ -317,7 +414,7 @@ const calculateTransformerOwnershipData = (
 
   return {
     localClientByPole,
-    ownerTransformerByPole
+    ownerTransformerByPole,
   };
 };
 
@@ -325,15 +422,18 @@ export const calculatePointDemandKva = ({
   projectType,
   transformerDemandKw,
   clandestinoAreaM2,
-  clandestinoClients
+  clandestinoClients,
 }: CalculatePointDemandKvaInput): number => {
-  const ab35LookupDmdi = calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, clandestinoClients);
+  const ab35LookupDmdi = calculateClandestinoDemandKvaByAreaAndClients(
+    clandestinoAreaM2,
+    clandestinoClients,
+  );
 
   return calculateRamalDmdiKva({
     projectType,
     aa24DemandBase: transformerDemandKw,
     sumClientsX: clandestinoClients,
-    ab35LookupDmdi
+    ab35LookupDmdi,
   });
 };
 
@@ -341,13 +441,17 @@ export const calculateRamalDmdiKva = ({
   projectType,
   aa24DemandBase,
   sumClientsX,
-  ab35LookupDmdi
+  ab35LookupDmdi,
 }: CalculateRamalDmdiInput): number => {
-  if (projectType === 'clandestino') {
+  if (projectType === "clandestino") {
     return Number(ab35LookupDmdi.toFixed(2));
   }
 
-  if (!Number.isFinite(aa24DemandBase) || !Number.isFinite(sumClientsX) || sumClientsX <= 0) {
+  if (
+    !Number.isFinite(aa24DemandBase) ||
+    !Number.isFinite(sumClientsX) ||
+    sumClientsX <= 0
+  ) {
     // Workbook IFERROR parity for AA30 when denominator is empty/zero.
     return 0;
   }
@@ -360,10 +464,13 @@ export const calculateAccumulatedDemandKva = ({
   clandestinoAreaM2,
   accumulatedClients,
   downstreamAccumulatedKva,
-  totalTrechoKva
+  totalTrechoKva,
 }: CalculateAccumulatedDemandKvaInput): number => {
-  if (projectType === 'clandestino') {
-    return calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, accumulatedClients);
+  if (projectType === "clandestino") {
+    return calculateClandestinoDemandKvaByAreaAndClients(
+      clandestinoAreaM2,
+      accumulatedClients,
+    );
   }
 
   // Mirrors GERAL[ACUMULADA] normal branch: acumulada dos filhos + total do trecho.
@@ -381,22 +488,28 @@ export const calculateClandestinoDemandKw = (areaM2: number): number => {
 };
 
 export const calculateBtSummary = (topology: BtTopology) => {
-  const totalLengthMeters = topology.edges.reduce((acc, edge) => acc + (edge.lengthMeters || 0), 0);
-  const transformerDemandKw = topology.transformers.reduce((acc, transformer) => acc + transformer.demandKw, 0);
+  const totalLengthMeters = topology.edges.reduce(
+    (acc, edge) => acc + (edge.lengthMeters || 0),
+    0,
+  );
+  const transformerDemandKw = topology.transformers.reduce(
+    (acc, transformer) => acc + transformer.demandKw,
+    0,
+  );
 
   return {
     poles: topology.poles.length,
     transformers: topology.transformers.length,
     edges: topology.edges.length,
     totalLengthMeters,
-    transformerDemandKw
+    transformerDemandKw,
   };
 };
 
 export const calculateAccumulatedDemandByPole = (
   topology: BtTopology,
   projectType: BtProjectType,
-  clandestinoAreaM2: number
+  clandestinoAreaM2: number,
 ): BtPoleAccumulatedDemand[] => {
   const allPoleIds = new Set(topology.poles.map((pole) => pole.id));
   for (const edge of topology.edges) {
@@ -408,7 +521,11 @@ export const calculateAccumulatedDemandByPole = (
   const localClientByPole = new Map<string, number>();
 
   for (const pole of topology.poles) {
-    const localClients = getPoleClientsByProjectType(projectType, topology, pole.id);
+    const localClients = getPoleClientsByProjectType(
+      projectType,
+      topology,
+      pole.id,
+    );
     localClientByPole.set(pole.id, localClients);
   }
 
@@ -424,16 +541,20 @@ export const calculateAccumulatedDemandByPole = (
   const circuitBreakPoleIds = new Set(
     topology.poles
       .filter((pole) => pole.circuitBreakPoint)
-      .map((pole) => pole.id)
+      .map((pole) => pole.id),
   );
 
   const transformerPoleIds = new Set(
     topology.transformers
       .map((transformer) => transformer.poleId)
-      .filter((poleId): poleId is string => poleId !== undefined && allPoleIds.has(poleId))
+      .filter(
+        (poleId): poleId is string =>
+          poleId !== undefined && allPoleIds.has(poleId),
+      ),
   );
 
   const distanceToTransformer = new Map<string, number>();
+  const parentByPole = new Map<string, string>();
   for (const poleId of allPoleIds) {
     distanceToTransformer.set(poleId, Number.POSITIVE_INFINITY);
   }
@@ -457,29 +578,82 @@ export const calculateAccumulatedDemandByPole = (
       continue;
     }
 
-    const currentDistance = distanceToTransformer.get(current) ?? Number.POSITIVE_INFINITY;
+    const currentDistance =
+      distanceToTransformer.get(current) ?? Number.POSITIVE_INFINITY;
     const neighbors = adjacentPoles.get(current) ?? [];
     for (const neighbor of neighbors) {
-      const knownDistance = distanceToTransformer.get(neighbor) ?? Number.POSITIVE_INFINITY;
+      const knownDistance =
+        distanceToTransformer.get(neighbor) ?? Number.POSITIVE_INFINITY;
       if (knownDistance > currentDistance + 1) {
         distanceToTransformer.set(neighbor, currentDistance + 1);
+        parentByPole.set(neighbor, current);
         queue.push(neighbor);
       }
     }
   }
 
-  const totalClients = Array.from(localClientByPole.values()).reduce((sum, value) => sum + value, 0);
-  const transformerDemandKva = topology.transformers.reduce((sum, transformer) => sum + transformer.demandKw, 0);
-  const avgDemandPerClient = calculateRamalDmdiKva({
-    projectType,
-    aa24DemandBase: transformerDemandKva,
-    sumClientsX: totalClients,
-    ab35LookupDmdi: calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, totalClients)
-  });
+  const totalClients = Array.from(localClientByPole.values()).reduce(
+    (sum, value) => sum + value,
+    0,
+  );
+  const transformerDemandKva = topology.transformers.reduce(
+    (sum, transformer) => sum + transformer.demandKw,
+    0,
+  );
+
+  const localWeightedRamalByPole = new Map<string, number>();
+  let hasUnknownRamalWeight = false;
+  for (const pole of topology.poles) {
+    const ramais = pole.ramais ?? [];
+    const localWeighted = ramais.reduce((sum, ramal) => {
+      const isClandestino =
+        (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE;
+      if (projectType === "clandestino" ? !isClandestino : isClandestino) {
+        return sum;
+      }
+
+      const quantity = Number.isFinite(ramal.quantity) ? ramal.quantity : 0;
+      if (quantity <= 0) {
+        return sum;
+      }
+
+      const weight = getRamalWeightByType(ramal.ramalType);
+      if (weight === null) {
+        hasUnknownRamalWeight = true;
+        return sum;
+      }
+
+      return sum + quantity * weight;
+    }, 0);
+
+    localWeightedRamalByPole.set(pole.id, localWeighted);
+  }
+
+  const totalWeightedRamal = Array.from(
+    localWeightedRamalByPole.values(),
+  ).reduce((sum, value) => sum + value, 0);
+  const useWorkbookWeightedDemand =
+    projectType !== "clandestino" &&
+    !hasUnknownRamalWeight &&
+    totalWeightedRamal > 0 &&
+    Number.isFinite(transformerDemandKva) &&
+    transformerDemandKva > 0;
+
+  const avgDemandPerClientRaw =
+    projectType === "clandestino"
+      ? 0
+      : Number.isFinite(transformerDemandKva) &&
+          Number.isFinite(totalClients) &&
+          totalClients > 0
+        ? transformerDemandKva / totalClients
+        : 0;
 
   const memo = new Map<string, BtPoleAccumulatedDemand>();
 
-  const visit = (poleId: string, activePath: Set<string>): BtPoleAccumulatedDemand => {
+  const visit = (
+    poleId: string,
+    activePath: Set<string>,
+  ): BtPoleAccumulatedDemand => {
     const cached = memo.get(poleId);
     if (cached) {
       return cached;
@@ -491,7 +665,7 @@ export const calculateAccumulatedDemandByPole = (
         localClients: localClientByPole.get(poleId) ?? 0,
         accumulatedClients: localClientByPole.get(poleId) ?? 0,
         localTrechoDemandKva: 0,
-        accumulatedDemandKva: 0
+        accumulatedDemandKva: 0,
       };
       memo.set(poleId, cycleFallback);
       return cycleFallback;
@@ -501,76 +675,95 @@ export const calculateAccumulatedDemandByPole = (
     nextPath.add(poleId);
 
     const localClients = localClientByPole.get(poleId) ?? 0;
-    const currentDistance = distanceToTransformer.get(poleId) ?? Number.POSITIVE_INFINITY;
     const isCircuitBreakPole = circuitBreakPoleIds.has(poleId);
 
-    // Children are poles farther from the transformer than the current pole.
-    // This makes accumulation run from the network ends toward the transformer.
     const children = isCircuitBreakPole
       ? []
-      : (adjacentPoles.get(poleId) ?? []).filter((neighborId) => {
-          const neighborDistance = distanceToTransformer.get(neighborId) ?? Number.POSITIVE_INFINITY;
-          if (Number.isFinite(currentDistance) && Number.isFinite(neighborDistance)) {
-            return neighborDistance > currentDistance;
-          }
+      : (adjacentPoles.get(poleId) ?? []).filter(
+          (neighborId) => parentByPole.get(neighborId) === poleId,
+        );
 
-          // If no transformer is reachable in this component, avoid arbitrary cycles by
-          // not traversing sideways in unknown direction.
-          return false;
-        });
-
-    const childrenResults = children.map((childPoleId) => visit(childPoleId, nextPath));
-    const downstreamClients = childrenResults.reduce((sum, child) => sum + child.accumulatedClients, 0);
+    const childrenResults = children.map((childPoleId) =>
+      visit(childPoleId, nextPath),
+    );
+    const downstreamClients = childrenResults.reduce(
+      (sum, child) => sum + child.accumulatedClients,
+      0,
+    );
     const accumulatedClients = localClients + downstreamClients;
 
-    const localTrechoDemandKva = projectType === 'clandestino'
-      ? calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, localClients)
-      : Number((localClients * avgDemandPerClient).toFixed(2));
+    const localTrechoDemandKva =
+      projectType === "clandestino"
+        ? calculateClandestinoDemandKvaByAreaAndClients(
+            clandestinoAreaM2,
+            localClients,
+          )
+        : useWorkbookWeightedDemand
+          ? transformerDemandKva *
+            ((localWeightedRamalByPole.get(poleId) ?? 0) / totalWeightedRamal)
+          : localClients * avgDemandPerClientRaw;
 
-    const downstreamAccumulatedKva = childrenResults.reduce((sum, child) => sum + child.accumulatedDemandKva, 0);
-    const accumulatedDemandKva = calculateAccumulatedDemandKva({
-      projectType,
-      clandestinoAreaM2,
-      accumulatedClients,
-      downstreamAccumulatedKva,
-      totalTrechoKva: localTrechoDemandKva
-    });
+    const downstreamAccumulatedKva = childrenResults.reduce(
+      (sum, child) => sum + child.accumulatedDemandKva,
+      0,
+    );
+    const accumulatedDemandKva =
+      projectType === "clandestino"
+        ? calculateAccumulatedDemandKva({
+            projectType,
+            clandestinoAreaM2,
+            accumulatedClients,
+            downstreamAccumulatedKva,
+            totalTrechoKva: localTrechoDemandKva,
+          })
+        : downstreamAccumulatedKva + localTrechoDemandKva;
 
     const result: BtPoleAccumulatedDemand = {
       poleId,
       localClients,
       accumulatedClients,
       localTrechoDemandKva,
-      accumulatedDemandKva
+      accumulatedDemandKva,
     };
 
     memo.set(poleId, result);
     return result;
   };
 
-  const results = Array.from(allPoleIds).map((poleId) => visit(poleId, new Set()));
-  return results.sort((a, b) => b.accumulatedDemandKva - a.accumulatedDemandKva);
+  const results = Array.from(allPoleIds).map((poleId) =>
+    visit(poleId, new Set()),
+  );
+  return results
+    .sort((a, b) => b.accumulatedDemandKva - a.accumulatedDemandKva)
+    .map((item) => ({
+      ...item,
+      localTrechoDemandKva: Number(item.localTrechoDemandKva.toFixed(2)),
+      accumulatedDemandKva: Number(item.accumulatedDemandKva.toFixed(2)),
+    }));
 };
 
 export const calculateEstimatedDemandByTransformer = (
   topology: BtTopology,
   projectType: BtProjectType,
-  clandestinoAreaM2: number
+  clandestinoAreaM2: number,
 ): BtTransformerEstimatedDemand[] => {
   if (topology.transformers.length === 0 || topology.poles.length === 0) {
     return [];
   }
 
-  const hasLinkedTransformers = topology.transformers.some((transformer) => !!transformer.poleId);
+  const hasLinkedTransformers = topology.transformers.some(
+    (transformer) => !!transformer.poleId,
+  );
   if (!hasLinkedTransformers) {
     return topology.transformers.map((transformer) => ({
       transformerId: transformer.id,
       assignedClients: 0,
-      estimatedDemandKw: 0
+      estimatedDemandKw: 0,
     }));
   }
 
-  const { localClientByPole, ownerTransformerByPole } = calculateTransformerOwnershipData(topology, projectType);
+  const { localClientByPole, ownerTransformerByPole } =
+    calculateTransformerOwnershipData(topology, projectType);
 
   const assignedClientsByTransformer = new Map<string, number>();
   for (const transformer of topology.transformers) {
@@ -585,11 +778,15 @@ export const calculateEstimatedDemandByTransformer = (
 
     assignedClientsByTransformer.set(
       ownerTransformerId,
-      (assignedClientsByTransformer.get(ownerTransformerId) ?? 0) + localClients
+      (assignedClientsByTransformer.get(ownerTransformerId) ?? 0) +
+        localClients,
     );
   }
 
-  const totalClients = Array.from(localClientByPole.values()).reduce((sum, value) => sum + value, 0);
+  const totalClients = Array.from(localClientByPole.values()).reduce(
+    (sum, value) => sum + value,
+    0,
+  );
   const measuredDemandKw = topology.transformers.reduce((sum, transformer) => {
     if (transformer.readings.length === 0) {
       return sum;
@@ -597,26 +794,32 @@ export const calculateEstimatedDemandByTransformer = (
 
     return sum + (transformer.demandKw ?? 0);
   }, 0);
-  const demandPerClientKw = totalClients > 0 ? measuredDemandKw / totalClients : 0;
+  const demandPerClientKw =
+    totalClients > 0 ? measuredDemandKw / totalClients : 0;
 
   return topology.transformers.map((transformer) => {
-    const assignedClients = assignedClientsByTransformer.get(transformer.id) ?? 0;
+    const assignedClients =
+      assignedClientsByTransformer.get(transformer.id) ?? 0;
     if (transformer.readings.length > 0) {
       return {
         transformerId: transformer.id,
         assignedClients,
-        estimatedDemandKw: Number((transformer.demandKw ?? 0).toFixed(2))
+        estimatedDemandKw: Number((transformer.demandKw ?? 0).toFixed(2)),
       };
     }
 
-    const estimatedDemandKw = projectType === 'clandestino'
-      ? calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, assignedClients)
-      : Number((assignedClients * demandPerClientKw).toFixed(2));
+    const estimatedDemandKw =
+      projectType === "clandestino"
+        ? calculateClandestinoDemandKvaByAreaAndClients(
+            clandestinoAreaM2,
+            assignedClients,
+          )
+        : Number((assignedClients * demandPerClientKw).toFixed(2));
 
     return {
       transformerId: transformer.id,
       assignedClients,
-      estimatedDemandKw
+      estimatedDemandKw,
     };
   });
 };
@@ -624,7 +827,7 @@ export const calculateEstimatedDemandByTransformer = (
 export const calculateSectioningImpact = (
   topology: BtTopology,
   projectType: BtProjectType,
-  clandestinoAreaM2: number
+  clandestinoAreaM2: number,
 ): BtSectioningImpact => {
   if (topology.poles.length === 0) {
     return {
@@ -632,20 +835,26 @@ export const calculateSectioningImpact = (
       unservedClients: 0,
       estimatedDemandKw: 0,
       loadCenter: null,
-      suggestedPoleId: null
+      suggestedPoleId: null,
     };
   }
 
-  const { localClientByPole, ownerTransformerByPole } = calculateTransformerOwnershipData(topology, projectType);
-  const unservedPoles = topology.poles.filter((pole) => !ownerTransformerByPole.has(pole.id));
+  const { localClientByPole, ownerTransformerByPole } =
+    calculateTransformerOwnershipData(topology, projectType);
+  const unservedPoles = topology.poles.filter(
+    (pole) => !ownerTransformerByPole.has(pole.id),
+  );
   const unservedPoleIds = unservedPoles.map((pole) => pole.id);
 
   const unservedClients = unservedPoles.reduce(
     (sum, pole) => sum + (localClientByPole.get(pole.id) ?? 0),
-    0
+    0,
   );
 
-  const totalClients = Array.from(localClientByPole.values()).reduce((sum, value) => sum + value, 0);
+  const totalClients = Array.from(localClientByPole.values()).reduce(
+    (sum, value) => sum + value,
+    0,
+  );
   const measuredDemandKw = topology.transformers.reduce((sum, transformer) => {
     if (transformer.readings.length === 0) {
       return sum;
@@ -653,11 +862,16 @@ export const calculateSectioningImpact = (
 
     return sum + (transformer.demandKw ?? 0);
   }, 0);
-  const demandPerClientKw = totalClients > 0 ? measuredDemandKw / totalClients : 0;
+  const demandPerClientKw =
+    totalClients > 0 ? measuredDemandKw / totalClients : 0;
 
-  const estimatedDemandKw = projectType === 'clandestino'
-    ? calculateClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, unservedClients)
-    : Number((unservedClients * demandPerClientKw).toFixed(2));
+  const estimatedDemandKw =
+    projectType === "clandestino"
+      ? calculateClandestinoDemandKvaByAreaAndClients(
+          clandestinoAreaM2,
+          unservedClients,
+        )
+      : Number((unservedClients * demandPerClientKw).toFixed(2));
 
   if (unservedPoles.length === 0) {
     return {
@@ -665,7 +879,7 @@ export const calculateSectioningImpact = (
       unservedClients,
       estimatedDemandKw,
       loadCenter: null,
-      suggestedPoleId: null
+      suggestedPoleId: null,
     };
   }
 
@@ -673,20 +887,27 @@ export const calculateSectioningImpact = (
     const clients = localClientByPole.get(pole.id) ?? 0;
     return {
       pole,
-      weight: clients > 0 ? clients : 1
+      weight: clients > 0 ? clients : 1,
     };
   });
 
   const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
   const loadCenter = {
-    lat: weighted.reduce((sum, item) => sum + item.pole.lat * item.weight, 0) / (totalWeight || 1),
-    lng: weighted.reduce((sum, item) => sum + item.pole.lng * item.weight, 0) / (totalWeight || 1)
+    lat:
+      weighted.reduce((sum, item) => sum + item.pole.lat * item.weight, 0) /
+      (totalWeight || 1),
+    lng:
+      weighted.reduce((sum, item) => sum + item.pole.lng * item.weight, 0) /
+      (totalWeight || 1),
   };
 
   let suggestedPoleId: string | null = null;
   let nearestDistance = Number.POSITIVE_INFINITY;
   for (const pole of unservedPoles) {
-    const currentDistance = distanceMetersBetween(loadCenter, { lat: pole.lat, lng: pole.lng });
+    const currentDistance = distanceMetersBetween(loadCenter, {
+      lat: pole.lat,
+      lng: pole.lng,
+    });
     if (currentDistance < nearestDistance) {
       nearestDistance = currentDistance;
       suggestedPoleId = pole.id;
@@ -698,12 +919,12 @@ export const calculateSectioningImpact = (
     unservedClients,
     estimatedDemandKw,
     loadCenter,
-    suggestedPoleId
+    suggestedPoleId,
   };
 };
 
 export const findTransformerConflictsWithoutSectioning = (
-  topology: BtTopology
+  topology: BtTopology,
 ): BtTransformerConflictGroup[] => {
   if (topology.transformers.length < 2 || topology.poles.length === 0) {
     return [];
@@ -713,7 +934,7 @@ export const findTransformerConflictsWithoutSectioning = (
   const circuitBreakPoleIds = new Set(
     topology.poles
       .filter((pole) => pole.circuitBreakPoint)
-      .map((pole) => pole.id)
+      .map((pole) => pole.id),
   );
 
   const adjacentPoles = new Map<string, string[]>();
@@ -724,16 +945,23 @@ export const findTransformerConflictsWithoutSectioning = (
   // A pole marked as circuit break should segment electrical islands.
   // Ignore edges touching a break pole when building connectivity groups.
   for (const edge of topology.edges) {
-    const edgeFlag = edge.edgeChangeFlag ?? (edge.removeOnExecution ? 'remove' : 'existing');
-    if (edgeFlag === 'remove') {
+    const edgeFlag =
+      edge.edgeChangeFlag ?? (edge.removeOnExecution ? "remove" : "existing");
+    if (edgeFlag === "remove") {
       continue;
     }
 
-    if (circuitBreakPoleIds.has(edge.fromPoleId) || circuitBreakPoleIds.has(edge.toPoleId)) {
+    if (
+      circuitBreakPoleIds.has(edge.fromPoleId) ||
+      circuitBreakPoleIds.has(edge.toPoleId)
+    ) {
       continue;
     }
 
-    if (!adjacentPoles.has(edge.fromPoleId) || !adjacentPoles.has(edge.toPoleId)) {
+    if (
+      !adjacentPoles.has(edge.fromPoleId) ||
+      !adjacentPoles.has(edge.toPoleId)
+    ) {
       continue;
     }
 
@@ -786,11 +1014,13 @@ export const findTransformerConflictsWithoutSectioning = (
     }
 
     if (componentTransformerIds.length >= 2) {
-      const uniqueTransformerIds = Array.from(new Set(componentTransformerIds)).sort((a, b) => a.localeCompare(b));
+      const uniqueTransformerIds = Array.from(
+        new Set(componentTransformerIds),
+      ).sort((a, b) => a.localeCompare(b));
       if (uniqueTransformerIds.length >= 2) {
         conflicts.push({
           poleIds: componentPoleIds,
-          transformerIds: uniqueTransformerIds
+          transformerIds: uniqueTransformerIds,
         });
       }
     }

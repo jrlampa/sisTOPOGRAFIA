@@ -2,8 +2,9 @@
  * BT Parity Service (E7-H1, E7-H2)
  *
  * Automated parity executor comparing backend calculation results against
- * reference scenarios extracted from the workbook:
+ * reference scenarios extracted from the workbooks:
  *   CQTsimplificado_BECO DO MATA 7 - PARIDADE_FINAL.xlsx
+ *   CQTsimplificado_REV0 - Copia - Copia.xlsx
  *
  * Tolerance:
  *  - Discrete fields: exact match.
@@ -17,6 +18,7 @@
 
 import { calculateBtRadial, type BtRadialTopologyInput } from './btRadialCalculationService.js';
 import { lookupConductorById } from './btCatalogService.js';
+import { CQT_REV0_BASELINE_TARGETS } from '../constants/cqtBaselineTargets.js';
 
 // ─── Scenario types ───────────────────────────────────────────────────────────
 
@@ -252,6 +254,93 @@ const SCENARIO_LARGE_NETWORK: BtParityScenario = {
     expected: { totalDemandKva: 20 },
 };
 
+/**
+ * P0 scenario: REV0 workbook – transformer QT validation (DB K10).
+ * Source: CQTsimplificado_REV0 - Copia - Copia.xlsx
+ * Applies the same DB inputs as the BECO DO MATA 7 workbook:
+ *   transformer 225 kVA, Z%=3.5%, DEM_ATUAL=101.956 kVA, QT_MT=0.0183.
+ * Expected: QT_MTTR = DB!K10 = 0.0183 + (101.956/225)*0.035
+ */
+const SCENARIO_REV0_DB_INDICATORS: BtParityScenario = {
+    id: 'REV0_DB_INDICATORS',
+    description: 'REV0 workbook – DB K10 (QT_MTTR) parity with same transformer inputs',
+    priority: 'P0',
+    input: {
+        transformer: {
+            id: 'TRAFO_225',
+            rootNodeId: 'TRAFO',
+            kva: CQT_REV0_BASELINE_TARGETS.db.k6TrAtual,
+            zPercent: CQT_REV0_BASELINE_TARGETS.db.zPercent,
+            qtMt: CQT_REV0_BASELINE_TARGETS.db.qtMt,
+        },
+        nodes: [
+            { id: 'TRAFO', load: { localDemandKva: 0 } },
+            { id: 'TOTAL', load: { localDemandKva: CQT_REV0_BASELINE_TARGETS.db.k7DemAtual } },
+        ],
+        edges: [
+            { fromNodeId: 'TRAFO', toNodeId: 'TOTAL', conductorId: '95 Al - Arm', lengthMeters: 1 },
+        ],
+        phase: 'TRI',
+        temperatureC: 75,
+    },
+    expected: {
+        qtTrafo: CQT_REV0_BASELINE_TARGETS.db.k10QtMttr,
+        totalDemandKva: CQT_REV0_BASELINE_TARGETS.db.k7DemAtual,
+    },
+};
+
+/**
+ * P0 scenario: REV0 workbook – simple linear topology.
+ * Source: CQTsimplificado_REV0 - Copia - Copia.xlsx
+ * Verifies demand accumulation and qt calculation over a two-segment feeder
+ * with the same REV0 transformer parameters.
+ */
+const SCENARIO_REV0_LINEAR: BtParityScenario = {
+    id: 'REV0_LINEAR',
+    description: 'REV0 workbook – linear 3-node topology with REV0 transformer inputs',
+    priority: 'P0',
+    input: {
+        transformer: {
+            id: 'TR225_REV0',
+            rootNodeId: 'R',
+            kva: CQT_REV0_BASELINE_TARGETS.db.k6TrAtual,
+            zPercent: CQT_REV0_BASELINE_TARGETS.db.zPercent,
+            qtMt: CQT_REV0_BASELINE_TARGETS.db.qtMt,
+        },
+        nodes: [
+            { id: 'R', load: { localDemandKva: 0 } },
+            { id: 'A', load: { localDemandKva: 50 } },
+            { id: 'B', load: { localDemandKva: 50 } },
+        ],
+        edges: [
+            { fromNodeId: 'R', toNodeId: 'A', conductorId: '95 Al - Arm', lengthMeters: 60 },
+            { fromNodeId: 'A', toNodeId: 'B', conductorId: '95 Al - Arm', lengthMeters: 60 },
+        ],
+        phase: 'TRI',
+        temperatureC: 75,
+        nominalVoltageV: 220,
+    },
+    expected: {
+        totalDemandKva: 100,
+        // qtTrafo = qtMt + (totalDemandKva / kva) * zPercent
+        qtTrafo: CQT_REV0_BASELINE_TARGETS.db.qtMt +
+            (100 / CQT_REV0_BASELINE_TARGETS.db.k6TrAtual) * CQT_REV0_BASELINE_TARGETS.db.zPercent,
+    },
+};
+
+/**
+ * P0 scenario: REV0 workbook – idempotency check.
+ * Source: CQTsimplificado_REV0 - Copia - Copia.xlsx
+ * Verifies that two consecutive runs with REV0 inputs produce identical output.
+ */
+const SCENARIO_REV0_IDEMPOTENCY: BtParityScenario = {
+    id: 'REV0_IDEMPOTENCY',
+    description: 'REV0 workbook – idempotency: two runs produce identical CQT global',
+    priority: 'P0',
+    input: SCENARIO_REV0_LINEAR.input,
+    expected: SCENARIO_REV0_LINEAR.expected,
+};
+
 /** All scenarios indexed by priority. */
 const ALL_SCENARIOS: BtParityScenario[] = [
     SCENARIO_ESQ_ATUAL,
@@ -260,6 +349,9 @@ const ALL_SCENARIOS: BtParityScenario[] = [
     SCENARIO_IDEMPOTENCY,
     SCENARIO_TERMINAL_WITH_RAMAL,
     SCENARIO_LARGE_NETWORK,
+    SCENARIO_REV0_DB_INDICATORS,
+    SCENARIO_REV0_LINEAR,
+    SCENARIO_REV0_IDEMPOTENCY,
 ];
 
 // ─── Comparison helpers ───────────────────────────────────────────────────────
@@ -286,7 +378,7 @@ function runScenario(scenario: BtParityScenario): BtParityScenarioResult {
 
         // For idempotency, run twice and compare cqtGlobal
         let actual2: typeof result | null = null;
-        if (scenario.id === 'IDEMPOTENCY') {
+        if (scenario.id === 'IDEMPOTENCY' || scenario.id === 'REV0_IDEMPOTENCY') {
             actual2 = calculateBtRadial(scenario.input);
         }
 
@@ -309,7 +401,7 @@ function runScenario(scenario: BtParityScenario): BtParityScenarioResult {
         }
 
         // Idempotency check
-        if (scenario.id === 'IDEMPOTENCY' && actual2) {
+        if ((scenario.id === 'IDEMPOTENCY' || scenario.id === 'REV0_IDEMPOTENCY') && actual2) {
             metrics.push(
                 compareMetric('idempotency_cqtGlobal', result.worstCase.cqtGlobal, actual2.worstCase.cqtGlobal, 0),
                 compareMetric('idempotency_totalDemand', result.totalDemandKva, actual2.totalDemandKva, 0),

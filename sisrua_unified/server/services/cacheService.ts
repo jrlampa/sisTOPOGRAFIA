@@ -148,10 +148,16 @@ const stopCacheCleanup = (): void => {
     }
 };
 
+const clearCache = (): void => {
+    cacheStore.clear();
+    reportCacheSize();
+};
+
 export {
     createCacheKey,
     getCachedFilename,
     setCachedFilename,
     deleteCachedFilename,
-    stopCacheCleanup
+    stopCacheCleanup,
+    clearCache
 };

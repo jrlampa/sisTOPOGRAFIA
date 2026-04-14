@@ -223,3 +223,9 @@ def test_bt_topology_entities_are_drawn(dxf_gen):
     assert any("185 Al - MX" in text for text in texts)
     assert any("ZNA-000001" in text for text in texts)
     assert any("45KVA" in text for text in texts)
+
+
+def test_save_raises_for_empty_modelspace(dxf_gen):
+    """Prevent silent success when no entities were generated."""
+    with pytest.raises(RuntimeError, match="model space has no entities"):
+        dxf_gen.save()
