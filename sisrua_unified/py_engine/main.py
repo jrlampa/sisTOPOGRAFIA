@@ -1,6 +1,11 @@
 """
 main.py - Ponto de entrada da engine Python para geração de DXF.
 
+Roadmap Item 4 (Pydantic input validation):
+  Todos os parâmetros de entrada são validados por um schema Pydantic antes de
+  qualquer processamento. Erros de validação encerram com código 2 (argparse
+  convenção) e mensagem de erro estruturada em stderr.
+
 Roadmap Item 99 (OOM Self-Healing):
   --memory-limit-mb configura um limite de RSS em MB.
   Uma thread de monitoramento verifica a memória periodicamente e encerra o
@@ -14,12 +19,62 @@ import os
 import threading
 import time
 import traceback
+from typing import Any, Dict, List, Literal, Optional
+
+try:
+    from pydantic import BaseModel, Field, field_validator, ValidationError
+    _PYDANTIC_AVAILABLE = True
+except ImportError:
+    _PYDANTIC_AVAILABLE = False
 
 from controller import OSMController
 from utils.logger import Logger
 
 # ─── Exit code OOM (convenção POSIX): permite ao orquestrador re-tentar ───────
 EXIT_CODE_OOM = 137
+
+# ─── Schema de validação (Item 4) ─────────────────────────────────────────────
+
+if _PYDANTIC_AVAILABLE:
+    class DxfInputModel(BaseModel):
+        lat: float = Field(..., ge=-90.0, le=90.0, description="Latitude WGS84")
+        lon: float = Field(..., ge=-180.0, le=180.0, description="Longitude WGS84")
+        radius: float = Field(..., ge=1.0, le=10000.0, description="Raio em metros")
+        output: str = Field(..., min_length=1, description="Caminho do arquivo DXF de saída")
+        layers: Dict[str, bool] = Field(default_factory=dict)
+        projection: Literal["local", "utm"] = "local"
+        selection_mode: Literal["circle", "polygon"] = "circle"
+        polygon: List[List[float]] = Field(default_factory=list)
+        contour_style: Literal["spline", "polyline"] = "spline"
+        bt_context: Dict[str, Any] = Field(default_factory=dict)
+        memory_limit_mb: int = Field(default=0, ge=0)
+
+        @field_validator("polygon")
+        @classmethod
+        def validate_polygon_points(cls, v: List[List[float]]) -> List[List[float]]:
+            for point in v:
+                if len(point) != 2:
+                    raise ValueError(f"Cada ponto do polígono deve ter [lat, lon]: {point}")
+                if not (-90 <= point[0] <= 90):
+                    raise ValueError(f"Latitude inválida no polígono: {point[0]}")
+                if not (-180 <= point[1] <= 180):
+                    raise ValueError(f"Longitude inválida no polígono: {point[1]}")
+            return v
+
+    def validate_inputs(**kwargs: Any) -> "DxfInputModel":
+        try:
+            return DxfInputModel(**kwargs)
+        except ValidationError as exc:
+            sys.stderr.write(f"[Pydantic] Erro de validação de entrada:\n{exc}\n")
+            sys.exit(2)
+else:
+    def validate_inputs(**kwargs: Any) -> Any:  # type: ignore[misc]
+        """Fallback sem Pydantic: retorna namespace simples."""
+        class _NS:
+            pass
+        ns = _NS()
+        ns.__dict__.update(kwargs)
+        return ns
 
 # ─── Monitor de memória RSS (Item 99) ─────────────────────────────────────────
 
@@ -115,23 +170,38 @@ def main():
         polygon = [_normalize_point(p) for p in raw_polygon] if raw_polygon else []
         bt_context = raw_bt_context if isinstance(raw_bt_context, dict) else {}
 
-        controller = OSMController(
+        # Item 4: Pydantic validation — rejects malformed/out-of-range inputs before heavy processing
+        validated = validate_inputs(
             lat=args.lat,
             lon=args.lon,
             radius=args.radius,
-            output_file=args.output,
-            layers_config=layers_config,
-            crs=args.crs,
-            export_format=args.format,
+            output=args.output,
+            layers={k: bool(v) for k, v in layers_config.items()},
+            projection=args.projection,
             selection_mode=args.selection_mode,
             polygon=polygon,
             contour_style=args.contour_style,
+            bt_context=bt_context,
+            memory_limit_mb=args.memory_limit_mb,
+        )
+
+        controller = OSMController(
+            lat=validated.lat,
+            lon=validated.lon,
+            radius=validated.radius,
+            output_file=validated.output,
+            layers_config=validated.layers,
+            crs=args.crs,
+            export_format=args.format,
+            selection_mode=validated.selection_mode,
+            polygon=validated.polygon,
+            contour_style=validated.contour_style,
         )
         controller.project_metadata = {
             "client": args.client_name,
             "project": args.project_id,
         }
-        controller.bt_context = bt_context
+        controller.bt_context = validated.bt_context
         controller.run()
 
     except Exception as e:

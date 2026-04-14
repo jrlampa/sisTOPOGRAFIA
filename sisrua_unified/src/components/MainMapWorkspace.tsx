@@ -8,8 +8,8 @@ const FloatingLayerPanel = React.lazy(() => import('./FloatingLayerPanel'));
 const ElevationProfile = React.lazy(() => import('./ElevationProfile'));
 
 const MapSuspenseFallback = () => (
-  <div className="absolute inset-0 flex items-center justify-center bg-slate-950 text-slate-300">
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 px-5 py-4 text-sm font-semibold">
+  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950/40 text-slate-300">
+    <div className="flex items-center gap-3 rounded-2xl border border-cyan-400/20 bg-slate-900/70 px-5 py-4 text-sm font-semibold shadow-2xl backdrop-blur-md">
       <Loader2 size={18} className="animate-spin" />
       Carregando mapa 2.5D...
     </div>
@@ -17,7 +17,7 @@ const MapSuspenseFallback = () => (
 );
 
 const InlineSuspenseFallback = ({ label }: { label: string }) => (
-  <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 p-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+  <div className="flex items-center justify-center gap-2 rounded-xl border border-cyan-500/20 bg-slate-900/60 p-4 text-xs font-semibold uppercase tracking-wide text-slate-300 backdrop-blur-sm">
     <Loader2 size={14} className="animate-spin" />
     {label}
   </div>

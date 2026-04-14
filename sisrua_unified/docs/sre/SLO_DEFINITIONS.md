@@ -28,17 +28,17 @@
 
 ## 1. Glossário e Premissas
 
-| Termo | Definição |
-|---|---|
-| **SLI** (Service Level Indicator) | Medida quantitativa de um aspecto do comportamento do serviço (ex.: taxa de sucesso, latência p95). |
-| **SLO** (Service Level Objective) | Objetivo acordado para um SLI em uma janela de tempo determinada. |
-| **SLA** (Service Level Agreement) | Contrato externo baseado em SLOs; penalidades em `SLA_CONTRATOS.md`. |
-| **Error Budget** | Margem tolerável de falhas = `1 − SLO target`. Consumido por erros reais. |
-| **Burn Rate** | Taxa na qual o error budget está sendo consumido. BR = 1 significa consumo exatamente no ritmo do budget. |
-| **Janela de avaliação** | 30 dias corridos (rolling window). |
-| **Bom evento** | Requisição ou cálculo que satisfaz o critério de sucesso do SLI. |
-| **Mau evento** | Requisição ou cálculo que viola o critério. |
-| **p95 / p99** | Percentil 95 / 99 da distribuição de latências no período. |
+| Termo                             | Definição                                                                                                 |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **SLI** (Service Level Indicator) | Medida quantitativa de um aspecto do comportamento do serviço (ex.: taxa de sucesso, latência p95).       |
+| **SLO** (Service Level Objective) | Objetivo acordado para um SLI em uma janela de tempo determinada.                                         |
+| **SLA** (Service Level Agreement) | Contrato externo baseado em SLOs; penalidades em `SLA_CONTRATOS.md`.                                      |
+| **Error Budget**                  | Margem tolerável de falhas = `1 − SLO target`. Consumido por erros reais.                                 |
+| **Burn Rate**                     | Taxa na qual o error budget está sendo consumido. BR = 1 significa consumo exatamente no ritmo do budget. |
+| **Janela de avaliação**           | 30 dias corridos (rolling window).                                                                        |
+| **Bom evento**                    | Requisição ou cálculo que satisfaz o critério de sucesso do SLI.                                          |
+| **Mau evento**                    | Requisição ou cálculo que viola o critério.                                                               |
+| **p95 / p99**                     | Percentil 95 / 99 da distribuição de latências no período.                                                |
 
 ### Prefixo de métricas Prometheus
 
@@ -63,17 +63,17 @@ para download.
 
 ### SLIs Definidos
 
-| # | SLI | Descrição |
-|---|-----|-----------|
-| DXF-SLI-01 | Taxa de sucesso | `(requisições_dxf_bem_sucedidas / total_requisições_dxf)` na janela de 30 dias. |
-| DXF-SLI-02 | Latência p95 end-to-end | Percentil 95 do tempo entre criação da tarefa e disponibilidade do arquivo. |
+| #          | SLI                     | Descrição                                                                       |
+| ---------- | ----------------------- | ------------------------------------------------------------------------------- |
+| DXF-SLI-01 | Taxa de sucesso         | `(requisições_dxf_bem_sucedidas / total_requisições_dxf)` na janela de 30 dias. |
+| DXF-SLI-02 | Latência p95 end-to-end | Percentil 95 do tempo entre criação da tarefa e disponibilidade do arquivo.     |
 
 ### SLOs
 
-| SLO | Target | Janela |
-|-----|--------|--------|
+| SLO                            | Target       | Janela          |
+| ------------------------------ | ------------ | --------------- |
 | **DXF-SLO-01** Taxa de sucesso | **≥ 99,5 %** | 30 dias rolling |
-| **DXF-SLO-02** Latência p95 | **< 120 s** | 30 dias rolling |
+| **DXF-SLO-02** Latência p95    | **< 120 s**  | 30 dias rolling |
 
 ### Critério de Bom Evento
 
@@ -103,17 +103,17 @@ valores de referência do workbook CQT Simplificado para verificar paridade.
 
 ### SLIs Definidos
 
-| # | SLI | Descrição |
-|---|-----|-----------|
+| #         | SLI           | Descrição                                                                    |
+| --------- | ------------- | ---------------------------------------------------------------------------- |
 | BT-SLI-01 | Corretude CQT | `(cálculos_com_paridade_aprovada / total_cálculos_bt)` na janela de 30 dias. |
-| BT-SLI-02 | Latência p95 | Percentil 95 do tempo de execução do cálculo BT completo. |
+| BT-SLI-02 | Latência p95  | Percentil 95 do tempo de execução do cálculo BT completo.                    |
 
 ### SLOs
 
-| SLO | Target | Janela |
-|-----|--------|--------|
+| SLO                         | Target       | Janela          |
+| --------------------------- | ------------ | --------------- |
 | **BT-SLO-01** Corretude CQT | **≥ 99,9 %** | 30 dias rolling |
-| **BT-SLO-02** Latência p95 | **< 5 s** | 30 dias rolling |
+| **BT-SLO-02** Latência p95  | **< 5 s**    | 30 dias rolling |
 
 ### Critério de Bom Evento
 
@@ -141,17 +141,17 @@ dependências internas e retorna `{ status: "online" }` com HTTP 200.
 
 ### SLIs Definidos
 
-| # | SLI | Descrição |
-|---|-----|-----------|
-| API-SLI-01 | Uptime | `(minutos_com_health_200 / total_minutos_monitorados)` na janela de 30 dias. |
-| API-SLI-02 | Latência p95 geral | Percentil 95 de todas as requisições HTTP (exceto `/metrics`). |
+| #          | SLI                | Descrição                                                                    |
+| ---------- | ------------------ | ---------------------------------------------------------------------------- |
+| API-SLI-01 | Uptime             | `(minutos_com_health_200 / total_minutos_monitorados)` na janela de 30 dias. |
+| API-SLI-02 | Latência p95 geral | Percentil 95 de todas as requisições HTTP (exceto `/metrics`).               |
 
 ### SLOs
 
-| SLO | Target | Janela |
-|-----|--------|--------|
-| **API-SLO-01** Uptime | **≥ 99,5 %** | 30 dias rolling |
-| **API-SLO-02** Latência p95 geral | **< 2 s** | 30 dias rolling |
+| SLO                               | Target       | Janela          |
+| --------------------------------- | ------------ | --------------- |
+| **API-SLO-01** Uptime             | **≥ 99,5 %** | 30 dias rolling |
+| **API-SLO-02** Latência p95 geral | **< 2 s**    | 30 dias rolling |
 
 ### Método de Coleta
 
@@ -176,31 +176,31 @@ disponibilidade próprio. Em vez disso, definimos **alertas de degradação** e
 
 ### APIs Monitoradas
 
-| API | Endpoint base | Dado fornecido |
-|-----|--------------|---------------|
-| IBGE Malhas | `https://servicodados.ibge.gov.br/api/v3/` | Malhas territoriais, geocoding reverso |
-| INDE WFS/WMS | `https://geoservicos.inde.gov.br/` | Dados geoespaciais oficiais |
-| OSM (Nominatim) | `https://nominatim.openstreetmap.org/` | Geocoding, busca de endereços |
-| OSM (Overpass) | `https://overpass-api.de/api/` | Dados de feições OSM |
-| TOPODATA (INPE) | `http://www.dsr.inpe.br/topodata/` | Elevação 30 m (MDE) |
+| API             | Endpoint base                              | Dado fornecido                         |
+| --------------- | ------------------------------------------ | -------------------------------------- |
+| IBGE Malhas     | `https://servicodados.ibge.gov.br/api/v3/` | Malhas territoriais, geocoding reverso |
+| INDE WFS/WMS    | `https://geoservicos.inde.gov.br/`         | Dados geoespaciais oficiais            |
+| OSM (Nominatim) | `https://nominatim.openstreetmap.org/`     | Geocoding, busca de endereços          |
+| OSM (Overpass)  | `https://overpass-api.de/api/`             | Dados de feições OSM                   |
+| TOPODATA (INPE) | `http://www.dsr.inpe.br/topodata/`         | Elevação 30 m (MDE)                    |
 
 ### Limiares de Alerta
 
-| Condição | Ação |
-|----------|------|
+| Condição                                  | Ação                                            |
+| ----------------------------------------- | ----------------------------------------------- |
 | Timeout > **10 s** em qualquer requisição | Alerta nível Warning no Prometheus Alertmanager |
-| **3 falhas consecutivas** na mesma API | Circuit breaker abre; fallback ativado |
-| Circuit breaker aberto por **> 5 min** | Alerta nível Critical; página o on-call |
+| **3 falhas consecutivas** na mesma API    | Circuit breaker abre; fallback ativado          |
+| Circuit breaker aberto por **> 5 min**    | Alerta nível Critical; página o on-call         |
 
 ### Política de Fallback
 
-| API com falha | Fallback |
-|---------------|---------|
-| IBGE | Cache local de malhas (TTL 24 h); se expirado, retorna dados parciais com aviso |
-| INDE | Fallback para OSM para feições equivalentes |
-| OSM Nominatim | Fallback para IBGE geocoding reverso |
-| OSM Overpass | Cache local TTL 1 h; se expirado, erro 503 com mensagem explícita |
-| TOPODATA | Fallback para `open-elevation` ou valor de elevação nulo com flag `elevation_source: "unavailable"` |
+| API com falha | Fallback                                                                                            |
+| ------------- | --------------------------------------------------------------------------------------------------- |
+| IBGE          | Cache local de malhas (TTL 24 h); se expirado, retorna dados parciais com aviso                     |
+| INDE          | Fallback para OSM para feições equivalentes                                                         |
+| OSM Nominatim | Fallback para IBGE geocoding reverso                                                                |
+| OSM Overpass  | Cache local TTL 1 h; se expirado, erro 503 com mensagem explícita                                   |
+| TOPODATA      | Fallback para `open-elevation` ou valor de elevação nulo com flag `elevation_source: "unavailable"` |
 
 ### Timeouts Configurados
 
@@ -227,13 +227,13 @@ Budget restante (%)      = ((budget_total − budget_consumido) / budget_total) 
 
 ### Tabela de Error Budget por SLO
 
-| SLO | Target | Budget total (30d) | Alertar quando restante < |
-|-----|--------|--------------------|--------------------------|
-| DXF-SLO-01 (taxa sucesso) | 99,5 % | 216 min de falhas | 50 % (≤ 108 min restantes) |
-| DXF-SLO-02 (p95 < 120 s) | 99,5 % | 216 min fora do p95 | 50 % |
-| BT-SLO-01 (corretude 99,9 %) | 99,9 % | 43,2 min de erros | 50 % (≤ 21,6 min) |
-| BT-SLO-02 (p95 < 5 s) | 99,5 % | 216 min | 50 % |
-| API-SLO-01 (uptime 99,5 %) | 99,5 % | 216 min offline | 50 % |
+| SLO                          | Target | Budget total (30d)  | Alertar quando restante <  |
+| ---------------------------- | ------ | ------------------- | -------------------------- |
+| DXF-SLO-01 (taxa sucesso)    | 99,5 % | 216 min de falhas   | 50 % (≤ 108 min restantes) |
+| DXF-SLO-02 (p95 < 120 s)     | 99,5 % | 216 min fora do p95 | 50 %                       |
+| BT-SLO-01 (corretude 99,9 %) | 99,9 % | 43,2 min de erros   | 50 % (≤ 21,6 min)          |
+| BT-SLO-02 (p95 < 5 s)        | 99,5 % | 216 min             | 50 %                       |
+| API-SLO-01 (uptime 99,5 %)   | 99,5 % | 216 min offline     | 50 %                       |
 
 > **Política de congelamento de releases:** Quando o error budget de qualquer SLO
 > cair abaixo de **10 %** na janela corrente, nenhuma release não-emergencial pode
@@ -253,7 +253,6 @@ SLO seja violado. São expressões PromQL a serem configuradas no Alertmanager.
 groups:
   - name: sisrua.slo.burn_rate
     rules:
-
       # ── DXF Availability ────────────────────────────────────────────────────
       - alert: SLO_DXF_BurnRate_Fast
         expr: |
@@ -354,29 +353,29 @@ Todas as métricas usam o prefixo `sisrua_` (configurável via `METRICS_PREFIX`)
 
 ### Métricas de SLO/SLI — já implementadas
 
-| Nome da métrica | Tipo | Labels | Descrição |
-|-----------------|------|--------|-----------|
-| `sisrua_slo_compliance` | Gauge | `slo_name` | 1 = dentro do objetivo, 0 = violado |
-| `sisrua_slo_error_budget_remaining_pct` | Gauge | `slo_name` | Budget restante 0–100 % |
-| `sisrua_sli_requests_total` | Counter | `flow`, `outcome` | Requisições SLI por fluxo e resultado |
-| `sisrua_dxf_generation_duration_seconds` | Histogram | — | Latência end-to-end de geração DXF |
-| `sisrua_dxf_requests_total` | Counter | `result` | Resultados DXF: `cache_hit`, `generated`, `failed` |
-| `sisrua_job_queue_wait_seconds` | Histogram | — | Tempo de espera na fila |
-| `sisrua_dxf_queue_pending_tasks` | Gauge | — | Tarefas DXF pendentes |
-| `sisrua_dxf_queue_processing_tasks` | Gauge | — | Tarefas DXF em processamento |
-| `sisrua_http_requests_total` | Counter | `method`, `route`, `status_code` | Total de requisições HTTP |
-| `sisrua_http_request_duration_seconds` | Histogram | `method`, `route` | Latência HTTP |
+| Nome da métrica                          | Tipo      | Labels                           | Descrição                                          |
+| ---------------------------------------- | --------- | -------------------------------- | -------------------------------------------------- |
+| `sisrua_slo_compliance`                  | Gauge     | `slo_name`                       | 1 = dentro do objetivo, 0 = violado                |
+| `sisrua_slo_error_budget_remaining_pct`  | Gauge     | `slo_name`                       | Budget restante 0–100 %                            |
+| `sisrua_sli_requests_total`              | Counter   | `flow`, `outcome`                | Requisições SLI por fluxo e resultado              |
+| `sisrua_dxf_generation_duration_seconds` | Histogram | —                                | Latência end-to-end de geração DXF                 |
+| `sisrua_dxf_requests_total`              | Counter   | `result`                         | Resultados DXF: `cache_hit`, `generated`, `failed` |
+| `sisrua_job_queue_wait_seconds`          | Histogram | —                                | Tempo de espera na fila                            |
+| `sisrua_dxf_queue_pending_tasks`         | Gauge     | —                                | Tarefas DXF pendentes                              |
+| `sisrua_dxf_queue_processing_tasks`      | Gauge     | —                                | Tarefas DXF em processamento                       |
+| `sisrua_http_requests_total`             | Counter   | `method`, `route`, `status_code` | Total de requisições HTTP                          |
+| `sisrua_http_request_duration_seconds`   | Histogram | `method`, `route`                | Latência HTTP                                      |
 
 ### Métricas a implementar (backlog SRE)
 
-| Nome da métrica | Tipo | Labels | Descrição |
-|-----------------|------|--------|-----------|
-| `sisrua_external_api_timeout_total` | Counter | `api` | Timeouts por API externa |
-| `sisrua_external_api_circuit_breaker_open` | Gauge | `api` | 1 = CB aberto, 0 = fechado |
-| `sisrua_external_api_request_duration_seconds` | Histogram | `api` | Latência de chamadas externas |
-| `sisrua_bt_calculation_duration_seconds` | Histogram | — | Latência do cálculo BT |
-| `sisrua_bt_parity_result_total` | Counter | `result` | Paridade CQT: `passed`, `failed` |
-| `sisrua_python_worker_memory_bytes` | Gauge | `worker_id` | Uso de memória do worker Python |
+| Nome da métrica                                | Tipo      | Labels      | Descrição                        |
+| ---------------------------------------------- | --------- | ----------- | -------------------------------- |
+| `sisrua_external_api_timeout_total`            | Counter   | `api`       | Timeouts por API externa         |
+| `sisrua_external_api_circuit_breaker_open`     | Gauge     | `api`       | 1 = CB aberto, 0 = fechado       |
+| `sisrua_external_api_request_duration_seconds` | Histogram | `api`       | Latência de chamadas externas    |
+| `sisrua_bt_calculation_duration_seconds`       | Histogram | —           | Latência do cálculo BT           |
+| `sisrua_bt_parity_result_total`                | Counter   | `result`    | Paridade CQT: `passed`, `failed` |
+| `sisrua_python_worker_memory_bytes`            | Gauge     | `worker_id` | Uso de memória do worker Python  |
 
 ### Labels padrão para `slo_name`
 
@@ -414,5 +413,5 @@ job_queue_wait_p99    → (interno, não contratual)
 
 ---
 
-*Documento gerado automaticamente a partir da análise do código-fonte em 2026-04-14.*
-*Manter em sincronia com `server/services/metricsService.ts` (constante `SLO_TARGETS`).*
+_Documento gerado automaticamente a partir da análise do código-fonte em 2026-04-14._
+_Manter em sincronia com `server/services/metricsService.ts` (constante `SLO_TARGETS`)._

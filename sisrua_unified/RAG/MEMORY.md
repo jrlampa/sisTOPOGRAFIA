@@ -338,6 +338,55 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 **Verificação atual**:
 
 - 11 de 11 jobs ativos
+
+---
+
+## 📌 Atualização Operacional (2026-04-14) - Evolução de Frontend SaaS
+
+### Escopo
+
+- Evolução visual da camada frontend com foco em UX/UI industrial em pt-BR.
+- Mudanças restritas à apresentação: sem alteração de contratos de API, payloads, rotas backend ou schema de banco.
+
+### Implementação
+
+- Atualizados tokens de tema em `src/index.css` com nova direção visual enterprise (paleta verde/azul, superfícies translúcidas e atmosfera em camadas).
+- Adicionadas tipografias de interface para reforço de hierarquia visual (`Manrope` + `Sora`) e maior legibilidade.
+- Ajustado `AppShellLayout.tsx` com camada atmosférica decorativa sem impacto funcional.
+- Refinado `AppHeader.tsx` com melhor contraste light/dark, rótulos em pt-BR e botões de ação com feedback visual mais claro.
+- Reestruturado `SidebarWorkspace.tsx` para separar blocos em painéis visuais consistentes e responsivos.
+
+### Validação
+
+- Build frontend validado com sucesso (`npm --prefix sisrua_unified run build`).
+- Preview atualizado e ativo (`npm --prefix sisrua_unified run preview`).
+
+### Iteração complementar (mesma data)
+
+- Refinados componentes de operação diária para legibilidade e consistência visual:
+  - `src/components/SidebarSelectionControls.tsx`
+  - `src/components/MainMapWorkspace.tsx`
+  - `src/components/SidebarAnalysisResults.tsx`
+- Ajustes focados em UX/UI e internacionalização pt-BR (acentuação e rótulos), sem alterar lógica de negócio.
+- Validação adicional executada com sucesso:
+  - Build (`npm --prefix sisrua_unified run build`)
+  - Modo integrado frontend+backend (`npm --prefix sisrua_unified run dev`)
+
+### Iteração complementar 2 (mesma data)
+
+- Evolução focada em acessibilidade visual e consistência de feedback do frontend:
+  - `src/components/Toast.tsx`
+  - `src/components/ProgressIndicator.tsx`
+  - `src/components/SessionRecoveryBanner.tsx`
+  - `src/components/DxfProgressBadge.tsx`
+  - `src/components/BtExportSummaryBanner.tsx`
+- Melhorias aplicadas:
+  - contraste light/dark e legibilidade de textos;
+  - foco visível para navegação por teclado (`focus-visible`);
+  - responsividade para telas menores;
+  - remoção de estilo inline no indicador de progresso.
+- Garantia de escopo:
+  - sem alteração em contratos de API, lógica de backend ou banco.
 - cache hit ratio: 99.97%
 - dead tuples críticos: 54
 - blocked locks: 0
