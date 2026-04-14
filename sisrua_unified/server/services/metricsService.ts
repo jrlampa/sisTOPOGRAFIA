@@ -29,27 +29,27 @@ import { config } from "../config.js";
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface AnomalyAlert {
-    metric: string;
-    currentValue: number;
-    mean: number;
-    stddev: number;
-    zScore: number;
-    timestamp: string;
+  metric: string;
+  currentValue: number;
+  mean: number;
+  stddev: number;
+  zScore: number;
+  timestamp: string;
 }
 
 interface RollingStat {
-    /** Welford online algorithm accumulators */
-    count: number;
-    mean: number;
-    /** Running sum of squared deviations (M2) */
-    m2: number;
-    lastValue: number;
-    lastTimestamp: string;
+  /** Welford online algorithm accumulators */
+  count: number;
+  mean: number;
+  /** Running sum of squared deviations (M2) */
+  m2: number;
+  lastValue: number;
+  lastTimestamp: string;
 }
 
 interface SloObservation {
-    met: boolean;
-    timestamp: number;
+  met: boolean;
+  timestamp: number;
 }
 
 // ── Internal stores ───────────────────────────────────────────────────────────
@@ -272,7 +272,13 @@ export const metricsService = {
   recordMetricObservation(metricName: string, value: number): void {
     const now = new Date().toISOString();
     if (!rollingStats.has(metricName)) {
-      rollingStats.set(metricName, { count: 0, mean: 0, m2: 0, lastValue: value, lastTimestamp: now });
+      rollingStats.set(metricName, {
+        count: 0,
+        mean: 0,
+        m2: 0,
+        lastValue: value,
+        lastTimestamp: now,
+      });
     }
     const stat = rollingStats.get(metricName)!;
     stat.count++;
@@ -311,7 +317,9 @@ export const metricsService = {
   },
 
   /** Returns the rolling statistics for a named metric (for diagnostics). */
-  getMetricStats(metricName: string): { mean: number; stddev: number; count: number } | null {
+  getMetricStats(
+    metricName: string,
+  ): { mean: number; stddev: number; count: number } | null {
     const stat = rollingStats.get(metricName);
     if (!stat) return null;
     const variance = stat.count > 1 ? stat.m2 / (stat.count - 1) : 0;
@@ -338,9 +346,9 @@ export const metricsService = {
     const observations = sloStore.get(sloName);
     if (!observations || observations.length === 0) return 1;
     const cutoff = Date.now() - windowMs;
-    const recent = observations.filter(o => o.timestamp >= cutoff);
+    const recent = observations.filter((o) => o.timestamp >= cutoff);
     if (recent.length === 0) return 1;
-    const metCount = recent.filter(o => o.met).length;
+    const metCount = recent.filter((o) => o.met).length;
     return metCount / recent.length;
   },
 

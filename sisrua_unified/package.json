@@ -96,6 +96,9 @@
     "xlsx": "^0.18.5",
     "zod": "^3.25.76"
   },
+  "overrides": {
+    "serialize-javascript": "^7.0.5"
+  },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
     "@lhci/cli": "^0.15.1",
