@@ -1,4 +1,5 @@
 import math
+import re
 
 import numpy as np
 import pandas as pd
@@ -20,6 +21,41 @@ try:
     from .utils.logger import Logger
 except (ImportError, ValueError):
     from utils.logger import Logger
+
+# Patterns considered dangerous in DXF text/attribute values
+_DANGEROUS_PATTERNS = re.compile(
+    r'[;`]'                        # semicolons and backticks
+    r'|\$\('                       # shell command substitution $(
+    r'|[\x00-\x08\x0b-\x0c\x0e-\x1f]'  # control chars except \t(\x09) and \n(\x0a)
+)
+
+
+def sanitize_text_value(value: str, max_length: int = 512) -> str:
+    """Sanitize a DXF text/attribute value against injection patterns.
+
+    Strips dangerous characters (semicolons, backticks, shell substitution
+    ``$(...)``, and C0 control characters except tab/newline) and truncates
+    values that exceed *max_length* characters.
+
+    Args:
+        value: Raw string to sanitize.
+        max_length: Maximum allowed length (default 512). Values longer than
+            this are truncated and appended with ``"..."``.
+
+    Returns:
+        Sanitized string safe for inclusion in DXF attributes.
+    """
+    if not isinstance(value, str):
+        value = str(value)
+
+    # Remove dangerous patterns
+    value = _DANGEROUS_PATTERNS.sub("", value)
+
+    # Truncate if over length limit
+    if len(value) > max_length:
+        value = value[:max_length] + "..."
+
+    return value
 
 
 class DXFGeometryMixin:
@@ -487,14 +523,14 @@ class DXFGeometryMixin:
                 Logger.info(f"Length annotation failed: {e}")
 
     def _sanitize_attribs(self, attribs):
-        """Helper to ensure no 'nan' values are sent as attributes"""
+        """Sanitize attribute dict: reject NaN/empty values and apply injection hardening."""
         sanitized = {}
         for k, v in attribs.items():
             val = str(v)
             if val.lower() == "nan" or not val.strip():
                 sanitized[k] = "N/A"
             else:
-                sanitized[k] = val
+                sanitized[k] = sanitize_text_value(val)
         return sanitized
 
     def _draw_point(self, point, layer, diff_x, diff_y, tags):
