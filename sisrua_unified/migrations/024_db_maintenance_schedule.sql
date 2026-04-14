@@ -1,16 +1,20 @@
 -- Migration: 024_db_maintenance_schedule.sql
 -- Purpose: Formalizar manutenção recorrente abrangente do banco de dados.
 --
--- Escopo (além da limpeza de jobs já em 017):
---   1. VACUUM ANALYZE agendado para tabelas de alto volume
---   2. REINDEX CONCURRENTLY para índices críticos (semanal)
---   3. Atualização de estatísticas do planner (pg_stat_reset parcial)
---   4. Archival de audit_logs antigos para tabela de arquivo (cold storage)
---   5. Relatório de saúde operacional do banco (pg_stat_*)
---   6. Cleanup de materialized view stale data
---   7. Todos os jobs agendados via pg_cron com governance logging
+-- Escopo implementado por esta migration:
+--   1. Tabela de governança operacional: private.maintenance_log
+--   2. Tabela de cold storage: private.audit_logs_archive
+--   3. Função de apoio e logging para manutenção com VACUUM ANALYZE
+--   4. Archival de audit_logs antigos para tabela de arquivo
+--   5. Relatório de saúde operacional do banco baseado em pg_stat_*
+--   6. Cleanup de maintenance_log antigo
+--   7. Agendamento pg_cron de VACUUM, archival, health report e cleanup de maintenance_log
+--   8. View private.v_maintenance_schedule consolidando jobs desta rotina e jobs relacionados
 --
--- Idempotente: usa DROP/CREATE para cron jobs, IF NOT EXISTS para objetos novos.
+-- Observação: jobs de backup, verify backup, refresh de materialized views e cleanup_old_jobs
+-- são referenciados na view consolidada, mas são criados em outras migrations.
+--
+-- Idempotente: usa unschedule/reschedule para cron jobs e IF NOT EXISTS para objetos novos.
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 1. Tabela de log de manutenção (governança operacional)

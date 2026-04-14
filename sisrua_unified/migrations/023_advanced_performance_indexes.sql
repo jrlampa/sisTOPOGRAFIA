@@ -103,6 +103,7 @@ GRANT SELECT ON public.mv_bt_history_daily_summary TO service_role;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 5. Materialized View – Estatísticas de auditoria por tabela
+--    NOTA: table_name não é unique key, índice sem UNIQUE para permitir REFRESH
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE MATERIALIZED VIEW IF NOT EXISTS public.mv_audit_stats AS
 SELECT
@@ -117,7 +118,7 @@ FROM public.audit_logs
 GROUP BY table_name, action
 ORDER BY table_name, action;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_audit_stats_table_action
+CREATE INDEX IF NOT EXISTS idx_mv_audit_stats_table_action
   ON public.mv_audit_stats (table_name, action);
 
 GRANT SELECT ON public.mv_audit_stats TO service_role;
@@ -131,8 +132,7 @@ SELECT
   COUNT(*)                             AS total_entries,
   COUNT(CASE WHEN is_active THEN 1 END) AS active_entries,
   COUNT(CASE WHEN deleted_at IS NOT NULL THEN 1 END) AS soft_deleted,
-  MAX(updated_at)                      AS last_updated_at,
-  COUNT(DISTINCT changed_by)           AS unique_editors
+  MAX(updated_at)                      AS last_updated_at
 FROM public.constants_catalog
 GROUP BY namespace
 ORDER BY namespace;

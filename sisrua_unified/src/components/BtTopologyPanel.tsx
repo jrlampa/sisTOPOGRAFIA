@@ -1276,6 +1276,10 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
               Poste" e colunas de tipos de ramal (ex.: 13 DX 6 AWG, 70 MMX, 185
               MMX).
             </div>
+            <div className="mt-1 text-[11px] text-slate-500">
+              Compatibilidade legada: cabeçalhos 33 AA/33 AC/53 AA/53 AC também
+              são aceitos automaticamente.
+            </div>
 
             <div
               onDragOver={(e) => {
@@ -1317,6 +1321,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                 type="file"
                 accept=".xlsx,.xlsm,.xls"
                 className="hidden"
+                aria-label="Selecionar planilha de ramais"
+                title="Selecionar planilha de ramais"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {

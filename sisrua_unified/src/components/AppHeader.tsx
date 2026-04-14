@@ -2,6 +2,7 @@ import React from "react";
 import { FolderOpen, Layers, Save, Settings } from "lucide-react";
 import { motion } from "framer-motion";
 import HistoryControls from "./HistoryControls";
+import type { HealthStatus } from "../hooks/useBackendHealth";
 
 interface AppHeaderProps {
   canUndo: boolean;
@@ -12,6 +13,8 @@ interface AppHeaderProps {
   onOpenProject: (file: File) => void;
   onOpenSettings: () => void;
   isDark: boolean;
+  backendStatus: HealthStatus;
+  backendResponseTimeMs: number | null;
 }
 
 export function AppHeader({
@@ -23,8 +26,24 @@ export function AppHeader({
   onOpenProject,
   onOpenSettings,
   isDark,
+  backendStatus,
+  backendResponseTimeMs,
 }: AppHeaderProps) {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const backendStatusLabel =
+    backendStatus === "online"
+      ? "Backend online"
+      : backendStatus === "degraded"
+        ? "Backend degradado"
+        : "Backend offline";
+
+  const backendStatusClasses =
+    backendStatus === "online"
+      ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
+      : backendStatus === "degraded"
+        ? "border-amber-400/30 bg-amber-500/10 text-amber-300"
+        : "border-rose-400/30 bg-rose-500/10 text-rose-300";
 
   const handleOpenProjectClick = () => {
     fileInputRef.current?.click();
@@ -60,9 +79,31 @@ export function AppHeader({
               UNIFIED
             </span>
           </h1>
-          <p className="text-[10px] text-slate-300 font-bold uppercase tracking-[0.3em]">
-            Análise Geo Avançada
-          </p>
+          <div className="flex items-center gap-2 pt-0.5">
+            <p className="text-[10px] text-slate-300 font-bold uppercase tracking-[0.3em]">
+              Análise Geo Avançada
+            </p>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${backendStatusClasses}`}
+              title={
+                backendResponseTimeMs != null
+                  ? `${backendStatusLabel} (${backendResponseTimeMs} ms)`
+                  : backendStatusLabel
+              }
+              aria-label={
+                backendResponseTimeMs != null
+                  ? `${backendStatusLabel}. Latência ${backendResponseTimeMs} milissegundos`
+                  : backendStatusLabel
+              }
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+              {backendStatus === "online"
+                ? "API ONLINE"
+                : backendStatus === "degraded"
+                  ? "API DEGRADADA"
+                  : "API OFFLINE"}
+            </span>
+          </div>
         </div>
       </div>
 

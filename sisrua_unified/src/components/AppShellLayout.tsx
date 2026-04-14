@@ -4,6 +4,7 @@ import { AppSettingsOverlay } from "./AppSettingsOverlay";
 import { AppStatusStack } from "./AppStatusStack";
 import { MainMapWorkspace } from "./MainMapWorkspace";
 import { SidebarWorkspace } from "./SidebarWorkspace";
+import { useBackendHealth } from "../hooks/useBackendHealth";
 
 type Props = {
   isDark: boolean;
@@ -34,6 +35,8 @@ export function AppShellLayout({
   sidebarWorkspaceProps,
   mainMapWorkspaceProps,
 }: Props) {
+  const backendHealth = useBackendHealth();
+
   return (
     <div
       className={`flex flex-col h-screen w-full font-sans transition-colors duration-500 overflow-hidden ${
@@ -51,6 +54,8 @@ export function AppShellLayout({
         onOpenProject={onOpenProject}
         onOpenSettings={onOpenSettings}
         isDark={isDark}
+        backendStatus={backendHealth.status}
+        backendResponseTimeMs={backendHealth.responseTimeMs}
       />
       <main className="flex-1 flex overflow-hidden relative">
         <SidebarWorkspace {...sidebarWorkspaceProps} />

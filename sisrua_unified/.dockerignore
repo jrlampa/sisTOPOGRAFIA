@@ -79,6 +79,24 @@ ruas2
 sisrua_unified - Copia
 test_files
 
+# Runtime output / temporários
+tmp
+chaos_output.txt
+.lighthouseci
+
+# Artifacts (brain cache, RAG outputs gerados)
+artifacts
+
+# Scripts de manutenção one-off (não necessários na imagem)
+apply_partitioning.py
+apply_perf_migrations.py
+check_migrations.py
+check_schema.py
+explore_schema.py
+report_performance_tuning.py
+verify_maintenance_formalized.py
+verify_perf_implementation.py
+
 # Temporary files
 tmp
 temp
