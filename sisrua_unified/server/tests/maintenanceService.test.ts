@@ -8,6 +8,7 @@ jest.mock('../config', () => ({
         DXF_DIRECTORY: '/tmp/dxf_test',
         DXF_MAX_AGE_MS: 3600000,
         NODE_ENV: 'test',
+        maintenanceDbCleanupEnabled: true,
     }
 }));
 

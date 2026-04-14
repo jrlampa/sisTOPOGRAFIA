@@ -207,7 +207,7 @@ app.get('/health', async (_req: Request, res: Response) => {
         dependencies: {
             database: dbStatus,
             ollama: ollamaStatus ? 'running' : 'stopped',
-            googleCloudTasks: config.useCloudTasks ? 'enabled' : 'disabled',
+            queueBackend: config.useSupabaseJobs ? 'supabase-postgres' : 'local-async',
         },
         config: {
             environment: config.NODE_ENV,

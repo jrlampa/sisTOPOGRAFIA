@@ -90,6 +90,7 @@ export const calculateGeralCqtNoPonto = (input: GeralCqtNoPontoInput): number =>
 export interface TrafosZRow {
     trafoKva: number;
     qtFactor: number;
+    [key: string]: unknown;
 }
 
 export interface DbIndicatorsInput {
@@ -162,6 +163,7 @@ export const calculateIb = (input: IbInput): number => {
 export interface DisjuntorLookupRow {
     ib: number;
     disjuntor: number;
+    [key: string]: unknown;
 }
 
 export const lookupDisjuntorIn = (ib: number, table: DisjuntorLookupRow[]): number => {
@@ -182,6 +184,7 @@ export interface CaboLookupRow {
     reactance: number;
     alpha: number;
     divisorR: number;
+    [key: string]: unknown;
 }
 
 export interface CaboElectricalData {

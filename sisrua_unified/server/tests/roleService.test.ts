@@ -13,12 +13,8 @@ jest.mock('../utils/logger', () => ({
 // Mock config
 jest.mock('../config', () => ({
     config: {
-        DB_HOST: 'localhost',
-        DB_PORT: 5432,
-        DB_NAME: 'test',
-        DB_USER: 'test',
-        DB_PASSWORD: 'test',
-        DB_SSL: 'false',
+        DATABASE_URL: 'postgres://test:test@localhost:5432/testdb',
+        NODE_ENV: 'test',
     }
 }));
 

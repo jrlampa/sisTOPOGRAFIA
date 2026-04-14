@@ -392,7 +392,9 @@ export async function createDxfTask(
       `INSERT INTO dxf_tasks (task_id, status, payload, attempts, idempotency_key, updated_at)
        VALUES ($1, 'queued', $2, 0, $3, now())
        ON CONFLICT (idempotency_key) WHERE status NOT IN ('failed', 'cancelled') DO NOTHING`,
-      [taskId, fullPayload, payload.cacheKey],
+      // postgres.js handles JSONB serialization of the payload object at runtime
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      [taskId, fullPayload as any, payload.cacheKey],
     );
 
     logger.info("DXF task queued in Supabase/Postgres", {
