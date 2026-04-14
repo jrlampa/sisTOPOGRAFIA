@@ -1,3 +1,5 @@
+import hashlib
+import json
 import math
 import os
 import datetime
@@ -375,6 +377,28 @@ class DXFLayoutMixin:
         except Exception as e:
             Logger.error(f"Error adding logo block reference: {e}")
 
+    def _generate_provenance(self, filename: str, entity_count: int) -> dict:
+        """Computes SHA-256 of the saved DXF file and writes a provenance JSON sidecar."""
+        sha256_hash = hashlib.sha256()
+        with open(filename, "rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                sha256_hash.update(chunk)
+        record = {
+            "sha256": sha256_hash.hexdigest(),
+            "generated_at": datetime.datetime.utcnow().isoformat(),
+            "generator": "sisTOPOGRAFIA/sisrua_unified",
+            "version": "1.0.0",
+            "entity_count": entity_count,
+        }
+        provenance_path = filename + ".provenance.json"
+        with open(provenance_path, "w", encoding="utf-8") as pf:
+            json.dump(record, pf, indent=2)
+        Logger.info(
+            f"Provenance written: {os.path.basename(provenance_path)} "
+            f"(sha256={record['sha256'][:16]}...)"
+        )
+        return record
+
     def _count_modelspace_entities(self):
         return sum(1 for _ in self.msp)
 
@@ -413,6 +437,7 @@ class DXFLayoutMixin:
                 f"DXF saved successfully: {os.path.basename(self.filename)} "
                 f"({final_entities} entities, {output_size} bytes)"
             )
+            self._generate_provenance(self.filename, final_entities)
         except Exception as e:
             Logger.error(f"DXF Save Error: {e}")
             raise
