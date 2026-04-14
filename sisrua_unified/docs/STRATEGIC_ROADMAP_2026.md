@@ -4,6 +4,8 @@ Este documento estabelece a visão técnica, os pontos de melhoria prioritários
 
 ## 🛡️ Regras Não Negociáveis (Non-negotiables)
 
+![1776210246658](image/STRATEGIC_ROADMAP_2026/1776210246658.png)
+
 > [!IMPORTANT]
 > Estas regras são obrigatórias e devem ser seguidas sem exceção em cada interação de desenvolvimento.
 

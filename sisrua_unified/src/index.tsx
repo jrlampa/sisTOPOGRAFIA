@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
+import LandingDraftPage from "./components/LandingDraftPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { initAnalytics } from "./utils/analytics";
 import { resetChunkReloadFlag } from "./utils/lazyWithRetry";
@@ -32,10 +33,12 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
+const isLandingDraftRoute = window.location.pathname.startsWith("/landing");
+
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      {isLandingDraftRoute ? <LandingDraftPage /> : <App />}
     </ErrorBoundary>
   </React.StrictMode>,
 );
