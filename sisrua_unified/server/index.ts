@@ -321,13 +321,11 @@ app.listen(port, async () => {
     ...(config.useDbConstantsConfig ? ["config"] : []),
   ];
   if (dbConstantsNamespaces.length > 0) {
-    await constantsService
-      .warmUp(dbConstantsNamespaces)
-      .catch((e: Error) =>
-        logger.warn("Constants warmup failed — hardcoded fallback active", {
-          error: e.message,
-        }),
-      );
+    await constantsService.warmUp(dbConstantsNamespaces).catch((e: Error) =>
+      logger.warn("Constants warmup failed — hardcoded fallback active", {
+        error: e.message,
+      }),
+    );
     refreshRateLimitersFromCatalog();
   }
   initializeDxfCleanup(dxfDirectory);
