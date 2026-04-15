@@ -52,6 +52,7 @@ import metricsRoutes from "./routes/metricsRoutes.js";
 import featureFlagRoutes from "./routes/featureFlagRoutes.js";
 import quotaRoutes from "./routes/quotaRoutes.js";
 import costCenterRoutes from "./routes/costCenterRoutes.js";
+import businessKpiRoutes from "./routes/businessKpiRoutes.js";
 import { initDbClient, closeDbClient } from "./repositories/index.js";
 import storageRoutes from "./routes/storageRoutes.js";
 
@@ -297,6 +298,7 @@ app.use("/metrics", metricsRoutes);
 app.use("/api/feature-flags", featureFlagRoutes);
 app.use("/api/tenant-quotas", quotaRoutes);
 app.use("/api/cost-centers", costCenterRoutes);
+app.use("/api/business-kpi", businessKpiRoutes);
 
 // Static files
 app.use(express.static(frontendDistDirectory));
