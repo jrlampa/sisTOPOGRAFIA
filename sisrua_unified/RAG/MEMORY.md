@@ -951,3 +951,42 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - Teste focado executado com sucesso:
   - `npx jest server/tests/analysisRoutesLogging.test.ts --coverage=false`
 - Tipagem/diagnósticos sem erros nos arquivos alterados.
+
+---
+
+## 📌 Atualização Operacional (2026-04-14) - Endpoint Ops para Circuit Breakers (T1)
+
+### Classificação de Governança
+
+- Categoria: **Obrigatório para Go-Live Enterprise**
+- Itens correlatos do roadmap: **112, 124, 125**
+
+### Escopo
+
+- Criado endpoint operacional dedicado para visibilidade de integrações externas com circuit breaker.
+- Objetivo: reduzir MTTR em incidentes de APIs públicas com visão de runbook e status consolidado.
+
+### Implementação
+
+- Nova rota backend:
+  - `server/routes/opsRoutes.ts`
+  - `GET /api/ops/external-apis`
+- Recursos do endpoint:
+  - status `online|degraded` baseado em circuitos `OPEN`;
+  - resumo com totais de circuitos (`open`, `half_open`, `closed`);
+  - modo de resposta resumida (`?details=summary`) para payload leve;
+  - recomendações operacionais em pt-BR para resposta a incidentes;
+  - proteção por Bearer token usando `METRICS_TOKEN` (mesma política de observabilidade).
+- Integração no servidor:
+  - `server/index.ts` com mount em `/api/ops`.
+
+### Validação
+
+- Testes focados da nova rota:
+  - `server/tests/opsRoutes.test.ts` (autorização, estado degradado, modo summary).
+- Build completo validado com sucesso:
+  - `npm --prefix sisrua_unified run build`.
+
+### Observação
+
+- Execução de testes focados encerrou com código final 1 devido ao threshold global de cobertura do projeto, embora as suítes desta entrega tenham passado.

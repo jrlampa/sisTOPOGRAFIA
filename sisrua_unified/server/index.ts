@@ -50,9 +50,9 @@ import jobRoutes from "./routes/jobRoutes.js";
 import firestoreRoutes from "./routes/firestoreRoutes.js";
 import dxfRoutes from "./routes/dxfRoutes.js";
 import metricsRoutes from "./routes/metricsRoutes.js";
+import opsRoutes from "./routes/opsRoutes.js";
 import { initDbClient, closeDbClient } from "./repositories/index.js";
 import storageRoutes from "./routes/storageRoutes.js";
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -305,6 +305,7 @@ if (config.useFirestore) {
 }
 app.use("/api/storage", storageRoutes);
 app.use("/api/dxf", dxfRoutes);
+app.use("/api/ops", opsRoutes);
 app.use("/metrics", metricsRoutes);
 
 // Static files
