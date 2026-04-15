@@ -1057,3 +1057,47 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - PRs passam a ter bloqueio explícito contra vazamento de segredos.
 - Builds aprovados no gate de qualidade agora carregam evidência de proveniência verificável.
 - Maior prontidão para homologação corporativa com trilha de auditoria de supply chain e release integrity.
+
+---
+
+## 📌 Atualização Operacional (2026-04-15) - Matriz de Contrato Crítico API-E2E (T1)
+
+### Classificação de Governança
+
+- Categoria: **Obrigatório para Go-Live Enterprise**
+- Itens correlatos do roadmap: **3, 112, 124, 125**
+
+### Escopo
+
+- Definição oficial do contrato de sucesso/erro do fluxo crítico:
+  - **Projeto → Ponto → Persistido → Snapshot**
+- Formalização da semântica HTTP para respostas de negócio e segurança: **200, 401, 403, 404, 422**.
+
+### Implementação
+
+- `server/services/criticalFlowContractService.ts`
+  - Novo motor de estado do fluxo crítico por `tenantId/projetoId/pontoId`.
+  - Regras de transição com retorno tipado para:
+    - `OK` (200)
+    - `PROJECT_NOT_FOUND` (404)
+    - `POINT_NOT_FOUND` (404)
+    - `INVALID_TRANSITION` (422)
+- `server/routes/businessKpiRoutes.ts`
+  - Nova rota oficial: `POST /api/business-kpi/:tenantId/fluxo-critico/eventos`.
+  - Segurança:
+    - `401` para ausência/invalidade de Bearer token (`METRICS_TOKEN`)
+    - `403` para escopo ausente/inválido (`x-contract-scope != critical-flow:write`)
+  - Contrato de validação:
+    - `422` para payload semântico inválido e transições de fluxo inválidas.
+- `server/tests/businessKpiRoutes.test.ts`
+  - Testes de contrato cobrindo explicitamente os 5 status:
+    - 200, 401, 403, 404 e 422.
+- `docs/API_E2E_CONTRATO_CRITICO_PROJETO_PONTO.md`
+  - Matriz oficial com exemplos de payload e respostas por status.
+
+### Validação
+
+- Teste focado aprovado:
+  - `npm run test:backend:debug -- businessKpiRoutes.test.ts`
+- Observação de baseline do repositório:
+  - `npm run typecheck:backend` falhou em arquivos **não relacionados** (`server/repositories/btExportHistoryRepository.ts` e `server/services/cloudTasksService.ts`) com erros de tipagem pré-existentes.

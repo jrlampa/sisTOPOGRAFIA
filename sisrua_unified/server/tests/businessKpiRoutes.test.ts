@@ -6,6 +6,7 @@
 import express from "express";
 import request from "supertest";
 import { clearAllKpiEvents } from "../services/businessKpiService.js";
+import { clearCriticalFlowState } from "../services/criticalFlowContractService.js";
 
 jest.mock("../utils/logger", () => ({
   logger: {
@@ -24,7 +25,8 @@ async function buildApp(metricsToken: string | undefined) {
   jest.doMock("../config", () => ({
     config: { METRICS_TOKEN: metricsToken },
   }));
-  const { default: businessKpiRoutes } = await import("../routes/businessKpiRoutes");
+  const { default: businessKpiRoutes } =
+    await import("../routes/businessKpiRoutes");
   const app = express();
   app.use(express.json());
   app.use("/api/business-kpi", businessKpiRoutes);
@@ -36,6 +38,7 @@ afterEach(() => {
   jest.resetModules();
   jest.clearAllMocks();
   clearAllKpiEvents();
+  clearCriticalFlowState();
 });
 
 // ─── POST /:tenantId/eventos — registra evento ────────────────────────────────
@@ -94,7 +97,11 @@ describe("POST /api/business-kpi/:tenantId/eventos", () => {
     const res = await request(app)
       .post("/api/business-kpi/empresa-c/eventos")
       .set("Authorization", AUTH)
-      .send({ tipo: "exportacao_dxf", resultado: "resultado_invalido", duracaoMs: 100 });
+      .send({
+        tipo: "exportacao_dxf",
+        resultado: "resultado_invalido",
+        duracaoMs: 100,
+      });
     expect(res.status).toBe(400);
   });
 
@@ -156,7 +163,11 @@ describe("GET /api/business-kpi/:tenantId/relatorio", () => {
     await request(app)
       .post("/api/business-kpi/empresa-d/eventos")
       .set("Authorization", AUTH)
-      .send({ tipo: "exportacao_dxf", resultado: "retrabalho", duracaoMs: 200 });
+      .send({
+        tipo: "exportacao_dxf",
+        resultado: "retrabalho",
+        duracaoMs: 200,
+      });
     const res = await request(app)
       .get("/api/business-kpi/empresa-d/relatorio")
       .set("Authorization", AUTH);
@@ -191,12 +202,22 @@ describe("GET /api/business-kpi/:tenantId/gargalos", () => {
       await request(app)
         .post("/api/business-kpi/empresa-f/eventos")
         .set("Authorization", AUTH)
-        .send({ tipo: "analise_rede", resultado: "falha", duracaoMs: 1000, regiao: "Norte" });
+        .send({
+          tipo: "analise_rede",
+          resultado: "falha",
+          duracaoMs: 1000,
+          regiao: "Norte",
+        });
     }
     await request(app)
       .post("/api/business-kpi/empresa-f/eventos")
       .set("Authorization", AUTH)
-      .send({ tipo: "analise_rede", resultado: "sucesso", duracaoMs: 1000, regiao: "Norte" });
+      .send({
+        tipo: "analise_rede",
+        resultado: "sucesso",
+        duracaoMs: 1000,
+        regiao: "Norte",
+      });
     const res = await request(app)
       .get("/api/business-kpi/empresa-f/gargalos")
       .set("Authorization", AUTH);
@@ -212,14 +233,24 @@ describe("GET /api/business-kpi/:tenantId/gargalos", () => {
       await request(app)
         .post("/api/business-kpi/empresa-g/eventos")
         .set("Authorization", AUTH)
-        .send({ tipo: "exportacao_dxf", resultado: "sucesso", duracaoMs: 500, regiao: "Sul" });
+        .send({
+          tipo: "exportacao_dxf",
+          resultado: "sucesso",
+          duracaoMs: 500,
+          regiao: "Sul",
+        });
     }
     // Região gargalo
     for (let i = 0; i < 5; i++) {
       await request(app)
         .post("/api/business-kpi/empresa-g/eventos")
         .set("Authorization", AUTH)
-        .send({ tipo: "exportacao_dxf", resultado: "falha", duracaoMs: 500, regiao: "Norte" });
+        .send({
+          tipo: "exportacao_dxf",
+          resultado: "falha",
+          duracaoMs: 500,
+          regiao: "Norte",
+        });
     }
     const res = await request(app)
       .get("/api/business-kpi/empresa-g/gargalos?apenasGargalos=true")
@@ -306,5 +337,96 @@ describe("GET /api/business-kpi/:tenantId/eventos", () => {
       .get("/api/business-kpi/empresa-l/eventos?tipo=invalido")
       .set("Authorization", AUTH);
     expect(res.status).toBe(400);
+  });
+});
+
+// ─── POST /:tenantId/fluxo-critico/eventos — matriz de contrato API-E2E ─────
+
+describe("POST /api/business-kpi/:tenantId/fluxo-critico/eventos", () => {
+  it("retorna 401 sem token", async () => {
+    const app = await buildApp(TOKEN);
+    const res = await request(app)
+      .post("/api/business-kpi/empresa-z/fluxo-critico/eventos")
+      .send({ etapa: "projeto", projetoId: "PRJ-001" });
+    expect(res.status).toBe(401);
+  });
+
+  it("retorna 403 com token válido e escopo ausente", async () => {
+    const app = await buildApp(TOKEN);
+    const res = await request(app)
+      .post("/api/business-kpi/empresa-z/fluxo-critico/eventos")
+      .set("Authorization", AUTH)
+      .send({ etapa: "projeto", projetoId: "PRJ-001" });
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe("FORBIDDEN_SCOPE");
+  });
+
+  it("retorna 404 quando projeto não existe para etapas dependentes", async () => {
+    const app = await buildApp(TOKEN);
+    const res = await request(app)
+      .post("/api/business-kpi/empresa-z/fluxo-critico/eventos")
+      .set("Authorization", AUTH)
+      .set("x-contract-scope", "critical-flow:write")
+      .send({ etapa: "ponto", projetoId: "PRJ-404", pontoId: "PT-001" });
+    expect(res.status).toBe(404);
+    expect(res.body.code).toBe("PROJECT_NOT_FOUND");
+  });
+
+  it("retorna 422 para transição inválida (snapshot sem persistência)", async () => {
+    const app = await buildApp(TOKEN);
+
+    await request(app)
+      .post("/api/business-kpi/empresa-z/fluxo-critico/eventos")
+      .set("Authorization", AUTH)
+      .set("x-contract-scope", "critical-flow:write")
+      .send({ etapa: "projeto", projetoId: "PRJ-422" });
+
+    await request(app)
+      .post("/api/business-kpi/empresa-z/fluxo-critico/eventos")
+      .set("Authorization", AUTH)
+      .set("x-contract-scope", "critical-flow:write")
+      .send({ etapa: "ponto", projetoId: "PRJ-422", pontoId: "PT-01" });
+
+    const res = await request(app)
+      .post("/api/business-kpi/empresa-z/fluxo-critico/eventos")
+      .set("Authorization", AUTH)
+      .set("x-contract-scope", "critical-flow:write")
+      .send({ etapa: "snapshot", projetoId: "PRJ-422", pontoId: "PT-01" });
+
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe("INVALID_TRANSITION");
+  });
+
+  it("retorna 200 no fluxo completo projeto → ponto → persistido → snapshot", async () => {
+    const app = await buildApp(TOKEN);
+
+    const project = await request(app)
+      .post("/api/business-kpi/empresa-z/fluxo-critico/eventos")
+      .set("Authorization", AUTH)
+      .set("x-contract-scope", "critical-flow:write")
+      .send({ etapa: "projeto", projetoId: "PRJ-OK" });
+    expect(project.status).toBe(200);
+
+    const point = await request(app)
+      .post("/api/business-kpi/empresa-z/fluxo-critico/eventos")
+      .set("Authorization", AUTH)
+      .set("x-contract-scope", "critical-flow:write")
+      .send({ etapa: "ponto", projetoId: "PRJ-OK", pontoId: "PT-OK" });
+    expect(point.status).toBe(200);
+
+    const persisted = await request(app)
+      .post("/api/business-kpi/empresa-z/fluxo-critico/eventos")
+      .set("Authorization", AUTH)
+      .set("x-contract-scope", "critical-flow:write")
+      .send({ etapa: "persistido", projetoId: "PRJ-OK", pontoId: "PT-OK" });
+    expect(persisted.status).toBe(200);
+
+    const snapshot = await request(app)
+      .post("/api/business-kpi/empresa-z/fluxo-critico/eventos")
+      .set("Authorization", AUTH)
+      .set("x-contract-scope", "critical-flow:write")
+      .send({ etapa: "snapshot", projetoId: "PRJ-OK", pontoId: "PT-OK" });
+    expect(snapshot.status).toBe(200);
+    expect(snapshot.body.code).toBe("OK");
   });
 });
