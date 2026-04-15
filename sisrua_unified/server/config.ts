@@ -125,8 +125,9 @@ const EnvSchema = z.object({
   METRICS_TOKEN: z.string().optional(),
   /**
    * Token Bearer para proteger os endpoints de /api/admin.
-   * Opcional: se ausente, o acesso sem token só é permitido fora de produção;
-   * em produção, os endpoints administrativos permanecem protegidos.
+   * Regra unificada dos endpoints críticos: se token estiver configurado,
+   * todas as requisições devem enviar Authorization: Bearer <ADMIN_TOKEN>.
+   * Se ausente, o acesso fica permissivo (sem variação por ambiente).
    */
   ADMIN_TOKEN: z.string().optional(),
 });

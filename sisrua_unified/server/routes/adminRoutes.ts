@@ -11,8 +11,9 @@
  *   - Item 115 [T1]: Feature Flags por Tenant
  *
  * Autenticação: todos os endpoints exigem papel `admin` via ADMIN_TOKEN
- * (header `Authorization: Bearer <token>`). Sem token configurado, requer
- * explicitamente NODE_ENV != production (dev permissivo).
+ * (header `Authorization: Bearer <token>`).
+ * Regra unificada para endpoints críticos: se token estiver configurado,
+ * autenticação é obrigatória; sem token configurado, acesso é permissivo.
  *
  * Endpoints:
  *   GET  /api/admin/saude                 — health do painel admin
@@ -52,7 +53,7 @@ const router = Router();
 function isAdminAuthorized(req: Request): boolean {
   const token = config.ADMIN_TOKEN ?? config.METRICS_TOKEN;
   if (!token) {
-    return config.NODE_ENV !== "production";
+    return true;
   }
   const authHeader = req.headers.authorization ?? "";
   if (!authHeader.startsWith("Bearer ")) return false;
@@ -133,11 +134,9 @@ router.put("/usuarios/:userId/papel", async (req: Request, res: Response) => {
   );
 
   if (!sucesso) {
-    return res
-      .status(500)
-      .json({
-        erro: "Falha ao atualizar papel (banco indisponível ou usuário não encontrado)",
-      });
+    return res.status(500).json({
+      erro: "Falha ao atualizar papel (banco indisponível ou usuário não encontrado)",
+    });
   }
 
   logger.info("[AdminRoutes] Papel de usuário alterado", {

@@ -384,7 +384,7 @@ describe("GET /api/admin/kpis", () => {
 
 // ─── modo dev (sem token) ─────────────────────────────────────────────────────
 
-describe("modo dev (sem ADMIN_TOKEN, NODE_ENV != production)", () => {
+describe("sem token configurado (regra unificada)", () => {
   it("permite acesso a /usuarios sem token quando NODE_ENV=development", async () => {
     const app = await buildApp(undefined, "development");
     const res = await request(app).get("/api/admin/usuarios");

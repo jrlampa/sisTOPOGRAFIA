@@ -1101,3 +1101,34 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
   - `npm run test:backend:debug -- businessKpiRoutes.test.ts`
 - Observação de baseline do repositório:
   - `npm run typecheck:backend` falhou em arquivos **não relacionados** (`server/repositories/btExportHistoryRepository.ts` e `server/services/cloudTasksService.ts`) com erros de tipagem pré-existentes.
+
+---
+
+## 📌 Atualização Operacional (2026-04-15) - Regra Única de Autenticação em Endpoints Críticos
+
+### Classificação de Governança
+
+- Categoria: **Obrigatório para Go-Live Enterprise**
+- Itens correlatos do roadmap: **17, 35, 112, 124**
+
+### Escopo
+
+- Congelamento do padrão de autenticação para leitura e escrita em endpoint crítico administrativo.
+- Remoção de variação por ambiente no gate de autorização de `/api/admin`.
+
+### Implementação
+
+- `server/routes/adminRoutes.ts`
+  - `isAdminAuthorized` passou a seguir regra única:
+    - se token (`ADMIN_TOKEN` ou fallback `METRICS_TOKEN`) estiver configurado, Bearer é obrigatório;
+    - se token estiver ausente, acesso é permissivo (sem bifurcação por `NODE_ENV`).
+  - Documentação de cabeçalho da rota atualizada para explicitar a política unificada.
+- `server/config.ts`
+  - Comentário de `ADMIN_TOKEN` atualizado para refletir a regra única sem variação por ambiente.
+- `server/tests/adminRoutes.test.ts`
+  - Contexto de teste atualizado para nomenclatura da política unificada.
+
+### Validação
+
+- Teste focado aprovado:
+  - `npm run test:backend:debug -- adminRoutes.test.ts` (25/25).
