@@ -44,6 +44,8 @@
     "cqt:workbook-audit:light": "python scripts/audit_cqt_workbook.py --workbook \"Light_estudo/CQTsimplificado_BECO DO MATA 7 - PARIDADE_FINAL.xlsx\"",
     "cqt:workbook-audit:check": "python scripts/audit_cqt_workbook.py --check",
     "security:audit": "npm audit --omit=dev --audit-level=critical",
+    "security:policy-gate": "npm run security:audit",
+    "security:sbom:node": "node scripts/generate-node-sbom.js",
     "security:audit:fix": "npm audit fix",
     "security:check": "npm run security:audit && echo '\n--- Security audit complete ---'",
     "naming:check:bt": "node scripts/check-bt-naming.js",
