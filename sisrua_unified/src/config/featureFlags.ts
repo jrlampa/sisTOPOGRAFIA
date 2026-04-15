@@ -39,12 +39,16 @@ type FeatureFlagConfig = Record<FeatureFlag, boolean>;
 type FeatureFlagOverrideConfig = Partial<Record<FeatureFlag, boolean>>;
 
 export interface FeatureFlagContext {
+  /** Grupo de usuário (ex: 'engenharia', 'operacao', 'viewer') */
   userGroup?: string;
+  /** Regional/região (ex: 'sul', 'sudeste', 'nordeste') */
   region?: string;
 }
 
 export interface FeatureFlagTargetingConfig {
+  /** Overrides por grupo de usuário */
   userGroups?: Record<string, FeatureFlagOverrideConfig>;
+  /** Overrides por região */
   regions?: Record<string, FeatureFlagOverrideConfig>;
 }
 
@@ -107,13 +111,23 @@ function sanitizeOverrideConfig(
   return Object.entries(overrides).reduce((acc, [key, value]) => {
     if (typeof value === 'boolean') {
       acc[key as FeatureFlag] = value;
+    } else if (value === 'true') {
+      // Coagir string boolean — formato comum em configs externas/JSON
+      acc[key as FeatureFlag] = true;
+    } else if (value === 'false') {
+      // Coagir string boolean — formato comum em configs externas/JSON
+      acc[key as FeatureFlag] = false;
+    } else {
+      console.warn(
+        `[FeatureFlags] Valor inesperado para flag "${key}": ${JSON.stringify(value)}. Esperado boolean ou string "true"/"false". Entrada ignorada.`
+      );
     }
     return acc;
   }, {} as FeatureFlagOverrideConfig);
 }
 
 /**
- * Load custom flags from environment or JSON.
+ * Carrega flags personalizados a partir de environment ou JSON.
  * @example
  * loadFeatureFlags({
  *   [FeatureFlag.BT_TOPOLOGY_EDITOR]: false,
@@ -139,19 +153,16 @@ export function loadFeatureFlags(customFlags: Partial<Record<FeatureFlag, boolea
 }
 
 /**
- * Load feature-flag rules segmented by user group and region.
- * Useful for progressive rollout in specific clients/regions.
+ * Carrega regras de segmentação de feature flags por grupo de usuário e região.
+ * Útil para rollout progressivo em grupos e regionais específicas.
+ *
+ * Pode ser chamado em qualquer ambiente — inclusive produção — pois recebe dados
+ * de fonte externa (config server, env, arquivo) sem alterar os flags globais.
+ * Prioridade de resolução ao avaliar: global → grupo → região.
  */
 export function loadFeatureFlagTargeting(
   targeting: FeatureFlagTargetingConfig,
 ): void {
-  if (IS_PRODUCTION) {
-    console.warn(
-      'Feature flag targeting should be configured via external source in production.'
-    );
-    return;
-  }
-
   const sanitizedUserGroups = Object.entries(targeting.userGroups ?? {}).reduce(
     (acc, [group, overrides]) => {
       const normalizedGroup = normalizeContextKey(group);
@@ -194,8 +205,8 @@ export function isFeatureEnabled(flag: FeatureFlag): boolean {
 }
 
 /**
- * Check feature flag considering user-group and regional segmentation.
- * Resolution priority: default/global -> userGroup -> region.
+ * Verifica feature flag considerando segmentação por grupo e região.
+ * Prioridade de resolução: global → grupo → região.
  */
 export function isFeatureEnabledForContext(
   flag: FeatureFlag,
@@ -223,7 +234,7 @@ export function isFeatureEnabledForContext(
 }
 
 /**
- * Get all flags (read-only in production).
+ * Retorna todos os flags (somente leitura em produção).
  */
 export function getAllFeatureFlags(): Readonly<FeatureFlagConfig> {
   return Object.freeze({ ...runtimeFlags });

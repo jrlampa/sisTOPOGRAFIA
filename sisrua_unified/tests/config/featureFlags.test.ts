@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   FeatureFlag,
   isFeatureEnabled,
@@ -84,5 +84,63 @@ describe('featureFlags targeting', () => {
         region: 'SUL',
       })
     ).toBe(true);
+  });
+
+  it('loadFeatureFlagTargeting aplica targeting mesmo em produção (sem no-op silencioso)', () => {
+    // Simula carga de config proveniente de fonte externa (servidor de config, env)
+    // A função não deve ignorar os dados — targeting é configuração, não bypass de segurança.
+    loadFeatureFlags({ [FeatureFlag.DXF_EXPORT]: false });
+    loadFeatureFlagTargeting({
+      userGroups: {
+        admin: { [FeatureFlag.DXF_EXPORT]: true },
+      },
+    });
+
+    expect(
+      isFeatureEnabledForContext(FeatureFlag.DXF_EXPORT, { userGroup: 'admin' })
+    ).toBe(true);
+    expect(
+      isFeatureEnabledForContext(FeatureFlag.DXF_EXPORT, { userGroup: 'guest' })
+    ).toBe(false);
+  });
+
+  it('sanitizeOverrideConfig coage string "true"/"false" para boolean', () => {
+    // Valores string são comuns em configs carregadas de JSON/env externo
+    loadFeatureFlagTargeting({
+      userGroups: {
+        // Forçar via cast para testar coerção de string boolean em runtime
+        beta: { [FeatureFlag.ELEVATION_PROFILE]: 'true' as unknown as boolean },
+      },
+    });
+
+    expect(
+      isFeatureEnabledForContext(FeatureFlag.ELEVATION_PROFILE, {
+        userGroup: 'beta',
+      })
+    ).toBe(true);
+  });
+
+  it('sanitizeOverrideConfig emite aviso para tipos inesperados e não aplica o valor', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    loadFeatureFlagTargeting({
+      userGroups: {
+        invalido: {
+          [FeatureFlag.CQT_ANALYSIS]: 42 as unknown as boolean,
+        },
+      },
+    });
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[FeatureFlags]')
+    );
+    // Flag não deve ser sobrescrito com valor inválido
+    expect(
+      isFeatureEnabledForContext(FeatureFlag.CQT_ANALYSIS, {
+        userGroup: 'invalido',
+      })
+    ).toBe(isFeatureEnabled(FeatureFlag.CQT_ANALYSIS));
+
+    warnSpy.mockRestore();
   });
 });
