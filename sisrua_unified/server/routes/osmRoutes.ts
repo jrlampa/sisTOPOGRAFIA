@@ -1,11 +1,11 @@
-import { Router, Request, Response } from 'express';
-import { logger } from '../utils/logger.js';
-import { config } from '../config.js';
-import { osmRequestSchema } from '../schemas/apiSchemas.js';
-import { fetchWithCircuitBreaker } from '../utils/externalApi.js';
+import { Router, Request, Response } from "express";
+import { logger } from "../utils/logger.js";
+import { config } from "../config.js";
+import { osmRequestSchema } from "../schemas/apiSchemas.js";
+import { fetchWithCircuitBreaker } from "../utils/externalApi.js";
 
 const router = Router();
-const isTestEnvironment = config.NODE_ENV === 'test';
+const isTestEnvironment = config.NODE_ENV === "test";
 
 // Simple memory-based cache for OSM requests
 // In production, consider Redis or persistent storage
@@ -13,7 +13,7 @@ const osmCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours as per user preference
 
 function getCacheKey(lat: number, lng: number, radius: number): string {
-    return `${lat.toFixed(6)},${lng.toFixed(6)},${radius}`;
+  return `${lat.toFixed(6)},${lng.toFixed(6)},${radius}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -42,7 +42,8 @@ function computeOsmStats(elements: any[]): OsmStats {
 
     let h = 0;
     if (el.tags?.height) h = parseFloat(el.tags.height);
-    else if (el.tags?.['building:levels']) h = parseFloat(el.tags['building:levels']) * 3.2;
+    else if (el.tags?.["building:levels"])
+      h = parseFloat(el.tags["building:levels"]) * 3.2;
 
     if (h > 0) {
       totalHeight += h;
@@ -61,62 +62,62 @@ function computeOsmStats(elements: any[]): OsmStats {
 }
 
 const OVERPASS_ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.nchc.org.tw/api/interpreter'
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.nchc.org.tw/api/interpreter",
 ];
 
 const buildMockOverpassPayload = (lat: number, lng: number, radius: number) => {
   const d = Math.max(0.0005, Math.min(radius / 111_000, 0.002));
   return {
     version: 0.6,
-    generator: 'Mock Overpass API',
+    generator: "Mock Overpass API",
     elements: [
       {
-        type: 'node',
+        type: "node",
         id: 1001,
         lat,
         lon: lng,
-        tags: { power: 'pole' }
+        tags: { power: "pole" },
       },
       {
-        type: 'node',
+        type: "node",
         id: 1002,
         lat: lat + d,
         lon: lng + d,
-        tags: { power: 'transformer' }
+        tags: { power: "transformer" },
       },
       {
-        type: 'way',
+        type: "way",
         id: 2001,
         nodes: [1001, 1002],
         geometry: [
           { lat, lon: lng },
-          { lat: lat + d, lon: lng + d }
+          { lat: lat + d, lon: lng + d },
         ],
-        tags: { power: 'line', voltage: '13000' }
-      }
-    ]
+        tags: { power: "line", voltage: "13000" },
+      },
+    ],
   };
 };
 
 function getOverpassCircuitBreakerName(endpoint: string): string {
   try {
     const host = new URL(endpoint).hostname
-      .replace(/[^a-zA-Z0-9]/g, '_')
+      .replace(/[^a-zA-Z0-9]/g, "_")
       .toUpperCase();
     return `OVERPASS_${host}`;
   } catch {
-    return 'OVERPASS_GENERIC';
+    return "OVERPASS_GENERIC";
   }
 }
 
-router.post('/', async (req: Request, res: Response) => {
+router.post("/", async (req: Request, res: Response) => {
   const validation = osmRequestSchema.safeParse(req.body);
   if (!validation.success) {
-    return res.status(400).json({ 
-        error: 'Invalid coordinates or radius',
-        details: validation.error.issues 
+    return res.status(400).json({
+      error: "Invalid coordinates or radius",
+      details: validation.error.issues,
     });
   }
 
@@ -125,8 +126,8 @@ router.post('/', async (req: Request, res: Response) => {
   // Check Cache
   const cacheKey = getCacheKey(lat, lng, radius);
   const cached = osmCache.get(cacheKey);
-  if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
-    logger.info('OSM Cache Hit', { lat, lng, radius });
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    logger.info("OSM Cache Hit", { lat, lng, radius });
     return res.json(cached.data);
   }
 
@@ -147,14 +148,14 @@ router.post('/', async (req: Request, res: Response) => {
         getOverpassCircuitBreakerName(endpoint),
         endpoint,
         {
-          method: 'POST',
+          method: "POST",
           body: requestBody,
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
+            "Content-Type": "application/x-www-form-urlencoded",
           },
-          signal: AbortSignal.timeout(30000)
+          signal: AbortSignal.timeout(30000),
         },
-        { maxRetries: 1, initialDelay: 700, maxDelay: 2000 }
+        { maxRetries: 1, initialDelay: 700, maxDelay: 2000 },
       );
 
       const data = await response.json();
@@ -163,21 +164,21 @@ router.post('/', async (req: Request, res: Response) => {
 
       // Set Cache
       osmCache.set(cacheKey, { data: result, timestamp: Date.now() });
-      logger.info('OSM Cache Set', { lat, lng, radius });
+      logger.info("OSM Cache Set", { lat, lng, radius });
 
       return res.json(result);
     } catch (error) {
       lastError = error;
       const message = error instanceof Error ? error.message : String(error);
-      logger.warn('Overpass endpoint failed', { endpoint, message });
+      logger.warn("Overpass endpoint failed", { endpoint, message });
     }
   }
 
-  logger.error('All Overpass endpoints failed', {
+  logger.error("All Overpass endpoints failed", {
     lat,
     lng,
     radius,
-    error: lastError instanceof Error ? lastError.message : String(lastError)
+    error: lastError instanceof Error ? lastError.message : String(lastError),
   });
 
   // Strict behavior: synthetic fallback is allowed only in test environment.
@@ -189,20 +190,21 @@ router.post('/', async (req: Request, res: Response) => {
   }
 
   return res.status(503).json({
-    error: 'OSM provider unavailable',
-    message: 'Nao foi possivel obter dados do Overpass no momento. Tente novamente mais tarde.',
-    code: 'OVERPASS_UNAVAILABLE'
+    error: "OSM provider unavailable",
+    message:
+      "Nao foi possivel obter dados do Overpass no momento. Tente novamente mais tarde.",
+    code: "OVERPASS_UNAVAILABLE",
   });
 });
 
-router.post('/mock', async (req: Request, res: Response) => {
+router.post("/mock", async (req: Request, res: Response) => {
   if (!isTestEnvironment) {
-    return res.status(404).json({ error: 'Route not found' });
+    return res.status(404).json({ error: "Route not found" });
   }
 
   const validation = osmRequestSchema.safeParse(req.body);
   if (!validation.success) {
-    return res.status(400).json({ error: 'Invalid coordinates or radius' });
+    return res.status(400).json({ error: "Invalid coordinates or radius" });
   }
 
   const { lat, lng, radius } = validation.data;
@@ -211,4 +213,3 @@ router.post('/mock', async (req: Request, res: Response) => {
 });
 
 export default router;
-

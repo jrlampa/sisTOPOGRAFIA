@@ -146,7 +146,9 @@ describe("opsRoutes", () => {
       updateRecommended: true,
       canAutoUpdate: false,
     });
-    expect(response.body.runbook?.recommendedActionsPtBr?.length).toBeGreaterThan(0);
+    expect(
+      response.body.runbook?.recommendedActionsPtBr?.length,
+    ).toBeGreaterThan(0);
   });
 
   it("enforces auth on AI runtime endpoint when token is configured", async () => {

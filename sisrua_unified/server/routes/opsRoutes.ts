@@ -89,7 +89,9 @@ router.get("/ai-runtime", async (req: Request, res: Response) => {
       degradedReasons.push("Runtime Ollama indisponível.");
     }
     if (!governance.runtime.zeroCostCompliant) {
-      degradedReasons.push("Política zero-custo não atendida pelo host configurado.");
+      degradedReasons.push(
+        "Política zero-custo não atendida pelo host configurado.",
+      );
     }
     if (!governance.version.compliant) {
       degradedReasons.push("Versão do runtime abaixo do mínimo homologado.");

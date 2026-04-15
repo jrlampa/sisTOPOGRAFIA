@@ -200,9 +200,7 @@ function loadConfig() {
       ? raw.USE_FIRESTORE === "true"
       : raw.NODE_ENV === "production" && !useSupabaseJobs;
   const useCloudTasks: boolean =
-    raw.USE_CLOUD_TASKS !== undefined
-      ? raw.USE_CLOUD_TASKS === "true"
-      : false;
+    raw.USE_CLOUD_TASKS !== undefined ? raw.USE_CLOUD_TASKS === "true" : false;
 
   const isDocker: boolean = raw.DOCKER_ENV === "true";
 
