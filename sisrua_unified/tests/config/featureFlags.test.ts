@@ -13,13 +13,13 @@ describe('featureFlags targeting', () => {
     resetFeatureFlags();
   });
 
-  it('preserva comportamento global sem contexto', () => {
+  it('preserves global behavior without context', () => {
     loadFeatureFlags({ [FeatureFlag.KML_IMPORT]: false });
     expect(isFeatureEnabled(FeatureFlag.KML_IMPORT)).toBe(false);
     expect(isFeatureEnabledForContext(FeatureFlag.KML_IMPORT)).toBe(false);
   });
 
-  it('aplica override por grupo de usuário', () => {
+  it('applies override by user group', () => {
     loadFeatureFlags({ [FeatureFlag.BT_TOPOLOGY_EDITOR]: false });
     loadFeatureFlagTargeting({
       userGroups: {
@@ -39,7 +39,7 @@ describe('featureFlags targeting', () => {
     ).toBe(false);
   });
 
-  it('aplica override por região com precedência sobre grupo', () => {
+  it('applies override by region with precedence over user group', () => {
     loadFeatureFlags({ [FeatureFlag.AI_CLANDESTINO_ANALYSIS]: false });
     loadFeatureFlagTargeting({
       userGroups: {
@@ -63,7 +63,7 @@ describe('featureFlags targeting', () => {
     ).toBe(false);
   });
 
-  it('normaliza chaves de grupo e região', () => {
+  it('normalizes group and region keys', () => {
     loadFeatureFlags({ [FeatureFlag.MULTI_SCENARIO_SUPPORT]: false });
     loadFeatureFlagTargeting({
       userGroups: {

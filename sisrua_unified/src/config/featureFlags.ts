@@ -113,7 +113,7 @@ function sanitizeOverrideConfig(
 }
 
 /**
- * Carregar flags personalizado a partir de environment ou JSON.
+ * Load custom flags from environment or JSON.
  * @example
  * loadFeatureFlags({
  *   [FeatureFlag.BT_TOPOLOGY_EDITOR]: false,
@@ -139,15 +139,15 @@ export function loadFeatureFlags(customFlags: Partial<Record<FeatureFlag, boolea
 }
 
 /**
- * Carrega regras de feature flags segmentadas por grupo de usuário e região.
- * Útil para rollout progressivo em clientes e regionais específicas.
+ * Load feature-flag rules segmented by user group and region.
+ * Useful for progressive rollout in specific clients/regions.
  */
 export function loadFeatureFlagTargeting(
   targeting: FeatureFlagTargetingConfig,
 ): void {
   if (IS_PRODUCTION) {
     console.warn(
-      'Feature flag targeting deve ser configurado por fonte externa em produção.'
+      'Feature flag targeting should be configured via external source in production.'
     );
     return;
   }
@@ -194,8 +194,8 @@ export function isFeatureEnabled(flag: FeatureFlag): boolean {
 }
 
 /**
- * Verifica feature flag considerando segmentação por grupo de usuário e região.
- * Prioridade de resolução: default/global -> userGroup -> region.
+ * Check feature flag considering user-group and regional segmentation.
+ * Resolution priority: default/global -> userGroup -> region.
  */
 export function isFeatureEnabledForContext(
   flag: FeatureFlag,
@@ -223,7 +223,7 @@ export function isFeatureEnabledForContext(
 }
 
 /**
- * Acessar todos os flags (read-only em produção).
+ * Get all flags (read-only in production).
  */
 export function getAllFeatureFlags(): Readonly<FeatureFlagConfig> {
   return Object.freeze({ ...runtimeFlags });
