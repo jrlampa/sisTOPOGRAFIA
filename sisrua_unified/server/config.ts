@@ -123,7 +123,11 @@ const EnvSchema = z.object({
    * for internal-network Prometheus scrapers that are NOT publicly exposed).
    */
   METRICS_TOKEN: z.string().optional(),
-  /** Token Bearer para proteger os endpoints do /api/admin. Opcional: se ausente, admin é desprotegido. */
+  /**
+   * Token Bearer para proteger os endpoints de /api/admin.
+   * Opcional: se ausente, o acesso sem token só é permitido fora de produção;
+   * em produção, os endpoints administrativos permanecem protegidos.
+   */
   ADMIN_TOKEN: z.string().optional(),
 });
 
