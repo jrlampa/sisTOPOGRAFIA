@@ -51,6 +51,7 @@ import dxfRoutes from "./routes/dxfRoutes.js";
 import metricsRoutes from "./routes/metricsRoutes.js";
 import featureFlagRoutes from "./routes/featureFlagRoutes.js";
 import quotaRoutes from "./routes/quotaRoutes.js";
+import costCenterRoutes from "./routes/costCenterRoutes.js";
 import { initDbClient, closeDbClient } from "./repositories/index.js";
 import storageRoutes from "./routes/storageRoutes.js";
 
@@ -295,6 +296,7 @@ app.use("/api/dxf", dxfRoutes);
 app.use("/metrics", metricsRoutes);
 app.use("/api/feature-flags", featureFlagRoutes);
 app.use("/api/tenant-quotas", quotaRoutes);
+app.use("/api/cost-centers", costCenterRoutes);
 
 // Static files
 app.use(express.static(frontendDistDirectory));
