@@ -54,6 +54,12 @@ import quotaRoutes from "./routes/quotaRoutes.js";
 import costCenterRoutes from "./routes/costCenterRoutes.js";
 import businessKpiRoutes from "./routes/businessKpiRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import dataRetentionRoutes from "./routes/dataRetentionRoutes.js";
+import capacityPlanningRoutes from "./routes/capacityPlanningRoutes.js";
+import vulnManagementRoutes from "./routes/vulnManagementRoutes.js";
+import infoClassificationRoutes from "./routes/infoClassificationRoutes.js";
+import holdingRoutes from "./routes/holdingRoutes.js";
+import finOpsRoutes from "./routes/finOpsRoutes.js";
 import { initDbClient, closeDbClient } from "./repositories/index.js";
 import storageRoutes from "./routes/storageRoutes.js";
 
@@ -301,6 +307,12 @@ app.use("/api/tenant-quotas", quotaRoutes);
 app.use("/api/cost-centers", costCenterRoutes);
 app.use("/api/business-kpi", businessKpiRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/retencao", dataRetentionRoutes);
+app.use("/api/capacidade", capacityPlanningRoutes);
+app.use("/api/vulns", vulnManagementRoutes);
+app.use("/api/classificacao", infoClassificationRoutes);
+app.use("/api/holdings", holdingRoutes);
+app.use("/api/finops", finOpsRoutes);
 
 // Static files
 app.use(express.static(frontendDistDirectory));
