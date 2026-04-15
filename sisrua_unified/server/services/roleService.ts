@@ -10,6 +10,11 @@ interface UserRoleRecord {
   last_updated: string;
 }
 
+interface UserRoleUpsertResult {
+  user_id: string;
+  role: UserRole;
+}
+
 /**
  * Serviço RBAC — Gestão de papéis de usuários.
  *
@@ -126,7 +131,7 @@ export async function setUserRole(
       logger.warn("DB não disponível, não é possível atribuir papel");
       return false;
     }
-    const rows = await sql<UserRoleRecord[]>`
+    const rows = await sql<UserRoleUpsertResult[]>`
       INSERT INTO user_roles (user_id, role, assigned_by, reason)
       VALUES (${normalizedUserId}, ${role}, ${normalizedAssignedBy}, ${reason ?? null})
       ON CONFLICT (user_id) DO UPDATE
