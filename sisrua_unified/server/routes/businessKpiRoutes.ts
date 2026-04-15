@@ -42,7 +42,7 @@ function isAuthorized(req: Request): boolean {
 }
 
 function unauthorized(res: Response): Response {
-  res.set("WWW-Authenticate", '******"business-kpi"');
+  res.set("WWW-Authenticate", 'Bearer realm="business-kpi"');
   return res.status(401).json({ erro: "Não autorizado" });
 }
 
