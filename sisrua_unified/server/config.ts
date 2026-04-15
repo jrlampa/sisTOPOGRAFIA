@@ -75,6 +75,8 @@ const EnvSchema = z.object({
   // ── Firestore / GCP ───────────────────────────────────────────────────────
   /** Explicit opt-in/out. Defaults to true in production, false elsewhere. */
   USE_FIRESTORE: z.string().optional(),
+  /** Explicit opt-in/out for Cloud Tasks integration. */
+  USE_CLOUD_TASKS: z.string().optional(),
   GCP_PROJECT: z.string().optional(),
 
   // ── Supabase / Postgres jobs persistence ─────────────────────────────────
@@ -197,6 +199,10 @@ function loadConfig() {
     raw.USE_FIRESTORE !== undefined
       ? raw.USE_FIRESTORE === "true"
       : raw.NODE_ENV === "production" && !useSupabaseJobs;
+  const useCloudTasks: boolean =
+    raw.USE_CLOUD_TASKS !== undefined
+      ? raw.USE_CLOUD_TASKS === "true"
+      : false;
 
   const isDocker: boolean = raw.DOCKER_ENV === "true";
 
@@ -231,6 +237,7 @@ function loadConfig() {
     ...raw,
     DATABASE_URL: databaseUrl,
     useFirestore,
+    useCloudTasks,
     useSupabaseJobs,
     maintenanceDbCleanupEnabled,
     isDocker,

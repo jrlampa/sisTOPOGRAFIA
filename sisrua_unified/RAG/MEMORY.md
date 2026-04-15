@@ -990,3 +990,37 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 ### Observação
 
 - Execução de testes focados encerrou com código final 1 devido ao threshold global de cobertura do projeto, embora as suítes desta entrega tenham passado.
+
+---
+
+## 📌 Atualização Operacional (2026-04-14) - Ops AI Runtime & Governança (T1)
+
+### Classificação de Governança
+
+- Categoria: **Operação de IA zero-custo e retrocompatibilidade**
+- Itens correlatos do roadmap: **14A, 14B, 112, 118**
+
+### Escopo
+
+- Evolução do módulo operacional para expor diagnóstico consolidado do runtime Ollama dentro de `ops`.
+- Objetivo: melhorar prontidão de suporte com visão unificada de disponibilidade, compliance de custo e elegibilidade de atualização.
+
+### Implementação
+
+- `server/routes/opsRoutes.ts`
+  - Nova rota `GET /api/ops/ai-runtime` com:
+    - status `online|degraded`;
+    - resumo de compliance (runtime, zero-custo, versão, auto-update);
+    - diagnóstico completo de governança;
+    - runbook pt-BR para ação operacional.
+  - Mantida proteção por Bearer token quando `METRICS_TOKEN` está configurado.
+- `server/config.ts`
+  - Novo flag `USE_CLOUD_TASKS` com derivação `useCloudTasks` para evitar drift em health/config operacional.
+- `server/tests/opsRoutes.test.ts`
+  - Novos testes para cenário degradado da rota de IA e enforcement de autenticação.
+
+### Validação
+
+- Teste focado com sucesso:
+  - `npm run test:backend:debug -- opsRoutes.test.ts`
+- Diagnósticos sem erros nos arquivos alterados.
