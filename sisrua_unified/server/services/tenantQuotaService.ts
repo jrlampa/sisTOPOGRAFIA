@@ -56,10 +56,16 @@ export type MapaQuotaTenant = Partial<Record<TipoQuota, ConfigQuota>>;
 export interface ResultadoVerificacaoQuota {
   /** Indica se a operação está permitida dentro da quota. */
   permitido: boolean;
-  /** Unidades restantes antes de atingir o limite (após consumo, se permitido). */
-  restante: number;
-  /** Limite configurado para este tipo de quota. */
-  limite: number;
+  /**
+   * Unidades restantes antes de atingir o limite (após consumo, se permitido).
+   * `null` indica quota não configurada (modo permissivo, sem limite aplicável).
+   */
+  restante: number | null;
+  /**
+   * Limite configurado para este tipo de quota.
+   * `null` indica quota não configurada (modo permissivo, sem limite aplicável).
+   */
+  limite: number | null;
   /** Número de unidades consumidas nesta chamada (0 se bloqueado). */
   consumido: number;
   /** Data/hora em que a janela será resetada (apenas para quotas com janela temporal). */
@@ -123,10 +129,7 @@ function filtrarJanela(
 /**
  * Calcula a data de reset da janela deslizante com base no evento mais antigo.
  */
-function calcularResetEm(
-  timestamps: number[],
-  tipo: TipoQuota,
-): Date | null {
+function calcularResetEm(timestamps: number[], tipo: TipoQuota): Date | null {
   const janela = JANELA_QUOTA_MS[tipo];
   if (!isFinite(janela) || timestamps.length === 0) {
     return null;
@@ -232,8 +235,8 @@ export function checkAndConsumeQuota(
     // Sem quota configurada → permissivo
     return {
       permitido: true,
-      restante: Infinity,
-      limite: Infinity,
+      restante: null,
+      limite: null,
       consumido: 0,
       resetEm: null,
     };
@@ -277,15 +280,16 @@ export function checkAndConsumeQuota(
 /**
  * Retorna o relatório de uso atual de um tenant para todas as quotas configuradas.
  */
-export function getTenantUsageReport(
-  tenantId: TenantId,
-): RelatorioUsoTenant {
+export function getTenantUsageReport(tenantId: TenantId): RelatorioUsoTenant {
   const key = normalizarTenantId(tenantId);
   const config = quotaStore.get(key) ?? {};
   const agora = Date.now();
   const quotasReport: RelatorioUsoTenant["quotas"] = {};
 
-  for (const [tipo, cfg] of Object.entries(config) as [TipoQuota, ConfigQuota][]) {
+  for (const [tipo, cfg] of Object.entries(config) as [
+    TipoQuota,
+    ConfigQuota,
+  ][]) {
     const chave = chaveUso(key, tipo);
     const raw = usageStore.get(chave) ?? [];
     const ativos = filtrarJanela(raw, tipo, agora);

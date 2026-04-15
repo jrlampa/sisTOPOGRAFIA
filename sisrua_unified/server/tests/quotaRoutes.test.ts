@@ -281,6 +281,8 @@ describe("POST /api/tenant-quotas/:tenantId/:tipo/verificar", () => {
       .send({});
     expect(res.status).toBe(200);
     expect(res.body.permitido).toBe(true);
+    expect(res.body.limite).toBeNull();
+    expect(res.body.restante).toBeNull();
   });
 
   it("consome múltiplas unidades com body { unidades: N }", async () => {

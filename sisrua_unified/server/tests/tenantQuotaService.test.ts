@@ -61,15 +61,15 @@ describe("setTenantQuota", () => {
   });
 
   it("lança RangeError para limite infinito", () => {
-    expect(() => setTenantQuota("empresa-a", "jobs_por_hora", Infinity)).toThrow(
-      RangeError,
-    );
+    expect(() =>
+      setTenantQuota("empresa-a", "jobs_por_hora", Infinity),
+    ).toThrow(RangeError);
   });
 
   it("lança RangeError para NaN", () => {
-    expect(() =>
-      setTenantQuota("empresa-a", "jobs_por_hora", NaN),
-    ).toThrow(RangeError);
+    expect(() => setTenantQuota("empresa-a", "jobs_por_hora", NaN)).toThrow(
+      RangeError,
+    );
   });
 
   it("lança erro para tenantId vazio", () => {
@@ -188,7 +188,8 @@ describe("checkAndConsumeQuota", () => {
     it("retorna permitido:true quando não há quota configurada", () => {
       const r = checkAndConsumeQuota("tenant-sem-quota", "jobs_por_hora");
       expect(r.permitido).toBe(true);
-      expect(r.limite).toBe(Infinity);
+      expect(r.limite).toBeNull();
+      expect(r.restante).toBeNull();
       expect(r.consumido).toBe(0);
     });
   });
