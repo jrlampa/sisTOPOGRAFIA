@@ -6,6 +6,7 @@
 import {
     CircuitBreaker,
     getCircuitBreaker,
+    listCircuitBreakers,
     clearCircuitBreakerRegistry,
 } from '../utils/circuitBreaker';
 
@@ -238,5 +239,22 @@ describe('getCircuitBreaker registry', () => {
         // second call ignores new options
         const cb2 = getCircuitBreaker('topodata', { failureThreshold: 100 });
         expect(cb2.getState()).toBe('OPEN');
+    });
+
+    it('lists all registered breakers in deterministic order', () => {
+        getCircuitBreaker('osm');
+        getCircuitBreaker('ibge');
+
+        const list = listCircuitBreakers();
+
+        expect(list).toHaveLength(2);
+        expect(list.map((item) => item.name)).toEqual(['ibge', 'osm']);
+        expect(list[0]).toMatchObject({
+            name: 'ibge',
+            state: 'CLOSED',
+            failures: 0,
+            successes: 0,
+            totalCalls: 0,
+        });
     });
 });

@@ -418,6 +418,62 @@ SELECT * FROM private.verify_backup_integrity(); -- Status backups
 #### Referências
 
 - 📄 [Database Maintenance Formal Doc](./docs/DATABASE_MAINTENANCE_FORMAL.md)
+
+---
+
+## 📌 Atualização Operacional (2026-04-14) - Resiliência de APIs Externas (T1)
+
+### Escopo
+
+- Evolução backend para aumentar confiabilidade e observabilidade de integrações externas, alinhado ao Tier 1 (itens de confiabilidade operacional).
+- Sem alteração de contratos de API públicos de negócio; mudança focada em comportamento resiliente interno.
+
+### Implementação
+
+- Padronizado uso de fetch resiliente com circuit breaker + retry em serviços críticos:
+  - `server/services/indeService.ts`
+  - `server/services/topodataService.ts`
+  - `server/services/elevationService.ts` (Open-Elevation)
+- Adicionado snapshot operacional dos circuit breakers no utilitário:
+  - `server/utils/circuitBreaker.ts` com `listCircuitBreakers()`.
+- Expandido endpoint de saúde para incluir dependências externas:
+  - `server/index.ts` agora expõe resumo `dependencies.externalApis` com
+    - quantidade de circuitos abertos,
+    - total registrado,
+    - lista detalhada por integração.
+- Ajustada lógica de status do healthcheck para `degraded` quando houver circuito externo em estado `OPEN`.
+
+### Validação
+
+- Type check dos arquivos alterados: sem erros.
+- Testes unitários focados executados com sucesso (4 suítes / 43 testes passados):
+  - `server/tests/circuitBreaker.test.ts`
+  - `server/tests/externalApi.test.ts`
+  - `server/tests/elevationService.test.ts`
+  - `server/tests/topodataService.test.ts`
+- Build completo validado com sucesso:
+  - `npm --prefix sisrua_unified run build`
+
+### Observação
+
+- O script de teste backend retornou código final 1 por política global de cobertura mínima do projeto, apesar de as suítes focadas terem passado.
+
+### Iteração complementar (mesma data) - Cobertura de integrações restantes
+
+- Aplicado padrão de resiliência (retry + circuit breaker) nos pontos ainda com `fetch` direto de integrações externas:
+  - `server/services/geocodingService.ts` (Nominatim)
+  - `server/routes/osmRoutes.ts` (Overpass endpoints)
+- `osmRoutes` passou a registrar circuit breakers por host de endpoint (`OVERPASS_*`) para facilitar diagnóstico por provedor.
+- Mantido comportamento funcional existente:
+  - fallback sintético continua restrito a ambiente de teste;
+  - produção continua retornando 503 quando todos provedores Overpass falham.
+
+### Validação complementar
+
+- Testes focados executados com sucesso:
+  - `server/tests/geocodingService.test.ts`
+  - `server/tests/osmRoutes.test.ts`
+- Build completo novamente validado com sucesso (`npm --prefix sisrua_unified run build`).
 - 🔧 Migration 024 (db_maintenance_schedule.sql)
 - 🔧 Migration 023 (advanced_performance_indexes.sql)
 - 🔧 Migration 034 (time_series_partitioning.sql)
@@ -863,3 +919,108 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - Varredura de erros em todos os componentes frontend já alterados nas iterações anteriores.
 - Resultado final: sem erros nos arquivos auditados.
 - Build validado e preview atualizado em `http://localhost:4173`.
+
+---
+
+## 📌 Atualização Operacional (2026-04-14) - Governança de Runtime Ollama (T1)
+
+### Escopo
+
+- Evolução backend para cumprir governança de IA local zero-custo com foco em operação segura e retrocompatibilidade.
+
+### Implementação
+
+- `server/config.ts`
+  - Novas chaves de governança de atualização do Ollama:
+    - `OLLAMA_MIN_VERSION`
+    - `OLLAMA_UPDATE_MAINTENANCE_WINDOW_UTC`
+    - `OLLAMA_UPDATE_CHECK_ENABLED`
+- `server/services/ollamaService.ts`
+  - Novo diagnóstico de governança com:
+    - versão atual vs. mínima exigida
+    - validação de janela de manutenção UTC
+    - decisão explícita de elegibilidade para atualização controlada
+  - Novo método `getVersion()` para leitura de `/api/version` do Ollama.
+- `server/routes/analysisRoutes.ts`
+  - Nova rota `GET /api/analysis/runtime/governance` para telemetria operacional de governança.
+- `server/tests/analysisRoutesLogging.test.ts`
+  - Novo teste cobrindo retorno da rota de governança.
+
+### Validação
+
+- Teste focado executado com sucesso:
+  - `npx jest server/tests/analysisRoutesLogging.test.ts --coverage=false`
+- Tipagem/diagnósticos sem erros nos arquivos alterados.
+
+---
+
+## 📌 Atualização Operacional (2026-04-14) - Endpoint Ops para Circuit Breakers (T1)
+
+### Classificação de Governança
+
+- Categoria: **Obrigatório para Go-Live Enterprise**
+- Itens correlatos do roadmap: **112, 124, 125**
+
+### Escopo
+
+- Criado endpoint operacional dedicado para visibilidade de integrações externas com circuit breaker.
+- Objetivo: reduzir MTTR em incidentes de APIs públicas com visão de runbook e status consolidado.
+
+### Implementação
+
+- Nova rota backend:
+  - `server/routes/opsRoutes.ts`
+  - `GET /api/ops/external-apis`
+- Recursos do endpoint:
+  - status `online|degraded` baseado em circuitos `OPEN`;
+  - resumo com totais de circuitos (`open`, `half_open`, `closed`);
+  - modo de resposta resumida (`?details=summary`) para payload leve;
+  - recomendações operacionais em pt-BR para resposta a incidentes;
+  - proteção por Bearer token usando `METRICS_TOKEN` (mesma política de observabilidade).
+- Integração no servidor:
+  - `server/index.ts` com mount em `/api/ops`.
+
+### Validação
+
+- Testes focados da nova rota:
+  - `server/tests/opsRoutes.test.ts` (autorização, estado degradado, modo summary).
+- Build completo validado com sucesso:
+  - `npm --prefix sisrua_unified run build`.
+
+### Observação
+
+- Execução de testes focados encerrou com código final 1 devido ao threshold global de cobertura do projeto, embora as suítes desta entrega tenham passado.
+
+---
+
+## 📌 Atualização Operacional (2026-04-14) - Ops AI Runtime & Governança (T1)
+
+### Classificação de Governança
+
+- Categoria: **Operação de IA zero-custo e retrocompatibilidade**
+- Itens correlatos do roadmap: **14A, 14B, 112, 118**
+
+### Escopo
+
+- Evolução do módulo operacional para expor diagnóstico consolidado do runtime Ollama dentro de `ops`.
+- Objetivo: melhorar prontidão de suporte com visão unificada de disponibilidade, compliance de custo e elegibilidade de atualização.
+
+### Implementação
+
+- `server/routes/opsRoutes.ts`
+  - Nova rota `GET /api/ops/ai-runtime` com:
+    - status `online|degraded`;
+    - resumo de compliance (runtime, zero-custo, versão, auto-update);
+    - diagnóstico completo de governança;
+    - runbook pt-BR para ação operacional.
+  - Mantida proteção por Bearer token quando `METRICS_TOKEN` está configurado.
+- `server/config.ts`
+  - Novo flag `USE_CLOUD_TASKS` com derivação `useCloudTasks` para evitar drift em health/config operacional.
+- `server/tests/opsRoutes.test.ts`
+  - Novos testes para cenário degradado da rota de IA e enforcement de autenticação.
+
+### Validação
+
+- Teste focado com sucesso:
+  - `npm run test:backend:debug -- opsRoutes.test.ts`
+- Diagnósticos sem erros nos arquivos alterados.

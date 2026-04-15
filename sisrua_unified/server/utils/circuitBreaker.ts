@@ -28,6 +28,14 @@ export interface CircuitBreakerStats {
     state: CircuitBreakerState;
 }
 
+export interface NamedCircuitBreakerStats {
+    name: string;
+    failures: number;
+    successes: number;
+    totalCalls: number;
+    state: CircuitBreakerState;
+}
+
 export class CircuitBreaker {
     private readonly name: string;
     private readonly failureThreshold: number;
@@ -137,6 +145,16 @@ export function getCircuitBreaker(name: string, options?: Omit<CircuitBreakerOpt
         registry.set(name, new CircuitBreaker({ name, ...options }));
     }
     return registry.get(name)!;
+}
+
+/** Returns an operational snapshot for all registered breakers. */
+export function listCircuitBreakers(): NamedCircuitBreakerStats[] {
+    return Array.from(registry.entries())
+        .map(([name, breaker]) => ({
+            name,
+            ...breaker.getStats(),
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /** Clear the registry (useful for testing). */

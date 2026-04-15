@@ -74,6 +74,7 @@ Itens prioritários deste tier:
 - **Base operacional detalhada**: 71, 72, 74, 75, 76, 77, 90, 91, 93, 96, 97, 98, 99
 - **Governança operacional enterprise**: 111, 112, 113, 114, 115, 116, 117, 118, 119, 120
 - **Readiness corporativo**: 121, 122, 123, 124, 125, 126, 127, 128, 129, 130
+- **IA operacional zero-custo & retrocompatibilidade**: 14A, 14B
 
 Resultado esperado:
 
@@ -147,6 +148,7 @@ Antes de iniciar qualquer item novo, classificar explicitamente:
 - **Expansão Regulatória/Escala**
 - **Diferenciação Comercial**
 - **Innovation Lab / Prova de Valor**
+- **Operação de IA zero-custo e retrocompatibilidade**
 
 Cada item priorizado para execução deve ter, no backlog operacional:
 
@@ -189,6 +191,8 @@ Legenda:
 12. **[T3] Agentic Troubleshooting**: Sistema neural para análise de logs Docker e sugestões de auto-healing consultivo.
 13. **[T3] Auto-Documentação Dinâmica (AS-BUILT DOC)**: Manutenção automática de `ARCHITECTURE.md` e `MEMORY.md`.
 14. **[T3] Análise Preditiva de Carga Local**: Sugestões de dimensionamento elétrico baseadas em modelos treinados localmente.
+    14A. **[T1] Governança de Runtime Ollama Zero-Custo**: Verificação periódica de saúde e versão do Ollama, atualização controlada com janela de manutenção, rollback automático para versão estável e bloqueio de qualquer mudança que introduza custo monetário não aprovado.
+    14B. **[T1] Retrocompatibilidade de Modelos e Prompts**: Matriz de compatibilidade por versão de modelo, testes de regressão de prompts e respostas críticas, fallback para modelo local homologado e política de depreciação gradual sem quebrar fluxos existentes.
 
 ### 🛡️ 4. DevOps, SRE & Resiliência
 

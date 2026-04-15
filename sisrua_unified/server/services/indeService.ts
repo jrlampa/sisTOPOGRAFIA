@@ -1,4 +1,5 @@
 import { logger } from '../utils/logger.js';
+import { fetchWithCircuitBreaker } from '../utils/externalApi.js';
 
 /**
  * INDE - Infraestrutura Nacional de Dados Espaciais Service
@@ -38,6 +39,10 @@ interface GeoJsonFeatureCollection {
 }
 
 export class IndeService {
+    private static getSourceBreakerName(source: keyof typeof INDE_ENDPOINTS): string {
+        return `INDE_${source.toUpperCase()}`;
+    }
+
     /**
      * Get WFS capabilities (available feature types)
      */
@@ -47,11 +52,12 @@ export class IndeService {
         
         try {
             logger.info('Fetching INDE WFS capabilities', { source });
-            const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            const response = await fetchWithCircuitBreaker(
+                this.getSourceBreakerName(source),
+                url,
+                { signal: AbortSignal.timeout(10000) },
+                { maxRetries: 2, initialDelay: 500, maxDelay: 2000 }
+            );
             
             const xml = await response.text();
             
@@ -118,13 +124,12 @@ export class IndeService {
                 bbox: `${west},${south},${east},${north}` 
             });
             
-            const response = await fetch(url.toString(), { 
-                signal: AbortSignal.timeout(30000) 
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            const response = await fetchWithCircuitBreaker(
+                this.getSourceBreakerName(source),
+                url.toString(),
+                { signal: AbortSignal.timeout(30000) },
+                { maxRetries: 2, initialDelay: 500, maxDelay: 3000 }
+            );
             
             const data = await response.json() as GeoJsonFeatureCollection;
             
@@ -164,13 +169,12 @@ export class IndeService {
         }
         
         try {
-            const response = await fetch(url.toString(), { 
-                signal: AbortSignal.timeout(30000) 
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            const response = await fetchWithCircuitBreaker(
+                this.getSourceBreakerName(source),
+                url.toString(),
+                { signal: AbortSignal.timeout(30000) },
+                { maxRetries: 2, initialDelay: 500, maxDelay: 3000 }
+            );
             
             return await response.json() as GeoJsonFeatureCollection;
         } catch (error) {

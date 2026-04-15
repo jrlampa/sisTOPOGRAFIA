@@ -24,6 +24,7 @@ import { stopTaskWorker } from "./services/cloudTasksService.js";
 import { constantsService } from "./services/constantsService.js";
 import { maintenanceService } from "./services/maintenanceService.js";
 import { logger, requestContext } from "./utils/logger.js";
+import { listCircuitBreakers } from "./utils/circuitBreaker.js";
 import {
   generalRateLimiter,
   refreshRateLimitersFromCatalog,
@@ -60,9 +61,9 @@ import vulnManagementRoutes from "./routes/vulnManagementRoutes.js";
 import infoClassificationRoutes from "./routes/infoClassificationRoutes.js";
 import holdingRoutes from "./routes/holdingRoutes.js";
 import finOpsRoutes from "./routes/finOpsRoutes.js";
+import opsRoutes from "./routes/opsRoutes.js";
 import { initDbClient, closeDbClient } from "./repositories/index.js";
 import storageRoutes from "./routes/storageRoutes.js";
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -231,6 +232,10 @@ app.get(
 app.get("/health", async (_req: Request, res: Response) => {
   const memoryUsage = process.memoryUsage();
   const ollamaStatus = await isOllamaRunning();
+  const externalCircuitBreakers = listCircuitBreakers();
+  const hasOpenExternalCircuit = externalCircuitBreakers.some(
+    (cb) => cb.state === "OPEN",
+  );
 
   // Check Supabase connectivity if enabled
   let dbStatus = "disabled";
@@ -245,7 +250,10 @@ app.get("/health", async (_req: Request, res: Response) => {
   }
 
   const healthData = {
-    status: dbStatus === "disconnected" ? "degraded" : "online",
+    status:
+      dbStatus === "disconnected" || hasOpenExternalCircuit
+        ? "degraded"
+        : "online",
     service: "sisRUA Unified Backend",
     version: config.APP_VERSION,
     timestamp: new Date().toISOString(),
@@ -266,6 +274,13 @@ app.get("/health", async (_req: Request, res: Response) => {
       queueBackend: config.useSupabaseJobs
         ? "supabase-postgres"
         : "local-async",
+      externalApis: {
+        openCircuits: externalCircuitBreakers.filter(
+          (cb) => cb.state === "OPEN",
+        ).length,
+        totalRegistered: externalCircuitBreakers.length,
+        circuitBreakers: externalCircuitBreakers,
+      },
     },
     config: {
       environment: config.NODE_ENV,
@@ -301,6 +316,7 @@ if (config.useFirestore) {
 }
 app.use("/api/storage", storageRoutes);
 app.use("/api/dxf", dxfRoutes);
+app.use("/api/ops", opsRoutes);
 app.use("/metrics", metricsRoutes);
 app.use("/api/feature-flags", featureFlagRoutes);
 app.use("/api/tenant-quotas", quotaRoutes);
