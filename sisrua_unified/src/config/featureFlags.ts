@@ -36,6 +36,12 @@ export enum FeatureFlag {
 }
 
 type FeatureFlagConfig = Record<FeatureFlag, boolean>;
+type FeatureFlagOverrideConfig = Partial<Record<string, unknown>>;
+type FeatureFlagOverrideValue = boolean | string;
+
+const VALID_FEATURE_FLAGS = new Set<FeatureFlag>(
+  Object.values(FeatureFlag) as FeatureFlag[],
+);
 
 const APP_ENV = (import.meta as { env?: Record<string, string | boolean | undefined> }).env ?? {};
 const IS_PRODUCTION = APP_ENV.PROD === true || APP_ENV.MODE === 'production';
@@ -89,22 +95,56 @@ let runtimeFlags: FeatureFlagConfig = {
  *   [FeatureFlag.AI_CLANDESTINO_ANALYSIS]: true,
  * })
  */
-export function loadFeatureFlags(customFlags: Partial<Record<FeatureFlag, boolean>>): void {
+export function loadFeatureFlags(customFlags: FeatureFlagOverrideConfig): void {
   if (IS_PRODUCTION && Object.keys(customFlags).length > 0) {
-    console.warn(
-      'Feature flags customizadas não devem ser alteradas em produção. Use env vars.'
+    throw new Error(
+      'Feature flags customizadas não podem ser alteradas em produção. Use env vars.'
     );
-    return;
   }
-  
-  const sanitizedCustomFlags = Object.entries(customFlags).reduce((acc, [key, value]) => {
-    if (typeof value === 'boolean') {
-      acc[key as FeatureFlag] = value;
-    }
-    return acc;
-  }, {} as Partial<Record<FeatureFlag, boolean>>);
+
+  const sanitizedCustomFlags = sanitizeOverrideConfig(customFlags);
 
   runtimeFlags = { ...runtimeFlags, ...sanitizedCustomFlags };
+}
+
+function normalizeOverrideBoolean(value: string): FeatureFlagOverrideValue {
+  return value.trim().toLowerCase();
+}
+
+function sanitizeOverrideConfig(
+  overrides: FeatureFlagOverrideConfig,
+): Partial<Record<FeatureFlag, boolean>> {
+  return Object.entries(overrides).reduce((acc, [key, rawValue]) => {
+    const featureFlagKey = key as FeatureFlag;
+
+    if (!VALID_FEATURE_FLAGS.has(featureFlagKey)) {
+      console.warn(`[FeatureFlags] Chave de override desconhecida ignorada: ${key}`);
+      return acc;
+    }
+
+    let parsedValue: boolean | null = null;
+
+    if (typeof rawValue === 'boolean') {
+      parsedValue = rawValue;
+    } else if (typeof rawValue === 'string') {
+      const normalizedValue = normalizeOverrideBoolean(rawValue);
+      if (normalizedValue === 'true') {
+        parsedValue = true;
+      } else if (normalizedValue === 'false') {
+        parsedValue = false;
+      }
+    }
+
+    if (parsedValue === null) {
+      console.warn(
+        `[FeatureFlags] Valor inválido para override "${key}". Esperado boolean, recebido ${typeof rawValue}.`,
+      );
+      return acc;
+    }
+
+    acc[featureFlagKey] = parsedValue;
+    return acc;
+  }, {} as Partial<Record<FeatureFlag, boolean>>);
 }
 
 /**

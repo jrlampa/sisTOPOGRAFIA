@@ -126,9 +126,22 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Run security audit
-        run: npm run security:audit
-        continue-on-error: false
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate SBOM (CycloneDX)
+        run: npm run security:sbom:node
+
+      - name: Enforce dependency vulnerability policy gate (security:audit)
+        run: npm run security:policy-gate
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        if: ${{ always() && !env.ACT }}
+        with:
+          name: sbom-node
+          path: artifacts/sbom-node.json
+          retention-days: 7
 
   # ============================================
   # BUILD VERIFICATION
