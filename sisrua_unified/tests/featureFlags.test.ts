@@ -12,13 +12,13 @@ describe('Feature Flags overrides', () => {
     vi.restoreAllMocks();
   });
 
-  it('aplica override boolean válido', () => {
+  it('applies valid boolean override', () => {
     loadFeatureFlags({ [FeatureFlag.BT_TOPOLOGY_EDITOR]: false });
 
     expect(isFeatureEnabled(FeatureFlag.BT_TOPOLOGY_EDITOR)).toBe(false);
   });
 
-  it('coage string booleana válida', () => {
+  it('coerces valid boolean string override', () => {
     loadFeatureFlags({ [FeatureFlag.KML_IMPORT]: 'false' });
 
     expect(isFeatureEnabled(FeatureFlag.KML_IMPORT)).toBe(false);
@@ -27,6 +27,7 @@ describe('Feature Flags overrides', () => {
   it('ignora chave inválida e registra aviso', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
+    // Typo intentional: validates that unknown override keys are rejected.
     loadFeatureFlags({ BT_TOPOLOGY_EDTOR: false });
 
     expect(isFeatureEnabled(FeatureFlag.BT_TOPOLOGY_EDITOR)).toBe(true);
