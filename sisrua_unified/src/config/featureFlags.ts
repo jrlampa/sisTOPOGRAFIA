@@ -36,6 +36,17 @@ export enum FeatureFlag {
 }
 
 type FeatureFlagConfig = Record<FeatureFlag, boolean>;
+type FeatureFlagOverrideConfig = Partial<Record<FeatureFlag, boolean>>;
+
+export interface FeatureFlagContext {
+  userGroup?: string;
+  region?: string;
+}
+
+export interface FeatureFlagTargetingConfig {
+  userGroups?: Record<string, FeatureFlagOverrideConfig>;
+  regions?: Record<string, FeatureFlagOverrideConfig>;
+}
 
 const APP_ENV = (import.meta as { env?: Record<string, string | boolean | undefined> }).env ?? {};
 const IS_PRODUCTION = APP_ENV.PROD === true || APP_ENV.MODE === 'production';
@@ -81,6 +92,26 @@ let runtimeFlags: FeatureFlagConfig = {
     : DEFAULT_FEATURE_FLAGS),
 };
 
+let runtimeTargeting: Required<FeatureFlagTargetingConfig> = {
+  userGroups: {},
+  regions: {},
+};
+
+function normalizeContextKey(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function sanitizeOverrideConfig(
+  overrides: FeatureFlagOverrideConfig,
+): FeatureFlagOverrideConfig {
+  return Object.entries(overrides).reduce((acc, [key, value]) => {
+    if (typeof value === 'boolean') {
+      acc[key as FeatureFlag] = value;
+    }
+    return acc;
+  }, {} as FeatureFlagOverrideConfig);
+}
+
 /**
  * Carregar flags personalizado a partir de environment ou JSON.
  * @example
@@ -108,6 +139,50 @@ export function loadFeatureFlags(customFlags: Partial<Record<FeatureFlag, boolea
 }
 
 /**
+ * Carrega regras de feature flags segmentadas por grupo de usuário e região.
+ * Útil para rollout progressivo em clientes e regionais específicas.
+ */
+export function loadFeatureFlagTargeting(
+  targeting: FeatureFlagTargetingConfig,
+): void {
+  if (IS_PRODUCTION) {
+    console.warn(
+      'Feature flag targeting deve ser configurado por fonte externa em produção.'
+    );
+    return;
+  }
+
+  const sanitizedUserGroups = Object.entries(targeting.userGroups ?? {}).reduce(
+    (acc, [group, overrides]) => {
+      const normalizedGroup = normalizeContextKey(group);
+      if (!normalizedGroup) {
+        return acc;
+      }
+      acc[normalizedGroup] = sanitizeOverrideConfig(overrides);
+      return acc;
+    },
+    {} as Record<string, FeatureFlagOverrideConfig>
+  );
+
+  const sanitizedRegions = Object.entries(targeting.regions ?? {}).reduce(
+    (acc, [region, overrides]) => {
+      const normalizedRegion = normalizeContextKey(region);
+      if (!normalizedRegion) {
+        return acc;
+      }
+      acc[normalizedRegion] = sanitizeOverrideConfig(overrides);
+      return acc;
+    },
+    {} as Record<string, FeatureFlagOverrideConfig>
+  );
+
+  runtimeTargeting = {
+    userGroups: sanitizedUserGroups,
+    regions: sanitizedRegions,
+  };
+}
+
+/**
  * Verificar se uma feature está habilitada.
  * @example
  * if (isFeatureEnabled(FeatureFlag.BT_TOPOLOGY_EDITOR)) {
@@ -116,6 +191,35 @@ export function loadFeatureFlags(customFlags: Partial<Record<FeatureFlag, boolea
  */
 export function isFeatureEnabled(flag: FeatureFlag): boolean {
   return runtimeFlags[flag] ?? false;
+}
+
+/**
+ * Verifica feature flag considerando segmentação por grupo de usuário e região.
+ * Prioridade de resolução: default/global -> userGroup -> region.
+ */
+export function isFeatureEnabledForContext(
+  flag: FeatureFlag,
+  context?: FeatureFlagContext,
+): boolean {
+  let enabled = isFeatureEnabled(flag);
+
+  if (context?.userGroup) {
+    const groupOverride =
+      runtimeTargeting.userGroups[normalizeContextKey(context.userGroup)]?.[flag];
+    if (typeof groupOverride === 'boolean') {
+      enabled = groupOverride;
+    }
+  }
+
+  if (context?.region) {
+    const regionOverride =
+      runtimeTargeting.regions[normalizeContextKey(context.region)]?.[flag];
+    if (typeof regionOverride === 'boolean') {
+      enabled = regionOverride;
+    }
+  }
+
+  return enabled;
 }
 
 /**
@@ -153,6 +257,11 @@ export function resetFeatureFlags(): void {
     IS_PRODUCTION
       ? { ...PRODUCTION_FEATURE_FLAGS }
       : { ...DEFAULT_FEATURE_FLAGS };
+
+  runtimeTargeting = {
+    userGroups: {},
+    regions: {},
+  };
 }
 
 /**

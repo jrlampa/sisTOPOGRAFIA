@@ -701,3 +701,38 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 | `archive_old_audit_logs_nightly`    | `30 3 * * *` | Archival audit_logs >90 dias (024)     |
 | `db_health_report_daily`            | `0 7 * * *`  | Relatório de saúde do banco (024)      |
 | `cleanup_maintenance_log_monthly`   | `0 5 1 * *`  | Purga de maintenance_log (024)         |
+
+---
+
+## 📌 Atualização Operacional (2026-04-15) – Roadmap 2026 T1/T2 (Itens 90, 91, 92)
+
+### T1-90 — Runbook SRE para Queda de Conexão de APIs
+
+- Criado `docs/runbooks/API_CONNECTION_OUTAGE_RUNBOOK.md` com:
+  - detecção por SLO (5xx/timeout/latência),
+  - classificação de severidade (SEV-1/2/3),
+  - resposta imediata com fallback/circuit protection,
+  - recuperação, RCA e checklist de encerramento.
+
+### T1-91 — Policy Gates para dependências vulneráveis (SBOM Check)
+
+- `package.json`:
+  - `security:sbom:node` para gerar CycloneDX em `artifacts/sbom-node.json` via `npm sbom`.
+  - `security:policy-gate` como gate explícito de dependências (nível `critical`).
+- `.github/workflows/quality-gates.yml` (job `security`):
+  - instala dependências,
+  - gera SBOM,
+  - executa audit + policy gate,
+  - publica artifact `sbom-node`.
+
+### T2-92 — Feature Flags por Grupo de Usuários e Regionais
+
+- Evolução em `src/config/featureFlags.ts`:
+  - contexto (`userGroup`, `region`) para avaliação de flags,
+  - carregamento de segmentação (`loadFeatureFlagTargeting`),
+  - resolução com precedência `global -> grupo -> região`.
+- Cobertura em `tests/config/featureFlags.test.ts`:
+  - fallback global,
+  - override por grupo,
+  - override por região com precedência,
+  - normalização de chaves.
