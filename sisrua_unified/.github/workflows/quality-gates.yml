@@ -6,6 +6,10 @@ on:
   push:
     branches: [main, master]
 
+defaults:
+  run:
+    working-directory: sisrua_unified
+
 jobs:
   # ============================================
   # BACKEND TESTS
@@ -132,7 +136,7 @@ jobs:
       - name: Generate SBOM (CycloneDX)
         run: npm run security:sbom:node
 
-      - name: Enforce dependency vulnerability policy gate
+      - name: Enforce dependency vulnerability policy gate (security:audit)
         run: npm run security:policy-gate
 
       - name: Upload SBOM

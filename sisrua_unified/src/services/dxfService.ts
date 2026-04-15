@@ -19,6 +19,7 @@ type DxfJobResult = {
   url: string;
   filename?: string;
   btContextUrl?: string;
+  warning?: string;
 };
 
 type DxfJobStatus = {

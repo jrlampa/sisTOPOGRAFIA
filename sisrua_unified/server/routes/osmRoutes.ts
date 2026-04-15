@@ -99,7 +99,7 @@ const buildMockOverpassPayload = (lat: number, lng: number, radius: number) => {
   };
 };
 
-const fetchWithTimeout = async (url: string, body: string, timeoutMs: number): Promise<Response> => {
+const fetchWithTimeout = async (url: string, body: string, timeoutMs: number) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 

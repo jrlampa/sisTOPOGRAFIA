@@ -99,20 +99,24 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
     active,
     onClick,
     colorClass,
-  }: any) => (
+  }: {
+    label: string;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    active: boolean;
+    onClick: () => void;
+    colorClass: string;
+  }) => (
     <motion.button
       whileHover={{ x: 4, scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       title={label}
+      aria-pressed={active}
       className={`flex items-center w-full p-2.5 rounded-lg transition-all duration-200 border ${
         active
           ? "glass-panel-hover border-white/30 shadow-md"
           : "border-transparent hover:bg-white/20"
-      }`}
-      style={
-        active ? { color: "var(--enterprise-blue)" } : { color: "#64748b" }
-      }
+      } ${active ? "text-enterprise-blue" : "text-slate-500 dark:text-slate-400"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60`}
     >
       <div
         className={`p-1.5 rounded-md ${active ? "glass-panel" : "bg-white/10"}`}
@@ -147,8 +151,7 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
         aria-label={
           isExpanded ? "Fechar painel de camadas" : "Abrir painel de camadas"
         }
-        className="btn-enterprise flex items-center justify-center w-10 h-10 rounded-xl shadow-lg transition-colors"
-        style={{ color: isExpanded ? "var(--enterprise-blue)" : "#64748b" }}
+        className={`btn-enterprise flex items-center justify-center w-11 h-11 rounded-2xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 ${isExpanded ? "bg-cyan-500 text-white" : "text-amber-900 dark:text-amber-100"}`}
       >
         <Layers size={20} />
       </motion.button>
@@ -159,7 +162,7 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="glass-card p-2 w-48 flex flex-col gap-1 shadow-2xl origin-top-right border border-white/20"
+            className="glass-card origin-top-right flex w-52 flex-col gap-1 border-2 p-2"
           >
             {/* Search Bar */}
             <div className="relative mb-2">
@@ -172,14 +175,14 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filtrar..."
-                className="w-full bg-slate-900/40 rounded-lg py-1.5 pl-8 pr-7 text-[10px] text-slate-100 placeholder:text-slate-500 outline-none border border-transparent focus:border-blue-500/30 transition-all font-bold uppercase tracking-widest"
+                className="w-full rounded-lg border-2 border-amber-800/25 bg-amber-50 py-1.5 pl-8 pr-7 text-[10px] font-black uppercase tracking-widest text-amber-950 outline-none transition-all placeholder:text-amber-700/70 focus:border-cyan-500/40 focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:border-amber-500/45 dark:bg-zinc-900 dark:text-amber-100 dark:placeholder:text-amber-200/60"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
                   aria-label="Limpar filtro de camadas"
                   title="Limpar filtro de camadas"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:text-white text-slate-500"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:text-slate-800 dark:hover:text-white text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 rounded"
                 >
                   <X size={10} />
                 </button>

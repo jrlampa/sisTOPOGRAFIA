@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { getJob } from "../services/jobStatusService.js";
+import { getJobWithPersistence } from "../services/jobStatusService.js";
 import { logger } from "../utils/logger.js";
 import { z } from "zod";
 
@@ -26,7 +26,7 @@ router.get("/:id", async (req: Request, res: Response) => {
         .json({ error: "Invalid job id", details: validation.error.issues });
     }
 
-    const job = getJob(validation.data.id);
+    const job = await getJobWithPersistence(validation.data.id);
     if (!job) {
       return res.status(404).json({ error: "Job not found" });
     }

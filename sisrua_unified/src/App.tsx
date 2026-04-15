@@ -1,5 +1,10 @@
 import React from "react";
-import { GlobalState, BtEditorMode, BtNetworkScenario } from "./types";
+import {
+  GlobalState,
+  BtEditorMode,
+  BtNetworkScenario,
+  GeoLocation,
+} from "./types";
 import { useUndoRedo } from "./hooks/useUndoRedo";
 import { useOsmEngine } from "./hooks/useOsmEngine";
 import { useElevationProfile } from "./hooks/useElevationProfile";
@@ -192,6 +197,9 @@ function App() {
     updateClandestinoAreaM2,
     handleBtInsertPoleByCoordinates,
     handleBtMapClick,
+    insertBtPoleAtLocation,
+    handleBtMapClickAddTransformer,
+    handleBtMapClickAddEdge,
     handleBtDeletePole,
     handleBtDeleteEdge,
     handleBtSetEdgeChangeFlag,
@@ -239,6 +247,30 @@ function App() {
   const closeCriticalConfirmationModal = React.useCallback(() => {
     setCriticalConfirmationModal(null);
   }, []);
+
+  const handleBtContextAction = React.useCallback(
+    (
+      action: "add-edge" | "add-transformer" | "add-pole",
+      location: GeoLocation,
+    ) => {
+      if (action === "add-pole") {
+        insertBtPoleAtLocation(location);
+        return;
+      }
+
+      if (action === "add-transformer") {
+        handleBtMapClickAddTransformer(location);
+        return;
+      }
+
+      handleBtMapClickAddEdge(location);
+    },
+    [
+      handleBtMapClickAddEdge,
+      handleBtMapClickAddTransformer,
+      insertBtPoleAtLocation,
+    ],
+  );
 
   const confirmDeletePole = React.useCallback(
     (poleId: string) => {
@@ -394,6 +426,7 @@ function App() {
     btEditorMode,
     btTopology,
     onBtMapClick: handleBtMapClick,
+    onBtContextAction: handleBtContextAction,
     pendingBtEdgeStartPoleId,
     onBtDeletePole: confirmDeletePole,
     onBtDeleteEdge: confirmDeleteEdge,

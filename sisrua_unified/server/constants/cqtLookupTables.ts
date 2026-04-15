@@ -1,20 +1,8 @@
-import { TrafosZRow } from "../services/cqtEngine.js";
+import { TrafosZRow, CaboLookupRow, DisjuntorLookupRow } from "../services/cqtEngine.js";
 import { config } from "../config.js";
 import { constantsService } from "../services/constantsService.js";
 
-export interface CaboLookupRow {
-  name: string;
-  ampacity: number;
-  resistance: number;
-  reactance: number;
-  alpha: number;
-  divisorR: number;
-}
-
-export interface DisjuntorLookupRow {
-  ib: number;
-  disjuntor: number;
-}
+export type { CaboLookupRow, DisjuntorLookupRow };
 
 export const TRAFOS_Z_BASELINE: TrafosZRow[] = [
   { trafoKva: 30, qtFactor: 0.035 },

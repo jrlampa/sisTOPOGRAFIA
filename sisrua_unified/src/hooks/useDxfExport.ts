@@ -12,6 +12,7 @@ const MAX_JOB_POLL_ATTEMPTS = 180;
 interface UseDxfExportProps {
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
+  onWarning?: (message: string) => void;
   onBtContextLoaded?: (payload: {
     btContextUrl: string;
     btContext: Record<string, unknown>;
@@ -29,6 +30,7 @@ const btContextResponseSchema = z.object({
 export function useDxfExport({
   onSuccess,
   onError,
+  onWarning,
   onBtContextLoaded,
 }: UseDxfExportProps) {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -176,6 +178,11 @@ export function useDxfExport({
             throw new Error("DXF job completed without a URL");
           }
 
+          const warningMessage = statusResponse.result?.warning;
+          if (warningMessage && warningMessage.trim().length > 0) {
+            onWarning?.(warningMessage);
+          }
+
           const center = downloadCenter || { lat: 0, lng: 0, label: "" };
           await tryLoadBtContext(statusResponse.result?.btContextUrl);
 
@@ -221,7 +228,7 @@ export function useDxfExport({
       isActive = false;
       clearInterval(intervalId);
     };
-  }, [jobId, downloadCenter, onBtContextLoaded, onError, onSuccess]);
+  }, [jobId, downloadCenter, onBtContextLoaded, onError, onSuccess, onWarning]);
 
   return {
     downloadDxf,

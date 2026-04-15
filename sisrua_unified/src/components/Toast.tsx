@@ -1,76 +1,112 @@
-import React, { useEffect } from 'react';
-import { CheckCircle2, AlertCircle, Info, X, AlertTriangle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect } from "react";
+import {
+  CheckCircle2,
+  AlertCircle,
+  Info,
+  X,
+  AlertTriangle,
+} from "lucide-react";
+import { motion } from "framer-motion";
 
-export type ToastType = 'success' | 'error' | 'info' | 'warning' | 'alert';
+export type ToastType = "success" | "error" | "info" | "warning" | "alert";
 
 interface ToastProps {
-    message: string;
-    type: ToastType;
-    onClose: () => void;
-    duration?: number;
+  message: string;
+  type: ToastType;
+  onClose: () => void;
+  duration?: number;
 }
 
-const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration = 4000 }) => {
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            onClose();
-        }, duration);
+const Toast: React.FC<ToastProps> = ({
+  message,
+  type,
+  onClose,
+  duration = 4000,
+}) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, duration);
 
-        return () => clearTimeout(timer);
-    }, [onClose, duration]);
+    return () => clearTimeout(timer);
+  }, [onClose, duration]);
 
-    const icons = {
-        success: <CheckCircle2 className="text-emerald-400" size={20} />,
-        error: <AlertCircle className="text-rose-400" size={20} />,
-        info: <Info className="text-sky-400" size={20} />,
-        warning: <AlertTriangle className="text-amber-400" size={20} />,
-        alert: <AlertTriangle className="text-orange-400" size={20} />
-    };
+  const icons = {
+    success: (
+      <CheckCircle2
+        className="text-emerald-600 dark:text-emerald-300"
+        size={20}
+      />
+    ),
+    error: (
+      <AlertCircle className="text-rose-600 dark:text-rose-300" size={20} />
+    ),
+    info: <Info className="text-sky-600 dark:text-sky-300" size={20} />,
+    warning: (
+      <AlertTriangle className="text-amber-600 dark:text-amber-300" size={20} />
+    ),
+    alert: (
+      <AlertTriangle
+        className="text-orange-600 dark:text-orange-300"
+        size={20}
+      />
+    ),
+  };
 
-    const borderColors = {
-        success: 'border-emerald-500/30',
-        error: 'border-rose-500/30',
-        info: 'border-sky-500/30',
-        warning: 'border-amber-500/30',
-        alert: 'border-orange-500/30'
-    };
+  const borderColors = {
+    success: "border-emerald-500/45",
+    error: "border-rose-500/45",
+    info: "border-sky-500/45",
+    warning: "border-amber-500/45",
+    alert: "border-orange-500/45",
+  };
 
-    const bgColors = {
-        success: 'bg-emerald-500/5',
-        error: 'bg-rose-500/5',
-        info: 'bg-sky-500/5',
-        warning: 'bg-amber-500/5',
-        alert: 'bg-orange-500/5'
-    };
+  const bgColors = {
+    success:
+      "from-emerald-100/90 to-white/95 dark:from-emerald-900/35 dark:to-slate-900/95",
+    error:
+      "from-rose-100/90 to-white/95 dark:from-rose-900/35 dark:to-slate-900/95",
+    info: "from-sky-100/90 to-white/95 dark:from-sky-900/35 dark:to-slate-900/95",
+    warning:
+      "from-amber-100/90 to-white/95 dark:from-amber-900/35 dark:to-slate-900/95",
+    alert:
+      "from-orange-100/90 to-white/95 dark:from-orange-900/35 dark:to-slate-900/95",
+  };
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: -20, x: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: -20, x: 20 }}
-            role="alert"
-            aria-live="polite"
-            className={`fixed top-4 right-4 z-[1000] flex items-center gap-4 p-4 rounded-2xl glass border-t ${borderColors[type]} ${bgColors[type]} shadow-2xl max-w-sm w-full transition-colors`}
-        >
-            <div className="shrink-0 p-2 rounded-xl bg-slate-800/50">
-                {icons[type]}
-            </div>
-            <p className="text-[11px] font-semibold text-slate-100 flex-1 leading-relaxed">
-                {message}
-            </p>
-            <motion.button
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onClose}
-                className="text-slate-500 hover:text-white transition-colors p-1"
-                aria-label="Fechar notificação"
-            >
-                <X size={16} />
-            </motion.button>
-        </motion.div>
-    );
+  const iconContainers = {
+    success: "bg-emerald-100/80 dark:bg-emerald-900/45",
+    error: "bg-rose-100/80 dark:bg-rose-900/45",
+    info: "bg-sky-100/80 dark:bg-sky-900/45",
+    warning: "bg-amber-100/80 dark:bg-amber-900/45",
+    alert: "bg-orange-100/80 dark:bg-orange-900/45",
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9, y: -20, x: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
+      exit={{ opacity: 0, scale: 0.9, y: -20, x: 20 }}
+      role="alert"
+      aria-live="polite"
+      className={`fixed top-4 right-4 z-[1000] flex items-center gap-3 p-4 rounded-2xl border bg-gradient-to-br ${borderColors[type]} ${bgColors[type]} max-w-md w-[calc(100vw-2rem)] md:w-full transition-colors shadow-2xl backdrop-blur-lg`}
+    >
+      <div className={`shrink-0 p-2 rounded-xl ${iconContainers[type]}`}>
+        {icons[type]}
+      </div>
+      <p className="text-[13px] font-semibold text-slate-900 dark:text-slate-50 flex-1 leading-5">
+        {message}
+      </p>
+      <motion.button
+        whileHover={{ scale: 1.1, rotate: 90 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onClose}
+        className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors p-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
+        aria-label="Fechar notificação"
+      >
+        <X size={16} />
+      </motion.button>
+    </motion.div>
+  );
 };
 
 export default Toast;
-

@@ -529,7 +529,7 @@ class ConstantsService {
             try {
                 const rows = await sql<SnapshotRow[]>`
                     INSERT INTO constants_catalog_snapshots (namespace, actor, label, data, entry_count)
-                    VALUES (${ns}, ${actor}, ${label ?? null}, ${sql.json(data as Record<string, unknown>)}, ${entryCount})
+                    VALUES (${ns}, ${actor}, ${label ?? null}, ${sql.json(data as unknown as Parameters<typeof sql.json>[0])}, ${entryCount})
                     RETURNING id, namespace, actor, label, data, entry_count, created_at
                 `;
 

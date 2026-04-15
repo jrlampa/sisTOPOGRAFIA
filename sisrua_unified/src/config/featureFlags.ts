@@ -110,15 +110,23 @@ const VALID_FEATURE_FLAGS = new Set<FeatureFlag>(
   Object.values(FeatureFlag) as FeatureFlag[],
 );
 
+/** Chaves de prototype reservadas — bloqueadas para prevenir prototype pollution. */
+const BLOCKED_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 function sanitizeOverrideConfig(
-  overrides: FeatureFlagOverrideConfig,
+  overrides: Partial<Record<string, unknown>>,
 ): FeatureFlagOverrideConfig {
+  const sanitized = Object.create(null) as FeatureFlagOverrideConfig;
   return Object.entries(overrides).reduce((acc, [key, value]) => {
+    if (BLOCKED_KEYS.has(key)) {
+      return acc;
+    }
+
     const featureFlagKey = key as FeatureFlag;
 
     if (!VALID_FEATURE_FLAGS.has(featureFlagKey)) {
       console.warn(
-        `[FeatureFlags] Chave desconhecida ou com typo: "${key}". Ignorada. Chaves válidas: ${[...VALID_FEATURE_FLAGS].join(', ')}.`
+        `[FeatureFlags] Chave de override desconhecida ignorada: ${key}`
       );
       return acc;
     }
@@ -133,11 +141,11 @@ function sanitizeOverrideConfig(
       acc[featureFlagKey] = false;
     } else {
       console.warn(
-        `[FeatureFlags] Valor inesperado para flag "${key}": ${JSON.stringify(value)}. Esperado boolean ou string "true"/"false". Entrada ignorada.`
+        `[FeatureFlags] Valor inválido para override "${key}". Esperado boolean, recebido ${typeof value}.`
       );
     }
     return acc;
-  }, {} as FeatureFlagOverrideConfig);
+  }, sanitized);
 }
 
 /**
@@ -148,22 +156,15 @@ function sanitizeOverrideConfig(
  *   [FeatureFlag.AI_CLANDESTINO_ANALYSIS]: true,
  * })
  */
-export function loadFeatureFlags(customFlags: Partial<Record<FeatureFlag, boolean>>): void {
+export function loadFeatureFlags(customFlags: Partial<Record<string, unknown>>): void {
   if (IS_PRODUCTION && Object.keys(customFlags).length > 0) {
     console.warn(
       'Feature flags customizadas não devem ser alteradas em produção. Use env vars.'
     );
     return;
   }
-  
-  const sanitizedCustomFlags = Object.entries(customFlags).reduce((acc, [key, value]) => {
-    if (typeof value === 'boolean') {
-      acc[key as FeatureFlag] = value;
-    }
-    return acc;
-  }, {} as Partial<Record<FeatureFlag, boolean>>);
 
-  runtimeFlags = { ...runtimeFlags, ...sanitizedCustomFlags };
+  runtimeFlags = { ...runtimeFlags, ...sanitizeOverrideConfig(customFlags) };
 }
 
 /**

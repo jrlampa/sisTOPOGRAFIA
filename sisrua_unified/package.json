@@ -44,10 +44,14 @@
     "cqt:workbook-audit:light": "python scripts/audit_cqt_workbook.py --workbook \"Light_estudo/CQTsimplificado_BECO DO MATA 7 - PARIDADE_FINAL.xlsx\"",
     "cqt:workbook-audit:check": "python scripts/audit_cqt_workbook.py --check",
     "security:audit": "npm audit --omit=dev --audit-level=critical",
-    "security:policy-gate": "npm audit --omit=dev --audit-level=critical",
+    "security:policy-gate": "npm run security:audit",
     "security:sbom:node": "node -e \"require('fs').mkdirSync('artifacts', {recursive: true})\" && npm sbom --sbom-format cyclonedx --json > artifacts/sbom-node.json",
     "security:audit:fix": "npm audit fix",
     "security:check": "npm run security:audit && echo '\n--- Security audit complete ---'",
+    "security:python": "bandit -c .bandit -r py_engine/ -f json -o artifacts/bandit-report.json || bandit -c .bandit -r py_engine/ -ll",
+    "security:python:ci": "bandit -c .bandit -r py_engine/ -ll --exit-zero -f json -o artifacts/bandit-report.json",
+    "security:pip:audit": "pip-audit -r py_engine/requirements.txt --format json -o artifacts/pip-audit-report.json || pip-audit -r py_engine/requirements.txt",
+    "security:all": "npm run security:audit && npm run security:python:ci && npm run security:pip:audit && echo '\\n--- Varredura de segurança completa ---'",
     "naming:check:bt": "node scripts/check-bt-naming.js",
     "setup:local": "powershell -ExecutionPolicy Bypass -File scripts/setup-local.ps1",
     "setup:local:bash": "bash scripts/setup-local.sh",
@@ -92,6 +96,9 @@
     "winston-daily-rotate-file": "^5.0.0",
     "xlsx": "^0.18.5",
     "zod": "^3.25.76"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.5"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",

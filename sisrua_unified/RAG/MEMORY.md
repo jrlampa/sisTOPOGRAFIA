@@ -167,26 +167,31 @@ docker-compose up -d
 O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md), focado em 5 grandes fases de maturidade:
 
 ### Fase 1: Estabilização & Orquestração (Current)
+
 - [ ] **Ponto 1 & 5**: Modularização do `dxf_generator.py` e Orquestração de Jobs Idempotentes.
 - [ ] **Ponto 23 & 36**: Compliance LGPD Operacional e Security Supply Chain (SBOM).
 - [ ] **Ponto 28 & 30**: Governança de Identidade (SCIM) e RBAC/ABAC Fino.
 
 ### Fase 2: Engenharia 2.0 & BIM
+
 - [ ] **Ponto 6 & 7**: Geração IFC 4.x e Registro de Proveniência Técnica.
 - [ ] **Ponto 43 & 45**: Integração SINAPI Master e Ciclo de Vida do Ativo (LCC).
 - [ ] **Ponto 35 & 37**: Multi-tenancy Seguro e BCP/DR com exercícios validados.
 
 ### Fase 3: Inteligência & Resiliência
+
 - [ ] **Ponto 11 & 14**: RAG de Normas Técnicas e Análise Preditiva de Carga.
 - [ ] **Ponto 17 & 19**: Operação SRE 24x7 e Injeção de Falhas (Chaos Engineering).
 - [ ] **Ponto 49 & 50**: Gestão de Vulnerabilidades e Pentests Periódicos.
 
 ### Fase 4: Operação de Campo & ESG
+
 - [ ] **Ponto 66 & 67**: Medição de Obras para Pagamento e Rastreabilidade QR Code.
 - [ ] **Ponto 59 & 63**: AR Field Viewer e Treinamento de Segurança VR (NR-10).
 - [ ] **Ponto 46 & 48**: RIPD Ambiental Automático e Créditos de Carbono.
 
 ### Fase 5: Fronteira & Vision 2027
+
 - [ ] **Ponto 71 & 89**: Federated Learning e Notarização em Blockchain.
 - [ ] **Ponto 65 & 83**: Suporte HoloLens 2 e Tele-Engenharia Remota.
 - [ ] **Ponto 85 & 87**: Detector Antifraude Orçamentária e Investor Discovery Pack.
@@ -333,6 +338,55 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 **Verificação atual**:
 
 - 11 de 11 jobs ativos
+
+---
+
+## 📌 Atualização Operacional (2026-04-14) - Evolução de Frontend SaaS
+
+### Escopo
+
+- Evolução visual da camada frontend com foco em UX/UI industrial em pt-BR.
+- Mudanças restritas à apresentação: sem alteração de contratos de API, payloads, rotas backend ou schema de banco.
+
+### Implementação
+
+- Atualizados tokens de tema em `src/index.css` com nova direção visual enterprise (paleta verde/azul, superfícies translúcidas e atmosfera em camadas).
+- Adicionadas tipografias de interface para reforço de hierarquia visual (`Manrope` + `Sora`) e maior legibilidade.
+- Ajustado `AppShellLayout.tsx` com camada atmosférica decorativa sem impacto funcional.
+- Refinado `AppHeader.tsx` com melhor contraste light/dark, rótulos em pt-BR e botões de ação com feedback visual mais claro.
+- Reestruturado `SidebarWorkspace.tsx` para separar blocos em painéis visuais consistentes e responsivos.
+
+### Validação
+
+- Build frontend validado com sucesso (`npm --prefix sisrua_unified run build`).
+- Preview atualizado e ativo (`npm --prefix sisrua_unified run preview`).
+
+### Iteração complementar (mesma data)
+
+- Refinados componentes de operação diária para legibilidade e consistência visual:
+  - `src/components/SidebarSelectionControls.tsx`
+  - `src/components/MainMapWorkspace.tsx`
+  - `src/components/SidebarAnalysisResults.tsx`
+- Ajustes focados em UX/UI e internacionalização pt-BR (acentuação e rótulos), sem alterar lógica de negócio.
+- Validação adicional executada com sucesso:
+  - Build (`npm --prefix sisrua_unified run build`)
+  - Modo integrado frontend+backend (`npm --prefix sisrua_unified run dev`)
+
+### Iteração complementar 2 (mesma data)
+
+- Evolução focada em acessibilidade visual e consistência de feedback do frontend:
+  - `src/components/Toast.tsx`
+  - `src/components/ProgressIndicator.tsx`
+  - `src/components/SessionRecoveryBanner.tsx`
+  - `src/components/DxfProgressBadge.tsx`
+  - `src/components/BtExportSummaryBanner.tsx`
+- Melhorias aplicadas:
+  - contraste light/dark e legibilidade de textos;
+  - foco visível para navegação por teclado (`focus-visible`);
+  - responsividade para telas menores;
+  - remoção de estilo inline no indicador de progresso.
+- Garantia de escopo:
+  - sem alteração em contratos de API, lógica de backend ou banco.
 - cache hit ratio: 99.97%
 - dead tuples críticos: 54
 - blocked locks: 0
@@ -458,6 +512,30 @@ SELECT SUM(n_dead_tup) FROM pg_stat_user_tables;
     - `sortBy`
     - `sortOrder`
     - `filters`
+
+---
+
+## 📌 Atualização Operacional (2026-04-14) - Evolução Frontend Iteração 4
+
+### Escopo
+
+- Ajustes de UX/UI em componentes de visualização e controle de camadas.
+- Sem alterações em contratos de API, backend, banco de dados ou payloads.
+
+### Implementação
+
+- `src/components/Dashboard.tsx`
+  - Reforço de contraste light/dark em cards e bloco de resumo.
+  - Padronização de classes sem dependência de estilos inline nos cards principais.
+- `src/components/FloatingLayerPanel.tsx`
+  - Tipagem explícita do botão de camada.
+  - Acessibilidade de estado com `aria-pressed`.
+  - Foco visível em controles interativos e melhor leitura de input de filtro.
+
+### Validação
+
+- Build frontend validado (`npm --prefix sisrua_unified run build`).
+- Ambiente integrado em execução com backend saudável (`GET /health` retornando 200).
 
 ### Helpers centrais
 
@@ -736,3 +814,52 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
   - override por grupo,
   - override por região com precedência,
   - normalização de chaves.
+
+---
+
+## 📌 Atualização Operacional (2026-04-14) - Frontend Iteração Final de Polimento
+
+### Escopo
+
+- Evolução visual/acessibilidade sem alterar backend, APIs ou banco.
+- Double-check completo nos componentes já implementados.
+
+### Implementação
+
+- `src/components/HistoryControls.tsx`
+  - Semântica de grupo (`role="group"`) e labels em pt-BR.
+  - Foco visível para teclado em desfazer/refazer.
+- `src/components/AppSettingsOverlay.tsx`
+  - Fallback de loading convertido para overlay consistente com o modal.
+  - Status de carregamento com `role="status"` e `aria-live`.
+
+### Double-check
+
+- Revisão dos componentes alterados nas iterações anteriores:
+  - `SettingsModal`, `ProgressIndicator`, `Dashboard`, `FloatingLayerPanel`, `AppHeader`, `AppShellLayout`, `Sidebar*`, `Toast`, `SessionRecoveryBanner`, `DxfProgressBadge`, `BtExportSummaryBanner`, `index.css`.
+- Resultado: sem erros no painel de problemas após correções.
+- Build validado e preview atualizado em `http://localhost:4173`.
+
+---
+
+## 📌 Atualização Operacional (2026-04-14) - Frontend Iteração + Double-Check
+
+### Escopo
+
+- Continuidade de evolução visual sem alteração de contratos de API, backend ou banco.
+- Revisão técnica dos componentes já evoluídos para detectar regressões.
+
+### Implementação
+
+- `src/components/SettingsModal.tsx`
+  - Melhorias de acessibilidade estrutural (dialog com `role`, `aria-modal`, `aria-labelledby`).
+  - Fechamento por `Escape` e bloqueio de scroll de fundo durante modal aberto.
+  - Reforço de foco visível (`focus-visible`) em ações principais e toggles de camadas.
+- `src/components/ProgressIndicator.tsx`
+  - Confirmada correção para remover estilo inline, com barra de progresso sem conflito de lint.
+
+### Double-check executado
+
+- Varredura de erros em todos os componentes frontend já alterados nas iterações anteriores.
+- Resultado final: sem erros nos arquivos auditados.
+- Build validado e preview atualizado em `http://localhost:4173`.

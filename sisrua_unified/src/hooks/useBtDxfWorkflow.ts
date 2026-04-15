@@ -15,7 +15,7 @@ type Params = {
   btNetworkScenario: BtNetworkScenario;
   hasOsmData: boolean;
   validateBtBeforeExport: () => boolean;
-  showToast: (message: string, type: 'success' | 'error' | 'info') => void;
+  showToast: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
   ingestBtContextHistory: (btContextUrl: string, btContext: Record<string, unknown>) => Promise<void>;
 };
 
@@ -42,6 +42,11 @@ export function useBtDxfWorkflow({
     [showToast]
   );
 
+  const handleDxfWarning = useCallback(
+    (message: string) => showToast(message, 'warning'),
+    [showToast]
+  );
+
   const handleBtContextLoaded = useCallback(
     ({ btContextUrl, btContext }: { btContextUrl: string; btContext: Record<string, unknown> }) => {
       void ingestBtContextHistory(btContextUrl, btContext);
@@ -52,12 +57,13 @@ export function useBtDxfWorkflow({
   const { downloadDxf, isDownloading, jobId, jobStatus, jobProgress } = useDxfExport({
     onSuccess: handleDxfSuccess,
     onError: handleDxfError,
+    onWarning: handleDxfWarning,
     onBtContextLoaded: handleBtContextLoaded,
   });
 
   const handleDownloadDxf = async () => {
     if (!hasOsmData) {
-      return;
+      showToast('Sem dados no servidor, DXF será gerado com topologia BT.', 'warning');
     }
 
     if (!validateBtBeforeExport()) {

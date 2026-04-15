@@ -1,0 +1,211 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "dxf_request.schema.json",
+  "title": "DxfRequest",
+  "description": "Payload sent from TypeScript server to Python py_engine for DXF generation.",
+  "type": "object",
+  "required": ["lat", "lon", "radius", "mode"],
+  "additionalProperties": false,
+  "properties": {
+    "lat": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 90,
+      "description": "Latitude of the centre point."
+    },
+    "lon": {
+      "type": "number",
+      "minimum": -180,
+      "maximum": 180,
+      "description": "Longitude of the centre point."
+    },
+    "radius": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 5000,
+      "description": "Radius in metres (circle/bbox modes)."
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["circle", "polygon", "bbox"],
+      "description": "Selection mode for the spatial query."
+    },
+    "projection": {
+      "type": "string",
+      "maxLength": 32,
+      "pattern": "^[\\w-]+$",
+      "description": "Optional CRS/projection identifier."
+    },
+    "contourRenderMode": {
+      "type": "string",
+      "enum": ["spline", "polyline"],
+      "description": "Contour line render style."
+    },
+    "polygon": {
+      "description": "Polygon boundary for polygon mode: JSON string or array of [lon, lat] pairs (max 500 points).",
+      "oneOf": [
+        { "type": "string", "maxLength": 50000 },
+        {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": [{ "type": "number" }, { "type": "number" }]
+          }
+        },
+        { "type": "null" }
+      ]
+    },
+    "layers": {
+      "description": "Layer toggles keyed by plain identifier.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "propertyNames": {
+            "pattern": "^[\\w-]+$",
+            "maxLength": 64
+          }
+        },
+        { "type": "null" }
+      ]
+    },
+    "btContext": {
+      "description": "Optional BT network context for DXF annotation.",
+      "oneOf": [
+        { "$ref": "#/definitions/BtContext" },
+        { "type": "null" }
+      ]
+    }
+  },
+  "definitions": {
+    "BtRamal": {
+      "type": "object",
+      "required": ["id", "quantity"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "quantity": { "type": "number", "minimum": 0 },
+        "ramalType": { "type": "string" }
+      }
+    },
+    "BtPole": {
+      "type": "object",
+      "required": ["id", "lat", "lng", "title"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lng": { "type": "number", "minimum": -180, "maximum": 180 },
+        "title": { "type": "string", "minLength": 1 },
+        "verified": { "type": "boolean" },
+        "ramais": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/BtRamal" }
+        }
+      }
+    },
+    "BtTransformer": {
+      "type": "object",
+      "required": ["id", "lat", "lng", "title", "demandKw"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "poleId": { "type": "string" },
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lng": { "type": "number", "minimum": -180, "maximum": 180 },
+        "title": { "type": "string", "minLength": 1 },
+        "projectPowerKva": { "type": "number", "minimum": 0 },
+        "demandKw": { "type": "number", "minimum": 0 },
+        "verified": { "type": "boolean" }
+      }
+    },
+    "BtConductor": {
+      "type": "object",
+      "required": ["id", "quantity", "conductorName"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "quantity": { "type": "number", "minimum": 0 },
+        "conductorName": { "type": "string", "minLength": 1 }
+      }
+    },
+    "BtEdge": {
+      "type": "object",
+      "required": ["id", "fromPoleId", "toPoleId", "conductors"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "fromPoleId": { "type": "string", "minLength": 1 },
+        "toPoleId": { "type": "string", "minLength": 1 },
+        "lengthMeters": { "type": "number", "minimum": 0 },
+        "verified": { "type": "boolean" },
+        "conductors": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/BtConductor" }
+        }
+      }
+    },
+    "BtAccumulatedPole": {
+      "type": "object",
+      "required": ["poleId", "accumulatedClients", "accumulatedDemandKva"],
+      "additionalProperties": true,
+      "properties": {
+        "poleId": { "type": "string", "minLength": 1 },
+        "title": { "type": "string" },
+        "accumulatedClients": { "type": "number", "minimum": 0 },
+        "accumulatedDemandKva": { "type": "number", "minimum": 0 }
+      }
+    },
+    "BtTopology": {
+      "type": "object",
+      "required": ["poles", "transformers", "edges"],
+      "additionalProperties": true,
+      "properties": {
+        "poles": { "type": "array", "items": { "$ref": "#/definitions/BtPole" } },
+        "transformers": { "type": "array", "items": { "$ref": "#/definitions/BtTransformer" } },
+        "edges": { "type": "array", "items": { "$ref": "#/definitions/BtEdge" } }
+      }
+    },
+    "BtContext": {
+      "type": "object",
+      "required": ["projectType"],
+      "additionalProperties": true,
+      "properties": {
+        "projectType": {
+          "type": "string",
+          "enum": ["ramais", "geral", "clandestino"]
+        },
+        "btNetworkScenario": {
+          "type": "string",
+          "enum": ["asis", "projeto", "proj1", "proj2"]
+        },
+        "clandestinoAreaM2": { "type": "number", "minimum": 0 },
+        "totalTransformers": { "type": "number", "minimum": 0 },
+        "totalPoles": { "type": "number", "minimum": 0 },
+        "totalEdges": { "type": "number", "minimum": 0 },
+        "verifiedTransformers": { "type": "number", "minimum": 0 },
+        "verifiedPoles": { "type": "number", "minimum": 0 },
+        "verifiedEdges": { "type": "number", "minimum": 0 },
+        "accumulatedByPole": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/BtAccumulatedPole" }
+        },
+        "criticalPole": {
+          "oneOf": [
+            { "$ref": "#/definitions/BtAccumulatedPole" },
+            { "type": "null" }
+          ]
+        },
+        "topology": {
+          "oneOf": [
+            { "$ref": "#/definitions/BtTopology" },
+            { "type": "null" }
+          ]
+        }
+      }
+    }
+  }
+}

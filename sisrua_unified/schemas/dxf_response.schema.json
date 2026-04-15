@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "dxf_response.schema.json",
+  "title": "DxfResponse",
+  "description": "JSON lines emitted by py_engine/main.py to stdout during DXF generation. Each line is one of the message variants below.",
+  "oneOf": [
+    { "$ref": "#/definitions/ProgressMessage" },
+    { "$ref": "#/definitions/SuccessMessage" },
+    { "$ref": "#/definitions/ErrorMessage" },
+    { "$ref": "#/definitions/GeoJsonMessage" },
+    { "$ref": "#/definitions/DebugMessage" }
+  ],
+  "definitions": {
+    "ProgressMessage": {
+      "type": "object",
+      "required": ["status", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "type": "string", "enum": ["progress"] },
+        "message": { "type": "string" },
+        "progress": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "SuccessMessage": {
+      "type": "object",
+      "required": ["status", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "type": "string", "enum": ["success"] },
+        "message": { "type": "string" }
+      }
+    },
+    "ErrorMessage": {
+      "type": "object",
+      "required": ["status", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "type": "string", "enum": ["error"] },
+        "message": { "type": "string" }
+      }
+    },
+    "GeoJsonMessage": {
+      "type": "object",
+      "required": ["type", "data"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "enum": ["geojson"] },
+        "data": {
+          "type": "object",
+          "description": "GeoJSON FeatureCollection with optional audit_summary extension.",
+          "additionalProperties": true
+        },
+        "message": { "type": "string" }
+      }
+    },
+    "DebugMessage": {
+      "type": "object",
+      "required": ["status", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "type": "string", "enum": ["debug"] },
+        "message": { "type": "string" }
+      }
+    }
+  }
+}

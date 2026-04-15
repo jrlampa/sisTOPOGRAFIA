@@ -30,3 +30,13 @@ srtm.py>=0.3.7
 # ─── Testes ──────────────────────────────────────────────────────────────────
 pytest>=7.0.0
 pytest-cov>=4.1.0
+
+# ─── Validação de Schema (Roadmap Item 4 – Pydantic input validation) ─────────
+pydantic>=2.0.0
+
+# ─── Monitoramento de Memória (Roadmap Item 99 – OOM Self-Healing) ─────────────
+psutil>=5.9.0
+
+# ─── Segurança (Roadmap Item 15 – SBOM + SAST) ───────────────────────────────
+bandit>=1.7.0
+pip-audit>=2.6.0

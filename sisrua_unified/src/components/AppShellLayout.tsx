@@ -36,13 +36,19 @@ export function AppShellLayout({
   mainMapWorkspaceProps,
 }: Props) {
   const backendHealth = useBackendHealth();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
 
   return (
     <div
-      className={`flex flex-col h-screen w-full font-sans transition-colors duration-500 overflow-hidden ${
-        isDark ? "bg-[#020617] text-slate-200" : "bg-slate-50 text-slate-900"
+      className={`app-shell relative flex h-screen w-full flex-col overflow-hidden font-sans transition-colors duration-500 ${
+        isDark ? "text-slate-200" : "text-slate-900"
       }`}
     >
+      <div className="app-shell-atmosphere" aria-hidden="true">
+        <span className="app-shell-orb app-shell-orb-1" />
+        <span className="app-shell-orb app-shell-orb-2" />
+        <span className="app-shell-orb app-shell-orb-3" />
+      </div>
       <AppStatusStack {...appStatusStackProps} />
       <AppSettingsOverlay {...appSettingsOverlayProps} />
       <AppHeader
@@ -53,13 +59,24 @@ export function AppShellLayout({
         onSaveProject={onSaveProject}
         onOpenProject={onOpenProject}
         onOpenSettings={onOpenSettings}
+        isSidebarCollapsed={isSidebarCollapsed}
+        onToggleSidebarCollapsed={() =>
+          setIsSidebarCollapsed((current) => !current)
+        }
         isDark={isDark}
         backendStatus={backendHealth.status}
         backendResponseTimeMs={backendHealth.responseTimeMs}
       />
-      <main className="flex-1 flex overflow-hidden relative">
-        <SidebarWorkspace {...sidebarWorkspaceProps} />
-        <MainMapWorkspace {...mainMapWorkspaceProps} />
+      <main className="relative z-10 flex flex-1 flex-col overflow-hidden border-t-2 border-amber-700/40 dark:border-amber-500/50 xl:flex-row">
+        <SidebarWorkspace
+          {...sidebarWorkspaceProps}
+          isCollapsed={isSidebarCollapsed}
+        />
+        <MainMapWorkspace
+          {...mainMapWorkspaceProps}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onRestoreSidebar={() => setIsSidebarCollapsed(false)}
+        />
       </main>
     </div>
   );

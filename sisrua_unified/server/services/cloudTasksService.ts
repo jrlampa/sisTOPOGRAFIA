@@ -2,6 +2,7 @@ import postgres from "postgres";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { logger } from "../utils/logger.js";
 import { generateDxf } from "../pythonBridge.js";
 import {
@@ -55,9 +56,26 @@ let workerStarted = false;
 let workerInterval: NodeJS.Timeout | null = null;
 let activeWorkers = 0;
 
+const TOPOLOGY_ONLY_WARNING =
+  "Sem dados no servidor, DXF gerado com topologia.";
+
+function extractTopologyOnlyWarning(
+  pythonOutput: string,
+): string | undefined {
+  const normalizedOutput = pythonOutput.toLowerCase();
+  const hasNoOsmIndicator =
+    normalizedOutput.includes("nenhuma feição osm encontrada") ||
+    normalizedOutput.includes("nenhuma feicao osm encontrada") ||
+    normalizedOutput.includes("dxf será gerado apenas com a topologia bt") ||
+    normalizedOutput.includes("dxf sera gerado apenas com a topologia bt");
+
+  return hasNoOsmIndicator ? TOPOLOGY_ONLY_WARNING : undefined;
+}
+
 function persistBtContextSidecar(
   outputFile: string,
   btContext: Record<string, unknown> | null | undefined,
+  artifactSha256?: string,
 ): string | null {
   if (!btContext || Object.keys(btContext).length === 0) {
     return null;
@@ -68,11 +86,26 @@ function persistBtContextSidecar(
   const sidecarPath = `${base}_bt_context.json`;
   const payload = {
     generatedAt: new Date().toISOString(),
+    artifactSha256: artifactSha256 ?? null, // Roadmap #72: hash de proveniência
     btContext,
   };
 
   fs.writeFileSync(sidecarPath, JSON.stringify(payload, null, 2), "utf-8");
   return sidecarPath;
+}
+
+/**
+ * Computa SHA-256 do arquivo gerado para rastreabilidade de artefato.
+ * Roadmap Item 72: Assinatura de hash SHA-256 por artefato.
+ */
+function computeArtifactSha256(filePath: string): string | null {
+  try {
+    const buffer = fs.readFileSync(filePath);
+    return crypto.createHash("sha256").update(buffer).digest("hex");
+  } catch (err) {
+    logger.warn("Falha ao computar SHA-256 do artefato", { filePath, err });
+    return null;
+  }
 }
 
 async function initializeQueuePersistence(): Promise<void> {
@@ -148,7 +181,7 @@ async function processPayload(incomingPayload: any): Promise<void> {
   });
   await updateJobStatus(payload.taskId, "processing", 15);
 
-  await generateDxf({
+  const pythonOutput = await generateDxf({
     lat: payload.lat,
     lon: payload.lon,
     radius: payload.radius,
@@ -160,10 +193,31 @@ async function processPayload(incomingPayload: any): Promise<void> {
     btContext: payload.btContext ?? null,
     outputFile: payload.outputFile,
   });
+  const warning = extractTopologyOnlyWarning(pythonOutput);
+
+  // Roadmap #72: SHA-256 do artefato DXF gerado para proveniência e integridade
+  const artifactSha256 = computeArtifactSha256(payload.outputFile);
+  if (artifactSha256) {
+    logger.info("SHA-256 do artefato DXF computado", {
+      taskId: payload.taskId,
+      sha256: artifactSha256,
+    });
+    if (postgresAvailable && sqlClient) {
+      await sqlClient
+        .unsafe(
+          `UPDATE dxf_tasks SET artifact_sha256 = $2 WHERE task_id = $1`,
+          [payload.taskId, artifactSha256],
+        )
+        .catch((err) =>
+          logger.warn("Falha ao persistir artifact_sha256", { err }),
+        );
+    }
+  }
 
   const btContextSidecarPath = persistBtContextSidecar(
     payload.outputFile,
     payload.btContext,
+    artifactSha256 ?? undefined,
   );
   const btContextUrl = btContextSidecarPath
     ? payload.downloadUrl.replace(/\.dxf$/i, "_bt_context.json")
@@ -178,6 +232,8 @@ async function processPayload(incomingPayload: any): Promise<void> {
     url: payload.downloadUrl,
     filename: payload.filename,
     btContextUrl,
+    ...(artifactSha256 ? { artifactSha256 } : {}),
+    ...(warning ? { warning } : {}),
   });
 }
 
@@ -320,25 +376,47 @@ export function stopTaskWorker(): void {
 export async function createDxfTask(
   payload: Omit<DxfTaskPayload, "taskId">,
 ): Promise<TaskCreationResult> {
+  await initializeQueuePersistence();
+  startWorkerIfNeeded();
+
+  // Item 71: Idempotency check — return existing non-failed task for same cacheKey
+  if (postgresAvailable && sqlClient) {
+    const existing = (await sqlClient.unsafe(
+      `SELECT task_id, status FROM dxf_tasks
+       WHERE idempotency_key = $1 AND status NOT IN ('failed')
+       LIMIT 1`,
+      [payload.cacheKey],
+    )) as Array<{ task_id: string; status: string }>;
+
+    if (existing.length > 0) {
+      const existingTaskId = existing[0].task_id;
+      logger.info("DXF task idempotency hit — returning existing task", {
+        existingTaskId,
+        status: existing[0].status,
+        cacheKey: payload.cacheKey,
+      });
+      return {
+        taskId: existingTaskId,
+        taskName: `pg-task-${existingTaskId}`,
+        alreadyCompleted: existing[0].status === "completed",
+      };
+    }
+  }
+
   const taskId = uuidv4();
-  const fullPayload: DxfTaskPayload = {
-    taskId,
-    ...payload,
-  };
+  const fullPayload: DxfTaskPayload = { taskId, ...payload };
 
   // Create the job as close as possible to queueing to avoid state races.
   createJob(taskId);
 
-  await initializeQueuePersistence();
-  startWorkerIfNeeded();
-
   if (postgresAvailable && sqlClient) {
     await sqlClient.unsafe(
-      `
-        insert into dxf_tasks (task_id, status, payload, attempts, updated_at)
-        values ($1, 'queued', $2, 0, now())
-      `,
-      [taskId, fullPayload],
+      `INSERT INTO dxf_tasks (task_id, status, payload, attempts, idempotency_key, updated_at)
+       VALUES ($1, 'queued', $2, 0, $3, now())
+       ON CONFLICT (idempotency_key) WHERE status NOT IN ('failed', 'cancelled') DO NOTHING`,
+      // postgres.js handles JSONB serialization of the payload object at runtime
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      [taskId, fullPayload as any, payload.cacheKey],
     );
 
     logger.info("DXF task queued in Supabase/Postgres", {

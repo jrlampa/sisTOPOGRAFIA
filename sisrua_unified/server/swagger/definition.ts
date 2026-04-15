@@ -1,5 +1,5 @@
-import { swaggerComponents } from './components';
-import { swaggerPaths } from './paths';
+import { swaggerComponents } from './components.js';
+import { swaggerPaths } from './paths.js';
 
 export const swaggerDefinition = {
   openapi: '3.0.0',
