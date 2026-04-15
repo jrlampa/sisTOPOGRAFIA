@@ -123,6 +123,8 @@ const EnvSchema = z.object({
    * for internal-network Prometheus scrapers that are NOT publicly exposed).
    */
   METRICS_TOKEN: z.string().optional(),
+  /** Token Bearer para proteger os endpoints do /api/admin. Opcional: se ausente, admin é desprotegido. */
+  ADMIN_TOKEN: z.string().optional(),
 });
 
 type RawConfig = z.infer<typeof EnvSchema>;
