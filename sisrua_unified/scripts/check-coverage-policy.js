@@ -6,12 +6,12 @@ const ROOT = process.cwd();
 const policy = {
   critical20: {
     label: 'Críticos (20%)',
-    source: 'coverage/frontend-risk/coverage-summary.json',
+    source: 'coverage/frontend-risk/coverage-final.json',
     target: { lines: 100, statements: 100, functions: 100, branches: 100 },
   },
   remaining80: {
     label: 'Restantes (>=80%)',
-    source: 'coverage/backend/coverage-summary.json',
+    source: 'coverage/backend/coverage-final.json',
     target: { lines: 80, statements: 80, functions: 80, branches: 80 },
   },
 };
@@ -21,7 +21,63 @@ const strict = process.argv.includes('--strict');
 async function loadCoverageSummary(relativePath) {
   const fullPath = path.join(ROOT, relativePath);
   const content = await fs.readFile(fullPath, 'utf8');
-  return JSON.parse(content).total;
+  const parsed = JSON.parse(content);
+
+  if (parsed.total) {
+    return parsed.total;
+  }
+
+  const files = Object.values(parsed);
+
+  const totals = {
+    lines: { covered: 0, total: 0 },
+    statements: { covered: 0, total: 0 },
+    functions: { covered: 0, total: 0 },
+    branches: { covered: 0, total: 0 },
+  };
+
+  for (const file of files) {
+    if (!file || typeof file !== 'object') continue;
+
+    const statementEntries = Object.entries(file.s ?? {});
+    const statementMap = file.statementMap ?? {};
+    const coveredLines = new Set();
+    const totalLines = new Set();
+
+    for (const [statementId, hits] of statementEntries) {
+      const line = statementMap?.[statementId]?.start?.line;
+      if (typeof line !== 'number') continue;
+      totalLines.add(line);
+      if (Number(hits) > 0) coveredLines.add(line);
+    }
+
+    const statements = statementEntries.map(([, hits]) => hits);
+    const functions = Object.values(file.f ?? {});
+    const branches = Object.values(file.b ?? {}).flatMap((entry) =>
+      Array.isArray(entry) ? entry : [],
+    );
+
+    totals.statements.total += statements.length;
+    totals.statements.covered += statements.filter((hits) => Number(hits) > 0).length;
+
+    totals.functions.total += functions.length;
+    totals.functions.covered += functions.filter((hits) => Number(hits) > 0).length;
+
+    totals.lines.total += totalLines.size;
+    totals.lines.covered += coveredLines.size;
+
+    totals.branches.total += branches.length;
+    totals.branches.covered += branches.filter((hits) => Number(hits) > 0).length;
+  }
+
+  const toPct = (covered, total) => (total === 0 ? 100 : (covered / total) * 100);
+
+  return {
+    lines: { pct: toPct(totals.lines.covered, totals.lines.total) },
+    statements: { pct: toPct(totals.statements.covered, totals.statements.total) },
+    functions: { pct: toPct(totals.functions.covered, totals.functions.total) },
+    branches: { pct: toPct(totals.branches.covered, totals.branches.total) },
+  };
 }
 
 function metricValue(summary, metric) {
