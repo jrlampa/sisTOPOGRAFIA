@@ -2,6 +2,7 @@ import { logger } from '../utils/logger.js';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import { fetchWithCircuitBreaker } from '../utils/externalApi.js';
 
 /**
  * INPE TOPODATA Service
@@ -42,6 +43,10 @@ interface ElevationPoint {
 }
 
 export class TopodataService {
+    private static isHttpStatusError(error: unknown, status: number): boolean {
+        return error instanceof Error && error.message.includes(`status: ${status}`);
+    }
+
     /**
      * Get tile identifier for coordinates
      * TOPODATA uses 1x1 degree tiles
@@ -83,17 +88,12 @@ export class TopodataService {
         try {
             logger.info('Downloading TOPODATA tile', { tile: tile.filename, url: tile.url });
             
-            const response = await fetch(tile.url, {
-                signal: AbortSignal.timeout(30000) // 30s timeout
-            });
-            
-            if (!response.ok) {
-                if (response.status === 404) {
-                    logger.warn('TOPODATA tile not found (likely ocean or outside coverage)', { tile: tile.filename });
-                    return null;
-                }
-                throw new Error(`HTTP ${response.status}`);
-            }
+            const response = await fetchWithCircuitBreaker(
+                'TOPODATA',
+                tile.url,
+                { signal: AbortSignal.timeout(30000) },
+                { maxRetries: 2, initialDelay: 750, maxDelay: 5000 }
+            );
             
             const buffer = Buffer.from(await response.arrayBuffer());
             fs.writeFileSync(cachePath, buffer);
@@ -101,6 +101,10 @@ export class TopodataService {
             logger.info('TOPODATA tile downloaded', { tile: tile.filename, size: buffer.length });
             return cachePath;
         } catch (error) {
+            if (this.isHttpStatusError(error, 404)) {
+                logger.warn('TOPODATA tile not found (likely ocean or outside coverage)', { tile: tile.filename });
+                return null;
+            }
             logger.error('TOPODATA download failed', { error, tile: tile.filename });
             return null;
         }

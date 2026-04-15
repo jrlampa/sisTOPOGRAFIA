@@ -418,6 +418,45 @@ SELECT * FROM private.verify_backup_integrity(); -- Status backups
 #### Referências
 
 - 📄 [Database Maintenance Formal Doc](./docs/DATABASE_MAINTENANCE_FORMAL.md)
+
+---
+
+## 📌 Atualização Operacional (2026-04-14) - Resiliência de APIs Externas (T1)
+
+### Escopo
+
+- Evolução backend para aumentar confiabilidade e observabilidade de integrações externas, alinhado ao Tier 1 (itens de confiabilidade operacional).
+- Sem alteração de contratos de API públicos de negócio; mudança focada em comportamento resiliente interno.
+
+### Implementação
+
+- Padronizado uso de fetch resiliente com circuit breaker + retry em serviços críticos:
+  - `server/services/indeService.ts`
+  - `server/services/topodataService.ts`
+  - `server/services/elevationService.ts` (Open-Elevation)
+- Adicionado snapshot operacional dos circuit breakers no utilitário:
+  - `server/utils/circuitBreaker.ts` com `listCircuitBreakers()`.
+- Expandido endpoint de saúde para incluir dependências externas:
+  - `server/index.ts` agora expõe resumo `dependencies.externalApis` com
+    - quantidade de circuitos abertos,
+    - total registrado,
+    - lista detalhada por integração.
+- Ajustada lógica de status do healthcheck para `degraded` quando houver circuito externo em estado `OPEN`.
+
+### Validação
+
+- Type check dos arquivos alterados: sem erros.
+- Testes unitários focados executados com sucesso (4 suítes / 43 testes passados):
+  - `server/tests/circuitBreaker.test.ts`
+  - `server/tests/externalApi.test.ts`
+  - `server/tests/elevationService.test.ts`
+  - `server/tests/topodataService.test.ts`
+- Build completo validado com sucesso:
+  - `npm --prefix sisrua_unified run build`
+
+### Observação
+
+- O script de teste backend retornou código final 1 por política global de cobertura mínima do projeto, apesar de as suítes focadas terem passado.
 - 🔧 Migration 024 (db_maintenance_schedule.sql)
 - 🔧 Migration 023 (advanced_performance_indexes.sql)
 - 🔧 Migration 034 (time_series_partitioning.sql)

@@ -1,6 +1,7 @@
 import { GeoLocation } from '../../src/types.js';
 import { logger } from '../utils/logger.js';
 import { TopodataService } from './topodataService.js';
+import { fetchWithCircuitBreaker } from '../utils/externalApi.js';
 
 export class ElevationService {
     /**
@@ -75,20 +76,17 @@ export class ElevationService {
         }
 
         try {
-            const response = await fetch("https://api.open-elevation.com/api/v1/lookup", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ locations }),
-                signal: AbortSignal.timeout(10000) // 10 second timeout
-            });
-
-            if (!response.ok) {
-                logger.error('Elevation API request failed', {
-                    status: response.status,
-                    statusText: response.statusText
-                });
-                throw new Error(`Elevation API failed with status ${response.status}`);
-            }
+            const response = await fetchWithCircuitBreaker(
+                'OPEN_ELEVATION',
+                'https://api.open-elevation.com/api/v1/lookup',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ locations }),
+                    signal: AbortSignal.timeout(10000),
+                },
+                { maxRetries: 2, initialDelay: 500, maxDelay: 2500 }
+            );
 
             const data = await response.json();
             const totalDist = this.calculateDistance(start, end);
@@ -134,16 +132,17 @@ export class ElevationService {
         
         // Fallback to open-elevation
         try {
-            const response = await fetch("https://api.open-elevation.com/api/v1/lookup", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ locations: [{ latitude: lat, longitude: lng }] }),
-                signal: AbortSignal.timeout(10000)
-            });
-
-            if (!response.ok) {
-                throw new Error(`Status ${response.status}`);
-            }
+            const response = await fetchWithCircuitBreaker(
+                'OPEN_ELEVATION',
+                'https://api.open-elevation.com/api/v1/lookup',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ locations: [{ latitude: lat, longitude: lng }] }),
+                    signal: AbortSignal.timeout(10000),
+                },
+                { maxRetries: 2, initialDelay: 500, maxDelay: 2500 }
+            );
 
             const data = await response.json();
             return data.results[0]?.elevation ?? null;

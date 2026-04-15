@@ -24,6 +24,7 @@ import { stopTaskWorker } from "./services/cloudTasksService.js";
 import { constantsService } from "./services/constantsService.js";
 import { maintenanceService } from "./services/maintenanceService.js";
 import { logger, requestContext } from "./utils/logger.js";
+import { listCircuitBreakers } from "./utils/circuitBreaker.js";
 import {
   generalRateLimiter,
   refreshRateLimitersFromCatalog,
@@ -220,6 +221,10 @@ app.get(
 app.get("/health", async (_req: Request, res: Response) => {
   const memoryUsage = process.memoryUsage();
   const ollamaStatus = await isOllamaRunning();
+  const externalCircuitBreakers = listCircuitBreakers();
+  const hasOpenExternalCircuit = externalCircuitBreakers.some(
+    (cb) => cb.state === "OPEN",
+  );
 
   // Check Supabase connectivity if enabled
   let dbStatus = "disabled";
@@ -234,7 +239,10 @@ app.get("/health", async (_req: Request, res: Response) => {
   }
 
   const healthData = {
-    status: dbStatus === "disconnected" ? "degraded" : "online",
+    status:
+      dbStatus === "disconnected" || hasOpenExternalCircuit
+        ? "degraded"
+        : "online",
     service: "sisRUA Unified Backend",
     version: config.APP_VERSION,
     timestamp: new Date().toISOString(),
@@ -255,6 +263,13 @@ app.get("/health", async (_req: Request, res: Response) => {
       queueBackend: config.useSupabaseJobs
         ? "supabase-postgres"
         : "local-async",
+      externalApis: {
+        openCircuits: externalCircuitBreakers.filter(
+          (cb) => cb.state === "OPEN",
+        ).length,
+        totalRegistered: externalCircuitBreakers.length,
+        circuitBreakers: externalCircuitBreakers,
+      },
     },
     config: {
       environment: config.NODE_ENV,
