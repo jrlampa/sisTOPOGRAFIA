@@ -105,18 +105,32 @@ function normalizeContextKey(value: string): string {
   return value.trim().toLowerCase();
 }
 
+/** Conjunto de valores válidos do enum FeatureFlag para validação em runtime. */
+const VALID_FEATURE_FLAGS = new Set<FeatureFlag>(
+  Object.values(FeatureFlag) as FeatureFlag[],
+);
+
 function sanitizeOverrideConfig(
   overrides: FeatureFlagOverrideConfig,
 ): FeatureFlagOverrideConfig {
   return Object.entries(overrides).reduce((acc, [key, value]) => {
+    const featureFlagKey = key as FeatureFlag;
+
+    if (!VALID_FEATURE_FLAGS.has(featureFlagKey)) {
+      console.warn(
+        `[FeatureFlags] Chave desconhecida ou com typo: "${key}". Ignorada. Chaves válidas: ${[...VALID_FEATURE_FLAGS].join(', ')}.`
+      );
+      return acc;
+    }
+
     if (typeof value === 'boolean') {
-      acc[key as FeatureFlag] = value;
+      acc[featureFlagKey] = value;
     } else if (value === 'true') {
       // Coagir string boolean — formato comum em configs externas/JSON
-      acc[key as FeatureFlag] = true;
+      acc[featureFlagKey] = true;
     } else if (value === 'false') {
       // Coagir string boolean — formato comum em configs externas/JSON
-      acc[key as FeatureFlag] = false;
+      acc[featureFlagKey] = false;
     } else {
       console.warn(
         `[FeatureFlags] Valor inesperado para flag "${key}": ${JSON.stringify(value)}. Esperado boolean ou string "true"/"false". Entrada ignorada.`

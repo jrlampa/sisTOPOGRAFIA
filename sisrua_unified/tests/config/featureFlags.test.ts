@@ -143,4 +143,29 @@ describe('featureFlags targeting', () => {
 
     warnSpy.mockRestore();
   });
+
+  it('sanitizeOverrideConfig rejeita chaves desconhecidas/typo e emite aviso', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // Simula config externa com typo — chave inválida não pertence ao enum
+    const overridesComTypo = {
+      bt_topology_edtor: true, // typo intencional de 'bt_topology_editor'
+    } as unknown as Record<FeatureFlag, boolean>;
+
+    loadFeatureFlagTargeting({
+      userGroups: { beta: overridesComTypo },
+    });
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[FeatureFlags]')
+    );
+    // Override com typo não deve ter efeito algum
+    expect(
+      isFeatureEnabledForContext(FeatureFlag.BT_TOPOLOGY_EDITOR, {
+        userGroup: 'beta',
+      })
+    ).toBe(isFeatureEnabled(FeatureFlag.BT_TOPOLOGY_EDITOR));
+
+    warnSpy.mockRestore();
+  });
 });
