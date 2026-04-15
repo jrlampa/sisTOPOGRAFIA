@@ -114,7 +114,7 @@ const VerificarBodySchema = z.object({
  */
 router.get("/", (req: Request, res: Response) => {
   if (!isAdminAuthorized(req)) {
-    res.set("WWW-Authenticate", '******"tenant-quotas-admin"');
+    res.set("WWW-Authenticate", 'Bearer realm="tenant-quotas-admin"');
     return res.status(401).json({ erro: "Não autorizado" });
   }
   const tenants = listarTenantComQuotas();
@@ -223,7 +223,7 @@ router.get("/:tenantId/uso", (req: Request, res: Response) => {
  */
 router.put("/:tenantId/:tipo", (req: Request, res: Response) => {
   if (!isAdminAuthorized(req)) {
-    res.set("WWW-Authenticate", '******"tenant-quotas-admin"');
+    res.set("WWW-Authenticate", 'Bearer realm="tenant-quotas-admin"');
     return res.status(401).json({ erro: "Não autorizado" });
   }
 
@@ -362,7 +362,7 @@ router.post(
  */
 router.delete("/:tenantId/:tipo", (req: Request, res: Response) => {
   if (!isAdminAuthorized(req)) {
-    res.set("WWW-Authenticate", '******"tenant-quotas-admin"');
+    res.set("WWW-Authenticate", 'Bearer realm="tenant-quotas-admin"');
     return res.status(401).json({ erro: "Não autorizado" });
   }
 
@@ -412,7 +412,7 @@ router.delete("/:tenantId/:tipo", (req: Request, res: Response) => {
  */
 router.delete("/:tenantId", (req: Request, res: Response) => {
   if (!isAdminAuthorized(req)) {
-    res.set("WWW-Authenticate", '******"tenant-quotas-admin"');
+    res.set("WWW-Authenticate", 'Bearer realm="tenant-quotas-admin"');
     return res.status(401).json({ erro: "Não autorizado" });
   }
 
