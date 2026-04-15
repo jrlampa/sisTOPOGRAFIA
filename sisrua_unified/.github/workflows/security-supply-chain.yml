@@ -9,7 +9,9 @@ name: Segurança – Supply Chain (SBOM + SAST + Auditoria)
 #   3. python-audit   – pip-audit em py_engine/requirements.txt  (BLOQUEADOR)
 #   4. sast-semgrep   – Semgrep SAST: Python (--config auto) +
 #                       TypeScript (--config p/typescript)       (informativo)
-#   5. security-gate  – Gate unificado: bloqueia em npm-audit e python-audit
+#   5. secret-scan    – Gitleaks para detecção de segredos         (BLOQUEADOR)
+#   6. security-gate  – Gate unificado: bloqueia em npm-audit, python-audit
+#                       e secret-scan
 #
 # Gatilhos:
 #   - Todo pull request para main, master ou dev
@@ -34,6 +36,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 jobs:
   # ====================================================================
@@ -262,13 +265,43 @@ jobs:
 
   # ====================================================================
   # JOB 5 – GATE DE SEGURANÇA SUPPLY CHAIN
-  # BLOQUEADORES : npm-audit, python-audit
+  # JOB 5 – SECRET SCAN COM GITLEAKS (BLOQUEADOR)
+  # Detecta exposição acidental de segredos no histórico e no working tree.
+  # ====================================================================
+  secret-scan:
+    name: Secret Scan (Gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Executar Gitleaks
+        id: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
+
+      - name: Upload SARIF do Gitleaks
+        if: always() && hashFiles('results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+
+  # ====================================================================
+  # JOB 6 – GATE DE SEGURANÇA SUPPLY CHAIN
+  # BLOQUEADORES : npm-audit, python-audit, secret-scan
   # INFORMATIVOS : sbom-nodejs, sast-semgrep (falha não bloqueia o gate)
   # ====================================================================
   security-gate:
     name: Gate de Segurança Supply Chain
     runs-on: ubuntu-latest
-    needs: [npm-audit, sbom-nodejs, python-audit, sast-semgrep]
+    needs: [npm-audit, sbom-nodejs, python-audit, sast-semgrep, secret-scan]
     if: always()
 
     steps:
@@ -277,17 +310,19 @@ jobs:
           echo "=== Resultados dos Jobs de Segurança ==="
           echo "  npm-audit     (BLOQUEADOR): ${{ needs.npm-audit.result }}"
           echo "  python-audit  (BLOQUEADOR): ${{ needs.python-audit.result }}"
+          echo "  secret-scan   (BLOQUEADOR): ${{ needs.secret-scan.result }}"
           echo "  sbom-nodejs   (informativo): ${{ needs.sbom-nodejs.result }}"
           echo "  sast-semgrep  (informativo): ${{ needs.sast-semgrep.result }}"
           echo "========================================"
 
           FAILED=""
 
-          # Verificar jobs bloqueadores (npm-audit e python-audit)
-          for JOB in npm-audit python-audit; do
+          # Verificar jobs bloqueadores (npm-audit, python-audit e secret-scan)
+          for JOB in npm-audit python-audit secret-scan; do
             RESULT=$(case $JOB in
               npm-audit)    echo "${{ needs.npm-audit.result }}" ;;
               python-audit) echo "${{ needs.python-audit.result }}" ;;
+              secret-scan)  echo "${{ needs.secret-scan.result }}" ;;
             esac)
             if [ "$RESULT" != "success" ] && [ "$RESULT" != "skipped" ]; then
               FAILED="${FAILED} ${JOB}(${RESULT})"

@@ -1024,3 +1024,36 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - Teste focado com sucesso:
   - `npm run test:backend:debug -- opsRoutes.test.ts`
 - Diagnósticos sem erros nos arquivos alterados.
+
+---
+
+## 📌 Atualização Operacional (2026-04-15) - DevSecOps Supply Chain + Release Trust (T1)
+
+### Classificação de Governança
+
+- Categoria: **Obrigatório para Go-Live Enterprise**
+- Itens correlatos do roadmap: **15, 16, 91**
+
+### Escopo
+
+- Endurecimento do pipeline CI para segurança de cadeia de suprimentos e confiabilidade de release.
+- Inclusão de gate bloqueador para exposição de segredos e evidência de proveniência de build.
+
+### Implementação
+
+- `\.github/workflows/security-supply-chain.yml`
+  - Novo job bloqueador `secret-scan` com `gitleaks/gitleaks-action@v2`.
+  - Upload de SARIF para Security tab do GitHub (`github/codeql-action/upload-sarif@v3`).
+  - Gate final atualizado para bloquear merge também em falha de `secret-scan`.
+- `\.gitleaks.toml`
+  - Configuração inicial do scanner com allowlist para artefatos gerados e placeholders não sensíveis.
+  - Regra adicional para detectar padrão de chave Google API.
+- `\.github/workflows/quality-gates.yml`
+  - Permissões de OIDC/attestation habilitadas (`attestations: write`, `id-token: write`).
+  - Etapa `actions/attest-build-provenance@v2` adicionada no job de build para gerar atestado SLSA do `dist`.
+
+### Resultado
+
+- PRs passam a ter bloqueio explícito contra vazamento de segredos.
+- Builds aprovados no gate de qualidade agora carregam evidência de proveniência verificável.
+- Maior prontidão para homologação corporativa com trilha de auditoria de supply chain e release integrity.

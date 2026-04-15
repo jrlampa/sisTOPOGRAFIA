@@ -1,0 +1,24 @@
+title = "sisTOPOGRAFIA gitleaks config"
+
+[allowlist]
+description = "Allow known non-secret placeholders and generated files"
+paths = [
+  '''^dist/''',
+  '''^coverage/''',
+  '''^playwright-report/''',
+  '''^test-results/''',
+  '''^archive/''',
+  '''^artifacts/brain/'''
+]
+regexes = [
+  '''(?i)example(_|-)?(token|key|secret|password)''',
+  '''(?i)dummy(_|-)?(token|key|secret|password)''',
+  '''(?i)test(_|-)?(token|key|secret|password)''',
+  '''(?i)changeme'''
+]
+
+[[rules]]
+id = "custom-gcp-api-key"
+description = "Potential Google API key"
+regex = '''AIza[0-9A-Za-z\-_]{35}'''
+tags = ["gcp", "apikey"]

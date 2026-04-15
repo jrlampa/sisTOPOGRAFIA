@@ -6,6 +6,11 @@ on:
   push:
     branches: [main, master]
 
+permissions:
+  contents: read
+  attestations: write
+  id-token: write
+
 defaults:
   run:
     working-directory: sisrua_unified
@@ -171,6 +176,13 @@ jobs:
 
       - name: Build application
         run: npm run build
+
+      - name: Generate build provenance attestation (SLSA)
+        if: ${{ !env.ACT }}
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            sisrua_unified/dist/**
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
