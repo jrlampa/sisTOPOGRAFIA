@@ -6,6 +6,10 @@ on:
   push:
     branches: [main, master]
 
+defaults:
+  run:
+    working-directory: sisrua_unified
+
 jobs:
   # ============================================
   # BACKEND TESTS

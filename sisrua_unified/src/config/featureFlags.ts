@@ -36,12 +36,21 @@ export enum FeatureFlag {
 }
 
 type FeatureFlagConfig = Record<FeatureFlag, boolean>;
-type FeatureFlagOverrideConfig = Partial<Record<string, unknown>>;
-type FeatureFlagOverrideValue = boolean | string;
+type FeatureFlagOverrideConfig = Partial<Record<FeatureFlag, boolean>>;
 
-const VALID_FEATURE_FLAGS = new Set<FeatureFlag>(
-  Object.values(FeatureFlag) as FeatureFlag[],
-);
+export interface FeatureFlagContext {
+  /** Grupo de usuário (ex: 'engenharia', 'operacao', 'viewer') */
+  userGroup?: string;
+  /** Regional/região (ex: 'sul', 'sudeste', 'nordeste') */
+  region?: string;
+}
+
+export interface FeatureFlagTargetingConfig {
+  /** Overrides por grupo de usuário */
+  userGroups?: Record<string, FeatureFlagOverrideConfig>;
+  /** Overrides por região */
+  regions?: Record<string, FeatureFlagOverrideConfig>;
+}
 
 const APP_ENV = (import.meta as { env?: Record<string, string | boolean | undefined> }).env ?? {};
 const IS_PRODUCTION = APP_ENV.PROD === true || APP_ENV.MODE === 'production';
@@ -87,64 +96,116 @@ let runtimeFlags: FeatureFlagConfig = {
     : DEFAULT_FEATURE_FLAGS),
 };
 
+let runtimeTargeting: Required<FeatureFlagTargetingConfig> = {
+  userGroups: {},
+  regions: {},
+};
+
+function normalizeContextKey(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+/** Conjunto de valores válidos do enum FeatureFlag para validação em runtime. */
+const VALID_FEATURE_FLAGS = new Set<FeatureFlag>(
+  Object.values(FeatureFlag) as FeatureFlag[],
+);
+
+/** Chaves de prototype reservadas — bloqueadas para prevenir prototype pollution. */
+const BLOCKED_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+function sanitizeOverrideConfig(
+  overrides: Partial<Record<string, unknown>>,
+): FeatureFlagOverrideConfig {
+  const sanitized = Object.create(null) as FeatureFlagOverrideConfig;
+  return Object.entries(overrides).reduce((acc, [key, value]) => {
+    if (BLOCKED_KEYS.has(key)) {
+      return acc;
+    }
+
+    const featureFlagKey = key as FeatureFlag;
+
+    if (!VALID_FEATURE_FLAGS.has(featureFlagKey)) {
+      console.warn(
+        `[FeatureFlags] Chave de override desconhecida ignorada: ${key}`
+      );
+      return acc;
+    }
+
+    if (typeof value === 'boolean') {
+      acc[featureFlagKey] = value;
+    } else if (value === 'true') {
+      // Coagir string boolean — formato comum em configs externas/JSON
+      acc[featureFlagKey] = true;
+    } else if (value === 'false') {
+      // Coagir string boolean — formato comum em configs externas/JSON
+      acc[featureFlagKey] = false;
+    } else {
+      console.warn(
+        `[FeatureFlags] Valor inválido para override "${key}". Esperado boolean, recebido ${typeof value}.`
+      );
+    }
+    return acc;
+  }, sanitized);
+}
+
 /**
- * Carregar flags personalizado a partir de environment ou JSON.
+ * Carrega flags personalizados a partir de environment ou JSON.
  * @example
  * loadFeatureFlags({
  *   [FeatureFlag.BT_TOPOLOGY_EDITOR]: false,
  *   [FeatureFlag.AI_CLANDESTINO_ANALYSIS]: true,
  * })
  */
-export function loadFeatureFlags(customFlags: FeatureFlagOverrideConfig): void {
+export function loadFeatureFlags(customFlags: Partial<Record<string, unknown>>): void {
   if (IS_PRODUCTION && Object.keys(customFlags).length > 0) {
-    throw new Error(
-      'Feature flags customizadas não podem ser alteradas em produção. Use env vars.'
+    console.warn(
+      'Feature flags customizadas não devem ser alteradas em produção. Use env vars.'
     );
+    return;
   }
 
-  const sanitizedCustomFlags = sanitizeOverrideConfig(customFlags);
-
-  runtimeFlags = { ...runtimeFlags, ...sanitizedCustomFlags };
+  runtimeFlags = { ...runtimeFlags, ...sanitizeOverrideConfig(customFlags) };
 }
 
-function normalizeOverrideBoolean(value: string): FeatureFlagOverrideValue {
-  return value.trim().toLowerCase();
-}
-
-function sanitizeOverrideConfig(
-  overrides: FeatureFlagOverrideConfig,
-): Partial<Record<FeatureFlag, boolean>> {
-  return Object.entries(overrides).reduce((acc, [key, rawValue]) => {
-    const featureFlagKey = key as FeatureFlag;
-
-    if (!VALID_FEATURE_FLAGS.has(featureFlagKey)) {
-      console.warn(`[FeatureFlags] Chave de override desconhecida ignorada: ${key}`);
-      return acc;
-    }
-
-    let parsedValue: boolean | null = null;
-
-    if (typeof rawValue === 'boolean') {
-      parsedValue = rawValue;
-    } else if (typeof rawValue === 'string') {
-      const normalizedValue = normalizeOverrideBoolean(rawValue);
-      if (normalizedValue === 'true') {
-        parsedValue = true;
-      } else if (normalizedValue === 'false') {
-        parsedValue = false;
+/**
+ * Carrega regras de segmentação de feature flags por grupo de usuário e região.
+ * Útil para rollout progressivo em grupos e regionais específicas.
+ *
+ * Pode ser chamado em qualquer ambiente — inclusive produção — pois recebe dados
+ * de fonte externa (config server, env, arquivo) sem alterar os flags globais.
+ * Prioridade de resolução ao avaliar: global → grupo → região.
+ */
+export function loadFeatureFlagTargeting(
+  targeting: FeatureFlagTargetingConfig,
+): void {
+  const sanitizedUserGroups = Object.entries(targeting.userGroups ?? {}).reduce(
+    (acc, [group, overrides]) => {
+      const normalizedGroup = normalizeContextKey(group);
+      if (!normalizedGroup) {
+        return acc;
       }
-    }
-
-    if (parsedValue === null) {
-      console.warn(
-        `[FeatureFlags] Valor inválido para override "${key}". Esperado boolean, recebido ${typeof rawValue}.`,
-      );
+      acc[normalizedGroup] = sanitizeOverrideConfig(overrides);
       return acc;
-    }
+    },
+    {} as Record<string, FeatureFlagOverrideConfig>
+  );
 
-    acc[featureFlagKey] = parsedValue;
-    return acc;
-  }, {} as Partial<Record<FeatureFlag, boolean>>);
+  const sanitizedRegions = Object.entries(targeting.regions ?? {}).reduce(
+    (acc, [region, overrides]) => {
+      const normalizedRegion = normalizeContextKey(region);
+      if (!normalizedRegion) {
+        return acc;
+      }
+      acc[normalizedRegion] = sanitizeOverrideConfig(overrides);
+      return acc;
+    },
+    {} as Record<string, FeatureFlagOverrideConfig>
+  );
+
+  runtimeTargeting = {
+    userGroups: sanitizedUserGroups,
+    regions: sanitizedRegions,
+  };
 }
 
 /**
@@ -159,7 +220,36 @@ export function isFeatureEnabled(flag: FeatureFlag): boolean {
 }
 
 /**
- * Acessar todos os flags (read-only em produção).
+ * Verifica feature flag considerando segmentação por grupo e região.
+ * Prioridade de resolução: global → grupo → região.
+ */
+export function isFeatureEnabledForContext(
+  flag: FeatureFlag,
+  context?: FeatureFlagContext,
+): boolean {
+  let enabled = isFeatureEnabled(flag);
+
+  if (context?.userGroup) {
+    const groupOverride =
+      runtimeTargeting.userGroups[normalizeContextKey(context.userGroup)]?.[flag];
+    if (typeof groupOverride === 'boolean') {
+      enabled = groupOverride;
+    }
+  }
+
+  if (context?.region) {
+    const regionOverride =
+      runtimeTargeting.regions[normalizeContextKey(context.region)]?.[flag];
+    if (typeof regionOverride === 'boolean') {
+      enabled = regionOverride;
+    }
+  }
+
+  return enabled;
+}
+
+/**
+ * Retorna todos os flags (somente leitura em produção).
  */
 export function getAllFeatureFlags(): Readonly<FeatureFlagConfig> {
   return Object.freeze({ ...runtimeFlags });
@@ -193,6 +283,11 @@ export function resetFeatureFlags(): void {
     IS_PRODUCTION
       ? { ...PRODUCTION_FEATURE_FLAGS }
       : { ...DEFAULT_FEATURE_FLAGS };
+
+  runtimeTargeting = {
+    userGroups: {},
+    regions: {},
+  };
 }
 
 /**
