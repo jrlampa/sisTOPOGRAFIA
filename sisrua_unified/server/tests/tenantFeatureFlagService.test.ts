@@ -209,4 +209,16 @@ describe("tenantFeatureFlagService", () => {
       expect(() => clearAllTenantFlagOverrides()).not.toThrow();
     });
   });
+
+  // ─── normalizeTenantId — validação de vazio ────────────────────────────────
+
+  describe("normalizeTenantId (via setTenantFlagOverrides)", () => {
+    it("lança erro para tenantId composto apenas de espaços", () => {
+      expect(() => setTenantFlagOverrides("   ", { feat1: true })).toThrow();
+    });
+
+    it("lança erro para tenantId string vazia", () => {
+      expect(() => setTenantFlagOverrides("", { feat1: true })).toThrow();
+    });
+  });
 });

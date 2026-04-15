@@ -156,6 +156,12 @@ describe("GET /api/feature-flags/:tenantId (overrides do tenant)", () => {
     expect(res.body).toHaveProperty("erro");
   });
 
+  it("retorna 400 para tenantId com sequência de pontos (path traversal)", async () => {
+    const app = await buildApp(undefined);
+    const res = await request(app).get("/api/feature-flags/tenant..evil");
+    expect(res.status).toBe(400);
+  });
+
   it("retorna 400 para tenantId muito longo (>128 chars)", async () => {
     const app = await buildApp(undefined);
     const longId = "a".repeat(129);

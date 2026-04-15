@@ -34,7 +34,11 @@ const tenantStore = new Map<TenantId, TenantFlagMap>();
 // ─── Helpers internos ─────────────────────────────────────────────────────────
 
 function normalizeTenantId(id: TenantId): TenantId {
-  return id.trim().toLowerCase();
+  const normalized = id.trim().toLowerCase();
+  if (normalized.length === 0) {
+    throw new Error("tenantId não pode ser vazio ou conter apenas espaços");
+  }
+  return normalized;
 }
 
 // ─── API pública ──────────────────────────────────────────────────────────────

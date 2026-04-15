@@ -60,7 +60,10 @@ const TenantIdParamSchema = z.object({
     .regex(
       /^[\w\-\.@]+$/,
       "tenantId deve conter apenas letras, números, hífens, underscores, pontos ou @",
-    ),
+    )
+    .refine((v) => !v.includes(".."), {
+      message: "tenantId não pode conter sequências de pontos consecutivos",
+    }),
 });
 
 const FlagNameParamSchema = z.object({
