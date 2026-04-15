@@ -919,3 +919,35 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - Varredura de erros em todos os componentes frontend já alterados nas iterações anteriores.
 - Resultado final: sem erros nos arquivos auditados.
 - Build validado e preview atualizado em `http://localhost:4173`.
+
+---
+
+## 📌 Atualização Operacional (2026-04-14) - Governança de Runtime Ollama (T1)
+
+### Escopo
+
+- Evolução backend para cumprir governança de IA local zero-custo com foco em operação segura e retrocompatibilidade.
+
+### Implementação
+
+- `server/config.ts`
+  - Novas chaves de governança de atualização do Ollama:
+    - `OLLAMA_MIN_VERSION`
+    - `OLLAMA_UPDATE_MAINTENANCE_WINDOW_UTC`
+    - `OLLAMA_UPDATE_CHECK_ENABLED`
+- `server/services/ollamaService.ts`
+  - Novo diagnóstico de governança com:
+    - versão atual vs. mínima exigida
+    - validação de janela de manutenção UTC
+    - decisão explícita de elegibilidade para atualização controlada
+  - Novo método `getVersion()` para leitura de `/api/version` do Ollama.
+- `server/routes/analysisRoutes.ts`
+  - Nova rota `GET /api/analysis/runtime/governance` para telemetria operacional de governança.
+- `server/tests/analysisRoutesLogging.test.ts`
+  - Novo teste cobrindo retorno da rota de governança.
+
+### Validação
+
+- Teste focado executado com sucesso:
+  - `npx jest server/tests/analysisRoutesLogging.test.ts --coverage=false`
+- Tipagem/diagnósticos sem erros nos arquivos alterados.

@@ -22,6 +22,18 @@ const EnvSchema = z.object({
   // ── Ollama ────────────────────────────────────────────────────────────────
   OLLAMA_MODEL: z.string().default("llama3.2"),
   OLLAMA_HOST: z.string().default("http://localhost:11434"),
+  /** Enforce zero-cost AI policy by restricting Ollama host to local endpoints unless explicitly allowed. */
+  OLLAMA_ENFORCE_ZERO_COST: z.string().optional(),
+  /** Comma-separated fallback models for compatibility when primary model is unavailable. */
+  OLLAMA_FALLBACK_MODELS: z.string().optional(),
+  /** Optional comma-separated remote host allowlist when zero-cost policy needs explicit exceptions. */
+  OLLAMA_ALLOWED_REMOTE_HOSTS: z.string().optional(),
+  /** Minimum Ollama runtime version required for enterprise governance checks. */
+  OLLAMA_MIN_VERSION: z.string().default("0.0.0"),
+  /** UTC maintenance window in HH:MM-HH:MM format used to authorize controlled updates. */
+  OLLAMA_UPDATE_MAINTENANCE_WINDOW_UTC: z.string().default("02:00-04:00"),
+  /** Enable/disable periodic governance checks for Ollama runtime updates. */
+  OLLAMA_UPDATE_CHECK_ENABLED: z.string().optional(),
   /** How long (ms) to wait after spawning the Ollama process before proceeding */
   OLLAMA_STARTUP_WAIT_MS: z.coerce.number().default(3_000),
   /** Timeout (ms) for the Ollama health-check HTTP request */
@@ -194,6 +206,26 @@ function loadConfig() {
   const useDbConstantsConfig: boolean = raw.USE_DB_CONSTANTS_CONFIG === "true";
   const btRadialEnabled: boolean = raw.BT_RADIAL_ENABLED === "true";
   const trustProxy = parseTrustProxyValue(raw.TRUST_PROXY, raw.NODE_ENV);
+  const ollamaEnforceZeroCost: boolean =
+    raw.OLLAMA_ENFORCE_ZERO_COST !== undefined
+      ? raw.OLLAMA_ENFORCE_ZERO_COST === "true"
+      : true;
+  const ollamaFallbackModels: readonly string[] = (
+    raw.OLLAMA_FALLBACK_MODELS ?? ""
+  )
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+  const ollamaAllowedRemoteHosts: readonly string[] = (
+    raw.OLLAMA_ALLOWED_REMOTE_HOSTS ?? ""
+  )
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0);
+  const ollamaUpdateCheckEnabled: boolean =
+    raw.OLLAMA_UPDATE_CHECK_ENABLED !== undefined
+      ? raw.OLLAMA_UPDATE_CHECK_ENABLED === "true"
+      : true;
 
   return {
     ...raw,
@@ -207,6 +239,10 @@ function loadConfig() {
     useDbConstantsConfig,
     btRadialEnabled,
     trustProxy,
+    ollamaEnforceZeroCost,
+    ollamaFallbackModels,
+    ollamaAllowedRemoteHosts,
+    ollamaUpdateCheckEnabled,
   } as const;
 }
 
