@@ -69,7 +69,9 @@ function forbidden(res: Response): Response {
 
 // ─── GET /saude ───────────────────────────────────────────────────────────────
 
-router.get("/saude", (_req: Request, res: Response) => {
+router.get("/saude", (req: Request, res: Response) => {
+  if (!isAdminAuthorized(req)) return forbidden(res);
+
   return res.json({
     painel: "Painel de Autoatendimento Administrativo",
     versao: config.APP_VERSION,
@@ -118,7 +120,9 @@ router.put("/usuarios/:userId/papel", async (req: Request, res: Response) => {
 
   const body = AlterarPapelSchema.safeParse(req.body);
   if (!body.success) {
-    return res.status(400).json({ erro: "Corpo inválido", detalhes: body.error.issues });
+    return res
+      .status(400)
+      .json({ erro: "Corpo inválido", detalhes: body.error.issues });
   }
 
   const sucesso = await setUserRole(
@@ -129,7 +133,11 @@ router.put("/usuarios/:userId/papel", async (req: Request, res: Response) => {
   );
 
   if (!sucesso) {
-    return res.status(500).json({ erro: "Falha ao atualizar papel (banco indisponível ou usuário não encontrado)" });
+    return res
+      .status(500)
+      .json({
+        erro: "Falha ao atualizar papel (banco indisponível ou usuário não encontrado)",
+      });
   }
 
   logger.info("[AdminRoutes] Papel de usuário alterado", {
@@ -164,14 +172,16 @@ router.get("/tenants", async (req: Request, res: Response) => {
   }
 
   try {
-    const rows = await sql<{
-      id: string;
-      slug: string;
-      name: string;
-      plan: string;
-      is_active: boolean;
-      created_at: string;
-    }[]>`
+    const rows = await sql<
+      {
+        id: string;
+        slug: string;
+        name: string;
+        plan: string;
+        is_active: boolean;
+        created_at: string;
+      }[]
+    >`
       SELECT id, slug, name, plan, is_active, created_at
       FROM tenants
       WHERE is_active = TRUE
@@ -204,7 +214,8 @@ router.get("/quotas", async (req: Request, res: Response) => {
   return res.json({
     tipos,
     tenantsComQuotas,
-    aviso: "Informe tenantId como query param para ver quotas de um tenant específico",
+    aviso:
+      "Informe tenantId como query param para ver quotas de um tenant específico",
   });
 });
 

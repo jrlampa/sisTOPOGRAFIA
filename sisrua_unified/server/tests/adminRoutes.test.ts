@@ -48,7 +48,8 @@ jest.mock("../services/tenantQuotaService", () => ({
 const mockGetTenantFlagOverrides = jest.fn().mockReturnValue({});
 
 jest.mock("../services/tenantFeatureFlagService", () => ({
-  getTenantFlagOverrides: (...args: unknown[]) => mockGetTenantFlagOverrides(...args),
+  getTenantFlagOverrides: (...args: unknown[]) =>
+    mockGetTenantFlagOverrides(...args),
 }));
 
 const mockRelatorioKpiTenant = jest.fn();
@@ -85,7 +86,12 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockGetUsersByRole.mockResolvedValue([]);
   mockSetUserRole.mockResolvedValue(true);
-  mockGetRoleStatistics.mockResolvedValue({ admin: 0, technician: 0, viewer: 0, guest: 0 });
+  mockGetRoleStatistics.mockResolvedValue({
+    admin: 0,
+    technician: 0,
+    viewer: 0,
+    guest: 0,
+  });
   mockRelatorioKpiTenant.mockReturnValue({
     tenantId: "empresa-a",
     global: { total: 0, taxaSucesso: 1 },
@@ -100,9 +106,18 @@ afterEach(() => {
 // ─── GET /saude ───────────────────────────────────────────────────────────────
 
 describe("GET /api/admin/saude", () => {
-  it("retorna 200 sem autenticação (endpoint público)", async () => {
+  it("retorna 401 sem autenticação quando ADMIN_TOKEN configurado", async () => {
     const app = await buildApp(TOKEN);
     const res = await request(app).get("/api/admin/saude");
+    expect(res.status).toBe(401);
+    expect(res.headers["www-authenticate"]).toBe('Bearer realm="admin"');
+  });
+
+  it("retorna 200 com token válido", async () => {
+    const app = await buildApp(TOKEN);
+    const res = await request(app)
+      .get("/api/admin/saude")
+      .set("Authorization", AUTH);
     expect(res.status).toBe(200);
     expect(res.body.painel).toBe("Painel de Autoatendimento Administrativo");
     expect(res.body.status).toBe("operacional");
@@ -132,8 +147,19 @@ describe("GET /api/admin/usuarios", () => {
 
   it("agrega usuários de todos os papéis", async () => {
     mockGetUsersByRole.mockImplementation((papel: string) => {
-      if (papel === "admin") return [{ user_id: "u1", role: "admin", assigned_at: "", last_updated: "" }];
-      if (papel === "technician") return [{ user_id: "u2", role: "technician", assigned_at: "", last_updated: "" }];
+      if (papel === "admin")
+        return [
+          { user_id: "u1", role: "admin", assigned_at: "", last_updated: "" },
+        ];
+      if (papel === "technician")
+        return [
+          {
+            user_id: "u2",
+            role: "technician",
+            assigned_at: "",
+            last_updated: "",
+          },
+        ];
       return [];
     });
     const app = await buildApp(TOKEN);
@@ -141,8 +167,12 @@ describe("GET /api/admin/usuarios", () => {
       .get("/api/admin/usuarios")
       .set("Authorization", AUTH);
     expect(res.body.total).toBe(2);
-    expect(res.body.usuarios.some((u: { userId: string }) => u.userId === "u1")).toBe(true);
-    expect(res.body.usuarios.some((u: { userId: string }) => u.userId === "u2")).toBe(true);
+    expect(
+      res.body.usuarios.some((u: { userId: string }) => u.userId === "u1"),
+    ).toBe(true);
+    expect(
+      res.body.usuarios.some((u: { userId: string }) => u.userId === "u2"),
+    ).toBe(true);
   });
 });
 
@@ -162,7 +192,11 @@ describe("PUT /api/admin/usuarios/:userId/papel", () => {
     const res = await request(app)
       .put("/api/admin/usuarios/user-1/papel")
       .set("Authorization", AUTH)
-      .send({ papel: "technician", atribuidoPor: "admin@empresa.com", motivo: "Promoção" });
+      .send({
+        papel: "technician",
+        atribuidoPor: "admin@empresa.com",
+        motivo: "Promoção",
+      });
     expect(res.status).toBe(200);
     expect(res.body.papel).toBe("technician");
     expect(res.body.atualizado).toBe(true);
@@ -217,7 +251,12 @@ describe("GET /api/admin/papeis/estatisticas", () => {
   });
 
   it("retorna distribuição de papéis", async () => {
-    mockGetRoleStatistics.mockResolvedValue({ admin: 2, technician: 5, viewer: 10, guest: 0 });
+    mockGetRoleStatistics.mockResolvedValue({
+      admin: 2,
+      technician: 5,
+      viewer: 10,
+      guest: 0,
+    });
     const app = await buildApp(TOKEN);
     const res = await request(app)
       .get("/api/admin/papeis/estatisticas")
@@ -285,7 +324,9 @@ describe("GET /api/admin/quotas", () => {
 describe("GET /api/admin/feature-flags", () => {
   it("retorna 401 sem token", async () => {
     const app = await buildApp(TOKEN);
-    const res = await request(app).get("/api/admin/feature-flags?tenantId=empresa-a");
+    const res = await request(app).get(
+      "/api/admin/feature-flags?tenantId=empresa-a",
+    );
     expect(res.status).toBe(401);
   });
 
@@ -298,7 +339,10 @@ describe("GET /api/admin/feature-flags", () => {
   });
 
   it("retorna feature flags do tenant", async () => {
-    mockGetTenantFlagOverrides.mockReturnValue({ BT_RADIAL_ENABLED: true, DARK_MODE: false });
+    mockGetTenantFlagOverrides.mockReturnValue({
+      BT_RADIAL_ENABLED: true,
+      DARK_MODE: false,
+    });
     const app = await buildApp(TOKEN);
     const res = await request(app)
       .get("/api/admin/feature-flags?tenantId=empresa-a")
