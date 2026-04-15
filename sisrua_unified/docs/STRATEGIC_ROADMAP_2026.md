@@ -4,6 +4,8 @@ Este documento estabelece a visão técnica, os pontos de melhoria prioritários
 
 ## 🛡️ Regras Não Negociáveis (Non-negotiables)
 
+![1776210246658](image/STRATEGIC_ROADMAP_2026/1776210246658.png)
+
 > [!IMPORTANT]
 > Estas regras são obrigatórias e devem ser seguidas sem exceção em cada interação de desenvolvimento.
 
@@ -366,6 +368,18 @@ Legenda:
 128. **[T1] Classificação da Informação & Segregação**: Política de acesso e retenção por sensibilidade (Público/Confidencial).
 129. **[T1] Modelo Multiempresa & Holding**: Estratégia para regionais e empreiteiras com auditoria cruzada delegada.
 130. **[T1] FinOps: Controle de Custo Operacional**: Orçamento por ambiente e alertas de consumo de APIs.
+
+---
+
+## ✅ Double Check de Pontos já Implementados (2026-04-14)
+
+| Ponto | Status | Evidência |
+| ----- | ------ | --------- |
+| 90. SRE Runbooks para queda de conexão de APIs | ✅ Implementado | `docs/sre/RUNBOOKS.md` (RB-01: perda de conexão com APIs externas) |
+| 91. Policy Gates para dependências vulneráveis (SBOM Check) | ✅ Implementado | `.github/workflows/security-supply-chain.yml` + `package.json` (`security:sbom:node`) |
+| 93. Log de Auditoria exportável em SIEM | ✅ Implementado | `server/routes/auditRoutes.ts` + `migrations/038_audit_context_siem.sql` |
+| 96. Monitoramento de SLA de APIs de terceiros | ✅ Implementado | `server/services/metricsService.ts` + `server/utils/externalApi.ts` |
+| 99. Self-healing automático de workers Python OOM | ✅ Implementado | `server/pythonBridge.ts` (tratamento explícito de OOM com retry) |
 
 ---
 

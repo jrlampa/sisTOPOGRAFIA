@@ -151,7 +151,7 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
         aria-label={
           isExpanded ? "Fechar painel de camadas" : "Abrir painel de camadas"
         }
-        className={`btn-enterprise flex items-center justify-center w-10 h-10 rounded-xl shadow-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 ${isExpanded ? "text-enterprise-blue" : "text-slate-500 dark:text-slate-400"}`}
+        className={`btn-enterprise flex items-center justify-center w-11 h-11 rounded-2xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 ${isExpanded ? "bg-cyan-500 text-white" : "text-amber-900 dark:text-amber-100"}`}
       >
         <Layers size={20} />
       </motion.button>
@@ -162,7 +162,7 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="glass-card p-2 w-48 flex flex-col gap-1 shadow-2xl origin-top-right border border-white/20"
+            className="glass-card origin-top-right flex w-52 flex-col gap-1 border-2 p-2"
           >
             {/* Search Bar */}
             <div className="relative mb-2">
@@ -175,7 +175,7 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filtrar..."
-                className="w-full bg-white/80 dark:bg-slate-900/60 rounded-lg py-1.5 pl-8 pr-7 text-[10px] text-slate-800 dark:text-slate-100 placeholder:text-slate-500 outline-none border border-transparent focus:border-cyan-500/40 focus-visible:ring-2 focus-visible:ring-cyan-500/60 transition-all font-bold uppercase tracking-widest"
+                className="w-full rounded-lg border-2 border-amber-800/25 bg-amber-50 py-1.5 pl-8 pr-7 text-[10px] font-black uppercase tracking-widest text-amber-950 outline-none transition-all placeholder:text-amber-700/70 focus:border-cyan-500/40 focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:border-amber-500/45 dark:bg-zinc-900 dark:text-amber-100 dark:placeholder:text-amber-200/60"
               />
               {searchQuery && (
                 <button

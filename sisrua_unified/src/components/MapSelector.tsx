@@ -156,6 +156,10 @@ interface MapSelectorProps {
     lng: number;
     label?: string;
   }) => void;
+  onBtContextAction?: (
+    action: "add-edge" | "add-transformer" | "add-pole",
+    location: GeoLocation,
+  ) => void;
   onBtDeletePole?: (id: string) => void;
   onBtDeleteEdge?: (id: string) => void;
   onBtSetEdgeChangeFlag?: (
@@ -204,6 +208,7 @@ interface MapSelectorProps {
   onMapStyleChange?: (style: string) => void;
   showAnalysis?: boolean;
   geojson?: GeoJsonObject | null;
+  keyboardPanEnabled?: boolean;
 }
 
 type BtEdgeChangeFlag = NonNullable<BtEdge["edgeChangeFlag"]>;
@@ -276,6 +281,11 @@ interface SelectionManagerProps {
   onMeasurePathChange?: (path: Array<[number, number]>) => void;
   btEditorMode?: BtEditorMode;
   onBtMapClick?: (location: GeoLocation) => void;
+  onBtContextAction?: (
+    action: "add-edge" | "add-transformer" | "add-pole",
+    location: GeoLocation,
+  ) => void;
+  keyboardPanEnabled?: boolean;
 }
 
 const SelectionManager = ({
@@ -292,14 +302,23 @@ const SelectionManager = ({
   onMeasurePathChange,
   btEditorMode = "none",
   onBtMapClick,
+  onBtContextAction,
+  keyboardPanEnabled = false,
 }: SelectionManagerProps) => {
   const middlePanActiveRef = React.useRef(false);
   const middlePanMovedRef = React.useRef(false);
   const suppressNextClickRef = React.useRef(false);
   const middlePanLastPointRef = React.useRef<L.Point | null>(null);
+  const [contextMenuLocation, setContextMenuLocation] = React.useState<
+    GeoLocation | null
+  >(null);
 
   const map = useMapEvents({
     click(e) {
+      if (contextMenuLocation) {
+        setContextMenuLocation(null);
+      }
+
       if (suppressNextClickRef.current) {
         suppressNextClickRef.current = false;
         return;
@@ -334,6 +353,19 @@ const SelectionManager = ({
           onMeasurePathChange([...measurePath, [e.latlng.lat, e.latlng.lng]]);
         }
       }
+    },
+    contextmenu(e) {
+      if (!onBtContextAction) {
+        return;
+      }
+
+      e.originalEvent.preventDefault();
+      e.originalEvent.stopPropagation();
+      setContextMenuLocation({
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
+        label: `BT (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
+      });
     },
     mousedown(e) {
       if (e.originalEvent.button !== 1) {
@@ -375,6 +407,17 @@ const SelectionManager = ({
       }
     },
   });
+
+  const runContextAction = (
+    action: "add-edge" | "add-transformer" | "add-pole",
+  ) => {
+    if (!onBtContextAction || !contextMenuLocation) {
+      return;
+    }
+
+    onBtContextAction(action, contextMenuLocation);
+    setContextMenuLocation(null);
+  };
 
   const flyToCenter = (target: { lat: number; lng: number }) => {
     const next = L.latLng(target.lat, target.lng);
@@ -458,6 +501,58 @@ const SelectionManager = ({
 
   // Fix map size on mount and when window resizes
   React.useEffect(() => {
+    if (!keyboardPanEnabled) {
+      return;
+    }
+
+    const panStep = 80;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+      if (
+        key !== "w" &&
+        key !== "a" &&
+        key !== "s" &&
+        key !== "d" &&
+        key !== "arrowup" &&
+        key !== "arrowdown" &&
+        key !== "arrowleft" &&
+        key !== "arrowright"
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (key === "w" || key === "arrowup") {
+        map.panBy([0, -panStep], { animate: false });
+      }
+      if (key === "s" || key === "arrowdown") {
+        map.panBy([0, panStep], { animate: false });
+      }
+      if (key === "a" || key === "arrowleft") {
+        map.panBy([-panStep, 0], { animate: false });
+      }
+      if (key === "d" || key === "arrowright") {
+        map.panBy([panStep, 0], { animate: false });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [keyboardPanEnabled, map]);
+
+  React.useEffect(() => {
     const handleResize = () => {
       setTimeout(() => {
         map.invalidateSize();
@@ -472,6 +567,53 @@ const SelectionManager = ({
 
   return (
     <>
+      {contextMenuLocation && (
+        <Popup
+          position={[contextMenuLocation.lat, contextMenuLocation.lng]}
+          closeButton={true}
+          autoPan={false}
+          eventHandlers={{
+            remove: () => setContextMenuLocation(null),
+          }}
+        >
+          <div className="flex min-w-[170px] flex-col gap-1 p-0.5 text-xs font-black uppercase tracking-wide text-slate-900">
+            <button
+              type="button"
+              className="rounded-md border border-violet-300 bg-violet-50 px-2 py-1.5 text-left transition hover:bg-violet-100"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                runContextAction("add-edge");
+              }}
+            >
+              +CONDUTOR
+            </button>
+            <button
+              type="button"
+              className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-left transition hover:bg-emerald-100"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                runContextAction("add-transformer");
+              }}
+            >
+              +TRAFO
+            </button>
+            <button
+              type="button"
+              className="rounded-md border border-sky-300 bg-sky-50 px-2 py-1.5 text-left transition hover:bg-sky-100"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                runContextAction("add-pole");
+              }}
+            >
+              +POSTE
+            </button>
+          </div>
+        </Popup>
+      )}
+
       {selectionMode === "circle" && (
         <>
           <Marker position={[center.lat, center.lng]} />
@@ -545,6 +687,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   btEditorMode = "none",
   pendingBtEdgeStartPoleId,
   onBtMapClick,
+  onBtContextAction,
   onBtDeletePole,
   onBtDeleteEdge,
   onBtSetEdgeChangeFlag,
@@ -571,6 +714,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onMapStyleChange,
   showAnalysis = false,
   geojson,
+  keyboardPanEnabled = false,
 }) => {
   const topology = btTopology ?? { poles: [], transformers: [], edges: [] };
   const paneIdSuffix = React.useId().replace(/:/g, "-");
@@ -769,6 +913,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onMeasurePathChange={onMeasurePathChange}
           btEditorMode={btEditorMode}
           onBtMapClick={onBtMapClick}
+          onBtContextAction={onBtContextAction}
+          keyboardPanEnabled={keyboardPanEnabled}
         />
 
         <Pane name={btEdgesPaneName} style={{ zIndex: 420 }}>
