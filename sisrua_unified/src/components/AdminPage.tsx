@@ -107,6 +107,125 @@ const SECOES: SecaoConfig[] = [
 
 // ─── Componentes auxiliares ────────────────────────────────────────────────────
 
+// Mapa estático de classes Tailwind por cor (necessário para JIT funcionar corretamente).
+const COR_CLASSES: Record<
+  string,
+  { border: string; darkBorder: string; bg: string; darkBg: string; hoverBg: string; darkHoverBg: string; iconBg: string; darkIconBg: string; iconBorder: string; darkIconBorder: string; iconText: string; darkIconText: string; titleText: string; darkTitleText: string }
+> = {
+  emerald: {
+    border: "border-emerald-700/30",
+    darkBorder: "dark:border-emerald-500/40",
+    bg: "bg-emerald-50",
+    darkBg: "dark:bg-emerald-950/20",
+    hoverBg: "hover:bg-emerald-100",
+    darkHoverBg: "dark:hover:bg-emerald-950/30",
+    iconBg: "bg-emerald-100",
+    darkIconBg: "dark:bg-emerald-900/40",
+    iconBorder: "border-emerald-300/50",
+    darkIconBorder: "dark:border-emerald-700/50",
+    iconText: "text-emerald-700",
+    darkIconText: "dark:text-emerald-300",
+    titleText: "text-emerald-900",
+    darkTitleText: "dark:text-emerald-100",
+  },
+  blue: {
+    border: "border-blue-700/30",
+    darkBorder: "dark:border-blue-500/40",
+    bg: "bg-blue-50",
+    darkBg: "dark:bg-blue-950/20",
+    hoverBg: "hover:bg-blue-100",
+    darkHoverBg: "dark:hover:bg-blue-950/30",
+    iconBg: "bg-blue-100",
+    darkIconBg: "dark:bg-blue-900/40",
+    iconBorder: "border-blue-300/50",
+    darkIconBorder: "dark:border-blue-700/50",
+    iconText: "text-blue-700",
+    darkIconText: "dark:text-blue-300",
+    titleText: "text-blue-900",
+    darkTitleText: "dark:text-blue-100",
+  },
+  indigo: {
+    border: "border-indigo-700/30",
+    darkBorder: "dark:border-indigo-500/40",
+    bg: "bg-indigo-50",
+    darkBg: "dark:bg-indigo-950/20",
+    hoverBg: "hover:bg-indigo-100",
+    darkHoverBg: "dark:hover:bg-indigo-950/30",
+    iconBg: "bg-indigo-100",
+    darkIconBg: "dark:bg-indigo-900/40",
+    iconBorder: "border-indigo-300/50",
+    darkIconBorder: "dark:border-indigo-700/50",
+    iconText: "text-indigo-700",
+    darkIconText: "dark:text-indigo-300",
+    titleText: "text-indigo-900",
+    darkTitleText: "dark:text-indigo-100",
+  },
+  violet: {
+    border: "border-violet-700/30",
+    darkBorder: "dark:border-violet-500/40",
+    bg: "bg-violet-50",
+    darkBg: "dark:bg-violet-950/20",
+    hoverBg: "hover:bg-violet-100",
+    darkHoverBg: "dark:hover:bg-violet-950/30",
+    iconBg: "bg-violet-100",
+    darkIconBg: "dark:bg-violet-900/40",
+    iconBorder: "border-violet-300/50",
+    darkIconBorder: "dark:border-violet-700/50",
+    iconText: "text-violet-700",
+    darkIconText: "dark:text-violet-300",
+    titleText: "text-violet-900",
+    darkTitleText: "dark:text-violet-100",
+  },
+  amber: {
+    border: "border-amber-700/30",
+    darkBorder: "dark:border-amber-500/40",
+    bg: "bg-amber-50",
+    darkBg: "dark:bg-amber-950/20",
+    hoverBg: "hover:bg-amber-100",
+    darkHoverBg: "dark:hover:bg-amber-950/30",
+    iconBg: "bg-amber-100",
+    darkIconBg: "dark:bg-amber-900/40",
+    iconBorder: "border-amber-300/50",
+    darkIconBorder: "dark:border-amber-700/50",
+    iconText: "text-amber-700",
+    darkIconText: "dark:text-amber-300",
+    titleText: "text-amber-900",
+    darkTitleText: "dark:text-amber-100",
+  },
+  orange: {
+    border: "border-orange-700/30",
+    darkBorder: "dark:border-orange-500/40",
+    bg: "bg-orange-50",
+    darkBg: "dark:bg-orange-950/20",
+    hoverBg: "hover:bg-orange-100",
+    darkHoverBg: "dark:hover:bg-orange-950/30",
+    iconBg: "bg-orange-100",
+    darkIconBg: "dark:bg-orange-900/40",
+    iconBorder: "border-orange-300/50",
+    darkIconBorder: "dark:border-orange-700/50",
+    iconText: "text-orange-700",
+    darkIconText: "dark:text-orange-300",
+    titleText: "text-orange-900",
+    darkTitleText: "dark:text-orange-100",
+  },
+  rose: {
+    border: "border-rose-700/30",
+    darkBorder: "dark:border-rose-500/40",
+    bg: "bg-rose-50",
+    darkBg: "dark:bg-rose-950/20",
+    hoverBg: "hover:bg-rose-100",
+    darkHoverBg: "dark:hover:bg-rose-950/30",
+    iconBg: "bg-rose-100",
+    darkIconBg: "dark:bg-rose-900/40",
+    iconBorder: "border-rose-300/50",
+    darkIconBorder: "dark:border-rose-700/50",
+    iconText: "text-rose-700",
+    darkIconText: "dark:text-rose-300",
+    titleText: "text-rose-900",
+    darkTitleText: "dark:text-rose-100",
+  },
+};
+
 interface PainelCardProps {
   titulo: string;
   descricao: string;
@@ -130,18 +249,19 @@ function PainelCard({
   erro,
   children,
 }: PainelCardProps) {
+  const cc = COR_CLASSES[cor] ?? COR_CLASSES.emerald;
   return (
-    <div className={`glass-panel rounded-2xl border-2 border-${cor}-700/30 dark:border-${cor}-500/40 overflow-hidden`}>
+    <div className={`glass-panel rounded-2xl border-2 ${cc.border} ${cc.darkBorder} overflow-hidden`}>
       <button
         onClick={onToggle}
-        className={`w-full flex items-center justify-between p-4 bg-${cor}-50 dark:bg-${cor}-950/20 hover:bg-${cor}-100 dark:hover:bg-${cor}-950/30 transition-colors`}
+        className={`w-full flex items-center justify-between p-4 ${cc.bg} ${cc.darkBg} ${cc.hoverBg} ${cc.darkHoverBg} transition-colors`}
       >
         <div className="flex items-center gap-3">
-          <div className={`flex h-9 w-9 items-center justify-center rounded-xl bg-${cor}-100 dark:bg-${cor}-900/40 border border-${cor}-300/50 dark:border-${cor}-700/50`}>
-            <Icone size={18} className={`text-${cor}-700 dark:text-${cor}-300`} />
+          <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${cc.iconBg} ${cc.darkIconBg} border ${cc.iconBorder} ${cc.darkIconBorder}`}>
+            <Icone size={18} className={`${cc.iconText} ${cc.darkIconText}`} />
           </div>
           <div className="text-left">
-            <p className={`font-bold text-${cor}-900 dark:text-${cor}-100 text-sm`}>{titulo}</p>
+            <p className={`font-bold ${cc.titleText} ${cc.darkTitleText} text-sm`}>{titulo}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400">{descricao}</p>
           </div>
         </div>
