@@ -74,7 +74,7 @@ async function loadCoverageSummary(relativePath) {
     totals.branches.covered += branches.filter((hits) => Number(hits) > 0).length;
   }
 
-  const toPct = (covered, total) => (total === 0 ? 100 : (covered / total) * 100);
+  const toPct = (covered, total) => (total === 0 ? 0 : (covered / total) * 100);
 
   return {
     lines: { pct: toPct(totals.lines.covered, totals.lines.total) },

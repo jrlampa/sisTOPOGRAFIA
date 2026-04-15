@@ -10,6 +10,7 @@ const E2E_FILE_RE = /\.spec\.(ts|tsx|js|jsx)$/i;
 // Heurística: arquivos de rotas/API/autenticação/sanitização/validação tendem a cobrir integração.
 // Se o projeto adotar nova convenção, atualize este regex junto com os testes correspondentes.
 const INTEGRATION_NAME_RE = /(routes?|api|auth|sanitization|validation|logging|idempotency|baseurl|radius)/i;
+const EXCLUDED_DIRECTORIES = new Set(['.git', 'node_modules', 'dist', 'coverage']);
 const TEST_CASE_RE = /\b(?:it|test)\s*\(/g;
 
 async function walk(dir) {
@@ -23,6 +24,7 @@ async function walk(dir) {
   const results = await Promise.all(
     entries
       .filter((entry) => !entry.name.startsWith('.') && entry.name !== 'node_modules' && entry.name !== 'dist')
+      .filter((entry) => !EXCLUDED_DIRECTORIES.has(entry.name))
       .map(async (entry) => {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) return walk(full);
