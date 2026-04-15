@@ -43,6 +43,12 @@ export interface FeatureFlagContext {
   userGroup?: string;
   /** Regional/região (ex: 'sul', 'sudeste', 'nordeste') */
   region?: string;
+  /**
+   * Identificador do tenant/cliente corporativo.
+   * Overrides de tenant têm prioridade máxima sobre grupo e região.
+   * Roadmap Item 21 [T2]: Feature Flags por Tenant.
+   */
+  tenantId?: string;
 }
 
 export interface FeatureFlagTargetingConfig {
@@ -50,6 +56,12 @@ export interface FeatureFlagTargetingConfig {
   userGroups?: Record<string, FeatureFlagOverrideConfig>;
   /** Overrides por região */
   regions?: Record<string, FeatureFlagOverrideConfig>;
+  /**
+   * Overrides por tenant/cliente corporativo.
+   * Prioridade máxima — sobrepõe grupo e região.
+   * Roadmap Item 21 [T2]: Feature Flags por Tenant.
+   */
+  tenants?: Record<string, FeatureFlagOverrideConfig>;
 }
 
 const APP_ENV = (import.meta as { env?: Record<string, string | boolean | undefined> }).env ?? {};
@@ -99,6 +111,7 @@ let runtimeFlags: FeatureFlagConfig = {
 let runtimeTargeting: Required<FeatureFlagTargetingConfig> = {
   userGroups: {},
   regions: {},
+  tenants: {},
 };
 
 function normalizeContextKey(value: string): string {
@@ -202,9 +215,22 @@ export function loadFeatureFlagTargeting(
     {} as Record<string, FeatureFlagOverrideConfig>
   );
 
+  const sanitizedTenants = Object.entries(targeting.tenants ?? {}).reduce(
+    (acc, [tenant, overrides]) => {
+      const normalizedTenant = normalizeContextKey(tenant);
+      if (!normalizedTenant) {
+        return acc;
+      }
+      acc[normalizedTenant] = sanitizeOverrideConfig(overrides);
+      return acc;
+    },
+    {} as Record<string, FeatureFlagOverrideConfig>
+  );
+
   runtimeTargeting = {
     userGroups: sanitizedUserGroups,
     regions: sanitizedRegions,
+    tenants: sanitizedTenants,
   };
 }
 
@@ -220,8 +246,9 @@ export function isFeatureEnabled(flag: FeatureFlag): boolean {
 }
 
 /**
- * Verifica feature flag considerando segmentação por grupo e região.
- * Prioridade de resolução: global → grupo → região.
+ * Verifica feature flag considerando segmentação por grupo, região e tenant.
+ * Prioridade de resolução: global → grupo → região → tenant (maior prioridade).
+ * Roadmap Item 21 [T2]: Feature Flags por Tenant.
  */
 export function isFeatureEnabledForContext(
   flag: FeatureFlag,
@@ -242,6 +269,14 @@ export function isFeatureEnabledForContext(
       runtimeTargeting.regions[normalizeContextKey(context.region)]?.[flag];
     if (typeof regionOverride === 'boolean') {
       enabled = regionOverride;
+    }
+  }
+
+  if (context?.tenantId) {
+    const tenantOverride =
+      runtimeTargeting.tenants[normalizeContextKey(context.tenantId)]?.[flag];
+    if (typeof tenantOverride === 'boolean') {
+      enabled = tenantOverride;
     }
   }
 
@@ -287,6 +322,7 @@ export function resetFeatureFlags(): void {
   runtimeTargeting = {
     userGroups: {},
     regions: {},
+    tenants: {},
   };
 }
 
