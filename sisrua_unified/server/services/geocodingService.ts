@@ -1,4 +1,5 @@
 import { IbgeService } from './ibgeService.js';
+import { fetchWithCircuitBreaker } from '../utils/externalApi.js';
 
 export interface GeoLocation {
     lat: number;
@@ -84,16 +85,17 @@ export class GeocodingService {
         url.searchParams.set('accept-language', 'pt-BR,pt,en');
 
         try {
-            const response = await fetch(url, {
-                signal: AbortSignal.timeout(8000),
-                headers: {
-                    'User-Agent': 'sisrua-unified/1.0 (geocoding)'
-                }
-            });
-
-            if (!response.ok) {
-                return null;
-            }
+            const response = await fetchWithCircuitBreaker(
+                'NOMINATIM',
+                url,
+                {
+                    signal: AbortSignal.timeout(8000),
+                    headers: {
+                        'User-Agent': 'sisrua-unified/1.0 (geocoding)'
+                    }
+                },
+                { maxRetries: 2, initialDelay: 500, maxDelay: 2000 }
+            );
 
             const results = await response.json() as Array<{ lat?: string; lon?: string; display_name?: string }>;
             const best = results?.[0];

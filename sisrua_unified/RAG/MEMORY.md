@@ -457,6 +457,23 @@ SELECT * FROM private.verify_backup_integrity(); -- Status backups
 ### Observação
 
 - O script de teste backend retornou código final 1 por política global de cobertura mínima do projeto, apesar de as suítes focadas terem passado.
+
+### Iteração complementar (mesma data) - Cobertura de integrações restantes
+
+- Aplicado padrão de resiliência (retry + circuit breaker) nos pontos ainda com `fetch` direto de integrações externas:
+  - `server/services/geocodingService.ts` (Nominatim)
+  - `server/routes/osmRoutes.ts` (Overpass endpoints)
+- `osmRoutes` passou a registrar circuit breakers por host de endpoint (`OVERPASS_*`) para facilitar diagnóstico por provedor.
+- Mantido comportamento funcional existente:
+  - fallback sintético continua restrito a ambiente de teste;
+  - produção continua retornando 503 quando todos provedores Overpass falham.
+
+### Validação complementar
+
+- Testes focados executados com sucesso:
+  - `server/tests/geocodingService.test.ts`
+  - `server/tests/osmRoutes.test.ts`
+- Build completo novamente validado com sucesso (`npm --prefix sisrua_unified run build`).
 - 🔧 Migration 024 (db_maintenance_schedule.sql)
 - 🔧 Migration 023 (advanced_performance_indexes.sql)
 - 🔧 Migration 034 (time_series_partitioning.sql)

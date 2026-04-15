@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { logger } from '../utils/logger.js';
 import { config } from '../config.js';
 import { osmRequestSchema } from '../schemas/apiSchemas.js';
+import { fetchWithCircuitBreaker } from '../utils/externalApi.js';
 
 const router = Router();
 const isTestEnvironment = config.NODE_ENV === 'test';
@@ -99,23 +100,16 @@ const buildMockOverpassPayload = (lat: number, lng: number, radius: number) => {
   };
 };
 
-const fetchWithTimeout = async (url: string, body: string, timeoutMs: number) => {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
+function getOverpassCircuitBreakerName(endpoint: string): string {
   try {
-    return await fetch(url, {
-      method: 'POST',
-      body,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      signal: controller.signal
-    });
-  } finally {
-    clearTimeout(timeout);
+    const host = new URL(endpoint).hostname
+      .replace(/[^a-zA-Z0-9]/g, '_')
+      .toUpperCase();
+    return `OVERPASS_${host}`;
+  } catch {
+    return 'OVERPASS_GENERIC';
   }
-};
+}
 
 router.post('/', async (req: Request, res: Response) => {
   const validation = osmRequestSchema.safeParse(req.body);
@@ -149,10 +143,19 @@ router.post('/', async (req: Request, res: Response) => {
 
   for (const endpoint of OVERPASS_ENDPOINTS) {
     try {
-      const response = await fetchWithTimeout(endpoint, requestBody, 30000);
-      if (!response.ok) {
-        throw new Error(`Overpass API Error: ${response.status} ${response.statusText}`);
-      }
+      const response = await fetchWithCircuitBreaker(
+        getOverpassCircuitBreakerName(endpoint),
+        endpoint,
+        {
+          method: 'POST',
+          body: requestBody,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          signal: AbortSignal.timeout(30000)
+        },
+        { maxRetries: 1, initialDelay: 700, maxDelay: 2000 }
+      );
 
       const data = await response.json();
       const stats = computeOsmStats(data.elements ?? []);
