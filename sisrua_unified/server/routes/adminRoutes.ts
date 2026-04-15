@@ -63,7 +63,7 @@ function isAdminAuthorized(req: Request): boolean {
 }
 
 function forbidden(res: Response): Response {
-  res.set("WWW-Authenticate", '******"admin"');
+  res.set("WWW-Authenticate", 'Bearer realm="admin"');
   return res.status(401).json({ erro: "Não autorizado" });
 }
 

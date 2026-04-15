@@ -117,7 +117,7 @@ describe("GET /api/admin/usuarios", () => {
     const app = await buildApp(TOKEN);
     const res = await request(app).get("/api/admin/usuarios");
     expect(res.status).toBe(401);
-    expect(res.headers["www-authenticate"]).toMatch(/admin/);
+    expect(res.headers["www-authenticate"]).toBe('Bearer realm="admin"');
   });
 
   it("retorna 200 com lista vazia quando não há usuários", async () => {
