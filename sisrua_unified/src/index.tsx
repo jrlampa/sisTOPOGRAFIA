@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import LandingDraftPage from "./components/LandingDraftPage";
+import AdminPage from "./components/AdminPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { initAnalytics } from "./utils/analytics";
 import { resetChunkReloadFlag } from "./utils/lazyWithRetry";
@@ -34,11 +35,12 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 const isLandingDraftRoute = window.location.pathname.startsWith("/landing");
+const isAdminRoute = window.location.pathname.startsWith("/admin");
 
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      {isLandingDraftRoute ? <LandingDraftPage /> : <App />}
+      {isAdminRoute ? <AdminPage /> : isLandingDraftRoute ? <LandingDraftPage /> : <App />}
     </ErrorBoundary>
   </React.StrictMode>,
 );

@@ -10,19 +10,12 @@ jest.mock('../utils/logger', () => ({
     }
 }));
 
-// Mock config
-jest.mock('../config', () => ({
-    config: {
-        DATABASE_URL: 'postgres://test:test@localhost:5432/testdb',
-        NODE_ENV: 'test',
-    }
-}));
-
-// Mock the postgres client
+// Mock dbClient compartilhado (roleService usa getDbClient() em vez de criar conexão própria)
 const mockSql = jest.fn();
-jest.mock('postgres', () => {
-    return jest.fn(() => mockSql);
-});
+jest.mock('../repositories/dbClient', () => ({
+    getDbClient: () => mockSql,
+    isDbAvailable: () => true,
+}));
 
 import {
     getUserRole,
@@ -144,6 +137,12 @@ describe('RoleService', () => {
     describe('setUserRole', () => {
         it('should return false for empty userId', async () => {
             const result = await setUserRole('', 'admin', 'system');
+            expect(result).toBe(false);
+            expect(mockSql).not.toHaveBeenCalled();
+        });
+
+        it('should return false for empty assignedBy', async () => {
+            const result = await setUserRole('user-x', 'admin', '');
             expect(result).toBe(false);
             expect(mockSql).not.toHaveBeenCalled();
         });
