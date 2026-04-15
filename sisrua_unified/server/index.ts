@@ -49,6 +49,7 @@ import jobRoutes from "./routes/jobRoutes.js";
 import firestoreRoutes from "./routes/firestoreRoutes.js";
 import dxfRoutes from "./routes/dxfRoutes.js";
 import metricsRoutes from "./routes/metricsRoutes.js";
+import featureFlagRoutes from "./routes/featureFlagRoutes.js";
 import { initDbClient, closeDbClient } from "./repositories/index.js";
 import storageRoutes from "./routes/storageRoutes.js";
 
@@ -291,6 +292,7 @@ if (config.useFirestore) {
 app.use("/api/storage", storageRoutes);
 app.use("/api/dxf", dxfRoutes);
 app.use("/metrics", metricsRoutes);
+app.use("/api/feature-flags", featureFlagRoutes);
 
 // Static files
 app.use(express.static(frontendDistDirectory));
