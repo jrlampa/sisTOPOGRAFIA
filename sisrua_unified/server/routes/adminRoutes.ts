@@ -26,10 +26,13 @@
  *   GET  /api/admin/kpis                  — resumo de KPIs globais por tenant
  */
 import { Router, Request, Response } from "express";
-import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
+import {
+  isBearerRequestAuthorized,
+  setBearerChallenge,
+} from "../utils/bearerAuth.js";
 import { getDbClient } from "../repositories/dbClient.js";
 import {
   getUsersByRole,
@@ -51,20 +54,14 @@ const router = Router();
 // ─── Auth helper ──────────────────────────────────────────────────────────────
 
 function isAdminAuthorized(req: Request): boolean {
-  const token = config.ADMIN_TOKEN ?? config.METRICS_TOKEN;
-  if (!token) {
-    return true;
-  }
-  const authHeader = req.headers.authorization ?? "";
-  if (!authHeader.startsWith("Bearer ")) return false;
-  const provided = Buffer.from(authHeader.slice("Bearer ".length), "utf8");
-  const expected = Buffer.from(token, "utf8");
-  if (provided.length !== expected.length) return false;
-  return timingSafeEqual(provided, expected);
+  return isBearerRequestAuthorized(
+    req,
+    config.ADMIN_TOKEN ?? config.METRICS_TOKEN,
+  );
 }
 
 function forbidden(res: Response): Response {
-  res.set("WWW-Authenticate", 'Bearer realm="admin"');
+  setBearerChallenge(res, "admin");
   return res.status(401).json({ erro: "Não autorizado" });
 }
 

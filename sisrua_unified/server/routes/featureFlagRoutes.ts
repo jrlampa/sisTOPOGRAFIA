@@ -18,10 +18,13 @@
  *   DELETE /api/feature-flags/:tenantId/:flag — remove override de flag específico (admin)
  */
 import { Router, Request, Response } from "express";
-import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
+import {
+  isBearerRequestAuthorized,
+  setBearerChallenge,
+} from "../utils/bearerAuth.js";
 import {
   setTenantFlagOverrides,
   getTenantFlagOverrides,
@@ -35,19 +38,7 @@ const router = Router();
 // ─── Auth helper ──────────────────────────────────────────────────────────────
 
 function isAdminAuthorized(req: Request): boolean {
-  if (!config.METRICS_TOKEN) {
-    return true; // Sem token configurado → dev/interno
-  }
-  const authHeader = req.headers.authorization ?? "";
-  if (!authHeader.startsWith("Bearer ")) {
-    return false;
-  }
-  const provided = Buffer.from(authHeader.slice("Bearer ".length), "utf8");
-  const expected = Buffer.from(config.METRICS_TOKEN, "utf8");
-  if (provided.length !== expected.length) {
-    return false;
-  }
-  return timingSafeEqual(provided, expected);
+  return isBearerRequestAuthorized(req, config.METRICS_TOKEN);
 }
 
 // ─── Validação ────────────────────────────────────────────────────────────────
@@ -71,7 +62,10 @@ const FlagNameParamSchema = z.object({
     .string()
     .min(1)
     .max(128)
-    .regex(/^[\w_]+$/, "nome de flag deve conter apenas letras, números e underscores"),
+    .regex(
+      /^[\w_]+$/,
+      "nome de flag deve conter apenas letras, números e underscores",
+    ),
 });
 
 const FlagMapBodySchema = z
@@ -98,7 +92,7 @@ const FlagMapBodySchema = z
  */
 router.get("/", (req: Request, res: Response) => {
   if (!isAdminAuthorized(req)) {
-    res.set("WWW-Authenticate", 'Bearer realm="feature-flags-admin"');
+    setBearerChallenge(res, "feature-flags-admin");
     return res.status(401).json({ erro: "Não autorizado" });
   }
 
@@ -177,7 +171,7 @@ router.get("/:tenantId", (req: Request, res: Response) => {
  */
 router.put("/:tenantId", (req: Request, res: Response) => {
   if (!isAdminAuthorized(req)) {
-    res.set("WWW-Authenticate", 'Bearer realm="feature-flags-admin"');
+    setBearerChallenge(res, "feature-flags-admin");
     return res.status(401).json({ erro: "Não autorizado" });
   }
 
@@ -242,7 +236,7 @@ router.put("/:tenantId", (req: Request, res: Response) => {
  */
 router.delete("/:tenantId/:flag", (req: Request, res: Response) => {
   if (!isAdminAuthorized(req)) {
-    res.set("WWW-Authenticate", 'Bearer realm="feature-flags-admin"');
+    setBearerChallenge(res, "feature-flags-admin");
     return res.status(401).json({ erro: "Não autorizado" });
   }
 
@@ -295,7 +289,7 @@ router.delete("/:tenantId/:flag", (req: Request, res: Response) => {
  */
 router.delete("/:tenantId", (req: Request, res: Response) => {
   if (!isAdminAuthorized(req)) {
-    res.set("WWW-Authenticate", 'Bearer realm="feature-flags-admin"');
+    setBearerChallenge(res, "feature-flags-admin");
     return res.status(401).json({ erro: "Não autorizado" });
   }
 

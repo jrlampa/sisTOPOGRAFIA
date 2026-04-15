@@ -1,35 +1,18 @@
 import { Router, Request, Response } from "express";
-import { timingSafeEqual } from "crypto";
 import { config } from "../config.js";
 import { OllamaService } from "../services/ollamaService.js";
 import { listCircuitBreakers } from "../utils/circuitBreaker.js";
+import { isBearerRequestAuthorized, setBearerChallenge } from "../utils/bearerAuth.js";
 
 const router = Router();
 
 function isOpsRequestAuthorized(req: Request): boolean {
-  if (!config.METRICS_TOKEN) {
-    return true;
-  }
-
-  const authHeader = req.headers.authorization ?? "";
-  if (!authHeader.startsWith("Bearer ")) {
-    return false;
-  }
-
-  const providedToken = authHeader.slice("Bearer ".length);
-  const expected = Buffer.from(config.METRICS_TOKEN, "utf8");
-  const provided = Buffer.from(providedToken, "utf8");
-
-  if (provided.length !== expected.length) {
-    return false;
-  }
-
-  return timingSafeEqual(provided, expected);
+  return isBearerRequestAuthorized(req, config.METRICS_TOKEN);
 }
 
 router.get("/external-apis", (req: Request, res: Response) => {
   if (!isOpsRequestAuthorized(req)) {
-    res.set("WWW-Authenticate", 'Bearer realm="ops"');
+    setBearerChallenge(res, "ops");
     return res.status(401).json({ error: "Unauthorized" });
   }
 
@@ -77,7 +60,7 @@ router.get("/external-apis", (req: Request, res: Response) => {
 
 router.get("/ai-runtime", async (req: Request, res: Response) => {
   if (!isOpsRequestAuthorized(req)) {
-    res.set("WWW-Authenticate", 'Bearer realm="ops"');
+    setBearerChallenge(res, "ops");
     return res.status(401).json({ error: "Unauthorized" });
   }
 

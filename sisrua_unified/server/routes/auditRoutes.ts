@@ -14,30 +14,18 @@
  *   - application/x-ndjson  (NDJSON — uma linha JSON por evento, ideal para SIEM streaming)
  */
 import { Router, Request, Response } from "express";
-import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import postgres from "postgres";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
+import { isBearerRequestAuthorized, setBearerChallenge } from "../utils/bearerAuth.js";
 
 const router = Router();
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 
 function isAuditRequestAuthorized(req: Request): boolean {
-  if (!config.METRICS_TOKEN) {
-    return true; // No token → dev/internal mode
-  }
-  const authHeader = req.headers.authorization ?? "";
-  if (!authHeader.startsWith("Bearer ")) {
-    return false;
-  }
-  const provided = Buffer.from(authHeader.slice("Bearer ".length), "utf8");
-  const expected = Buffer.from(config.METRICS_TOKEN, "utf8");
-  if (provided.length !== expected.length) {
-    return false;
-  }
-  return timingSafeEqual(provided, expected);
+  return isBearerRequestAuthorized(req, config.METRICS_TOKEN);
 }
 
 // ─── Query schema ─────────────────────────────────────────────────────────────
@@ -129,7 +117,7 @@ function getDb(): ReturnType<typeof postgres> | null {
  */
 router.get("/export", async (req: Request, res: Response) => {
   if (!isAuditRequestAuthorized(req)) {
-    res.set("WWW-Authenticate", 'Bearer realm="audit"');
+    setBearerChallenge(res, "audit");
     return res.status(401).json({ error: "Unauthorized" });
   }
 

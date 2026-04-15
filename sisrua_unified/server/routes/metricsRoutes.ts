@@ -13,9 +13,9 @@
  *     scrapers that are NOT publicly exposed.
  */
 import { Router, Request, Response } from 'express';
-import { timingSafeEqual } from 'crypto';
 import { metricsService } from '../services/metricsService.js';
 import { config } from '../config.js';
+import { isBearerRequestAuthorized, setBearerChallenge } from '../utils/bearerAuth.js';
 
 const router = Router();
 
@@ -25,27 +25,7 @@ const router = Router();
  * Uses constant-time comparison to prevent timing attacks.
  */
 function isMetricsRequestAuthorized(req: Request): boolean {
-    // No token configured → unrestricted (caller is responsible for network isolation)
-    if (!config.METRICS_TOKEN) {
-        return true;
-    }
-
-    const authHeader = req.headers.authorization ?? '';
-    if (!authHeader.startsWith('Bearer ')) {
-        return false;
-    }
-
-    const providedToken = authHeader.slice('Bearer '.length);
-
-    // Constant-time comparison to mitigate timing-based token enumeration.
-    const expected = Buffer.from(config.METRICS_TOKEN, 'utf8');
-    const provided = Buffer.from(providedToken, 'utf8');
-
-    if (provided.length !== expected.length) {
-        return false;
-    }
-
-    return timingSafeEqual(provided, expected);
+    return isBearerRequestAuthorized(req, config.METRICS_TOKEN);
 }
 
 router.get('/', async (req: Request, res: Response) => {
@@ -54,7 +34,7 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     if (!isMetricsRequestAuthorized(req)) {
-        res.set('WWW-Authenticate', 'Bearer realm="metrics"');
+        setBearerChallenge(res, 'metrics');
         return res.status(401).json({ error: 'Unauthorized' });
     }
 

@@ -19,10 +19,13 @@
  *   DELETE /api/cost-centers/:tenantId/:ccId                — desativa CC (admin)
  */
 import { Router, Request, Response } from "express";
-import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
+import {
+  isBearerRequestAuthorized,
+  setBearerChallenge,
+} from "../utils/bearerAuth.js";
 import {
   criarCentroCusto,
   atualizarCentroCusto,
@@ -40,17 +43,11 @@ const router = Router();
 // ─── Auth helper ──────────────────────────────────────────────────────────────
 
 function isAdminAuthorized(req: Request): boolean {
-  if (!config.METRICS_TOKEN) return true;
-  const authHeader = req.headers.authorization ?? "";
-  if (!authHeader.startsWith("Bearer ")) return false;
-  const provided = Buffer.from(authHeader.slice("Bearer ".length), "utf8");
-  const expected = Buffer.from(config.METRICS_TOKEN, "utf8");
-  if (provided.length !== expected.length) return false;
-  return timingSafeEqual(provided, expected);
+  return isBearerRequestAuthorized(req, config.METRICS_TOKEN);
 }
 
 function unauthorized(res: Response): Response {
-  res.set("WWW-Authenticate", 'Bearer realm="cost-centers-admin"');
+  setBearerChallenge(res, "cost-centers-admin");
   return res.status(401).json({ erro: "Não autorizado" });
 }
 
@@ -78,7 +75,10 @@ const CcIdSchema = z.object({
     .string()
     .min(1)
     .max(64)
-    .regex(/^[a-z0-9\-_]+$/, "ccId deve conter apenas letras minúsculas, números, hífens ou underscores"),
+    .regex(
+      /^[a-z0-9\-_]+$/,
+      "ccId deve conter apenas letras minúsculas, números, hífens ou underscores",
+    ),
 });
 
 const CriarCCSchema = z.object({
@@ -107,9 +107,7 @@ const RegistrarCustoSchema = z.object({
 });
 
 const FiltroRegistrosSchema = z.object({
-  tipo: z
-    .enum(TIPOS_CUSTO as [TipoCusto, ...TipoCusto[]])
-    .optional(),
+  tipo: z.enum(TIPOS_CUSTO as [TipoCusto, ...TipoCusto[]]).optional(),
   de: z.string().datetime().optional(),
   ate: z.string().datetime().optional(),
 });
@@ -119,7 +117,9 @@ const FiltroRegistrosSchema = z.object({
 router.get("/:tenantId", (req: Request, res: Response) => {
   const p = TenantIdSchema.safeParse(req.params);
   if (!p.success) {
-    return res.status(400).json({ erro: "tenantId inválido", detalhes: p.error.issues });
+    return res
+      .status(400)
+      .json({ erro: "tenantId inválido", detalhes: p.error.issues });
   }
   const apenasAtivos = req.query["apenasAtivos"] === "true";
   const lista = listarCentrosCusto(p.data.tenantId, apenasAtivos);
@@ -131,7 +131,9 @@ router.get("/:tenantId", (req: Request, res: Response) => {
 router.get("/:tenantId/relatorio", (req: Request, res: Response) => {
   const p = TenantIdSchema.safeParse(req.params);
   if (!p.success) {
-    return res.status(400).json({ erro: "tenantId inválido", detalhes: p.error.issues });
+    return res
+      .status(400)
+      .json({ erro: "tenantId inválido", detalhes: p.error.issues });
   }
   const relatorio = relatorioTenantCusto(p.data.tenantId);
   return res.json(relatorio);
@@ -142,7 +144,9 @@ router.get("/:tenantId/relatorio", (req: Request, res: Response) => {
 router.get("/:tenantId/:ccId", (req: Request, res: Response) => {
   const p = TenantIdSchema.merge(CcIdSchema).safeParse(req.params);
   if (!p.success) {
-    return res.status(400).json({ erro: "Parâmetros inválidos", detalhes: p.error.issues });
+    return res
+      .status(400)
+      .json({ erro: "Parâmetros inválidos", detalhes: p.error.issues });
   }
   const cc = getCentroCusto(p.data.tenantId, p.data.ccId);
   if (!cc) {
@@ -156,11 +160,15 @@ router.get("/:tenantId/:ccId", (req: Request, res: Response) => {
 router.get("/:tenantId/:ccId/registros", (req: Request, res: Response) => {
   const p = TenantIdSchema.merge(CcIdSchema).safeParse(req.params);
   if (!p.success) {
-    return res.status(400).json({ erro: "Parâmetros inválidos", detalhes: p.error.issues });
+    return res
+      .status(400)
+      .json({ erro: "Parâmetros inválidos", detalhes: p.error.issues });
   }
   const filtro = FiltroRegistrosSchema.safeParse(req.query);
   if (!filtro.success) {
-    return res.status(400).json({ erro: "Filtros inválidos", detalhes: filtro.error.issues });
+    return res
+      .status(400)
+      .json({ erro: "Filtros inválidos", detalhes: filtro.error.issues });
   }
 
   const { tipo, de, ate } = filtro.data;
@@ -179,11 +187,15 @@ router.post("/:tenantId", (req: Request, res: Response) => {
 
   const p = TenantIdSchema.safeParse(req.params);
   if (!p.success) {
-    return res.status(400).json({ erro: "tenantId inválido", detalhes: p.error.issues });
+    return res
+      .status(400)
+      .json({ erro: "tenantId inválido", detalhes: p.error.issues });
   }
   const b = CriarCCSchema.safeParse(req.body);
   if (!b.success) {
-    return res.status(400).json({ erro: "Corpo inválido", detalhes: b.error.issues });
+    return res
+      .status(400)
+      .json({ erro: "Corpo inválido", detalhes: b.error.issues });
   }
 
   try {
@@ -211,11 +223,15 @@ router.patch("/:tenantId/:ccId", (req: Request, res: Response) => {
 
   const p = TenantIdSchema.merge(CcIdSchema).safeParse(req.params);
   if (!p.success) {
-    return res.status(400).json({ erro: "Parâmetros inválidos", detalhes: p.error.issues });
+    return res
+      .status(400)
+      .json({ erro: "Parâmetros inválidos", detalhes: p.error.issues });
   }
   const b = AtualizarCCSchema.safeParse(req.body);
   if (!b.success) {
-    return res.status(400).json({ erro: "Corpo inválido", detalhes: b.error.issues });
+    return res
+      .status(400)
+      .json({ erro: "Corpo inválido", detalhes: b.error.issues });
   }
 
   try {
@@ -241,11 +257,15 @@ router.post("/:tenantId/:ccId/registros", (req: Request, res: Response) => {
 
   const p = TenantIdSchema.merge(CcIdSchema).safeParse(req.params);
   if (!p.success) {
-    return res.status(400).json({ erro: "Parâmetros inválidos", detalhes: p.error.issues });
+    return res
+      .status(400)
+      .json({ erro: "Parâmetros inválidos", detalhes: p.error.issues });
   }
   const b = RegistrarCustoSchema.safeParse(req.body);
   if (!b.success) {
-    return res.status(400).json({ erro: "Corpo inválido", detalhes: b.error.issues });
+    return res
+      .status(400)
+      .json({ erro: "Corpo inválido", detalhes: b.error.issues });
   }
 
   try {
@@ -279,7 +299,9 @@ router.delete("/:tenantId/:ccId", (req: Request, res: Response) => {
 
   const p = TenantIdSchema.merge(CcIdSchema).safeParse(req.params);
   if (!p.success) {
-    return res.status(400).json({ erro: "Parâmetros inválidos", detalhes: p.error.issues });
+    return res
+      .status(400)
+      .json({ erro: "Parâmetros inválidos", detalhes: p.error.issues });
   }
 
   const desativado = desativarCentroCusto(p.data.tenantId, p.data.ccId);

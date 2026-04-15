@@ -9,10 +9,13 @@
  * Auth: METRICS_TOKEN (Bearer)
  */
 import { Router, Request, Response } from "express";
-import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
+import {
+  isBearerRequestAuthorized,
+  setBearerChallenge,
+} from "../utils/bearerAuth.js";
 import {
   registerPolicy,
   getPolicy,
@@ -26,17 +29,11 @@ const router = Router();
 const policyRegistry = new Map<string, RetentionPolicy>();
 
 function isAuthorized(req: Request): boolean {
-  if (!config.METRICS_TOKEN) return true;
-  const authHeader = req.headers.authorization ?? "";
-  if (!authHeader.startsWith("Bearer ")) return false;
-  const provided = Buffer.from(authHeader.slice("Bearer ".length), "utf8");
-  const expected = Buffer.from(config.METRICS_TOKEN, "utf8");
-  if (provided.length !== expected.length) return false;
-  return timingSafeEqual(provided, expected);
+  return isBearerRequestAuthorized(req, config.METRICS_TOKEN);
 }
 
 function unauthorized(res: Response): Response {
-  res.set("WWW-Authenticate", 'Bearer realm="retencao"');
+  setBearerChallenge(res, "retencao");
   return res.status(401).json({ erro: "Não autorizado" });
 }
 
@@ -51,12 +48,14 @@ const PolicySchema = z.object({
 
 const AvaliarSchema = z.object({
   resourceType: z.string().min(1).max(128),
-  items: z.array(
-    z.object({
-      id: z.string().min(1),
-      createdAt: z.string().datetime(),
-    })
-  ).min(1),
+  items: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        createdAt: z.string().datetime(),
+      }),
+    )
+    .min(1),
 });
 
 // GET /api/retencao/politicas
@@ -78,13 +77,18 @@ router.get("/politicas/:resourceType", (req: Request, res: Response) => {
 router.post("/politicas", (req: Request, res: Response) => {
   if (!isAuthorized(req)) return unauthorized(res);
   const parsed = PolicySchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ erro: "Corpo inválido", detalhes: parsed.error.issues });
+  if (!parsed.success)
+    return res
+      .status(400)
+      .json({ erro: "Corpo inválido", detalhes: parsed.error.issues });
 
   const policy = parsed.data as RetentionPolicy;
   registerPolicy(policy);
   policyRegistry.set(policy.resourceType, policy);
 
-  logger.info("[DataRetentionRoutes] Política registrada", { resourceType: policy.resourceType });
+  logger.info("[DataRetentionRoutes] Política registrada", {
+    resourceType: policy.resourceType,
+  });
   return res.status(201).json(policy);
 });
 
@@ -92,10 +96,16 @@ router.post("/politicas", (req: Request, res: Response) => {
 router.post("/avaliar", (req: Request, res: Response) => {
   if (!isAuthorized(req)) return unauthorized(res);
   const parsed = AvaliarSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ erro: "Corpo inválido", detalhes: parsed.error.issues });
+  if (!parsed.success)
+    return res
+      .status(400)
+      .json({ erro: "Corpo inválido", detalhes: parsed.error.issues });
 
   const { resourceType, items } = parsed.data;
-  const itemsWithDates = items.map(i => ({ id: i.id, createdAt: new Date(i.createdAt) }));
+  const itemsWithDates = items.map((i) => ({
+    id: i.id,
+    createdAt: new Date(i.createdAt),
+  }));
   const result = evaluateRetention(resourceType, itemsWithDates);
   return res.json({ resourceType, ...result });
 });

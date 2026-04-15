@@ -9,10 +9,13 @@
  * Auth: METRICS_TOKEN (Bearer)
  */
 import { Router, Request, Response } from "express";
-import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
+import {
+  isBearerRequestAuthorized,
+  setBearerChallenge,
+} from "../utils/bearerAuth.js";
 import {
   registrarSnapshot,
   listarHistorico,
@@ -23,17 +26,11 @@ import {
 const router = Router();
 
 function isAuthorized(req: Request): boolean {
-  if (!config.METRICS_TOKEN) return true;
-  const authHeader = req.headers.authorization ?? "";
-  if (!authHeader.startsWith("Bearer ")) return false;
-  const provided = Buffer.from(authHeader.slice("Bearer ".length), "utf8");
-  const expected = Buffer.from(config.METRICS_TOKEN, "utf8");
-  if (provided.length !== expected.length) return false;
-  return timingSafeEqual(provided, expected);
+  return isBearerRequestAuthorized(req, config.METRICS_TOKEN);
 }
 
 function unauthorized(res: Response): Response {
-  res.set("WWW-Authenticate", 'Bearer realm="capacidade"');
+  setBearerChallenge(res, "capacidade");
   return res.status(401).json({ erro: "Não autorizado" });
 }
 
@@ -65,21 +62,37 @@ router.get("/historico", (req: Request, res: Response) => {
 router.post("/snapshots", (req: Request, res: Response) => {
   if (!isAuthorized(req)) return unauthorized(res);
   const parsed = SnapshotSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ erro: "Corpo inválido", detalhes: parsed.error.issues });
+  if (!parsed.success)
+    return res
+      .status(400)
+      .json({ erro: "Corpo inválido", detalhes: parsed.error.issues });
 
-  const snapshot = { ...parsed.data, timestamp: new Date(parsed.data.timestamp) };
+  const snapshot = {
+    ...parsed.data,
+    timestamp: new Date(parsed.data.timestamp),
+  };
   registrarSnapshot(snapshot);
-  logger.info("[CapacityPlanningRoutes] Snapshot registrado", { jobsConcurrentes: snapshot.jobsConcurrentes });
+  logger.info("[CapacityPlanningRoutes] Snapshot registrado", {
+    jobsConcurrentes: snapshot.jobsConcurrentes,
+  });
   return res.status(201).json(snapshot);
 });
 
 router.put("/meta", (req: Request, res: Response) => {
   if (!isAuthorized(req)) return unauthorized(res);
   const parsed = MetaSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ erro: "Corpo inválido", detalhes: parsed.error.issues });
+  if (!parsed.success)
+    return res
+      .status(400)
+      .json({ erro: "Corpo inválido", detalhes: parsed.error.issues });
 
-  const meta = calcularMeta(parsed.data.maxJobsConcurrentes, parsed.data.latenciaAlvoMs);
-  logger.info("[CapacityPlanningRoutes] Meta definida", { maxJobsConcurrentes: meta.maxJobsConcurrentes });
+  const meta = calcularMeta(
+    parsed.data.maxJobsConcurrentes,
+    parsed.data.latenciaAlvoMs,
+  );
+  logger.info("[CapacityPlanningRoutes] Meta definida", {
+    maxJobsConcurrentes: meta.maxJobsConcurrentes,
+  });
   return res.json(meta);
 });
 

@@ -15,10 +15,13 @@
  *   POST /api/business-kpi/:tenantId/eventos           — registra evento de KPI
  */
 import { Router, Request, Response } from "express";
-import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
+import {
+  isBearerRequestAuthorized,
+  setBearerChallenge,
+} from "../utils/bearerAuth.js";
 import {
   registrarEventoKpi,
   listarEventosKpi,
@@ -36,17 +39,11 @@ const router = Router();
 // ─── Auth helper ──────────────────────────────────────────────────────────────
 
 function isAuthorized(req: Request): boolean {
-  if (!config.METRICS_TOKEN) return true;
-  const authHeader = req.headers.authorization ?? "";
-  if (!authHeader.startsWith("Bearer ")) return false;
-  const provided = Buffer.from(authHeader.slice("Bearer ".length), "utf8");
-  const expected = Buffer.from(config.METRICS_TOKEN, "utf8");
-  if (provided.length !== expected.length) return false;
-  return timingSafeEqual(provided, expected);
+  return isBearerRequestAuthorized(req, config.METRICS_TOKEN);
 }
 
 function unauthorized(res: Response): Response {
-  res.set("WWW-Authenticate", 'Bearer realm="business-kpi"');
+  setBearerChallenge(res, "business-kpi");
   return res.status(401).json({ erro: "Não autorizado" });
 }
 
@@ -142,12 +139,10 @@ router.get("/:tenantId/relatorio", (req: Request, res: Response) => {
     })
     .safeParse(req.query);
   if (!q.success) {
-    return res
-      .status(400)
-      .json({
-        erro: "Parâmetros de período inválidos",
-        detalhes: q.error.issues,
-      });
+    return res.status(400).json({
+      erro: "Parâmetros de período inválidos",
+      detalhes: q.error.issues,
+    });
   }
 
   const relatorio = relatorioKpiTenant(

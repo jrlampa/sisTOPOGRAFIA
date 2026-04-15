@@ -10,10 +10,10 @@
  * Auth: METRICS_TOKEN (Bearer)
  */
 import { Router, Request, Response } from "express";
-import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
+import { isBearerRequestAuthorized, setBearerChallenge } from "../utils/bearerAuth.js";
 import {
   criarHolding,
   associarTenant,
@@ -27,17 +27,11 @@ const router = Router();
 const PAPEIS: TenantHolding['papel'][] = ['principal', 'subsidiaria', 'empreiteira'];
 
 function isAuthorized(req: Request): boolean {
-  if (!config.METRICS_TOKEN) return true;
-  const authHeader = req.headers.authorization ?? "";
-  if (!authHeader.startsWith("Bearer ")) return false;
-  const provided = Buffer.from(authHeader.slice("Bearer ".length), "utf8");
-  const expected = Buffer.from(config.METRICS_TOKEN, "utf8");
-  if (provided.length !== expected.length) return false;
-  return timingSafeEqual(provided, expected);
+  return isBearerRequestAuthorized(req, config.METRICS_TOKEN);
 }
 
 function unauthorized(res: Response): Response {
-  res.set("WWW-Authenticate", 'Bearer realm="holdings"');
+  setBearerChallenge(res, "holdings");
   return res.status(401).json({ erro: "Não autorizado" });
 }
 

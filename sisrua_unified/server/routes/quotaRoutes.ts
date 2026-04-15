@@ -19,10 +19,13 @@
  *   DELETE /api/tenant-quotas/:tenantId                  — remove todas as quotas (admin)
  */
 import { Router, Request, Response } from "express";
-import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
+import {
+  isBearerRequestAuthorized,
+  setBearerChallenge,
+} from "../utils/bearerAuth.js";
 import {
   setTenantQuota,
   getTenantQuotas,
@@ -39,19 +42,7 @@ const router = Router();
 // ─── Auth helper ──────────────────────────────────────────────────────────────
 
 function isAdminAuthorized(req: Request): boolean {
-  if (!config.METRICS_TOKEN) {
-    return true;
-  }
-  const authHeader = req.headers.authorization ?? "";
-  if (!authHeader.startsWith("Bearer ")) {
-    return false;
-  }
-  const provided = Buffer.from(authHeader.slice("Bearer ".length), "utf8");
-  const expected = Buffer.from(config.METRICS_TOKEN, "utf8");
-  if (provided.length !== expected.length) {
-    return false;
-  }
-  return timingSafeEqual(provided, expected);
+  return isBearerRequestAuthorized(req, config.METRICS_TOKEN);
 }
 
 // ─── Schemas de validação ─────────────────────────────────────────────────────
@@ -79,9 +70,7 @@ const TenantIdParamSchema = z.object({
 });
 
 const TipoQuotaParamSchema = z.object({
-  tipo: z.enum(
-    TIPOS_QUOTA_VALIDOS as [TipoQuota, ...TipoQuota[]],
-  ),
+  tipo: z.enum(TIPOS_QUOTA_VALIDOS as [TipoQuota, ...TipoQuota[]]),
 });
 
 const LimiteBodySchema = z.object({
@@ -114,7 +103,7 @@ const VerificarBodySchema = z.object({
  */
 router.get("/", (req: Request, res: Response) => {
   if (!isAdminAuthorized(req)) {
-    res.set("WWW-Authenticate", 'Bearer realm="tenant-quotas-admin"');
+    setBearerChallenge(res, "tenant-quotas-admin");
     return res.status(401).json({ erro: "Não autorizado" });
   }
   const tenants = listarTenantComQuotas();
@@ -223,7 +212,7 @@ router.get("/:tenantId/uso", (req: Request, res: Response) => {
  */
 router.put("/:tenantId/:tipo", (req: Request, res: Response) => {
   if (!isAdminAuthorized(req)) {
-    res.set("WWW-Authenticate", 'Bearer realm="tenant-quotas-admin"');
+    setBearerChallenge(res, "tenant-quotas-admin");
     return res.status(401).json({ erro: "Não autorizado" });
   }
 
@@ -297,43 +286,40 @@ router.put("/:tenantId/:tipo", (req: Request, res: Response) => {
  *       429:
  *         description: Quota esgotada
  */
-router.post(
-  "/:tenantId/:tipo/verificar",
-  (req: Request, res: Response) => {
-    const paramParsed = TenantIdParamSchema.merge(
-      TipoQuotaParamSchema,
-    ).safeParse(req.params);
-    if (!paramParsed.success) {
-      return res.status(400).json({
-        erro: "Parâmetros inválidos",
-        detalhes: paramParsed.error.issues,
-      });
-    }
+router.post("/:tenantId/:tipo/verificar", (req: Request, res: Response) => {
+  const paramParsed = TenantIdParamSchema.merge(TipoQuotaParamSchema).safeParse(
+    req.params,
+  );
+  if (!paramParsed.success) {
+    return res.status(400).json({
+      erro: "Parâmetros inválidos",
+      detalhes: paramParsed.error.issues,
+    });
+  }
 
-    const bodyParsed = VerificarBodySchema.safeParse(req.body ?? {});
-    if (!bodyParsed.success) {
-      return res.status(400).json({
-        erro: "Corpo inválido",
-        detalhes: bodyParsed.error.issues,
-      });
-    }
+  const bodyParsed = VerificarBodySchema.safeParse(req.body ?? {});
+  if (!bodyParsed.success) {
+    return res.status(400).json({
+      erro: "Corpo inválido",
+      detalhes: bodyParsed.error.issues,
+    });
+  }
 
-    const { tenantId, tipo } = paramParsed.data;
-    const { unidades } = bodyParsed.data;
+  const { tenantId, tipo } = paramParsed.data;
+  const { unidades } = bodyParsed.data;
 
-    const resultado = checkAndConsumeQuota(tenantId, tipo, unidades);
+  const resultado = checkAndConsumeQuota(tenantId, tipo, unidades);
 
-    if (!resultado.permitido) {
-      logger.warn("[QuotaRoutes] Quota excedida", { tenantId, tipo, unidades });
-      return res.status(429).json({
-        erro: "Quota excedida",
-        ...resultado,
-      });
-    }
+  if (!resultado.permitido) {
+    logger.warn("[QuotaRoutes] Quota excedida", { tenantId, tipo, unidades });
+    return res.status(429).json({
+      erro: "Quota excedida",
+      ...resultado,
+    });
+  }
 
-    return res.json(resultado);
-  },
-);
+  return res.json(resultado);
+});
 
 // ─── DELETE /api/tenant-quotas/:tenantId/:tipo — remove quota específica ───────
 
@@ -362,7 +348,7 @@ router.post(
  */
 router.delete("/:tenantId/:tipo", (req: Request, res: Response) => {
   if (!isAdminAuthorized(req)) {
-    res.set("WWW-Authenticate", 'Bearer realm="tenant-quotas-admin"');
+    setBearerChallenge(res, "tenant-quotas-admin");
     return res.status(401).json({ erro: "Não autorizado" });
   }
 
@@ -412,7 +398,7 @@ router.delete("/:tenantId/:tipo", (req: Request, res: Response) => {
  */
 router.delete("/:tenantId", (req: Request, res: Response) => {
   if (!isAdminAuthorized(req)) {
-    res.set("WWW-Authenticate", 'Bearer realm="tenant-quotas-admin"');
+    setBearerChallenge(res, "tenant-quotas-admin");
     return res.status(401).json({ erro: "Não autorizado" });
   }
 
