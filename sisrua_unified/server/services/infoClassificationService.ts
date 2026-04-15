@@ -14,6 +14,8 @@ export interface ClassificacaoRecurso {
   revisaoEm: Date;
 }
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 // Papéis permitidos por nível
 const POLITICA_ACESSO: Record<NivelClassificacao, string[]> = {
   publico: ['admin', 'gestor', 'analista', 'operador', 'visitante'],
@@ -40,7 +42,7 @@ export function classificarRecurso(
   classificadoPor: string
 ): ClassificacaoRecurso {
   const agora = new Date();
-  const revisaoEm = new Date(agora.getTime() + REVISAO_DIAS[nivel] * 24 * 60 * 60 * 1000);
+  const revisaoEm = new Date(agora.getTime() + REVISAO_DIAS[nivel] * MS_PER_DAY);
   const classificacao: ClassificacaoRecurso = {
     recursoId, recursoTipo, nivel, justificativa, classificadoPor, classificadoEm: agora, revisaoEm,
   };

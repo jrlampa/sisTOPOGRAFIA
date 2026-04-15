@@ -25,6 +25,10 @@ export interface OrcamentoAmbiente {
 const registros: RegistroCustoOp[] = [];
 const orcamentos = new Map<AmbienteFinOps, OrcamentoAmbiente>();
 
+function matchesYearMonth(date: Date, ano: number, mes: number): boolean {
+  return date.getFullYear() === ano && date.getMonth() + 1 === mes;
+}
+
 export function registrarCusto(r: Omit<RegistroCustoOp, 'id' | 'registradoEm'>): RegistroCustoOp {
   const registro: RegistroCustoOp = { ...r, id: randomUUID(), registradoEm: new Date() };
   registros.push(registro);
@@ -38,7 +42,7 @@ export function definirOrcamento(o: OrcamentoAmbiente): void {
 export function consumoMensalPorAmbiente(ano: number, mes: number): Record<string, number> {
   const result: Record<string, number> = {};
   for (const r of registros) {
-    if (r.registradoEm.getFullYear() === ano && r.registradoEm.getMonth() + 1 === mes) {
+    if (matchesYearMonth(r.registradoEm, ano, mes)) {
       result[r.ambiente] = (result[r.ambiente] ?? 0) + r.valorUsd;
     }
   }

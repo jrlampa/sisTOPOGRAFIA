@@ -18,6 +18,8 @@ export interface Vulnerabilidade {
   afetado: string;
 }
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 // SLA em dias por severidade
 const SLA_DIAS: Record<SeveridadeVuln, number> = {
   critica: 7,
@@ -37,7 +39,7 @@ export function registrarVuln(
   v: Omit<Vulnerabilidade, 'id' | 'prazoSla' | 'criadoEm'>
 ): Vulnerabilidade {
   const criadoEm = new Date();
-  const prazoSla = new Date(criadoEm.getTime() + SLA_DIAS[v.severidade] * 24 * 60 * 60 * 1000);
+  const prazoSla = new Date(criadoEm.getTime() + SLA_DIAS[v.severidade] * MS_PER_DAY);
   const vuln: Vulnerabilidade = { ...v, id: gerarId(), criadoEm, prazoSla };
   vulns.set(vuln.id, vuln);
   return vuln;
