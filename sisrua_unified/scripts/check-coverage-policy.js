@@ -2,16 +2,20 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 const ROOT = process.cwd();
+const FRONTEND_RISK_COVERAGE_FILE =
+  process.env.FRONTEND_RISK_COVERAGE_FILE ?? 'coverage/frontend-risk/coverage-final.json';
+const BACKEND_COVERAGE_FILE =
+  process.env.BACKEND_COVERAGE_FILE ?? 'coverage/backend/coverage-final.json';
 
 const policy = {
   critical20: {
     label: 'Críticos (20%)',
-    source: 'coverage/frontend-risk/coverage-final.json',
+    source: FRONTEND_RISK_COVERAGE_FILE,
     target: { lines: 100, statements: 100, functions: 100, branches: 100 },
   },
   remaining80: {
     label: 'Restantes (>=80%)',
-    source: 'coverage/backend/coverage-final.json',
+    source: BACKEND_COVERAGE_FILE,
     target: { lines: 80, statements: 80, functions: 80, branches: 80 },
   },
 };

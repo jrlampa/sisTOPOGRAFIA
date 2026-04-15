@@ -184,8 +184,8 @@ npm run build
 
 Metas de cobertura da suíte:
 
-- Críticos (20%): 100% (medido em `coverage/frontend-risk/coverage-summary.json`)
-- Restantes: >=80% (medido em `coverage/backend/coverage-summary.json`)
+- Críticos (20%): 100% (medido em `coverage/frontend-risk/coverage-final.json`)
+- Restantes: >=80% (medido em `coverage/backend/coverage-final.json`)
 
 Comandos complementares:
 

@@ -7,6 +7,8 @@ const OUTPUT_FILE = path.join(ARTIFACTS_DIR, 'test-suite-metrics.json');
 
 const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|js|jsx)$/i;
 const E2E_FILE_RE = /\.spec\.(ts|tsx|js|jsx)$/i;
+// Heurística: arquivos de rotas/API/autenticação/sanitização/validação tendem a cobrir integração.
+// Se o projeto adotar nova convenção, atualize este regex junto com os testes correspondentes.
 const INTEGRATION_NAME_RE = /(routes?|api|auth|sanitization|validation|logging|idempotency|baseurl|radius)/i;
 const TEST_CASE_RE = /\b(?:it|test)\s*\(/g;
 
