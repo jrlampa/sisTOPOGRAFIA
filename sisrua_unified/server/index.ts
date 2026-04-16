@@ -136,18 +136,44 @@ function stopOllama(): void {
 
 // Middleware
 
-// CORS configuration: restrict to specific origins based on environment
-const allowedOrigins =
-  config.NODE_ENV === "production"
-    ? config.CORS_ORIGIN
-      ? config.CORS_ORIGIN.split(",").map((o) => o.trim())
-      : []
-    : [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:4173",
-        "http://127.0.0.1:5173",
-      ]; // Vite dev/preview
+// CORS — sem wildcard (*) em nenhum cenário (OWASP A05)
+// Produção: origens lidas de CORS_ORIGIN (CSV). Ausência = startup warning + nenhum origem permitida.
+// Dev:      localhost apenas.
+const isProduction = config.NODE_ENV === "production";
+
+let allowedOrigins: string[];
+if (isProduction) {
+  if (!config.CORS_ORIGIN) {
+    logger.warn(
+      "CORS_ORIGIN não definida em produção — nenhuma origem será permitida. " +
+        "Defina CORS_ORIGIN com os domínios autorizados (CSV, ex: https://app.exemplo.com.br).",
+    );
+    allowedOrigins = [];
+  } else {
+    allowedOrigins = config.CORS_ORIGIN.split(",")
+      .map((o) => o.trim())
+      .filter((o) => {
+        // Bloquear wildcard mesmo que alguém configure CORS_ORIGIN=*
+        if (o === "*") {
+          logger.error(
+            "CORS_ORIGIN contém wildcard '*' — rejeitado por política de segurança.",
+          );
+          return false;
+        }
+        return o.length > 0;
+      });
+    logger.info(
+      `CORS: ${allowedOrigins.length} origem(ns) autorizada(s): ${allowedOrigins.join(", ")}`,
+    );
+  }
+} else {
+  allowedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "http://127.0.0.1:5173",
+  ]; // Vite dev/preview
+}
 
 app.use(
   cors({

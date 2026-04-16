@@ -104,7 +104,11 @@ const EnvSchema = z.object({
   BT_RADIAL_ENABLED: z.string().optional(),
 
   // ── CORS ──────────────────────────────────────────────────────────────────
-  /** Comma-separated list of allowed production origins for CORS (e.g. https://app.example.com) */
+  /**
+   * Origens permitidas em produção (CSV). Ex: https://app.sisrua.com.br
+   * Obrigatório em produção; opcional em desenvolvimento.
+   * NÃO use '*' — bloqueado por política de segurança (OWASP A05).
+   */
   CORS_ORIGIN: z.string().optional(),
   /** Public backend URL used to build download links (e.g. https://api.example.com). */
   APP_PUBLIC_URL: z.string().url().optional(),
