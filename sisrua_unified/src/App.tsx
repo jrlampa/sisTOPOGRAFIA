@@ -18,6 +18,7 @@ import { useBtDxfWorkflow } from "./hooks/useBtDxfWorkflow";
 import { useProjectDataWorkflow } from "./hooks/useProjectDataWorkflow";
 import { useAppAnalysisWorkflow } from "./hooks/useAppAnalysisWorkflow";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useBtCriticalConfirmations } from "./hooks/useBtCriticalConfirmations";
 import { EMPTY_BT_TOPOLOGY } from "./utils/btNormalization";
 import { SidebarBtEditorSection } from "./components/SidebarBtEditorSection";
 import { SidebarAnalysisResults } from "./components/SidebarAnalysisResults";
@@ -248,6 +249,21 @@ function App() {
     setCriticalConfirmationModal(null);
   }, []);
 
+  const {
+    confirmDeletePole,
+    confirmDeleteEdge,
+    confirmDeleteTransformer,
+    confirmQuickRemovePoleRamal,
+    confirmQuickRemoveEdgeConductor,
+  } = useBtCriticalConfirmations({
+    requestCriticalConfirmation,
+    handleBtDeletePole,
+    handleBtDeleteEdge,
+    handleBtDeleteTransformer,
+    handleBtQuickRemovePoleRamal,
+    handleBtQuickRemoveEdgeConductor,
+  });
+
   const handleBtContextAction = React.useCallback(
     (
       action: "add-edge" | "add-transformer" | "add-pole",
@@ -270,72 +286,6 @@ function App() {
       handleBtMapClickAddTransformer,
       insertBtPoleAtLocation,
     ],
-  );
-
-  const confirmDeletePole = React.useCallback(
-    (poleId: string) => {
-      requestCriticalConfirmation({
-        title: "Excluir poste BT?",
-        message: `O poste ${poleId} será removido da topologia. Esta ação não pode ser desfeita.`,
-        confirmLabel: "Excluir poste",
-        tone: "danger",
-        onConfirm: () => handleBtDeletePole(poleId),
-      });
-    },
-    [handleBtDeletePole, requestCriticalConfirmation],
-  );
-
-  const confirmDeleteEdge = React.useCallback(
-    (edgeId: string) => {
-      requestCriticalConfirmation({
-        title: "Excluir condutor BT?",
-        message: `O trecho ${edgeId} será removido da topologia. Esta ação não pode ser desfeita.`,
-        confirmLabel: "Excluir condutor",
-        tone: "danger",
-        onConfirm: () => handleBtDeleteEdge(edgeId),
-      });
-    },
-    [handleBtDeleteEdge, requestCriticalConfirmation],
-  );
-
-  const confirmDeleteTransformer = React.useCallback(
-    (transformerId: string) => {
-      requestCriticalConfirmation({
-        title: "Excluir transformador?",
-        message: `O transformador ${transformerId} será removido da topologia. Esta ação não pode ser desfeita.`,
-        confirmLabel: "Excluir transformador",
-        tone: "danger",
-        onConfirm: () => handleBtDeleteTransformer(transformerId),
-      });
-    },
-    [handleBtDeleteTransformer, requestCriticalConfirmation],
-  );
-
-  const confirmQuickRemovePoleRamal = React.useCallback(
-    (poleId: string) => {
-      requestCriticalConfirmation({
-        title: "Reduzir ramais do poste?",
-        message: `Será removido 1 ramal do poste ${poleId}.`,
-        confirmLabel: "Reduzir ramal",
-        tone: "warning",
-        onConfirm: () => handleBtQuickRemovePoleRamal(poleId),
-      });
-    },
-    [handleBtQuickRemovePoleRamal, requestCriticalConfirmation],
-  );
-
-  const confirmQuickRemoveEdgeConductor = React.useCallback(
-    (edgeId: string, conductorName: string) => {
-      requestCriticalConfirmation({
-        title: "Reduzir condutores do trecho?",
-        message: `Será removida 1 unidade do condutor ${conductorName} no trecho ${edgeId}.`,
-        confirmLabel: "Reduzir condutor",
-        tone: "warning",
-        onConfirm: () =>
-          handleBtQuickRemoveEdgeConductor(edgeId, conductorName),
-      });
-    },
-    [handleBtQuickRemoveEdgeConductor, requestCriticalConfirmation],
   );
 
   const {

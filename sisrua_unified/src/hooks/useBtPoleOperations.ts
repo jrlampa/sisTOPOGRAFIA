@@ -30,10 +30,15 @@ import {
   BtPoleChangeFlag,
   PendingNormalClassificationPole,
   normalizeBtPole,
-  normalizeBtPoles,
   distanceMeters,
   nextSequentialId,
 } from '../utils/btNormalization';
+import {
+  getPoleClandestinoClients,
+  getPoleNormalClients,
+  getPolesPendingNormalClassification,
+  migrateClandestinoToDefaultNormalType,
+} from '../utils/btPoleProjectTypeUtils';
 import { generateEntityId, ID_PREFIX } from '../utils/idGenerator';
 import { fetchBtDerivedState } from '../services/btDerivedService';
 import { API_BASE_URL } from '../config/api';
@@ -45,40 +50,6 @@ type Params = {
   setAppState: (state: GlobalState, addToHistory: boolean) => void;
   showToast: (message: string, type: ToastType) => void;
 };
-
-// ─── Helper functions ──────────────────────────────────────────────────────
-
-const getPoleClandestinoClients = (pole: BtPoleNode) =>
-  (pole.ramais ?? []).reduce((acc, ramal) => {
-    const isClandestino = (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE;
-    return isClandestino ? acc + ramal.quantity : acc;
-  }, 0);
-
-const getPoleNormalClients = (pole: BtPoleNode) =>
-  (pole.ramais ?? []).reduce((acc, ramal) => {
-    const isClandestino = (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE;
-    return isClandestino ? acc : acc + ramal.quantity;
-  }, 0);
-
-const getPolesPendingNormalClassification = (topology: BtTopology): PendingNormalClassificationPole[] =>
-  topology.poles
-    .map((pole) => ({
-      poleId: pole.id,
-      poleTitle: pole.title,
-      clandestinoClients: getPoleClandestinoClients(pole)
-    }))
-    .filter((entry) => entry.clandestinoClients > 0);
-
-const migrateClandestinoToDefaultNormalType = (topology: BtTopology, normalType: string): BtTopology => ({
-  ...topology,
-  poles: topology.poles.map((pole) => {
-    const ramais = (pole.ramais ?? []).map((ramal) => {
-      const isClandestino = (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE;
-      return isClandestino ? { ...ramal, ramalType: normalType } : ramal;
-    });
-    return { ...pole, ramais };
-  })
-});
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 

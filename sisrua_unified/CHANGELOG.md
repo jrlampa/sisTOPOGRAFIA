@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.0] - 2026-04-15 (Beta Maduro)
 
 ### Status
+
 - **Release Type**: Beta (Preview em produção)
 - **Production Ready**: Não — core funcional, muitos erros em outras áreas
 - **Core Feature (DXF Generation)**: ✓ Funcional

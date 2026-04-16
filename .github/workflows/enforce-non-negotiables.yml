@@ -11,6 +11,7 @@ name: Enforcement – Regras Não Negociáveis
 #   R6  – Sem referências a APIs pagas
 #   R7  – .gitignore / .dockerignore com entradas obrigatórias
 #   R8  – Dockerfile e docker-compose.yml presentes (Docker First)
+#   R9  – Supabase First quando houver alternativa equivalente no projeto
 #
 # Em PRs para main/master: todas as regras acima são BLOQUEADORAS.
 # Em push para dev: executa como gate informativo (não bloqueia dev flow).
@@ -52,10 +53,10 @@ jobs:
         run: echo "✅ Branch 'dev' — OK"
 
   # ====================================================================
-  # R2..R8 – Enforcement das demais regras não negociáveis
+  # R2..R9 – Enforcement das demais regras não negociáveis
   # ====================================================================
   enforce-non-negotiables:
-    name: Regras Não Negociáveis (R2-R8)
+    name: Regras Não Negociáveis (R2-R9)
     runs-on: ubuntu-latest
     timeout-minutes: 10
 

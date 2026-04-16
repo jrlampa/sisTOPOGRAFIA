@@ -59,9 +59,7 @@ let activeWorkers = 0;
 const TOPOLOGY_ONLY_WARNING =
   "Sem dados no servidor, DXF gerado com topologia.";
 
-function extractTopologyOnlyWarning(
-  pythonOutput: string,
-): string | undefined {
+function extractTopologyOnlyWarning(pythonOutput: string): string | undefined {
   const normalizedOutput = pythonOutput.toLowerCase();
   const hasNoOsmIndicator =
     normalizedOutput.includes("nenhuma feição osm encontrada") ||
