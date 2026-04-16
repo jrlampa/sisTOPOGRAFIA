@@ -5,15 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.1] - 2026-04-15
+## [0.9.0] - 2026-04-15 (Beta Maduro)
+
+### Status
+- **Release Type**: Beta (Preview em produção)
+- **Production Ready**: Não — core funcional, muitos erros em outras áreas
+- **Core Feature (DXF Generation)**: ✓ Funcional
+- **Target**: v1.0.0 quando Tier 1 (Enterprise Go-Live) estiver completo
+
+### Added
+
+- Regras Não Negociáveis formalizadas e propagadas em todo projeto
+- CI `enforce-non-negotiables.mjs` com 9 regras de enforcement (R1-R9 + R2b)
+- Versionamento único sincronizado entre `VERSION`, `package.json`, `py_engine/constants.py`, `src/hooks/useFileOperations.ts`, `metadata.json`
+- Validação automática R2b: garante paridade de versão entre artefatos
 
 ### Changed
 
-- Regras Não Negociáveis atualizadas: `Supabase First` explicitado, limites de linhas revisados (Ideal 500 / Soft 750 / Hard Absoluto 1000), regra de **Versionamento único e propagado** adicionada
-- CI `enforce-non-negotiables.mjs` atualizado: R2b valida paridade de versão entre `VERSION`, `package.json` e `metadata.json`; thresholds de linhas atualizados (750/1000)
-- `RAG/MEMORY.md`, `RULES_ENFORCEMENT.md` e `STRATEGIC_ROADMAP_2026.md` propagados com as mesmas regras
+- Limites de código revisados: Ideal 500 / Soft 750 / Hard Absoluto 1000 linhas (refatoração de 3 componentes pendente)
+- Supabase First explicitado como princípio de design
+- Versionamento: 1.0.0 (baseline) → 0.9.0 (beta real, reflete estado em preview/teste)
 
-## [1.1.0] - 2026-04-15
+## [1.0.0] - 2026-02-18 (Baseline)
 
 ### Added
 
