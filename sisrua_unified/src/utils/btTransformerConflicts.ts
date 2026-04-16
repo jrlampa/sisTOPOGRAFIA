@@ -1,4 +1,4 @@
-import { BtTopology } from '../types';
+import { BtTopology } from "../types";
 
 export interface BtTransformerConflictGroup {
   poleIds: string[];
@@ -28,8 +28,8 @@ export const findTransformerConflictsWithoutSectioning = (
   // Ignore edges touching a break pole when building connectivity groups.
   for (const edge of topology.edges) {
     const edgeFlag =
-      edge.edgeChangeFlag ?? (edge.removeOnExecution ? 'remove' : 'existing');
-    if (edgeFlag === 'remove') {
+      edge.edgeChangeFlag ?? (edge.removeOnExecution ? "remove" : "existing");
+    if (edgeFlag === "remove") {
       continue;
     }
 

@@ -32,7 +32,13 @@ import {
 import { join, extname, relative } from "path";
 import { argv, cwd, exit } from "process";
 
-const ROOT = cwd();
+const START_DIR = cwd();
+const ROOT = existsSync(join(START_DIR, "src"))
+  ? START_DIR
+  : existsSync(join(START_DIR, "sisrua_unified", "src"))
+    ? join(START_DIR, "sisrua_unified")
+    : START_DIR;
+const REPO_ROOT = existsSync(join(ROOT, ".github")) ? ROOT : join(ROOT, "..");
 const OUT_DIR = join(ROOT, "artifacts", "ci");
 const OUT_FILE = join(OUT_DIR, "non-negotiables-report.json");
 
@@ -142,8 +148,6 @@ if (overHard.length > 0) {
     "R2-hard-limit",
     `${overHard.length} arquivo(s) excedem 1000 linhas — hard limit ultrapassado (modularize: mais resultado em menos linhas)`,
     overHard,
-    overHard,
-    overHard,
   );
 } else {
   pass("R2-hard-limit", "Nenhum arquivo excede 1000 linhas (hard limit OK)");
@@ -153,8 +157,6 @@ if (overSoft.length > 0) {
   warn(
     "R2-soft-limit",
     `${overSoft.length} arquivo(s) entre 750-1000 linhas — soft limit atingido (otimize: mais resultado em menos linhas)`,
-    overSoft,
-    overSoft,
     overSoft,
   );
 } else {
@@ -424,8 +426,7 @@ if (missingDocker.length > 0) {
 
 const configPath = join(ROOT, "server", "config.ts");
 const deployWorkflowPath = join(
-  ROOT,
-  "..",
+  REPO_ROOT,
   ".github",
   "workflows",
   "deploy-cloud-run.yml",

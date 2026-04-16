@@ -293,6 +293,7 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
   - `src/components/MapSelector.tsx` (~1804 linhas)
 
   - `CriticalActionModal`
+
 - Integrado ao stack central de modais em `BtModalStack.tsx`.
 - Centralizado no `App.tsx` o estado/callback de confirmação crítica para:
   - exclusão de poste;
