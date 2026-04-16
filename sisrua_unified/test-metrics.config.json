@@ -1,0 +1,11 @@
+{
+  "description": "Configuração para scripts/test-suite-metrics.js. Caminhos são relativos à raiz do projeto.",
+  "roots": {
+    "unit": ["tests"],
+    "backend": ["server/tests"],
+    "e2e": ["e2e"]
+  },
+  "integrationPattern": "(routes?|api|auth|sanitization|validation|logging|idempotency|baseurl|radius)",
+  "integrationHeaderKeyword": "testes de integração",
+  "excludedDirectories": [".git", "node_modules", "dist", "coverage"]
+}
