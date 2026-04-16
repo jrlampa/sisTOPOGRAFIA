@@ -316,25 +316,21 @@
   }
 
   @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .glass {
-      backdrop-filter: blur(var(--glass-blur-strong));
+    .glass,
+    .glass-card {
       -webkit-backdrop-filter: blur(var(--glass-blur-strong));
+      backdrop-filter: blur(var(--glass-blur-strong));
     }
 
     .app-section,
     .glass-panel {
-      backdrop-filter: blur(var(--glass-blur-medium));
       -webkit-backdrop-filter: blur(var(--glass-blur-medium));
-    }
-
-    .glass-card {
-      backdrop-filter: blur(var(--glass-blur-strong));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong));
+      backdrop-filter: blur(var(--glass-blur-medium));
     }
 
     .btn-enterprise {
-      backdrop-filter: blur(var(--glass-blur-soft));
       -webkit-backdrop-filter: blur(var(--glass-blur-soft));
+      backdrop-filter: blur(var(--glass-blur-soft));
     }
   }
 

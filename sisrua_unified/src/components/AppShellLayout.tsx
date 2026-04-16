@@ -5,6 +5,10 @@ import { AppStatusStack } from "./AppStatusStack";
 import { MainMapWorkspace } from "./MainMapWorkspace";
 import { SidebarWorkspace } from "./SidebarWorkspace";
 import { useBackendHealth } from "../hooks/useBackendHealth";
+import {
+  loadSidebarUiState,
+  persistSidebarUiState,
+} from "../utils/preferencesPersistence";
 
 type Props = {
   isDark: boolean;
@@ -36,7 +40,13 @@ export function AppShellLayout({
   mainMapWorkspaceProps,
 }: Props) {
   const backendHealth = useBackendHealth();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(
+    () => loadSidebarUiState().isCollapsed,
+  );
+
+  React.useEffect(() => {
+    persistSidebarUiState({ isCollapsed: isSidebarCollapsed });
+  }, [isSidebarCollapsed]);
 
   return (
     <div

@@ -24,8 +24,6 @@ import { SidebarBtEditorSection } from "./components/SidebarBtEditorSection";
 import { SidebarAnalysisResults } from "./components/SidebarAnalysisResults";
 import { SidebarSelectionControls } from "./components/SidebarSelectionControls";
 import { BtModalStack } from "./components/BtModalStack";
-import { MainMapWorkspace } from "./components/MainMapWorkspace";
-import { SidebarWorkspace } from "./components/SidebarWorkspace";
 import { AppShellLayout } from "./components/AppShellLayout";
 import { INITIAL_APP_STATE } from "./app/initialState";
 import { persistAppSettings } from "./utils/preferencesPersistence";
@@ -207,7 +205,6 @@ function App() {
     handleBtSetPoleChangeFlag,
     handleBtTogglePoleCircuitBreak,
     handleBtSetTransformerChangeFlag,
-    handleBtToggleEdgeRemoval,
     handleBtSetEdgeReplacementFromConductors,
     handleBtDeleteTransformer,
     handleBtToggleTransformerOnPole,

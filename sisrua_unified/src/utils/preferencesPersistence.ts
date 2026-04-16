@@ -11,8 +11,13 @@ type FloatingLayerPanelUiState = {
   searchQuery: string;
 };
 
+type SidebarUiState = {
+  isCollapsed: boolean;
+};
+
 type PersistedUiState = {
   floatingLayerPanel?: Partial<FloatingLayerPanelUiState>;
+  sidebar?: Partial<SidebarUiState>;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -127,6 +132,28 @@ export const persistFloatingLayerPanelUiState = (
   const nextState: PersistedUiState = {
     ...(parsed && isRecord(parsed) ? parsed : {}),
     floatingLayerPanel: state,
+  };
+
+  writeJson(UI_STATE_STORAGE_KEY, nextState);
+};
+
+export const loadSidebarUiState = (): SidebarUiState => {
+  const parsed = readJson<PersistedUiState>(UI_STATE_STORAGE_KEY);
+  const sidebarState = parsed?.sidebar;
+
+  return {
+    isCollapsed:
+      typeof sidebarState?.isCollapsed === "boolean"
+        ? sidebarState.isCollapsed
+        : false,
+  };
+};
+
+export const persistSidebarUiState = (state: SidebarUiState): void => {
+  const parsed = readJson<PersistedUiState>(UI_STATE_STORAGE_KEY);
+  const nextState: PersistedUiState = {
+    ...(parsed && isRecord(parsed) ? parsed : {}),
+    sidebar: state,
   };
 
   writeJson(UI_STATE_STORAGE_KEY, nextState);
