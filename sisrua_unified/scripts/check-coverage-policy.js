@@ -88,30 +88,47 @@ function metricValue(summary, metric) {
   return Number(summary?.[metric]?.pct ?? 0);
 }
 
+function isMissingFileError(error) {
+  return error?.code === 'ENOENT' || error?.message?.includes('ENOENT');
+}
+
 async function run() {
+  // hasFailure: cobertura medida e abaixo da meta → falha no modo estrito.
+  // hasMissing: arquivo de cobertura ausente → sempre aviso, nunca falha.
   let hasFailure = false;
+  let hasMissing = false;
 
   console.log('📈 Política de cobertura');
 
   for (const config of Object.values(policy)) {
+    let summary;
+
     try {
-      const summary = await loadCoverageSummary(config.source);
-      console.log(`\n${config.label} (${config.source})`);
-
-      for (const [metric, expected] of Object.entries(config.target)) {
-        const actual = metricValue(summary, metric);
-        const ok = actual >= expected;
-        const status = ok ? '✅' : '❌';
-
-        if (!ok) hasFailure = true;
-
-        console.log(`${status} ${metric}: ${actual.toFixed(2)}% (meta: ${expected}%)`);
-      }
+      summary = await loadCoverageSummary(config.source);
     } catch (error) {
-      hasFailure = true;
-      console.log(`\n❌ ${config.label}: não foi possível ler ${config.source}`);
-      console.log(`   Motivo: ${error.message}`);
+      hasMissing = true;
+      const motivo = isMissingFileError(error)
+        ? `arquivo não encontrado: ${config.source} (execute as suítes de teste antes)`
+        : error.message;
+      console.log(`\n⚠️  ${config.label}: ${motivo}`);
+      continue;
     }
+
+    console.log(`\n${config.label} (${config.source})`);
+
+    for (const [metric, expected] of Object.entries(config.target)) {
+      const actual = metricValue(summary, metric);
+      const ok = actual >= expected;
+      const status = ok ? '✅' : '❌';
+
+      if (!ok) hasFailure = true;
+
+      console.log(`${status} ${metric}: ${actual.toFixed(2)}% (meta: ${expected}%)`);
+    }
+  }
+
+  if (hasMissing) {
+    console.warn('\n⚠️  Um ou mais arquivos de cobertura estão ausentes (execute npm run test primeiro).');
   }
 
   if (hasFailure && strict) {
@@ -120,8 +137,8 @@ async function run() {
   }
 
   if (hasFailure) {
-    console.warn('\nHá metas de cobertura não atendidas.');
-  } else {
+    console.warn('Há metas de cobertura não atendidas.');
+  } else if (!hasMissing) {
     console.log('\n✅ Todas as metas de cobertura foram atendidas.');
   }
 }

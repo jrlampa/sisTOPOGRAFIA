@@ -5,15 +5,50 @@ const ROOT = process.cwd();
 const ARTIFACTS_DIR = path.join(ROOT, 'artifacts');
 const OUTPUT_FILE = path.join(ARTIFACTS_DIR, 'test-suite-metrics.json');
 
+// Caminho do arquivo de configuração: pode ser sobrescrito pela variável de ambiente.
+const CONFIG_FILE = process.env.TEST_METRICS_CONFIG
+  ? path.resolve(process.env.TEST_METRICS_CONFIG)
+  : path.join(ROOT, 'test-metrics.config.json');
+
+const DEFAULT_CONFIG = {
+  // Raízes de descoberta de testes, relativas à raiz do projeto.
+  // - unit: arquivos nessas pastas são sempre classificados como unitários.
+  // - backend: arquivos nessas pastas passam pela heurística unit/integração.
+  // - e2e: arquivos nessas pastas são sempre classificados como E2E.
+  roots: {
+    unit: ['tests'],
+    backend: ['server/tests'],
+    e2e: ['e2e'],
+  },
+  // Regex aplicado ao nome do arquivo de backend para identificar testes de integração.
+  integrationPattern: '(routes?|api|auth|sanitization|validation|logging|idempotency|baseurl|radius)',
+  // Palavra-chave no cabeçalho do arquivo (primeiras 500 chars, lowercase) que também indica integração.
+  integrationHeaderKeyword: 'testes de integração',
+  // Pastas ignoradas durante o percurso de arquivos.
+  excludedDirectories: ['.git', 'node_modules', 'dist', 'coverage'],
+};
+
+async function loadConfig() {
+  try {
+    const raw = await fs.readFile(CONFIG_FILE, 'utf8');
+    const loaded = JSON.parse(raw);
+    return {
+      roots: { ...DEFAULT_CONFIG.roots, ...loaded.roots },
+      integrationPattern: loaded.integrationPattern ?? DEFAULT_CONFIG.integrationPattern,
+      integrationHeaderKeyword:
+        loaded.integrationHeaderKeyword ?? DEFAULT_CONFIG.integrationHeaderKeyword,
+      excludedDirectories: loaded.excludedDirectories ?? DEFAULT_CONFIG.excludedDirectories,
+    };
+  } catch {
+    return DEFAULT_CONFIG;
+  }
+}
+
 const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|js|jsx)$/i;
 const E2E_FILE_RE = /\.spec\.(ts|tsx|js|jsx)$/i;
-// Heurística: arquivos de rotas/API/autenticação/sanitização/validação tendem a cobrir integração.
-// Se o projeto adotar nova convenção, atualize este regex junto com os testes correspondentes.
-const INTEGRATION_NAME_RE = /(routes?|api|auth|sanitization|validation|logging|idempotency|baseurl|radius)/i;
-const EXCLUDED_DIRECTORIES = new Set(['.git', 'node_modules', 'dist', 'coverage']);
 const TEST_CASE_RE = /\b(?:it|test)\s*\(/g;
 
-async function walk(dir) {
+async function walk(dir, excludedSet) {
   let entries = [];
   try {
     entries = await fs.readdir(dir, { withFileTypes: true });
@@ -23,11 +58,10 @@ async function walk(dir) {
 
   const results = await Promise.all(
     entries
-      .filter((entry) => !entry.name.startsWith('.') && entry.name !== 'node_modules' && entry.name !== 'dist')
-      .filter((entry) => !EXCLUDED_DIRECTORIES.has(entry.name))
+      .filter((entry) => !entry.name.startsWith('.') && !excludedSet.has(entry.name))
       .map(async (entry) => {
         const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) return walk(full);
+        if (entry.isDirectory()) return walk(full, excludedSet);
         return full;
       }),
   );
@@ -40,29 +74,43 @@ function countTestCases(content) {
   return matches ? matches.length : 0;
 }
 
-function classifyBackendTest(filePath, content) {
-  const fileName = path.basename(filePath);
-  const header = content.slice(0, 500).toLowerCase();
+function makeClassifier(integrationPattern, integrationHeaderKeyword) {
+  const re = new RegExp(integrationPattern, 'i');
+  const keyword = integrationHeaderKeyword.toLowerCase();
 
-  if (header.includes('testes de integração') || INTEGRATION_NAME_RE.test(fileName)) {
-    return 'integration';
-  }
+  return function classifyBackendTest(filePath, content) {
+    const fileName = path.basename(filePath);
+    const header = content.slice(0, 500).toLowerCase();
+    return header.includes(keyword) || re.test(fileName) ? 'integration' : 'unit';
+  };
+}
 
-  return 'unit';
+async function walkRoots(roots, excludedSet) {
+  const all = await Promise.all(
+    roots.map((rel) => walk(path.join(ROOT, rel), excludedSet)),
+  );
+  return all.flat();
 }
 
 async function collect() {
-  const [frontendFiles, backendFiles, e2eFiles] = await Promise.all([
-    walk(path.join(ROOT, 'tests')),
-    walk(path.join(ROOT, 'server', 'tests')),
-    walk(path.join(ROOT, 'e2e')),
+  const config = await loadConfig();
+  const excluded = new Set(config.excludedDirectories);
+  const classifyBackendTest = makeClassifier(
+    config.integrationPattern,
+    config.integrationHeaderKeyword,
+  );
+
+  const [unitFiles, backendFiles, e2eFiles] = await Promise.all([
+    walkRoots(config.roots.unit, excluded),
+    walkRoots(config.roots.backend, excluded),
+    walkRoots(config.roots.e2e, excluded),
   ]);
 
   const unit = { files: 0, testCases: 0 };
   const integration = { files: 0, testCases: 0 };
   const e2e = { files: 0, testCases: 0 };
 
-  for (const filePath of frontendFiles) {
+  for (const filePath of unitFiles) {
     if (!TEST_FILE_RE.test(filePath)) continue;
     const content = await fs.readFile(filePath, 'utf8');
     unit.files += 1;
