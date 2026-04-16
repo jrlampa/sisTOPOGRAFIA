@@ -148,11 +148,42 @@ export default defineConfig(({ mode }) => {
       target: "esnext",
       rollupOptions: {
         output: {
-          manualChunks: {
-            leaflet: ["leaflet", "react-leaflet", "proj4"],
-            motion: ["framer-motion"],
-            icons: ["lucide-react"],
-            recharts: ["recharts"],
+          manualChunks(id) {
+            if (
+              id.includes("node_modules/react/") ||
+              id.includes("node_modules/react-dom/") ||
+              id.includes("node_modules/scheduler/")
+            ) {
+              return "vendor-react";
+            }
+            if (
+              id.includes("node_modules/leaflet/") ||
+              id.includes("node_modules/react-leaflet/") ||
+              id.includes("node_modules/proj4/")
+            ) {
+              return "leaflet";
+            }
+            if (id.includes("node_modules/framer-motion/")) {
+              return "motion";
+            }
+            if (id.includes("node_modules/lucide-react/")) {
+              return "icons";
+            }
+            if (id.includes("node_modules/recharts/") || id.includes("node_modules/d3") || id.includes("node_modules/victory-vendor/")) {
+              return "recharts";
+            }
+            if (id.includes("node_modules/xlsx/")) {
+              return "xlsx";
+            }
+            if (id.includes("node_modules/posthog-js/")) {
+              return "analytics";
+            }
+            if (id.includes("node_modules/groq-sdk/") || id.includes("node_modules/groq/")) {
+              return "ai-sdk";
+            }
+            if (id.includes("node_modules/jszip/")) {
+              return "jszip";
+            }
           },
         },
       },

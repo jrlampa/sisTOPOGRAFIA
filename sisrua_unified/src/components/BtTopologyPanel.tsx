@@ -13,13 +13,9 @@ import type {
   BtTransformerDerived,
 } from "../services/btDerivedService";
 import { useBtTopologySelection } from "../hooks/useBtTopologySelection";
-import {
-  CURRENT_TO_DEMAND_CONVERSION,
-} from "../constants/btPhysicalConstants";
+import { CURRENT_TO_DEMAND_CONVERSION } from "../constants/btPhysicalConstants";
 import type { CriticalConfirmationConfig } from "./BtModals";
-import {
-  useBtTopologyPanelBulkImport,
-} from "./BtTopologyPanel/useBtTopologyPanelBulkImport";
+import { useBtTopologyPanelBulkImport } from "./BtTopologyPanel/useBtTopologyPanelBulkImport";
 import BtPoleVerificationSection from "./BtTopologyPanel/BtPoleVerificationSection";
 import BtTransformerEdgeSection from "./BtTopologyPanel/BtTransformerEdgeSection";
 
@@ -750,7 +746,9 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         updateEdgeVerified={updateEdgeVerified}
         updateEdgeCqtLengthMeters={updateEdgeCqtLengthMeters}
         updateEdgeConductors={updateEdgeConductors}
-        updateEdgeReplacementFromConductors={updateEdgeReplacementFromConductors}
+        updateEdgeReplacementFromConductors={
+          updateEdgeReplacementFromConductors
+        }
       />
     </div>
   );

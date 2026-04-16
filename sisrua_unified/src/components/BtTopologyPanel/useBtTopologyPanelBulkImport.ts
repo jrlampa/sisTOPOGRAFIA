@@ -1,5 +1,10 @@
 import React from "react";
-import type { BtEdge, BtPoleNode, BtPoleRamalEntry, BtTopology } from "../../types";
+import type {
+  BtEdge,
+  BtPoleNode,
+  BtPoleRamalEntry,
+  BtTopology,
+} from "../../types";
 import { CONDUCTOR_NAMES, nextId } from "./BtTopologyPanelUtils";
 import { DEFAULT_TEMPERATURE_FACTOR } from "../../constants/btPhysicalConstants";
 
@@ -112,13 +117,11 @@ export const useBtTopologyPanelBulkImport = ({
 
   const parseWorkbookProjectSettings = (
     workbook: any,
-  ):
-    | {
-        projectType: "ramais" | "clandestino";
-        clandestinoAreaM2: number;
-        geralI2Raw: string;
-      }
-    | null => {
+  ): {
+    projectType: "ramais" | "clandestino";
+    clandestinoAreaM2: number;
+    geralI2Raw: string;
+  } | null => {
     const geralName = workbook.SheetNames.find((name: string) =>
       normalizeHeaderKey(name).startsWith("GERAL"),
     );
@@ -157,7 +160,9 @@ export const useBtTopologyPanelBulkImport = ({
       .filter((line) => line.length > 0);
 
     if (lines.length < 2) {
-      setBulkRamalFeedback("Dados insuficientes. Inclua cabecalho e ao menos uma linha.");
+      setBulkRamalFeedback(
+        "Dados insuficientes. Inclua cabecalho e ao menos uma linha.",
+      );
       return null;
     }
 

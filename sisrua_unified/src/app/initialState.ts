@@ -15,7 +15,7 @@ const DEFAULT_APP_STATE: GlobalState = {
     orthogonalize: true,
     contourRenderMode: "spline",
     projection: "utm",
-    theme: "dark",
+    theme: "light",
     mapProvider: "vector",
     contourInterval: 5,
     projectType: "ramais",

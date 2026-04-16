@@ -22,7 +22,10 @@ interface BtPoleVerificationSectionProps {
     poleId: string,
     nodeChangeFlag: "existing" | "new" | "remove" | "replace",
   ) => void;
-  onBtTogglePoleCircuitBreak?: (poleId: string, circuitBreakPoint: boolean) => void;
+  onBtTogglePoleCircuitBreak?: (
+    poleId: string,
+    circuitBreakPoint: boolean,
+  ) => void;
   updatePoleVerified: (poleId: string, verified: boolean) => void;
   updatePoleRamais: (poleId: string, ramais: BtPoleRamalEntry[]) => void;
 }
@@ -50,7 +53,9 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
       <div className="space-y-2">
         <div className="text-[10px] text-slate-400">Poste selecionado</div>
         {btTopology.poles.length === 0 ? (
-          <div className="text-[10px] text-slate-500">Nenhum poste cadastrado.</div>
+          <div className="text-[10px] text-slate-500">
+            Nenhum poste cadastrado.
+          </div>
         ) : (
           <>
             <div className="relative">
@@ -65,7 +70,8 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
 
                   const nextTitle = e.target.value;
                   const selectedOtherPole = btTopology.poles.find(
-                    (pole) => pole.id !== selectedPole.id && pole.title === nextTitle,
+                    (pole) =>
+                      pole.id !== selectedPole.id && pole.title === nextTitle,
                   );
                   if (selectedOtherPole) {
                     selectPole(selectedOtherPole.id);
@@ -103,7 +109,9 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
             {selectedPole && (
               <>
                 <button
-                  onClick={() => updatePoleVerified(selectedPole.id, !selectedPole.verified)}
+                  onClick={() =>
+                    updatePoleVerified(selectedPole.id, !selectedPole.verified)
+                  }
                   className="rounded border border-cyan-400 px-3 py-1 text-[10px] text-cyan-900 hover:bg-cyan-100"
                 >
                   {selectedPole.verified
@@ -114,19 +122,25 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                 {onBtSetPoleChangeFlag && (
                   <div className="flex flex-wrap gap-2 rounded border border-slate-200 bg-slate-100/70 p-2">
                     <button
-                      onClick={() => onBtSetPoleChangeFlag(selectedPole.id, "remove")}
+                      onClick={() =>
+                        onBtSetPoleChangeFlag(selectedPole.id, "remove")
+                      }
                       className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === "remove" ? "border-rose-400 bg-rose-50 text-rose-700" : "border-slate-300 bg-white text-slate-700"}`}
                     >
                       Remoção
                     </button>
                     <button
-                      onClick={() => onBtSetPoleChangeFlag(selectedPole.id, "new")}
+                      onClick={() =>
+                        onBtSetPoleChangeFlag(selectedPole.id, "new")
+                      }
                       className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === "new" ? "border-emerald-400 bg-emerald-50 text-emerald-700" : "border-slate-300 bg-white text-slate-700"}`}
                     >
                       Novo
                     </button>
                     <button
-                      onClick={() => onBtSetPoleChangeFlag(selectedPole.id, "replace")}
+                      onClick={() =>
+                        onBtSetPoleChangeFlag(selectedPole.id, "replace")
+                      }
                       className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === "replace" ? "border-yellow-400 bg-yellow-50 text-yellow-700" : "border-slate-300 bg-white text-slate-700"}`}
                     >
                       Substituição
@@ -144,7 +158,9 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                       -| |-
                     </button>
                     <button
-                      onClick={() => onBtSetPoleChangeFlag(selectedPole.id, "existing")}
+                      onClick={() =>
+                        onBtSetPoleChangeFlag(selectedPole.id, "existing")
+                      }
                       className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === "existing" ? "border-fuchsia-400 bg-fuchsia-50 text-fuchsia-700" : "border-slate-300 bg-white text-slate-700"}`}
                     >
                       Existente
@@ -154,7 +170,8 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
 
                 {(selectedPole.circuitBreakPoint ?? false) && (
                   <div className="rounded border border-sky-300 bg-sky-50 px-2 py-1 text-[10px] text-sky-800">
-                    Separacao fisica ativa: o circuito do trafo para neste poste.
+                    Separacao fisica ativa: o circuito do trafo para neste
+                    poste.
                   </div>
                 )}
 
@@ -183,7 +200,9 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                   </div>
 
                   {(selectedPole.ramais ?? []).length === 0 ? (
-                    <div className="text-[10px] text-slate-500">Sem ramais cadastrados neste poste.</div>
+                    <div className="text-[10px] text-slate-500">
+                      Sem ramais cadastrados neste poste.
+                    </div>
                   ) : (
                     <div className="space-y-1.5">
                       <div className="rounded border border-slate-200 bg-slate-50 p-1.5 text-[10px] text-slate-600">
@@ -201,7 +220,10 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                         })}
                       </div>
                       {(selectedPole.ramais ?? []).map((ramal) => (
-                        <div key={ramal.id} className="grid grid-cols-[84px_1fr_auto] gap-2">
+                        <div
+                          key={ramal.id}
+                          className="grid grid-cols-[84px_1fr_auto] gap-2"
+                        >
                           <input
                             type="number"
                             min={1}
@@ -210,11 +232,16 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                             onFocus={(e) => e.target.select()}
                             onClick={(e) => e.currentTarget.select()}
                             onChange={(e) => {
-                              const quantity = Math.max(1, numberFromInput(e.target.value));
+                              const quantity = Math.max(
+                                1,
+                                numberFromInput(e.target.value),
+                              );
                               updatePoleRamais(
                                 selectedPole.id,
                                 (selectedPole.ramais ?? []).map((item) =>
-                                  item.id === ramal.id ? { ...item, quantity } : item,
+                                  item.id === ramal.id
+                                    ? { ...item, quantity }
+                                    : item,
                                 ),
                               );
                             }}
@@ -233,7 +260,9 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                               updatePoleRamais(
                                 selectedPole.id,
                                 (selectedPole.ramais ?? []).map((item) =>
-                                  item.id === ramal.id ? { ...item, ramalType } : item,
+                                  item.id === ramal.id
+                                    ? { ...item, ramalType }
+                                    : item,
                                 ),
                               );
                             }}
