@@ -89,6 +89,9 @@ jobs:
       - name: Analisar flakiness E2E (gate de confiabilidade)
         run: npm run ci:e2e:flake-check
 
+      - name: Validar SLO de latência/disponibilidade de snapshot
+        run: npm run ci:e2e:snapshot-slo
+
       - name: Upload relatório de flakiness (pré-deploy)
         uses: actions/upload-artifact@v4
         if: ${{ always() && !env.ACT }}
@@ -97,6 +100,8 @@ jobs:
           path: |
             artifacts/ci/flakiness-report.json
             artifacts/ci/flakiness-report.md
+            artifacts/ci/snapshot-slo-report.json
+            artifacts/ci/snapshot-slo-report.md
           retention-days: 7
 
       - name: Auditoria de segurança NPM
