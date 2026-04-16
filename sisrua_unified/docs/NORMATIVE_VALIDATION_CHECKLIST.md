@@ -13,6 +13,7 @@ Este checklist converte requisitos tecnicos em validacao automatica com evidenci
 - [x] RAST01: Correlacao operacional com operation_id, projeto_id e ponto_id no pipeline de request/log.
 - [x] RAST02: Trilha exportavel para auditoria SIEM com endpoint dedicado.
 - [x] RAST03: Flakiness de regressao tratada como confiabilidade via gate CI.
+- [x] RAST04: Rollback operacional formalizado para contrato/auth/snapshot com gatilho claro.
 
 ## Regra de Bloqueio
 

@@ -53,6 +53,15 @@
         "scripts/ci/analyze-playwright-flakiness.mjs",
         ".github/workflows/quality-gates.yml"
       ]
+    },
+    {
+      "id": "RAST04",
+      "type": "rastreabilidade",
+      "evidencePaths": [
+        "docs/runbooks/CRITICAL_ROLLBACK_SCENARIOS.md",
+        ".github/RELEASE_CHECKLIST.md",
+        ".github/workflows/release.yml"
+      ]
     }
   ]
 }

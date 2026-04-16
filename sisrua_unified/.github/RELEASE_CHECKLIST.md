@@ -73,6 +73,9 @@
 
 ## Rollback Procedure
 
+Runbook consolidado por cenarios criticos:
+- `docs/runbooks/CRITICAL_ROLLBACK_SCENARIOS.md`
+
 1. Identificar versão anterior estável no Container Registry
 2. Executar deploy com imagem anterior:
    ```bash
