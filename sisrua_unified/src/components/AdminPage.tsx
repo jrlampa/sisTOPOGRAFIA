@@ -10,12 +10,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { API_BASE_URL } from "../config/api";
 import {
-  Users, ShieldCheck, Building2, BarChart3, Sliders, Activity, Lock, RefreshCw,
+  Users, ShieldCheck, Building2, BarChart3, Sliders, Activity, Lock, RefreshCw, Network,
 } from "lucide-react";
 import { PainelCard } from "./AdminPagePrimitives";
 import {
   renderSaude, renderUsuarios, renderPapeis, renderTenants, renderQuotas,
-  renderFlags, renderKpis, renderRetencao, renderCapacidade, renderVulns,
+  renderFlags, renderKpis, renderServicos, renderRetencao, renderCapacidade, renderVulns,
   renderClassificacao, renderHoldings, renderFinOps,
 } from "./AdminPageSectionRenderers";
 
@@ -23,7 +23,7 @@ import {
 
 type Secao =
   | "saude" | "usuarios" | "papeis" | "tenants" | "quotas" | "flags" | "kpis"
-  | "retencao" | "capacidade" | "vulns" | "classificacao" | "holdings" | "finops";
+  | "servicos" | "retencao" | "capacidade" | "vulns" | "classificacao" | "holdings" | "finops";
 
 interface SecaoConfig {
   id: Secao;
@@ -41,6 +41,7 @@ const SECOES: SecaoConfig[] = [
   { id: "quotas",       titulo: "Quotas",                        descricao: "Limites de uso configurados por tenant",                   icone: Sliders,    cor: "amber"   },
   { id: "flags",        titulo: "Feature Flags",                 descricao: "Configurações de funcionalidades por tenant",              icone: BarChart3,  cor: "orange"  },
   { id: "kpis",         titulo: "KPIs Operacionais",             descricao: "Observabilidade de negócio: taxa de sucesso e gargalos",   icone: Activity,   cor: "rose"    },
+  { id: "servicos",     titulo: "Perfis de Serviço (SLA/SLO)",   descricao: "Catálogo SoA por tenant com tier, suporte e latência alvo", icone: Network,   cor: "sky"     },
   { id: "retencao",     titulo: "Retenção de Dados",             descricao: "Políticas de ciclo de vida e arquivamento por recurso",    icone: Sliders,    cor: "teal"    },
   { id: "capacidade",   titulo: "Capacity Planning",             descricao: "Histórico de capacidade e metas de jobs simultâneos",      icone: BarChart3,  cor: "cyan"    },
   { id: "vulns",        titulo: "Vulnerabilidades (CVSS SLA)",   descricao: "Gestão de vulnerabilidades com prazos por severidade",     icone: ShieldCheck, cor: "red"   },
@@ -64,13 +65,23 @@ export default function AdminPage() {
 
   const [tenantIdInput, setTenantIdInput] = useState<string>("");
   const [tenantIdAtivo, setTenantIdAtivo] = useState<string>("");
+  const [servicoForm, setServicoForm] = useState({
+    serviceCode: "core-geoprocessing",
+    serviceName: "Core Geoprocessing",
+    tier: "gold",
+    slaAvailabilityPct: "99.9",
+    sloLatencyP95Ms: "1500",
+    supportChannel: "24x7-chat",
+    supportHours: "24x7",
+  });
+  const [servicosMensagem, setServicosMensagem] = useState<string>("");
 
   const apiBase = `${API_BASE_URL}/admin`;
 
-  const fetchComToken = useCallback(async (url: string) => {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const fetchComToken = useCallback(async (url: string, init?: RequestInit) => {
+    const headers: Record<string, string> = { "Content-Type": "application/json", ...(init?.headers as Record<string, string> | undefined) };
     if (token) headers.Authorization = `Bearer ${token}`;
-    const resp = await fetch(url, { headers });
+    const resp = await fetch(url, { ...init, headers });
     if (resp.status === 401) throw new Error("Não autorizado — verifique o token.");
     if (!resp.ok) {
       const body = await resp.json().catch(() => ({}));
@@ -101,6 +112,7 @@ export default function AdminPage() {
       case "quotas":       return `${apiBase}/quotas`;
       case "flags":        return tenantIdAtivo ? `${apiBase}/feature-flags?tenantId=${tenantIdAtivo}` : "";
       case "kpis":         return tenantIdAtivo ? `${apiBase}/kpis?tenantId=${tenantIdAtivo}` : "";
+      case "servicos":     return tenantIdAtivo ? `${apiBase}/servicos?tenantId=${tenantIdAtivo}` : `${apiBase}/servicos`;
       case "retencao":     return `${API_BASE_URL}/retencao/politicas`;
       case "capacidade":   return `${API_BASE_URL}/capacidade/status`;
       case "vulns":        return `${API_BASE_URL}/vulns/resumo`;
@@ -140,7 +152,52 @@ export default function AdminPage() {
     e.preventDefault();
     if (!tenantIdInput.trim()) return;
     setTenantIdAtivo(tenantIdInput.trim());
-    setDados((d) => ({ ...d, flags: undefined, kpis: undefined }));
+    setDados((d) => ({ ...d, flags: undefined, kpis: undefined, servicos: undefined }));
+  }
+
+  async function salvarServico() {
+    if (!tenantIdAtivo) {
+      setServicosMensagem("Defina o tenant ativo antes de salvar um perfil de serviço.");
+      return;
+    }
+
+    try {
+      await fetchComToken(`${apiBase}/servicos/${tenantIdAtivo}/${servicoForm.serviceCode}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          serviceName: servicoForm.serviceName,
+          tier: servicoForm.tier,
+          slaAvailabilityPct: Number(servicoForm.slaAvailabilityPct),
+          sloLatencyP95Ms: Number(servicoForm.sloLatencyP95Ms),
+          supportChannel: servicoForm.supportChannel,
+          supportHours: servicoForm.supportHours,
+          escalationPolicy: { model: "standard", response: "15m", escalateTo: "manager-on-call" },
+          metadata: { origem: "painel_admin", ambiente: "enterprise" },
+          isActive: true,
+        }),
+      });
+      setServicosMensagem("Perfil de serviço salvo com sucesso.");
+      await carregarSecao("servicos", urlParaSecao("servicos"));
+    } catch (err) {
+      setServicosMensagem(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function removerServico() {
+    if (!tenantIdAtivo) {
+      setServicosMensagem("Defina o tenant ativo antes de remover um perfil de serviço.");
+      return;
+    }
+
+    try {
+      await fetchComToken(`${apiBase}/servicos/${tenantIdAtivo}/${servicoForm.serviceCode}`, {
+        method: "DELETE",
+      });
+      setServicosMensagem("Perfil de serviço removido com sucesso.");
+      await carregarSecao("servicos", urlParaSecao("servicos"));
+    } catch (err) {
+      setServicosMensagem(err instanceof Error ? err.message : String(err));
+    }
   }
 
   // Mapa de render por seção
@@ -154,6 +211,81 @@ export default function AdminPage() {
       case "quotas":       return renderQuotas(d);
       case "flags":        return renderFlags(d, tenantIdAtivo);
       case "kpis":         return renderKpis(d, tenantIdAtivo);
+      case "servicos":
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input
+                type="text"
+                value={servicoForm.serviceCode}
+                onChange={(e) => setServicoForm((s) => ({ ...s, serviceCode: e.target.value.trim().toLowerCase() }))}
+                placeholder="service_code"
+                className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+              />
+              <input
+                type="text"
+                value={servicoForm.serviceName}
+                onChange={(e) => setServicoForm((s) => ({ ...s, serviceName: e.target.value }))}
+                placeholder="Nome do serviço"
+                className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+              />
+              <select
+                value={servicoForm.tier}
+                onChange={(e) => setServicoForm((s) => ({ ...s, tier: e.target.value }))}
+                className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+              >
+                <option value="bronze">bronze</option>
+                <option value="silver">silver</option>
+                <option value="gold">gold</option>
+                <option value="platinum">platinum</option>
+              </select>
+              <input
+                type="text"
+                value={servicoForm.supportHours}
+                onChange={(e) => setServicoForm((s) => ({ ...s, supportHours: e.target.value }))}
+                placeholder="Ex: 24x7"
+                className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+              />
+              <input
+                type="number"
+                step="0.001"
+                value={servicoForm.slaAvailabilityPct}
+                onChange={(e) => setServicoForm((s) => ({ ...s, slaAvailabilityPct: e.target.value }))}
+                placeholder="SLA %"
+                className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+              />
+              <input
+                type="number"
+                value={servicoForm.sloLatencyP95Ms}
+                onChange={(e) => setServicoForm((s) => ({ ...s, sloLatencyP95Ms: e.target.value }))}
+                placeholder="SLO p95 (ms)"
+                className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+              />
+              <input
+                type="text"
+                value={servicoForm.supportChannel}
+                onChange={(e) => setServicoForm((s) => ({ ...s, supportChannel: e.target.value }))}
+                placeholder="Canal de suporte"
+                className="sm:col-span-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => { void salvarServico(); }} className="rounded-lg bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 text-sm font-semibold transition-colors">
+                Salvar Perfil
+              </button>
+              <button onClick={() => { void removerServico(); }} className="rounded-lg bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 text-sm font-semibold transition-colors">
+                Remover Perfil
+              </button>
+              <button onClick={() => { void carregarSecao("servicos", urlParaSecao("servicos")); }} className="rounded-lg bg-slate-600 hover:bg-slate-700 text-white px-3 py-2 text-sm font-semibold transition-colors">
+                Recarregar Lista
+              </button>
+            </div>
+            {servicosMensagem && (
+              <p className="text-xs text-slate-500 dark:text-slate-400">{servicosMensagem}</p>
+            )}
+            {renderServicos(d, tenantIdAtivo)}
+          </div>
+        );
       case "retencao":     return renderRetencao(d);
       case "capacidade":   return renderCapacidade(d);
       case "vulns":        return renderVulns(d);

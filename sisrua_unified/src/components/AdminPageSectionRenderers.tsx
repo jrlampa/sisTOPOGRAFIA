@@ -13,6 +13,18 @@ import { InfoCard, PapelBadge } from "./AdminPagePrimitives";
 interface SaudeAdmin { painel: string; versao: string; status: string; banco: string; timestamp: string }
 interface UsuarioAdmin { userId: string; papel: string }
 interface EstatisticasPapel { distribuicao: Record<string, number> }
+interface ServiceProfileAdmin {
+  tenantName: string | null;
+  tenantSlug: string | null;
+  serviceCode: string;
+  serviceName: string;
+  tier: "bronze" | "silver" | "gold" | "platinum";
+  slaAvailabilityPct: number;
+  sloLatencyP95Ms: number;
+  supportChannel: string;
+  supportHours: string;
+  isActive: boolean;
+}
 
 // ─── Saúde ────────────────────────────────────────────────────────────────────
 
@@ -176,6 +188,63 @@ export function renderKpis(d: unknown, tenantIdAtivo: string): React.ReactNode {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Perfis de Serviço ───────────────────────────────────────────────────────
+
+export function renderServicos(d: unknown, tenantIdAtivo: string): React.ReactNode {
+  const sd = d as { total?: number; profiles?: ServiceProfileAdmin[] } | undefined;
+  if (!sd) {
+    return tenantIdAtivo
+      ? null
+      : <p className="text-sm text-amber-600 dark:text-amber-400">Defina um Tenant ID para filtrar e gerir perfis de serviço.</p>;
+  }
+
+  const profiles = sd.profiles ?? [];
+  if (profiles.length === 0) {
+    return <p className="text-sm text-slate-500 dark:text-slate-400">Nenhum perfil de serviço cadastrado para o filtro atual.</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
+        {sd.total ?? profiles.length} perfil(is) encontrado(s)
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="text-left text-xs text-slate-500 dark:text-slate-400 uppercase">
+              <th className="pb-2 pr-3">Serviço</th>
+              <th className="pb-2 pr-3">Tier</th>
+              <th className="pb-2 pr-3">SLA</th>
+              <th className="pb-2 pr-3">SLO p95</th>
+              <th className="pb-2 pr-3">Suporte</th>
+              <th className="pb-2">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {profiles.map((p) => (
+              <tr key={`${p.tenantSlug ?? "tenant"}:${p.serviceCode}`} className="border-t border-slate-200/50 dark:border-slate-700/50">
+                <td className="py-1.5 pr-3">
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{p.serviceName}</p>
+                  <p className="font-mono text-xs text-slate-500 dark:text-slate-400">{p.serviceCode} · {p.tenantSlug ?? p.tenantName ?? "tenant"}</p>
+                </td>
+                <td className="py-1.5 pr-3 capitalize">{p.tier}</td>
+                <td className="py-1.5 pr-3">{Number(p.slaAvailabilityPct).toFixed(3)}%</td>
+                <td className="py-1.5 pr-3">{p.sloLatencyP95Ms}ms</td>
+                <td className="py-1.5 pr-3">{p.supportChannel} · {p.supportHours}</td>
+                <td className="py-1.5">
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${p.isActive ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+                    {p.isActive ? "ativo" : "inativo"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

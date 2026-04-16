@@ -247,6 +247,38 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ---
 
+## 📌 Atualização Operacional (2026-04-16) - Catálogo SoA por Tenant (SLA/SLO)
+
+### Escopo
+
+- Evolução fullstack para governança enterprise por tenant com perfil de serviço operacional.
+- Vertical completa: migração SQL + backend + painel administrativo.
+
+### Implementação
+
+- Banco:
+  - Nova migração `migrations/040_tenant_service_profiles.sql`.
+  - Tabela `tenant_service_profiles` com SLA, SLO p95, tier, suporte, escalonamento e metadados.
+  - Índices por `tenant_id`, `tier` (ativo) e `service_code`.
+- Backend:
+  - Novo serviço `server/services/tenantServiceProfileService.ts`.
+  - Novos endpoints admin em `server/routes/adminRoutes.ts`:
+    - `GET /api/admin/servicos`
+    - `PUT /api/admin/servicos/:tenantId/:serviceCode`
+    - `DELETE /api/admin/servicos/:tenantId/:serviceCode`
+- Frontend:
+  - Nova seção no painel admin: "Perfis de Serviço (SLA/SLO)".
+  - Listagem e operação de salvar/remover perfil por tenant em `src/components/AdminPage.tsx`.
+  - Renderer de visualização em `src/components/AdminPageSectionRenderers.tsx`.
+
+### Validação
+
+- `npm run typecheck:frontend` ✅
+- `npm run typecheck:backend` ✅
+- `npm run test:backend` ✅
+- `npm run ci:frontend` ✅
+- `npm run build` ✅
+
 ## 📌 Atualização Operacional (2026-04-12) - Padronização de Modais Críticos
 
 ### Escopo

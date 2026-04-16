@@ -48,6 +48,11 @@ import {
 } from "../services/tenantQuotaService.js";
 import { getTenantFlagOverrides } from "../services/tenantFeatureFlagService.js";
 import { relatorioKpiTenant } from "../services/businessKpiService.js";
+import {
+  listServiceProfiles,
+  removeServiceProfile,
+  upsertServiceProfile,
+} from "../services/tenantServiceProfileService.js";
 
 const router = Router();
 
@@ -242,5 +247,127 @@ router.get("/kpis", async (req: Request, res: Response) => {
   const relatorio = relatorioKpiTenant(tenantId);
   return res.json(relatorio);
 });
+
+// ─── Serviço por tenant (SaaS SoA) ───────────────────────────────────────────
+
+const ServiceProfileParamsSchema = z.object({
+  tenantId: z.string().uuid(),
+  serviceCode: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^[a-zA-Z0-9_.-]+$/),
+});
+
+const ServiceProfileBodySchema = z.object({
+  serviceName: z.string().min(1).max(120),
+  tier: z.enum(["bronze", "silver", "gold", "platinum"]),
+  slaAvailabilityPct: z.number().min(90).max(99.999),
+  sloLatencyP95Ms: z.number().int().min(10).max(60000),
+  supportChannel: z.string().min(1).max(60),
+  supportHours: z.string().min(1).max(120),
+  escalationPolicy: z.record(z.unknown()).optional(),
+  metadata: z.record(z.unknown()).optional(),
+  isActive: z.boolean().optional(),
+});
+
+router.get("/servicos", async (req: Request, res: Response) => {
+  if (!isAdminAuthorized(req)) return forbidden(res);
+
+  try {
+    const tenantId =
+      typeof req.query.tenantId === "string" ? req.query.tenantId : undefined;
+    const profiles = await listServiceProfiles(tenantId);
+    return res.json({
+      total: profiles.length,
+      tenantId: tenantId ?? null,
+      profiles,
+    });
+  } catch (error) {
+    logger.error("[AdminRoutes] Falha ao listar perfis de serviço", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return res.status(500).json({ erro: "Erro ao listar perfis de serviço" });
+  }
+});
+
+router.put(
+  "/servicos/:tenantId/:serviceCode",
+  async (req: Request, res: Response) => {
+    if (!isAdminAuthorized(req)) return forbidden(res);
+
+    const params = ServiceProfileParamsSchema.safeParse(req.params);
+    if (!params.success) {
+      return res
+        .status(400)
+        .json({ erro: "Parâmetros inválidos", detalhes: params.error.issues });
+    }
+
+    const body = ServiceProfileBodySchema.safeParse(req.body);
+    if (!body.success) {
+      return res
+        .status(400)
+        .json({ erro: "Corpo inválido", detalhes: body.error.issues });
+    }
+
+    try {
+      const profile = await upsertServiceProfile({
+        tenantId: params.data.tenantId,
+        serviceCode: params.data.serviceCode,
+        serviceName: body.data.serviceName,
+        tier: body.data.tier,
+        slaAvailabilityPct: body.data.slaAvailabilityPct,
+        sloLatencyP95Ms: body.data.sloLatencyP95Ms,
+        supportChannel: body.data.supportChannel,
+        supportHours: body.data.supportHours,
+        escalationPolicy: body.data.escalationPolicy ?? {},
+        metadata: body.data.metadata ?? {},
+        isActive: body.data.isActive,
+      });
+
+      return res.json({ profile, upserted: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error("[AdminRoutes] Falha ao upsertar perfil de serviço", {
+        tenantId: params.data.tenantId,
+        serviceCode: params.data.serviceCode,
+        error: message,
+      });
+      return res.status(500).json({ erro: message });
+    }
+  },
+);
+
+router.delete(
+  "/servicos/:tenantId/:serviceCode",
+  async (req: Request, res: Response) => {
+    if (!isAdminAuthorized(req)) return forbidden(res);
+
+    const params = ServiceProfileParamsSchema.safeParse(req.params);
+    if (!params.success) {
+      return res
+        .status(400)
+        .json({ erro: "Parâmetros inválidos", detalhes: params.error.issues });
+    }
+
+    try {
+      const removed = await removeServiceProfile(
+        params.data.tenantId,
+        params.data.serviceCode,
+      );
+      if (!removed) {
+        return res.status(404).json({ erro: "Perfil de serviço não encontrado" });
+      }
+      return res.json({ removed: true });
+    } catch (error) {
+      logger.error("[AdminRoutes] Falha ao remover perfil de serviço", {
+        tenantId: params.data.tenantId,
+        serviceCode: params.data.serviceCode,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return res.status(500).json({ erro: "Erro ao remover perfil de serviço" });
+    }
+  },
+);
 
 export default router;
