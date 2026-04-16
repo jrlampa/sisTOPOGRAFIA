@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { z } from "zod";
 import { config } from "../config.js";
 import { OllamaService } from "../services/ollamaService.js";
 import { listCircuitBreakers } from "../utils/circuitBreaker.js";
@@ -8,6 +9,10 @@ import {
 } from "../utils/bearerAuth.js";
 
 const router = Router();
+
+const externalApisQuerySchema = z.object({
+  details: z.enum(["summary", "full"]).optional(),
+});
 
 function isOpsRequestAuthorized(req: Request): boolean {
   return isBearerRequestAuthorized(req, config.METRICS_TOKEN);
@@ -19,8 +24,15 @@ router.get("/external-apis", (req: Request, res: Response) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const detailMode = (req.query.details as string | undefined)?.toLowerCase();
-  const includeDetails = detailMode !== "summary";
+  const queryValidation = externalApisQuerySchema.safeParse(req.query);
+  if (!queryValidation.success) {
+    return res.status(400).json({
+      error: "Parâmetros inválidos",
+      details: queryValidation.error.flatten(),
+    });
+  }
+
+  const includeDetails = queryValidation.data.details !== "summary";
 
   const circuitBreakers = listCircuitBreakers();
   const openCircuits = circuitBreakers.filter(

@@ -201,6 +201,7 @@ export function SidebarWorkspace({
         </div>
         <div
           className={activeStage !== "network" ? "opacity-95" : undefined}
+          role="region"
           aria-label="Conteúdo da etapa BT"
         >
           <SidebarBtEditorSection {...btEditorSectionProps} />
@@ -226,6 +227,7 @@ export function SidebarWorkspace({
         </div>
         <div
           className={activeStage !== "analysis" ? "opacity-95" : undefined}
+          role="region"
           aria-label="Conteúdo da etapa análise"
         >
           <SidebarAnalysisResults {...analysisResultsProps} />

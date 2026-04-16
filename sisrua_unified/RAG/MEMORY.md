@@ -258,6 +258,40 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 - Criado contrato único de confirmação crítica em `BtModals.tsx`:
   - `CriticalConfirmationConfig`
+
+---
+
+## 📌 Atualização Operacional (2026-04-16) - Auditoria Técnica Front/Back/DB
+
+### Correções aplicadas nesta rodada
+
+- Enforcement CI atualizado para remover gate legado de 600 linhas e alinhar com hard limit atual (1000) via script único.
+- Frontend modularizado em utilitários de BT:
+  - Extraída detecção de conflitos de transformadores para `src/utils/btTransformerConflicts.ts`.
+  - `src/utils/btCalculations.ts` reduzido para 930 linhas (saiu do hard limit).
+- Backend hardening:
+  - `server/routes/opsRoutes.ts` agora valida query params com Zod (`details` em `summary|full`) e retorna `400` em payload inválido.
+- Banco (segurança multi-tenant):
+  - Nova migration `migrations/039_harden_multi_tenant_rls.sql` com reforço de RLS/policies para `tenants`, `user_roles`, `bt_export_history`, `jobs` e `dxf_tasks`.
+- Acessibilidade (E2E @smoke):
+  - Corrigido `aria-prohibited-attr` em `src/components/SidebarWorkspace.tsx` (wrappers com `role="region"`).
+- Versionamento:
+  - `package-lock.json` sincronizado com `VERSION`/`package.json` (`0.9.0`).
+
+### Validação executada
+
+- Build frontend: ✅
+- `npm run test:backend`: ✅
+- `npm run test:frontend`: ✅
+- `npm run test:e2e -- --grep @smoke`: ✅
+- `npm run coverage:policy`: ❌ (metas de cobertura ainda não atendidas)
+
+### Pendências críticas atuais
+
+- Enforcement ainda falha apenas em limite de código (hard 1000):
+  - `src/components/BtTopologyPanel.tsx` (~2556 linhas)
+  - `src/components/MapSelector.tsx` (~1804 linhas)
+
   - `CriticalActionModal`
 - Integrado ao stack central de modais em `BtModalStack.tsx`.
 - Centralizado no `App.tsx` o estado/callback de confirmação crítica para:

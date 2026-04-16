@@ -5,7 +5,7 @@ name: Enforcement – Regras Não Negociáveis
 #
 # Regras verificadas:
 #   R1  – Push direto apenas para 'dev' (main/master via PR)
-#   R2  – Otimização: mais resultado em menos linhas. Soft limit 500 (aviso), hard limit 600 (bloqueador)
+#   R2  – Otimização: mais resultado em menos linhas. Soft limit 750 (aviso), hard limit 1000 (bloqueador)
 #   R3  – Nenhum código 3D (THREE.js etc.) — projeto é 2.5D
 #   R4  – Sem mocks em código de produção
 #   R6  – Sem referências a APIs pagas
@@ -125,57 +125,3 @@ jobs:
               body,
             });
 
-  # ====================================================================
-  # Gate de linha de arquivo via script dedicado
-  # ====================================================================
-  check-file-size:
-    name: R2 – Limite de Linhas por Arquivo
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout do código
-        uses: actions/checkout@v4
-
-      - name: Verificar arquivos acima de 600 linhas (hard limit)
-        run: |
-          echo "Verificando arquivos com mais de 600 linhas..."
-          VIOLATIONS=""
-
-          find sisrua_unified/src sisrua_unified/server sisrua_unified/py_engine -type f \
-            \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.py" \) \
-            ! -path "*/node_modules/*" ! -path "*/dist/*" ! -path "*/build/*" \
-            ! -path "*/coverage/*" ! -path "*/.git/*" 2>/dev/null | \
-          while read -r f; do
-            lines=$(wc -l < "$f")
-            if [ "$lines" -gt 600 ]; then
-              echo "❌ $f ($lines linhas)"
-              VIOLATIONS="$VIOLATIONS\n$f ($lines linhas)"
-            fi
-          done
-
-          # Verificação de violações
-          HARD=$(find sisrua_unified/src sisrua_unified/server sisrua_unified/py_engine -type f \
-            \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.py" \) \
-            ! -path "*/node_modules/*" ! -path "*/dist/*" 2>/dev/null | \
-            xargs -I{} sh -c 'lines=$(wc -l < "{}"); [ "$lines" -gt 600 ] && echo "{} ($lines)"' 2>/dev/null | wc -l)
-
-          if [ "$HARD" -gt "0" ]; then
-            echo "❌ $HARD arquivo(s) violam o hard limit de 600 linhas"
-            exit 1
-          fi
-
-          echo "✅ Nenhum arquivo supera 600 linhas"
-
-      - name: Avisar sobre arquivos entre 500-600 linhas (soft limit)
-        run: |
-          find sisrua_unified/src sisrua_unified/server sisrua_unified/py_engine -type f \
-            \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.py" \) \
-            ! -path "*/node_modules/*" ! -path "*/dist/*" 2>/dev/null | \
-          while read -r f; do
-            lines=$(wc -l < "$f")
-            if [ "$lines" -gt 500 ] && [ "$lines" -le 600 ]; then
-              echo "⚠️  $f ($lines linhas) — considere modularizar"
-            fi
-          done
-          echo "✅ Verificação soft limit concluída"
