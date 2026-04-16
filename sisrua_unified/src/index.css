@@ -25,6 +25,11 @@
   --glass-shadow: 0 10px 35px rgba(30, 41, 59, 0.16);
   --glass-hover-bg: rgba(255, 255, 255, 0.58);
   --glass-hover-shadow: 0 14px 40px rgba(30, 41, 59, 0.22);
+  --glass-blur-strong: 18px;
+  --glass-blur-medium: 16px;
+  --glass-blur-soft: 12px;
+  --glass-overlay-base: rgba(15, 23, 42, 0.72);
+  --glass-overlay-stripe: rgba(129, 140, 248, 0.08);
 
   --enterprise-blue: #4f46e5;
   --enterprise-blue-light: #6366f1;
@@ -63,6 +68,11 @@
   --glass-shadow: 0 14px 42px rgba(2, 6, 23, 0.5);
   --glass-hover-bg: rgba(30, 41, 59, 0.68);
   --glass-hover-shadow: 0 16px 48px rgba(2, 6, 23, 0.56);
+  --glass-blur-strong: 16px;
+  --glass-blur-medium: 14px;
+  --glass-blur-soft: 10px;
+  --glass-overlay-base: rgba(15, 23, 42, 0.72);
+  --glass-overlay-stripe: rgba(129, 140, 248, 0.08);
   --enterprise-blue: #818cf8;
   --enterprise-blue-light: #a5b4fc;
   --enterprise-accent: #c084fc;
@@ -146,8 +156,6 @@
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
   }
 
   .app-shell-atmosphere {
@@ -233,8 +241,6 @@
     background: var(--glass-bg);
     border: 2px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
   }
 
   .text-app-title {
@@ -250,11 +256,12 @@
     background: var(--glass-bg);
     border: 2px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
   }
 
   .glass-panel-hover {
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    box-shadow: var(--glass-shadow);
     transition:
       background 180ms ease,
       border-color 180ms ease,
@@ -263,7 +270,7 @@
   }
 
   .glass-panel-hover:hover {
-    background: var(--app-panel-elevated);
+    background: var(--glass-hover-bg);
     border-color: var(--glass-border-hover);
     box-shadow: var(--glass-hover-shadow);
     transform: translateY(-2px);
@@ -271,11 +278,15 @@
 
   .glass-overlay {
     background:
-      linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.72)),
+      linear-gradient(
+        180deg,
+        var(--glass-overlay-base),
+        var(--glass-overlay-base)
+      ),
       repeating-linear-gradient(
         -45deg,
-        rgba(129, 140, 248, 0.08),
-        rgba(129, 140, 248, 0.08) 18px,
+        var(--glass-overlay-stripe),
+        var(--glass-overlay-stripe) 18px,
         transparent 18px,
         transparent 36px
       );
@@ -286,8 +297,6 @@
     border: 2px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
     border-radius: 1rem;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
   }
 
   /* Enterprise Button Styles */
@@ -295,8 +304,6 @@
     background: var(--glass-bg);
     border: 2px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     transition:
       background 180ms ease,
       border-color 180ms ease,
@@ -305,10 +312,33 @@
   }
 
   .btn-enterprise:hover {
-    background: var(--app-panel-elevated);
+    background: var(--glass-hover-bg);
     border-color: var(--glass-border-hover);
     transform: translateY(-2px);
     box-shadow: var(--glass-hover-shadow);
+  }
+
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass {
+      backdrop-filter: blur(var(--glass-blur-strong));
+      -webkit-backdrop-filter: blur(var(--glass-blur-strong));
+    }
+
+    .app-section,
+    .glass-panel {
+      backdrop-filter: blur(var(--glass-blur-medium));
+      -webkit-backdrop-filter: blur(var(--glass-blur-medium));
+    }
+
+    .glass-card {
+      backdrop-filter: blur(var(--glass-blur-strong));
+      -webkit-backdrop-filter: blur(var(--glass-blur-strong));
+    }
+
+    .btn-enterprise {
+      backdrop-filter: blur(var(--glass-blur-soft));
+      -webkit-backdrop-filter: blur(var(--glass-blur-soft));
+    }
   }
 
   .text-enterprise-blue {
