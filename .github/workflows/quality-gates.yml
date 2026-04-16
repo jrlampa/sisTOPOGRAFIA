@@ -33,6 +33,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: sisrua_unified/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -48,7 +49,7 @@ jobs:
         if: ${{ always() && !env.ACT }}
         with:
           name: backend-coverage
-          path: coverage/backend/
+          path: sisrua_unified/coverage/backend/
           retention-days: 7
 
   # ============================================
@@ -68,6 +69,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: sisrua_unified/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -87,7 +89,7 @@ jobs:
         if: ${{ always() && !env.ACT }}
         with:
           name: frontend-coverage
-          path: coverage/
+          path: sisrua_unified/coverage/
           retention-days: 7
 
   # ============================================
@@ -108,9 +110,24 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: sisrua_unified/package-lock.json
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Download backend coverage
+        uses: actions/download-artifact@v4
+        if: ${{ !env.ACT }}
+        with:
+          name: backend-coverage
+          path: sisrua_unified/coverage/backend
+
+      - name: Download frontend coverage
+        uses: actions/download-artifact@v4
+        if: ${{ !env.ACT }}
+        with:
+          name: frontend-coverage
+          path: sisrua_unified/coverage
 
       - name: Generate test suite metrics
         run: npm run test:metrics
@@ -123,7 +140,7 @@ jobs:
         if: ${{ always() && !env.ACT }}
         with:
           name: test-suite-metrics
-          path: artifacts/test-suite-metrics.json
+          path: sisrua_unified/artifacts/test-suite-metrics.json
           retention-days: 7
 
   # ============================================
@@ -143,6 +160,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: sisrua_unified/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -170,6 +188,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: sisrua_unified/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -185,7 +204,7 @@ jobs:
         if: ${{ always() && !env.ACT }}
         with:
           name: sbom-node
-          path: artifacts/sbom-node.json
+          path: sisrua_unified/artifacts/sbom-node.json
           retention-days: 7
 
   # ============================================
@@ -206,6 +225,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: sisrua_unified/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -225,7 +245,7 @@ jobs:
         if: ${{ !env.ACT }}
         with:
           name: build-output
-          path: dist/
+          path: sisrua_unified/dist/
           retention-days: 7
 
   # ============================================
@@ -247,6 +267,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: sisrua_unified/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -282,6 +303,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: sisrua_unified/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -311,8 +333,8 @@ jobs:
         with:
           name: e2e-report
           path: |
-            playwright-report/
-            test-results/
+            sisrua_unified/playwright-report/
+            sisrua_unified/test-results/
           retention-days: 7
 
   # ============================================
@@ -345,7 +367,7 @@ jobs:
               return 0
             fi
 
-            # Parity and E2E may be intentionally skipped in local emulation.
+            # Parity e E2E podem ser ignorados intencionalmente em emulação local.
             if [[ "$result" == "skipped" ]] && \
               { [[ "$job_name" == "parity-p0" ]] || [[ "$job_name" == "e2e-smoke" ]]; }; then
               return 0
@@ -366,4 +388,4 @@ jobs:
             exit 1
           fi
 
-          echo "✅ Quality gate PASSED"
+          echo "✅ Quality gate PASSOU"

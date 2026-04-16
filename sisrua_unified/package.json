@@ -58,7 +58,7 @@
     "setup:local:bash": "bash scripts/setup-local.sh",
     "health:check": "powershell -ExecutionPolicy Bypass -File scripts/health-check.ps1",
     "health:check:bash": "bash scripts/health-check.sh",
-    "postinstall": "echo '\n✅ Setup complete!\n\n🐳 RECOMMENDED: Use Docker for the best experience:\n   npm run docker:dev\n\n💻 Or install Python dependencies manually:\n   pip install -r py_engine/requirements.txt\n'",
+    "postinstall": "echo '\n✅ Configuração concluída!\n\n🐳 RECOMENDADO: Use Docker para a melhor experiência:\n   npm run docker:dev\n\n💻 Ou instale manualmente as dependências Python:\n   pip install -r py_engine/requirements.txt\n'",
     "test:metrics": "node scripts/test-suite-metrics.js",
     "coverage:policy": "node scripts/check-coverage-policy.js",
     "coverage:policy:strict": "node scripts/check-coverage-policy.js --strict"

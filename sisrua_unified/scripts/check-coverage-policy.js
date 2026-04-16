@@ -43,19 +43,31 @@ async function loadCoverageSummary(relativePath) {
   for (const file of files) {
     if (!file || typeof file !== 'object') continue;
 
-    const statementEntries = Object.entries(file.s ?? {});
-    const statementMap = file.statementMap ?? {};
-    const coveredLines = new Set();
-    const totalLines = new Set();
+    // Usa file.l (mapa de linhas Istanbul: { [linha]: hits }) quando disponível —
+    // mais preciso do que statementMap, que pode subcontar linhas com múltiplos statements.
+    // Fallback para statementMap (com Set para deduplicar) em formatos sem file.l (e.g. ts-jest).
+    if (file.l && Object.keys(file.l).length > 0) {
+      const lineEntries = Object.entries(file.l);
+      totals.lines.total += lineEntries.length;
+      totals.lines.covered += lineEntries.filter(([, hits]) => Number(hits) > 0).length;
+    } else {
+      const statementEntries = Object.entries(file.s ?? {});
+      const statementMap = file.statementMap ?? {};
+      const coveredLines = new Set();
+      const totalLines = new Set();
 
-    for (const [statementId, hits] of statementEntries) {
-      const line = statementMap?.[statementId]?.start?.line;
-      if (typeof line !== 'number') continue;
-      totalLines.add(line);
-      if (Number(hits) > 0) coveredLines.add(line);
+      for (const [statementId, hits] of statementEntries) {
+        const line = statementMap?.[statementId]?.start?.line;
+        if (typeof line !== 'number') continue;
+        totalLines.add(line);
+        if (Number(hits) > 0) coveredLines.add(line);
+      }
+
+      totals.lines.total += totalLines.size;
+      totals.lines.covered += coveredLines.size;
     }
 
-    const statements = statementEntries.map(([, hits]) => hits);
+    const statements = Object.values(file.s ?? {});
     const functions = Object.values(file.f ?? {});
     const branches = Object.values(file.b ?? {}).flatMap((entry) =>
       Array.isArray(entry) ? entry : [],
@@ -66,9 +78,6 @@ async function loadCoverageSummary(relativePath) {
 
     totals.functions.total += functions.length;
     totals.functions.covered += functions.filter((hits) => Number(hits) > 0).length;
-
-    totals.lines.total += totalLines.size;
-    totals.lines.covered += coveredLines.size;
 
     totals.branches.total += branches.length;
     totals.branches.covered += branches.filter((hits) => Number(hits) > 0).length;
