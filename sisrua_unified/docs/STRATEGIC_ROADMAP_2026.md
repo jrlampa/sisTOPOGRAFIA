@@ -15,7 +15,7 @@ Este documento estabelece a visão técnica, os pontos de melhoria prioritários
 - **Dimensionalidade**: Não usar 3D e sim **2.5D** em todo o projeto.
 - **Arquitetura & Design**:
   - **Modularidade**: Responsabilidade Única (Separação de Responsabilidades).
-  - **Clean Code**: Otimização do código e legibilidade.
+  - **Clean Code**: Otimização do código — _"mais resultado em menos linhas"_.
   - **Thin Frontend / Smart Backend**: Lógica pesada no servidor.
   - **DDD**: Arquitetura orientada a Domain-Driven Design.
 - **Segurança & Dados**:
@@ -25,12 +25,17 @@ Este documento estabelece a visão técnica, os pontos de melhoria prioritários
   - **Half-way BIM**: Manter e evoluir a estrutura de metadados BIM.
 - **DevOps**:
   - **Docker First**: Manter e utilizar `Dockerfile`, `docker-compose.yml`, `.dockerignore` e `.gitignore` sempre atualizados.
-- **Custos**: "Zero custo a todo custo!". Uso primário de APIs públicas ou gratuitas; referências externas não podem gerar custos monetários.
+- **Supabase First**: Usar Supabase sempre que possível (auth, banco, storage, edge functions, realtime).
+- **Versionamento**: Versão única definida em `VERSION` e propagada para `package.json`, `metadata.json`, artefatos e headers de resposta — nenhum componente pode ter versão desalinhada.
+- **Custos**: "Zero custo a todo custo!". Uso primário de APIs públicas ou gratuitas; qualquer referência externa não pode gerar custos monetários.
 - **Padrões de Interface**: Interface UI/UX / GUI deve estar 100% em **pt-BR**.
-- **Limites de Código**: Sempre que um arquivo/código superar **500 linhas**, considere modularizar (**Hard Limit de 600 linhas**).
+- **Limites de Código**: Sempre que um arquivo/código superar **500 linhas**, considere modularizar:
+  - **IDEAL**: 500 linhas
+  - **SOFT LIMIT**: 750 linhas
+  - **HARD LIMIT ABSOLUTO**: 1000 linhas (somente quando modularização for tecnicamente inviável)
 - **Testes & Cobertura**:
   - Executar todos os testes sempre que julgar necessário.
-  - Full suite de testes (Unitários & E2E).
+  - Full suite de testes (unit tests & E2E).
   - **Meta de Cobertura**: 100% para os 20% do código que representam 80% do impacto; cobertura mínima >=80% para os demais.
 - **Papéis (Agir de acordo)**:
   - **Tech Lead**: Orquestrador.
@@ -38,7 +43,7 @@ Este documento estabelece a visão técnica, os pontos de melhoria prioritários
   - **DevOps/QA**: Testes e infraestrutura.
   - **UI/UX Designer**: Criação de interfaces.
   - **Estagiário**: Criatividade fora da caixa.
-- **Finalização**: Ao terminar uma task, realize o **commit** imediatamente.
+- **Finalização**: Ao terminar uma task: (1) executar suite de testes, (2) verificar cobertura, (3) realizar o **commit** na branch `dev`, (4) atualizar o `RAG/MEMORY.md`.
 
 ---
 
@@ -377,27 +382,27 @@ Legenda:
 
 ## ✅ Double Check de Pontos já Implementados (2026-04-14)
 
-| Ponto | Status | Evidência |
-| ----- | ------ | --------- |
-| 90. SRE Runbooks para queda de conexão de APIs | ✅ Implementado | `docs/sre/RUNBOOKS.md` (RB-01: perda de conexão com APIs externas) |
+| Ponto                                                       | Status          | Evidência                                                                             |
+| ----------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------- |
+| 90. SRE Runbooks para queda de conexão de APIs              | ✅ Implementado | `docs/sre/RUNBOOKS.md` (RB-01: perda de conexão com APIs externas)                    |
 | 91. Policy Gates para dependências vulneráveis (SBOM Check) | ✅ Implementado | `.github/workflows/security-supply-chain.yml` + `package.json` (`security:sbom:node`) |
-| 93. Log de Auditoria exportável em SIEM | ✅ Implementado | `server/routes/auditRoutes.ts` + `migrations/038_audit_context_siem.sql` |
-| 96. Monitoramento de SLA de APIs de terceiros | ✅ Implementado | `server/services/metricsService.ts` + `server/utils/externalApi.ts` |
-| 99. Self-healing automático de workers Python OOM | ✅ Implementado | `server/pythonBridge.ts` (tratamento explícito de OOM com retry) |
+| 93. Log de Auditoria exportável em SIEM                     | ✅ Implementado | `server/routes/auditRoutes.ts` + `migrations/038_audit_context_siem.sql`              |
+| 96. Monitoramento de SLA de APIs de terceiros               | ✅ Implementado | `server/services/metricsService.ts` + `server/utils/externalApi.ts`                   |
+| 99. Self-healing automático de workers Python OOM           | ✅ Implementado | `server/pythonBridge.ts` (tratamento explícito de OOM com retry)                      |
 
 ## ✅ Double Check de Pontos Implementados (2026-04-15)
 
-| Ponto | Status | Evidência |
-| ----- | ------ | --------- |
-| 35. Painel de Autoatendimento Administrativo | ✅ Implementado | `server/routes/adminRoutes.ts` + `src/components/AdminPage.tsx` + rota `/admin` em `src/index.tsx` |
-| 37. Configuração de Retenção de Dados | ✅ Implementado | `server/routes/dataRetentionRoutes.ts` + `server/services/dataRetentionService.ts` |
-| 115. Feature Flags por Tenant/Region | ✅ Implementado | `server/services/tenantFeatureFlagService.ts` + `server/routes/featureFlagRoutes.ts` |
-| 125. Observabilidade de Negócio (KPIs Operacionais) | ✅ Implementado | `server/services/businessKpiService.ts` + `server/routes/businessKpiRoutes.ts` |
-| 126. Gestão de Capacidade & Capacity Planning | ✅ Implementado | `server/services/capacityPlanningService.ts` + `server/routes/capacityPlanningRoutes.ts` |
-| 127. Gestão de Vulnerabilidades (CVSS SLA) | ✅ Implementado | `server/services/vulnManagementService.ts` + `server/routes/vulnManagementRoutes.ts` |
-| 128. Classificação da Informação & Segregação | ✅ Implementado | `server/services/infoClassificationService.ts` + `server/routes/infoClassificationRoutes.ts` |
-| 129. Modelo Multiempresa & Holding | ✅ Implementado | `server/services/holdingService.ts` + `server/routes/holdingRoutes.ts` |
-| 130. FinOps: Controle de Custo Operacional | ✅ Implementado | `server/services/finOpsService.ts` + `server/routes/finOpsRoutes.ts` |
+| Ponto                                               | Status          | Evidência                                                                                          |
+| --------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------- |
+| 35. Painel de Autoatendimento Administrativo        | ✅ Implementado | `server/routes/adminRoutes.ts` + `src/components/AdminPage.tsx` + rota `/admin` em `src/index.tsx` |
+| 37. Configuração de Retenção de Dados               | ✅ Implementado | `server/routes/dataRetentionRoutes.ts` + `server/services/dataRetentionService.ts`                 |
+| 115. Feature Flags por Tenant/Region                | ✅ Implementado | `server/services/tenantFeatureFlagService.ts` + `server/routes/featureFlagRoutes.ts`               |
+| 125. Observabilidade de Negócio (KPIs Operacionais) | ✅ Implementado | `server/services/businessKpiService.ts` + `server/routes/businessKpiRoutes.ts`                     |
+| 126. Gestão de Capacidade & Capacity Planning       | ✅ Implementado | `server/services/capacityPlanningService.ts` + `server/routes/capacityPlanningRoutes.ts`           |
+| 127. Gestão de Vulnerabilidades (CVSS SLA)          | ✅ Implementado | `server/services/vulnManagementService.ts` + `server/routes/vulnManagementRoutes.ts`               |
+| 128. Classificação da Informação & Segregação       | ✅ Implementado | `server/services/infoClassificationService.ts` + `server/routes/infoClassificationRoutes.ts`       |
+| 129. Modelo Multiempresa & Holding                  | ✅ Implementado | `server/services/holdingService.ts` + `server/routes/holdingRoutes.ts`                             |
+| 130. FinOps: Controle de Custo Operacional          | ✅ Implementado | `server/services/finOpsService.ts` + `server/routes/finOpsRoutes.ts`                               |
 
 ---
 
@@ -406,6 +411,6 @@ Legenda:
 Ao final de cada task:
 
 1. Executar suite de testes (`npm run test:all`).
-2. Verificar cobertura.
+2. Verificar cobertura (100% para os 20% críticos; >=80% para os demais).
 3. Realizar o commit na branch `dev`.
 4. Atualizar o `RAG/MEMORY.md`.

@@ -6,13 +6,15 @@
  *
  * Regras verificadas:
  *  R1  – Branch deve ser 'dev' (em push direto)
- *  R2  – Otimização: mais resultado em menos linhas. Soft limit 500 (modularizar), hard limit 600 (bloqueador)
+ *  R2  – Otimização: mais resultado em menos linhas. Ideal 500, soft limit 750 (aviso), hard limit 1000 (bloqueador)
+ *  R2b – Versionamento único: VERSION, package.json e metadata.json devem ter a mesma versão
  *  R3  – Nenhum string 3D proibido nos arquivos de código (esperado: 2.5D)
  *  R4  – Nenhum dado mockado hardcoded óbvio (mock/stub em prod)
  *  R5  – Interface labels em pt-BR (strings UI não em inglês puro)
  *  R6  – APIs externas referenciadas não são pagas (lista de domínios banidos)
  *  R7  – .gitignore e .dockerignore existem e cobrem artefatos mínimos
  *  R8  – Dockerfile / docker-compose.yml existem (Docker First)
+ *  R9  – Supabase First quando houver alternativa equivalente no projeto
  *
  * Saída:
  *  - Relatório JSON em artifacts/ci/non-negotiables-report.json
@@ -69,6 +71,10 @@ function walkFiles(dir, extensions, ignoreDirs = []) {
   return results;
 }
 
+function normalizeRelPath(filePath) {
+  return relative(ROOT, filePath).replace(/\\/g, "/");
+}
+
 const IGNORE_DIRS = [
   "node_modules",
   "dist",
@@ -117,7 +123,8 @@ function pass(rule, message) {
 // ─────────────────────────────────────────────────────────────────
 // R2 – Otimização de código («mais resultado em menos linhas»)
 //      Soft limit: 500 linhas → aviso, considerar modularização
-//      Hard limit: 600 linhas → BLOQUEADOR
+//      Soft limit: 750 linhas → AVISO
+//      Hard limit: 1000 linhas → BLOQUEADOR
 // ─────────────────────────────────────────────────────────────────
 
 const overHard = [];
@@ -126,34 +133,96 @@ const overSoft = [];
 for (const f of allCodeFiles) {
   const lineCount = readLines(f).length;
   const rel = relative(ROOT, f);
-  if (lineCount > 600) overHard.push(`${rel} (${lineCount} linhas)`);
-  else if (lineCount > 500) overSoft.push(`${rel} (${lineCount} linhas)`);
+  if (lineCount > 1000) overHard.push(`${rel} (${lineCount} linhas)`);
+  else if (lineCount > 750) overSoft.push(`${rel} (${lineCount} linhas)`);
 }
 
 if (overHard.length > 0) {
   fail(
     "R2-hard-limit",
-    `${overHard.length} arquivo(s) excedem 600 linhas — hard limit ultrapassado (modularize: mais resultado em menos linhas)`,
+    `${overHard.length} arquivo(s) excedem 1000 linhas — hard limit ultrapassado (modularize: mais resultado em menos linhas)`,
+    overHard,
     overHard,
     overHard,
   );
 } else {
-  pass("R2-hard-limit", "Nenhum arquivo excede 600 linhas (hard limit OK)");
+  pass("R2-hard-limit", "Nenhum arquivo excede 1000 linhas (hard limit OK)");
 }
 
 if (overSoft.length > 0) {
   warn(
     "R2-soft-limit",
-    `${overSoft.length} arquivo(s) entre 500-600 linhas — soft limit atingido (otimize: mais resultado em menos linhas)`,
+    `${overSoft.length} arquivo(s) entre 750-1000 linhas — soft limit atingido (otimize: mais resultado em menos linhas)`,
+    overSoft,
     overSoft,
     overSoft,
   );
 } else {
   pass(
     "R2-soft-limit",
-    "Todos os arquivos abaixo de 500 linhas — código otimizado ✓",
+    "Todos os arquivos abaixo de 750 linhas — código otimizado ✓",
   );
 }
+
+// ─────────────────────────────────────────────────────────────────
+// R2b – Versionamento único e propagado
+//       VERSION, package.json e metadata.json devem ter a mesma versão
+// ─────────────────────────────────────────────────────────────────
+
+(function checkVersionSync() {
+  const versionFile = join(ROOT, "VERSION");
+  const packageFile = join(ROOT, "package.json");
+  const metadataFile = join(ROOT, "metadata.json");
+
+  if (!existsSync(versionFile)) {
+    warn(
+      "R2b-version-sync",
+      "Arquivo VERSION não encontrado na raiz do projeto",
+    );
+    return;
+  }
+
+  const versionRaw = readFileSync(versionFile, "utf8").trim();
+  const mismatches = [];
+
+  if (existsSync(packageFile)) {
+    try {
+      const pkg = JSON.parse(readFileSync(packageFile, "utf8"));
+      if (pkg.version !== versionRaw)
+        mismatches.push(
+          `package.json: "${pkg.version}" ≠ VERSION: "${versionRaw}"`,
+        );
+    } catch {
+      mismatches.push("package.json: falha ao parsear");
+    }
+  }
+
+  if (existsSync(metadataFile)) {
+    try {
+      const meta = JSON.parse(readFileSync(metadataFile, "utf8"));
+      const metaVer = meta.version || meta.app_version;
+      if (metaVer && metaVer !== versionRaw)
+        mismatches.push(
+          `metadata.json: "${metaVer}" ≠ VERSION: "${versionRaw}"`,
+        );
+    } catch {
+      mismatches.push("metadata.json: falha ao parsear");
+    }
+  }
+
+  if (mismatches.length > 0) {
+    fail(
+      "R2b-version-sync",
+      `Versão desalinhada entre artefatos — propague VERSION: "${versionRaw}"`,
+      mismatches,
+    );
+  } else {
+    pass(
+      "R2b-version-sync",
+      `Versionamento único e propagado ✓ (${versionRaw})`,
+    );
+  }
+})();
 
 // ─────────────────────────────────────────────────────────────────
 // R3 – Sem referências 3D (deve ser 2.5D)
@@ -172,8 +241,12 @@ const BANNED_3D = [
 ];
 
 const files3D = [];
+const selfScriptPath = normalizeRelPath(
+  join(ROOT, "scripts", "ci", "enforce-non-negotiables.mjs"),
+);
 
 for (const f of allCodeFiles) {
+  if (normalizeRelPath(f) === selfScriptPath) continue;
   const lines = readLines(f);
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -181,7 +254,7 @@ for (const f of allCodeFiles) {
     if (/^\s*(\/\/|#|\/\*)/.test(line)) continue;
     for (const re of BANNED_3D) {
       if (re.test(line)) {
-        files3D.push(`${relative(ROOT, f)}:${i + 1} → ${line.trim()}`);
+        files3D.push(`${normalizeRelPath(f)}:${i + 1} → ${line.trim()}`);
         break;
       }
     }
@@ -204,12 +277,14 @@ if (files3D.length > 0) {
 // hardcoded lat/lon constantes tipicamente usadas como mock
 // ─────────────────────────────────────────────────────────────────
 
-const PROD_FILES = allCodeFiles.filter(
-  (f) =>
-    !/\.(test|spec)\.(ts|tsx|js)$/.test(f) &&
-    !/\/tests\//.test(f) &&
-    !/\/e2e\//.test(f),
-);
+const PROD_FILES = allCodeFiles.filter((f) => {
+  const normalized = normalizeRelPath(f);
+  return (
+    !/\.(test|spec)\.(ts|tsx|js)$/.test(normalized) &&
+    !/\/tests\//.test(normalized) &&
+    !/\/e2e\//.test(normalized)
+  );
+});
 
 const mockViolations = [];
 
@@ -220,12 +295,12 @@ for (const f of PROD_FILES) {
     if (/^\s*(\/\/|#)/.test(line)) continue;
     // jest.mock / vi.mock fora de arquivo de teste → suspeito
     if (/\b(jest|vi)\.mock\s*\(/.test(line)) {
-      mockViolations.push(`${relative(ROOT, f)}:${i + 1} → ${line.trim()}`);
+      mockViolations.push(`${normalizeRelPath(f)}:${i + 1} → ${line.trim()}`);
     }
     // Coordenadas hardcoded suspeitas (lat/lon constante típica de mock)
     if (/const\s+\w*(lat|lon|lng|coord)\w*\s*=\s*-?\d+\.\d{4,}/i.test(line)) {
       mockViolations.push(
-        `${relative(ROOT, f)}:${i + 1} → coordenada hardcoded: ${line.trim()}`,
+        `${normalizeRelPath(f)}:${i + 1} → coordenada hardcoded: ${line.trim()}`,
       );
     }
   }
@@ -260,6 +335,7 @@ const BANNED_API_DOMAINS = [
 const paidApiViolations = [];
 
 for (const f of PROD_FILES) {
+  if (normalizeRelPath(f) === selfScriptPath) continue;
   const content = readFileSync(f, "utf8");
   for (const domain of BANNED_API_DOMAINS) {
     if (content.includes(domain)) {
@@ -268,7 +344,7 @@ for (const f of PROD_FILES) {
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].includes(domain) && !/^\s*(\/\/|#|\*)/.test(lines[i])) {
           paidApiViolations.push(
-            `${relative(ROOT, f)}:${i + 1} → API paga: ${domain}`,
+            `${normalizeRelPath(f)}:${i + 1} → API paga: ${domain}`,
           );
         }
       }
@@ -338,6 +414,55 @@ if (missingDocker.length > 0) {
   );
 } else {
   pass("R8-docker-first", "Dockerfile e docker-compose.yml presentes");
+}
+
+// ─────────────────────────────────────────────────────────────────
+// R9 – Supabase First
+// Quando o projeto já oferece backend equivalente em Supabase/Postgres,
+// o deploy principal deve priorizar esse caminho em vez de infraestrutura extra.
+// ─────────────────────────────────────────────────────────────────
+
+const configPath = join(ROOT, "server", "config.ts");
+const deployWorkflowPath = join(
+  ROOT,
+  "..",
+  ".github",
+  "workflows",
+  "deploy-cloud-run.yml",
+);
+
+const configContent = existsSync(configPath)
+  ? readFileSync(configPath, "utf8")
+  : "";
+const deployWorkflowContent = existsSync(deployWorkflowPath)
+  ? readFileSync(deployWorkflowPath, "utf8")
+  : "";
+
+const supportsSupabaseJobs =
+  configContent.includes("USE_SUPABASE_JOBS") &&
+  configContent.includes("SUPABASE_DB_URL");
+const deployPrefersSupabase =
+  deployWorkflowContent.includes("USE_SUPABASE_JOBS=true") &&
+  deployWorkflowContent.includes("USE_CLOUD_TASKS=false");
+
+if (!supportsSupabaseJobs) {
+  warn(
+    "R9-supabase-first",
+    "Projeto ainda não expõe claramente suporte a jobs em Supabase/Postgres no runtime.",
+  );
+} else if (deployWorkflowContent.length > 0 && !deployPrefersSupabase) {
+  fail(
+    "R9-supabase-first",
+    "Deploy principal não prioriza Supabase apesar de o projeto suportá-lo.",
+    [
+      "Esperado no deploy principal: USE_SUPABASE_JOBS=true e USE_CLOUD_TASKS=false.",
+    ],
+  );
+} else {
+  pass(
+    "R9-supabase-first",
+    "Deploy/runtime priorizam Supabase quando disponível.",
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────

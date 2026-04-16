@@ -118,11 +118,15 @@ sisrua_unified/
 7.  **Arquitetura**: Thin Frontend / Smart Backend e DDD.
 8.  **BIM & Engenharia**: Manter o padrão Half-way BIM.
 9.  **Docker First**: Manter arquivos Docker atualizados; tudo roda em container.
-10. **Custos**: "Zero custo a todo custo!". APIs públicas ou gratuitas apenas.
-11. **Localização**: Interface 100% em **pt-BR**.
-12. **Testes & Cobertura**: Full suite (Unit/E2E). Coverage 100% para os 20% críticos; >=80% para o restante.
-13. **Papéis**: Agir como Tech Lead (orquestrador), Dev Sênior (coder), DevOps/QA, Designer ou Estagiário conforme a necessidade da task.
-14. **Finalização**: Commit imediato ao terminar a task.
+10. **Custos & Plataforma**: "Zero custo a todo custo!". APIs públicas ou gratuitas apenas. **Supabase First sempre que possível** para persistência, filas lógicas e recursos equivalentes de backend.
+11. **Versionamento único e propagado**: Versão definida em `VERSION` e sincronizada em `package.json`, `metadata.json`, artefatos e headers — nenhum componente pode ter versão desalinhada.
+12. **Localização**: Interface 100% em **pt-BR**.
+13. **Testes & Cobertura**: Full suite (Unit/E2E). Coverage 100% para os 20% críticos; >=80% para o restante.
+14. **Papéis**: Agir como Tech Lead (orquestrador), Dev Sênior (coder), DevOps/QA, Designer ou Estagiário conforme a necessidade da task.
+15. **Finalização**: Commit imediato ao terminar a task.
+16. **Testes & Cobertura**: Full suite (Unit/E2E). Coverage 100% para os 20% críticos; >=80% para o restante.
+17. **Papéis**: Agir como Tech Lead (orquestrador), Dev Sênior (coder), DevOps/QA, Designer ou Estagiário conforme a necessidade da task.
+18. **Finalização**: Commit imediato ao terminar a task.
 
 ---
 
