@@ -2,7 +2,10 @@ import { Router, Request, Response } from "express";
 import { config } from "../config.js";
 import { OllamaService } from "../services/ollamaService.js";
 import { listCircuitBreakers } from "../utils/circuitBreaker.js";
-import { isBearerRequestAuthorized, setBearerChallenge } from "../utils/bearerAuth.js";
+import {
+  isBearerRequestAuthorized,
+  setBearerChallenge,
+} from "../utils/bearerAuth.js";
 
 const router = Router();
 

@@ -48,7 +48,7 @@ function looksLikeUndueMissingSnapshot(errorText) {
   return (
     text.includes("enoent") ||
     text.includes("no such file") ||
-    text.includes("snapshot") && text.includes("not found") ||
+    (text.includes("snapshot") && text.includes("not found")) ||
     text.includes("release-health.snapshot.json")
   );
 }
@@ -58,7 +58,9 @@ function collectTestsFromSuites(suites, parents = [], rows = []) {
     const nextParents = suite.title ? [...parents, suite.title] : parents;
 
     for (const spec of suite.specs || []) {
-      const fullTitle = [...nextParents, spec.title].filter(Boolean).join(" > ");
+      const fullTitle = [...nextParents, spec.title]
+        .filter(Boolean)
+        .join(" > ");
       for (const test of spec.tests || []) {
         const results = test.results || [];
         const errors = [];
@@ -73,7 +75,9 @@ function collectTestsFromSuites(suites, parents = [], rows = []) {
           title: fullTitle,
           file: spec.file || "unknown",
           outcome: test.outcome || "unknown",
-          durations: results.map((r) => r.duration).filter((n) => Number.isFinite(n)),
+          durations: results
+            .map((r) => r.duration)
+            .filter((n) => Number.isFinite(n)),
           errors,
         });
       }
@@ -135,7 +139,9 @@ function main() {
   const snapshotTests = allTests.filter((t) => /snapshot/i.test(t.title));
 
   if (snapshotTests.length === 0) {
-    console.error("[snapshot-slo] Nenhum teste de snapshot encontrado no relatorio.");
+    console.error(
+      "[snapshot-slo] Nenhum teste de snapshot encontrado no relatorio.",
+    );
     process.exit(1);
   }
 
@@ -147,7 +153,8 @@ function main() {
     t.errors.some((err) => looksLikeUndueMissingSnapshot(err)),
   ).length;
 
-  const snapshotAvailability = (snapshotTests.length - missingCount) / snapshotTests.length;
+  const snapshotAvailability =
+    (snapshotTests.length - missingCount) / snapshotTests.length;
   const undueMissingSnapshotRate = missingCount / snapshotTests.length;
   const materializationMsP95 = percentile(latencies, 95);
 
@@ -165,7 +172,9 @@ function main() {
       `snapshotAvailability=${snapshotAvailability} abaixo do minimo ${thresholds.minSnapshotAvailability}`,
     );
   }
-  if (undueMissingSnapshotRate > Number(thresholds.maxUndueMissingSnapshotRate)) {
+  if (
+    undueMissingSnapshotRate > Number(thresholds.maxUndueMissingSnapshotRate)
+  ) {
     reasons.push(
       `undueMissingSnapshotRate=${undueMissingSnapshotRate} acima do maximo ${thresholds.maxUndueMissingSnapshotRate}`,
     );
@@ -186,7 +195,9 @@ function main() {
       file: t.file,
       outcome: t.outcome,
       maxDurationMs: t.durations.length > 0 ? Math.max(...t.durations) : 0,
-      probableUndueMissingSnapshot: t.errors.some((err) => looksLikeUndueMissingSnapshot(err)),
+      probableUndueMissingSnapshot: t.errors.some((err) =>
+        looksLikeUndueMissingSnapshot(err),
+      ),
       firstError: t.errors[0] || null,
     })),
     gate: {
@@ -205,7 +216,9 @@ function main() {
     process.exit(1);
   }
 
-  console.log("[snapshot-slo] OK: baseline e SLO de snapshot dentro dos thresholds.");
+  console.log(
+    "[snapshot-slo] OK: baseline e SLO de snapshot dentro dos thresholds.",
+  );
 }
 
 main();

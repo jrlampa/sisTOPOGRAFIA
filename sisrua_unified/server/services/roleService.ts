@@ -50,7 +50,9 @@ export async function getUserRole(
   try {
     const sql = getDbClient();
     if (!sql) {
-      logger.debug("DB não disponível, papel padrão: viewer", { userId: normalizedUserId });
+      logger.debug("DB não disponível, papel padrão: viewer", {
+        userId: normalizedUserId,
+      });
       return "viewer";
     }
     const rows = await sql<UserRoleRecord[]>`
@@ -198,7 +200,12 @@ export async function getUsersByRole(
  * Obtém estatísticas de distribuição de papéis.
  */
 export async function getRoleStatistics(): Promise<Record<UserRole, number>> {
-  const empty: Record<UserRole, number> = { admin: 0, technician: 0, viewer: 0, guest: 0 };
+  const empty: Record<UserRole, number> = {
+    admin: 0,
+    technician: 0,
+    viewer: 0,
+    guest: 0,
+  };
   try {
     const sql = getDbClient();
     if (!sql) return empty;
@@ -225,4 +232,3 @@ export async function getRoleStatistics(): Promise<Record<UserRole, number>> {
     return empty;
   }
 }
-

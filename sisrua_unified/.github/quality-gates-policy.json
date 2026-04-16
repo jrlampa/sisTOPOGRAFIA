@@ -1,0 +1,24 @@
+{
+  "mustHave": [
+    { "id": "MH01", "job": "test-backend" },
+    { "id": "MH02", "job": "test-frontend" },
+    { "id": "MH03", "job": "lint" },
+    { "id": "MH04", "job": "security" },
+    { "id": "MH05", "job": "build" },
+    { "id": "MH06", "job": "parity-p0" },
+    { "id": "MH07", "job": "e2e-smoke" },
+    { "id": "MH08", "job": "quality-gate" }
+  ],
+  "dPlus5": [
+    { "id": "D501", "job": "test-backend" },
+    { "id": "D502", "job": "test-frontend" },
+    { "id": "D503", "job": "security" },
+    { "id": "D504", "job": "quality-gate" }
+  ],
+  "dPlus7": [
+    { "id": "D701", "job": "d7-go-parcial" },
+    { "id": "D702", "job": "d7-go-parcial" },
+    { "id": "D703", "job": "d7-go-parcial" },
+    { "id": "D704", "job": "d7-go-parcial" }
+  ]
+}

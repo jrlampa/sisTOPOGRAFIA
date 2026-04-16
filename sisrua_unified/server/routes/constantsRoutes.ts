@@ -46,7 +46,7 @@ const snapshotsQuerySchema = createListQuerySchema(
     defaultSortOrder: "desc",
   },
   {
-  namespace: z.string().trim().min(1).optional(),
+    namespace: z.string().trim().min(1).optional(),
     actor: z.string().trim().min(1).optional(),
   },
 );
@@ -138,7 +138,12 @@ router.get("/refresh-events", async (req: Request, res: Response) => {
   const result = await constantsService.getRefreshEvents({
     limit,
     offset,
-    sortBy: sortBy as "createdAt" | "actor" | "httpStatus" | "durationMs" | "success",
+    sortBy: sortBy as
+      | "createdAt"
+      | "actor"
+      | "httpStatus"
+      | "durationMs"
+      | "success",
     sortOrder,
     filters: {
       actor,
@@ -168,77 +173,81 @@ router.get("/refresh-events", async (req: Request, res: Response) => {
   });
 });
 
-router.post("/refresh", requirePermission("admin"), async (req: Request, res: Response) => {
-  const actor = getRefreshActor(req);
-  const startedAt = Date.now();
+router.post(
+  "/refresh",
+  requirePermission("admin"),
+  async (req: Request, res: Response) => {
+    const actor = getRefreshActor(req);
+    const startedAt = Date.now();
 
-  if (!isRefreshAuthorized(req)) {
-    await constantsService.recordRefreshEvent({
-      namespaces: [],
-      success: false,
-      httpStatus: 401,
-      actor,
-      durationMs: Date.now() - startedAt,
-      errorMessage: "unauthorized",
-    });
-    return res.status(401).json({ error: "Unauthorized refresh request" });
-  }
+    if (!isRefreshAuthorized(req)) {
+      await constantsService.recordRefreshEvent({
+        namespaces: [],
+        success: false,
+        httpStatus: 401,
+        actor,
+        durationMs: Date.now() - startedAt,
+        errorMessage: "unauthorized",
+      });
+      return res.status(401).json({ error: "Unauthorized refresh request" });
+    }
 
-  const namespaces = getDbConstantsNamespaces();
-  if (namespaces.length === 0) {
-    await constantsService.recordRefreshEvent({
-      namespaces,
-      success: false,
-      httpStatus: 400,
-      actor,
-      durationMs: Date.now() - startedAt,
-      errorMessage: "no_enabled_namespaces",
-    });
-    return res
-      .status(400)
-      .json({ error: "No DB constants namespace is enabled" });
-  }
+    const namespaces = getDbConstantsNamespaces();
+    if (namespaces.length === 0) {
+      await constantsService.recordRefreshEvent({
+        namespaces,
+        success: false,
+        httpStatus: 400,
+        actor,
+        durationMs: Date.now() - startedAt,
+        errorMessage: "no_enabled_namespaces",
+      });
+      return res
+        .status(400)
+        .json({ error: "No DB constants namespace is enabled" });
+    }
 
-  try {
-    await constantsService.warmUp(namespaces);
-    refreshRateLimitersFromCatalog();
-    await constantsService.recordRefreshEvent({
-      namespaces,
-      success: true,
-      httpStatus: 200,
-      actor,
-      durationMs: Date.now() - startedAt,
-    });
+    try {
+      await constantsService.warmUp(namespaces);
+      refreshRateLimitersFromCatalog();
+      await constantsService.recordRefreshEvent({
+        namespaces,
+        success: true,
+        httpStatus: 200,
+        actor,
+        durationMs: Date.now() - startedAt,
+      });
 
-    // Capture cache snapshot immediately after successful refresh so
-    // operators can roll back to this state later.
-    const snapshots = await constantsService.saveSnapshot(namespaces, actor);
+      // Capture cache snapshot immediately after successful refresh so
+      // operators can roll back to this state later.
+      const snapshots = await constantsService.saveSnapshot(namespaces, actor);
 
-    return res.json({
-      ok: true,
-      refreshedNamespaces: namespaces,
-      snapshotIds: snapshots.map((s) => s.id),
-      cache: constantsService.stats(),
-      rateLimitPolicy: getRateLimitPolicySnapshot(),
-      dxfCleanupPolicy: getDxfCleanupPolicySnapshot(),
-    });
-  } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    await constantsService.recordRefreshEvent({
-      namespaces,
-      success: false,
-      httpStatus: 500,
-      actor,
-      durationMs: Date.now() - startedAt,
-      errorMessage,
-    });
-    logger.warn("Manual constants refresh failed", {
-      error: errorMessage,
-      namespaces,
-    });
-    return res.status(500).json({ error: "Manual constants refresh failed" });
-  }
-});
+      return res.json({
+        ok: true,
+        refreshedNamespaces: namespaces,
+        snapshotIds: snapshots.map((s) => s.id),
+        cache: constantsService.stats(),
+        rateLimitPolicy: getRateLimitPolicySnapshot(),
+        dxfCleanupPolicy: getDxfCleanupPolicySnapshot(),
+      });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      await constantsService.recordRefreshEvent({
+        namespaces,
+        success: false,
+        httpStatus: 500,
+        actor,
+        durationMs: Date.now() - startedAt,
+        errorMessage,
+      });
+      logger.warn("Manual constants refresh failed", {
+        error: errorMessage,
+        namespaces,
+      });
+      return res.status(500).json({ error: "Manual constants refresh failed" });
+    }
+  },
+);
 
 router.get("/refresh-stats", async (req: Request, res: Response) => {
   if (!isRefreshAuthorized(req)) {
@@ -297,41 +306,48 @@ router.get("/snapshots", async (req: Request, res: Response) => {
   });
 });
 
-router.post("/snapshots/:id/restore", requirePermission("admin"), async (req: Request, res: Response) => {
-  if (!isRefreshAuthorized(req)) {
-    return res.status(401).json({ error: "Unauthorized restore request" });
-  }
+router.post(
+  "/snapshots/:id/restore",
+  requirePermission("admin"),
+  async (req: Request, res: Response) => {
+    if (!isRefreshAuthorized(req)) {
+      return res.status(401).json({ error: "Unauthorized restore request" });
+    }
 
-  const validation = snapshotRestoreParamsSchema.safeParse(req.params);
-  if (!validation.success) {
-    return res
-      .status(400)
-      .json({ error: "Invalid snapshot id", details: validation.error.issues });
-  }
+    const validation = snapshotRestoreParamsSchema.safeParse(req.params);
+    if (!validation.success) {
+      return res
+        .status(400)
+        .json({
+          error: "Invalid snapshot id",
+          details: validation.error.issues,
+        });
+    }
 
-  const actor = getRefreshActor(req);
-  const snapshot = await constantsService.restoreSnapshot(validation.data.id);
+    const actor = getRefreshActor(req);
+    const snapshot = await constantsService.restoreSnapshot(validation.data.id);
 
-  if (!snapshot) {
-    return res
-      .status(404)
-      .json({ error: `Snapshot ${validation.data.id} not found` });
-  }
+    if (!snapshot) {
+      return res
+        .status(404)
+        .json({ error: `Snapshot ${validation.data.id} not found` });
+    }
 
-  logger.info("Snapshot restore applied by operator", {
-    snapshotId: validation.data.id,
-    actor,
-  });
+    logger.info("Snapshot restore applied by operator", {
+      snapshotId: validation.data.id,
+      actor,
+    });
 
-  return res.json({
-    ok: true,
-    restoredSnapshotId: snapshot.id,
-    namespace: snapshot.namespace,
-    entryCount: snapshot.entryCount,
-    snapshotCreatedAt: snapshot.createdAt,
-    cache: constantsService.stats(),
-  });
-});
+    return res.json({
+      ok: true,
+      restoredSnapshotId: snapshot.id,
+      namespace: snapshot.namespace,
+      entryCount: snapshot.entryCount,
+      snapshotCreatedAt: snapshot.createdAt,
+      cache: constantsService.stats(),
+    });
+  },
+);
 
 const clandestineQuerySchema = z.object({}).strict();
 

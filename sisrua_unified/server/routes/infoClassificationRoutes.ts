@@ -12,7 +12,10 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
-import { isBearerRequestAuthorized, setBearerChallenge } from "../utils/bearerAuth.js";
+import {
+  isBearerRequestAuthorized,
+  setBearerChallenge,
+} from "../utils/bearerAuth.js";
 import {
   classificarRecurso,
   obterClassificacao,
@@ -22,7 +25,12 @@ import {
 } from "../services/infoClassificationService.js";
 
 const router = Router();
-const NIVEIS: NivelClassificacao[] = ['publico', 'interno', 'confidencial', 'restrito'];
+const NIVEIS: NivelClassificacao[] = [
+  "publico",
+  "interno",
+  "confidencial",
+  "restrito",
+];
 
 function isAuthorized(req: Request): boolean {
   return isBearerRequestAuthorized(req, config.METRICS_TOKEN);
@@ -56,20 +64,30 @@ router.get("/recursos/:recursoId", (req: Request, res: Response) => {
 router.post("/recursos", (req: Request, res: Response) => {
   if (!isAuthorized(req)) return unauthorized(res);
   const parsed = ClassificarSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ erro: "Corpo inválido", detalhes: parsed.error.issues });
+  if (!parsed.success)
+    return res
+      .status(400)
+      .json({ erro: "Corpo inválido", detalhes: parsed.error.issues });
 
   const c = classificarRecurso(
-    parsed.data.recursoId, parsed.data.recursoTipo, parsed.data.nivel,
-    parsed.data.justificativa, parsed.data.classificadoPor
+    parsed.data.recursoId,
+    parsed.data.recursoTipo,
+    parsed.data.nivel,
+    parsed.data.justificativa,
+    parsed.data.classificadoPor,
   );
-  logger.info("[InfoClassificationRoutes] Recurso classificado", { recursoId: c.recursoId, nivel: c.nivel });
+  logger.info("[InfoClassificationRoutes] Recurso classificado", {
+    recursoId: c.recursoId,
+    nivel: c.nivel,
+  });
   return res.status(201).json(c);
 });
 
 router.get("/nivel/:nivel", (req: Request, res: Response) => {
   if (!isAuthorized(req)) return unauthorized(res);
   const nivel = req.params.nivel as NivelClassificacao;
-  if (!NIVEIS.includes(nivel)) return res.status(400).json({ erro: "Nível inválido" });
+  if (!NIVEIS.includes(nivel))
+    return res.status(400).json({ erro: "Nível inválido" });
   const lista = listarPorNivel(nivel);
   return res.json({ nivel, total: lista.length, recursos: lista });
 });

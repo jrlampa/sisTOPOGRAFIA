@@ -18,7 +18,10 @@ import { z } from "zod";
 import postgres from "postgres";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
-import { isBearerRequestAuthorized, setBearerChallenge } from "../utils/bearerAuth.js";
+import {
+  isBearerRequestAuthorized,
+  setBearerChallenge,
+} from "../utils/bearerAuth.js";
 
 const router = Router();
 

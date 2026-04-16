@@ -1,24 +1,20 @@
 import { expect, test } from "@playwright/test";
-import fs from "node:fs";
-import path from "node:path";
+import {
+  buildMetricsHeaders,
+  normalizeHealthForSnapshot,
+} from "./factories/critical-flow-factory";
+import {
+  CRITICAL_FLOW_FIXTURES,
+  loadReleaseHealthSnapshot,
+} from "./fixtures/critical-flow-fixtures";
 
-const BACKEND_BASE_URL = process.env.E2E_BACKEND_URL ?? "http://localhost:3001";
-const METRICS_TOKEN =
-  process.env.METRICS_TOKEN ?? "release-smoke-metrics-token";
-
-function loadSnapshot(): Record<string, unknown> {
-  const snapshotPath = path.resolve(
-    process.cwd(),
-    "e2e/snapshots/release-health.snapshot.json",
-  );
-  return JSON.parse(fs.readFileSync(snapshotPath, "utf8"));
-}
+const { backendBaseUrl, metricsToken } = CRITICAL_FLOW_FIXTURES;
 
 test.describe("Release Smoke Critico @release-smoke", () => {
   test("contrato de health mantem shape minimo de release", async ({
     request,
   }) => {
-    const response = await request.get(`${BACKEND_BASE_URL}/health`);
+    const response = await request.get(`${backendBaseUrl}/health`);
     expect([200, 503]).toContain(response.status());
 
     const body = await response.json();
@@ -39,16 +35,14 @@ test.describe("Release Smoke Critico @release-smoke", () => {
   test("auth de metrics bloqueia anonimo e aceita bearer valido", async ({
     request,
   }) => {
-    const unauthorized = await request.get(`${BACKEND_BASE_URL}/metrics`);
+    const unauthorized = await request.get(`${backendBaseUrl}/metrics`);
     expect(unauthorized.status()).toBe(401);
     expect(unauthorized.headers()["www-authenticate"]).toContain(
       'Bearer realm="metrics"',
     );
 
-    const authorized = await request.get(`${BACKEND_BASE_URL}/metrics`, {
-      headers: {
-        Authorization: `Bearer ${METRICS_TOKEN}`,
-      },
+    const authorized = await request.get(`${backendBaseUrl}/metrics`, {
+      headers: buildMetricsHeaders(metricsToken),
     });
 
     expect(authorized.status()).toBe(200);
@@ -59,27 +53,13 @@ test.describe("Release Smoke Critico @release-smoke", () => {
   test("snapshot de release preserva contrato critico de health", async ({
     request,
   }) => {
-    const response = await request.get(`${BACKEND_BASE_URL}/health`);
+    const response = await request.get(`${backendBaseUrl}/health`);
     expect([200, 503]).toContain(response.status());
 
     const body = await response.json();
-    const normalized = {
-      status: body.status,
-      service: body.service,
-      dependencyKeys: Object.keys(body.dependencies ?? {}).sort(),
-      configEnvironment: body.config?.environment,
-      constantsCatalogNamespaces:
-        body.config?.constantsCatalog?.enabledNamespaces ?? null,
-      queueBackendType: typeof body.dependencies?.queueBackend,
-      queueBackendAllowed: ["local-async", "supabase-postgres"].includes(
-        body.dependencies?.queueBackend,
-      ),
-      hasExternalApiSection:
-        typeof body.dependencies?.externalApis === "object",
-      systemKeys: Object.keys(body.system ?? {}).sort(),
-    };
+    const normalized = normalizeHealthForSnapshot(body);
 
-    const snapshot = loadSnapshot();
+    const snapshot = loadReleaseHealthSnapshot();
     expect(normalized).toEqual(snapshot);
   });
 });
