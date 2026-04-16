@@ -13,15 +13,14 @@ name: Enforcement – Regras Não Negociáveis
 #   R8  – Dockerfile e docker-compose.yml presentes (Docker First)
 #   R9  – Supabase First quando houver alternativa equivalente no projeto
 #
-# Em PRs para main/master: todas as regras acima são BLOQUEADORAS.
-# Em push para dev: executa como gate informativo (não bloqueia dev flow).
+# Em push/PR para dev/main/master: violações são BLOQUEADORAS.
 # ──────────────────────────────────────────────────────────────────────────
 
 on:
   push:
     branches: [dev, main, master]
   pull_request:
-    branches: [main, master]
+    branches: [dev, main, master]
 
 permissions:
   contents: read

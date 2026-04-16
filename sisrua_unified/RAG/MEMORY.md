@@ -1174,6 +1174,45 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 
 ---
 
+## 📌 Atualização Operacional (2026-04-16) - Auditoria Técnica Front/Back/Banco
+
+### Escopo
+
+- Auditoria completa em três frentes (frontend, backend e banco), com foco em regras não negociáveis e evidência executável.
+
+### Correções aplicadas nesta rodada
+
+- `check_migrations.py` e `check_schema.py`
+  - Harden de conexão para `DATABASE_URL` com `%` não-encodado (sanitização defensiva).
+  - Leitura de `.env` condicionada à existência do arquivo.
+  - Mensagem de erro explícita quando `DATABASE_URL` não estiver definido.
+- `.github/workflows/enforce-non-negotiables.yml`
+  - Ajuste de escopo para bloquear também PRs direcionados à `dev`.
+  - Comentário operacional alinhado com comportamento real de gate bloqueador.
+
+### Evidências de validação
+
+- Non-negotiables:
+  - `npm run ci:non-negotiables` -> **PASSOU** (com avisos de soft limit em arquivos 750-1000 linhas).
+- Backend:
+  - `npm run test:backend` -> **89/89 suites, 1196/1196 testes**.
+- Frontend:
+  - `npm run test:frontend` -> **29/29 suites, 181/181 testes**.
+- E2E smoke:
+  - `npm run test:e2e -- --grep @smoke` -> **4/4 testes**.
+- Banco:
+  - `python check_migrations.py` -> conectou e listou migrations; bloco 019-024 confirmado aplicado.
+  - `python check_schema.py` -> conectou e retornou schema de `constants_catalog`.
+
+### Risco aberto (não resolvido nesta rodada)
+
+- Política de cobertura ainda abaixo das metas declaradas:
+  - críticos (20%): <100%
+  - restantes backend: linhas/statements/branches <80%
+  - comando: `npm run coverage:policy`
+
+---
+
 ## 📌 Atualização Operacional (2026-04-16) - Auditoria Técnica + Restauração Glassmorphism
 
 ### Escopo
