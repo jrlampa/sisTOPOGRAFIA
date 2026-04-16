@@ -36,6 +36,7 @@
     "test:backend:debug": "jest --coverage=false",
     "test:e2e": "playwright test",
     "test:e2e:release:smoke": "playwright test e2e/release-smoke.spec.ts --config playwright.release-smoke.config.ts",
+    "ci:e2e:flake-check": "node scripts/ci/analyze-playwright-flakiness.mjs --lastRun test-results/.last-run.json --report test-results/release-smoke-report.json --out artifacts/ci/flakiness-report.json",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:all": "npm run test:backend && npm run test:frontend && npm run test:e2e -- --grep @smoke",

@@ -269,6 +269,10 @@ jobs:
           NODE_ENV: test
           OFFLINE_MODE: true
 
+      - name: Analyze E2E flakiness (reliability gate)
+        if: ${{ !env.ACT }}
+        run: npm run ci:e2e:flake-check
+
       - name: Upload E2E artifacts
         uses: actions/upload-artifact@v4
         if: ${{ always() && !env.ACT }}
@@ -277,6 +281,8 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            artifacts/ci/flakiness-report.json
+            artifacts/ci/flakiness-report.md
           retention-days: 7
 
   # ============================================

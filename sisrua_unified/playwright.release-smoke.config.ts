@@ -6,7 +6,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: 1,
-  reporter: "line",
+  reporter: [
+    ["line"],
+    ["json", { outputFile: "test-results/release-smoke-report.json" }],
+  ],
   use: {
     baseURL: "http://localhost:3000",
     trace: "retain-on-failure",
