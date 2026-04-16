@@ -1136,3 +1136,44 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 
 - Teste focado aprovado:
   - `npm run test:backend:debug -- adminRoutes.test.ts` (25/25).
+
+---
+
+## 📌 Atualização Operacional (2026-04-16) - Auditoria Técnica + Restauração Glassmorphism
+
+### Escopo
+
+- Auditoria técnica de aderência às regras não negociáveis com evidências em pipeline local.
+- Restauração do estilo visual glassmorphism no frontend, conforme direção dos commits iniciais.
+
+### Implementação
+
+- `src/index.css`
+  - Restaurado visual glassmorphism com superfícies translúcidas reais:
+    - tokens de tema light/dark refeitos para paleta vidro (azul/violeta);
+    - retorno de `backdrop-filter`/`-webkit-backdrop-filter` em painéis, cards e botões;
+    - hover e sombras ajustados para profundidade vítrea sem alterar lógica de negócio.
+- `src/theme/tokens.ts`
+  - Sincronização dos tokens runtime com os novos valores glassmorphism (light/dark), evitando drift entre CSS e ThemeProvider.
+
+### Auditoria das Regras Não Negociáveis (evidência)
+
+- Comando executado: `npm run ci:non-negotiables`
+- Resultado:
+  - ✅ 8 regras aprovadas (2.5D, no-mocks, zero-cost, Docker, Supabase-first, ignore files, version sync soft checks, soft line limit).
+  - ❌ 1 violação crítica pré-existente: hard limit de linhas (>1000) em:
+    - `src/components/BtTopologyPanel.tsx` (2556)
+    - `src/components/MapSelector.tsx` (1804)
+    - `src/utils/btCalculations.ts` (1031)
+
+### Validação
+
+- Baseline antes da alteração:
+  - `npm run lint && npm run build && npm run test`
+- Pós-alteração:
+  - `npm run lint && npm run build && npm run test`
+- Status:
+  - Build ✅
+  - Lint ✅ (warnings pré-existentes)
+  - Testes ❌ com falha pré-existente de versionamento:
+    - `tests/version.test.ts` espera `package-lock.json` com `0.9.0`, mas arquivo atual está `1.0.0`.
