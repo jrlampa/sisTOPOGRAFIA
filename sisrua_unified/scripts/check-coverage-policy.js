@@ -127,7 +127,7 @@ async function run() {
 
     for (const [metric, expected] of Object.entries(config.target)) {
       const actual = metricValue(summary, metric);
-      const ok = actual >= expected;
+      const ok = actual + 1e-6 >= expected;
       const status = ok ? '✅' : '❌';
 
       if (!ok) hasFailure = true;
