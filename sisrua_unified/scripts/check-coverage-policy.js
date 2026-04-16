@@ -2,6 +2,9 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 const ROOT = process.cwd();
+// Tolerância para comparações de ponto flutuante: evita falsos negativos em valores
+// como 79.999999 que deveriam satisfazer a meta de 80%.
+const FLOAT_EPSILON = 1e-6;
 const FRONTEND_RISK_COVERAGE_FILE =
   process.env.FRONTEND_RISK_COVERAGE_FILE ?? 'coverage/frontend-risk/coverage-final.json';
 const BACKEND_COVERAGE_FILE =
@@ -127,7 +130,7 @@ async function run() {
 
     for (const [metric, expected] of Object.entries(config.target)) {
       const actual = metricValue(summary, metric);
-      const ok = actual + 1e-6 >= expected;
+      const ok = actual + FLOAT_EPSILON >= expected;
       const status = ok ? '✅' : '❌';
 
       if (!ok) hasFailure = true;
