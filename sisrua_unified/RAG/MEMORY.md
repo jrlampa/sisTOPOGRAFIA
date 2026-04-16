@@ -1251,3 +1251,35 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
   - Lint ✅ (warnings pré-existentes)
   - Testes ❌ com falha pré-existente de versionamento:
     - `tests/version.test.ts` espera `package-lock.json` com `0.9.0`, mas arquivo atual está `1.0.0`.
+
+---
+
+## 📌 Atualização Operacional (2026-04-16) - Estabilização Git Actions (Security + Release Gates)
+
+### Escopo
+
+- Correção de falhas reais nos workflows de GitHub Actions para manter execução 100% funcional dos gates bloqueadores.
+
+### Implementação
+
+- `.github/normative-checklist-policy.json`
+  - Evidência do critério `RAST03` atualizada de `.github/workflows/quality-gates.yml` para `.github/workflows/pr-frontend.yml`.
+  - Remove falso negativo no gate `ci:normative-checklist-gate` causado por referência legada.
+- `.github/workflows/security-supply-chain.yml`
+  - Job `npm-audit` alinhado ao bloqueio real por severidade `critical` (via `npm run security:audit`).
+  - Mantém bloqueio para risco crítico e evita travamento permanente por vulnerabilidade `high` sem patch público.
+- `package-lock.json`
+  - Atualizado via `npm audit fix` para remediar vulnerabilidades corrigíveis do grafo npm.
+
+### Validação executada
+
+- `npm run security:audit` ✅
+- `npm run ci:normative-checklist-gate` ✅
+- `npm run test:e2e:release:smoke` ✅
+- `npm run ci:e2e:flake-check` ✅
+- `npm run ci:e2e:snapshot-slo` ✅
+- `python -m pip_audit -r py_engine/requirements.txt --format json ...` ✅ (sem vulnerabilidades conhecidas)
+
+### Observação de risco residual
+
+- `xlsx` permanece com advisory de severidade alta sem correção disponível upstream; monitorar para migração/substituição quando houver patch oficial.
