@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-15
+
+### Added
+- Gate de enforcement das regras não negociáveis no CI
+- Script `ci:non-negotiables` para validar branch, limites de linhas, 2.5D, mocks, APIs pagas e arquivos Docker/ignore
+- Auditoria e correção da política de CORS em produção sem wildcard `*`
+
+### Changed
+- Estratégia de fila alinhada ao backend real: Supabase/Postgres como backend primário de jobs
+- Regra de otimização formalizada como "mais resultado em menos linhas", com soft limit de 500 linhas e hard limit de 600
+- Versionamento sincronizado entre `package.json` e `VERSION`
+
+### Fixed
+- Correção de tipagem SQL em `btExportHistoryRepository.ts` para compatibilidade com o driver postgres
+- Correção de serialização JSONB em `cloudTasksService.ts`, removendo erros TypeScript pré-existentes
+- Remoção de drift no deploy para evitar provisionamento indevido de Cloud Tasks quando o runtime usa Supabase/Postgres
+
 ## [1.0.0] - 2026-02-18
 
 ### Added

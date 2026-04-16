@@ -1,7 +1,7 @@
 {
   "name": "sisrua-unified",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Sistema de Exportação OSM para DXF - IMPORTANT: Do not update version manually. Use ./scripts/update-version.sh instead. See VERSIONING.md for details.",
   "type": "module",
   "scripts": {
@@ -55,6 +55,7 @@
     "security:audit:fix": "npm audit fix",
     "security:check": "npm run security:audit && echo '\n--- Security audit complete ---'",
     "ci:checkpoint-gate": "node scripts/ci/enforce-checkpoints-timeline.mjs",
+    "ci:non-negotiables": "node scripts/ci/enforce-non-negotiables.mjs",
     "security:python": "bandit -c .bandit -r py_engine/ -f json -o artifacts/bandit-report.json || bandit -c .bandit -r py_engine/ -ll",
     "security:python:ci": "bandit -c .bandit -r py_engine/ -ll --exit-zero -f json -o artifacts/bandit-report.json",
     "security:pip:audit": "pip-audit -r py_engine/requirements.txt --format json -o artifacts/pip-audit-report.json || pip-audit -r py_engine/requirements.txt",

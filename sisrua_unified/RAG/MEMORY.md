@@ -113,7 +113,7 @@ sisrua_unified/
 2.  **Memória de Contexto**: OBRIGATÓRIO Criar/Ler o `RAG/MEMORY.md` antes de qualquer ação.
 3.  **Integridade de Dados**: **NÃO usar dados mockados**. Dados reais ou lógicos apenas.
 4.  **Dimensionalidade**: Não usar 3D e sim **2.5D** em todo o projeto.
-5.  **Modularidade & Clean Code**: Responsabilidade Única. Hard Limit de **600 linhas** por arquivo (Soft Limit de 500).
+5.  **Modularidade & Clean Code**: Responsabilidade Única. Otimização: _mais resultado em menos linhas_. Soft Limit de **500 linhas** (modularize). Hard Limit de **600 linhas** (bloqueador de CI).
 6.  **Segurança**: Sanitizar todas as entradas e manter proteções transversais.
 7.  **Arquitetura**: Thin Frontend / Smart Backend e DDD.
 8.  **BIM & Engenharia**: Manter o padrão Half-way BIM.

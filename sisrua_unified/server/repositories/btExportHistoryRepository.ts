@@ -4,6 +4,7 @@
  * Owns all SQL against `bt_export_history`. Business logic (HTTP handlers,
  * filtering, pagination) stays in btExportHistoryService.ts.
  */
+import type { ParameterOrJSON } from "postgres";
 import { getDbClient } from "./dbClient.js";
 import { logger } from "../utils/logger.js";
 
@@ -49,6 +50,8 @@ export interface IBtExportHistoryRepository {
   ): Promise<number>;
   deleteOlderThan(date: Date): Promise<number>;
 }
+
+type SqlParam = ParameterOrJSON<never>;
 
 // ── Implementation ─────────────────────────────────────────────────────────────
 
@@ -102,7 +105,7 @@ export class PostgresBtExportHistoryRepository implements IBtExportHistoryReposi
     if (!sql) return [];
     try {
       const conditions: string[] = [];
-      const params: unknown[] = [];
+      const params: SqlParam[] = [];
       if (filter.projectType) {
         conditions.push(`project_type = $${params.length + 1}`);
         params.push(filter.projectType);
@@ -136,7 +139,7 @@ export class PostgresBtExportHistoryRepository implements IBtExportHistoryReposi
     const sql = getDbClient();
     if (!sql) return 0;
     const conditions: string[] = [];
-    const params: unknown[] = [];
+    const params: SqlParam[] = [];
     if (filter.projectType) {
       conditions.push(`project_type = $${params.length + 1}`);
       params.push(filter.projectType);

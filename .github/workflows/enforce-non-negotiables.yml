@@ -1,0 +1,180 @@
+name: Enforcement – Regras Não Negociáveis
+
+# ──────────────────────────────────────────────────────────────────────────
+# Bloqueia qualquer push/PR que viole as regras não negociáveis do projeto.
+#
+# Regras verificadas:
+#   R1  – Push direto apenas para 'dev' (main/master via PR)
+#   R2  – Otimização: mais resultado em menos linhas. Soft limit 500 (aviso), hard limit 600 (bloqueador)
+#   R3  – Nenhum código 3D (THREE.js etc.) — projeto é 2.5D
+#   R4  – Sem mocks em código de produção
+#   R6  – Sem referências a APIs pagas
+#   R7  – .gitignore / .dockerignore com entradas obrigatórias
+#   R8  – Dockerfile e docker-compose.yml presentes (Docker First)
+#
+# Em PRs para main/master: todas as regras acima são BLOQUEADORAS.
+# Em push para dev: executa como gate informativo (não bloqueia dev flow).
+# ──────────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [dev, main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+defaults:
+  run:
+    working-directory: sisrua_unified
+
+jobs:
+  # ====================================================================
+  # R1 – Push direto para main/master é proibido (deve ser via PR)
+  # ====================================================================
+  check-branch-policy:
+    name: R1 – Política de Branch
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Bloquear push direto para main/master
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        run: |
+          echo "❌ Push direto para '${{ github.ref_name }}' é proibido."
+          echo "   Use a branch 'dev' e abra um Pull Request."
+          exit 1
+
+      - name: Branch dev permitida
+        if: github.ref == 'refs/heads/dev'
+        run: echo "✅ Branch 'dev' — OK"
+
+  # ====================================================================
+  # R2..R8 – Enforcement das demais regras não negociáveis
+  # ====================================================================
+  enforce-non-negotiables:
+    name: Regras Não Negociáveis (R2-R8)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: sisrua_unified/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Executar enforcement de regras não negociáveis
+        run: node scripts/ci/enforce-non-negotiables.mjs
+
+      - name: Upload do relatório de enforcement
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: non-negotiables-report
+          path: sisrua_unified/artifacts/ci/non-negotiables-report.json
+          retention-days: 14
+
+      - name: Comentar resultado no PR
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = 'sisrua_unified/artifacts/ci/non-negotiables-report.json';
+            let body = '## ❌ Regras Não Negociáveis — Violações Detectadas\n\n';
+
+            try {
+              const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+              body += `**Status:** ${report.summary.status} — ${report.summary.violations} violação(ões)\n\n`;
+
+              for (const v of report.violations) {
+                body += `### 🚫 \`${v.rule}\` — ${v.message}\n`;
+                const details = v.details.slice(0, 6);
+                for (const d of details) body += `- \`${d}\`\n`;
+                if (v.details.length > 6) body += `- _+${v.details.length - 6} mais..._\n`;
+                body += '\n';
+              }
+
+              if (report.warnings.length > 0) {
+                body += `### ⚠️ Avisos (não bloqueadores)\n`;
+                for (const w of report.warnings) {
+                  body += `- **${w.rule}**: ${w.message}\n`;
+                }
+              }
+            } catch (e) {
+              body += '_Relatório não disponível._\n';
+            }
+
+            body += '\n> Corrija as violações antes de fazer merge para `main`/`master`.';
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+  # ====================================================================
+  # Gate de linha de arquivo via script dedicado
+  # ====================================================================
+  check-file-size:
+    name: R2 – Limite de Linhas por Arquivo
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Verificar arquivos acima de 600 linhas (hard limit)
+        run: |
+          echo "Verificando arquivos com mais de 600 linhas..."
+          VIOLATIONS=""
+
+          find sisrua_unified/src sisrua_unified/server sisrua_unified/py_engine -type f \
+            \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.py" \) \
+            ! -path "*/node_modules/*" ! -path "*/dist/*" ! -path "*/build/*" \
+            ! -path "*/coverage/*" ! -path "*/.git/*" 2>/dev/null | \
+          while read -r f; do
+            lines=$(wc -l < "$f")
+            if [ "$lines" -gt 600 ]; then
+              echo "❌ $f ($lines linhas)"
+              VIOLATIONS="$VIOLATIONS\n$f ($lines linhas)"
+            fi
+          done
+
+          # Verificação de violações
+          HARD=$(find sisrua_unified/src sisrua_unified/server sisrua_unified/py_engine -type f \
+            \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.py" \) \
+            ! -path "*/node_modules/*" ! -path "*/dist/*" 2>/dev/null | \
+            xargs -I{} sh -c 'lines=$(wc -l < "{}"); [ "$lines" -gt 600 ] && echo "{} ($lines)"' 2>/dev/null | wc -l)
+
+          if [ "$HARD" -gt "0" ]; then
+            echo "❌ $HARD arquivo(s) violam o hard limit de 600 linhas"
+            exit 1
+          fi
+
+          echo "✅ Nenhum arquivo supera 600 linhas"
+
+      - name: Avisar sobre arquivos entre 500-600 linhas (soft limit)
+        run: |
+          find sisrua_unified/src sisrua_unified/server sisrua_unified/py_engine -type f \
+            \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.py" \) \
+            ! -path "*/node_modules/*" ! -path "*/dist/*" 2>/dev/null | \
+          while read -r f; do
+            lines=$(wc -l < "$f")
+            if [ "$lines" -gt 500 ] && [ "$lines" -le 600 ]; then
+              echo "⚠️  $f ($lines linhas) — considere modularizar"
+            fi
+          done
+          echo "✅ Verificação soft limit concluída"

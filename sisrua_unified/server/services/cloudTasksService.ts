@@ -412,10 +412,9 @@ export async function createDxfTask(
   if (postgresAvailable && sqlClient) {
     await sqlClient.unsafe(
       `INSERT INTO dxf_tasks (task_id, status, payload, attempts, idempotency_key, updated_at)
-       VALUES ($1, 'queued', $2, 0, $3, now())
+       VALUES ($1, 'queued', $2::jsonb, 0, $3, now())
        ON CONFLICT (idempotency_key) WHERE status NOT IN ('failed', 'cancelled') DO NOTHING`,
-      // postgres.js handles JSONB serialization of the payload object at runtime
-      [taskId, fullPayload as unknown, payload.cacheKey],
+      [taskId, JSON.stringify(fullPayload), payload.cacheKey],
     );
 
     logger.info("DXF task queued in Supabase/Postgres", {

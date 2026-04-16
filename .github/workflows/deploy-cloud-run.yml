@@ -47,27 +47,9 @@ jobs:
           echo "Enabling required Google Cloud APIs..."
           gcloud services enable \
             cloudresourcemanager.googleapis.com \
-            cloudtasks.googleapis.com \
             run.googleapis.com \
             --project=${{ secrets.GCP_PROJECT_ID }}
           echo "Required APIs enabled successfully."
-
-      - name: Ensure Cloud Tasks Queue Exists
-        run: |
-          # Check if queue exists
-          if ! gcloud tasks queues describe sisrua-queue \
-            --location=southamerica-east1 \
-            --project=${{ secrets.GCP_PROJECT_ID }} &> /dev/null; then
-            echo "Queue 'sisrua-queue' not found. Creating..."
-            gcloud tasks queues create sisrua-queue \
-              --location=southamerica-east1 \
-              --project=${{ secrets.GCP_PROJECT_ID }} \
-              --max-dispatches-per-second=10 \
-              --max-concurrent-dispatches=10
-            echo "Queue 'sisrua-queue' created successfully."
-          else
-            echo "Queue 'sisrua-queue' already exists."
-          fi
 
       - name: Deploy to Cloud Run
         env:
@@ -85,7 +67,7 @@ jobs:
             --timeout=300 \
             --min-instances=0 \
             --max-instances=10 \
-            --update-env-vars="GROQ_API_KEY=${GROQ_API_KEY},GCP_PROJECT=${GCP_PROJECT},CLOUD_TASKS_LOCATION=southamerica-east1,CLOUD_TASKS_QUEUE=sisrua-queue,NODE_ENV=production"
+            --update-env-vars="GROQ_API_KEY=${GROQ_API_KEY},GCP_PROJECT=${GCP_PROJECT},USE_SUPABASE_JOBS=true,USE_CLOUD_TASKS=false,NODE_ENV=production"
 
       - name: Capture Cloud Run Service URL
         run: |
