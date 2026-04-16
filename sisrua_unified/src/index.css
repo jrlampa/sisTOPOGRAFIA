@@ -259,9 +259,6 @@
   }
 
   .glass-panel-hover {
-    background: var(--glass-bg);
-    border-color: var(--glass-border);
-    box-shadow: var(--glass-shadow);
     transition:
       background 180ms ease,
       border-color 180ms ease,
