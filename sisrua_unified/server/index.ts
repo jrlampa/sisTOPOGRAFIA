@@ -24,6 +24,10 @@ import { stopTaskWorker } from "./services/cloudTasksService.js";
 import { constantsService } from "./services/constantsService.js";
 import { maintenanceService } from "./services/maintenanceService.js";
 import { logger, requestContext } from "./utils/logger.js";
+import {
+  extractCorrelationIds,
+  setCorrelationResponseHeaders,
+} from "./utils/correlationIds.js";
 import { listCircuitBreakers } from "./utils/circuitBreaker.js";
 import {
   generalRateLimiter,
@@ -156,7 +160,15 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-request-id",
+      "x-operation-id",
+      "x-projeto-id",
+      "x-point-id",
+      "x-ponto-id",
+    ],
   }),
 );
 app.use(express.json({ limit: config.BODY_LIMIT }));
@@ -165,12 +177,28 @@ app.use(compression());
 // Request ID Middleware for Correlation
 app.use((req: Request, res: Response, next: NextFunction) => {
   const requestId = (req.headers["x-request-id"] as string) || uuidv4();
+  const correlationIds = extractCorrelationIds(req);
+
   res.locals.requestId = requestId;
+  res.locals.operation_id = correlationIds.operation_id;
+  res.locals.projeto_id = correlationIds.projeto_id;
+  res.locals.ponto_id = correlationIds.ponto_id;
+
   res.setHeader("x-request-id", requestId);
+  setCorrelationResponseHeaders(res, correlationIds);
 
   // Wrap the request in the context store
   const store = new Map();
   store.set("requestId", requestId);
+  if (correlationIds.operation_id) {
+    store.set("operation_id", correlationIds.operation_id);
+  }
+  if (correlationIds.projeto_id) {
+    store.set("projeto_id", correlationIds.projeto_id);
+  }
+  if (correlationIds.ponto_id) {
+    store.set("ponto_id", correlationIds.ponto_id);
+  }
   requestContext.run(store, () => next());
 });
 

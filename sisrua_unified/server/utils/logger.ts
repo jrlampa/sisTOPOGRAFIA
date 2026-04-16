@@ -25,6 +25,20 @@ const logger = winston.createLogger({
                 if (requestId) {
                     info.requestId = requestId;
                 }
+
+                const operationId = context.get('operation_id');
+                const projetoId = context.get('projeto_id');
+                const pontoId = context.get('ponto_id');
+
+                if (operationId) {
+                    info.operation_id = operationId;
+                }
+                if (projetoId) {
+                    info.projeto_id = projetoId;
+                }
+                if (pontoId) {
+                    info.ponto_id = pontoId;
+                }
             }
             return info;
         })(),

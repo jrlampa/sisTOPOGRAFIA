@@ -12,6 +12,10 @@ import { z } from "zod";
 import { createListQuerySchema } from "../schemas/apiSchemas.js";
 import { buildListMeta } from "../utils/listing.js";
 import { requirePermission } from "../middleware/permissionHandler.js";
+import {
+  extractCorrelationIds,
+  formatCorrelationSuffix,
+} from "../utils/correlationIds.js";
 
 const router = Router();
 
@@ -89,7 +93,9 @@ const isRefreshAuthorized = (req: Request): boolean => {
 };
 
 const getRefreshActor = (req: Request): string => {
-  return req.get("x-refresh-actor") || req.ip || "unknown";
+  const baseActor = req.get("x-refresh-actor") || req.ip || "unknown";
+  const correlation = extractCorrelationIds(req);
+  return `${baseActor}${formatCorrelationSuffix(correlation)}`;
 };
 
 router.get("/status", async (req: Request, res: Response) => {
