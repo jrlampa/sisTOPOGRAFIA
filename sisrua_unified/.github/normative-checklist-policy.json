@@ -1,0 +1,58 @@
+{
+  "criteria": [
+    {
+      "id": "PAR01",
+      "type": "paridade",
+      "requiredScripts": ["cqt:parity-check:strict"],
+      "evidencePaths": [
+        "scripts/generate-cqt-parity-report.ts",
+        "docs/CQT_PARITY_BLUEPRINT.md"
+      ]
+    },
+    {
+      "id": "PAR02",
+      "type": "paridade",
+      "requiredScripts": ["test:e2e:release:smoke"],
+      "evidencePaths": [
+        "e2e/release-smoke.spec.ts",
+        "e2e/snapshots/release-health.snapshot.json",
+        "playwright.release-smoke.config.ts"
+      ]
+    },
+    {
+      "id": "PAR03",
+      "type": "paridade",
+      "requiredScripts": ["ci:e2e:snapshot-slo"],
+      "evidencePaths": [
+        "scripts/ci/enforce-snapshot-slo.mjs",
+        ".github/slo/snapshot-slo-baseline.json"
+      ]
+    },
+    {
+      "id": "RAST01",
+      "type": "rastreabilidade",
+      "evidencePaths": [
+        "server/utils/correlationIds.ts",
+        "server/utils/logger.ts",
+        "server/index.ts"
+      ]
+    },
+    {
+      "id": "RAST02",
+      "type": "rastreabilidade",
+      "evidencePaths": [
+        "server/routes/auditRoutes.ts",
+        "docs/STRATEGIC_ROADMAP_2026.md"
+      ]
+    },
+    {
+      "id": "RAST03",
+      "type": "rastreabilidade",
+      "requiredScripts": ["ci:e2e:flake-check"],
+      "evidencePaths": [
+        "scripts/ci/analyze-playwright-flakiness.mjs",
+        ".github/workflows/quality-gates.yml"
+      ]
+    }
+  ]
+}

@@ -315,6 +315,37 @@ jobs:
       - name: Enforce CHECKPOINTS-TIMELINE policy
         run: npm run ci:checkpoint-gate
 
+  normative-checklist:
+    name: Normative Checklist Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Enforce normative checklist with evidence
+        run: npm run ci:normative-checklist-gate
+
+      - name: Upload normative checklist evidence
+        uses: actions/upload-artifact@v4
+        if: ${{ always() && !env.ACT }}
+        with:
+          name: normative-checklist-report
+          path: |
+            artifacts/ci/normative-checklist-report.json
+            artifacts/ci/normative-checklist-report.md
+          retention-days: 7
+
   # ============================================
   # QUALITY GATE SUMMARY
   # ============================================
@@ -331,6 +362,7 @@ jobs:
         build,
         e2e-smoke,
         checkpoint-timeline,
+        normative-checklist,
       ]
     if: always()
 
@@ -345,6 +377,7 @@ jobs:
           echo "Build: ${{ needs.build.result }}"
           echo "E2E Smoke: ${{ needs.e2e-smoke.result }}"
           echo "Checkpoint Timeline: ${{ needs.checkpoint-timeline.result }}"
+          echo "Normative Checklist: ${{ needs.normative-checklist.result }}"
 
           is_ok_result() {
             local job_name="$1"
@@ -370,6 +403,7 @@ jobs:
              ! is_ok_result "parity-p0" "${{ needs.parity-p0.result }}" || \
              ! is_ok_result "build" "${{ needs.build.result }}" || \
              ! is_ok_result "checkpoint-timeline" "${{ needs.checkpoint-timeline.result }}" || \
+             ! is_ok_result "normative-checklist" "${{ needs.normative-checklist.result }}" || \
              ! is_ok_result "e2e-smoke" "${{ needs.e2e-smoke.result }}"; then
             echo "❌ Quality gate FAILED"
             exit 1

@@ -92,6 +92,9 @@ jobs:
       - name: Validar SLO de latência/disponibilidade de snapshot
         run: npm run ci:e2e:snapshot-slo
 
+      - name: Validar checklist normativo executável com evidências
+        run: npm run ci:normative-checklist-gate
+
       - name: Upload relatório de flakiness (pré-deploy)
         uses: actions/upload-artifact@v4
         if: ${{ always() && !env.ACT }}
@@ -102,6 +105,8 @@ jobs:
             artifacts/ci/flakiness-report.md
             artifacts/ci/snapshot-slo-report.json
             artifacts/ci/snapshot-slo-report.md
+            artifacts/ci/normative-checklist-report.json
+            artifacts/ci/normative-checklist-report.md
           retention-days: 7
 
       - name: Auditoria de segurança NPM
