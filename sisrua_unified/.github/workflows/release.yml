@@ -71,8 +71,17 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
-      - name: Executar todos os testes
-        run: npm run test:all
+      - name: Executar testes unitários (backend + frontend)
+        run: npm run test:backend && npm run test:frontend
+        env:
+          NODE_ENV: test
+          OFFLINE_MODE: true
+
+      - name: Instalar Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Executar smoke release crítico (contrato/auth/snapshot)
+        run: npm run test:e2e:release:smoke
         env:
           NODE_ENV: test
           OFFLINE_MODE: true
@@ -86,7 +95,8 @@ jobs:
       - name: Checklist de release
         run: |
           echo "=== CHECKLIST DE RELEASE ==="
-          echo "Todos os testes aprovados"
+          echo "Testes unitarios aprovados"
+          echo "Smoke release critico (contrato/auth/snapshot) aprovado"
           echo "Auditoria de segurança limpa"
           echo "Build bem-sucedido"
           echo "Versao atualizada conforme necessario"

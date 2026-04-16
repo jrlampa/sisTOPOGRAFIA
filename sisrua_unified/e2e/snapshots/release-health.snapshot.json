@@ -1,0 +1,21 @@
+{
+  "status": "online",
+  "service": "sisRUA Unified Backend",
+  "dependencyKeys": [
+    "database",
+    "externalApis",
+    "googleCloudTasks",
+    "ollama",
+    "queueBackend"
+  ],
+  "configEnvironment": "test",
+  "constantsCatalogNamespaces": {
+    "cqt": false,
+    "clandestino": false,
+    "config": false
+  },
+  "queueBackendType": "string",
+  "queueBackendAllowed": true,
+  "hasExternalApiSection": true,
+  "systemKeys": ["memory", "nodeVersion", "platform"]
+}
