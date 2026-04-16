@@ -89,7 +89,7 @@ function metricValue(summary, metric) {
 }
 
 function isMissingFileError(error) {
-  return error?.code === 'ENOENT' || error?.message?.includes('ENOENT');
+  return error?.code === 'ENOENT';
 }
 
 async function run() {

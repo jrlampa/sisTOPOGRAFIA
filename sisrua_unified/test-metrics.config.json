@@ -1,5 +1,5 @@
 {
-  "_comentario": "Configuração para scripts/test-suite-metrics.js. Caminhos são relativos à raiz do projeto.",
+  "description": "Configuração para scripts/test-suite-metrics.js. Caminhos são relativos à raiz do projeto.",
   "roots": {
     "unit": ["tests"],
     "backend": ["server/tests"],
