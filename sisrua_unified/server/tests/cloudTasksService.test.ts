@@ -84,4 +84,53 @@ describe('cloudTasksService (Postgres queue)', () => {
     expect(result.alreadyCompleted).toBe(false);
     expect(unsafeMock).toHaveBeenCalledTimes(2);
   });
+
+  it('uses injected DXF engine in local fallback mode', async () => {
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: 'test',
+      USE_SUPABASE_JOBS: 'false'
+    };
+
+    const fakeGenerate = jest.fn().mockResolvedValue('DXF_OK');
+    const { createDxfTask, configureCloudTasksDependencies } = await import('../services/cloudTasksService');
+    const jobStatusService = await import('../services/jobStatusService');
+
+    configureCloudTasksDependencies({
+      dxfEngine: {
+        generate: fakeGenerate,
+      },
+    });
+
+    await createDxfTask({
+      lat: 1,
+      lon: 2,
+      radius: 3,
+      mode: 'circle',
+      polygon: '[]',
+      layers: {},
+      projection: 'local',
+      contourRenderMode: 'spline',
+      outputFile: '/tmp/file.dxf',
+      filename: 'file.dxf',
+      cacheKey: 'fallback-cache-key',
+      downloadUrl: 'https://example.com/downloads/file.dxf'
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    expect(fakeGenerate).toHaveBeenCalledWith(expect.objectContaining({
+      lat: 1,
+      lon: 2,
+      radius: 3,
+      outputFile: '/tmp/file.dxf',
+    }));
+    expect(jobStatusService.completeJob).toHaveBeenCalledWith(
+      'test-uuid',
+      expect.objectContaining({
+        url: 'https://example.com/downloads/file.dxf',
+        filename: 'file.dxf',
+      }),
+    );
+  });
 });

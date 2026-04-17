@@ -4,7 +4,6 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { logger } from "../utils/logger.js";
-import { generateDxf } from "../pythonBridge.js";
 import {
   completeJob,
   createJob,
@@ -15,6 +14,7 @@ import { setCachedFilename } from "./cacheService.js";
 import { scheduleDxfDeletion } from "./dxfCleanupService.js";
 import { config } from "../config.js";
 import { writeProvenance } from "../utils/artifactProvenance.js";
+import { getDxfEngine, type DxfEngine } from "./dxfEngine.js";
 
 export interface DxfTaskPayload {
   taskId: string;
@@ -56,6 +56,7 @@ let queueInitialized = false;
 let workerStarted = false;
 let workerInterval: NodeJS.Timeout | null = null;
 let activeWorkers = 0;
+let activeDxfEngine: DxfEngine = getDxfEngine();
 
 const TOPOLOGY_ONLY_WARNING =
   "Sem dados no servidor, DXF gerado com topologia.";
@@ -180,7 +181,7 @@ async function processPayload(incomingPayload: any): Promise<void> {
   });
   await updateJobStatus(payload.taskId, "processing", 15);
 
-  const pythonOutput = await generateDxf({
+  const pythonOutput = await activeDxfEngine.generate({
     lat: payload.lat,
     lon: payload.lon,
     radius: payload.radius,
@@ -224,7 +225,10 @@ async function processPayload(incomingPayload: any): Promise<void> {
     generator: "sisTOPOGRAFIA/sisrua_unified/py_engine",
     sha256: artifactSha256 ?? undefined,
   }).catch((err) =>
-    logger.warn("Falha ao escrever sidecar de proveniência", { taskId: payload.taskId, err }),
+    logger.warn("Falha ao escrever sidecar de proveniência", {
+      taskId: payload.taskId,
+      err,
+    }),
   );
 
   const btContextSidecarPath = persistBtContextSidecar(
@@ -248,6 +252,12 @@ async function processPayload(incomingPayload: any): Promise<void> {
     ...(artifactSha256 ? { artifactSha256 } : {}),
     ...(warning ? { warning } : {}),
   });
+}
+
+export function configureCloudTasksDependencies(dependencies?: {
+  dxfEngine?: DxfEngine;
+}): void {
+  activeDxfEngine = dependencies?.dxfEngine ?? getDxfEngine();
 }
 
 async function pickNextTask(): Promise<QueueRow | null> {
@@ -379,6 +389,7 @@ export function stopTaskWorker(): void {
   activeWorkers = 0;
   postgresAvailable = false;
   queueInitialized = false;
+  activeDxfEngine = getDxfEngine();
 }
 
 /**

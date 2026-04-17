@@ -178,9 +178,8 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 - [x] **Ponto 7 & 72**: Proveniência e SHA-256 → `artifactProvenance.ts` (integrado em `cloudTasksService.ts`)
 - [x] **Ponto 8**: Validador Topológico → `topologicalValidator.ts` (integrado em `dxfRoutes.ts`)
 - [x] **Ponto 30 & 31**: ABAC + Recertificação de Acesso
-- [ ] **Ponto 5**: Injeção de Dependências & IoC (desacoplamento motor para testes)
 - [x] **Ponto 3**: Orquestração Confiável de Jobs → `jobDossierService.ts` (replay controlado, dossiê por job, listagem auditável)
-- [ ] **Ponto 5**: Injeção de Dependências & IoC (desacoplamento motor para testes)
+- [x] **Ponto 5**: Injeção de Dependências & IoC → `dxfEngine.ts` + `configureCloudTasksDependencies()` no `cloudTasksService.ts` para testes isolados sem subprocesso Python
 - [ ] **Ponto 9**: Paridade CQT Full — ✅ já wired em `btCalculationRoutes.ts` (verificar cobertura)
 - [ ] **Ponto 38-41**: LGPD End-to-End completo (RIPD, residência de dados, descarte)
 - [ ] **Ponto 53-54**: Conformidade BDGD ANEEL — exportação/validação

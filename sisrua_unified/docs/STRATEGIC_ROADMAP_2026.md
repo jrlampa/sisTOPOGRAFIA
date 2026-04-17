@@ -405,6 +405,7 @@ Legenda:
 | 31. Recertificação de Acesso                                         | ✅ Implementado | `server/services/accessRecertificationService.ts`                                                                   |
 | 72. Assinatura de Hash SHA-256 por Artefato                          | ✅ Implementado | `server/services/cloudTasksService.ts` (`computeArtifactSha256`) + `server/utils/artifactProvenance.ts`            |
 | 3. Orquestração Confiável de Jobs (Job Dossier)                       | ✅ Implementado | `server/services/jobDossierService.ts` + endpoints `GET /dxf/jobs`, `GET /dxf/jobs/:taskId`, `POST /dxf/jobs/:taskId/replay` |
+| 5. Injeção de Dependências & Inversão de Controle                     | ✅ Implementado | `server/services/dxfEngine.ts` + `server/services/cloudTasksService.ts` (`configureCloudTasksDependencies`) + teste isolado `server/tests/cloudTasksService.test.ts` |
 
 
 
