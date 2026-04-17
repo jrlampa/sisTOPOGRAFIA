@@ -51,6 +51,7 @@ import holdingRoutes from "./routes/holdingRoutes.js";
 import finOpsRoutes from "./routes/finOpsRoutes.js";
 import opsRoutes from "./routes/opsRoutes.js";
 import storageRoutes from "./routes/storageRoutes.js";
+import bdgdRoutes from "./routes/bdgdRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -231,6 +232,7 @@ app.use("/api/vulns", vulnManagementRoutes);
 app.use("/api/classificacao", infoClassificationRoutes);
 app.use("/api/holdings", holdingRoutes);
 app.use("/api/finops", finOpsRoutes);
+app.use("/api/bdgd", bdgdRoutes);
 
 // Static files
 app.use(express.static(frontendDistDirectory));

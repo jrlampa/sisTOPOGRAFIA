@@ -182,11 +182,13 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 - [x] **Ponto 5**: Injeção de Dependências & IoC → `dxfEngine.ts` + `configureCloudTasksDependencies()` no `cloudTasksService.ts` para testes isolados sem subprocesso Python
 - [x] **Ponto 9**: Paridade CQT Full — `btParityService.ts` + `cqtParityReportService.ts` + `cqtRuntimeSnapshotService.ts`, com cobertura dedicada validando snapshots runtime contra baseline da planilha. Hardening concluído em 17/04/2026 com 1226 testes passando e **54.01% de branch coverage**.
 - [x] **Fase 2: Infraestrutura de Média Tensão (MT)** (Abril 2026)
-    - [x] CRUD completo de postes e vãos MT.
-    - [x] Camadas dedicadas no mapa (amber diamonds/lines).
-    - [x] Workflow integrado (Estágio 3 no Sidebar).
-    - [x] Exportação DXF com suporte a vãos MT.
+  - [x] CRUD completo de postes e vãos MT.
+  - [x] Camadas dedicadas no mapa (amber diamonds/lines).
+  - [x] Workflow integrado (Estágio 3 no Sidebar).
+  - [x] Exportação DXF com suporte a vãos MT.
 - [ ] **Ponto 53-54**: Conformidade BDGD ANEEL — exportação/validação
+- [x] **Ponto 53**: Conformidade BDGD ANEEL Nativa — `bdgdAneel.ts` (constantes PRODIST/REN 956) + `bdgdValidatorService.ts` (regras R1–R6: obrigatoriedade, maxLength, códigos ANEEL, ranges, unicidade COD_ID, geometria) + `bdgdRoutes.ts` (GET /api/bdgd/layers + POST /api/bdgd/validate). 18 testes passando. Implementado em 17/04/2026.
+- [ ] **Ponto 54**: Dossiê Regulatório e Cadeia de Custódia
 
 ### Fase 2: Engenharia 2.0 & BIM
 
@@ -239,11 +241,13 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 ## 📌 Atualização Operacional (2026-04-17) - Backend Hardening & Backend Engineering Optimization
 
 ### Escopo
+
 - Estabilização do serviço de IA (Ollama) com verificação automática e auto-pull de modelos.
 - Resolução de conflitos de dependências críticas no ambiente Python (urllib3/requests).
 - Implementação de resiliência no motor de engenharia para áreas sem dados OSM.
 
 ### Implementação & Melhorias
+
 - **Robustez do Ollama (`ollamaService.ts`)**:
   - Implementado loop de retry no startup com verificação de disponibilidade via API.
   - Verificação automática do modelo configurado (`llama3.2`); trigger de `ollama pull` imediato se ausente.
@@ -258,6 +262,7 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
   - Integrada telemetria operacional completa do Ollama (host, modelo, compliance zero-cost, warnings) no endpoint `/health`.
 
 ### Validação
+
 - Teste de "Área Vazia" (Coord 0,0) validado: ✅ Sucesso com geração de placeholder DXF.
 - Verificação de ambiente: ✅ Removidos avisos de distribuições fantasmas.
 - Telemetria `/health`: ✅ Confirmada inclusão automática do status do Ollama.
@@ -267,11 +272,13 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 ## 📌 Atualização Operacional (2026-04-17) - Backend Hardening & Infrastructure Gains (Iteração 2)
 
 ### Escopo
+
 - Estabilização do ambiente ESM/Jest e resolução de dependências circulares.
 - Hardening do endpoint `/health` com telemetria precisa e tratamento de erros.
 - Migração para utilitários nativos `crypto` e remoção da dependência legada `uuid`.
 
 ### Implementação & Melhorias
+
 - **Arquitetura de Contexto (`requestContext.ts`)**:
   - Isolado `AsyncLocalStorage` em um módulo dedicado para evitar dependências circulares entre `logger`, `app` e serviços.
   - Resolvidos erros de `Cannot read properties of undefined (reading run)` em ambiente de teste.
@@ -287,6 +294,7 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
   - Resolvido problema de hoisting de mocks em ambiente ESM/CJS híbrido.
 
 ### Validação
+
 - **Suíte de Testes**: ✅ 1192 testes passando (`npm run test:backend`).
 - **Cobertura**: ⚠️ Branch coverage em 52.68% (meta 54% sendo perseguida).
 - **Hardening**: ✅ Endpoint `/health` validado contra falhas simuladas de banco e serviços externos.
@@ -296,11 +304,13 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 ## 📌 Atualização Operacional (2026-04-17) - Auditoria e Hardening do Banco de Dados
 
 ### Escopo
+
 - Debug completo da infraestrutura de persistência (Supabase/PostgreSQL).
 - Resolução de problemas críticos de conexão e sincronização de esquema.
 - Auditoria de segurança (RLS) e performance (Health Report).
 
 ### Implementação & Correções
+
 - **Infraestrutura**:
   - Corrigida codificação da `DATABASE_URL` no arquivo `.env` da raiz (senhas com caracteres especiais agora são tratadas corretamente via percent-encoding).
   - Criado script robusto `db_diagnostic.py` com parsing manual de DSN para garantir estabilidade em diagnósticos futuros.
@@ -314,6 +324,7 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
   - Auditoria de performance via `private.db_health_report()` confirmando **99.98% cache hit** e zero bloqueios.
 
 ### Validação
+
 - Execução completa do `db_diagnostic.py` resultando em 100% de conformidade.
 - Migrações: 41 de 41 aplicadas.
 - Integridade: ✅ Verificada.
@@ -323,11 +334,13 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 ## 📌 Atualização Operacional (2026-04-17) - Backend Hardening & Test Coverage Optimization (Final)
 
 ### Escopo
+
 - Estabilização final da suíte de testes de backend e atingimento da meta de 54% de cobertura de branches.
 - Hardening defensivo do servidor e tratamento seguro de erros em produção.
 - Migração completa para utilitários nativos de criptografia.
 
 ### Implementação & Melhorias
+
 - **Hardening do Servidor (`app.ts`)**:
   - Implementado fail-safe no middleware `requestContext` para garantir resiliência se o `AsyncLocalStorage` falhar.
   - Otimizada inicialização do `Logger` para uso consistente em modo 2.5D.
@@ -343,6 +356,7 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
   - Removidos artefatos de debug (`coverage.json`, logs manuais) do ambiente de trabalho.
 
 ### Validação
+
 - `npm run test:backend`: ✅ **PASS** (100% suites, 54.01% branches).
 - `npm run ci:non-negotiables`: ✅ **PASS**.
 - Verificação visual: ✅ Logs de erro em produção higienizados (sem stack traces).
@@ -352,11 +366,13 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 ## 📌 Atualização Operacional (2026-04-17) - Estabilização do Motor de Cálculo BT 2.5D
 
 ### Escopo
+
 - Resolução de regressões de demanda e restauração de lógica de engenharia removida durante modularização.
 - Garantia de paridade 1:1 com requisitos da Light S.A. para impacto de seccionamento.
 - Restabelecimento de campos legados (`estimatedDemandKw`) para suporte a ferramentas de auditoria.
 
 ### Implementação & Melhorias
+
 - **Hardening de Topologia (`btTopologyFlow.ts`)**:
   - Restaurada a função `calculateSectioningImpact` (Centro de Carga e Poste Sugerido) utilizando baseline geodésico.
   - Reintegrada a função helper `calculateAccumulatedDemandKva` para suporte a testes unitários de fluxo de carga.
@@ -367,6 +383,7 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
   - ✅ **205 testes de BT passando** (vitest), eliminando falhas de regressão identificadas após a modularização industrial.
 
 ### Validação
+
 - `npm run test:frontend`: ✅ **PASS** (100% BT logic).
 - `npm run ci:non-negotiables`: ✅ **PASS** (Zero violações arquiteturais).
 
@@ -592,12 +609,12 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ### Escopo
 
-- Refatoração profunda de 6 arquivos que excediam o *soft limit* de 750 linhas, reduzindo o débito técnico e melhorando a Responsabilidade Única (SRP).
+- Refatoração profunda de 6 arquivos que excediam o _soft limit_ de 750 linhas, reduzindo o débito técnico e melhorando a Responsabilidade Única (SRP).
 - Foco em manter paridade funcional total com os cálculos de engenharia da Light S.A.
 
 ### Implementação
 
-- **Cálculos BT**: `src/utils/btCalculations.ts` transformado em *barrel file*, delegando lógica para:
+- **Cálculos BT**: `src/utils/btCalculations.ts` transformado em _barrel file_, delegando lógica para:
   - `src/utils/btTransformerCalculations.ts` (Demanda/Leituras Trafo).
   - `src/utils/btClandestinoCalculations.ts` (Projetos Clandestinos).
   - `src/utils/btTopologyFlow.ts` (Fluxo de Carga/BFS).
@@ -966,16 +983,19 @@ SELECT SUM(n_dead_tup) FROM pg_stat_user_tables;
 ## 📌 Atualização Operacional (2026-04-17) - Hardening do Motor de Cálculo BT/CQT
 
 ### Escopo
+
 - Auditoria técnica profunda do núcleo matemático BT (frontend/backend) para garantir paridade com padrões Light S.A.
 - Implementação de 32 novos testes de regressão focados em edge cases (edges removidos, lookups fracionários, fallback de demanda).
 
 ### Implementações
+
 - **Documentação de Intencionalidade**: Adicionado JSDoc em `calculateBtSummary` (frontend) e `btDerivedCalculations.ts` (backend) explicando que o comprimento físico (`totalLengthMeters`) deve incluir arestas marcadas para remoção (inventário físico), enquanto a propagação de carga as ignora (topologia ativa).
 - **Hardening de Lookup**: Validação de que `parseInteger` (base do lookup) bloqueia entradas fracionárias (ex: área 100.5 retorna demanda 0), mas aceita inteiros expressos como float (ex: 100.0).
 - **Resiliência de Demanda**: Garantia de que transformadores sem `currentMaxA` nos `readings` realizam fallback automático para o valor persistido (`demandKva`/`demandKw`), evitando perda de dados no sumário.
 - **Equivalência de Flags**: Unificação do comportamento de `removeOnExecution: true` com `edgeChangeFlag: "remove"` na lógica de grafo (exclusão mútua das arestas da árvore de carga).
 
 ### Validação Final
+
 - **Estatísticas**: 1215 testes passando, 90 suítes executadas com sucesso.
 - **Cobertura**: Mantida integridade das áreas críticas (>95% em serviços core de BT).
 
@@ -983,10 +1003,25 @@ SELECT SUM(n_dead_tup) FROM pg_stat_user_tables;
 
 ## 📌 Próximos Passos Imediatos: Evolução MT (Média Tensão)
 
-- [ ] Evoluir `MtTopology` para incluir `edges` (vãos MT).
+- [x] **Estruturas MT n1-n4 no painel do poste MT** (Abril 2026)
+  - `MtPoleStructures { n1?,n2?,n3?,n4? }` em `src/types.ts` — texto livre, sem catálogo.
+  - Schema Zod `mtPoleSchema` + `mtContextSchema` em `server/schemas/dxfRequest.ts`.
+  - Serializer `buildMtDxfContext()` em `src/utils/mtDxfContext.ts`.
+  - UI: `MtTopologyPanel.tsx` + `MtPoleVerificationSection.tsx` (grid 2-col n1-n4).
+  - Python: `MtTopologiaMixin` (`py_engine/dxf/core/mt_topologia.py`) com `_draw_mt_pole()` e `add_mt_topology()`.
+  - DXF: camadas `MT_POSTES` (cor 30), `MT_LABELS` (cor 30); bloco `MT_POSTE` (diamante + círculo).
+  - Pipeline completo: `main.py --mt_context` → `controller.mt_context` → `_build_mt_context_for_dxf()` → `_project_mt_topology()` → mixin → DXF.
+  - Bridge TS: `mtContext` em `DxfOptions` e `dxfRoutes.ts`.
+- [x] **Catálogo de estruturas MT (n1-n4) — combobox com catálogo Light S.A.** (Abril 2026)
+  - `src/constants/mtStructureCatalog.ts`: 63 entradas agrupadas em 12 categorias (Conv./Compacta 13,8kV + sub-grupos Trafo/Chaves/Pára-Raios/Inversão).
+  - `MtPoleVerificationSection.tsx` atualizado: campos n1-n4 usam `<input list="mt-structures-datalist">` + `<datalist>` HTML5 — sugestões do catálogo, texto livre preservado.
+- [x] **MT edges (vãos/trechos) — pipeline completo** (Abril 2026)
+  - `server/schemas/dxfRequest.ts`: adicionado `mtEdgeSchema` (id, fromPoleId, toPoleId, lengthMeters, verified, edgeChangeFlag) + `mtTopologySchema.edges` array.
+  - `py_engine/controller.py` `_project_mt_topology()`: projeta vãos usando posições já projetadas dos postes; payload `{ fromXY, toXY, lengthMeters, edgeChangeFlag }`.
+  - `py_engine/dxf_styles.py`: nova camada `MT_CONDUTORES` (cor 30, 0.25mm).
+  - `py_engine/dxf/core/mt_topologia.py`: `_draw_mt_edge()` — polilinha `MT_CONDUTORES` colorida por flag (verde=novo, vermelho=remover, laranja=existente) + label de comprimento; edges desenhadas antes dos postes.
+- [ ] Teste de integração DXF e2e com JSON de topologia MT real.
 - [ ] Integrar `MtTopologyPanel` no workflow global (Etapa 3 do Sidebar).
-- [ ] Implementar CRUD de MT (Postes, Vãos, Estruturas) com suporte no mapa.
-- [ ] Atualizar exportação DXF para incluir a camada MT.
 
 **Substituir RBAC placeholder por enforcement real.** Todos os usuários devem ter seu papel recuperado de fonte confiável (tabela `user_roles` no banco de dados) com cache e fallback seguro.
 
@@ -1547,10 +1582,12 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 ## 📌 Atualização Operacional (2026-04-17) - Backend Hardening & Engenharia Core (Final)
 
 ### Escopo
+
 - Finalização do endurecimento da infraestrutura backend e atingimento de thresholds de cobertura industrial.
 - Fortalecimento do motor de cálculo BT (Propagação de Tensão) com foco em resiliência e paridade técnica.
 
 ### Implementação & Melhorias
+
 - **Saneamento de Engenharia (`btDerivedVoltagePropagation.ts`)**:
   - Cobertura de branches elevada de **14.02% para 86.58%**. 🔥
   - Implementada proteção contra recursividade infinita (loops em grafos) e sanitização de valores `NaN/Infinity`.
@@ -1565,6 +1602,7 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
   - **Branch Coverage Global**: **54.12%** (Threshold >54% atingido ✅).
 
 ### Validação Final
+
 - `npm run test:backend`: ✅ **PASS**
 - `npm run ci:non-negotiables`: ✅ **PASS**
 - Cobertura de Branches (`BT Core`): 86.58% ✅
