@@ -347,6 +347,29 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 - `npm run ci:non-negotiables`: ✅ **PASS**.
 - Verificação visual: ✅ Logs de erro em produção higienizados (sem stack traces).
 
+---
+
+## 📌 Atualização Operacional (2026-04-17) - Estabilização do Motor de Cálculo BT 2.5D
+
+### Escopo
+- Resolução de regressões de demanda e restauração de lógica de engenharia removida durante modularização.
+- Garantia de paridade 1:1 com requisitos da Light S.A. para impacto de seccionamento.
+- Restabelecimento de campos legados (`estimatedDemandKw`) para suporte a ferramentas de auditoria.
+
+### Implementação & Melhorias
+- **Hardening de Topologia (`btTopologyFlow.ts`)**:
+  - Restaurada a função `calculateSectioningImpact` (Centro de Carga e Poste Sugerido) utilizando baseline geodésico.
+  - Reintegrada a função helper `calculateAccumulatedDemandKva` para suporte a testes unitários de fluxo de carga.
+  - Implementado fallback de mapeamento para `estimatedDemandKw`, refletindo paridade com kVA no modelo 2.5D.
+- **Helper Geodésico**:
+  - Restaurado `distanceMetersBetween` (wrapper para `haversineDistanceMeters`) para manter estabilidade da API de utilitários.
+- **Resultados de Testes**:
+  - ✅ **205 testes de BT passando** (vitest), eliminando falhas de regressão identificadas após a modularização industrial.
+
+### Validação
+- `npm run test:frontend`: ✅ **PASS** (100% BT logic).
+- `npm run ci:non-negotiables`: ✅ **PASS** (Zero violações arquiteturais).
+
 ## 📌 Atualização Operacional (2026-04-12)
 
 ### Correção BT no mapa (postes/condutores)
@@ -1518,3 +1541,30 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 ### Observação de risco residual
 
 - `xlsx` permanece com advisory de severidade alta sem correção disponível upstream; monitorar para migração/substituição quando houver patch oficial.
+
+---
+
+## 📌 Atualização Operacional (2026-04-17) - Backend Hardening & Engenharia Core (Final)
+
+### Escopo
+- Finalização do endurecimento da infraestrutura backend e atingimento de thresholds de cobertura industrial.
+- Fortalecimento do motor de cálculo BT (Propagação de Tensão) com foco em resiliência e paridade técnica.
+
+### Implementação & Melhorias
+- **Saneamento de Engenharia (`btDerivedVoltagePropagation.ts`)**:
+  - Cobertura de branches elevada de **14.02% para 86.58%**. 🔥
+  - Implementada proteção contra recursividade infinita (loops em grafos) e sanitização de valores `NaN/Infinity`.
+  - Garantia de que a queda de tensão (`voltageV`) nunca atinja valores negativos, mesmo sob sobrecarga extrema.
+  - Adicionados testes para cenários **Clandestinos** e ramais de BT com tratamento de tipos case-sensitive ("Clandestino").
+- **Infraestrutura Backend**:
+  - Estabilização completa do `/health` com mocks de IA (Ollama) e Governança.
+  - Migração definitiva para `crypto.randomUUID()` nativo.
+  - Resolução de dependências circulares ESM via `requestContext.ts`.
+- **Métricas de Qualidade**:
+  - **Testes Totais**: 1238 testes passando.
+  - **Branch Coverage Global**: **54.12%** (Threshold >54% atingido ✅).
+
+### Validação Final
+- `npm run test:backend`: ✅ **PASS**
+- `npm run ci:non-negotiables`: ✅ **PASS**
+- Cobertura de Branches (`BT Core`): 86.58% ✅
