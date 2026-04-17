@@ -7,7 +7,6 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-  BarChart3,
   Building2,
   ChevronDown,
   HelpCircle,
@@ -64,10 +63,10 @@ export function AppNavigation({ isDark = false, onToggleTheme, role = "cliente" 
   const linkBase =
     "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150";
   const linkActive =
-    "bg-indigo-600/20 text-indigo-400 border border-indigo-500/30";
+    "glass-panel border-indigo-500/30 text-enterprise-blue";
   const linkInactive = isDark
-    ? "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100";
+    ? "glass-panel-hover text-slate-300 hover:text-slate-100"
+    : "glass-panel-hover text-slate-700 hover:text-slate-950";
 
   function handleLogout() {
     // Limpa sessão local e redireciona para landing
@@ -77,10 +76,8 @@ export function AppNavigation({ isDark = false, onToggleTheme, role = "cliente" 
 
   return (
     <nav
-      className={`relative z-40 w-full border-b ${
-        isDark
-          ? "border-white/10 bg-slate-900/80 backdrop-blur-xl"
-          : "border-slate-200 bg-white/90 backdrop-blur-xl"
+      className={`app-header relative z-40 w-full border-b-2 backdrop-blur-xl ${
+        isDark ? "text-slate-200" : "text-slate-900"
       }`}
       aria-label="Navegação principal"
     >
@@ -128,10 +125,10 @@ export function AppNavigation({ isDark = false, onToggleTheme, role = "cliente" 
           {onToggleTheme && (
             <button
               onClick={onToggleTheme}
-              className={`rounded-lg p-2 text-xs transition-colors ${
+              className={`glass-panel-hover rounded-lg border px-2 py-2 text-xs transition-colors ${
                 isDark
-                  ? "text-slate-400 hover:bg-white/10 hover:text-slate-200"
-                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                  ? "border-white/10 text-slate-300 hover:text-slate-100"
+                  : "border-white/20 text-slate-700 hover:text-slate-950"
               }`}
               aria-label="Alternar tema claro/escuro"
               title="Alternar tema"
@@ -144,12 +141,12 @@ export function AppNavigation({ isDark = false, onToggleTheme, role = "cliente" 
           <div className="relative">
             <button
               onClick={() => setUserMenuOpen((v) => !v)}
-              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              className={`glass-panel-hover flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                 isDark
-                  ? "text-slate-400 hover:bg-white/10 hover:text-slate-200"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  ? "border-white/10 text-slate-300 hover:text-slate-100"
+                  : "border-white/20 text-slate-700 hover:text-slate-950"
               }`}
-              aria-expanded={userMenuOpen}
+              aria-haspopup="menu"
               aria-label="Menu do usuário"
             >
               <span className="hidden sm:block">Minha Conta</span>
@@ -157,10 +154,10 @@ export function AppNavigation({ isDark = false, onToggleTheme, role = "cliente" 
             </button>
             {userMenuOpen && (
               <div
-                className={`absolute right-0 top-full mt-1 w-52 rounded-xl border shadow-xl ${
+                className={`glass-card absolute right-0 top-full mt-1 w-52 rounded-xl border shadow-xl ${
                   isDark
-                    ? "border-white/10 bg-slate-800"
-                    : "border-slate-200 bg-white"
+                    ? "border-white/10"
+                    : "border-white/20"
                 }`}
               >
                 <div className="p-1">
@@ -205,7 +202,9 @@ export function AppNavigation({ isDark = false, onToggleTheme, role = "cliente" 
 
           {/* Botão mobile */}
           <button
-            className="rounded-lg p-2 md:hidden"
+            className={`glass-panel-hover rounded-lg border p-2 md:hidden ${
+              isDark ? "border-white/10" : "border-white/20"
+            }`}
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
           >
@@ -221,8 +220,8 @@ export function AppNavigation({ isDark = false, onToggleTheme, role = "cliente" 
       {/* Menu mobile dropdown */}
       {mobileOpen && (
         <div
-          className={`border-t px-4 py-3 md:hidden ${
-            isDark ? "border-white/10 bg-slate-900" : "border-slate-100 bg-white"
+          className={`app-header border-t-2 px-4 py-3 md:hidden ${
+            isDark ? "border-white/10" : "border-white/20"
           }`}
         >
           <div className="flex flex-col gap-1">

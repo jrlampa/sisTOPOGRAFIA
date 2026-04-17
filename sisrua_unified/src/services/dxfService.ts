@@ -3,6 +3,37 @@ import { API_BASE_URL } from "../config/api";
 
 const API_URL = API_BASE_URL;
 
+const resolveRequestIdentity = (): { userId: string; token: string | null } => {
+  const fromStorage =
+    localStorage.getItem("sisrua_user_id") ||
+    localStorage.getItem("sisrua_userId") ||
+    localStorage.getItem("user_id") ||
+    localStorage.getItem("userId");
+
+  const fallbackUserId =
+    (import.meta.env.VITE_DEFAULT_USER_ID as string | undefined)?.trim() ||
+    "system-admin";
+
+  const userId = (fromStorage || fallbackUserId).trim();
+  const token = localStorage.getItem("sisrua_token");
+
+  return { userId, token };
+};
+
+const buildDxfHeaders = (): Record<string, string> => {
+  const { userId, token } = resolveRequestIdentity();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "x-user-id": userId,
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  return headers;
+};
+
 type DxfQueueResponse = {
   status: "queued";
   jobId: string | number;
@@ -161,7 +192,7 @@ export const generateDXF = async (
 
   const response = await fetch(`${API_URL}/dxf`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildDxfHeaders(),
     body: JSON.stringify({
       lat,
       lon,
@@ -195,7 +226,9 @@ export const generateDXF = async (
 };
 
 export const getDxfJobStatus = async (jobId: string): Promise<DxfJobStatus> => {
-  const response = await fetch(`${API_URL}/jobs/${jobId}`);
+  const response = await fetch(`${API_URL}/jobs/${jobId}`, {
+    headers: buildDxfHeaders(),
+  });
 
   const parsed = await parseApiBody(response);
 

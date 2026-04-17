@@ -44,6 +44,27 @@ type BatchUploadProps = {
 
 const API_URL = API_BASE_URL;
 
+const buildIdentityHeaders = (): Record<string, string> => {
+  const fromStorage =
+    localStorage.getItem("sisrua_user_id") ||
+    localStorage.getItem("sisrua_userId") ||
+    localStorage.getItem("user_id") ||
+    localStorage.getItem("userId");
+  const fallbackUserId =
+    (import.meta.env.VITE_DEFAULT_USER_ID as string | undefined)?.trim() ||
+    "system-admin";
+  const userId = (fromStorage || fallbackUserId).trim();
+  const token = localStorage.getItem("sisrua_token");
+
+  const headers: Record<string, string> = {
+    "x-user-id": userId,
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 const parseBatchResponse = async (response: Response): Promise<unknown> => {
   const contentType = (
     response.headers.get("content-type") || ""
@@ -131,6 +152,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
 
       const response = await fetch(`${API_URL}/dxf/batch`, {
         method: "POST",
+        headers: buildIdentityHeaders(),
         body: formData,
       });
 

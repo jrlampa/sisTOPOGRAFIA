@@ -18,29 +18,29 @@ const HistoryControls: React.FC<HistoryControlsProps> = ({
     <div
       role="group"
       aria-label="Histórico de ações"
-      className="flex items-center gap-1 rounded-2xl border-2 border-amber-800/35 bg-amber-50 p-1 shadow-[4px_4px_0_rgba(124,45,18,0.18)] dark:border-amber-500/45 dark:bg-zinc-900 dark:shadow-[4px_4px_0_rgba(251,146,60,0.2)]"
+      className="flex items-center gap-1 rounded-2xl border border-slate-200 bg-sky-50/70 p-1 shadow-[0_10px_24px_rgba(148,163,184,0.16)] dark:border-white/10 dark:bg-white/5 dark:shadow-none"
     >
       <button
         onClick={onUndo}
         disabled={!canUndo}
         className={`p-1.5 rounded transition-colors ${
           canUndo
-            ? "text-amber-900 hover:bg-amber-100 hover:text-amber-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:text-amber-100 dark:hover:bg-zinc-800 dark:hover:text-white"
-            : "text-amber-300 dark:text-zinc-600 cursor-not-allowed"
+            ? "text-slate-700 hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-white"
+            : "cursor-not-allowed text-slate-300 dark:text-zinc-600"
         }`}
         title="Desfazer"
         aria-label="Desfazer"
       >
         <Undo2 size={18} />
       </button>
-      <div className="w-px h-4 bg-amber-300 dark:bg-amber-600/40 mx-1" />
+      <div className="mx-1 h-4 w-px bg-slate-200 dark:bg-white/10" />
       <button
         onClick={onRedo}
         disabled={!canRedo}
         className={`p-1.5 rounded transition-colors ${
           canRedo
-            ? "text-amber-900 hover:bg-amber-100 hover:text-amber-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:text-amber-100 dark:hover:bg-zinc-800 dark:hover:text-white"
-            : "text-amber-300 dark:text-zinc-600 cursor-not-allowed"
+            ? "text-slate-700 hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-white"
+            : "cursor-not-allowed text-slate-300 dark:text-zinc-600"
         }`}
         title="Refazer"
         aria-label="Refazer"

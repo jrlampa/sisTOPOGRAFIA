@@ -95,6 +95,13 @@ export function SettingsModalGeneralTab({
           Interface e Mapa
         </h3>
 
+        <div className="rounded-lg border border-cyan-200 bg-cyan-50/80 p-3 text-xs text-cyan-800 dark:border-cyan-400/20 dark:bg-cyan-950/30 dark:text-cyan-100">
+          <p className="font-semibold">Estilo visual canônico ativo</p>
+          <p className="mt-1 opacity-90">
+            Mudanças globais de estilo são bloqueadas por padrão. Variações futuras devem existir apenas como opção do usuário neste menu.
+          </p>
+        </div>
+
         <div className="flex items-center justify-between glass-panel p-3 rounded-lg">
           <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
             {settings.theme === 'dark' ? (

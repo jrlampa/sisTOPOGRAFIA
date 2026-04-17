@@ -82,47 +82,47 @@ export function AppHeader({
 
   return (
     <header
-      className={`app-header h-24 shrink-0 border-b-2 px-4 md:px-8 z-30 flex items-center justify-between transition-all ${
+      className={`app-header z-30 flex h-20 shrink-0 items-center justify-between border-b px-4 md:px-8 transition-all ${
         isDark
-          ? "border-amber-500/45"
-          : "border-amber-700/35 shadow-[0_8px_0_rgba(124,45,18,0.08)]"
+          ? "border-white/10"
+          : "border-sky-200/80 shadow-[0_10px_30px_rgba(148,163,184,0.14)]"
       }`}
     >
       <div className="flex items-center gap-3 md:gap-4">
         <motion.div
-          whileHover={{ rotate: -6, scale: 1.05 }}
+          whileHover={{ scale: 1.03 }}
           transition={{ type: "spring", stiffness: 200, damping: 14 }}
-          className="flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-black/20 bg-gradient-to-br from-orange-500 via-amber-500 to-cyan-400 shadow-[5px_5px_0_rgba(15,23,42,0.28)] dark:border-amber-400/50"
+          className="flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-200 bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-400 shadow-[0_14px_28px_rgba(59,130,246,0.22)] dark:border-white/10"
         >
           <Layers size={22} className="text-white" aria-hidden="true" />
         </motion.div>
         <div>
           <h1
-            className={`font-display text-lg md:text-xl font-extrabold tracking-tight flex items-center gap-2 ${
-              isDark ? "text-amber-50" : "text-amber-950"
+            className={`font-display flex items-center gap-2 text-lg font-extrabold tracking-tight md:text-xl ${
+              isDark ? "text-slate-50" : "text-slate-900"
             }`}
           >
-            sisTOPOGRAFIA
+            SIS RUA
             <span
-              className={`rounded-xl border-2 px-2 py-0.5 text-[10px] font-black tracking-[0.16em] ${
+              className={`rounded-lg border px-2 py-0.5 text-[9px] font-black tracking-[0.14em] ${
                 isDark
-                  ? "border-cyan-300/70 bg-cyan-400/15 text-cyan-100"
-                  : "border-cyan-700/35 bg-cyan-100 text-cyan-900"
+                  ? "border-cyan-300/40 bg-cyan-400/10 text-cyan-100"
+                  : "border-cyan-200 bg-cyan-50 text-cyan-700"
               }`}
             >
-              OPS SUITE
+              UNIFIED
             </span>
           </h1>
           <div className="flex items-center gap-2 pt-0.5">
             <p
               className={`text-[10px] font-bold uppercase tracking-[0.28em] ${
-                isDark ? "text-amber-200" : "text-amber-800"
+                isDark ? "text-slate-400" : "text-slate-500"
               }`}
             >
-              Mission Control 2.5D
+              Advanced Geo Analysis
             </p>
             <span
-              className={`inline-flex items-center gap-1 rounded-full border-2 px-2 py-0.5 text-[10px] font-semibold ${backendStatusClasses}`}
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${backendStatusClasses}`}
               title={
                 backendResponseTimeMs != null
                   ? `${backendStatusLabel} (${backendResponseTimeMs} ms)`
@@ -135,11 +135,7 @@ export function AppHeader({
               }
             >
               <span className="h-1.5 w-1.5 rounded-full bg-current" />
-              {backendStatus === "online"
-                ? "API ONLINE"
-                : backendStatus === "degraded"
-                  ? "API DEGRADADA"
-                  : "API OFFLINE"}
+              {backendStatus === "online" ? "API ONLINE" : backendStatus === "degraded" ? "API DEGRADADA" : "API OFFLINE"}
             </span>
           </div>
         </div>
@@ -152,8 +148,8 @@ export function AppHeader({
           onClick={onToggleSidebarCollapsed}
           className={`${actionButtonClass} ${
             isDark
-              ? "border-violet-400/45 bg-violet-500/15 text-violet-100 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-violet-500/25"
-              : "border-violet-700/35 bg-violet-100 text-violet-900 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-violet-200"
+              ? "border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
+              : "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
           }`}
           title={
             isSidebarCollapsed
@@ -180,7 +176,7 @@ export function AppHeader({
           onRedo={onRedo}
         />
         {isSidebarCollapsed && (
-          <span className="hidden rounded-full border-2 border-cyan-700/35 bg-cyan-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-900 xl:inline-flex dark:border-cyan-300/45 dark:bg-cyan-950/35 dark:text-cyan-100">
+          <span className="hidden rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-700 xl:inline-flex dark:border-cyan-300/25 dark:bg-cyan-950/35 dark:text-cyan-100">
             Modo mapa: keyboard+mouse
           </span>
         )}
@@ -192,8 +188,8 @@ export function AppHeader({
             onClick={onSaveProject}
             className={`${actionButtonClass} ${
               isDark
-                ? "border-amber-500/45 bg-zinc-900 text-amber-100 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-zinc-800"
-                : "border-amber-800/30 bg-amber-50 text-amber-900 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-amber-100"
+                ? "border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
+                : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
             }`}
             title="Salvar projeto"
             aria-label="Salvar projeto"
@@ -207,8 +203,8 @@ export function AppHeader({
             onClick={handleOpenProjectClick}
             className={`${actionButtonClass} ${
               isDark
-                ? "border-amber-500/45 bg-zinc-900 text-amber-100 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-zinc-800"
-                : "border-amber-800/30 bg-amber-50 text-amber-900 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-amber-100"
+                ? "border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
+                : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
             }`}
             title="Abrir projeto"
             aria-label="Abrir projeto"
@@ -232,8 +228,8 @@ export function AppHeader({
           onClick={onOpenSettings}
           className={`${actionButtonClass} ${
             isDark
-              ? "border-cyan-300/45 bg-cyan-400/15 text-cyan-100 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-cyan-400/25"
-              : "border-cyan-700/35 bg-cyan-100 text-cyan-900 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-cyan-200"
+              ? "border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
+              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
           }`}
           title="Abrir configurações"
           aria-label="Abrir configurações"

@@ -77,7 +77,7 @@ export function AppShellLayout({
         backendStatus={backendHealth.status}
         backendResponseTimeMs={backendHealth.responseTimeMs}
       />
-      <main className="relative z-10 flex flex-1 flex-col overflow-hidden border-t-2 border-amber-700/40 dark:border-amber-500/50 xl:flex-row">
+      <main className="relative z-10 flex flex-1 flex-col overflow-hidden border-t border-slate-200/80 dark:border-white/10 xl:flex-row">
         <SidebarWorkspace
           {...sidebarWorkspaceProps}
           isCollapsed={isSidebarCollapsed}

@@ -101,25 +101,24 @@ export function SidebarWorkspace({
     <motion.aside
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className={`app-sidebar border-r-2 flex flex-col gap-4 overflow-y-auto z-20 shadow-2xl transition-all duration-300 scrollbar-hide xl:shrink-0 ${
+      className={`app-sidebar z-20 flex flex-col gap-4 overflow-y-auto border-r transition-all duration-300 scrollbar-hide xl:shrink-0 ${
         isSidebarDockedForRamalModal || isCollapsed
           ? "w-0 p-0 opacity-0 pointer-events-none border-r-0"
-          : "w-full max-h-[56vh] xl:max-h-none xl:max-w-[460px] p-3 md:p-4 opacity-100"
+          : "w-full max-h-[56vh] p-4 opacity-100 xl:max-h-none xl:max-w-[420px]"
       }`}
       aria-hidden={isSidebarDockedForRamalModal || isCollapsed}
     >
-      <div className="app-section rounded-3xl px-4 pb-4 pt-3 md:px-5 relative overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-fuchsia-500 via-cyan-500 to-emerald-500" />
+      <div className="glass-card px-4 pb-4 pt-3 md:px-5">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-700 dark:text-amber-200">
-              Workflow Operacional
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+              Workflow
             </p>
-            <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">
+            <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
               Estação de trabalho guiada
             </p>
           </div>
-          <span className="rounded-full border-2 border-amber-700/35 bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-800 dark:border-amber-400/45 dark:bg-zinc-900 dark:text-amber-100">
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-black text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
             {workflowStages.filter((stage) => stage.done).length}/3
           </span>
         </div>
@@ -134,8 +133,8 @@ export function SidebarWorkspace({
                 onClick={() => setActiveStage(stage.key)}
                 className={`rounded-2xl border-2 px-2 py-2 text-left transition-all ${
                   isActive
-                    ? "border-cyan-600 bg-cyan-100 text-cyan-900 dark:border-cyan-400/60 dark:bg-cyan-950/40 dark:text-cyan-100"
-                    : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/35 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                    ? "border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-400/25 dark:bg-cyan-950/25 dark:text-cyan-100"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
                 }`}
                 title={stage.helper}
               >
@@ -157,19 +156,18 @@ export function SidebarWorkspace({
         </div>
       </div>
 
-      <div className="app-section rounded-3xl p-4 md:p-5 relative overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-500" />
+      <div className="glass-card p-4 md:p-5">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700 dark:text-amber-200">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
               Etapa 1
             </p>
-            <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">
+            <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
               Captura da área
             </p>
           </div>
           {hasAreaSelection && (
-            <span className="rounded-full border border-emerald-600/35 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/45 dark:bg-emerald-950/25 dark:text-emerald-200">
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
               OK
             </span>
           )}
@@ -182,19 +180,18 @@ export function SidebarWorkspace({
         </div>
       </div>
 
-      <div className="app-section rounded-3xl p-4 md:p-5 relative overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500" />
+      <div className="glass-card p-4 md:p-5">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700 dark:text-amber-200">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
               Etapa 2
             </p>
-            <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">
+            <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
               Edição da rede BT
             </p>
           </div>
           {hasBtTopology && (
-            <span className="rounded-full border border-emerald-600/35 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/45 dark:bg-emerald-950/25 dark:text-emerald-200">
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
               OK
             </span>
           )}
@@ -208,19 +205,18 @@ export function SidebarWorkspace({
         </div>
       </div>
 
-      <div className="app-section mb-1 rounded-3xl p-4 md:p-5 relative overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500" />
+      <div className="glass-card mb-1 p-4 md:p-5">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700 dark:text-amber-200">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
               Etapa 3
             </p>
-            <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">
+            <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
               Análise e exportação
             </p>
           </div>
           {hasAnalysis && (
-            <span className="rounded-full border border-emerald-600/35 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/45 dark:bg-emerald-950/25 dark:text-emerald-200">
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
               OK
             </span>
           )}
@@ -234,11 +230,11 @@ export function SidebarWorkspace({
         </div>
       </div>
 
-      <div className="sticky bottom-0 z-10 mt-auto rounded-2xl border-2 border-fuchsia-700/30 bg-fuchsia-50/95 p-3 shadow-[4px_4px_0_rgba(124,45,18,0.16)] backdrop-blur-sm dark:border-fuchsia-500/40 dark:bg-zinc-900/95 dark:shadow-[4px_4px_0_rgba(251,146,60,0.22)]">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-fuchsia-700 dark:text-fuchsia-200">
+      <div className="glass-card sticky bottom-0 z-10 mt-auto p-3 backdrop-blur-sm">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
           Próxima ação
         </p>
-        <p className="mb-3 mt-1 text-xs font-medium text-fuchsia-900 dark:text-fuchsia-100">
+        <p className="mb-3 mt-1 text-xs font-medium text-slate-700 dark:text-slate-200">
           {guidanceText}
         </p>
         <button
@@ -249,7 +245,7 @@ export function SidebarWorkspace({
               setActiveStage(nextStage);
             }
           }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-black/15 bg-gradient-to-r from-fuchsia-600 via-blue-600 to-cyan-500 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-400/20 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
         >
           {nextStage ? "Avançar etapa" : "Fluxo concluído"}
           {nextStage && <ArrowRight size={13} />}

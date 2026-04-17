@@ -22,33 +22,37 @@ export function PageShell({
   onToggleTheme,
   role = "cliente",
 }: PageShellProps) {
+  React.useEffect(() => {
+    document.documentElement.setAttribute(
+      "data-theme",
+      isDark ? "dark" : "light",
+    );
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [isDark]);
+
   return (
     <div
-      className={`min-h-screen font-sans transition-colors duration-300 ${
-        isDark ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"
+      className={`app-shell relative min-h-screen overflow-hidden font-sans transition-colors duration-500 ${
+        isDark ? "text-slate-200" : "text-slate-900"
       }`}
     >
-      {/* Atmosfera de fundo */}
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
-        <span
-          className="absolute -left-32 -top-32 h-[500px] w-[500px] rounded-full opacity-10"
-          style={{ background: "radial-gradient(circle, #6366f1 0%, transparent 70%)" }}
-        />
-        <span
-          className="absolute -bottom-32 -right-32 h-[400px] w-[400px] rounded-full opacity-10"
-          style={{ background: "radial-gradient(circle, #06b6d4 0%, transparent 70%)" }}
-        />
+      <div className="app-shell-atmosphere" aria-hidden="true">
+        <span className="app-shell-orb app-shell-orb-1" />
+        <span className="app-shell-orb app-shell-orb-2" />
+        <span className="app-shell-orb app-shell-orb-3" />
       </div>
 
-      {/* Navegação */}
       <AppNavigation
         isDark={isDark}
         onToggleTheme={onToggleTheme}
         role={role}
       />
 
-      {/* Conteúdo */}
-      <main className="relative z-10 mx-auto max-w-screen-2xl px-4 py-8 lg:px-6">
+      <main className="relative z-10 mx-auto w-full max-w-screen-2xl px-4 py-8 lg:px-6">
         {children}
       </main>
     </div>
