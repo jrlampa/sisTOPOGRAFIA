@@ -236,6 +236,34 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ---
 
+## 📌 Atualização Operacional (2026-04-17) - Backend Hardening & Backend Engineering Optimization
+
+### Escopo
+- Estabilização do serviço de IA (Ollama) com verificação automática e auto-pull de modelos.
+- Resolução de conflitos de dependências críticas no ambiente Python (urllib3/requests).
+- Implementação de resiliência no motor de engenharia para áreas sem dados OSM.
+
+### Implementação & Melhorias
+- **Robustez do Ollama (`ollamaService.ts`)**:
+  - Implementado loop de retry no startup com verificação de disponibilidade via API.
+  - Verificação automática do modelo configurado (`llama3.2`); trigger de `ollama pull` imediato se ausente.
+  - Endurecimento do parsing de JSON em análises urbanas (AI) com limpeza de markdown e tratamento de erros de estrutura do LLM.
+- **Ambiente Python**:
+  - Sanização do `site-packages`: remoção de distribuições fantasmagóricas (`~andas`, `~ydantic`).
+  - Alinhamento de versões: `urllib3` fixado em `1.26.18` para compatibilidade com `requests 2.32`, eliminando avisos de integridade.
+- **Motor de Engenharia (`controller.py` & `osmnx_client.py`)**:
+  - Implementado "Graceful Empty Exit": áreas sem dados OSM não causam mais `RuntimeError`.
+  - O sistema agora gera um DXF de orientação ("NENHUMA FEIÇÃO ENCONTRADA") e encerra com sucesso, permitindo que o backend conclua a tarefa sem falhas críticas.
+- **Observabilidade**:
+  - Integrada telemetria operacional completa do Ollama (host, modelo, compliance zero-cost, warnings) no endpoint `/health`.
+
+### Validação
+- Teste de "Área Vazia" (Coord 0,0) validado: ✅ Sucesso com geração de placeholder DXF.
+- Verificação de ambiente: ✅ Removidos avisos de distribuições fantasmas.
+- Telemetria `/health`: ✅ Confirmada inclusão automática do status do Ollama.
+
+---
+
 ## 📌 Atualização Operacional (2026-04-17) - Auditoria e Hardening do Banco de Dados
 
 ### Escopo

@@ -1,8 +1,11 @@
+import { spawn } from "child_process";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
 
 const OLLAMA_BASE_URL = config.OLLAMA_HOST;
 const OLLAMA_MODEL = config.OLLAMA_MODEL;
+
+let ollamaProcess: ReturnType<typeof spawn> | null = null;
 
 type OllamaRuntimeStatus = {
   available: boolean;
@@ -234,6 +237,11 @@ export class OllamaService {
       );
     }
 
+    const modelAvailable = availableModels.some(m => normalizeModelName(m) === normalizeModelName(OLLAMA_MODEL));
+    if (available && !modelAvailable && !compatibility.fallbackModelUsed) {
+      warnings.push(`Modelo principal '${OLLAMA_MODEL}' não encontrado localmente. Tentando recuperação...`);
+    }
+
     return {
       available,
       host: OLLAMA_BASE_URL,
@@ -360,7 +368,12 @@ export class OllamaService {
 
       if (jsonMatch) {
         logger.info("Ollama AI analysis completed successfully");
-        return JSON.parse(jsonMatch[0]);
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (pe) {
+          logger.warn("Failed to parse Ollama JSON match, using raw text", { error: (pe as Error).message });
+          return { analysis: text };
+        }
       } else {
         // Return the raw text as analysis if no JSON found
         logger.info("Ollama returned non-JSON response, using raw text");
@@ -419,6 +432,91 @@ export class OllamaService {
       return data.models?.map((m: any) => m.name) || [];
     } catch {
       return [];
+    }
+  /**
+   * Start the Ollama background process if not already running.
+   */
+  static async startProcess(): Promise<void> {
+    if (await this.isAvailable()) {
+      logger.info("[Ollama] Service already running");
+      await this.verifyAndPullModel();
+      return;
+    }
+
+    try {
+      logger.info("[Ollama] Starting background process...");
+      ollamaProcess = spawn("ollama", ["serve"], {
+        detached: false,
+        stdio: "pipe",
+      });
+
+      ollamaProcess.stdout?.on("data", (d) =>
+        logger.info(`Ollama (stdout): ${d.toString().trim()}`),
+      );
+      ollamaProcess.stderr?.on("data", (d) =>
+        logger.warn(`Ollama (stderr): ${d.toString().trim()}`),
+      );
+
+      // Wait for startup with retries
+      let ready = false;
+      const maxRetries = 5;
+      for (let i = 0; i < maxRetries; i++) {
+        await new Promise((r) => setTimeout(r, config.OLLAMA_STARTUP_WAIT_MS / maxRetries));
+        if (await this.isAvailable()) {
+          ready = true;
+          break;
+        }
+        logger.info(`[Ollama] Waiting for service readiness (try ${i + 1}/${maxRetries})...`);
+      }
+
+      if (ready) {
+        logger.info("[Ollama] Service is now ready");
+        await this.verifyAndPullModel();
+      } else {
+        logger.warn(
+          "[Ollama] Process started but service is not responding yet",
+        );
+      }
+    } catch (e) {
+      logger.error("[Ollama] Startup failed critically", e);
+    }
+  }
+
+  /**
+   * Verifies if the configured model is available and pulls it if missing.
+   */
+  private static async verifyAndPullModel(): Promise<void> {
+    try {
+      const models = await this.getModels();
+      const target = normalizeModelName(OLLAMA_MODEL);
+      if (!models.some(m => normalizeModelName(m) === target)) {
+        logger.info(`[Ollama] Model '${OLLAMA_MODEL}' missing. Pulling...`);
+        const pullProcess = spawn("ollama", ["pull", OLLAMA_MODEL]);
+        
+        return new Promise((resolve) => {
+          pullProcess.on("close", (code) => {
+            if (code === 0) {
+              logger.info(`[Ollama] Model '${OLLAMA_MODEL}' pulled successfully`);
+            } else {
+              logger.warn(`[Ollama] Failed to pull model '${OLLAMA_MODEL}' (exit code ${code})`);
+            }
+            resolve();
+          });
+        });
+      }
+    } catch (e) {
+      logger.error("[Ollama] Model verification/pull failed", e);
+    }
+  }
+
+  /**
+   * Stop the Ollama background process.
+   */
+  static stopProcess(): void {
+    if (ollamaProcess) {
+      logger.info("[Ollama] Stopping process...");
+      ollamaProcess.kill("SIGTERM");
+      ollamaProcess = null;
     }
   }
 }

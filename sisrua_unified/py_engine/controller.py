@@ -63,11 +63,21 @@ class OSMController:
         # 2. Fetch Features
         Logger.info("Step 1/5: Fetching OSM features...", progress=10)
         gdf = self._fetch_features(tags)
+        
         if gdf is None or gdf.empty:
-            raise RuntimeError(
-                "Nenhuma feição OSM encontrada na área selecionada. "
-                "Tente um raio maior ou verifique se a região possui dados no OpenStreetMap."
-            )
+            Logger.info("Nenhuma feição OSM encontrada na área selecionada.", status="warning")
+            Logger.info("Step 5/5: Finalizing (empty) export package...", progress=90)
+            
+            # Create a minimal DXF notifying that no data was found
+            dxf_gen = DXFGenerator(self.output_file)
+            dxf_gen.msp.add_text(
+                "NENHUMA FEIÇÃO OSM ENCONTRADA NESTA ÁREA.\nVerifique o endereço ou amplie o raio de busca.",
+                dxfattribs={"height": 10, "layer": "INFO", "color": 1}
+            ).set_placement((0, 0))
+            
+            dxf_gen.doc.saveas(self.output_file)
+            Logger.success(f"Extração concluída (vazia): {self.output_file}")
+            return
 
         # 3. Spatial GIS Audit (Authoritative Logic)
         Logger.info("Step 2/5: Running spatial audit...", progress=30)

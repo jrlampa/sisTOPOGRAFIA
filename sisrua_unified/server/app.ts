@@ -1,0 +1,245 @@
+import express, { Express, NextFunction, Request, Response } from "express";
+import cors from "cors";
+import path from "path";
+import fs from "fs";
+import swaggerUi from "swagger-ui-express";
+import compression from "compression";
+import { randomUUID } from "crypto";
+import { fileURLToPath } from "url";
+
+import { config } from "./config.js";
+import { OllamaService } from "./services/ollamaService.js";
+import { constantsService } from "./services/constantsService.js";
+import { logger } from "./utils/logger.js";
+import { requestContext } from "./utils/requestContext.js";
+import {
+  extractCorrelationIds,
+  setCorrelationResponseHeaders,
+} from "./utils/correlationIds.js";
+import { listCircuitBreakers } from "./utils/circuitBreaker.js";
+import { generalRateLimiter } from "./middleware/rateLimiter.js";
+import { requestMetrics } from "./middleware/requestMetrics.js";
+import { monitoringMiddleware } from "./middleware/monitoring.js";
+import { specs } from "./swagger.js";
+import { errorHandler, createError } from "./errorHandler.js";
+
+// Import Routes
+import elevationRoutes from "./routes/elevationRoutes.js";
+import searchRoutes from "./routes/searchRoutes.js";
+import osmRoutes from "./routes/osmRoutes.js";
+import ibgeRoutes from "./routes/ibgeRoutes.js";
+import indeRoutes from "./routes/indeRoutes.js";
+import analysisRoutes from "./routes/analysisRoutes.js";
+import constantsRoutes from "./routes/constantsRoutes.js";
+import btHistoryRoutes from "./routes/btHistoryRoutes.js";
+import btDerivedRoutes from "./routes/btDerivedRoutes.js";
+import btCalculationRoutes from "./routes/btCalculationRoutes.js";
+import jobRoutes from "./routes/jobRoutes.js";
+import firestoreRoutes from "./routes/firestoreRoutes.js";
+import dxfRoutes from "./routes/dxfRoutes.js";
+import metricsRoutes from "./routes/metricsRoutes.js";
+import featureFlagRoutes from "./routes/featureFlagRoutes.js";
+import quotaRoutes from "./routes/quotaRoutes.js";
+import costCenterRoutes from "./routes/costCenterRoutes.js";
+import businessKpiRoutes from "./routes/businessKpiRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import dataRetentionRoutes from "./routes/dataRetentionRoutes.js";
+import capacityPlanningRoutes from "./routes/capacityPlanningRoutes.js";
+import vulnManagementRoutes from "./routes/vulnManagementRoutes.js";
+import infoClassificationRoutes from "./routes/infoClassificationRoutes.js";
+import holdingRoutes from "./routes/holdingRoutes.js";
+import finOpsRoutes from "./routes/finOpsRoutes.js";
+import opsRoutes from "./routes/opsRoutes.js";
+import storageRoutes from "./routes/storageRoutes.js";
+import { pingDb } from "./repositories/index.js";
+
+// Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
+const dirname = path.join(process.cwd(), "server");
+
+const app: Express = express();
+
+function resolveFrontendDistDirectory(): string {
+  const candidates = [
+    path.resolve(dirname, "../dist"),
+    path.resolve(dirname, "../../dist"),
+    path.resolve(dirname, "../../../dist"),
+    path.resolve(process.cwd(), "dist"),
+  ];
+  const existing = candidates.find((c) =>
+    fs.existsSync(path.join(c, "index.html")),
+  );
+  return existing || candidates[0];
+}
+
+const dxfDirectory = config.DXF_DIRECTORY;
+const frontendDistDirectory = resolveFrontendDistDirectory();
+
+// Middleware
+const isProduction = config.NODE_ENV === "production";
+let allowedOrigins: string[];
+if (isProduction) {
+  if (!config.CORS_ORIGIN) {
+    allowedOrigins = [];
+  } else {
+    allowedOrigins = config.CORS_ORIGIN.split(",")
+      .map((o) => o.trim())
+      .filter((o) => o !== "*" && o.length > 0);
+  }
+} else {
+  allowedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "http://127.0.0.1:5173",
+  ];
+}
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS policy: origin ${origin} not allowed`));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-request-id",
+      "x-operation-id",
+      "x-projeto-id",
+      "x-point-id",
+      "x-ponto-id",
+    ],
+  }),
+);
+app.use(express.json({ limit: config.BODY_LIMIT }));
+app.use(compression());
+
+// Request ID Middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const requestId = (req.headers["x-request-id"] as string) || randomUUID();
+  const correlationIds = extractCorrelationIds(req);
+
+  res.locals.requestId = requestId;
+  res.locals.operation_id = correlationIds.operation_id;
+  res.locals.projeto_id = correlationIds.projeto_id;
+  res.locals.ponto_id = correlationIds.ponto_id;
+
+  res.setHeader("x-request-id", requestId);
+  setCorrelationResponseHeaders(res, correlationIds);
+
+  const store = new Map();
+  store.set("requestId", requestId);
+  if (correlationIds.operation_id) store.set("operation_id", correlationIds.operation_id);
+  if (correlationIds.projeto_id) store.set("projeto_id", correlationIds.projeto_id);
+  if (correlationIds.ponto_id) store.set("ponto_id", correlationIds.ponto_id);
+  if (!requestContext) {
+    console.error("CRITICAL: requestContext is UNDEFINED at line 139", {
+      typeofRequestContext: typeof requestContext,
+      requestId
+    });
+    return next();
+  }
+  requestContext.run(store, () => next());
+});
+
+app.use(monitoringMiddleware);
+app.use(requestMetrics);
+app.use(generalRateLimiter);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+
+app.get("/health", async (_req: Request, res: Response) => {
+  try {
+    const memoryUsage = process.memoryUsage();
+    const ollamaStatus = await OllamaService.isAvailable();
+    const externalCircuitBreakers = listCircuitBreakers();
+    const hasOpenExternalCircuit = externalCircuitBreakers.some((cb) => cb.state === "OPEN");
+
+    let dbStatus = "disabled";
+    if (config.useSupabaseJobs || config.useDbConstantsConfig) {
+      const isAlive = await pingDb();
+      dbStatus = isAlive ? "connected" : "disconnected";
+    }
+
+    const healthData = {
+      status: dbStatus === "disconnected" || hasOpenExternalCircuit ? "degraded" : "online",
+      service: "sisRUA Unified Backend",
+      version: config.APP_VERSION,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      system: {
+        memory: {
+          rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
+          heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
+          heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
+        },
+        nodeVersion: process.version,
+      },
+      dependencies: {
+        database: dbStatus,
+        ollama: await OllamaService.getGovernanceStatus(),
+        externalApis: {
+          openCircuits: externalCircuitBreakers.filter((cb) => cb.state === "OPEN").length,
+          totalRegistered: externalCircuitBreakers.length,
+        },
+      },
+      config: {
+        environment: config.NODE_ENV,
+        constantsCatalog: {
+          cacheSize: Object.keys(constantsService.stats()).length,
+        },
+      },
+    };
+
+    const statusCode = healthData.status === "online" ? 200 : 503;
+    res.status(statusCode).json(healthData);
+  } catch (err: any) {
+    logger.error("Health check failed", { error: err.message });
+    res.status(500).json({ status: "error", error: err.message });
+  }
+});
+
+// Routes
+app.use("/api/elevation", elevationRoutes);
+app.use("/api/search", searchRoutes);
+app.use("/api/osm", osmRoutes);
+app.use("/api/ibge", ibgeRoutes);
+app.use("/api/inde", indeRoutes);
+app.use("/api/analyze", analysisRoutes);
+app.use("/api/constants", constantsRoutes);
+app.use("/api/bt-history", btHistoryRoutes);
+app.use("/api/bt", btDerivedRoutes);
+app.use("/api/bt", btCalculationRoutes);
+app.use("/api/jobs", jobRoutes);
+if (config.useFirestore) app.use("/api/firestore", firestoreRoutes);
+app.use("/api/storage", storageRoutes);
+app.use("/api/dxf", dxfRoutes);
+app.use("/api/ops", opsRoutes);
+app.use("/metrics", metricsRoutes);
+app.use("/api/feature-flags", featureFlagRoutes);
+app.use("/api/tenant-quotas", quotaRoutes);
+app.use("/api/cost-centers", costCenterRoutes);
+app.use("/api/business-kpi", businessKpiRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/retencao", dataRetentionRoutes);
+app.use("/api/capacidade", capacityPlanningRoutes);
+app.use("/api/vulns", vulnManagementRoutes);
+app.use("/api/classificacao", infoClassificationRoutes);
+app.use("/api/holdings", holdingRoutes);
+app.use("/api/finops", finOpsRoutes);
+
+// Static files
+app.use(express.static(frontendDistDirectory));
+app.get("*", (_req: Request, res: Response) => {
+  const indexPath = path.join(frontendDistDirectory, "index.html");
+  if (fs.existsSync(indexPath)) res.sendFile(indexPath);
+  else res.status(404).json({ error: "Frontend not found" });
+});
+
+app.use(errorHandler);
+
+export default app;

@@ -2,6 +2,8 @@ import osmnx as ox
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
+from osmnx._errors import InsufficientResponseError
+
 try:
     from utils.logger import Logger
     from constants import MAX_FETCH_RADIUS_METERS
@@ -123,6 +125,9 @@ def fetch_osm_data(lat, lon, radius, tags, crs='auto', polygon=None):
         Logger.info(f"Successfully fetched {len(gdf_proj)} features")
         return gdf_proj
         
+    except InsufficientResponseError:
+        Logger.info("OSM query returned no results (InsufficientResponseError). Returning empty GDF.")
+        return gpd.GeoDataFrame()
     except Exception as e:
         Logger.error(f"Error fetching OSM data: {e}")
         raise
