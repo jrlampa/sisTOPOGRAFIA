@@ -170,11 +170,18 @@ docker-compose up -d
 
 O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md), focado em 5 grandes fases de maturidade:
 
-### Fase 1: Estabilização & Orquestração (Current)
+### Fase 1: Estabilização & Orquestração (Atual)
 
-- [ ] **Ponto 1 & 5**: Modularização do `dxf_generator.py` e Orquestração de Jobs Idempotentes.
-- [ ] **Ponto 23 & 36**: Compliance LGPD Operacional e Security Supply Chain (SBOM).
-- [ ] **Ponto 28 & 30**: Governança de Identidade (SCIM) e RBAC/ABAC Fino.
+- [x] **Ponto 1**: Modularização do `dxf_generator.py` → `py_engine/dxf/core/`
+- [x] **Ponto 2**: Repository Pattern → `server/repositories/jobRepository.ts`
+- [x] **Ponto 4**: Schema-First → `schemas/*.schema.json` + `schemaValidator.ts`
+- [x] **Ponto 7 & 72**: Proveniência e SHA-256 → `artifactProvenance.ts` (integrado em `cloudTasksService.ts`)
+- [x] **Ponto 8**: Validador Topológico → `topologicalValidator.ts` (integrado em `dxfRoutes.ts`)
+- [x] **Ponto 30 & 31**: ABAC + Recertificação de Acesso
+- [ ] **Ponto 5**: Injeção de Dependências & IoC (desacoplamento motor para testes)
+- [ ] **Ponto 9**: Paridade CQT Full — validar integração com `btParityService.ts`
+- [ ] **Ponto 38-41**: LGPD End-to-End completo (RIPD, residência de dados, descarte)
+- [ ] **Ponto 53-54**: Conformidade BDGD ANEEL — exportação/validação
 
 ### Fase 2: Engenharia 2.0 & BIM
 

@@ -20,6 +20,10 @@ import fs from "fs";
 import crypto from "crypto";
 import { resolveDxfDirectory } from "../utils/dxfDirectory.js";
 import { requirePermission } from "../middleware/permissionHandler.js";
+import {
+  validateBtTopology,
+  type TopologyInput,
+} from "../services/topologicalValidator.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -259,6 +263,32 @@ router.post("/", dxfRateLimiter, requirePermission("export_dxf"), async (req: Re
       contourRenderMode,
       btContext: validatedBtContext,
     } = validation.data;
+
+    // ── Item 8 · Validação topológica em tempo real ─────────────────────────
+    const rawTopology = (validatedBtContext as Record<string, unknown> | undefined | null)
+      ?.topology as TopologyInput | undefined | null;
+    if (rawTopology && typeof rawTopology === "object") {
+      const topoResult = validateBtTopology(rawTopology);
+      if (!topoResult.valid) {
+        logger.warn("Topologia BT inválida — DXF rejeitado", {
+          errors: topoResult.errors,
+          ip: req.ip,
+        });
+        return res.status(422).json({
+          error: "Topologia BT inválida",
+          topologyErrors: topoResult.errors,
+          topologyWarnings: topoResult.warnings,
+        });
+      }
+      if (topoResult.warnings.length > 0) {
+        logger.info("Topologia BT com avisos (aceita)", {
+          warnings: topoResult.warnings,
+          ip: req.ip,
+        });
+      }
+    }
+    // ───────────────────────────────────────────────────────────────────────
+
     const btContext = attachCqtSnapshotToBtContext(
       validatedBtContext ?? undefined,
     );

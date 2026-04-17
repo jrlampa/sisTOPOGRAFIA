@@ -14,6 +14,7 @@ import {
 import { setCachedFilename } from "./cacheService.js";
 import { scheduleDxfDeletion } from "./dxfCleanupService.js";
 import { config } from "../config.js";
+import { writeProvenance } from "../utils/artifactProvenance.js";
 
 export interface DxfTaskPayload {
   taskId: string;
@@ -211,6 +212,20 @@ async function processPayload(incomingPayload: any): Promise<void> {
         );
     }
   }
+
+  // Roadmap #7: Proveniência Técnica dos Artefatos — sidecar .provenance.json
+  writeProvenance(payload.outputFile, {
+    taskId: payload.taskId,
+    lat: payload.lat,
+    lon: payload.lon,
+    radius: payload.radius,
+    mode: payload.mode,
+    projection: payload.projection,
+    generator: "sisTOPOGRAFIA/sisrua_unified/py_engine",
+    sha256: artifactSha256 ?? undefined,
+  }).catch((err) =>
+    logger.warn("Falha ao escrever sidecar de proveniência", { taskId: payload.taskId, err }),
+  );
 
   const btContextSidecarPath = persistBtContextSidecar(
     payload.outputFile,

@@ -391,7 +391,21 @@ Legenda:
 | 96. Monitoramento de SLA de APIs de terceiros               | ✅ Implementado | `server/services/metricsService.ts` + `server/utils/externalApi.ts`                   |
 | 99. Self-healing automático de workers Python OOM           | ✅ Implementado | `server/pythonBridge.ts` (tratamento explícito de OOM com retry)                      |
 
-## ✅ Double Check de Pontos Implementados (2026-04-15)
+## ✅ Double Check de Pontos Implementados (2026-04-16)
+
+| Ponto                                                                | Status          | Evidência                                                                                                           |
+| -------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 1. Modularização de Monólitos Python                                 | ✅ Implementado | `py_engine/dxf_generator.py` (shim) + `py_engine/dxf/core/{geometria,bt_topologia,apresentacao}.py`                |
+| 2. Abstração de Repositório (DAL)                                    | ✅ Implementado | `server/repositories/jobRepository.ts` + `server/repositories/dxfTaskRepository.ts`                                |
+| 4. Contratos Schema-First                                            | ✅ Implementado | `schemas/{dxf_request,dxf_response,bt_calculate_request,bt_calculate_response}.schema.json` + `server/utils/schemaValidator.ts` |
+| 7. Proveniência Técnica dos Artefatos                                | ✅ Implementado | `server/utils/artifactProvenance.ts` + integrado em `server/services/cloudTasksService.ts`                         |
+| 8. Validador Topológico em Tempo Real                                | ✅ Implementado | `server/services/topologicalValidator.ts` + integrado em `server/routes/dxfRoutes.ts` (guarda pré-geração, HTTP 422)|
+| 10. Snapshots de Domínio (Digital Twin)                              | ✅ Implementado | `server/services/domainSnapshotService.ts`                                                                          |
+| 30. RBAC/ABAC Fino e Contextual                                      | ✅ Implementado | `server/services/abacPolicyService.ts` + `server/middleware/permissionHandler.ts`                                   |
+| 31. Recertificação de Acesso                                         | ✅ Implementado | `server/services/accessRecertificationService.ts`                                                                   |
+| 72. Assinatura de Hash SHA-256 por Artefato                          | ✅ Implementado | `server/services/cloudTasksService.ts` (`computeArtifactSha256`) + `server/utils/artifactProvenance.ts`            |
+
+
 
 | Ponto                                               | Status          | Evidência                                                                                          |
 | --------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------- |
