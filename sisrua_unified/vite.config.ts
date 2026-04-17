@@ -81,6 +81,8 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: "0.0.0.0",
+      // Habilita HTML5 history mode para React Router BrowserRouter
+      historyApiFallback: true,
       proxy: {
         "/api": {
           target: "http://localhost:3001",
