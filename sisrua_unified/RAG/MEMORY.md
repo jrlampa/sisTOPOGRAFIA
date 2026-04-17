@@ -236,6 +236,31 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ---
 
+## 📌 Atualização Operacional (2026-04-17) - Auditoria e Hardening do Banco de Dados
+
+### Escopo
+- Debug completo da infraestrutura de persistência (Supabase/PostgreSQL).
+- Resolução de problemas críticos de conexão e sincronização de esquema.
+- Auditoria de segurança (RLS) e performance (Health Report).
+
+### Implementação & Correções
+- **Infraestrutura**:
+  - Corrigida codificação da `DATABASE_URL` no arquivo `.env` da raiz (senhas com caracteres especiais agora são tratadas corretamente via percent-encoding).
+  - Criado script robusto `db_diagnostic.py` com parsing manual de DSN para garantir estabilidade em diagnósticos futuros.
+- **Sincronização de Esquema**:
+  - Aplicadas as migrações 038, 039 e 040 que estavam pendentes no ambiente.
+  - Corrigido bug em `apply_migrations.py` (idempotência de bookkeeping com `ON CONFLICT DO NOTHING`).
+  - Corrigido erro de nomenclatura de tabela na migração `040_tenant_service_profiles.sql`.
+- **Governança & Segurança**:
+  - Validadas políticas de RLS nas tabelas `jobs`, `dxf_tasks`, `tenants` e `bt_export_history`.
+  - Confirmada a saúde do agendamento `pg_cron` (11 jobs ativos e logs em estado 'ok').
+  - Auditoria de performance via `private.db_health_report()` confirmando **99.98% cache hit** e zero bloqueios.
+
+### Validação
+- Execução completa do `db_diagnostic.py` resultando em 100% de conformidade.
+- Migrações: 41 de 41 aplicadas.
+- Integridade: ✅ Verificada.
+
 ## 📌 Atualização Operacional (2026-04-12)
 
 ### Correção BT no mapa (postes/condutores)

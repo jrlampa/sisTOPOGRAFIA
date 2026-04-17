@@ -57,6 +57,6 @@ CREATE TRIGGER trg_tenant_service_profiles_updated_at
   BEFORE UPDATE ON public.tenant_service_profiles
   FOR EACH ROW EXECUTE FUNCTION public.set_tenant_service_profiles_updated_at();
 
-INSERT INTO public.schema_migrations (filename)
+INSERT INTO public._migrations (filename)
 VALUES ('040_tenant_service_profiles.sql')
 ON CONFLICT (filename) DO NOTHING;
