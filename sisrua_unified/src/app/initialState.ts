@@ -1,6 +1,7 @@
 import { GlobalState } from "../types";
 import { DEFAULT_LOCATION } from "../constants";
 import { EMPTY_BT_TOPOLOGY } from "../utils/btNormalization";
+import { EMPTY_MT_TOPOLOGY } from "../utils/mtNormalization";
 import { loadPersistedAppSettings } from "../utils/preferencesPersistence";
 
 const DEFAULT_APP_STATE: GlobalState = {
@@ -23,6 +24,7 @@ const DEFAULT_APP_STATE: GlobalState = {
     btEditorMode: "none",
     btTransformerCalculationMode: "automatic",
     clandestinoAreaM2: 0,
+    mtEditorMode: "none",
     layers: {
       buildings: true,
       roads: true,
@@ -36,6 +38,7 @@ const DEFAULT_APP_STATE: GlobalState = {
       dimensions: false,
       grid: false,
       btNetwork: true,
+      mtNetwork: true,
     },
     projectMetadata: {
       projectName: "PROJECT OSM-01",
@@ -47,6 +50,7 @@ const DEFAULT_APP_STATE: GlobalState = {
     },
   },
   btTopology: EMPTY_BT_TOPOLOGY,
+  mtTopology: EMPTY_MT_TOPOLOGY,
   btExportSummary: null,
   btExportHistory: [],
 };

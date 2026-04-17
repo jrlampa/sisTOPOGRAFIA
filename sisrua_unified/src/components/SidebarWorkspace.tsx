@@ -11,13 +11,16 @@ import { SidebarAnalysisResults } from "./SidebarAnalysisResults";
 import { SidebarBtEditorSection } from "./SidebarBtEditorSection";
 import { SidebarSelectionControls } from "./SidebarSelectionControls";
 
-type WorkflowStage = "capture" | "network" | "analysis";
+import { SidebarMtEditorSection } from "./SidebarMtEditorSection";
+
+type WorkflowStage = "capture" | "network" | "mt" | "analysis";
 
 type Props = {
   isSidebarDockedForRamalModal: boolean;
   isCollapsed?: boolean;
   selectionControlsProps: React.ComponentProps<typeof SidebarSelectionControls>;
   btEditorSectionProps: React.ComponentProps<typeof SidebarBtEditorSection>;
+  mtEditorSectionProps: React.ComponentProps<typeof SidebarMtEditorSection>;
   analysisResultsProps: React.ComponentProps<typeof SidebarAnalysisResults>;
 };
 
@@ -26,6 +29,7 @@ export function SidebarWorkspace({
   isCollapsed = false,
   selectionControlsProps,
   btEditorSectionProps,
+  mtEditorSectionProps,
   analysisResultsProps,
 }: Props) {
   const hasAreaSelection = Boolean(selectionControlsProps.center?.label);
@@ -33,10 +37,19 @@ export function SidebarWorkspace({
     (btEditorSectionProps.btTopology?.poles?.length ?? 0) > 0 ||
     (btEditorSectionProps.btTopology?.edges?.length ?? 0) > 0 ||
     (btEditorSectionProps.btTopology?.transformers?.length ?? 0) > 0;
+  const hasMtTopology =
+    (mtEditorSectionProps.mtTopology?.poles?.length ?? 0) > 0 ||
+    (mtEditorSectionProps.mtTopology?.edges?.length ?? 0) > 0;
   const hasAnalysis = Boolean(analysisResultsProps.stats);
 
   const [activeStage, setActiveStage] = React.useState<WorkflowStage>(
-    hasAnalysis ? "analysis" : hasBtTopology ? "network" : "capture",
+    hasAnalysis
+      ? "analysis"
+      : hasMtTopology
+        ? "mt"
+        : hasBtTopology
+          ? "network"
+          : "capture",
   );
 
   React.useEffect(() => {
@@ -44,10 +57,14 @@ export function SidebarWorkspace({
       setActiveStage("analysis");
       return;
     }
+    if (hasMtTopology && activeStage === "network") {
+      setActiveStage("mt");
+      return;
+    }
     if (hasBtTopology && activeStage === "capture") {
       setActiveStage("network");
     }
-  }, [hasAnalysis, hasBtTopology, activeStage]);
+  }, [hasAnalysis, hasMtTopology, hasBtTopology, activeStage]);
 
   const workflowStages: Array<{
     key: WorkflowStage;
@@ -64,38 +81,45 @@ export function SidebarWorkspace({
       done: hasAreaSelection,
     },
     {
-      key: "network",
-      label: "2. BT",
-      helper: "Modelagem da rede",
-      icon: Network,
       done: hasBtTopology,
     },
     {
+      key: "mt",
+      label: "3. MT",
+      helper: "Média Tensão (n1-n4)",
+      icon: Network,
+      done: hasMtTopology,
+    },
+    {
       key: "analysis",
-      label: "3. Análise",
+      label: "4. Análise",
       helper: "Insights e exportação",
       icon: LineChart,
       done: hasAnalysis,
     },
   ];
 
-  const nextStage: WorkflowStage | null =
     activeStage === "capture"
       ? "network"
       : activeStage === "network"
-        ? "analysis"
-        : null;
+        ? "mt"
+        : activeStage === "mt"
+          ? "analysis"
+          : null;
 
   const nextStageDisabled =
     (activeStage === "capture" && !hasAreaSelection) ||
-    (activeStage === "network" && !hasBtTopology);
+    (activeStage === "network" && !hasBtTopology) ||
+    (activeStage === "mt" && !hasMtTopology);
 
   const guidanceText =
     activeStage === "capture"
       ? "Defina a área-alvo e o modo de seleção para liberar a etapa BT."
       : activeStage === "network"
-        ? "Construa ou revise a topologia BT para habilitar análise e DXF."
-        : "Execute a análise e finalize com a exportação técnica.";
+        ? "Construa ou revise a topologia BT para habilitar a MT."
+        : activeStage === "mt"
+          ? "Modele as estruturas de MT (n1-n4) para habilitar análise e DXF."
+          : "Execute a análise e finalize com a exportação técnica.";
 
   return (
     <motion.aside
@@ -119,7 +143,7 @@ export function SidebarWorkspace({
             </p>
           </div>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-black text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-            {workflowStages.filter((stage) => stage.done).length}/3
+            {workflowStages.filter((stage) => stage.done).length}/4
           </span>
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -205,11 +229,36 @@ export function SidebarWorkspace({
         </div>
       </div>
 
-      <div className="glass-card mb-1 p-4 md:p-5">
+      <div className="glass-card p-4 md:p-5">
         <div className="mb-3 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
               Etapa 3
+            </p>
+            <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+              Edição da rede MT
+            </p>
+          </div>
+          {hasMtTopology && (
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
+              OK
+            </span>
+          )}
+        </div>
+        <div
+          className={activeStage !== "mt" ? "opacity-95" : undefined}
+          role="region"
+          aria-label="Conteúdo da etapa MT"
+        >
+          <SidebarMtEditorSection {...mtEditorSectionProps} />
+        </div>
+      </div>
+
+      <div className="glass-card mb-1 p-4 md:p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+              Etapa 4
             </p>
             <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
               Análise e exportação

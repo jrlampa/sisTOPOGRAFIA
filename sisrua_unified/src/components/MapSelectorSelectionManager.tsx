@@ -8,7 +8,7 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
-import { BtEditorMode, SelectionMode, GeoLocation } from "../types";
+import { BtEditorMode, MtEditorMode, SelectionMode, GeoLocation } from "../types";
 
 interface SelectionManagerProps {
   center: GeoLocation;
@@ -26,6 +26,12 @@ interface SelectionManagerProps {
   onBtMapClick?: (location: GeoLocation) => void;
   onBtContextAction?: (
     action: "add-edge" | "add-transformer" | "add-pole",
+    location: GeoLocation,
+  ) => void;
+  mtEditorMode?: MtEditorMode;
+  onMtMapClick?: (location: GeoLocation) => void;
+  onMtContextAction?: (
+    action: "add-pole" | "add-edge",
     location: GeoLocation,
   ) => void;
   keyboardPanEnabled?: boolean;
@@ -46,6 +52,9 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
   btEditorMode = "none",
   onBtMapClick,
   onBtContextAction,
+  mtEditorMode = "none",
+  onMtMapClick,
+  onMtContextAction,
   keyboardPanEnabled = false,
 }) => {
   const middlePanActiveRef = React.useRef(false);
@@ -79,6 +88,19 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
         return;
       }
 
+      if (
+        mtEditorMode !== "none" &&
+        mtEditorMode !== "mt-move-pole" &&
+        onMtMapClick
+      ) {
+        onMtMapClick({
+          lat: e.latlng.lat,
+          lng: e.latlng.lng,
+          label: `MT (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
+        });
+        return;
+      }
+
       if (selectionMode === "circle") {
         onLocationChange({
           lat: e.latlng.lat,
@@ -95,18 +117,22 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
         }
       }
     },
-    contextmenu(e) {
-      if (!onBtContextAction) {
+      if (onBtContextAction && btEditorMode !== "none") {
+        setContextMenuLocation({
+          lat: e.latlng.lat,
+          lng: e.latlng.lng,
+          label: `BT (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
+        });
         return;
       }
 
-      e.originalEvent.preventDefault();
-      e.originalEvent.stopPropagation();
-      setContextMenuLocation({
-        lat: e.latlng.lat,
-        lng: e.latlng.lng,
-        label: `BT (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
-      });
+      if (onMtContextAction && mtEditorMode !== "none") {
+        setContextMenuLocation({
+          lat: e.latlng.lat,
+          lng: e.latlng.lng,
+          label: `MT (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
+        });
+      }
     },
     mousedown(e) {
       if (e.originalEvent.button !== 1) {
@@ -149,7 +175,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
     },
   });
 
-  const runContextAction = (
+  const runBtContextAction = (
     action: "add-edge" | "add-transformer" | "add-pole",
   ) => {
     if (!onBtContextAction || !contextMenuLocation) {
@@ -157,6 +183,15 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
     }
 
     onBtContextAction(action, contextMenuLocation);
+    setContextMenuLocation(null);
+  };
+
+  const runMtContextAction = (action: "add-pole" | "add-edge") => {
+    if (!onMtContextAction || !contextMenuLocation) {
+      return;
+    }
+
+    onMtContextAction(action, contextMenuLocation);
     setContextMenuLocation(null);
   };
 
@@ -316,39 +351,68 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
           }}
         >
           <div className="flex min-w-[170px] flex-col gap-1 p-0.5 text-xs font-black uppercase tracking-wide text-slate-900">
-            <button
-              type="button"
-              className="rounded-md border border-violet-300 bg-violet-50 px-2 py-1.5 text-left transition hover:bg-violet-100"
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                runContextAction("add-edge");
-              }}
-            >
-              +CONDUTOR
-            </button>
-            <button
-              type="button"
-              className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-left transition hover:bg-emerald-100"
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                runContextAction("add-transformer");
-              }}
-            >
-              +TRAFO
-            </button>
-            <button
-              type="button"
-              className="rounded-md border border-sky-300 bg-sky-50 px-2 py-1.5 text-left transition hover:bg-sky-100"
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                runContextAction("add-pole");
-              }}
-            >
-              +POSTE
-            </button>
+            {mtEditorMode === "none" ? (
+              <>
+                <button
+                  type="button"
+                  className="rounded-md border border-violet-300 bg-violet-50 px-2 py-1.5 text-left transition hover:bg-violet-100"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    runBtContextAction("add-edge");
+                  }}
+                >
+                  +CONDUTOR (BT)
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-left transition hover:bg-emerald-100"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    runBtContextAction("add-transformer");
+                  }}
+                >
+                  +TRAFO (BT)
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md border border-sky-300 bg-sky-50 px-2 py-1.5 text-left transition hover:bg-sky-100"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    runBtContextAction("add-pole");
+                  }}
+                >
+                  +POSTE (BT)
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="rounded-md border border-orange-300 bg-orange-50 px-2 py-1.5 text-left transition hover:bg-orange-100"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    runMtContextAction("add-edge");
+                  }}
+                >
+                  +VÃO (MT)
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-left transition hover:bg-amber-100"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    runMtContextAction("add-pole");
+                  }}
+                >
+                  +POSTE (MT)
+                </button>
+              </>
+            )}
           </div>
         </Popup>
       )}

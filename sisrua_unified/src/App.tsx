@@ -14,6 +14,7 @@ import { useBtNavigationState } from "./hooks/useBtNavigationState";
 import { useBtCrudHandlers } from "./hooks/useBtCrudHandlers";
 import { useBtDerivedState } from "./hooks/useBtDerivedState";
 import { useBtExportHistory } from "./hooks/useBtExportHistory";
+import { useMtCrudHandlers } from "./hooks/useMtCrudHandlers";
 import { useBtDxfWorkflow } from "./hooks/useBtDxfWorkflow";
 import { useProjectDataWorkflow } from "./hooks/useProjectDataWorkflow";
 import { useAppAnalysisWorkflow } from "./hooks/useAppAnalysisWorkflow";
@@ -232,6 +233,30 @@ function App() {
     handleNormalToClandestinoZeroNormalClients,
   } = useBtCrudHandlers({ appState, setAppState, showToast });
 
+  const {
+    handleMtMapClick,
+    handleMtDeletePole,
+    handleMtDeleteEdge,
+    handleMtRenamePole,
+    handleMtSetPoleVerified,
+    handleMtDragPole,
+    handleMtSetPoleChangeFlag,
+    handleMtSetEdgeChangeFlag,
+    updateMtTopology,
+    insertMtPoleAtLocation: insertMtPoleAtLocationBase,
+  } = useMtCrudHandlers({ appState, setAppState, showToast });
+
+  const handleMtContextAction = React.useCallback(
+    (action: "add-pole" | "add-edge", location: GeoLocation) => {
+      if (action === "add-pole") {
+        insertMtPoleAtLocationBase(location);
+        return;
+      }
+      handleMtMapClick(location);
+    },
+    [handleMtMapClick, insertMtPoleAtLocationBase],
+  );
+
   const [criticalConfirmationModal, setCriticalConfirmationModal] =
     React.useState<CriticalConfirmationConfig | null>(null);
 
@@ -402,6 +427,17 @@ function App() {
     onMeasurePathChange: handleMeasurePathChange,
     onKmlDrop: handleKmlDrop,
     mapStyle: settings.mapProvider === "satellite" ? "satellite" : "dark",
+    mtTopology: appState.mtTopology,
+    mtEditorMode: settings.mtEditorMode ?? "none",
+    onMtMapClick: handleMtMapClick,
+    onMtContextAction: handleMtContextAction,
+    onMtDeletePole: handleMtDeletePole,
+    onMtDeleteEdge: handleMtDeleteEdge,
+    onMtRenamePole: handleMtRenamePole,
+    onMtSetPoleVerified: handleMtSetPoleVerified,
+    onMtDragPole: handleMtDragPole,
+    onMtSetPoleChangeFlag: handleMtSetPoleChangeFlag,
+    onMtSetEdgeChangeFlag: handleMtSetEdgeChangeFlag,
   };
 
   const btModalStackProps: React.ComponentProps<typeof BtModalStack> = {
@@ -549,6 +585,13 @@ function App() {
         isSidebarDockedForRamalModal,
         selectionControlsProps: sidebarSelectionControlsProps,
         btEditorSectionProps: sidebarBtEditorSectionProps,
+        mtEditorSectionProps: {
+          mtTopology: appState.mtTopology,
+          onMtTopologyChange: updateMtTopology,
+          mtEditorMode: settings.mtEditorMode ?? "none",
+          onMtEditorModeChange: (mode) =>
+            updateSettings({ ...settings, mtEditorMode: mode }),
+        },
         analysisResultsProps: sidebarAnalysisResultsProps,
       }}
       mainMapWorkspaceProps={{

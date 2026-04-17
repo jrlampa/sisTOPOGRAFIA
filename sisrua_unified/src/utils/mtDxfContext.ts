@@ -15,6 +15,13 @@ export interface MtDxfContextPayload {
         n4?: string;
       };
     }>;
+    edges: Array<{
+      id: string;
+      fromPoleId: string;
+      toPoleId: string;
+      lengthMeters: number;
+      edgeChangeFlag?: "existing" | "new" | "remove" | "replace";
+    }>;
   } | null;
 }
 
@@ -39,7 +46,17 @@ export function buildMtDxfContext(
     };
   });
 
+  const edges = (mtTopology.edges || []).map((edge) => ({
+    id: edge.id,
+    fromPoleId: edge.fromPoleId,
+    toPoleId: edge.toPoleId,
+    lengthMeters: edge.lengthMeters,
+    edgeChangeFlag: edge.edgeChangeFlag,
+  }));
+
+  const hasContent = poles.length > 0 || edges.length > 0;
+
   return {
-    topology: poles.length > 0 ? { poles } : null,
+    topology: hasContent ? { poles, edges } : null,
   };
 }

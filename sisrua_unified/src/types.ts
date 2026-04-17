@@ -101,6 +101,7 @@ export interface LayerConfig {
   dimensions: boolean;
   grid: boolean;
   btNetwork: boolean;
+  mtNetwork: boolean;
 }
 
 export type ProjectionType = "local" | "utm";
@@ -115,6 +116,8 @@ export type BtEditorMode =
   | "add-pole"
   | "add-transformer"
   | "add-edge";
+
+export type MtEditorMode = "none" | "mt-add-pole" | "mt-add-edge" | "mt-move-pole";
 export type BtNetworkScenario = "asis" | "projeto" | "proj1" | "proj2";
 export type BtTransformerCalculationMode = "automatic" | "manual";
 export type BtCqtScenario = "atual" | "proj1" | "proj2";
@@ -302,6 +305,7 @@ export interface AppSettings {
   btEditorMode?: BtEditorMode;
   btTransformerCalculationMode?: BtTransformerCalculationMode;
   clandestinoAreaM2?: number;
+  mtEditorMode?: MtEditorMode;
 }
 
 export type SelectionMode = "circle" | "polygon" | "measure";
@@ -325,8 +329,18 @@ export interface MtPoleNode {
   nodeChangeFlag?: "existing" | "new" | "remove" | "replace";
 }
 
+export interface MtEdge {
+  id: string;
+  fromPoleId: string;
+  toPoleId: string;
+  lengthMeters?: number;
+  verified?: boolean;
+  edgeChangeFlag?: "existing" | "new" | "remove" | "replace";
+}
+
 export interface MtTopology {
   poles: MtPoleNode[];
+  edges: MtEdge[];
 }
 
 // ─── Estado Global ─────────────────────────────────────────────────────────────

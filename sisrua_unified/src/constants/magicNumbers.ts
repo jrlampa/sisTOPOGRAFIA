@@ -17,6 +17,8 @@ export const ENTITY_ID_PREFIXES = {
   CONDUCTOR_REPLACEMENT: 'RC',
   TRANSFORMER: 'T',
   REGULATOR: 'R',
+  MT_POLE: 'MT',
+  MT_EDGE: 'V',
 } as const;
 
 // ============================================================================

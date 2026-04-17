@@ -1,11 +1,13 @@
 import React from "react";
 import { Zap } from "lucide-react";
-import type { MtPoleNode, MtPoleStructures, MtTopology } from "../types";
+import type { MtPoleNode, MtPoleStructures, MtTopology, MtEditorMode } from "../types";
 import MtPoleVerificationSection from "./MtTopologyPanel/MtPoleVerificationSection";
+import MtEdgeVerificationSection from "./MtTopologyPanel/MtEdgeVerificationSection";
 
 interface MtTopologyPanelProps {
   mtTopology: MtTopology;
   onTopologyChange: (next: MtTopology) => void;
+  mtEditorMode?: MtEditorMode;
 }
 
 const MtTopologyPanel: React.FC<MtTopologyPanelProps> = ({
@@ -15,6 +17,10 @@ const MtTopologyPanel: React.FC<MtTopologyPanelProps> = ({
   const [selectedPoleId, setSelectedPoleId] = React.useState<string | null>(
     null,
   );
+
+  const polesById = React.useMemo(() => {
+    return new Map(mtTopology.poles.map((p) => [p.id, p]));
+  }, [mtTopology.poles]);
 
   const addPole = () => {
     const newId = `mt-${Date.now()}`;
@@ -34,14 +40,35 @@ const MtTopologyPanel: React.FC<MtTopologyPanelProps> = ({
   };
 
   const removePole = (poleId: string) => {
-    const next: MtTopology = {
+    onTopologyChange({
       ...mtTopology,
       poles: mtTopology.poles.filter((p) => p.id !== poleId),
-    };
-    onTopologyChange(next);
+      edges: mtTopology.edges.filter(
+        (e) => e.fromPoleId !== poleId && e.toPoleId !== poleId,
+      ),
+    });
     if (selectedPoleId === poleId) {
       setSelectedPoleId(null);
     }
+  };
+
+  const removeEdge = (edgeId: string) => {
+    onTopologyChange({
+      ...mtTopology,
+      edges: mtTopology.edges.filter((e) => e.id !== edgeId),
+    });
+  };
+
+  const setEdgeChangeFlag = (
+    edgeId: string,
+    edgeChangeFlag: "existing" | "new" | "remove" | "replace",
+  ) => {
+    onTopologyChange({
+      ...mtTopology,
+      edges: mtTopology.edges.map((e) =>
+        e.id === edgeId ? { ...e, edgeChangeFlag } : e,
+      ),
+    });
   };
 
   const renamePole = (poleId: string, title: string) => {
@@ -75,49 +102,60 @@ const MtTopologyPanel: React.FC<MtTopologyPanelProps> = ({
   };
 
   const verifiedCount = mtTopology.poles.filter((p) => p.verified).length;
-  const totalCount = mtTopology.poles.length;
+  const totalPoles = mtTopology.poles.length;
+  const totalEdges = mtTopology.edges.length;
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      {/* Cabeçalho */}
-      <div className="flex items-center justify-between">
+      {/* Resumo da Rede MT */}
+      <div className="flex items-center justify-between border-b border-orange-200/50 pb-2 dark:border-orange-900/20">
         <div className="flex items-center gap-1.5">
           <Zap size={14} className="text-orange-600" />
-          <span className="text-xs font-semibold uppercase tracking-wide text-orange-900">
-            Topologia MT
+          <span className="text-[10px] font-black uppercase tracking-[0.15em] text-orange-900 dark:text-orange-100">
+            Média Tensão
           </span>
         </div>
-        {totalCount > 0 && (
-          <span className="text-[10px] text-slate-500">
-            {verifiedCount}/{totalCount} verificados
-          </span>
-        )}
+        <div className="flex gap-2 text-[9px] font-bold text-slate-500">
+          <span>{totalPoles}P</span>
+          <span>{totalEdges}V</span>
+          <span className="text-orange-600">{verifiedCount}/{totalPoles} OK</span>
+        </div>
       </div>
 
-      {/* Botão de adição */}
-      <button
-        type="button"
-        onClick={addPole}
-        className="flex w-full items-center justify-center gap-1.5 rounded border-2 border-dashed border-orange-300 bg-orange-50 py-2 text-[11px] font-semibold uppercase tracking-wide text-orange-700 transition-colors hover:border-orange-400 hover:bg-orange-100"
-      >
-        + Poste MT
-      </button>
+      <div className="flex flex-col gap-4">
+        {/* Seção de Postes */}
+        <div className="flex flex-col gap-2">
+          <MtPoleVerificationSection
+            poles={mtTopology.poles}
+            selectedPoleId={selectedPoleId}
+            onSelectPole={setSelectedPoleId}
+            onUpdateMtStructures={updateMtStructures}
+            onToggleVerified={toggleVerified}
+            onRemovePole={removePole}
+            onRenamePole={renamePole}
+          />
 
-      {/* Seção de verificação */}
-      <MtPoleVerificationSection
-        poles={mtTopology.poles}
-        selectedPoleId={selectedPoleId}
-        onSelectPole={setSelectedPoleId}
-        onUpdateMtStructures={updateMtStructures}
-        onToggleVerified={toggleVerified}
-        onRemovePole={removePole}
-        onRenamePole={renamePole}
-      />
+          <button
+            type="button"
+            onClick={addPole}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-orange-300 bg-orange-50/50 py-1.5 text-[10px] font-black uppercase tracking-wide text-orange-700 transition-all hover:bg-orange-100 dark:border-orange-900/30 dark:bg-orange-950/20 dark:text-orange-400"
+          >
+            + Adicionar Estrutura
+          </button>
+        </div>
 
-      {/* Nota informativa */}
-      {totalCount > 0 && (
-        <p className="text-[10px] text-slate-400">
-          Duplo clique no nome do poste para renomear.
+        {/* Seção de Vãos */}
+        <MtEdgeVerificationSection
+          edges={mtTopology.edges}
+          polesById={polesById}
+          onRemoveEdge={removeEdge}
+          onSetEdgeChangeFlag={setEdgeChangeFlag}
+        />
+      </div>
+
+      {totalPoles > 0 && (
+        <p className="mt-2 text-center text-[9px] font-medium text-slate-400">
+          Dica: Use <strong>SHIFT+M</strong> para alternar modo MT
         </p>
       )}
     </div>

@@ -1,0 +1,155 @@
+import React from "react";
+import { Pane, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+import { Trash2 } from "lucide-react";
+import { BtTransformer, BtEditorMode, BtPoleNode } from "../../types";
+import {
+  getFlagColor,
+  getTransformerChangeFlag,
+  getFlagButtonClass,
+  getIconActionButtonClass,
+  POPUP_FLAG_GRID_CLASS,
+  POPUP_TOOLBAR_CLASS,
+} from "../MapSelectorStyles";
+
+interface MapSelectorTransformersLayerProps {
+  paneName: string;
+  transformers: BtTransformer[];
+  btEditorMode: BtEditorMode;
+  polesById: Map<string, BtPoleNode>;
+  onBtMapClick?: (location: { lat: number; lng: number; label?: string }) => void;
+  onBtDragTransformer?: (transformerId: string, lat: number, lng: number) => void;
+  onBtRenameTransformer?: (transformerId: string, title: string) => void;
+  onBtSetTransformerChangeFlag?: (
+    transformerId: string,
+    transformerChangeFlag: "existing" | "new" | "remove" | "replace",
+  ) => void;
+  onBtDeleteTransformer?: (id: string) => void;
+}
+
+const MapSelectorTransformersLayer: React.FC<
+  MapSelectorTransformersLayerProps
+> = ({
+  paneName,
+  transformers,
+  btEditorMode,
+  polesById,
+  onBtMapClick,
+  onBtDragTransformer,
+  onBtRenameTransformer,
+  onBtSetTransformerChangeFlag,
+  onBtDeleteTransformer,
+}) => {
+  const makeTransformerIcon = (
+    verified: boolean,
+    transformerFlag: "existing" | "new" | "remove" | "replace",
+  ) => {
+    const bg = getFlagColor(transformerFlag, verified ? "#15803d" : "#7c3aed");
+    return L.divIcon({
+      className: "bt-transformer-icon",
+      html: `<svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+    });
+  };
+
+  return (
+    <Pane name={paneName} style={{ zIndex: 480 }}>
+      {transformers.map((transformer) => (
+        <Marker
+          key={`${transformer.id}-${transformer.verified ? "v" : "u"}`}
+          position={[transformer.lat, transformer.lng]}
+          icon={makeTransformerIcon(
+            !!transformer.verified,
+            getTransformerChangeFlag(transformer),
+          )}
+          zIndexOffset={1400}
+          draggable={
+            btEditorMode !== "add-edge" && btEditorMode !== "add-transformer"
+          }
+          eventHandlers={{
+            click: () => {
+              if (
+                (btEditorMode === "add-edge" ||
+                  btEditorMode === "add-transformer") &&
+                onBtMapClick
+              ) {
+                const linkedPole = transformer.poleId
+                  ? polesById.get(transformer.poleId)
+                  : null;
+                if (linkedPole) {
+                  onBtMapClick({
+                    lat: linkedPole.lat,
+                    lng: linkedPole.lng,
+                    label: linkedPole.title,
+                  });
+                  return;
+                }
+                onBtMapClick({
+                  lat: transformer.lat,
+                  lng: transformer.lng,
+                  label: transformer.title,
+                });
+              }
+            },
+            dragend: (e) => {
+              const { lat, lng } = (e.target as L.Marker).getLatLng();
+              onBtDragTransformer?.(transformer.id, lat, lng);
+            },
+          }}
+        >
+          <Popup>
+            <div className="text-xs">
+              <strong>{transformer.title}</strong>
+              <div className="text-[10px] text-slate-500">{transformer.id}</div>
+              {onBtRenameTransformer && (
+                <input
+                  type="text"
+                  value={transformer.title}
+                  title={`Nome do transformador ${transformer.id}`}
+                  placeholder="Nome do transformador"
+                  onChange={(e) =>
+                    onBtRenameTransformer(transformer.id, e.target.value)
+                  }
+                  className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
+                />
+              )}
+              {onBtSetTransformerChangeFlag && (
+                <div className={POPUP_FLAG_GRID_CLASS}>
+                  {(["existing", "new", "replace", "remove"] as const).map(
+                    (flag) => (
+                      <button
+                        key={flag}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onBtSetTransformerChangeFlag(transformer.id, flag);
+                        }}
+                        className={getFlagButtonClass(
+                          getTransformerChangeFlag(transformer) === flag,
+                          flag,
+                        )}
+                      >
+                        {flag.charAt(0).toUpperCase() + flag.slice(1)}
+                      </button>
+                    ),
+                  )}
+                </div>
+              )}
+              <div className={POPUP_TOOLBAR_CLASS}>
+                <button
+                  onClick={() => onBtDeleteTransformer?.(transformer.id)}
+                  className={getIconActionButtonClass("danger")}
+                  title="Deletar transformador"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            </div>
+          </Popup>
+        </Marker>
+      ))}
+    </Pane>
+  );
+};
+
+export default MapSelectorTransformersLayer;

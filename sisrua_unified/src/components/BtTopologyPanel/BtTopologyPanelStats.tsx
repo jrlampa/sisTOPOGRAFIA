@@ -1,0 +1,47 @@
+import React from "react";
+import { Circle, Sigma, HardDrive, Hash } from "lucide-react";
+
+interface BtTopologyPanelStatsProps {
+  poles: number;
+  transformers: number;
+  edges: number;
+  totalLengthMeters: number;
+  transformerDemandKva: number;
+}
+
+const BtTopologyPanelStats: React.FC<BtTopologyPanelStatsProps> = ({
+  poles,
+  transformers,
+  edges,
+  totalLengthMeters,
+  transformerDemandKva,
+}) => {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-col rounded-lg border border-slate-200 bg-white p-2 shadow-sm transition-all hover:shadow-md">
+        <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <Hash size={10} className="text-blue-500" />
+          Componentes
+        </div>
+        <div className="mt-1 flex flex-wrap gap-x-2 text-[10px] font-medium text-slate-600">
+          <span className="flex items-center gap-0.5"><Circle size={8} className="fill-blue-500 text-blue-500" /> {poles} Postes</span>
+          <span className="flex items-center gap-0.5"><Circle size={8} className="fill-fuchsia-500 text-fuchsia-500" /> {transformers} Trafos</span>
+          <span className="flex items-center gap-0.5"><Circle size={8} className="fill-emerald-500 text-emerald-500" /> {edges} Trechos</span>
+        </div>
+      </div>
+
+      <div className="flex flex-col rounded-lg border border-slate-200 bg-white p-2 shadow-sm transition-all hover:shadow-md">
+        <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <Sigma size={10} className="text-emerald-500" />
+          Métricas
+        </div>
+        <div className="mt-1 flex flex-col gap-0.5 text-[10px] font-medium text-slate-600">
+          <span className="flex items-center gap-1"><HardDrive size={10} /> {totalLengthMeters.toFixed(1)} m de rede</span>
+          <span className="flex items-center gap-1 font-bold text-slate-900"><Hash size={10} /> {transformerDemandKva.toFixed(2)} kVA</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BtTopologyPanelStats;

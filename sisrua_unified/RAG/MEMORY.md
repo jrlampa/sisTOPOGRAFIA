@@ -180,8 +180,12 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 - [x] **Ponto 30 & 31**: ABAC + Recertificação de Acesso
 - [x] **Ponto 3**: Orquestração Confiável de Jobs → `jobDossierService.ts` (replay controlado, dossiê por job, listagem auditável)
 - [x] **Ponto 5**: Injeção de Dependências & IoC → `dxfEngine.ts` + `configureCloudTasksDependencies()` no `cloudTasksService.ts` para testes isolados sem subprocesso Python
-- [x] **Ponto 9**: Paridade CQT Full — `btParityService.ts` + `cqtParityReportService.ts` + `cqtRuntimeSnapshotService.ts`, com cobertura dedicada validando snapshots runtime contra baseline da planilha (`cqtRuntimeSnapshotService.test.ts`)
-- [ ] **Ponto 38-41**: LGPD End-to-End completo (RIPD, residência de dados, descarte)
+- [x] **Ponto 9**: Paridade CQT Full — `btParityService.ts` + `cqtParityReportService.ts` + `cqtRuntimeSnapshotService.ts`, com cobertura dedicada validando snapshots runtime contra baseline da planilha (`cqtRuntimeSnapshotService.test.ts`). Hardening concluído em 17/04/2026 com 1215 testes passando.
+- [x] **Fase 2: Infraestrutura de Média Tensão (MT)** (Abril 2026)
+    - [x] CRUD completo de postes e vãos MT.
+    - [x] Camadas dedicadas no mapa (amber diamonds/lines).
+    - [x] Workflow integrado (Estágio 3 no Sidebar).
+    - [x] Exportação DXF com suporte a vãos MT.
 - [ ] **Ponto 53-54**: Conformidade BDGD ANEEL — exportação/validação
 
 ### Fase 2: Engenharia 2.0 & BIM
@@ -226,9 +230,9 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ---
 
-**Última Atualização**: 2026-04-13
+**Última Atualização**: 2026-04-17
 **Branch Ativa**: dev
-**Versão**: 1.3.0
+**Versão**: 1.3.1
 
 ---
 
@@ -449,6 +453,35 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 - 11 de 11 jobs ativos
 
 ---
+
+## 📌 Atualização Operacional (2026-04-17) - Modularização Industrial (Soft Limit 750)
+
+### Escopo
+
+- Refatoração profunda de 6 arquivos que excediam o *soft limit* de 750 linhas, reduzindo o débito técnico e melhorando a Responsabilidade Única (SRP).
+- Foco em manter paridade funcional total com os cálculos de engenharia da Light S.A.
+
+### Implementação
+
+- **Cálculos BT**: `src/utils/btCalculations.ts` transformado em *barrel file*, delegando lógica para:
+  - `src/utils/btTransformerCalculations.ts` (Demanda/Leituras Trafo).
+  - `src/utils/btClandestinoCalculations.ts` (Projetos Clandestinos).
+  - `src/utils/btTopologyFlow.ts` (Fluxo de Carga/BFS).
+- **Mapa Leaflet**: `src/components/MapSelector.tsx` modularizado com:
+  - `src/components/MapLayers/` (Postes, Transformadores).
+  - `src/components/MapSelectorStyles.ts` (Estilos/Ícones).
+- **Painel & Importação**: `src/components/BtTopologyPanel.tsx` simplificado via:
+  - `src/components/BtTopologyPanel/btBulkImportParser.ts` (Parsing Excel/CSV).
+  - `src/components/BtTopologyPanel/BtTopologyPanelBulkImportModal.tsx` (UI de Importação).
+  - `src/components/BtTopologyPanel/BtTopologyPanelStats.tsx` (Sumário de Rede).
+- **Seções UI**: `src/components/BtTopologyPanel/BtTransformerEdgeSection.tsx` decomposto em sub-seções de Trafo e Trecho.
+- **Suíte de Testes**: `server/tests/btDerivedService.test.ts` (835 linhas) dividido por domínio (Flow, Clandestino).
+
+### Validação
+
+- **Conformidade (NNE)**: `npm run ci:non-negotiables` retornou **PASS** (Zero arquivos acima de 750 linhas).
+- **Integridade**: Suíte completa de 1215+ testes passando (`npm run test:all`).
+- **Build**: Comprovada paridade funcional em ambiente integrado.
 
 ## 📌 Atualização Operacional (2026-04-14) - Evolução de Frontend SaaS
 
@@ -796,9 +829,30 @@ SELECT SUM(n_dead_tup) FROM pg_stat_user_tables;
 
 ---
 
-## 📌 Atualização Operacional (2026-04-13) - RBAC Real com Fonte Confiável
+## 📌 Atualização Operacional (2026-04-17) - Hardening do Motor de Cálculo BT/CQT
 
-### Diretriz
+### Escopo
+- Auditoria técnica profunda do núcleo matemático BT (frontend/backend) para garantir paridade com padrões Light S.A.
+- Implementação de 32 novos testes de regressão focados em edge cases (edges removidos, lookups fracionários, fallback de demanda).
+
+### Implementações
+- **Documentação de Intencionalidade**: Adicionado JSDoc em `calculateBtSummary` (frontend) e `btDerivedCalculations.ts` (backend) explicando que o comprimento físico (`totalLengthMeters`) deve incluir arestas marcadas para remoção (inventário físico), enquanto a propagação de carga as ignora (topologia ativa).
+- **Hardening de Lookup**: Validação de que `parseInteger` (base do lookup) bloqueia entradas fracionárias (ex: área 100.5 retorna demanda 0), mas aceita inteiros expressos como float (ex: 100.0).
+- **Resiliência de Demanda**: Garantia de que transformadores sem `currentMaxA` nos `readings` realizam fallback automático para o valor persistido (`demandKva`/`demandKw`), evitando perda de dados no sumário.
+- **Equivalência de Flags**: Unificação do comportamento de `removeOnExecution: true` com `edgeChangeFlag: "remove"` na lógica de grafo (exclusão mútua das arestas da árvore de carga).
+
+### Validação Final
+- **Estatísticas**: 1215 testes passando, 90 suítes executadas com sucesso.
+- **Cobertura**: Mantida integridade das áreas críticas (>95% em serviços core de BT).
+
+---
+
+## 📌 Próximos Passos Imediatos: Evolução MT (Média Tensão)
+
+- [ ] Evoluir `MtTopology` para incluir `edges` (vãos MT).
+- [ ] Integrar `MtTopologyPanel` no workflow global (Etapa 3 do Sidebar).
+- [ ] Implementar CRUD de MT (Postes, Vãos, Estruturas) com suporte no mapa.
+- [ ] Atualizar exportação DXF para incluir a camada MT.
 
 **Substituir RBAC placeholder por enforcement real.** Todos os usuários devem ter seu papel recuperado de fonte confiável (tabela `user_roles` no banco de dados) com cache e fallback seguro.
 
