@@ -20,9 +20,9 @@ export interface BtContextValue {
   btSelectedTransformerId: string | null;
   btSelectedEdgeId: string | null;
   btCriticalPoleId: string | null;
-  btAccumulatedByPole: Array<{ poleId: string; accumulatedDemandKw: number }>;
+  btAccumulatedByPole: Array<{ poleId: string; accumulatedDemandKva: number }>;
   btPoleCoordinateInput: string;
-  btTransformerDebugById: Record<string, { assignedClients: number; estimatedDemandKw: number }>;
+  btTransformerDebugById: Record<string, { assignedClients: number; estimatedDemandKva: number }>;
 
   // Handlers
   updateBtTopology: (topology: BtTopology) => void;

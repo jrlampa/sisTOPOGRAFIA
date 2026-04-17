@@ -180,7 +180,7 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 - [x] **Ponto 30 & 31**: ABAC + Recertificação de Acesso
 - [x] **Ponto 3**: Orquestração Confiável de Jobs → `jobDossierService.ts` (replay controlado, dossiê por job, listagem auditável)
 - [x] **Ponto 5**: Injeção de Dependências & IoC → `dxfEngine.ts` + `configureCloudTasksDependencies()` no `cloudTasksService.ts` para testes isolados sem subprocesso Python
-- [ ] **Ponto 9**: Paridade CQT Full — ✅ já wired em `btCalculationRoutes.ts` (verificar cobertura)
+- [x] **Ponto 9**: Paridade CQT Full — `btParityService.ts` + `cqtParityReportService.ts` + `cqtRuntimeSnapshotService.ts`, com cobertura dedicada validando snapshots runtime contra baseline da planilha (`cqtRuntimeSnapshotService.test.ts`)
 - [ ] **Ponto 38-41**: LGPD End-to-End completo (RIPD, residência de dados, descarte)
 - [ ] **Ponto 53-54**: Conformidade BDGD ANEEL — exportação/validação
 

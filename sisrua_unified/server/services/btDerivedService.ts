@@ -1,5 +1,9 @@
 import { logger } from "../utils/logger.js";
-import type { BtTopology, BtDerivedResponse, BtTransformerDerived } from "./bt/btDerivedTypes.js";
+import type {
+  BtTopology,
+  BtDerivedResponse,
+  BtTransformerDerived,
+} from "./bt/btDerivedTypes.js";
 import type { BtProjectType } from "./bt/btDerivedTypes.js";
 import {
   CURRENT_TO_DEMAND_CONVERSION,
@@ -47,15 +51,25 @@ const calculateTransformersDerived = (
       0,
     );
     if (readings.length === 0) {
-      return { transformerId: transformer.id, demandKw: 0, monthlyBillBrl };
+      return {
+        transformerId: transformer.id,
+        demandKva: 0,
+        demandKw: 0,
+        monthlyBillBrl,
+      };
     }
     const correctedDemands = readings.map((r) => {
       const currentMaxA = r.currentMaxA ?? 0;
       const temperatureFactor = r.temperatureFactor ?? 1;
       return currentMaxA * CURRENT_TO_DEMAND_CONVERSION * temperatureFactor;
     });
-    const demandKw = toFixed2(Math.max(...correctedDemands, 0));
-    return { transformerId: transformer.id, demandKw, monthlyBillBrl };
+    const demandKva = toFixed2(Math.max(...correctedDemands, 0));
+    return {
+      transformerId: transformer.id,
+      demandKva,
+      demandKw: demandKva,
+      monthlyBillBrl,
+    };
   });
 };
 
@@ -80,7 +94,7 @@ export const computeBtDerivedState = (
 
   const pointDemandKva = calculateRamalDmdiKva(
     projectType,
-    summary.transformerDemandKw,
+    summary.transformerDemandKva,
     totalClients,
     getClandestinoDemandKvaByAreaAndClients(clandestinoAreaM2, totalClients),
   );

@@ -32,7 +32,7 @@ const BtTopologyPanel = React.lazy(() =>
 
 type TransformerDebugById = Record<
   string,
-  { assignedClients: number; estimatedDemandKw: number }
+  { assignedClients: number; estimatedDemandKva: number }
 >;
 
 const InlineSuspenseFallback = ({ label }: { label: string }) => (

@@ -89,6 +89,23 @@ describe("computeBtDerivedState – summary", () => {
     const result = computeBtDerivedState(topology, "ramais", 0);
     expect(result.summary.transformerDemandKw).toBe(15);
   });
+
+  it("prioritizes reading-derived demand over stale persisted demand", () => {
+    const topology = makeTopology({
+      transformers: [
+        {
+          id: "tr1",
+          poleId: "p1",
+          demandKw: 50,
+          readings: [{ id: "r1", currentMaxA: 10, temperatureFactor: 1 }],
+        },
+      ],
+    });
+
+    const result = computeBtDerivedState(topology, "ramais", 0);
+    expect(result.summary.transformerDemandKva).toBe(3.75);
+    expect(result.summary.transformerDemandKw).toBe(3.75);
+  });
 });
 
 // ─── empty topology ─────────────────────────────────────────────────────────
@@ -242,6 +259,39 @@ describe("computeBtDerivedState – accumulatedByPole (ramais)", () => {
     expect(byId.get("p1")?.accumulatedDemandKva).toBe(150);
     expect(byId.get("p2")?.accumulatedDemandKva).toBe(72);
   });
+
+  it("ignores edges marked for removal in accumulated graph traversal", () => {
+    const topology = {
+      poles: [
+        { id: "p1", lat: -23.5, lng: -46.6, ramais: [] },
+        {
+          id: "p2",
+          lat: -23.51,
+          lng: -46.61,
+          ramais: [{ quantity: 5, ramalType: "Ramal BT" }],
+        },
+      ],
+      transformers: [
+        { id: "tr1", poleId: "p1", demandKw: 10, readings: [] },
+      ],
+      edges: [
+        {
+          fromPoleId: "p1",
+          toPoleId: "p2",
+          edgeChangeFlag: "remove",
+          lengthMeters: 50,
+        },
+      ],
+    };
+
+    const result = computeBtDerivedState(topology, "ramais", 0);
+    const byId = new Map(
+      result.accumulatedByPole.map((entry) => [entry.poleId, entry]),
+    );
+
+    expect(byId.get("p1")?.accumulatedClients).toBe(0);
+    expect(byId.get("p2")?.accumulatedClients).toBe(5);
+  });
 });
 
 // ─── accumulatedByPole – clandestino project type ───────────────────────────
@@ -283,6 +333,24 @@ describe("computeBtDerivedState – accumulatedByPole (clandestino)", () => {
     );
     const entry = result.accumulatedByPole.find((e) => e.poleId === "p1");
     expect(entry?.localTrechoDemandKva).toBe(0);
+  });
+
+  it("returns 0 for non-integer clandestino area/client lookup inputs", () => {
+    const pole = {
+      id: "p1",
+      lat: -23.5,
+      lng: -46.6,
+      ramais: [{ quantity: 3, ramalType: "Clandestino" }],
+    };
+
+    const result = computeBtDerivedState(
+      { poles: [pole], transformers: [], edges: [] },
+      "clandestino",
+      100.5,
+    );
+
+    expect(result.pointDemandKva).toBe(0);
+    expect(result.clandestinoDisplay.finalDemandKva).toBe(0);
   });
 });
 

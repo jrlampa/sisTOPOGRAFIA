@@ -161,11 +161,38 @@ export interface BtRamalEntry {
   conductorName: string;
 }
 
+export type BtRamalConditionNote =
+  | "deteriorado"
+  | "emendas"
+  | "sem_isolamento"
+  | "ramal_longo"
+  | "cruzamento"
+  | "outro";
+
 export interface BtPoleRamalEntry {
   id: string;
   quantity: number;
   ramalType?: string;
+  notes?: string;
 }
+
+export interface BtPoleSpec {
+  heightM?: number;
+  nominalEffortDan?: number;
+}
+
+export interface BtPoleBtStructures {
+  si1?: string;
+  si2?: string;
+  si3?: string;
+  si4?: string;
+}
+
+export type BtPoleConditionStatus =
+  | "bom_estado"
+  | "desaprumado"
+  | "trincado"
+  | "condenado";
 
 export interface BtPoleNode {
   id: string;
@@ -173,7 +200,12 @@ export interface BtPoleNode {
   lng: number;
   title: string;
   ramais?: BtPoleRamalEntry[];
+  poleSpec?: BtPoleSpec;
+  conditionStatus?: BtPoleConditionStatus;
+  equipmentNotes?: string;
+  generalNotes?: string;
   verified?: boolean;
+  btStructures?: BtPoleBtStructures;
   nodeChangeFlag?: "existing" | "new" | "remove" | "replace";
   circuitBreakPoint?: boolean;
 }
@@ -198,7 +230,9 @@ export interface BtTransformer {
   title: string;
   projectPowerKva?: number;
   monthlyBillBrl: number;
-  demandKw: number;
+  demandKva?: number;
+  /** @deprecated Use demandKva. */
+  demandKw?: number;
   readings: BtTransformerReading[];
   verified?: boolean;
   transformerChangeFlag?: "existing" | "new" | "remove" | "replace";
@@ -272,6 +306,31 @@ export interface AppSettings {
 
 export type SelectionMode = "circle" | "polygon" | "measure";
 
+// ─── Estruturas MT (Média Tensão) ─────────────────────────────────────────────
+
+export interface MtPoleStructures {
+  n1?: string;
+  n2?: string;
+  n3?: string;
+  n4?: string;
+}
+
+export interface MtPoleNode {
+  id: string;
+  lat: number;
+  lng: number;
+  title: string;
+  mtStructures?: MtPoleStructures;
+  verified?: boolean;
+  nodeChangeFlag?: "existing" | "new" | "remove" | "replace";
+}
+
+export interface MtTopology {
+  poles: MtPoleNode[];
+}
+
+// ─── Estado Global ─────────────────────────────────────────────────────────────
+
 export interface GlobalState {
   center: GeoLocation;
   radius: number;
@@ -282,4 +341,5 @@ export interface GlobalState {
   btTopology?: BtTopology;
   btExportSummary?: BtExportSummary | null;
   btExportHistory?: BtExportHistoryEntry[];
+  mtTopology?: MtTopology;
 }

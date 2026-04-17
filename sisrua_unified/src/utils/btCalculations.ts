@@ -1,4 +1,5 @@
 import { BtProjectType, BtTransformerReading, BtTopology } from "../types";
+import { haversineDistanceMeters } from "../../shared/geodesic";
 import {
   CLANDESTINO_AREA_TO_KVA,
   CLANDESTINO_CLIENT_TO_DIVERSIF_FACTOR,
@@ -15,6 +16,31 @@ import {
 const HOURS_PER_MONTH_REFERENCE = 720;
 const CLANDESTINO_RAMAL_TYPE = "Clandestino";
 const CURRENT_TO_DEMAND_CONVERSION = 0.375;
+
+const getTransformerDemandKva = (transformer: {
+  demandKva?: number;
+  demandKw?: number;
+  readings?: BtTransformerReading[];
+}): number => {
+  const readings = transformer.readings ?? [];
+  const hasUsableReadings = readings.some((reading) =>
+    Number.isFinite(reading.currentMaxA),
+  );
+
+  if (hasUsableReadings) {
+    const correctedDemands = readings.map((reading) => {
+      const currentMaxA = reading.currentMaxA ?? 0;
+      const temperatureFactor = reading.temperatureFactor ?? 1;
+      const maxDemandKva = currentMaxA * CURRENT_TO_DEMAND_CONVERSION;
+      return maxDemandKva * temperatureFactor;
+    });
+
+    return Number(Math.max(...correctedDemands, 0).toFixed(2));
+  }
+
+  const rawDemand = transformer.demandKva ?? transformer.demandKw ?? 0;
+  return Number.isFinite(rawDemand) ? rawDemand : 0;
+};
 
 // Workbook RAMAL!B5:U5 coefficients used by V = SUM(tipo * peso)
 // and TOTAL_DO_TRECHO = AA24 * (V / W16).
@@ -165,7 +191,7 @@ export const calculateTransformerEnergyKwh = (
   }, 0);
 };
 
-export const calculateTransformerDemandKw = (
+export const calculateTransformerDemandKva = (
   readings: BtTransformerReading[],
 ): number => {
   if (readings.length === 0) {
@@ -177,13 +203,16 @@ export const calculateTransformerDemandKw = (
   const correctedDemands = readings.map((reading) => {
     const currentMaxA = reading.currentMaxA ?? 0;
     const temperatureFactor = reading.temperatureFactor ?? 1;
-    const maxDemandKw = currentMaxA * CURRENT_TO_DEMAND_CONVERSION;
-    return maxDemandKw * temperatureFactor;
+    const maxDemandKva = currentMaxA * CURRENT_TO_DEMAND_CONVERSION;
+    return maxDemandKva * temperatureFactor;
   });
 
   // Use the highest corrected demand among informed readings.
   return Number(Math.max(...correctedDemands, 0).toFixed(2));
 };
+
+/** @deprecated Use calculateTransformerDemandKva. Maintained for compatibility. */
+export const calculateTransformerDemandKw = calculateTransformerDemandKva;
 
 export const calculateTransformerMonthlyBill = (
   readings: BtTransformerReading[],
@@ -247,7 +276,7 @@ export const calculateClandestinoDemandKvaByAreaAndClients = (
 
 interface CalculatePointDemandKvaInput {
   projectType: BtProjectType;
-  transformerDemandKw: number;
+  transformerDemandKva: number;
   clandestinoAreaM2: number;
   clandestinoClients: number;
 }
@@ -278,13 +307,17 @@ export interface BtPoleAccumulatedDemand {
 export interface BtTransformerEstimatedDemand {
   transformerId: string;
   assignedClients: number;
-  estimatedDemandKw: number;
+  estimatedDemandKva: number;
+  /** @deprecated Use estimatedDemandKva. */
+  estimatedDemandKw?: number;
 }
 
 export interface BtSectioningImpact {
   unservedPoleIds: string[];
   unservedClients: number;
-  estimatedDemandKw: number;
+  estimatedDemandKva: number;
+  /** @deprecated Use estimatedDemandKva. */
+  estimatedDemandKw?: number;
   loadCenter: { lat: number; lng: number } | null;
   suggestedPoleId: string | null;
 }
@@ -293,17 +326,7 @@ const distanceMetersBetween = (
   a: { lat: number; lng: number },
   b: { lat: number; lng: number },
 ): number => {
-  const earthRadius = 6371000;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const lat1 = (a.lat * Math.PI) / 180;
-  const lat2 = (b.lat * Math.PI) / 180;
-
-  const h =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-
-  return 2 * earthRadius * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  return haversineDistanceMeters(a, b);
 };
 
 interface TransformerOwnershipData {
@@ -419,7 +442,7 @@ const calculateTransformerOwnershipData = (
 
 export const calculatePointDemandKva = ({
   projectType,
-  transformerDemandKw,
+  transformerDemandKva,
   clandestinoAreaM2,
   clandestinoClients,
 }: CalculatePointDemandKvaInput): number => {
@@ -430,7 +453,7 @@ export const calculatePointDemandKva = ({
 
   return calculateRamalDmdiKva({
     projectType,
-    aa24DemandBase: transformerDemandKw,
+    aa24DemandBase: transformerDemandKva,
     sumClientsX: clandestinoClients,
     ab35LookupDmdi,
   });
@@ -476,23 +499,26 @@ export const calculateAccumulatedDemandKva = ({
   return Number((downstreamAccumulatedKva + totalTrechoKva).toFixed(2));
 };
 
-export const calculateClandestinoDemandKw = (areaM2: number): number => {
+export const calculateClandestinoDemandKva = (areaM2: number): number => {
   const demandKva = getClandestinoKvaByArea(areaM2);
   if (demandKva === null) {
     return 0;
   }
 
-  // Workbook table values are in kVA; app keeps demand field in kW for UI consistency.
+  // Workbook table values are in kVA and BT calculations keep this unit end-to-end.
   return demandKva;
 };
+
+/** @deprecated Use calculateClandestinoDemandKva. Maintained for compatibility. */
+export const calculateClandestinoDemandKw = calculateClandestinoDemandKva;
 
 export const calculateBtSummary = (topology: BtTopology) => {
   const totalLengthMeters = topology.edges.reduce(
     (acc, edge) => acc + (edge.lengthMeters || 0),
     0,
   );
-  const transformerDemandKw = topology.transformers.reduce(
-    (acc, transformer) => acc + transformer.demandKw,
+  const transformerDemandKva = topology.transformers.reduce(
+    (acc, transformer) => acc + getTransformerDemandKva(transformer),
     0,
   );
 
@@ -501,7 +527,9 @@ export const calculateBtSummary = (topology: BtTopology) => {
     transformers: topology.transformers.length,
     edges: topology.edges.length,
     totalLengthMeters,
-    transformerDemandKw,
+    transformerDemandKva,
+    // Backward compatibility for pre-kVA semantic naming.
+    transformerDemandKw: transformerDemandKva,
   };
 };
 
@@ -510,8 +538,14 @@ export const calculateAccumulatedDemandByPole = (
   projectType: BtProjectType,
   clandestinoAreaM2: number,
 ): BtPoleAccumulatedDemand[] => {
+  const activeEdges = topology.edges.filter((edge) => {
+    const edgeFlag =
+      edge.edgeChangeFlag ?? (edge.removeOnExecution ? "remove" : "existing");
+    return edgeFlag !== "remove";
+  });
+
   const allPoleIds = new Set(topology.poles.map((pole) => pole.id));
-  for (const edge of topology.edges) {
+  for (const edge of activeEdges) {
     allPoleIds.add(edge.fromPoleId);
     allPoleIds.add(edge.toPoleId);
   }
@@ -532,7 +566,7 @@ export const calculateAccumulatedDemandByPole = (
     adjacentPoles.set(poleId, []);
   }
 
-  for (const edge of topology.edges) {
+  for (const edge of activeEdges) {
     adjacentPoles.get(edge.fromPoleId)?.push(edge.toPoleId);
     adjacentPoles.get(edge.toPoleId)?.push(edge.fromPoleId);
   }
@@ -596,7 +630,7 @@ export const calculateAccumulatedDemandByPole = (
     0,
   );
   const transformerDemandKva = topology.transformers.reduce(
-    (sum, transformer) => sum + transformer.demandKw,
+    (sum, transformer) => sum + getTransformerDemandKva(transformer),
     0,
   );
 
@@ -757,6 +791,7 @@ export const calculateEstimatedDemandByTransformer = (
     return topology.transformers.map((transformer) => ({
       transformerId: transformer.id,
       assignedClients: 0,
+      estimatedDemandKva: 0,
       estimatedDemandKw: 0,
     }));
   }
@@ -786,39 +821,44 @@ export const calculateEstimatedDemandByTransformer = (
     (sum, value) => sum + value,
     0,
   );
-  const measuredDemandKw = topology.transformers.reduce((sum, transformer) => {
+  const measuredDemandKva = topology.transformers.reduce((sum, transformer) => {
     if (transformer.readings.length === 0) {
       return sum;
     }
 
-    return sum + (transformer.demandKw ?? 0);
+    return sum + getTransformerDemandKva(transformer);
   }, 0);
-  const demandPerClientKw =
-    totalClients > 0 ? measuredDemandKw / totalClients : 0;
+  const demandPerClientKva =
+    totalClients > 0 ? measuredDemandKva / totalClients : 0;
 
   return topology.transformers.map((transformer) => {
     const assignedClients =
       assignedClientsByTransformer.get(transformer.id) ?? 0;
     if (transformer.readings.length > 0) {
+      const measuredTransformerDemandKva = Number(
+        getTransformerDemandKva(transformer).toFixed(2),
+      );
       return {
         transformerId: transformer.id,
         assignedClients,
-        estimatedDemandKw: Number((transformer.demandKw ?? 0).toFixed(2)),
+        estimatedDemandKva: measuredTransformerDemandKva,
+        estimatedDemandKw: measuredTransformerDemandKva,
       };
     }
 
-    const estimatedDemandKw =
+    const estimatedDemandKva =
       projectType === "clandestino"
         ? calculateClandestinoDemandKvaByAreaAndClients(
             clandestinoAreaM2,
             assignedClients,
           )
-        : Number((assignedClients * demandPerClientKw).toFixed(2));
+        : Number((assignedClients * demandPerClientKva).toFixed(2));
 
     return {
       transformerId: transformer.id,
       assignedClients,
-      estimatedDemandKw,
+      estimatedDemandKva,
+      estimatedDemandKw: estimatedDemandKva,
     };
   });
 };
@@ -832,6 +872,7 @@ export const calculateSectioningImpact = (
     return {
       unservedPoleIds: [],
       unservedClients: 0,
+      estimatedDemandKva: 0,
       estimatedDemandKw: 0,
       loadCenter: null,
       suggestedPoleId: null,
@@ -854,29 +895,30 @@ export const calculateSectioningImpact = (
     (sum, value) => sum + value,
     0,
   );
-  const measuredDemandKw = topology.transformers.reduce((sum, transformer) => {
+  const measuredDemandKva = topology.transformers.reduce((sum, transformer) => {
     if (transformer.readings.length === 0) {
       return sum;
     }
 
-    return sum + (transformer.demandKw ?? 0);
+    return sum + getTransformerDemandKva(transformer);
   }, 0);
-  const demandPerClientKw =
-    totalClients > 0 ? measuredDemandKw / totalClients : 0;
+  const demandPerClientKva =
+    totalClients > 0 ? measuredDemandKva / totalClients : 0;
 
-  const estimatedDemandKw =
+  const estimatedDemandKva =
     projectType === "clandestino"
       ? calculateClandestinoDemandKvaByAreaAndClients(
           clandestinoAreaM2,
           unservedClients,
         )
-      : Number((unservedClients * demandPerClientKw).toFixed(2));
+      : Number((unservedClients * demandPerClientKva).toFixed(2));
 
   if (unservedPoles.length === 0) {
     return {
       unservedPoleIds,
       unservedClients,
-      estimatedDemandKw,
+      estimatedDemandKva,
+      estimatedDemandKw: estimatedDemandKva,
       loadCenter: null,
       suggestedPoleId: null,
     };
@@ -916,7 +958,8 @@ export const calculateSectioningImpact = (
   return {
     unservedPoleIds,
     unservedClients,
-    estimatedDemandKw,
+    estimatedDemandKva,
+    estimatedDemandKw: estimatedDemandKva,
     loadCenter,
     suggestedPoleId,
   };

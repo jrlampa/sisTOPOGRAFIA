@@ -22,6 +22,13 @@ except (ImportError, ValueError):
 class BTDrawer:
     """Desenhista especializado na topologia de Baixa Tensão."""
 
+    CONDITION_LABELS = {
+        "bom_estado": "BOM ESTADO",
+        "desaprumado": "DESAPRUMADO",
+        "trincado": "TRINCADO",
+        "condenado": "CONDENADO",
+    }
+
     def __init__(self, ctx: DrawingContext, bt_context: dict):
         self.ctx = ctx
         self.bt_context = bt_context
@@ -63,6 +70,67 @@ class BTDrawer:
         pole_label = str(pole.get("title", pole.get("id", "POSTE")) or pole.get("id", "POSTE"))
         pole_label_point = self.ctx.find_clear_label_point((x + 1.6, y + 1.3), min_distance=8.0)
         self.ctx.add_text(pole_label, pole_label_point, layer="BT_LABELS", height=2.1, color=2)
+
+        spec = pole.get("poleSpec") or {}
+        height_m = spec.get("heightM")
+        effort_dan = spec.get("nominalEffortDan")
+        if height_m is not None and effort_dan is not None:
+            spec_label = f"{int(height_m)}/{int(effort_dan)}"
+            spec_point = self.ctx.find_clear_label_point(
+                (x + 1.6, y + 3.8),
+                preferred_offsets=[(0.0, 0.0), (0.0, 2.0), (2.0, 0.0)],
+                min_distance=5.5,
+            )
+            self.ctx.add_text(spec_label, spec_point, layer="BT_LABELS", height=1.7, color=3)
+
+        bt_structures = pole.get("btStructures") or {}
+        bt_structure_values = []
+        for slot in ("si1", "si2", "si3", "si4"):
+            value = str(bt_structures.get(slot, "") or "").strip()
+            if value:
+                bt_structure_values.append(f"{slot.upper()}: {value}")
+        if bt_structure_values:
+            structures_text = " | ".join(bt_structure_values)
+            structures_point = self.ctx.find_clear_label_point(
+                (x + 1.6, y + 5.9),
+                preferred_offsets=[(0.0, 0.0), (0.0, 2.0), (2.0, 0.0)],
+                min_distance=5.5,
+            )
+            self.ctx.add_text(structures_text.upper(), structures_point, layer="BT_LABELS", height=1.5, color=4)
+
+        equipment_notes = str(pole.get("equipmentNotes", "") or "").strip()
+        if equipment_notes:
+            equipment_text = equipment_notes[:72]
+            if len(equipment_notes) > 72:
+                equipment_text += "..."
+            equipment_point = self.ctx.find_clear_label_point(
+                (x + 1.6, y + 7.8),
+                preferred_offsets=[(0.0, 0.0), (0.0, 2.0), (2.0, 0.0)],
+                min_distance=5.5,
+            )
+            self.ctx.add_text(equipment_text.upper(), equipment_point, layer="BT_LABELS", height=1.4, color=5)
+
+        condition_status = str(pole.get("conditionStatus", "") or "").strip().lower()
+        condition_label = self.CONDITION_LABELS.get(condition_status)
+        if condition_label:
+            condition_point = self.ctx.find_clear_label_point(
+                (x + 1.6, y + 9.7),
+                preferred_offsets=[(0.0, 0.0), (0.0, 2.0), (2.0, 0.0)],
+                min_distance=5.5,
+            )
+            self.ctx.add_text(condition_label, condition_point, layer="BT_LABELS", height=1.6, color=1)
+
+        general_notes = str(pole.get("generalNotes", "") or "").strip()
+        if general_notes:
+            notes_text = general_notes[:72]
+            if len(general_notes) > 72:
+                notes_text += "..."
+            notes_point = self.ctx.find_clear_label_point(
+                (x + 1.6, y + 11.6),
+                preferred_offsets=[(0.0, 0.0), (0.0, 2.0), (2.0, 0.0)],
+                min_distance=5.5,
+            )
+            self.ctx.add_text(notes_text.upper(), notes_point, layer="BT_LABELS", height=1.4, color=8)
 
         ramal_lines = self._format_ramal_summary(pole.get("ramais", []))
         for index, line in enumerate(ramal_lines):
@@ -306,24 +374,24 @@ class BTDrawer:
     def _format_ramal_summary(ramais) -> list:
         if not isinstance(ramais, list) or not ramais:
             return []
-        grouped: dict = {}
         total = 0
+        entries = []
         for entry in ramais:
             if not isinstance(entry, dict):
                 continue
             quantity = int(entry.get("quantity", 0) or 0)
-            ramal_type = str(entry.get("ramalType", "") or "").strip() or "SEM TIPO"
             if quantity <= 0:
                 continue
+            ramal_type = str(entry.get("ramalType", "") or "").strip() or "SEM TIPO"
+            notes = str(entry.get("notes", "") or "").strip()
             total += quantity
-            grouped[ramal_type] = grouped.get(ramal_type, 0) + quantity
-
+            label = f"{quantity}-{ramal_type}"
+            if notes:
+                label += f" ({notes.upper()})"
+            entries.append(label)
         if total == 0:
             return []
-        lines = [f"TOTAL: {total}"]
-        for ramal_type, quantity in sorted(grouped.items()):
-            lines.append(f"{quantity}-{ramal_type}")
-        return lines
+        return [f"TOTAL: {total}"] + entries
 
     # -------------------------------------------------------------------------
     # Primitivos de texto especial

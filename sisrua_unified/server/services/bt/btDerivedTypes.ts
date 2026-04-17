@@ -25,7 +25,9 @@ export interface BtTransformerReading {
 export interface BtTransformer {
   id: string;
   poleId?: string;
-  demandKw: number;
+  demandKva?: number;
+  /** @deprecated Use demandKva. */
+  demandKw?: number;
   /** Transformer nameplate rating in kVA, sent from frontend as projectPowerKva. */
   projectPowerKva?: number;
   readings: BtTransformerReading[];
@@ -67,29 +69,39 @@ export interface BtPoleAccumulatedDemand {
 export interface BtTransformerEstimatedDemand {
   transformerId: string;
   assignedClients: number;
-  estimatedDemandKw: number;
+  estimatedDemandKva: number;
+  /** @deprecated Use estimatedDemandKva. */
+  estimatedDemandKw?: number;
 }
 
 export interface BtSectioningImpact {
   unservedPoleIds: string[];
   unservedClients: number;
-  estimatedDemandKw: number;
+  estimatedDemandKva: number;
+  /** @deprecated Use estimatedDemandKva. */
+  estimatedDemandKw?: number;
   loadCenter: { lat: number; lng: number } | null;
   suggestedPoleId: string | null;
 }
 
 export interface BtClandestinoDisplay {
-  demandKw: number;
+  demandKva: number;
+  /** @deprecated Use demandKva. */
+  demandKw?: number;
   areaMin: number;
   areaMax: number;
-  demandKva: number | null;
+  baseDemandKva: number | null;
+  /** @deprecated Use baseDemandKva. */
+  demandKvaLegacy?: number | null;
   diversificationFactor: number | null;
   finalDemandKva: number;
 }
 
 export interface BtTransformerDerived {
   transformerId: string;
-  demandKw: number;
+  demandKva: number;
+  /** @deprecated Use demandKva. */
+  demandKw?: number;
   monthlyBillBrl: number;
 }
 
@@ -99,7 +111,9 @@ export interface BtDerivedResponse {
     transformers: number;
     edges: number;
     totalLengthMeters: number;
-    transformerDemandKw: number;
+    transformerDemandKva: number;
+    /** @deprecated Use transformerDemandKva. */
+    transformerDemandKw?: number;
   };
   pointDemandKva: number;
   criticalPoleId: string | null;

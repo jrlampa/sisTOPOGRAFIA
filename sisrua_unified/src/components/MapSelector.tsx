@@ -828,7 +828,9 @@ const MapSelector: React.FC<MapSelectorProps> = ({
                       className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
                     />
                   )}
-                  <div>Demanda: {transformer.demandKw} kW</div>
+                  <div>
+                    Demanda: {(transformer.demandKva ?? transformer.demandKw ?? 0).toFixed(2)} kVA
+                  </div>
                   <div
                     className={`mt-0.5 font-semibold ${transformer.verified ? "text-green-600" : "text-amber-600"}`}
                   >

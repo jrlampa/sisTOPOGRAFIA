@@ -27,16 +27,18 @@ interface UseBtDerivedStateParams {
 const EMPTY_SECTIONING_IMPACT: BtSectioningImpact = {
   unservedPoleIds: [],
   unservedClients: 0,
+  estimatedDemandKva: 0,
   estimatedDemandKw: 0,
   loadCenter: null,
   suggestedPoleId: null,
 };
 
 const EMPTY_CLANDESTINO_DISPLAY: BtClandestinoDisplay = {
+  demandKva: 0,
   demandKw: 0,
   areaMin: 0,
   areaMax: 0,
-  demandKva: null,
+  baseDemandKva: 0,
   diversificationFactor: null,
   finalDemandKva: 0,
 };
@@ -63,6 +65,7 @@ export function useBtDerivedState({
     transformers: 0,
     edges: 0,
     totalLengthMeters: 0,
+    transformerDemandKva: 0,
     transformerDemandKw: 0,
   });
   const [btPointDemandKva, setBtPointDemandKva] = useState(0);
@@ -115,12 +118,13 @@ export function useBtDerivedState({
           entry.transformerId,
           {
             assignedClients: entry.assignedClients,
-            estimatedDemandKw: entry.estimatedDemandKw,
+            estimatedDemandKva:
+              entry.estimatedDemandKva ?? entry.estimatedDemandKw ?? 0,
           },
         ]),
       ) as Record<
         string,
-        { assignedClients: number; estimatedDemandKw: number }
+        { assignedClients: number; estimatedDemandKva: number }
       >,
     [btEstimatedByTransformer],
   );
@@ -141,21 +145,23 @@ export function useBtDerivedState({
     const estimatedByTransformerId = new Map(
       btEstimatedByTransformer.map((entry) => [
         entry.transformerId,
-        entry.estimatedDemandKw,
+        entry.estimatedDemandKva ?? entry.estimatedDemandKw ?? 0,
       ]),
     );
 
     let hasChanges = false;
     const nextTransformers = btTopology.transformers.map((transformer) => {
-      const rawEstimatedDemandKw = Number(
+      const rawEstimatedDemandKva = Number(
         (estimatedByTransformerId.get(transformer.id) ?? 0).toFixed(2),
       );
-      const fallbackDemandKw = Number((transformer.demandKw ?? 0).toFixed(2));
+      const fallbackDemandKva = Number(
+        (transformer.demandKva ?? transformer.demandKw ?? 0).toFixed(2),
+      );
       // Keep previous demand when estimate is zero/non-finite to avoid wiping valid values.
-      const estimatedDemandKw =
-        Number.isFinite(rawEstimatedDemandKw) && rawEstimatedDemandKw > 0
-          ? rawEstimatedDemandKw
-          : fallbackDemandKw;
+      const estimatedDemandKva =
+        Number.isFinite(rawEstimatedDemandKva) && rawEstimatedDemandKva > 0
+          ? rawEstimatedDemandKva
+          : fallbackDemandKva;
       const hasReadings = transformer.readings.length > 0;
       const isAutoReading =
         hasReadings &&
@@ -168,14 +174,17 @@ export function useBtDerivedState({
       }
 
       if (!isAutoReading) {
-        if (Math.abs((transformer.demandKw ?? 0) - estimatedDemandKw) < 0.01) {
+        const previousDemandKva =
+          transformer.demandKva ?? transformer.demandKw ?? 0;
+        if (Math.abs(previousDemandKva - estimatedDemandKva) < 0.01) {
           return transformer;
         }
 
         hasChanges = true;
         return {
           ...transformer,
-          demandKw: estimatedDemandKw,
+          demandKva: estimatedDemandKva,
+          demandKw: estimatedDemandKva,
         };
       }
 
@@ -191,16 +200,16 @@ export function useBtDerivedState({
           : DEFAULT_TEMPERATURE_FACTOR;
       const inferredCurrent =
         Math.round(
-          (estimatedDemandKw /
+          (estimatedDemandKva /
             (CURRENT_TO_DEMAND_CONVERSION * temperatureFactor)) *
             100,
         ) / 100;
 
       const previousCurrent = baseReading.currentMaxA ?? 0;
-      const previousDemand = transformer.demandKw ?? 0;
+      const previousDemand = transformer.demandKva ?? transformer.demandKw ?? 0;
       if (
         Math.abs(previousCurrent - inferredCurrent) < 0.01 &&
-        Math.abs(previousDemand - estimatedDemandKw) < 0.01
+        Math.abs(previousDemand - estimatedDemandKva) < 0.01
       ) {
         return transformer;
       }
@@ -208,7 +217,8 @@ export function useBtDerivedState({
       hasChanges = true;
       return {
         ...transformer,
-        demandKw: estimatedDemandKw,
+        demandKva: estimatedDemandKva,
+        demandKw: estimatedDemandKva,
         readings: [
           {
             ...baseReading,

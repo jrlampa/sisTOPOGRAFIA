@@ -40,7 +40,7 @@ interface BtTransformerEdgeSectionProps {
   pointDemandKva: number;
   transformerDebugById: Record<
     string,
-    { assignedClients: number; estimatedDemandKw: number }
+    { assignedClients: number; estimatedDemandKva: number }
   >;
   onTopologyChange: (next: BtTopology) => void;
   onBtRenameTransformer?: (transformerId: string, title: string) => void;
@@ -249,17 +249,19 @@ const BtTransformerEdgeSection: React.FC<BtTransformerEdgeSectionProps> = ({
                   const temperatureFactor =
                     baseReading.temperatureFactor ?? DEFAULT_TEMPERATURE_FACTOR;
                   const hasReadings = selectedTransformer.readings.length > 0;
-                  const demandMaxKw =
+                  const demandMaxKva =
                     currentMaxA * CURRENT_TO_DEMAND_CONVERSION;
-                  const correctedDemandKw = demandMaxKw * temperatureFactor;
-                  const effectiveDemandKw = hasReadings
-                    ? correctedDemandKw
-                    : (selectedTransformer.demandKw ?? 0);
+                  const correctedDemandKva = demandMaxKva * temperatureFactor;
+                  const effectiveDemandKva = hasReadings
+                    ? correctedDemandKva
+                    : (selectedTransformer.demandKva ??
+                      selectedTransformer.demandKw ??
+                      0);
                   const projectPowerKva =
                     selectedTransformer.projectPowerKva ?? 0;
                   const loadingPct =
                     projectPowerKva > 0
-                      ? (effectiveDemandKw / projectPowerKva) * 100
+                      ? (effectiveDemandKva / projectPowerKva) * 100
                       : null;
                   const totalClients = btTopology.poles.reduce(
                     (acc, pole) =>
@@ -307,7 +309,7 @@ const BtTransformerEdgeSection: React.FC<BtTransformerEdgeSectionProps> = ({
                             className="rounded border border-emerald-300 bg-emerald-50 p-1.5 text-[11px] font-medium text-emerald-900"
                           />
                           <NumericTextInput
-                            value={effectiveDemandKw}
+                            value={effectiveDemandKva}
                             title="Demanda corrigida do transformador em kVA"
                             placeholder="Demanda corrigida"
                             onChange={(nextCorrectedDemandKva) => {
@@ -374,16 +376,18 @@ const BtTransformerEdgeSection: React.FC<BtTransformerEdgeSectionProps> = ({
 
                       <button
                         onClick={() => {
-                          const estimatedDemandKw =
-                            transformerDebug?.estimatedDemandKw;
-                          const fallbackDemandKw =
-                            selectedTransformer.demandKw ?? 0;
-                          const demandTargetKw =
-                            Number.isFinite(estimatedDemandKw) &&
-                            typeof estimatedDemandKw === "number" &&
-                            estimatedDemandKw > 0
-                              ? estimatedDemandKw
-                              : fallbackDemandKw;
+                          const estimatedDemandKva =
+                            transformerDebug?.estimatedDemandKva;
+                          const fallbackDemandKva =
+                            selectedTransformer.demandKva ??
+                            selectedTransformer.demandKw ??
+                            0;
+                          const demandTargetKva =
+                            Number.isFinite(estimatedDemandKva) &&
+                            typeof estimatedDemandKva === "number" &&
+                            estimatedDemandKva > 0
+                              ? estimatedDemandKva
+                              : fallbackDemandKva;
                           const temperatureBase =
                             temperatureFactor > 0
                               ? temperatureFactor
@@ -391,7 +395,7 @@ const BtTransformerEdgeSection: React.FC<BtTransformerEdgeSectionProps> = ({
                           const inferredCurrent =
                             temperatureBase > 0
                               ? Math.round(
-                                  (demandTargetKw /
+                                  (demandTargetKva /
                                     (CURRENT_TO_DEMAND_CONVERSION *
                                       temperatureBase)) *
                                     100,
@@ -414,12 +418,12 @@ const BtTransformerEdgeSection: React.FC<BtTransformerEdgeSectionProps> = ({
 
                       <div className="rounded border border-slate-300 bg-white p-2 text-[10px] text-slate-700 space-y-1">
                         <div>
-                          Demanda corrigida: {formatBr(effectiveDemandKw)} kVA
+                          Demanda corrigida: {formatBr(effectiveDemandKva)} kVA
                         </div>
                         <div>
                           Demanda maxima:{" "}
                           {formatBr(
-                            hasReadings ? demandMaxKw : effectiveDemandKw,
+                            hasReadings ? demandMaxKva : effectiveDemandKva,
                           )}{" "}
                           kVA
                         </div>
@@ -447,7 +451,7 @@ const BtTransformerEdgeSection: React.FC<BtTransformerEdgeSectionProps> = ({
                           </div>
                           <div>
                             Demanda estimada automatica:{" "}
-                            {formatBr(transformerDebug.estimatedDemandKw)} kVA
+                            {formatBr(transformerDebug.estimatedDemandKva)} kVA
                           </div>
                           <div>
                             Fonte: particao eletrica da rede considerando

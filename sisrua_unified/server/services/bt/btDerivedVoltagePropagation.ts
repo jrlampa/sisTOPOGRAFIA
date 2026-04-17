@@ -18,6 +18,7 @@ import {
   DEFAULT_TRAFO_KVA,
   DEFAULT_AMBIENT_TEMP_C,
   BT_TRI_PHASE_ETA,
+  CURRENT_TO_DEMAND_CONVERSION,
   LOW_TEMP_LIMIT_CONDUCTORS,
   toFixed2,
 } from "./btDerivedConstants.js";
@@ -25,6 +26,35 @@ import {
   calculateTransformerOwnershipData,
   getClandestinoDemandKvaByAreaAndClients,
 } from "./btDerivedCalculations.js";
+import { haversineDistanceMeters } from "../../../shared/geodesic.js";
+
+const getTransformerDemandKva = (transformer: {
+  demandKva?: number;
+  demandKw?: number;
+  readings?: Array<{
+    currentMaxA?: number;
+    temperatureFactor?: number;
+  }>;
+}): number => {
+  const readings = transformer.readings ?? [];
+  const hasUsableReadings = readings.some((reading) =>
+    Number.isFinite(reading.currentMaxA),
+  );
+
+  if (hasUsableReadings) {
+    const correctedDemands = readings.map((reading) => {
+      const currentMaxA = reading.currentMaxA ?? 0;
+      const temperatureFactor = reading.temperatureFactor ?? 1;
+      const maxDemandKva = currentMaxA * CURRENT_TO_DEMAND_CONVERSION;
+      return maxDemandKva * temperatureFactor;
+    });
+
+    return toFixed2(Math.max(...correctedDemands, 0));
+  }
+
+  const rawDemand = transformer.demandKva ?? transformer.demandKw ?? 0;
+  return Number.isFinite(rawDemand) ? rawDemand : 0;
+};
 
 const getEdgeConductorName = (edge: BtEdge): string | null => {
   if (!edge.conductors || edge.conductors.length === 0) {
@@ -85,9 +115,7 @@ const estimateConductorTemperatureC = (
     return DEFAULT_AMBIENT_TEMP_C;
   }
 
-  const tempLimitC = LOW_TEMP_LIMIT_CONDUCTORS.has(conductorName)
-    ? 70
-    : 90;
+  const tempLimitC = LOW_TEMP_LIMIT_CONDUCTORS.has(conductorName) ? 70 : 90;
   const deltaTempAt30 = tempLimitC - DEFAULT_AMBIENT_TEMP_C;
   if (deltaTempAt30 <= 0) {
     return DEFAULT_AMBIENT_TEMP_C;
@@ -216,7 +244,7 @@ export const enrichWithVoltagePropagation = (
   // Map root pole → transformer for initial QT_MTTR loss lookup
   const transformerByRootPole = new Map<
     string,
-    { demandKw: number; projectPowerKva?: number }
+    { demandKva?: number; demandKw?: number; projectPowerKva?: number }
   >();
   for (const transformer of topology.transformers) {
     if (typeof transformer.poleId === "string") {
@@ -325,8 +353,8 @@ export const enrichWithVoltagePropagation = (
       // Workbook parity (DB!K10/K19/K26): QT_TR uses trafo demand as numerator.
       // Prefer explicit transformer demand; fall back to accumulated root demand.
       const totalDemandKva =
-        trafo && Number.isFinite(trafo.demandKw) && (trafo.demandKw ?? 0) > 0
-          ? (trafo.demandKw as number)
+        trafo && getTransformerDemandKva(trafo) > 0
+          ? getTransformerDemandKva(trafo)
           : (demandByPoleId.get(branchRootPoleId)?.accumulatedDemandKva ?? 0);
       const trafoRatedKva =
         trafo &&
@@ -462,15 +490,7 @@ const distanceMetersBetween = (
   a: { lat: number; lng: number },
   b: { lat: number; lng: number },
 ): number => {
-  const earthRadius = 6371000;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const lat1 = (a.lat * Math.PI) / 180;
-  const lat2 = (b.lat * Math.PI) / 180;
-  const h =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  return 2 * earthRadius * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  return haversineDistanceMeters(a, b);
 };
 
 export const calculateSectioningImpact = (
@@ -482,6 +502,7 @@ export const calculateSectioningImpact = (
     return {
       unservedPoleIds: [],
       unservedClients: 0,
+      estimatedDemandKva: 0,
       estimatedDemandKw: 0,
       loadCenter: null,
       suggestedPoleId: null,
@@ -503,26 +524,28 @@ export const calculateSectioningImpact = (
     (sum, v) => sum + v,
     0,
   );
-  const measuredDemandKw = topology.transformers.reduce(
-    (sum, t) => (t.readings.length === 0 ? sum : sum + (t.demandKw ?? 0)),
+  const measuredDemandKva = topology.transformers.reduce(
+    (sum, t) =>
+      t.readings.length === 0 ? sum : sum + getTransformerDemandKva(t),
     0,
   );
-  const demandPerClientKw =
-    totalClients > 0 ? measuredDemandKw / totalClients : 0;
+  const demandPerClientKva =
+    totalClients > 0 ? measuredDemandKva / totalClients : 0;
 
-  const estimatedDemandKw =
+  const estimatedDemandKva =
     projectType === "clandestino"
       ? getClandestinoDemandKvaByAreaAndClients(
           clandestinoAreaM2,
           unservedClients,
         )
-      : toFixed2(unservedClients * demandPerClientKw);
+      : toFixed2(unservedClients * demandPerClientKva);
 
   if (unservedPoles.length === 0) {
     return {
       unservedPoleIds,
       unservedClients,
-      estimatedDemandKw,
+      estimatedDemandKva,
+      estimatedDemandKw: estimatedDemandKva,
       loadCenter: null,
       suggestedPoleId: null,
     };
@@ -558,7 +581,8 @@ export const calculateSectioningImpact = (
   return {
     unservedPoleIds,
     unservedClients,
-    estimatedDemandKw,
+    estimatedDemandKva,
+    estimatedDemandKw: estimatedDemandKva,
     loadCenter,
     suggestedPoleId,
   };

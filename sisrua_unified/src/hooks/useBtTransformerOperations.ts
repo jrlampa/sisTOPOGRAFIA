@@ -76,6 +76,7 @@ export function useBtTransformerOperations({
       title: `Transformador ${nextId}`,
       projectPowerKva: 0,
       monthlyBillBrl: 0,
+      demandKva: 0,
       demandKw: 0,
       readings: [],
       transformerChangeFlag: 'existing'
@@ -128,6 +129,7 @@ export function useBtTransformerOperations({
         title: `Transformador ${nextId}`,
         projectPowerKva: 0,
         monthlyBillBrl: 0,
+        demandKva: 0,
         demandKw: 0,
         readings: [],
         transformerChangeFlag: 'existing'

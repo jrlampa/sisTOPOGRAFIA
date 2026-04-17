@@ -31,7 +31,7 @@ interface BtTopologyPanelProps {
   transformersDerived: BtTransformerDerived[];
   transformerDebugById?: Record<
     string,
-    { assignedClients: number; estimatedDemandKw: number }
+    { assignedClients: number; estimatedDemandKva: number }
   >;
   onTopologyChange: (next: BtTopology) => void;
   onSelectedPoleChange?: (poleId: string) => void;
@@ -168,6 +168,66 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     });
   };
 
+  const updatePoleSpec = (
+    poleId: string,
+    poleSpec: import("../types").BtPoleSpec | undefined,
+  ) => {
+    onTopologyChange({
+      ...btTopology,
+      poles: btTopology.poles.map((pole) =>
+        pole.id === poleId ? { ...pole, poleSpec } : pole,
+      ),
+    });
+  };
+
+  const updatePoleBtStructures = (
+    poleId: string,
+    btStructures: import("../types").BtPoleBtStructures | undefined,
+  ) => {
+    onTopologyChange({
+      ...btTopology,
+      poles: btTopology.poles.map((pole) =>
+        pole.id === poleId ? { ...pole, btStructures } : pole,
+      ),
+    });
+  };
+
+  const updatePoleConditionStatus = (
+    poleId: string,
+    conditionStatus: import("../types").BtPoleConditionStatus | undefined,
+  ) => {
+    onTopologyChange({
+      ...btTopology,
+      poles: btTopology.poles.map((pole) =>
+        pole.id === poleId ? { ...pole, conditionStatus } : pole,
+      ),
+    });
+  };
+
+  const updatePoleGeneralNotes = (
+    poleId: string,
+    generalNotes: string | undefined,
+  ) => {
+    onTopologyChange({
+      ...btTopology,
+      poles: btTopology.poles.map((pole) =>
+        pole.id === poleId ? { ...pole, generalNotes } : pole,
+      ),
+    });
+  };
+
+  const updatePoleEquipmentNotes = (
+    poleId: string,
+    equipmentNotes: string | undefined,
+  ) => {
+    onTopologyChange({
+      ...btTopology,
+      poles: btTopology.poles.map((pole) =>
+        pole.id === poleId ? { ...pole, equipmentNotes } : pole,
+      ),
+    });
+  };
+
   const updateTransformerVerified = (
     transformerId: string,
     verified: boolean,
@@ -208,7 +268,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     transformerId: string,
     readings: BtTransformerReading[],
   ) => {
-    // Compute demandKw and monthlyBillBrl inline using physical constants from btPhysicalConstants.
+    // Compute demandKva and monthlyBillBrl inline using physical constants from btPhysicalConstants.
     // The backend will recompute these in the next /api/bt/derived call for authoritative values.
     const monthlyBillBrl = readings.reduce(
       (acc, r) => acc + ((r as { billedBrl?: number }).billedBrl ?? 0),
@@ -220,7 +280,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         (r as { temperatureFactor?: number }).temperatureFactor ?? 1;
       return currentMaxA * CURRENT_TO_DEMAND_CONVERSION * temperatureFactor;
     });
-    const demandKw = Number(Math.max(...correctedDemands, 0).toFixed(2));
+    const demandKva = Number(Math.max(...correctedDemands, 0).toFixed(2));
 
     onTopologyChange({
       ...btTopology,
@@ -233,7 +293,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           ...transformer,
           readings,
           monthlyBillBrl,
-          demandKw,
+          demandKva,
+          demandKw: demandKva,
         };
       }),
     });
@@ -311,14 +372,18 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     });
   };
 
-  const clandestinoDemandKw =
-    projectType === "clandestino" ? clandestinoDisplay.demandKw : 0;
+  const clandestinoDemandKva =
+    projectType === "clandestino"
+      ? (clandestinoDisplay.demandKva ?? clandestinoDisplay.demandKw ?? 0)
+      : 0;
   const clandestinoAreaRange = {
     min: clandestinoDisplay.areaMin,
     max: clandestinoDisplay.areaMax,
   };
-  const clandestinoDemandKva =
-    projectType === "clandestino" ? clandestinoDisplay.demandKva : null;
+  const clandestinoBaseDemandKva =
+    projectType === "clandestino"
+      ? (clandestinoDisplay.baseDemandKva ?? clandestinoDisplay.demandKva)
+      : null;
   const clandestinoDiversificationFactor =
     projectType === "clandestino"
       ? clandestinoDisplay.diversificationFactor
@@ -685,10 +750,10 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
       {projectType === "clandestino" && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-[10px] text-amber-900">
-          {clandestinoDemandKva === null
+          {clandestinoBaseDemandKva === null
             ? `Área clandestina inválida (${clandestinoAreaM2} m²). Faixa da planilha: ${clandestinoAreaRange.min}-${clandestinoAreaRange.max} m² (inteiros).`
-            : `Carga base clandestinos (${clandestinoAreaM2} m²): ${clandestinoDemandKw.toFixed(2)} kVA`}
-          {clandestinoDemandKva !== null && (
+            : `Carga base clandestinos (${clandestinoAreaM2} m²): ${clandestinoDemandKva.toFixed(2)} kVA`}
+          {clandestinoBaseDemandKva !== null && (
             <div className="mt-1 text-amber-900">
               Clientes:{" "}
               {btTopology.poles.reduce(
@@ -718,6 +783,11 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         onBtTogglePoleCircuitBreak={onBtTogglePoleCircuitBreak}
         updatePoleVerified={updatePoleVerified}
         updatePoleRamais={updatePoleRamais}
+        updatePoleSpec={updatePoleSpec}
+        updatePoleBtStructures={updatePoleBtStructures}
+        updatePoleConditionStatus={updatePoleConditionStatus}
+        updatePoleEquipmentNotes={updatePoleEquipmentNotes}
+        updatePoleGeneralNotes={updatePoleGeneralNotes}
       />
 
       <BtTransformerEdgeSection

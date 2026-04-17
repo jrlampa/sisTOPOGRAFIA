@@ -393,21 +393,20 @@ Legenda:
 
 ## ✅ Double Check de Pontos Implementados (2026-04-16)
 
-| Ponto                                                                | Status          | Evidência                                                                                                           |
-| -------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------- |
-| 1. Modularização de Monólitos Python                                 | ✅ Implementado | `py_engine/dxf_generator.py` (shim) + `py_engine/dxf/core/{geometria,bt_topologia,apresentacao}.py`                |
-| 2. Abstração de Repositório (DAL)                                    | ✅ Implementado | `server/repositories/jobRepository.ts` + `server/repositories/dxfTaskRepository.ts`                                |
-| 4. Contratos Schema-First                                            | ✅ Implementado | `schemas/{dxf_request,dxf_response,bt_calculate_request,bt_calculate_response}.schema.json` + `server/utils/schemaValidator.ts` |
-| 7. Proveniência Técnica dos Artefatos                                | ✅ Implementado | `server/utils/artifactProvenance.ts` + integrado em `server/services/cloudTasksService.ts`                         |
-| 8. Validador Topológico em Tempo Real                                | ✅ Implementado | `server/services/topologicalValidator.ts` + integrado em `server/routes/dxfRoutes.ts` (guarda pré-geração, HTTP 422)|
-| 10. Snapshots de Domínio (Digital Twin)                              | ✅ Implementado | `server/services/domainSnapshotService.ts`                                                                          |
-| 30. RBAC/ABAC Fino e Contextual                                      | ✅ Implementado | `server/services/abacPolicyService.ts` + `server/middleware/permissionHandler.ts`                                   |
-| 31. Recertificação de Acesso                                         | ✅ Implementado | `server/services/accessRecertificationService.ts`                                                                   |
-| 72. Assinatura de Hash SHA-256 por Artefato                          | ✅ Implementado | `server/services/cloudTasksService.ts` (`computeArtifactSha256`) + `server/utils/artifactProvenance.ts`            |
-| 3. Orquestração Confiável de Jobs (Job Dossier)                       | ✅ Implementado | `server/services/jobDossierService.ts` + endpoints `GET /dxf/jobs`, `GET /dxf/jobs/:taskId`, `POST /dxf/jobs/:taskId/replay` |
-| 5. Injeção de Dependências & Inversão de Controle                     | ✅ Implementado | `server/services/dxfEngine.ts` + `server/services/cloudTasksService.ts` (`configureCloudTasksDependencies`) + teste isolado `server/tests/cloudTasksService.test.ts` |
-
-
+| Ponto                                             | Status          | Evidência                                                                                                                                                                                  |
+| ------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1. Modularização de Monólitos Python              | ✅ Implementado | `py_engine/dxf_generator.py` (shim) + `py_engine/dxf/core/{geometria,bt_topologia,apresentacao}.py`                                                                                        |
+| 2. Abstração de Repositório (DAL)                 | ✅ Implementado | `server/repositories/jobRepository.ts` + `server/repositories/dxfTaskRepository.ts`                                                                                                        |
+| 4. Contratos Schema-First                         | ✅ Implementado | `schemas/{dxf_request,dxf_response,bt_calculate_request,bt_calculate_response}.schema.json` + `server/utils/schemaValidator.ts`                                                            |
+| 7. Proveniência Técnica dos Artefatos             | ✅ Implementado | `server/utils/artifactProvenance.ts` + integrado em `server/services/cloudTasksService.ts`                                                                                                 |
+| 8. Validador Topológico em Tempo Real             | ✅ Implementado | `server/services/topologicalValidator.ts` + integrado em `server/routes/dxfRoutes.ts` (guarda pré-geração, HTTP 422)                                                                       |
+| 9. Paridade CQT Full (Light S.A.)                 | ✅ Implementado | `server/services/{btParityService,cqtParityReportService,cqtRuntimeSnapshotService}.ts` + testes `server/tests/{btParityService,cqtParityReportService,cqtRuntimeSnapshotService}.test.ts` |
+| 10. Snapshots de Domínio (Digital Twin)           | ✅ Implementado | `server/services/domainSnapshotService.ts`                                                                                                                                                 |
+| 30. RBAC/ABAC Fino e Contextual                   | ✅ Implementado | `server/services/abacPolicyService.ts` + `server/middleware/permissionHandler.ts`                                                                                                          |
+| 31. Recertificação de Acesso                      | ✅ Implementado | `server/services/accessRecertificationService.ts`                                                                                                                                          |
+| 72. Assinatura de Hash SHA-256 por Artefato       | ✅ Implementado | `server/services/cloudTasksService.ts` (`computeArtifactSha256`) + `server/utils/artifactProvenance.ts`                                                                                    |
+| 3. Orquestração Confiável de Jobs (Job Dossier)   | ✅ Implementado | `server/services/jobDossierService.ts` + endpoints `GET /dxf/jobs`, `GET /dxf/jobs/:taskId`, `POST /dxf/jobs/:taskId/replay`                                                               |
+| 5. Injeção de Dependências & Inversão de Controle | ✅ Implementado | `server/services/dxfEngine.ts` + `server/services/cloudTasksService.ts` (`configureCloudTasksDependencies`) + teste isolado `server/tests/cloudTasksService.test.ts`                       |
 
 | Ponto                                               | Status          | Evidência                                                                                          |
 | --------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------- |

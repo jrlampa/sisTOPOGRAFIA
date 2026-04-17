@@ -2,7 +2,7 @@
  * useBtPoleOperations.ts
  * Encapsulates all BT Pole CRUD operations
  * Separated from useBtCrudHandlers for better SRP compliance
- * 
+ *
  * Operations:
  * - Insert pole via coordinates or map click
  * - Delete pole (with cascading transformers)
@@ -14,15 +14,15 @@
  * - Handle clandestino/normal classification
  */
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   GlobalState,
   GeoLocation,
   BtTopology,
   BtPoleNode,
-  AppSettings
-} from '../types';
-import { ToastType } from '../components/Toast';
+  AppSettings,
+} from "../types";
+import { ToastType } from "../components/Toast";
 import {
   EMPTY_BT_TOPOLOGY,
   NORMAL_CLIENT_RAMAL_TYPES,
@@ -32,16 +32,16 @@ import {
   normalizeBtPole,
   distanceMeters,
   nextSequentialId,
-} from '../utils/btNormalization';
+} from "../utils/btNormalization";
 import {
   getPoleClandestinoClients,
   getPoleNormalClients,
   getPolesPendingNormalClassification,
   migrateClandestinoToDefaultNormalType,
-} from '../utils/btPoleProjectTypeUtils';
-import { generateEntityId, ID_PREFIX } from '../utils/idGenerator';
-import { fetchBtDerivedState } from '../services/btDerivedService';
-import { API_BASE_URL } from '../config/api';
+} from "../utils/btPoleProjectTypeUtils";
+import { generateEntityId, ID_PREFIX } from "../utils/idGenerator";
+import { fetchBtDerivedState } from "../services/btDerivedService";
+import { API_BASE_URL } from "../config/api";
 
 export type { PendingNormalClassificationPole };
 
@@ -53,13 +53,20 @@ type Params = {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useBtPoleOperations({ appState, setAppState, showToast }: Params) {
+export function useBtPoleOperations({
+  appState,
+  setAppState,
+  showToast,
+}: Params) {
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
   const settings: AppSettings = appState.settings;
 
   // ── UI state for pole operations ──────────────────────────────────────────
-  const [btPoleCoordinateInput, setBtPoleCoordinateInput] = useState('');
-  const [pendingNormalClassificationPoles, setPendingNormalClassificationPoles] = useState<PendingNormalClassificationPole[]>([]);
+  const [btPoleCoordinateInput, setBtPoleCoordinateInput] = useState("");
+  const [
+    pendingNormalClassificationPoles,
+    setPendingNormalClassificationPoles,
+  ] = useState<PendingNormalClassificationPole[]>([]);
   const [clandestinoToNormalModal, setClandestinoToNormalModal] = useState<{
     poles: PendingNormalClassificationPole[];
   } | null>(null);
@@ -75,16 +82,25 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  const findNearestPole = (location: GeoLocation, maxDistanceMeters = 80): BtPoleNode | null => {
+  const findNearestPole = (
+    location: GeoLocation,
+    maxDistanceMeters = 80,
+  ): BtPoleNode | null => {
     if (btTopology.poles.length === 0) {
       return null;
     }
 
     let nearest = btTopology.poles[0];
-    let nearestDistance = distanceMeters(location, { lat: nearest.lat, lng: nearest.lng });
+    let nearestDistance = distanceMeters(location, {
+      lat: nearest.lat,
+      lng: nearest.lng,
+    });
 
     for (const pole of btTopology.poles.slice(1)) {
-      const poleDistance = distanceMeters(location, { lat: pole.lat, lng: pole.lng });
+      const poleDistance = distanceMeters(location, {
+        lat: pole.lat,
+        lng: pole.lng,
+      });
       if (poleDistance < nearestDistance) {
         nearest = pole;
         nearestDistance = poleDistance;
@@ -95,30 +111,33 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
   };
 
   const applyProjectTypeSwitch = (
-    nextProjectType: 'ramais' | 'clandestino',
-    nextTopology: BtTopology = btTopology
+    nextProjectType: "ramais" | "clandestino",
+    nextTopology: BtTopology = btTopology,
   ) => {
     setAppState(
       {
         ...appState,
         btTopology: nextTopology,
-        settings: { ...settings, projectType: nextProjectType }
+        settings: { ...settings, projectType: nextProjectType },
       },
-      true
+      true,
     );
   };
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
   const insertBtPoleAtLocation = (location: GeoLocation) => {
-    const nextId = nextSequentialId(btTopology.poles.map((pole) => pole.id), 'P');
+    const nextId = nextSequentialId(
+      btTopology.poles.map((pole) => pole.id),
+      "P",
+    );
     const nextPole: BtPoleNode = {
       id: nextId,
       lat: location.lat,
       lng: location.lng,
       title: `Poste ${nextId}`,
       ramais: [],
-      nodeChangeFlag: 'existing'
+      nodeChangeFlag: "existing",
     };
 
     setAppState(
@@ -127,34 +146,43 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
         center: {
           lat: location.lat,
           lng: location.lng,
-          label: location.label ?? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
+          label:
+            location.label ??
+            `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`,
         },
-        btTopology: { ...btTopology, poles: [...btTopology.poles, nextPole] }
+        btTopology: { ...btTopology, poles: [...btTopology.poles, nextPole] },
       },
-      true
+      true,
     );
 
-    showToast(`${nextPole.title} inserido`, 'success');
+    showToast(`${nextPole.title} inserido`, "success");
   };
 
-  const resolveLocationFromBackend = async (query: string): Promise<GeoLocation> => {
+  const resolveLocationFromBackend = async (
+    query: string,
+  ): Promise<GeoLocation> => {
     const response = await fetch(`${API_BASE_URL}/search`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query })
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
     });
 
     if (!response.ok) {
-      let apiErrorMessage = 'Formato inválido. Use: -22.9068 -43.1729 ou 23K 635806 7462003.';
+      let apiErrorMessage =
+        "Formato inválido. Use: -22.9068 -43.1729 ou 23K 635806 7462003.";
 
       try {
-        const errorPayload = await response.json() as {
+        const errorPayload = (await response.json()) as {
           details?: string;
           error?: string;
           message?: string;
         };
 
-        apiErrorMessage = errorPayload.details || errorPayload.error || errorPayload.message || apiErrorMessage;
+        apiErrorMessage =
+          errorPayload.details ||
+          errorPayload.error ||
+          errorPayload.message ||
+          apiErrorMessage;
       } catch {
         // Keep fallback message when response body is not JSON.
       }
@@ -162,25 +190,26 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
       throw new Error(apiErrorMessage);
     }
 
-    return await response.json() as GeoLocation;
+    return (await response.json()) as GeoLocation;
   };
 
   const handleBtInsertPoleByCoordinates = async () => {
     const query = btPoleCoordinateInput.trim();
     if (!query) {
-      showToast('Informe as coordenadas do poste.', 'info');
+      showToast("Informe as coordenadas do poste.", "info");
       return;
     }
 
     try {
       const resolvedLocation = await resolveLocationFromBackend(query);
       insertBtPoleAtLocation(resolvedLocation);
-      setBtPoleCoordinateInput('');
+      setBtPoleCoordinateInput("");
     } catch (error) {
-      const message = error instanceof Error
-        ? error.message
-        : 'Formato inválido. Use: -22.9068 -43.1729 ou 23K 635806 7462003.';
-      showToast(message, 'error');
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Formato inválido. Use: -22.9068 -43.1729 ou 23K 635806 7462003.";
+      showToast(message, "error");
     }
   };
 
@@ -198,11 +227,11 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
           return (
             distanceMeters(
               { lat: transformer.lat, lng: transformer.lng },
-              { lat: pole.lat, lng: pole.lng }
+              { lat: pole.lat, lng: pole.lng },
             ) <= 6
           );
         })
-        .map((transformer) => transformer.id)
+        .map((transformer) => transformer.id),
     );
 
     setAppState(
@@ -211,46 +240,57 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
         btTopology: {
           ...btTopology,
           poles: btTopology.poles.filter((p) => p.id !== poleId),
-          edges: btTopology.edges.filter((e) => e.fromPoleId !== poleId && e.toPoleId !== poleId),
-          transformers: btTopology.transformers.filter((transformer) => !transformerIdsToRemove.has(transformer.id))
-        }
+          edges: btTopology.edges.filter(
+            (e) => e.fromPoleId !== poleId && e.toPoleId !== poleId,
+          ),
+          transformers: btTopology.transformers.filter(
+            (transformer) => !transformerIdsToRemove.has(transformer.id),
+          ),
+        },
       },
-      true
+      true,
     );
-    showToast(`Poste ${poleId} removido`, 'info');
+    showToast(`Poste ${poleId} removido`, "info");
   };
 
-  const handleBtSetPoleChangeFlag = (poleId: string, nodeChangeFlag: BtPoleChangeFlag) => {
+  const handleBtSetPoleChangeFlag = (
+    poleId: string,
+    nodeChangeFlag: BtPoleChangeFlag,
+  ) => {
     setAppState(
       {
         ...appState,
         btTopology: {
           ...btTopology,
           poles: btTopology.poles.map((pole) =>
-            pole.id === poleId ? normalizeBtPole({ ...pole, nodeChangeFlag }) : pole
-          )
-        }
+            pole.id === poleId
+              ? normalizeBtPole({ ...pole, nodeChangeFlag })
+              : pole,
+          ),
+        },
       },
-      true
+      true,
     );
   };
 
-  const handleBtTogglePoleCircuitBreak = async (poleId: string, circuitBreakPoint: boolean) => {
+  const handleBtTogglePoleCircuitBreak = async (
+    poleId: string,
+    circuitBreakPoint: boolean,
+  ) => {
     const nextTopology: BtTopology = {
       ...btTopology,
       poles: btTopology.poles.map((pole) =>
-        pole.id === poleId ? normalizeBtPole({ ...pole, circuitBreakPoint }) : pole
-      )
+        pole.id === poleId
+          ? normalizeBtPole({ ...pole, circuitBreakPoint })
+          : pole,
+      ),
     };
 
     // Commit the topology change immediately so the UI reflects it.
-    setAppState(
-      { ...appState, btTopology: nextTopology },
-      true
-    );
+    setAppState({ ...appState, btTopology: nextTopology }, true);
 
     if (!circuitBreakPoint) {
-      showToast(`Separação física removida do poste ${poleId}.`, 'info');
+      showToast(`Separação física removida do poste ${poleId}.`, "info");
       return;
     }
 
@@ -258,32 +298,44 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
     try {
       const derived = await fetchBtDerivedState({
         topology: nextTopology,
-        projectType: settings.projectType ?? 'ramais',
+        projectType: settings.projectType ?? "ramais",
         clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
       });
       const sectioningImpact = derived.sectioningImpact;
       const suggestedPole = sectioningImpact?.suggestedPoleId
-        ? nextTopology.poles.find((pole) => pole.id === sectioningImpact.suggestedPoleId)
+        ? nextTopology.poles.find(
+            (pole) => pole.id === sectioningImpact.suggestedPoleId,
+          )
         : null;
 
       if (suggestedPole) {
         setAppState(
           {
             ...appState,
-            center: { lat: suggestedPole.lat, lng: suggestedPole.lng, label: `Poste sugerido para novo trafo: ${suggestedPole.title}` },
-            btTopology: nextTopology
+            center: {
+              lat: suggestedPole.lat,
+              lng: suggestedPole.lng,
+              label: `Poste sugerido para novo trafo: ${suggestedPole.title}`,
+            },
+            btTopology: nextTopology,
           },
-          true
+          true,
         );
       }
 
       if (sectioningImpact && sectioningImpact.unservedPoleIds.length > 0) {
-        const suggestedLabel = suggestedPole ? `${suggestedPole.title} (${suggestedPole.id})` : 'não encontrado';
+        const suggestedLabel = suggestedPole
+          ? `${suggestedPole.title} (${suggestedPole.id})`
+          : "não encontrado";
+        const estimatedDemandKva =
+          sectioningImpact.estimatedDemandKva ??
+          sectioningImpact.estimatedDemandKw ??
+          0;
         showToast(
           `Seccionamento BT: ${sectioningImpact.unservedPoleIds.length} poste(s) sem trafo atendendo. ` +
-            `Carga sobrante estimada: ${sectioningImpact.estimatedDemandKw.toFixed(2)} kVA para ${sectioningImpact.unservedClients} cliente(s). ` +
+            `Carga sobrante estimada: ${estimatedDemandKva.toFixed(2)} kVA para ${sectioningImpact.unservedClients} cliente(s). ` +
             `Poste sugerido: ${suggestedLabel}.`,
-          'error'
+          "error",
         );
         return;
       }
@@ -291,25 +343,45 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
       // Backend unavailable — proceed without impact analysis.
     }
 
-    showToast(`Poste ${poleId} marcado com separação física do circuito.`, 'info');
+    showToast(
+      `Poste ${poleId} marcado com separação física do circuito.`,
+      "info",
+    );
   };
 
   const handleBtDragPole = (poleId: string, lat: number, lng: number) => {
-    const updatedPoles = btTopology.poles.map((p) => (p.id === poleId ? { ...p, lat, lng } : p));
+    const updatedPoles = btTopology.poles.map((p) =>
+      p.id === poleId ? { ...p, lat, lng } : p,
+    );
     const updatedTransformers = btTopology.transformers.map((transformer) =>
-      transformer.poleId === poleId ? { ...transformer, lat, lng } : transformer
+      transformer.poleId === poleId
+        ? { ...transformer, lat, lng }
+        : transformer,
     );
     const updatedEdges = btTopology.edges.map((edge) => {
       const from = updatedPoles.find((p) => p.id === edge.fromPoleId);
       const to = updatedPoles.find((p) => p.id === edge.toPoleId);
       if (!from || !to) return edge;
-      const newLength = Math.round(distanceMeters({ lat: from.lat, lng: from.lng }, { lat: to.lat, lng: to.lng }));
+      const newLength = Math.round(
+        distanceMeters(
+          { lat: from.lat, lng: from.lng },
+          { lat: to.lat, lng: to.lng },
+        ),
+      );
       return { ...edge, lengthMeters: newLength };
     });
 
     setAppState(
-      { ...appState, btTopology: { ...btTopology, poles: updatedPoles, transformers: updatedTransformers, edges: updatedEdges } },
-      true
+      {
+        ...appState,
+        btTopology: {
+          ...btTopology,
+          poles: updatedPoles,
+          transformers: updatedTransformers,
+          edges: updatedEdges,
+        },
+      },
+      true,
     );
   };
 
@@ -319,10 +391,12 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
         ...appState,
         btTopology: {
           ...btTopology,
-          poles: btTopology.poles.map((p) => (p.id === poleId ? { ...p, title } : p))
-        }
+          poles: btTopology.poles.map((p) =>
+            p.id === poleId ? { ...p, title } : p,
+          ),
+        },
       },
-      true
+      true,
     );
   };
 
@@ -332,26 +406,28 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
         ...appState,
         btTopology: {
           ...btTopology,
-          poles: btTopology.poles.map((pole) => (pole.id === poleId ? { ...pole, verified } : pole))
-        }
+          poles: btTopology.poles.map((pole) =>
+            pole.id === poleId ? { ...pole, verified } : pole,
+          ),
+        },
       },
-      true
+      true,
     );
   };
 
   const handleBtQuickAddPoleRamal = (poleId: string) => {
     const pole = btTopology.poles.find((candidate) => candidate.id === poleId);
     if (!pole) {
-      showToast('Poste não encontrado', 'error');
+      showToast("Poste não encontrado", "error");
       return;
     }
 
-    if ((settings.projectType ?? 'ramais') !== 'clandestino') {
+    if ((settings.projectType ?? "ramais") !== "clandestino") {
       setNormalRamalModal({
         poleId,
         poleTitle: pole.title,
         ramalType: NORMAL_CLIENT_RAMAL_TYPES[0],
-        quantity: 1
+        quantity: 1,
       });
       return;
     }
@@ -368,37 +444,44 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
                   ...candidate,
                   ramais: [
                     ...(candidate.ramais ?? []),
-                    { id: nextRamalId, quantity: 1, ramalType: CLANDESTINO_RAMAL_TYPE }
-                  ]
+                    {
+                      id: nextRamalId,
+                      quantity: 1,
+                      ramalType: CLANDESTINO_RAMAL_TYPE,
+                    },
+                  ],
                 }
-              : candidate
-          )
-        }
+              : candidate,
+          ),
+        },
       },
-      true
+      true,
     );
-    showToast(`+1 ramal em ${pole.title}.`, 'success');
+    showToast(`+1 ramal em ${pole.title}.`, "success");
   };
 
   const handleBtQuickRemovePoleRamal = (poleId: string) => {
     const pole = btTopology.poles.find((candidate) => candidate.id === poleId);
     if (!pole) {
-      showToast('Poste não encontrado', 'error');
+      showToast("Poste não encontrado", "error");
       return;
     }
 
     const ramais = [...(pole.ramais ?? [])];
     if (ramais.length === 0) {
-      showToast(`${pole.title} sem ramais para reduzir.`, 'info');
+      showToast(`${pole.title} sem ramais para reduzir.`, "info");
       return;
     }
 
-    const isClandestinoMode = (settings.projectType ?? 'ramais') === 'clandestino';
+    const isClandestinoMode =
+      (settings.projectType ?? "ramais") === "clandestino";
     const targetIndex = [...ramais]
       .map((ramal, index) => ({ ramal, index }))
       .reverse()
       .find(({ ramal }) => {
-        const isClandestinoRamal = (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE;
+        const isClandestinoRamal =
+          (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) ===
+          CLANDESTINO_RAMAL_TYPE;
         return isClandestinoMode ? isClandestinoRamal : !isClandestinoRamal;
       })?.index;
 
@@ -407,14 +490,17 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
         isClandestinoMode
           ? `${pole.title} não possui ramais clandestinos para reduzir.`
           : `${pole.title} não possui ramais normais para reduzir.`,
-        'info'
+        "info",
       );
       return;
     }
 
     const targetRamal = ramais[targetIndex];
     if (targetRamal.quantity > 1) {
-      ramais[targetIndex] = { ...targetRamal, quantity: targetRamal.quantity - 1 };
+      ramais[targetIndex] = {
+        ...targetRamal,
+        quantity: targetRamal.quantity - 1,
+      };
     } else {
       ramais.splice(targetIndex, 1);
     }
@@ -425,13 +511,13 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
         btTopology: {
           ...btTopology,
           poles: btTopology.poles.map((candidate) =>
-            candidate.id === poleId ? { ...candidate, ramais } : candidate
-          )
-        }
+            candidate.id === poleId ? { ...candidate, ramais } : candidate,
+          ),
+        },
       },
-      true
+      true,
     );
-    showToast(`-1 ramal em ${pole.title}.`, 'success');
+    showToast(`-1 ramal em ${pole.title}.`, "success");
   };
 
   const handleConfirmNormalRamalModal = () => {
@@ -452,31 +538,38 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
                   ...candidate,
                   ramais: [
                     ...(candidate.ramais ?? []),
-                    { id: nextRamalId, quantity, ramalType: normalRamalModal.ramalType }
-                  ]
+                    {
+                      id: nextRamalId,
+                      quantity,
+                      ramalType: normalRamalModal.ramalType,
+                    },
+                  ],
                 }
-              : candidate
-          )
-        }
+              : candidate,
+          ),
+        },
       },
-      true
+      true,
     );
 
     setPendingNormalClassificationPoles((current) =>
-      current.filter((entry) => entry.poleId !== normalRamalModal.poleId)
+      current.filter((entry) => entry.poleId !== normalRamalModal.poleId),
     );
 
-    showToast(`${quantity} ramal(is) ${normalRamalModal.ramalType} em ${normalRamalModal.poleTitle}.`, 'success');
+    showToast(
+      `${quantity} ramal(is) ${normalRamalModal.ramalType} em ${normalRamalModal.poleTitle}.`,
+      "success",
+    );
     setNormalRamalModal(null);
   };
 
-  const updateProjectType = (nextProjectType: 'ramais' | 'clandestino') => {
-    const currentProjectType = settings.projectType ?? 'ramais';
+  const updateProjectType = (nextProjectType: "ramais" | "clandestino") => {
+    const currentProjectType = settings.projectType ?? "ramais";
     if (currentProjectType === nextProjectType) {
       return;
     }
 
-    if (currentProjectType === 'clandestino' && nextProjectType === 'ramais') {
+    if (currentProjectType === "clandestino" && nextProjectType === "ramais") {
       const pendingPoles = getPolesPendingNormalClassification(btTopology);
       if (pendingPoles.length > 0) {
         setClandestinoToNormalModal({ poles: pendingPoles });
@@ -484,8 +577,11 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
       }
     }
 
-    if (currentProjectType === 'ramais' && nextProjectType === 'clandestino') {
-      const totalNormalClients = btTopology.poles.reduce((acc, pole) => acc + getPoleNormalClients(pole), 0);
+    if (currentProjectType === "ramais" && nextProjectType === "clandestino") {
+      const totalNormalClients = btTopology.poles.reduce(
+        (acc, pole) => acc + getPoleNormalClients(pole),
+        0,
+      );
       if (totalNormalClients > 0) {
         setNormalToClandestinoModal({ totalNormalClients });
         return;
@@ -495,7 +591,7 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
     setPendingNormalClassificationPoles([]);
     setAppState(
       { ...appState, settings: { ...settings, projectType: nextProjectType } },
-      true
+      true,
     );
   };
 
@@ -505,9 +601,12 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
     }
 
     setPendingNormalClassificationPoles(clandestinoToNormalModal.poles);
-    applyProjectTypeSwitch('ramais');
+    applyProjectTypeSwitch("ramais");
     setClandestinoToNormalModal(null);
-    showToast('Projeto mudou para Normal. Classificação de ramais pendente (DXF bloqueado).', 'info');
+    showToast(
+      "Projeto mudou para Normal. Classificação de ramais pendente (DXF bloqueado).",
+      "info",
+    );
   };
 
   const handleClandestinoToNormalConvertNow = () => {
@@ -515,18 +614,24 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
       return;
     }
 
-    const migratedTopology = migrateClandestinoToDefaultNormalType(btTopology, NORMAL_CLIENT_RAMAL_TYPES[0]);
+    const migratedTopology = migrateClandestinoToDefaultNormalType(
+      btTopology,
+      NORMAL_CLIENT_RAMAL_TYPES[0],
+    );
     setPendingNormalClassificationPoles([]);
-    applyProjectTypeSwitch('ramais', migratedTopology);
+    applyProjectTypeSwitch("ramais", migratedTopology);
     setClandestinoToNormalModal(null);
-    showToast('Ramais clandestinos migrados para Ramal Monofasico.', 'success');
+    showToast("Ramais clandestinos migrados para Ramal Monofasico.", "success");
   };
 
   const handleNormalToClandestinoKeepClients = () => {
     setPendingNormalClassificationPoles([]);
-    applyProjectTypeSwitch('clandestino');
+    applyProjectTypeSwitch("clandestino");
     setNormalToClandestinoModal(null);
-    showToast('Mudança para Clandestino mantendo clientes normais para possível retorno.', 'info');
+    showToast(
+      "Mudança para Clandestino mantendo clientes normais para possível retorno.",
+      "info",
+    );
   };
 
   const handleNormalToClandestinoZeroNormalClients = () => {
@@ -535,15 +640,20 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
       poles: btTopology.poles.map((pole) => ({
         ...pole,
         ramais: (pole.ramais ?? []).filter(
-          (ramal) => (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE
-        )
-      }))
+          (ramal) =>
+            (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) ===
+            CLANDESTINO_RAMAL_TYPE,
+        ),
+      })),
     };
 
     setPendingNormalClassificationPoles([]);
-    applyProjectTypeSwitch('clandestino', cleanedTopology);
+    applyProjectTypeSwitch("clandestino", cleanedTopology);
     setNormalToClandestinoModal(null);
-    showToast('Clientes normais zerados. Apenas ramais clandestinos foram mantidos.', 'success');
+    showToast(
+      "Clientes normais zerados. Apenas ramais clandestinos foram mantidos.",
+      "success",
+    );
   };
 
   return {
@@ -580,6 +690,6 @@ export function useBtPoleOperations({ appState, setAppState, showToast }: Params
     // ── Helpers ────────────────────────────────────────────────────────────
     getPoleClandestinoClients,
     getPoleNormalClients,
-    insertBtPoleAtLocation
+    insertBtPoleAtLocation,
   };
 }

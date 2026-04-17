@@ -1,13 +1,14 @@
 /**
  * Hook para cálculo memoizado de distâncias (Item 9).
  * Evita recálculos desnecessários em operações de topologia BT.
- * 
+ *
  * Pré-requisito: Foram identificadas múltiplas chamadas a distanceMeters()
  * em useBtCrudHandlers.ts sem memoização.
- * 
+ *
  * Solução: Memoizar baseado em pares de coordenadas.
  */
-import { useMemo } from 'react';
+import { useMemo } from "react";
+import { haversineDistanceMeters } from "../../shared/geodesic";
 
 type Coordinates = { lat: number; lng: number };
 
@@ -23,34 +24,26 @@ function cacheKey(from: Coordinates, to: Coordinates): string {
  * Calcula distância em metros entre dois pontos (Haversine).
  * Usa cache para evitar recálculos.
  */
-export function distanceMetersWithCache(from: Coordinates, to: Coordinates): number {
+export function distanceMetersWithCache(
+  from: Coordinates,
+  to: Coordinates,
+): number {
   const key = cacheKey(from, to);
-  
+
   if (memoizedDistanceCache.has(key)) {
     return memoizedDistanceCache.get(key)!;
   }
-  
-  // Fórmula Haversine
-  const R = 6371000; // Terra em metros
-  const dLat = ((to.lat - from.lat) * Math.PI) / 180;
-  const dLng = ((to.lng - from.lng) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((from.lat * Math.PI) / 180) *
-      Math.cos((to.lat * Math.PI) / 180) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
-  
+
+  const distance = haversineDistanceMeters(from, to);
+
   // Manter cache sob tamanho máximo
   if (memoizedDistanceCache.size >= MAX_CACHE_SIZE) {
     const firstKey = memoizedDistanceCache.keys().next().value;
-    if (typeof firstKey === 'string') {
+    if (typeof firstKey === "string") {
       memoizedDistanceCache.delete(firstKey);
     }
   }
-  
+
   memoizedDistanceCache.set(key, distance);
   return distance;
 }
@@ -58,7 +51,7 @@ export function distanceMetersWithCache(from: Coordinates, to: Coordinates): num
 /**
  * Hook React para distâncias memoizadas em uma lista de pares.
  * Útil para operações que envolvem múltiplos cálculos.
- * 
+ *
  * @example
  * const distances = useMemoizedDistances([
  *   { from: pole1, to: pole2 },
@@ -66,16 +59,14 @@ export function distanceMetersWithCache(from: Coordinates, to: Coordinates): num
  * ]);
  */
 export function useMemoizedDistances(
-  pairs: Array<{ from: Coordinates; to: Coordinates }>
+  pairs: Array<{ from: Coordinates; to: Coordinates }>,
 ): number[] {
   // Build a stable primitive key without O(n) JSON.stringify on each render.
-  const stableKey = pairs
-    .map((p) => cacheKey(p.from, p.to))
-    .join('|');
+  const stableKey = pairs.map((p) => cacheKey(p.from, p.to)).join("|");
 
   return useMemo(() => {
     return pairs.map((pair) => distanceMetersWithCache(pair.from, pair.to));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stableKey]);
 }
 

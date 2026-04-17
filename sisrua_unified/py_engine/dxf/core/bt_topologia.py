@@ -36,26 +36,24 @@ class BtTopologiaMixin:
     def _format_ramal_summary(self, ramais):
         if not isinstance(ramais, list) or not ramais:
             return []
-
-        grouped = {}
         total = 0
+        entries = []
         for entry in ramais:
             if not isinstance(entry, dict):
                 continue
             quantity = int(entry.get("quantity", 0) or 0)
-            ramal_type = str(entry.get("ramalType", "") or "").strip() or "SEM TIPO"
             if quantity <= 0:
                 continue
+            ramal_type = str(entry.get("ramalType", "") or "").strip() or "SEM TIPO"
+            notes = str(entry.get("notes", "") or "").strip()
             total += quantity
-            grouped[ramal_type] = grouped.get(ramal_type, 0) + quantity
-
+            label = f"{quantity}-{ramal_type}"
+            if notes:
+                label += f" ({notes.upper()})"
+            entries.append(label)
         if total == 0:
             return []
-
-        lines = [f"TOTAL: {total}"]
-        for ramal_type, quantity in sorted(grouped.items()):
-            lines.append(f"{quantity}-{ramal_type}")
-        return lines
+        return [f"TOTAL: {total}"] + entries
 
     def _draw_boxed_text(self, text, point, layer, color=6, height=2.0, padding_x=1.2, padding_y=0.8):
         self._add_text(text, point, layer=layer, height=height, color=color)
