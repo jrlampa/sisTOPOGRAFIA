@@ -111,7 +111,7 @@ export function useBtPoleOperations({
   };
 
   const applyProjectTypeSwitch = (
-    nextProjectType: "ramais" | "clandestino",
+    nextProjectType: BtProjectType,
     nextTopology: BtTopology = btTopology,
   ) => {
     setAppState(
@@ -563,7 +563,7 @@ export function useBtPoleOperations({
     setNormalRamalModal(null);
   };
 
-  const updateProjectType = (nextProjectType: "ramais" | "clandestino") => {
+  const onProjectTypeChange = (nextProjectType: BtProjectType) => {
     const currentProjectType = settings.projectType ?? "ramais";
     if (currentProjectType === nextProjectType) {
       return;
@@ -680,7 +680,7 @@ export function useBtPoleOperations({
     handleBtQuickAddPoleRamal,
     handleBtQuickRemovePoleRamal,
     handleConfirmNormalRamalModal,
-    updateProjectType,
+    onProjectTypeChange,
     handleClandestinoToNormalClassifyLater,
     handleClandestinoToNormalConvertNow,
     handleNormalToClandestinoKeepClients,

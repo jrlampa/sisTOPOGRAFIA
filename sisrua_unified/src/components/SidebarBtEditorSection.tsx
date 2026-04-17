@@ -9,6 +9,7 @@ import type {
   BtEditorMode,
   BtNetworkScenario,
   BtTopology,
+  BtProjectType,
 } from "../types";
 import type {
   BtDerivedSummary,
@@ -59,7 +60,7 @@ export interface SidebarBtEditorSectionProps {
   pendingNormalClassificationPoles: PendingNormalClassificationPole[];
   handleResetBtTopology: () => void;
   updateBtTopology: (topology: BtTopology) => void;
-  updateProjectType: (type: "ramais" | "clandestino") => void;
+  updateProjectType: (type: BtProjectType) => void;
   updateClandestinoAreaM2: (area: number) => void;
   handleBtSelectedPoleChange: (poleId: string) => void;
   handleBtSelectedTransformerChange: (id: string) => void;

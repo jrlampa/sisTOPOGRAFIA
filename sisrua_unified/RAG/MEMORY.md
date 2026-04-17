@@ -180,7 +180,7 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 - [x] **Ponto 30 & 31**: ABAC + Recertificação de Acesso
 - [x] **Ponto 3**: Orquestração Confiável de Jobs → `jobDossierService.ts` (replay controlado, dossiê por job, listagem auditável)
 - [x] **Ponto 5**: Injeção de Dependências & IoC → `dxfEngine.ts` + `configureCloudTasksDependencies()` no `cloudTasksService.ts` para testes isolados sem subprocesso Python
-- [x] **Ponto 9**: Paridade CQT Full — `btParityService.ts` + `cqtParityReportService.ts` + `cqtRuntimeSnapshotService.ts`, com cobertura dedicada validando snapshots runtime contra baseline da planilha (`cqtRuntimeSnapshotService.test.ts`). Hardening concluído em 17/04/2026 com 1215 testes passando.
+- [x] **Ponto 9**: Paridade CQT Full — `btParityService.ts` + `cqtParityReportService.ts` + `cqtRuntimeSnapshotService.ts`, com cobertura dedicada validando snapshots runtime contra baseline da planilha. Hardening concluído em 17/04/2026 com 1226 testes passando e **54.01% de branch coverage**.
 - [x] **Fase 2: Infraestrutura de Média Tensão (MT)** (Abril 2026)
     - [x] CRUD completo de postes e vãos MT.
     - [x] Camadas dedicadas no mapa (amber diamonds/lines).
@@ -264,6 +264,35 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ---
 
+## 📌 Atualização Operacional (2026-04-17) - Backend Hardening & Infrastructure Gains (Iteração 2)
+
+### Escopo
+- Estabilização do ambiente ESM/Jest e resolução de dependências circulares.
+- Hardening do endpoint `/health` com telemetria precisa e tratamento de erros.
+- Migração para utilitários nativos `crypto` e remoção da dependência legada `uuid`.
+
+### Implementação & Melhorias
+- **Arquitetura de Contexto (`requestContext.ts`)**:
+  - Isolado `AsyncLocalStorage` em um módulo dedicado para evitar dependências circulares entre `logger`, `app` e serviços.
+  - Resolvidos erros de `Cannot read properties of undefined (reading run)` em ambiente de teste.
+- **Saúde do Sistema (`/health`)**:
+  - Endpoint agora reporta status `degraded` (503) se dependências críticas (DB, Circuit Breakers) falham.
+  - Integrada verificação de governança e disponibilidade do Ollama.
+  - Implementado try/catch robusto para evitar 500 status code sem payload informativo.
+- **Segurança & Dependências**:
+  - Migração total de `uuid` para `crypto.randomUUID()` (Node.js nativo), reduzindo superfície de ataque e tamanho do bundle.
+  - Removido pacote `uuid` das dependências do backend.
+- **Estabilização de Testes**:
+  - Refatorados `healthStatus.test.ts`, `opsRoutes.test.ts` e `cloudTasksService.test.ts` para suportar as novas arquiteturas nativas.
+  - Resolvido problema de hoisting de mocks em ambiente ESM/CJS híbrido.
+
+### Validação
+- **Suíte de Testes**: ✅ 1192 testes passando (`npm run test:backend`).
+- **Cobertura**: ⚠️ Branch coverage em 52.68% (meta 54% sendo perseguida).
+- **Hardening**: ✅ Endpoint `/health` validado contra falhas simuladas de banco e serviços externos.
+
+---
+
 ## 📌 Atualização Operacional (2026-04-17) - Auditoria e Hardening do Banco de Dados
 
 ### Escopo
@@ -288,6 +317,35 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 - Execução completa do `db_diagnostic.py` resultando em 100% de conformidade.
 - Migrações: 41 de 41 aplicadas.
 - Integridade: ✅ Verificada.
+
+---
+
+## 📌 Atualização Operacional (2026-04-17) - Backend Hardening & Test Coverage Optimization (Final)
+
+### Escopo
+- Estabilização final da suíte de testes de backend e atingimento da meta de 54% de cobertura de branches.
+- Hardening defensivo do servidor e tratamento seguro de erros em produção.
+- Migração completa para utilitários nativos de criptografia.
+
+### Implementação & Melhorias
+- **Hardening do Servidor (`app.ts`)**:
+  - Implementado fail-safe no middleware `requestContext` para garantir resiliência se o `AsyncLocalStorage` falhar.
+  - Otimizada inicialização do `Logger` para uso consistente em modo 2.5D.
+- **Suíte de Testes (Cobertura & Estabilidade)**:
+  - Criadas e validadas suites de 100% de cobertura: `bearerAuth.test.ts`, `correlationIds.test.ts`, `listing.test.ts`.
+  - Implementado `errorHandlerProduction.test.ts` para cobrir caminhos de sanitização de logs e mensagens de erro em ambiente não-dev.
+  - Corrigido `tenantServiceProfileService.test.ts` e `healthStatus.test.ts` com mocks atualizados para o motor de governança e Ollama.
+- **Atingimento de Threshold**:
+  - **Branch Coverage**: **54.01%** (Meta: 54%). 🚀
+  - **Testes Totais**: 1226 testes passando, zero falhas.
+- **Segurança**:
+  - Verificada migração total para `crypto.randomUUID()` e `crypto.timingSafeEqual()`.
+  - Removidos artefatos de debug (`coverage.json`, logs manuais) do ambiente de trabalho.
+
+### Validação
+- `npm run test:backend`: ✅ **PASS** (100% suites, 54.01% branches).
+- `npm run ci:non-negotiables`: ✅ **PASS**.
+- Verificação visual: ✅ Logs de erro em produção higienizados (sem stack traces).
 
 ## 📌 Atualização Operacional (2026-04-12)
 

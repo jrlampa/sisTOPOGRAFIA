@@ -3,8 +3,8 @@ import { jest } from '@jest/globals';
 const unsafeMock = jest.fn();
 const endMock = jest.fn().mockResolvedValue(undefined);
 
-jest.mock('uuid', () => ({
-  v4: () => 'test-uuid'
+jest.mock('crypto', () => ({
+  randomUUID: () => 'test-uuid'
 }));
 
 jest.mock('../pythonBridge', () => ({

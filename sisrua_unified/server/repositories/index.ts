@@ -9,6 +9,7 @@ export {
   closeDbClient,
   getDbClient,
   isDbAvailable,
+  pingDb,
 } from "./dbClient.js";
 
 export type { SqlClient } from "./dbClient.js";

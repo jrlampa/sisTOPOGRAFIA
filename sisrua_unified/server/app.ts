@@ -138,9 +138,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   if (correlationIds.projeto_id) store.set("projeto_id", correlationIds.projeto_id);
   if (correlationIds.ponto_id) store.set("ponto_id", correlationIds.ponto_id);
   if (!requestContext) {
-    console.error("CRITICAL: requestContext is UNDEFINED at line 139", {
-      typeofRequestContext: typeof requestContext,
-      requestId
+    logger.error("CRITICAL: requestContext AsyncLocalStorage is undefined - middleware bypass", { 
+      requestId,
+      context: "initialization_failure"
     });
     return next();
   }

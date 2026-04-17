@@ -1,5 +1,5 @@
 import postgres from "postgres";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
@@ -427,7 +427,7 @@ export async function createDxfTask(
     }
   }
 
-  const taskId = uuidv4();
+  const taskId = randomUUID();
   const fullPayload: DxfTaskPayload = { taskId, ...payload };
 
   // Create the job as close as possible to queueing to avoid state races.

@@ -10,10 +10,14 @@ import SelectionManager from "./MapSelectorSelectionManager";
 import MapSelectorEdgesLayer from "./MapSelectorEdgesLayer";
 import MapSelectorPolesLayer from "./MapLayers/MapSelectorPolesLayer";
 import MapSelectorTransformersLayer from "./MapLayers/MapSelectorTransformersLayer";
+import MapSelectorMtEdgesLayer from "./MapLayers/MapSelectorMtEdgesLayer";
+import MapSelectorMtPolesLayer from "./MapLayers/MapSelectorMtPolesLayer";
 import {
   BtEditorMode,
   BtTopology,
   BtRamalEntry,
+  MtTopology,
+  MtEditorMode,
   SelectionMode,
   GeoLocation,
 } from "../types";
@@ -100,6 +104,17 @@ interface MapSelectorProps {
   showAnalysis?: boolean;
   geojson?: GeoJsonObject | null;
   keyboardPanEnabled?: boolean;
+  mtTopology?: MtTopology;
+  mtEditorMode?: MtEditorMode;
+  onMtMapClick?: (location: GeoLocation) => void;
+  onMtContextAction?: (action: "mt-add-pole" | "mt-add-edge", location: GeoLocation) => void;
+  onMtDeletePole?: (id: string) => void;
+  onMtDeleteEdge?: (id: string) => void;
+  onMtRenamePole?: (poleId: string, title: string) => void;
+  onMtSetPoleVerified?: (poleId: string, verified: boolean) => void;
+  onMtDragPole?: (poleId: string, lat: number, lng: number) => void;
+  onMtSetPoleChangeFlag?: (poleId: string, flag: "existing" | "new" | "remove" | "replace") => void;
+  onMtSetEdgeChangeFlag?: (edgeId: string, flag: "existing" | "new" | "remove" | "replace") => void;
 }
 
 const MapSelector: React.FC<MapSelectorProps> = ({
@@ -144,14 +159,26 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   mapStyle = "dark",
   onMapStyleChange,
   showAnalysis = false,
-  geojson,
   keyboardPanEnabled = false,
+  mtTopology,
+  mtEditorMode = "none",
+  onMtMapClick,
+  onMtContextAction,
+  onMtDeletePole,
+  onMtDeleteEdge,
+  onMtRenamePole,
+  onMtSetPoleVerified,
+  onMtDragPole,
+  onMtSetPoleChangeFlag,
+  onMtSetEdgeChangeFlag,
 }) => {
   const topology = btTopology ?? { poles: [], transformers: [], edges: [] };
   const paneIdSuffix = React.useId().replace(/:/g, "-");
   const btEdgesPaneName = `bt-edges-pane-${paneIdSuffix}`;
   const btPolesPaneName = `bt-poles-pane-${paneIdSuffix}`;
   const btTransformersPaneName = `bt-transformers-pane-${paneIdSuffix}`;
+  const mtEdgesPaneName = `mt-edges-pane-${paneIdSuffix}`;
+  const mtPolesPaneName = `mt-poles-pane-${paneIdSuffix}`;
 
   const polesById = React.useMemo(() => {
     return new Map(topology.poles.map((pole) => [pole.id, pole]));
@@ -298,6 +325,29 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtSetTransformerChangeFlag={onBtSetTransformerChangeFlag}
           onBtDeleteTransformer={onBtDeleteTransformer}
         />
+
+        {mtTopology && (
+          <>
+            <MapSelectorMtEdgesLayer
+              paneName={mtEdgesPaneName}
+              topology={mtTopology}
+              polesById={new Map(mtTopology.poles.map(p => [p.id, p]))}
+              onMtDeleteEdge={onMtDeleteEdge}
+              onMtSetEdgeChangeFlag={onMtSetEdgeChangeFlag}
+            />
+            <MapSelectorMtPolesLayer
+              paneName={mtPolesPaneName}
+              poles={mtTopology.poles}
+              mtEditorMode={mtEditorMode}
+              onMtMapClick={onMtMapClick}
+              onMtDragPole={onMtDragPole}
+              onMtRenamePole={onMtRenamePole}
+              onMtSetPoleChangeFlag={onMtSetPoleChangeFlag}
+              onMtDeletePole={onMtDeletePole}
+              onMtSetPoleVerified={onMtSetPoleVerified}
+            />
+          </>
+        )}
       </MapContainer>
     </div>
   );

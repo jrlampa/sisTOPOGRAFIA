@@ -34,8 +34,8 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
     }
 
     const signature = conflictGroups
-      .map((group) => group.transformerIds.join(','))
-      .sort((a, b) => a.localeCompare(b))
+      .map((group: any) => group.transformerIds.join(','))
+      .sort((a: string, b: string) => a.localeCompare(b))
       .join('|');
 
     if (signature === lastTransformerConflictSignatureRef.current) {
@@ -46,7 +46,7 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
 
     const firstConflict = conflictGroups[0];
     const transformerLabels = firstConflict.transformerIds
-      .map((transformerId) => btTopology.transformers.find((item) => item.id === transformerId)?.title ?? transformerId)
+      .map((transformerId: string) => btTopology.transformers.find((item) => item.id === transformerId)?.title ?? transformerId)
       .join(', ');
     const extraConflictLabel = conflictGroups.length > 1
       ? ` Há mais ${conflictGroups.length - 1} rede(s) BT em conflito.`

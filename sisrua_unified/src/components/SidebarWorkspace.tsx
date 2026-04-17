@@ -81,6 +81,10 @@ export function SidebarWorkspace({
       done: hasAreaSelection,
     },
     {
+      key: "network",
+      label: "2. BT",
+      helper: "Baixa Tensão (n1-n4)",
+      icon: Network,
       done: hasBtTopology,
     },
     {
@@ -99,6 +103,7 @@ export function SidebarWorkspace({
     },
   ];
 
+  const nextStage =
     activeStage === "capture"
       ? "network"
       : activeStage === "network"

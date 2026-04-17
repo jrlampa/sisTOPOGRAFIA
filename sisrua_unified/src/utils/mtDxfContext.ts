@@ -19,7 +19,7 @@ export interface MtDxfContextPayload {
       id: string;
       fromPoleId: string;
       toPoleId: string;
-      lengthMeters: number;
+      lengthMeters?: number;
       edgeChangeFlag?: "existing" | "new" | "remove" | "replace";
     }>;
   } | null;

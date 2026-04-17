@@ -77,6 +77,8 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
                 value={renameValue}
                 autoFocus
                 maxLength={60}
+                title="Renomear poste MT"
+                placeholder="Nome do poste"
                 onChange={(e) => setRenameValue(e.target.value)}
                 onBlur={() => handleRenameCommit(pole.id)}
                 onKeyDown={(e) => {
@@ -162,9 +164,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
                       const nextStructures: MtPoleStructures = {
                         ...selectedPole.mtStructures,
                         [slot]:
-                          nextValue.trim().length > 0
-                            ? nextValue
-                            : undefined,
+                          nextValue.trim().length > 0 ? nextValue : undefined,
                       };
                       const hasAny = Object.values(nextStructures).some(
                         (v) => typeof v === "string" && v.trim().length > 0,

@@ -5,6 +5,7 @@ import { haversineDistanceMeters } from "../../shared/geodesic";
 export * from "./btTransformerCalculations";
 export * from "./btClandestinoCalculations";
 export * from "./btTopologyFlow";
+export * from "./btTransformerConflicts";
 
 // Import specific functions for local composition
 import { calculateClandestinoDemandKvaByAreaAndClients } from "./btClandestinoCalculations";

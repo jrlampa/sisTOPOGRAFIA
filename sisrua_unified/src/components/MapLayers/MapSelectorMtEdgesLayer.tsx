@@ -2,7 +2,7 @@ import React from "react";
 import { Pane, Polyline, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { Trash2 } from "lucide-react";
-import { MtEdge, MtPoleNode, MtTopology } from "../types";
+import { MtEdge, MtPoleNode, MtTopology } from "../../types";
 
 const EDGE_HIT_AREA_WEIGHT = 24;
 const POPUP_FLAG_GRID_CLASS = "mt-1.5 grid grid-cols-2 gap-1.5";

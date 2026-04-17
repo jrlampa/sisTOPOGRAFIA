@@ -29,10 +29,11 @@ except (ImportError, ValueError):
 from .core.geometria_utils import GeometriaUtilsMixin
 from .core.geometria import GeometriaMixin
 from .core.bt_topologia import BtTopologiaMixin
+from .core.mt_topologia import MtTopologiaMixin
 from .core.apresentacao import ApresentacaoMixin
 
 
-class DXFGenerator(GeometriaUtilsMixin, GeometriaMixin, BtTopologiaMixin, ApresentacaoMixin):
+class DXFGenerator(GeometriaUtilsMixin, GeometriaMixin, BtTopologiaMixin, MtTopologiaMixin, ApresentacaoMixin):
     """
     Gerador de arquivos DXF 2.5D para projetos de engenharia (sisTOPOGRAFIA).
 
@@ -46,6 +47,7 @@ class DXFGenerator(GeometriaUtilsMixin, GeometriaMixin, BtTopologiaMixin, Aprese
         self.diff_x = 0.0
         self.diff_y = 0.0
         self.bounds = [0.0, 0.0, 0.0, 0.0]
+        self.mt_context: dict = {}
 
         # Padrões CAD via StyleManager (SRP)
         DXFStyleManager.setup_all(self.doc)

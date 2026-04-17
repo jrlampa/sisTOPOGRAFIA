@@ -1,6 +1,5 @@
 import winston from "winston";
 import "winston-daily-rotate-file";
-import { AsyncLocalStorage } from "async_hooks";
 import { config } from "../config.js";
 import path from "path";
 import fs from "fs";
@@ -11,7 +10,7 @@ if (!fs.existsSync(logDir)) {
 }
 
 // Storage for request-specific context (like requestId)
-export const requestContext = new AsyncLocalStorage<Map<string, string>>();
+import { requestContext } from "./requestContext.js";
 
 const logger = winston.createLogger({
   level: config.LOG_LEVEL,

@@ -62,3 +62,17 @@ export function getDbClient(required = false): SqlClient | null {
 export function isDbAvailable(): boolean {
   return _available;
 }
+
+/** Perfil real-time: perform a small query to verify connection status. */
+export async function pingDb(): Promise<boolean> {
+  if (!_client) return false;
+  try {
+    await _client`SELECT 1`;
+    _available = true;
+    return true;
+  } catch (err) {
+    _available = false;
+    logger.error("[DB] Ping failed", { err });
+    return false;
+  }
+}

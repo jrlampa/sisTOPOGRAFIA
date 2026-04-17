@@ -7,6 +7,9 @@ export default {
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },
+  transformIgnorePatterns: [
+    "node_modules/(?!(uuid|@google-cloud/firestore|@google-cloud/tasks)/)",
+  ],
   collectCoverageFrom: [
     "server/**/*.ts",
     "!server/**/*.d.ts",

@@ -1,13 +1,11 @@
 import React, { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { lazyWithRetry } from "../utils/lazyWithRetry";
-import type { MtTopology } from "../types";
+import type { MtTopology, MtEditorMode } from "../types";
 
 const MtTopologyPanel = React.lazy(() =>
   lazyWithRetry(() => import("./MtTopologyPanel")),
 );
-
-import type { MtTopology, MtEditorMode } from "../types";
 import { Plus, Link as LinkIcon, MousePointer2 } from "lucide-react";
 
 export interface SidebarMtEditorSectionProps {

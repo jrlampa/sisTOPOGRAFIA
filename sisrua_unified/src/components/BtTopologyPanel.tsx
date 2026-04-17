@@ -4,10 +4,15 @@ import type {
   BtEdge,
   BtNetworkScenario,
   BtTopology,
-  BtTransformer,
-  BtTransformerReading,
   GeoLocation,
+  BtProjectType,
 } from "../types";
+import type {
+  BtDerivedSummary,
+  BtPoleAccumulatedDemand,
+  BtClandestinoDisplay,
+  BtTransformerDerived,
+} from "../services/btDerivedService";
 import BtPoleVerificationSection from "./BtTopologyPanel/BtPoleVerificationSection";
 import BtTransformerEdgeSection from "./BtTopologyPanel/BtTransformerEdgeSection";
 import BtTopologyPanelStats from "./BtTopologyPanel/BtTopologyPanelStats";
@@ -36,14 +41,19 @@ interface BtTopologyPanelProps {
     string,
     { assignedClients: number; estimatedDemandKva: number }
   >;
-  projectType: "ramais" | "clandestino";
-  onProjectTypeChange: (next: "ramais" | "clandestino") => void;
+  projectType: BtProjectType;
+  onProjectTypeChange: (next: BtProjectType) => void;
   clandestinoAreaM2: number;
   onClandestinoAreaChange: (next: number) => void;
   onBtContextAction?: (
     action: "add-edge" | "add-transformer" | "add-pole",
     location: GeoLocation,
   ) => void;
+  criticalPoleId?: string | null;
+  accumulatedByPole: BtPoleAccumulatedDemand[];
+  summary: BtDerivedSummary;
+  clandestinoDisplay: BtClandestinoDisplay;
+  transformersDerived: BtTransformerDerived[];
   mapCenter: GeoLocation;
 }
 
@@ -57,7 +67,12 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   onBtSetTransformerChangeFlag,
   onBtSetEdgeChangeFlag,
   onRequestCriticalConfirmation,
+  accumulatedByPole,
+  summary,
+  clandestinoDisplay,
+  transformersDerived,
   transformerDebugById,
+  criticalPoleId,
   projectType,
   onProjectTypeChange,
   clandestinoAreaM2,

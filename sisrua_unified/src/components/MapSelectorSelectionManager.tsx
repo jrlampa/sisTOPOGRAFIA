@@ -117,6 +117,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
         }
       }
     },
+    contextmenu(e) {
       if (onBtContextAction && btEditorMode !== "none") {
         setContextMenuLocation({
           lat: e.latlng.lat,

@@ -89,7 +89,11 @@ function FaqCategoria({ cat, isDark }: { cat: typeof FAQ_TECNICO[0]; isDark: boo
   function toggle(i: number) {
     setExpandidos((prev) => {
       const next = new Set(prev);
-      next.has(i) ? next.delete(i) : next.add(i);
+      if (next.has(i)) {
+        next.delete(i);
+      } else {
+        next.add(i);
+      }
       return next;
     });
   }

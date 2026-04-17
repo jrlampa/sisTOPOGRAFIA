@@ -29,8 +29,8 @@ import { metricsService } from "./services/metricsService.js";
  * - Records end-to-end DXF generation duration to metricsService
  */
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Compatible way to get dirname for both ESM and CJS (transpiled by Jest)
+const dirname = path.join(process.cwd(), "server");
 
 /** Exit code emitted by Python's OOM watchdog (main.py --memory-limit-mb). */
 export const PYTHON_OOM_EXIT_CODE = 137;
@@ -92,7 +92,7 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
 
     // DOCKER-FIRST: Always use Python directly (no .exe binaries)
     // This works in both Docker containers and native development environments
-    const scriptPath = path.join(__dirname, "../py_engine/main.py");
+    const scriptPath = path.join(dirname, "../py_engine/main.py");
 
     // Allow customization via environment variable and fallback executables for Windows/Linux.
     const envPythonCommand = config.PYTHON_COMMAND;

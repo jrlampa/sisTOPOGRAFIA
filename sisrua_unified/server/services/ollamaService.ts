@@ -433,6 +433,8 @@ export class OllamaService {
     } catch {
       return [];
     }
+  }
+
   /**
    * Start the Ollama background process if not already running.
    */
