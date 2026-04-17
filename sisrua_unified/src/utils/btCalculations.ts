@@ -512,6 +512,17 @@ export const calculateClandestinoDemandKva = (areaM2: number): number => {
 /** @deprecated Use calculateClandestinoDemandKva. Maintained for compatibility. */
 export const calculateClandestinoDemandKw = calculateClandestinoDemandKva;
 
+/**
+ * Retorna métricas físicas da topologia BT.
+ *
+ * IMPORTANTE — uso intencional de `topology.edges` bruto:
+ * `totalLengthMeters` representa o comprimento físico total da rede
+ * instalada, incluindo trechos marcados com `edgeChangeFlag: "remove"` ou
+ * `removeOnExecution: true`. Isso é correto — o sumário descreve o estado
+ * cadastral/físico da rede, não o estado ativo após execução das ordens de
+ * serviço. Para obter métricas da topologia ativa, use
+ * `calculateAccumulatedDemandByPole`, que já filtra activeEdges.
+ */
 export const calculateBtSummary = (topology: BtTopology) => {
   const totalLengthMeters = topology.edges.reduce(
     (acc, edge) => acc + (edge.lengthMeters || 0),

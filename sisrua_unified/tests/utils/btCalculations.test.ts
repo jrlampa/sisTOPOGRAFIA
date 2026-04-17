@@ -716,3 +716,287 @@ describe("loadClandestinoWorkbookRules", () => {
     expect(mod.getClandestinoDiversificationFactorByClients(10)).toBe(9.64);
   });
 });
+
+// ---------------------------------------------------------------------------
+// parseInteger / lookup parity (float vs integer inputs)
+// Regression: garante que a regra de aceitação de inteiros é idêntica
+// entre os lookups de área e de clientes, e que float-como-inteiro é aceito.
+// ---------------------------------------------------------------------------
+
+describe("getClandestinoKvaByArea — parseInteger parity", () => {
+  it("accepts an integer expressed as float (20.0 → key 20)", () => {
+    // 20.0 rounds to 20 and 20 === 20.0 in IEEE754, so must succeed.
+    expect(getClandestinoKvaByArea(20.0)).toBe(1.62);
+  });
+
+  it("rejects a true fractional value (20.5)", () => {
+    // Math.round(20.5) = 21 ≠ 20.5 → parseInteger returns null.
+    expect(getClandestinoKvaByArea(20.5)).toBeNull();
+  });
+
+  it("rejects a value very close to integer but not equal (20.0000001)", () => {
+    // Floating-point noise: Math.round(20.0000001) = 20, but 20 !== 20.0000001.
+    expect(getClandestinoKvaByArea(20.0000001)).toBeNull();
+  });
+
+  it("rejects NaN", () => {
+    expect(getClandestinoKvaByArea(NaN)).toBeNull();
+  });
+
+  it("rejects Infinity", () => {
+    expect(getClandestinoKvaByArea(Infinity)).toBeNull();
+  });
+});
+
+describe("getClandestinoDiversificationFactorByClients — parseInteger parity", () => {
+  it("accepts integer-as-float (1.0 → key 1)", () => {
+    expect(getClandestinoDiversificationFactorByClients(1.0)).toBe(3.88);
+  });
+
+  it("rejects 1.5 (half-integer)", () => {
+    expect(getClandestinoDiversificationFactorByClients(1.5)).toBeNull();
+  });
+
+  it("rejects 1.9 (near integer but not equal)", () => {
+    expect(getClandestinoDiversificationFactorByClients(1.9)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// calculateBtSummary — edge flag behavior (physical vs active topology)
+// Regression: o summary conta TODAS as arestas físicas cadastradas,
+// incluindo as marcadas para remoção. Comportamento intencional.
+// ---------------------------------------------------------------------------
+
+describe("calculateBtSummary — edge flag behavior (physical inventory)", () => {
+  it("includes length of edges marked edgeChangeFlag:remove in totalLengthMeters", () => {
+    const topology: BtTopology = {
+      poles: [
+        { id: "P1", lat: 0, lng: 0, title: "P1" },
+        { id: "P2", lat: 0, lng: 0, title: "P2" },
+        { id: "P3", lat: 0, lng: 0, title: "P3" },
+      ],
+      transformers: [],
+      edges: [
+        {
+          id: "E1",
+          fromPoleId: "P1",
+          toPoleId: "P2",
+          lengthMeters: 100,
+          conductors: [],
+        },
+        {
+          id: "E2",
+          fromPoleId: "P2",
+          toPoleId: "P3",
+          lengthMeters: 50,
+          edgeChangeFlag: "remove",
+          conductors: [],
+        },
+      ],
+    };
+
+    const summary = calculateBtSummary(topology);
+    // Physical total = 100 + 50 = 150; removal flag does not exclude from inventory.
+    expect(summary.totalLengthMeters).toBe(150);
+    // Edge count also reflects physical inventory.
+    expect(summary.edges).toBe(2);
+  });
+
+  it("includes length of edges with removeOnExecution:true in totalLengthMeters", () => {
+    const topology: BtTopology = {
+      poles: [
+        { id: "P1", lat: 0, lng: 0, title: "P1" },
+        { id: "P2", lat: 0, lng: 0, title: "P2" },
+      ],
+      transformers: [],
+      edges: [
+        {
+          id: "E1",
+          fromPoleId: "P1",
+          toPoleId: "P2",
+          lengthMeters: 80,
+          removeOnExecution: true,
+          conductors: [],
+        },
+      ],
+    };
+
+    const summary = calculateBtSummary(topology);
+    expect(summary.totalLengthMeters).toBe(80);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// calculateEstimatedDemandByTransformer — readings sem currentMaxA
+// Regression: quando readings existe mas sem corrente mensurável,
+// deve usar o campo demandKva/demandKw persistido (fallback correto).
+// ---------------------------------------------------------------------------
+
+describe("calculateEstimatedDemandByTransformer — readings sem currentMaxA", () => {
+  it("falls back to persisted demandKw when reading has no currentMaxA", () => {
+    // Reading exists (length > 0) but currentMaxA is absent → hasUsableReadings = false
+    // → getTransformerDemandKva returns rawDemand = demandKw = 8.0
+    const topology: BtTopology = {
+      poles: [
+        {
+          id: "P1",
+          lat: 0,
+          lng: 0,
+          title: "P1",
+          ramais: [{ id: "r1", quantity: 2, ramalType: "5 CC" }],
+        },
+      ],
+      transformers: [
+        {
+          id: "T1",
+          poleId: "P1",
+          lat: 0,
+          lng: 0,
+          title: "T1",
+          monthlyBillBrl: 0,
+          demandKw: 8.0,
+          readings: [
+            {
+              id: "r1",
+              // currentMaxA intentionally absent — simulates reading without measurement
+            },
+          ],
+        },
+      ],
+      edges: [],
+    };
+
+    const results = calculateEstimatedDemandByTransformer(topology, "ramais", 0);
+    expect(results).toHaveLength(1);
+    // With no usable currentMaxA, fallback to demandKw = 8.0
+    expect(results[0].estimatedDemandKva).toBe(8.0);
+    expect(results[0].estimatedDemandKw).toBe(8.0);
+  });
+
+  it("uses reading-derived demand when currentMaxA is present (non-regression)", () => {
+    const topology: BtTopology = {
+      poles: [
+        {
+          id: "P1",
+          lat: 0,
+          lng: 0,
+          title: "P1",
+          ramais: [{ id: "r1", quantity: 2, ramalType: "5 CC" }],
+        },
+      ],
+      transformers: [
+        {
+          id: "T1",
+          poleId: "P1",
+          lat: 0,
+          lng: 0,
+          title: "T1",
+          monthlyBillBrl: 0,
+          demandKw: 99.0, // stale value — must be ignored
+          readings: [{ id: "r1", currentMaxA: 10, temperatureFactor: 1 }],
+        },
+      ],
+      edges: [],
+    };
+
+    const results = calculateEstimatedDemandByTransformer(topology, "ramais", 0);
+    // 10A × 0.375 × 1.0 = 3.75 kVA — persisted 99 must be overridden
+    expect(results[0].estimatedDemandKva).toBe(3.75);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// calculateAccumulatedDemandByPole — removeOnExecution flag
+// Regression: aresta com removeOnExecution:true deve ser excluída
+// do grafo de propagação, equivalente a edgeChangeFlag:"remove".
+// ---------------------------------------------------------------------------
+
+describe("calculateAccumulatedDemandByPole — removeOnExecution exclusion", () => {
+  it("excludes edge with removeOnExecution:true from propagation graph", () => {
+    const topology: BtTopology = {
+      poles: [
+        { id: "P1", lat: 0, lng: 0, title: "P1" },
+        {
+          id: "P2",
+          lat: 0,
+          lng: 0,
+          title: "P2",
+          ramais: [{ id: "r1", quantity: 4, ramalType: "5 CC" }],
+        },
+      ],
+      transformers: [
+        {
+          id: "T1",
+          poleId: "P1",
+          lat: 0,
+          lng: 0,
+          title: "T1",
+          monthlyBillBrl: 0,
+          demandKw: 10,
+          readings: [],
+        },
+      ],
+      edges: [
+        {
+          id: "E1",
+          fromPoleId: "P1",
+          toPoleId: "P2",
+          removeOnExecution: true, // legacy flag — must behave like edgeChangeFlag:"remove"
+          conductors: [],
+        },
+      ],
+    };
+
+    const results = calculateAccumulatedDemandByPole(topology, "ramais", 0);
+    const byId = Object.fromEntries(results.map((r) => [r.poleId, r]));
+
+    // P1 should not accumulate P2's clients because the edge is excluded
+    expect(byId["P1"].accumulatedClients).toBe(0);
+    // P2 is disconnected — only its own local clients
+    expect(byId["P2"].accumulatedClients).toBe(4);
+  });
+
+  it("treats removeOnExecution:false as an active edge (non-regression)", () => {
+    const topology: BtTopology = {
+      poles: [
+        { id: "P1", lat: 0, lng: 0, title: "P1" },
+        {
+          id: "P2",
+          lat: 0,
+          lng: 0,
+          title: "P2",
+          ramais: [{ id: "r1", quantity: 3, ramalType: "5 CC" }],
+        },
+      ],
+      transformers: [
+        {
+          id: "T1",
+          poleId: "P1",
+          lat: 0,
+          lng: 0,
+          title: "T1",
+          monthlyBillBrl: 0,
+          demandKw: 9,
+          readings: [],
+        },
+      ],
+      edges: [
+        {
+          id: "E1",
+          fromPoleId: "P1",
+          toPoleId: "P2",
+          removeOnExecution: false, // explicit false → edge is active
+          conductors: [],
+        },
+      ],
+    };
+
+    const results = calculateAccumulatedDemandByPole(topology, "ramais", 0);
+    const byId = Object.fromEntries(results.map((r) => [r.poleId, r]));
+
+    // P1 must accumulate P2's 3 clients through the active edge
+    expect(byId["P1"].accumulatedClients).toBe(3);
+    expect(byId["P2"].accumulatedClients).toBe(3);
+  });
+});

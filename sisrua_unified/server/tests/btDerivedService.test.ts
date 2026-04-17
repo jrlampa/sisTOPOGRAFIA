@@ -565,3 +565,270 @@ describe("computeBtDerivedState – CQT qtTr source", () => {
     expect(p1?.dvAccumPercent).toBeCloseTo(2.18, 2);
   });
 });
+
+// ─── lookup paridade frontend x backend ─────────────────────────────────────
+
+describe("computeBtDerivedState – lookup paridade frontend x backend (parseInteger)", () => {
+  beforeEach(() => withClandestinoConstants());
+
+  it("returns 0 demand for fractional area (100.5) — same as frontend", () => {
+    // parseInteger(100.5): Math.round(100.5) = 101 ≠ 100.5 → null → 0 demand.
+    const pole = {
+      id: "p1",
+      lat: -23.5,
+      lng: -46.6,
+      ramais: [{ quantity: 3, ramalType: "Clandestino" }],
+    };
+    const result = computeBtDerivedState(
+      { poles: [pole], transformers: [], edges: [] },
+      "clandestino",
+      100.5, // fractional — must be rejected
+    );
+    expect(result.pointDemandKva).toBe(0);
+    expect(result.clandestinoDisplay.finalDemandKva).toBe(0);
+  });
+
+  it("accepts integer-as-float area (100.0) — same as frontend", () => {
+    // parseInteger(100.0): Math.round(100) = 100 === 100.0 → key "100" → valid lookup.
+    const pole = {
+      id: "p1",
+      lat: -23.5,
+      lng: -46.6,
+      ramais: [{ quantity: 1, ramalType: "Clandestino" }],
+    };
+    const result = computeBtDerivedState(
+      { poles: [pole], transformers: [], edges: [] },
+      "clandestino",
+      100.0,
+    );
+    // areaToKva["100"] = 2.0, clientToDiversifFactor["1"] = 1.0 → finalDemandKva = 2.0
+    expect(result.clandestinoDisplay.finalDemandKva).toBe(2.0);
+  });
+
+  it("returns 0 for NaN area", () => {
+    const pole = {
+      id: "p1",
+      lat: -23.5,
+      lng: -46.6,
+      ramais: [{ quantity: 2, ramalType: "Clandestino" }],
+    };
+    const result = computeBtDerivedState(
+      { poles: [pole], transformers: [], edges: [] },
+      "clandestino",
+      NaN,
+    );
+    expect(result.pointDemandKva).toBe(0);
+  });
+
+  it("fractional client count in pole ramais propagates as 0 demand (non-integer quantity)", () => {
+    // If UX sends quantity=1.5, getPoleClientsByProjectType sums it,
+    // then parseInteger(1.5) → null → 0 demand. Documents the safety gate.
+    const pole = {
+      id: "p1",
+      lat: 0,
+      lng: 0,
+      ramais: [{ quantity: 1.5, ramalType: "Clandestino" }],
+    };
+    const result = computeBtDerivedState(
+      { poles: [pole], transformers: [], edges: [] },
+      "clandestino",
+      100,
+    );
+    const entry = result.accumulatedByPole.find((e) => e.poleId === "p1");
+    // 1.5 clients → parseInteger fails → localTrechoDemandKva = 0
+    expect(entry?.localTrechoDemandKva).toBe(0);
+  });
+});
+
+// ─── removeOnExecution flag equivalência ────────────────────────────────────
+
+describe("computeBtDerivedState – removeOnExecution flag equivalência", () => {
+  beforeEach(() => withoutClandestinoConstants());
+
+  it("excludes edge with removeOnExecution:true from propagation (same as edgeChangeFlag:remove)", () => {
+    const topology = {
+      poles: [
+        { id: "p1", lat: 0, lng: 0, ramais: [] },
+        {
+          id: "p2",
+          lat: 0.001,
+          lng: 0,
+          ramais: [{ quantity: 6, ramalType: "Ramal BT" }],
+        },
+      ],
+      transformers: [
+        { id: "tr1", poleId: "p1", demandKw: 12, readings: [] },
+      ],
+      edges: [
+        {
+          fromPoleId: "p1",
+          toPoleId: "p2",
+          lengthMeters: 60,
+          removeOnExecution: true, // legacy flag
+        },
+      ],
+    };
+
+    const result = computeBtDerivedState(topology, "ramais", 0);
+    const byId = new Map(
+      result.accumulatedByPole.map((entry) => [entry.poleId, entry]),
+    );
+
+    // p1 must NOT accumulate p2's clients since the edge is logically removed
+    expect(byId.get("p1")?.accumulatedClients).toBe(0);
+    // p2 is isolated — only its own 6 clients
+    expect(byId.get("p2")?.accumulatedClients).toBe(6);
+  });
+
+  it("includes edge with removeOnExecution:true in physical summary (totalLengthMeters)", () => {
+    // Summary uses raw edges (physical inventory) even for removeOnExecution:true.
+    const topology = {
+      poles: [
+        { id: "p1", lat: 0, lng: 0 },
+        { id: "p2", lat: 0.001, lng: 0 },
+      ],
+      transformers: [],
+      edges: [
+        {
+          fromPoleId: "p1",
+          toPoleId: "p2",
+          lengthMeters: 90,
+          removeOnExecution: true,
+        },
+      ],
+    };
+
+    const result = computeBtDerivedState(topology, "ramais", 0);
+    // Physical total includes the 90m even though the edge is flagged for removal.
+    expect(result.summary.totalLengthMeters).toBe(90);
+  });
+
+  it("keeps edge with removeOnExecution:false active in propagation", () => {
+    const topology = {
+      poles: [
+        { id: "p1", lat: 0, lng: 0, ramais: [] },
+        {
+          id: "p2",
+          lat: 0.001,
+          lng: 0,
+          ramais: [{ quantity: 4, ramalType: "Ramal BT" }],
+        },
+      ],
+      transformers: [
+        { id: "tr1", poleId: "p1", demandKw: 8, readings: [] },
+      ],
+      edges: [
+        {
+          fromPoleId: "p1",
+          toPoleId: "p2",
+          lengthMeters: 40,
+          removeOnExecution: false, // explicit keep
+        },
+      ],
+    };
+
+    const result = computeBtDerivedState(topology, "ramais", 0);
+    const byId = new Map(
+      result.accumulatedByPole.map((entry) => [entry.poleId, entry]),
+    );
+
+    // Edge is active → p1 must accumulate p2's 4 clients
+    expect(byId.get("p1")?.accumulatedClients).toBe(4);
+  });
+});
+
+// ─── demanda medida — readings sem currentMaxA ───────────────────────────────
+
+describe("computeBtDerivedState – readings sem currentMaxA (fallback para campo persistido)", () => {
+  beforeEach(() => withoutClandestinoConstants());
+
+  it("uses persisted demandKw when reading exists but has no currentMaxA", () => {
+    // Transformer has a reading record (ids present) but no measurement data.
+    // hasUsableReadings = readings.some(r => Number.isFinite(r.currentMaxA)) = false
+    // → getTransformerDemandKva falls back to rawDemand = demandKw.
+    const topology = {
+      poles: [
+        {
+          id: "p1",
+          lat: 0,
+          lng: 0,
+          ramais: [{ quantity: 2, ramalType: "Ramal BT" }],
+        },
+      ],
+      transformers: [
+        {
+          id: "tr1",
+          poleId: "p1",
+          demandKw: 7.5,
+          readings: [
+            {
+              id: "r1",
+              // No currentMaxA — simulates reading imported from legacy without measurements
+            },
+          ],
+        },
+      ],
+      edges: [],
+    };
+
+    const result = computeBtDerivedState(topology, "ramais", 0);
+
+    // Summary must reflect the persisted 7.5 kVA (not 0)
+    expect(result.summary.transformerDemandKva).toBe(7.5);
+
+    const entry = result.estimatedByTransformer.find(
+      (e) => e.transformerId === "tr1",
+    );
+    expect(entry?.estimatedDemandKva).toBe(7.5);
+  });
+
+  it("overrides persisted demandKw when at least one reading has currentMaxA (non-regression)", () => {
+    const topology = {
+      poles: [
+        {
+          id: "p1",
+          lat: 0,
+          lng: 0,
+          ramais: [{ quantity: 2, ramalType: "Ramal BT" }],
+        },
+      ],
+      transformers: [
+        {
+          id: "tr1",
+          poleId: "p1",
+          demandKw: 999, // stale — must be overridden
+          readings: [
+            { id: "r1" }, // no currentMaxA
+            { id: "r2", currentMaxA: 20, temperatureFactor: 1 }, // measurement present
+          ],
+        },
+      ],
+      edges: [],
+    };
+
+    const result = computeBtDerivedState(topology, "ramais", 0);
+    // 20A × 0.375 × 1.0 = 7.5 kVA (highest corrected reading wins)
+    expect(result.summary.transformerDemandKva).toBe(7.5);
+  });
+
+  it("treats two readings where only one has currentMaxA — picks highest corrected", () => {
+    const topology = {
+      poles: [{ id: "p1", lat: 0, lng: 0, ramais: [] }],
+      transformers: [
+        {
+          id: "tr1",
+          poleId: "p1",
+          demandKw: 0,
+          readings: [
+            { id: "r1", currentMaxA: 8, temperatureFactor: 1.2 }, // 8*0.375*1.2=3.6
+            { id: "r2", currentMaxA: 10, temperatureFactor: 1.0 }, // 10*0.375*1.0=3.75 ← max
+          ],
+        },
+      ],
+      edges: [],
+    };
+
+    const result = computeBtDerivedState(topology, "ramais", 0);
+    expect(result.summary.transformerDemandKva).toBe(3.75);
+  });
+});
