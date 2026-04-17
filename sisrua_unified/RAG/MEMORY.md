@@ -179,7 +179,9 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 - [x] **Ponto 8**: Validador Topológico → `topologicalValidator.ts` (integrado em `dxfRoutes.ts`)
 - [x] **Ponto 30 & 31**: ABAC + Recertificação de Acesso
 - [ ] **Ponto 5**: Injeção de Dependências & IoC (desacoplamento motor para testes)
-- [ ] **Ponto 9**: Paridade CQT Full — validar integração com `btParityService.ts`
+- [x] **Ponto 3**: Orquestração Confiável de Jobs → `jobDossierService.ts` (replay controlado, dossiê por job, listagem auditável)
+- [ ] **Ponto 5**: Injeção de Dependências & IoC (desacoplamento motor para testes)
+- [ ] **Ponto 9**: Paridade CQT Full — ✅ já wired em `btCalculationRoutes.ts` (verificar cobertura)
 - [ ] **Ponto 38-41**: LGPD End-to-End completo (RIPD, residência de dados, descarte)
 - [ ] **Ponto 53-54**: Conformidade BDGD ANEEL — exportação/validação
 
@@ -257,6 +259,36 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 ## 📌 Atualização Operacional (2026-04-16) - Catálogo SoA por Tenant (SLA/SLO)
 
 ### Escopo
+
+---
+
+## 📌 Atualização Operacional (2026-04-16) - Metadados de Poste BT
+
+### Escopo
+
+- Evoluído o contrato de `BtPoleNode` para suportar metadados operacionais de campo sem quebrar retrocompatibilidade.
+- Campos novos já integrados ponta a ponta: `poleSpec` (`altura/esforço`), `conditionStatus` e `generalNotes`.
+
+### Regras implementadas
+
+- `generalNotes` é opcional, texto livre, persistido no estado e validado no backend com limite de 500 caracteres.
+- `equipmentNotes` é opcional, texto livre, persistido no estado e validado no backend com limite de 500 caracteres.
+- `conditionStatus` usa enum controlado: `bom_estado`, `desaprumado`, `trincado`, `condenado`.
+- `poleSpec` mantém o padrão `altura/esforço`, exibido como `11/400` quando ambos os valores existem.
+- `btStructures` armazena `si1`, `si2`, `si3` e `si4` como texto livre opcional, sem catálogo fechado por enquanto.
+- `BtPoleRamalEntry.notes` é opcional, texto livre (max 80 chars), com chips de atalho: Deteriorado, Emendas, Sem isolamento, Longo, Cruzamento, Outro. Tipo exportado `BtRamalConditionNote`. Exibido no DXF entre parênteses na linha do ramal.
+
+### Pontos de integração
+
+- Frontend: edição em `BtPoleVerificationSection.tsx`.
+- Contrato: `src/types.ts` + `server/schemas/dxfRequest.ts`.
+- Exportação: `src/utils/btDxfContext.ts`.
+- DXF: `py_engine/domain/bt_drawer.py` renderiza especificação, estruturas BT, equipamentos, estado e observação geral resumida. Ramais agora incluem observação por linha: `2-Bifásico (DETERIORADO)`.
+- `_format_ramal_summary` atualizado em `bt_drawer.py`, `dxf_labels_mixin.py` e `dxf/core/bt_topologia.py`.
+
+### Validação
+
+- Build validado com sucesso via `npm --prefix sisrua_unified run build` em 2026-04-16.
 
 - Evolução fullstack para governança enterprise por tenant com perfil de serviço operacional.
 - Vertical completa: migração SQL + backend + painel administrativo.

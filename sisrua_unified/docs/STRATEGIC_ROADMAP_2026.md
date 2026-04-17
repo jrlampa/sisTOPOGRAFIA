@@ -404,6 +404,7 @@ Legenda:
 | 30. RBAC/ABAC Fino e Contextual                                      | ✅ Implementado | `server/services/abacPolicyService.ts` + `server/middleware/permissionHandler.ts`                                   |
 | 31. Recertificação de Acesso                                         | ✅ Implementado | `server/services/accessRecertificationService.ts`                                                                   |
 | 72. Assinatura de Hash SHA-256 por Artefato                          | ✅ Implementado | `server/services/cloudTasksService.ts` (`computeArtifactSha256`) + `server/utils/artifactProvenance.ts`            |
+| 3. Orquestração Confiável de Jobs (Job Dossier)                       | ✅ Implementado | `server/services/jobDossierService.ts` + endpoints `GET /dxf/jobs`, `GET /dxf/jobs/:taskId`, `POST /dxf/jobs/:taskId/replay` |
 
 
 
