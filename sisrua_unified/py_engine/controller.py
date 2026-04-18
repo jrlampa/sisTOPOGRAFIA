@@ -46,6 +46,7 @@ class OSMController:
             "project": "EXTRACAO ESPACIAL",
         }
         self.bt_context = {}
+        self.mt_context = {}
         self.audit_summary = {"violations": 0, "coverageScore": 0}
 
     def run(self):
@@ -103,11 +104,13 @@ class OSMController:
 
         dxf_gen.project_info = self.project_metadata
         dxf_gen.bt_context = self._build_bt_context_for_dxf(gdf.crs)
+        dxf_gen.mt_context = self._build_mt_context_for_dxf(gdf.crs)
 
         dxf_gen.add_features(
             gdf
         )  # Features set the offset ONLY if not initialized above
         dxf_gen.add_bt_topology()
+        dxf_gen.add_mt_topology()
 
         # 6. Terrain & Contours (Optional)
         if self.layers_config.get("terrain", False):
@@ -253,6 +256,87 @@ class OSMController:
         dxf_gen.add_cartographic_elements(
             min_x, min_y, max_x, max_y, dxf_gen.diff_x, dxf_gen.diff_y
         )
+
+    def _build_mt_context_for_dxf(self, target_crs):
+        if not isinstance(self.mt_context, dict):
+            return {}
+
+        mt_context = dict(self.mt_context)
+        projected_topology = self._project_mt_topology(target_crs)
+        if projected_topology:
+            mt_context["topologyProjected"] = projected_topology
+        return mt_context
+
+    def _project_mt_topology(self, target_crs):
+        raw_topology = (
+            self.mt_context.get("topology")
+            if isinstance(self.mt_context, dict)
+            else None
+        )
+        if not isinstance(raw_topology, dict):
+            return {}
+
+        target_crs_name = (
+            target_crs.to_string()
+            if hasattr(target_crs, "to_string")
+            else str(target_crs)
+        )
+        transformer = Transformer.from_crs("EPSG:4326", target_crs_name, always_xy=True)
+
+        def _to_float(value, default=None):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return default
+
+        projected_poles = []
+        for raw_pole in raw_topology.get("poles", []):
+            if not isinstance(raw_pole, dict):
+                continue
+            lat = _to_float(raw_pole.get("lat"))
+            lng = _to_float(raw_pole.get("lng"))
+            pole_id = str(raw_pole.get("id", "") or "")
+            if lat is None or lng is None or not pole_id:
+                continue
+
+            x, y = transformer.transform(lng, lat)
+            mt_structures = raw_pole.get("mtStructures")
+            pole_payload = {
+                "id": pole_id,
+                "title": str(raw_pole.get("title", pole_id) or pole_id),
+                "verified": bool(raw_pole.get("verified", False)),
+                "x": x,
+                "y": y,
+                "mtStructures": mt_structures if isinstance(mt_structures, dict) else {},
+            }
+            projected_poles.append(pole_payload)
+
+        if not projected_poles:
+            return {}
+
+        # Build a lookup map from pole id → projected (x, y) for edge projection.
+        pole_xy_map = {p["id"]: (p["x"], p["y"]) for p in projected_poles}
+
+        projected_edges = []
+        for raw_edge in raw_topology.get("edges", []):
+            if not isinstance(raw_edge, dict):
+                continue
+            edge_id = str(raw_edge.get("id", "") or "")
+            from_id = str(raw_edge.get("fromPoleId", "") or "")
+            to_id = str(raw_edge.get("toPoleId", "") or "")
+            if not edge_id or from_id not in pole_xy_map or to_id not in pole_xy_map:
+                continue
+            projected_edges.append({
+                "id": edge_id,
+                "fromPoleId": from_id,
+                "toPoleId": to_id,
+                "fromXY": pole_xy_map[from_id],
+                "toXY": pole_xy_map[to_id],
+                "lengthMeters": _to_float(raw_edge.get("lengthMeters")),
+                "edgeChangeFlag": str(raw_edge.get("edgeChangeFlag") or "existing"),
+            })
+
+        return {"poles": projected_poles, "edges": projected_edges}
 
     def _build_bt_context_for_dxf(self, target_crs):
         if not isinstance(self.bt_context, dict):

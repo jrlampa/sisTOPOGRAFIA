@@ -12,21 +12,15 @@
  * - Set transformer change flags
  */
 
-import {
-  GlobalState,
-  GeoLocation,
-  BtTopology,
-  BtTransformer,
-  AppSettings
-} from '../types';
-import { ToastType } from '../components/Toast';
+import { GlobalState, GeoLocation, BtTransformer } from "../types";
+import { ToastType } from "../components/Toast";
 import {
   EMPTY_BT_TOPOLOGY,
   BtTransformerChangeFlag,
   normalizeBtTransformer,
   distanceMeters,
-  nextSequentialId
-} from '../utils/btNormalization';
+  nextSequentialId,
+} from "../utils/btNormalization";
 
 type Params = {
   appState: GlobalState;
@@ -39,7 +33,7 @@ export function useBtTransformerOperations({
   appState,
   setAppState,
   showToast,
-  findNearestPole
+  findNearestPole,
 }: Params) {
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
 
@@ -48,7 +42,10 @@ export function useBtTransformerOperations({
   const handleBtMapClickAddTransformer = (location: GeoLocation) => {
     const nearestPole = findNearestPole(location);
     if (!nearestPole) {
-      showToast('Trafo deve ser atrelado a um poste (clique em um poste)', 'error');
+      showToast(
+        "Trafo deve ser atrelado a um poste (clique em um poste)",
+        "error",
+      );
       return;
     }
 
@@ -56,18 +53,23 @@ export function useBtTransformerOperations({
       if (transformer.poleId) {
         return transformer.poleId === nearestPole.id;
       }
-      return distanceMeters(
-        { lat: transformer.lat, lng: transformer.lng },
-        { lat: nearestPole.lat, lng: nearestPole.lng }
-      ) <= 6;
+      return (
+        distanceMeters(
+          { lat: transformer.lat, lng: transformer.lng },
+          { lat: nearestPole.lat, lng: nearestPole.lng },
+        ) <= 6
+      );
     });
 
     if (existingOnPole) {
-      showToast(`${nearestPole.title} já possui transformador`, 'info');
+      showToast(`${nearestPole.title} já possui transformador`, "info");
       return;
     }
 
-    const nextId = nextSequentialId(btTopology.transformers.map((transformer) => transformer.id), 'TR');
+    const nextId = nextSequentialId(
+      btTopology.transformers.map((transformer) => transformer.id),
+      "TR",
+    );
     const nextTransformer: BtTransformer = {
       id: nextId,
       poleId: nearestPole.id,
@@ -79,31 +81,45 @@ export function useBtTransformerOperations({
       demandKva: 0,
       demandKw: 0,
       readings: [],
-      transformerChangeFlag: 'existing'
+      transformerChangeFlag: "existing",
     };
 
     setAppState(
-      { ...appState, btTopology: { ...btTopology, transformers: [...btTopology.transformers, nextTransformer] } },
-      true
+      {
+        ...appState,
+        btTopology: {
+          ...btTopology,
+          transformers: [...btTopology.transformers, nextTransformer],
+        },
+      },
+      true,
     );
-    showToast(`${nextTransformer.title} inserido em ${nearestPole.title}`, 'success');
+    showToast(
+      `${nextTransformer.title} inserido em ${nearestPole.title}`,
+      "success",
+    );
   };
 
   const handleBtDeleteTransformer = (transformerId: string) => {
     setAppState(
       {
         ...appState,
-        btTopology: { ...btTopology, transformers: btTopology.transformers.filter((t) => t.id !== transformerId) }
+        btTopology: {
+          ...btTopology,
+          transformers: btTopology.transformers.filter(
+            (t) => t.id !== transformerId,
+          ),
+        },
       },
-      true
+      true,
     );
-    showToast(`Transformador ${transformerId} removido`, 'info');
+    showToast(`Transformador ${transformerId} removido`, "info");
   };
 
   const handleBtToggleTransformerOnPole = (poleId: string) => {
     const pole = btTopology.poles.find((candidate) => candidate.id === poleId);
     if (!pole) {
-      showToast('Poste não encontrado', 'error');
+      showToast("Poste não encontrado", "error");
       return;
     }
 
@@ -114,13 +130,16 @@ export function useBtTransformerOperations({
       return (
         distanceMeters(
           { lat: transformer.lat, lng: transformer.lng },
-          { lat: pole.lat, lng: pole.lng }
+          { lat: pole.lat, lng: pole.lng },
         ) <= 6
       );
     });
 
     if (transformersOnPole.length === 0) {
-      const nextId = nextSequentialId(btTopology.transformers.map((transformer) => transformer.id), 'TR');
+      const nextId = nextSequentialId(
+        btTopology.transformers.map((transformer) => transformer.id),
+        "TR",
+      );
       const nextTransformer: BtTransformer = {
         id: nextId,
         poleId,
@@ -132,35 +151,49 @@ export function useBtTransformerOperations({
         demandKva: 0,
         demandKw: 0,
         readings: [],
-        transformerChangeFlag: 'existing'
+        transformerChangeFlag: "existing",
       };
 
       setAppState(
-        { ...appState, btTopology: { ...btTopology, transformers: [...btTopology.transformers, nextTransformer] } },
-        true
+        {
+          ...appState,
+          btTopology: {
+            ...btTopology,
+            transformers: [...btTopology.transformers, nextTransformer],
+          },
+        },
+        true,
       );
-      showToast(`Transformador adicionado em ${pole.title}`, 'success');
+      showToast(`Transformador adicionado em ${pole.title}`, "success");
       return;
     }
 
-    const removeIds = new Set(transformersOnPole.map((transformer) => transformer.id));
+    const removeIds = new Set(
+      transformersOnPole.map((transformer) => transformer.id),
+    );
     setAppState(
       {
         ...appState,
         btTopology: {
           ...btTopology,
-          transformers: btTopology.transformers.filter((transformer) => !removeIds.has(transformer.id))
-        }
+          transformers: btTopology.transformers.filter(
+            (transformer) => !removeIds.has(transformer.id),
+          ),
+        },
       },
-      true
+      true,
     );
-    showToast(`Transformador removido de ${pole.title}`, 'success');
+    showToast(`Transformador removido de ${pole.title}`, "success");
   };
 
-  const handleBtDragTransformer = (transformerId: string, lat: number, lng: number) => {
+  const handleBtDragTransformer = (
+    transformerId: string,
+    lat: number,
+    lng: number,
+  ) => {
     const nearestPole = findNearestPole({ lat, lng });
     if (!nearestPole) {
-      showToast('Trafo deve permanecer atrelado a um poste', 'error');
+      showToast("Trafo deve permanecer atrelado a um poste", "error");
       return;
     }
 
@@ -171,12 +204,17 @@ export function useBtTransformerOperations({
           ...btTopology,
           transformers: btTopology.transformers.map((t) =>
             t.id === transformerId
-              ? { ...t, poleId: nearestPole.id, lat: nearestPole.lat, lng: nearestPole.lng }
-              : t
-          )
-        }
+              ? {
+                  ...t,
+                  poleId: nearestPole.id,
+                  lat: nearestPole.lat,
+                  lng: nearestPole.lng,
+                }
+              : t,
+          ),
+        },
       },
-      true
+      true,
     );
   };
 
@@ -186,14 +224,19 @@ export function useBtTransformerOperations({
         ...appState,
         btTopology: {
           ...btTopology,
-          transformers: btTopology.transformers.map((t) => (t.id === transformerId ? { ...t, title } : t))
-        }
+          transformers: btTopology.transformers.map((t) =>
+            t.id === transformerId ? { ...t, title } : t,
+          ),
+        },
       },
-      true
+      true,
     );
   };
 
-  const handleBtSetTransformerChangeFlag = (transformerId: string, transformerChangeFlag: BtTransformerChangeFlag) => {
+  const handleBtSetTransformerChangeFlag = (
+    transformerId: string,
+    transformerChangeFlag: BtTransformerChangeFlag,
+  ) => {
     setAppState(
       {
         ...appState,
@@ -201,12 +244,15 @@ export function useBtTransformerOperations({
           ...btTopology,
           transformers: btTopology.transformers.map((transformer) =>
             transformer.id === transformerId
-              ? normalizeBtTransformer({ ...transformer, transformerChangeFlag })
-              : transformer
-          )
-        }
+              ? normalizeBtTransformer({
+                  ...transformer,
+                  transformerChangeFlag,
+                })
+              : transformer,
+          ),
+        },
       },
-      true
+      true,
     );
   };
 
@@ -217,6 +263,6 @@ export function useBtTransformerOperations({
     handleBtToggleTransformerOnPole,
     handleBtDragTransformer,
     handleBtRenameTransformer,
-    handleBtSetTransformerChangeFlag
+    handleBtSetTransformerChangeFlag,
   };
 }

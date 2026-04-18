@@ -1,8 +1,16 @@
 """
 Submódulo: MtTopologia
-Responsabilidade Única: Desenho de topologia MT (postes MT e estruturas n1-n4).
+Responsabilidade Única: Desenho de topologia MT (postes MT, estruturas n1-n4 e vãos/condutores).
 Segue exatamente o mesmo padrão de BtTopologiaMixin.
 """
+
+# Flag colours per change flag — mirroring BT convention
+_EDGE_FLAG_COLORS = {
+    "new": 3,       # green
+    "remove": 1,    # red
+    "replace": 2,   # yellow
+    "existing": 30, # orange (MT default)
+}
 
 
 class MtTopologiaMixin:
@@ -46,14 +54,56 @@ class MtTopologiaMixin:
             struct_label, struct_point, layer="MT_LABELS", height=1.8, color=30
         )
 
+    def _draw_mt_edge(self, edge):
+        """Desenha um vão MT como polilinha na camada MT_CONDUTORES."""
+        from_xy = edge.get("fromXY")
+        to_xy = edge.get("toXY")
+        if not (isinstance(from_xy, (list, tuple)) and isinstance(to_xy, (list, tuple))):
+            return
+        if len(from_xy) < 2 or len(to_xy) < 2:
+            return
+
+        flag = str(edge.get("edgeChangeFlag") or "existing")
+        color = _EDGE_FLAG_COLORS.get(flag, 30)
+
+        x1 = self._safe_v(from_xy[0] - self.diff_x)
+        y1 = self._safe_v(from_xy[1] - self.diff_y)
+        x2 = self._safe_v(to_xy[0] - self.diff_x)
+        y2 = self._safe_v(to_xy[1] - self.diff_y)
+
+        self.msp.add_lwpolyline(
+            [(x1, y1), (x2, y2)],
+            dxfattribs={"layer": "MT_CONDUTORES", "color": color},
+        )
+
+        length_m = edge.get("lengthMeters")
+        if length_m is not None:
+            try:
+                length_m = float(length_m)
+                mid_x = (x1 + x2) / 2.0
+                mid_y = (y1 + y2) / 2.0
+                length_label = f"{length_m:.1f}m"
+                label_point = self._find_clear_label_point(
+                    (mid_x, mid_y + 1.2), min_distance=4.0
+                )
+                self._add_text(
+                    length_label, label_point, layer="MT_LABELS", height=1.5, color=30
+                )
+            except (TypeError, ValueError):
+                pass
+
     def add_mt_topology(self):
-        """Desenha toda a topologia MT (postes MT) no DXF."""
+        """Desenha toda a topologia MT (postes e vãos) no DXF."""
         if not isinstance(self.mt_context, dict) or not self.mt_context:
             return
 
         topology = self.mt_context.get("topologyProjected")
         if not isinstance(topology, dict):
             return
+
+        for edge in topology.get("edges", []):
+            if isinstance(edge, dict):
+                self._draw_mt_edge(edge)
 
         for pole in topology.get("poles", []):
             if isinstance(pole, dict):

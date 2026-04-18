@@ -15,6 +15,8 @@ import { SidebarMtEditorSection } from "./SidebarMtEditorSection";
 
 type WorkflowStage = "capture" | "network" | "mt" | "analysis";
 
+const STAGE_ORDER: WorkflowStage[] = ["capture", "network", "mt", "analysis"];
+
 type Props = {
   isSidebarDockedForRamalModal: boolean;
   isCollapsed?: boolean;
@@ -52,6 +54,8 @@ export function SidebarWorkspace({
           : "capture",
   );
 
+  const sidebarRef = React.useRef<HTMLElement>(null);
+
   React.useEffect(() => {
     if (hasAnalysis) {
       setActiveStage("analysis");
@@ -65,6 +69,50 @@ export function SidebarWorkspace({
       setActiveStage("network");
     }
   }, [hasAnalysis, hasMtTopology, hasBtTopology, activeStage]);
+
+  // PageUp / PageDown: navigate between workflow stage cards
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "PageDown" && e.key !== "PageUp") return;
+      const sidebar = sidebarRef.current;
+      if (!sidebar || !sidebar.contains(document.activeElement)) return;
+      const target = e.target as HTMLElement;
+      // Let select/textarea handle page keys natively
+      if (target.tagName === "SELECT" || target.tagName === "TEXTAREA") return;
+      e.preventDefault();
+      setActiveStage((prev) => {
+        const currentIdx = STAGE_ORDER.indexOf(prev);
+        const nextIdx =
+          e.key === "PageDown"
+            ? Math.min(currentIdx + 1, STAGE_ORDER.length - 1)
+            : Math.max(currentIdx - 1, 0);
+        if (nextIdx === currentIdx) return prev;
+        requestAnimationFrame(() => {
+          sidebar
+            .querySelector(`[data-card-stage="${STAGE_ORDER[nextIdx]}"]`)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        return STAGE_ORDER[nextIdx];
+      });
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Auto-scroll sidebar so focused inputs never hide below the bottom edge
+  React.useEffect(() => {
+    const sidebar = sidebarRef.current;
+    if (!sidebar) return;
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target || target === sidebar) return;
+      requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    };
+    sidebar.addEventListener("focusin", handleFocusIn);
+    return () => sidebar.removeEventListener("focusin", handleFocusIn);
+  }, []);
 
   const workflowStages: Array<{
     key: WorkflowStage;
@@ -128,6 +176,7 @@ export function SidebarWorkspace({
 
   return (
     <motion.aside
+      ref={sidebarRef}
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       className={`app-sidebar z-20 flex flex-col gap-4 overflow-y-auto border-r transition-all duration-300 scrollbar-hide xl:shrink-0 ${
@@ -185,7 +234,7 @@ export function SidebarWorkspace({
         </div>
       </div>
 
-      <div className="glass-card p-4 md:p-5">
+      <div className="glass-card p-4 md:p-5" data-card-stage="capture">
         <div className="mb-3 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
@@ -209,7 +258,7 @@ export function SidebarWorkspace({
         </div>
       </div>
 
-      <div className="glass-card p-4 md:p-5">
+      <div className="glass-card p-4 md:p-5" data-card-stage="network">
         <div className="mb-3 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
@@ -234,7 +283,7 @@ export function SidebarWorkspace({
         </div>
       </div>
 
-      <div className="glass-card p-4 md:p-5">
+      <div className="glass-card p-4 md:p-5" data-card-stage="mt">
         <div className="mb-3 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
@@ -259,7 +308,7 @@ export function SidebarWorkspace({
         </div>
       </div>
 
-      <div className="glass-card mb-1 p-4 md:p-5">
+      <div className="glass-card mb-1 p-4 md:p-5" data-card-stage="analysis">
         <div className="mb-3 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
@@ -285,10 +334,18 @@ export function SidebarWorkspace({
       </div>
 
       <div className="glass-card sticky bottom-0 z-10 mt-auto p-3 backdrop-blur-sm">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-          Próxima ação
-        </p>
-        <p className="mb-3 mt-1 text-xs font-medium text-slate-700 dark:text-slate-200">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+            Próxima ação
+          </p>
+          <span
+            className="text-[9px] font-semibold text-slate-400 dark:text-slate-600 select-none"
+            title="Use PageUp/PageDown para navegar entre etapas"
+          >
+            PgUp / PgDn
+          </span>
+        </div>
+        <p className="mt-1 mb-3 text-xs font-medium text-slate-700 dark:text-slate-200">
           {guidanceText}
         </p>
         <button

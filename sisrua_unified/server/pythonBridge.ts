@@ -1,6 +1,5 @@
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import path from "path";
-import { fileURLToPath } from "url";
 import { logger } from "./utils/logger.js";
 import { config } from "./config.js";
 import { metricsService } from "./services/metricsService.js";
@@ -57,6 +56,92 @@ interface DxfOptions {
   projection?: string;
   contourRenderMode?: "spline" | "polyline";
   btContext?: Record<string, unknown> | null;
+  mtContext?: Record<string, unknown> | null;
+}
+
+interface PythonEnvProbeResult {
+  command: string;
+  executable: string;
+  version: string;
+  missingModules: string[];
+  pyEnginePathPresent: boolean;
+}
+
+const REQUIRED_PYTHON_MODULES = [
+  "ezdxf",
+  "numpy",
+  "pandas",
+  "shapely",
+  "geopandas",
+  "pydantic",
+] as const;
+
+const PYTHON_ENV_PROBE_TTL_MS = 5 * 60 * 1_000;
+const pythonEnvProbeCache = new Map<string, { at: number; result: PythonEnvProbeResult }>();
+
+function buildPythonEnvProbeCode(): string {
+  const modules = JSON.stringify(REQUIRED_PYTHON_MODULES);
+  return [
+    "import importlib.util, json, os, platform, sys",
+    `required=${modules}`,
+    "missing=[m for m in required if importlib.util.find_spec(m) is None]",
+    "print(json.dumps({",
+    "'executable': sys.executable,",
+    "'version': platform.python_version(),",
+    "'missingModules': missing,",
+    "'cwd': os.getcwd(),",
+    "'pyEnginePathPresent': importlib.util.find_spec('controller') is not None",
+    "}))",
+  ].join(";");
+}
+
+function probePythonEnvironment(command: string): PythonEnvProbeResult {
+  const now = Date.now();
+  const cached = pythonEnvProbeCache.get(command);
+  if (cached && now - cached.at <= PYTHON_ENV_PROBE_TTL_MS) {
+    return cached.result;
+  }
+
+  const check = spawnSync(command, ["-c", buildPythonEnvProbeCode()], {
+    cwd: path.join(dirname, "..", "py_engine"),
+    timeout: 10_000,
+    encoding: "utf-8",
+  });
+
+  if (check.error) {
+    throw new Error(
+      `Python env probe failed for '${command}': ${check.error.message}`,
+    );
+  }
+
+  if (typeof check.status === "number" && check.status !== 0) {
+    const stderr = (check.stderr || "").trim();
+    throw new Error(
+      `Python env probe exited with code ${check.status} for '${command}'. stderr=${stderr || "<empty>"}`,
+    );
+  }
+
+  let parsed: Omit<PythonEnvProbeResult, "command">;
+  try {
+    parsed = JSON.parse((check.stdout || "").trim());
+  } catch {
+    throw new Error(
+      `Python env probe returned invalid JSON for '${command}': ${(check.stdout || "").trim()}`,
+    );
+  }
+
+  const result: PythonEnvProbeResult = {
+    command,
+    executable: String(parsed.executable || ""),
+    version: String(parsed.version || ""),
+    missingModules: Array.isArray(parsed.missingModules)
+      ? parsed.missingModules.map((item) => String(item))
+      : [],
+    pyEnginePathPresent: Boolean(parsed.pyEnginePathPresent),
+  };
+
+  pythonEnvProbeCache.set(command, { at: now, result });
+  return result;
 }
 
 export const generateDxf = (options: DxfOptions): Promise<string> => {
@@ -145,6 +230,10 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
       args.push("--bt_context", JSON.stringify(options.btContext));
     }
 
+    if (options.mtContext) {
+      args.push("--mt_context", JSON.stringify(options.mtContext));
+    }
+
     logger.info("Spawning Python process for DXF generation", {
       commandCandidates,
       args: args.join(" "),
@@ -164,7 +253,46 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
 
     const runWithCommand = (index: number) => {
       const selectedCommand = commandCandidates[index];
-      const pythonProcess = spawn(selectedCommand, args);
+      let envProbe: PythonEnvProbeResult;
+
+      try {
+        envProbe = probePythonEnvironment(selectedCommand);
+      } catch (probeError) {
+        const hasNextCandidate = index < commandCandidates.length - 1;
+        if (hasNextCandidate) {
+          logger.warn("Python env probe failed, trying fallback command", {
+            attempted: selectedCommand,
+            next: commandCandidates[index + 1],
+            error:
+              probeError instanceof Error
+                ? probeError.message
+                : String(probeError),
+          });
+          runWithCommand(index + 1);
+          return;
+        }
+        reject(
+          new Error(
+            probeError instanceof Error
+              ? probeError.message
+              : String(probeError),
+          ),
+        );
+        return;
+      }
+
+      if (envProbe.missingModules.length > 0 || !envProbe.pyEnginePathPresent) {
+        reject(
+          new Error(
+            `Python environment invalid for '${selectedCommand}' executable='${envProbe.executable}' version='${envProbe.version}' missingModules=[${envProbe.missingModules.join(", ")}] pyEnginePathPresent=${envProbe.pyEnginePathPresent}`,
+          ),
+        );
+        return;
+      }
+
+      const pythonProcess = spawn(selectedCommand, args, {
+        cwd: path.join(dirname, "..", "py_engine"),
+      });
       let stdoutData = "";
       let stderrData = "";
       let handled = false;
@@ -261,7 +389,7 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
           stderrData || stdoutData || "No error output captured";
         reject(
           new Error(
-            `Python script '${selectedCommand}' failed with code ${code}\nDetails: ${errorDetail}`,
+            `Python script '${selectedCommand}' failed with code ${code} | executable='${envProbe.executable}' version='${envProbe.version}' cwd='${path.join(dirname, "..", "py_engine")}'\nDetails: ${errorDetail}`,
           ),
         );
       });

@@ -26,7 +26,7 @@ interface FloatingLayerPanelProps {
 const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
   settings,
   onUpdateSettings,
-  isDark,
+  isDark: _isDark,
 }) => {
   const [panelUiState, setPanelUiState] = useState(() =>
     loadFloatingLayerPanelUiState(),

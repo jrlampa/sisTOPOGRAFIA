@@ -132,6 +132,9 @@ export function buildBtDxfContext({
 
   const cqtComputationInputs: BtCqtComputationInputs = {
     scenario: cqtScenario,
+    qtPontoCalculationMethod:
+      settings.btQtPontoCalculationMethod ?? "impedance_modulus",
+    powerFactor: settings.btCqtPowerFactor ?? 0.92,
     dmdi: {
       clandestinoEnabled: (settings.projectType ?? "ramais") === "clandestino",
       aa24DemandBase,

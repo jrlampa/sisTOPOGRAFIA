@@ -1,12 +1,7 @@
-import { BtTopology, BtProjectType, BtPoleNode, BtEdge, BtPoleRamalEntry } from "../types";
+import { BtTopology, BtProjectType } from "../types";
 import { haversineDistanceMeters } from "../../shared/geodesic";
-import L from "leaflet";
-import { 
-  getTransformerDemandKva 
-} from "./btTransformerCalculations";
-import { 
-  calculateClandestinoDemandKvaByAreaAndClients 
-} from "./btClandestinoCalculations";
+import { getTransformerDemandKva } from "./btTransformerCalculations";
+import { calculateClandestinoDemandKvaByAreaAndClients } from "./btClandestinoCalculations";
 
 const CLANDESTINO_RAMAL_TYPE = "Clandestino";
 
@@ -25,10 +20,30 @@ export interface BtPoleAccumulatedDemand {
   worstRamalStatus?: string;
 }
 
+export interface BtAccumulatedKvaInput {
+  projectType: BtProjectType;
+  clandestinoAreaM2: number;
+  accumulatedClients: number;
+  downstreamAccumulatedKva: number;
+  totalTrechoKva: number;
+}
+
 export interface BtTransformerEstimatedDemand {
   transformerId: string;
   assignedClients: number;
   estimatedDemandKva: number;
+  /** @deprecated Use estimatedDemandKva. */
+  estimatedDemandKw: number;
+}
+
+export interface BtSectioningImpact {
+  unservedPoleIds: string[];
+  unservedClients: number;
+  estimatedDemandKva: number;
+  /** @deprecated Use estimatedDemandKva. */
+  estimatedDemandKw: number;
+  loadCenter: { lat: number; lng: number } | null;
+  suggestedPoleId: string | null;
 }
 
 const RAMAL_WEIGHT_BY_TYPE_ATUAL = new Map<string, number>([
@@ -86,11 +101,9 @@ const getPoleClientsByProjectType = (
       .reduce((sum, ramal) => sum + ramal.quantity, 0);
   }
 
-  return (
-    ramais
-      .filter((ramal) => ramal.ramalType !== CLANDESTINO_RAMAL_TYPE)
-      .reduce((sum, ramal) => sum + ramal.quantity, 0)
-  );
+  return ramais
+    .filter((ramal) => ramal.ramalType !== CLANDESTINO_RAMAL_TYPE)
+    .reduce((sum, ramal) => sum + ramal.quantity, 0);
 };
 
 export const calculateTransformerOwnershipData = (
@@ -403,7 +416,7 @@ export const calculateAccumulatedDemandByPole = (
       (sum, child) => sum + child.accumulatedDemandKva,
       0,
     );
-    
+
     // Equivalent logic to the original calculateAccumulatedDemandKva
     const accumulatedDemandKva =
       projectType === "clandestino"
@@ -435,6 +448,22 @@ export const calculateAccumulatedDemandByPole = (
       localTrechoDemandKva: Number(item.localTrechoDemandKva.toFixed(2)),
       accumulatedDemandKva: Number(item.accumulatedDemandKva.toFixed(2)),
     }));
+};
+
+export const calculateAccumulatedDemandKva = ({
+  projectType,
+  clandestinoAreaM2,
+  accumulatedClients,
+  downstreamAccumulatedKva,
+  totalTrechoKva,
+}: BtAccumulatedKvaInput): number => {
+  if (projectType === "clandestino") {
+    return calculateClandestinoDemandKvaByAreaAndClients(
+      clandestinoAreaM2,
+      accumulatedClients,
+    );
+  }
+  return Number((downstreamAccumulatedKva + totalTrechoKva).toFixed(2));
 };
 
 export const calculateEstimatedDemandByTransformer = (
@@ -485,6 +514,7 @@ export const calculateEstimatedDemandByTransformer = (
       transformerId: transformer.id,
       assignedClients: stats.clients,
       estimatedDemandKva: Number(stats.kva.toFixed(2)),
+      estimatedDemandKw: Number(stats.kva.toFixed(2)),
     };
   });
 };
@@ -507,5 +537,109 @@ export const calculateBtSummary = (topology: BtTopology) => {
     transformerDemandKva,
     /** @deprecated */
     transformerDemandKw: transformerDemandKva,
+  };
+};
+
+/** @deprecated Use haversineDistanceMeters directly. */
+export const distanceMetersBetween = (
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): number => {
+  return haversineDistanceMeters(a, b);
+};
+
+export const calculateSectioningImpact = (
+  topology: BtTopology,
+  projectType: BtProjectType,
+  clandestinoAreaM2: number,
+): BtSectioningImpact => {
+  if (topology.poles.length === 0) {
+    return {
+      unservedPoleIds: [],
+      unservedClients: 0,
+      estimatedDemandKva: 0,
+      estimatedDemandKw: 0,
+      loadCenter: null,
+      suggestedPoleId: null,
+    };
+  }
+
+  const { localClientByPole, ownerTransformerByPole } =
+    calculateTransformerOwnershipData(topology, projectType);
+  const unservedPoles = topology.poles.filter(
+    (pole) => !ownerTransformerByPole.has(pole.id),
+  );
+  const unservedPoleIds = unservedPoles.map((pole) => pole.id);
+
+  const unservedClients = unservedPoles.reduce(
+    (sum, pole) => sum + (localClientByPole.get(pole.id) ?? 0),
+    0,
+  );
+
+  const accumulatedDemandByPole = calculateAccumulatedDemandByPole(
+    topology,
+    projectType,
+    clandestinoAreaM2,
+  );
+
+  const localDemandByPole = new Map<string, number>();
+  for (const item of accumulatedDemandByPole) {
+    localDemandByPole.set(item.poleId, item.localTrechoDemandKva);
+  }
+
+  const estimatedDemandKva = unservedPoles.reduce(
+    (sum, pole) => sum + (localDemandByPole.get(pole.id) ?? 0),
+    0,
+  );
+
+  if (unservedPoles.length === 0) {
+    return {
+      unservedPoleIds,
+      unservedClients,
+      estimatedDemandKva,
+      estimatedDemandKw: estimatedDemandKva,
+      loadCenter: null,
+      suggestedPoleId: null,
+    };
+  }
+
+  const weighted = unservedPoles.map((pole) => {
+    const clients = localClientByPole.get(pole.id) ?? 0;
+    return {
+      pole,
+      weight: clients > 0 ? clients : 1,
+    };
+  });
+
+  const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
+  const loadCenter = {
+    lat:
+      weighted.reduce((sum, item) => sum + item.pole.lat * item.weight, 0) /
+      (totalWeight || 1),
+    lng:
+      weighted.reduce((sum, item) => sum + item.pole.lng * item.weight, 0) /
+      (totalWeight || 1),
+  };
+
+  let suggestedPoleId: string | null = null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  for (const pole of unservedPoles) {
+    const currentDistance = distanceMetersBetween(loadCenter, {
+      lat: pole.lat,
+      lng: pole.lng,
+    });
+    if (currentDistance < nearestDistance) {
+      nearestDistance = currentDistance;
+      suggestedPoleId = pole.id;
+    }
+  }
+
+  return {
+    unservedPoleIds,
+    unservedClients,
+    estimatedDemandKva: Number(estimatedDemandKva.toFixed(2)),
+    estimatedDemandKw: Number(estimatedDemandKva.toFixed(2)),
+    loadCenter,
+    suggestedPoleId,
   };
 };

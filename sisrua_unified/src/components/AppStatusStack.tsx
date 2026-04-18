@@ -46,7 +46,7 @@ export function AppStatusStack({
       setIsBtSummaryVisible(true);
     }
   }, [
-    btExportSummaryProps.latestBtExport?.btContextUrl,
+    btExportSummaryProps.latestBtExport,
     btExportSummaryProps.btExportHistory.length,
   ]);
 

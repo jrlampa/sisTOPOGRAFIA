@@ -2,11 +2,7 @@ import { GlobalState, GeoLocation, MtTopology } from "../types";
 import { ToastType } from "../components/Toast";
 import { useMtPoleOperations } from "./useMtPoleOperations";
 import { useMtEdgeOperations } from "./useMtEdgeOperations";
-import {
-  EMPTY_MT_TOPOLOGY,
-  normalizeMtPoles,
-  normalizeMtEdges,
-} from "../utils/mtNormalization";
+import { normalizeMtPoles, normalizeMtEdges } from "../utils/mtNormalization";
 
 type Params = {
   appState: GlobalState;
@@ -14,7 +10,11 @@ type Params = {
   showToast: (message: string, type: ToastType) => void;
 };
 
-export function useMtCrudHandlers({ appState, setAppState, showToast }: Params) {
+export function useMtCrudHandlers({
+  appState,
+  setAppState,
+  showToast,
+}: Params) {
   const poles = useMtPoleOperations({ appState, setAppState, showToast });
   const edges = useMtEdgeOperations({
     appState,
@@ -40,7 +40,11 @@ export function useMtCrudHandlers({ appState, setAppState, showToast }: Params) 
   const handleMtMapClick = (location: GeoLocation) => {
     const { mtEditorMode } = appState.settings;
 
-    if (!mtEditorMode || mtEditorMode === "none" || mtEditorMode === "mt-move-pole") {
+    if (
+      !mtEditorMode ||
+      mtEditorMode === "none" ||
+      mtEditorMode === "mt-move-pole"
+    ) {
       return;
     }
 

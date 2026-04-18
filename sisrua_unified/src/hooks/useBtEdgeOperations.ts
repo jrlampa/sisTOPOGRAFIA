@@ -12,19 +12,12 @@
  */
 
 import { useState } from "react";
-import {
-  GlobalState,
-  GeoLocation,
-  BtTopology,
-  BtEdge,
-  AppSettings,
-} from "../types";
+import { GlobalState, GeoLocation, BtEdge } from "../types";
 import { ToastType } from "../components/Toast";
 import {
   EMPTY_BT_TOPOLOGY,
   DEFAULT_EDGE_CONDUCTOR,
   BtEdgeChangeFlag,
-  getEdgeChangeFlag,
   normalizeBtEdge,
   distanceMeters,
   nextSequentialId,
@@ -48,7 +41,6 @@ export function useBtEdgeOperations({
   findNearestPole,
 }: Params) {
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
-  const settings: AppSettings = appState.settings;
 
   // ── UI state for edge operations ───────────────────────────────────────────
   const [pendingBtEdgeStartPoleId, setPendingBtEdgeStartPoleId] = useState<

@@ -23,6 +23,8 @@ const DEFAULT_APP_STATE: GlobalState = {
     btNetworkScenario: "asis",
     btEditorMode: "none",
     btTransformerCalculationMode: "automatic",
+    btQtPontoCalculationMethod: "impedance_modulus",
+    btCqtPowerFactor: 0.92,
     clandestinoAreaM2: 0,
     mtEditorMode: "none",
     layers: {

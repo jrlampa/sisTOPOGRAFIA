@@ -1,4 +1,4 @@
-import { GeoLocation, TerrainGrid } from "../types";
+
 import { API_BASE_URL } from "../config/api";
 
 const API_URL = API_BASE_URL;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { GeoLocation } from "../types";
 import { API_BASE_URL } from "../config/api";
 import { getSearchQueryFeedback, shouldAutoSearch } from "../utils/validation";
@@ -18,60 +18,64 @@ export function useSearch({
   const [isSearching, setIsSearching] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const executeSearch = async (query: string) => {
-    const sanitizedQuery = query.trim();
-    const validation = getSearchQueryFeedback(sanitizedQuery);
+  const executeSearch = useCallback(
+    async (query: string) => {
+      const sanitizedQuery = query.trim();
+      const validation = getSearchQueryFeedback(sanitizedQuery);
 
-    if (!validation.isValid) {
-      onError(validation.message);
-      return;
-    }
+      if (!validation.isValid) {
+        onError(validation.message);
+        return;
+      }
 
-    setIsSearching(true);
+      setIsSearching(true);
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/search`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: sanitizedQuery }),
-      });
+      try {
+        const response = await fetch(`${API_BASE_URL}/search`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: sanitizedQuery }),
+        });
 
-      if (!response.ok) {
-        let apiErrorMessage = "Location not found";
+        if (!response.ok) {
+          let apiErrorMessage = "Location not found";
 
-        try {
-          const errorPayload = (await response.json()) as {
-            details?: string;
-            error?: string;
-            message?: string;
-          };
+          try {
+            const errorPayload = (await response.json()) as {
+              details?: string;
+              error?: string;
+              message?: string;
+            };
 
-          apiErrorMessage =
-            errorPayload.details ||
-            errorPayload.error ||
-            errorPayload.message ||
-            apiErrorMessage;
-        } catch {
-          // Keep fallback message when response body is not JSON.
+            apiErrorMessage =
+              errorPayload.details ||
+              errorPayload.error ||
+              errorPayload.message ||
+              apiErrorMessage;
+          } catch {
+            // Keep fallback message when response body is not JSON.
+          }
+
+          throw new Error(apiErrorMessage);
         }
 
-        throw new Error(apiErrorMessage);
-      }
+        const location: GeoLocation = await response.json();
 
-      const location: GeoLocation = await response.json();
-
-      if (location) {
-        onLocationFound(location);
-      } else {
-        throw new Error("No location data received");
+        if (location) {
+          onLocationFound(location);
+        } else {
+          throw new Error("No location data received");
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Search failed";
+        onError(message);
+      } finally {
+        setIsSearching(false);
       }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Search failed";
-      onError(message);
-    } finally {
-      setIsSearching(false);
-    }
-  };
+    },
+    [onError, onLocationFound],
+  );
 
   // Debounce logic
   useEffect(() => {
@@ -88,7 +92,7 @@ export function useSearch({
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [searchQuery, debounceMs]);
+  }, [searchQuery, debounceMs, executeSearch]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,5 +1,8 @@
 import { BtTransformerReading } from "../types";
-import { CURRENT_TO_DEMAND_CONVERSION } from "../constants/btPhysicalConstants";
+import {
+  CURRENT_TO_DEMAND_CONVERSION,
+  DEFAULT_TEMPERATURE_FACTOR,
+} from "../constants/btPhysicalConstants";
 
 export const getTransformerDemandKva = (transformer: {
   demandKva?: number;
@@ -14,7 +17,8 @@ export const getTransformerDemandKva = (transformer: {
   if (hasUsableReadings) {
     const correctedDemands = readings.map((reading) => {
       const currentMaxA = reading.currentMaxA ?? 0;
-      const temperatureFactor = reading.temperatureFactor ?? 1;
+      const temperatureFactor =
+        reading.temperatureFactor ?? DEFAULT_TEMPERATURE_FACTOR;
       const maxDemandKva = currentMaxA * CURRENT_TO_DEMAND_CONVERSION;
       return maxDemandKva * temperatureFactor;
     });
@@ -50,7 +54,8 @@ export const calculateTransformerDemandKva = (
 
   const correctedDemands = readings.map((reading) => {
     const currentMaxA = reading.currentMaxA ?? 0;
-    const temperatureFactor = reading.temperatureFactor ?? 1;
+    const temperatureFactor =
+      reading.temperatureFactor ?? DEFAULT_TEMPERATURE_FACTOR;
     const maxDemandKva = currentMaxA * CURRENT_TO_DEMAND_CONVERSION;
     return maxDemandKva * temperatureFactor;
   });

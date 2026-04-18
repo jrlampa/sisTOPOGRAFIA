@@ -120,6 +120,10 @@ const cqtBranchInputSchema = z.object({
 
 const cqtComputationInputsSchema = z.object({
   scenario: z.enum(["atual", "proj1", "proj2"]).optional(),
+  qtPontoCalculationMethod: z
+    .enum(["impedance_modulus", "power_factor"])
+    .optional(),
+  powerFactor: z.coerce.number().positive().max(1).optional(),
   dmdi: cqtDmdiInputSchema.optional(),
   geral: cqtGeralInputSchema.optional(),
   db: cqtDbInputSchema.optional(),
@@ -158,8 +162,18 @@ const mtPoleSchema = z.object({
     .optional(),
 });
 
+const mtEdgeSchema = z.object({
+  id: z.string().min(1),
+  fromPoleId: z.string().min(1),
+  toPoleId: z.string().min(1),
+  lengthMeters: z.coerce.number().min(0).optional(),
+  verified: z.boolean().optional(),
+  edgeChangeFlag: z.enum(["existing", "new", "remove", "replace"]).optional(),
+});
+
 const mtTopologySchema = z.object({
   poles: z.array(mtPoleSchema),
+  edges: z.array(mtEdgeSchema).optional(),
 });
 
 const mtContextSchema = z.object({

@@ -169,7 +169,8 @@ const windCatalogListQuerySchema = createListQuerySchema(
 // ─── Error handler middleware ────────────────────────────────────────────────
 
 const asyncHandler =
-  (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
+  (fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) =>
+  (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 
@@ -675,7 +676,7 @@ router.get("/catalog/vento-coeficientes", (req: Request, res: Response) => {
 
 // ─── Error handler (must be last) ────────────────────────────────────────────
 
-router.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+router.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
   console.error("[API Error]", err);
   return res.status(500).json({
     success: false,

@@ -53,22 +53,41 @@ export const parseWorkbookNumber = (value: unknown): number | null => {
   return null;
 };
 
+export const sanitizeWorkbookText = (value: string): string =>
+  value
+    .replace(/^\uFEFF/, "")
+    .replace(/\r\n?/g, "\n")
+    .trim();
+
 export const buildTopologyWithBulkRamais = (
   rawInput: string,
   sourceTopology: BtTopology,
-): { nextTopology: BtTopology; insertedRamais: number; countPoles: number; notFoundPoles: string[] } | null => {
+): {
+  nextTopology: BtTopology;
+  insertedRamais: number;
+  countPoles: number;
+  notFoundPoles: string[];
+} | null => {
   const raw = rawInput.trim();
   if (!raw) return null;
 
-  const lines = raw.split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0);
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
   if (lines.length < 2) return null;
 
-  const splitCells = (line: string) => line.includes("\t") ? line.split("\t") : line.split(";");
-  const table = lines.map((line) => splitCells(line).map((cell) => cell.trim()));
+  const splitCells = (line: string) =>
+    line.includes("\t") ? line.split("\t") : line.split(";");
+  const table = lines.map((line) =>
+    splitCells(line).map((cell) => cell.trim()),
+  );
 
   const headerIndex = table.findIndex((cells) => {
     const first = normalizeHeaderKey(cells[0] ?? "");
-    return first.includes("POSTE") || first === "NDOPOSTE" || first === "NUMEROPOSTE";
+    return (
+      first.includes("POSTE") || first === "NDOPOSTE" || first === "NUMEROPOSTE"
+    );
   });
 
   const effectiveHeaderIndex = headerIndex >= 0 ? headerIndex : 0;
@@ -129,5 +148,10 @@ export const buildTopologyWithBulkRamais = (
     }),
   };
 
-  return { nextTopology, insertedRamais, countPoles: appendByPoleId.size, notFoundPoles };
+  return {
+    nextTopology,
+    insertedRamais,
+    countPoles: appendByPoleId.size,
+    notFoundPoles,
+  };
 };

@@ -1,6 +1,5 @@
 import React from "react";
-import { Pane, Polyline, Marker, Popup } from "react-leaflet";
-import L from "leaflet";
+import { Pane, Polyline, Popup } from "react-leaflet";
 import { Trash2 } from "lucide-react";
 import { MtEdge, MtPoleNode, MtTopology } from "../../types";
 
@@ -94,14 +93,22 @@ const MapSelectorMtEdgesLayer: React.FC<MapSelectorMtEdgesLayerProps> = ({
                   <div className="mt-1.5 flex flex-col gap-1.5">
                     <div className={POPUP_FLAG_GRID_CLASS}>
                       <button
-                        onClick={() => onMtSetEdgeChangeFlag?.(edge.id, "existing")}
-                        className={getFlagButtonClass(edgeChangeFlag === "existing", "existing")}
+                        onClick={() =>
+                          onMtSetEdgeChangeFlag?.(edge.id, "existing")
+                        }
+                        className={getFlagButtonClass(
+                          edgeChangeFlag === "existing",
+                          "existing",
+                        )}
                       >
                         Existente
                       </button>
                       <button
                         onClick={() => onMtSetEdgeChangeFlag?.(edge.id, "new")}
-                        className={getFlagButtonClass(edgeChangeFlag === "new", "new")}
+                        className={getFlagButtonClass(
+                          edgeChangeFlag === "new",
+                          "new",
+                        )}
                       >
                         Novo
                       </button>

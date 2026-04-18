@@ -49,7 +49,7 @@ const TenantIdParamSchema = z.object({
     .min(1)
     .max(128)
     .regex(
-      /^[\w\-\.@]+$/,
+      /^[\w.@-]+$/,
       "tenantId deve conter apenas letras, números, hífens, underscores, pontos ou @",
     )
     .refine((v) => !v.includes(".."), {

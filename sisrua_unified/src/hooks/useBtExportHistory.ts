@@ -191,6 +191,7 @@ export function useBtExportHistory({
 
     btHistoryHydratedRef.current = true;
     void loadBtHistoryPage(0, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appState]);
 
   useEffect(() => {

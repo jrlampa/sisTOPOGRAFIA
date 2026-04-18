@@ -15,7 +15,7 @@
  *   - Trilha de auditoria de descartes realizados
  */
 
-import { randomUUID } from 'crypto';
+import { randomUUID, createHash } from 'crypto';
 
 // ─── Enumerações ──────────────────────────────────────────────────────────────
 
@@ -301,7 +301,6 @@ export function concluirDescarte(input: {
         dataExecucao: agora,
     };
 
-    const { createHash } = require('crypto');
     const integrityHash: string = createHash('sha256')
         .update(JSON.stringify(certPayload))
         .digest('hex');

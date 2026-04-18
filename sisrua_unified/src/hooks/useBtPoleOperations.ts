@@ -20,6 +20,7 @@ import {
   GeoLocation,
   BtTopology,
   BtPoleNode,
+  BtProjectType,
   AppSettings,
 } from "../types";
 import { ToastType } from "../components/Toast";

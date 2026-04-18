@@ -12,6 +12,7 @@ import {
   ContourRenderMode,
   BtProjectType,
   BtEditorMode,
+  BtQtPontoCalculationMethod,
   BtTransformerCalculationMode,
 } from "../types";
 import { SettingsModalProjectTab } from "./settings/SettingsModalProjectTab";
@@ -48,12 +49,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   settings,
   onUpdateSettings,
-  selectionMode,
-  onSelectionModeChange,
-  radius,
-  onRadiusChange,
-  polygon,
-  onClearPolygon,
+  selectionMode: _selectionMode,
+  onSelectionModeChange: _onSelectionModeChange,
+  radius: _radius,
+  onRadiusChange: _onRadiusChange,
+  polygon: _polygon,
+  onClearPolygon: _onClearPolygon,
   hasData,
   isDownloading,
   onExportDxf,
@@ -108,6 +109,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const setBtTransformerCalculationMode = (
     btTransformerCalculationMode: BtTransformerCalculationMode,
   ) => onUpdateSettings({ ...settings, btTransformerCalculationMode });
+  const setBtQtPontoCalculationMethod = (
+    btQtPontoCalculationMethod: BtQtPontoCalculationMethod,
+  ) => onUpdateSettings({ ...settings, btQtPontoCalculationMethod });
+  const setBtCqtPowerFactor = (btCqtPowerFactor: number) =>
+    onUpdateSettings({ ...settings, btCqtPowerFactor });
   const setClandestinoAreaM2 = (clandestinoAreaM2: number) =>
     onUpdateSettings({ ...settings, clandestinoAreaM2 });
 
@@ -199,6 +205,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               setBtProjectType={setBtProjectType}
               setBtEditorMode={setBtEditorMode}
               setBtTransformerCalculationMode={setBtTransformerCalculationMode}
+              setBtQtPontoCalculationMethod={setBtQtPontoCalculationMethod}
+              setBtCqtPowerFactor={setBtCqtPowerFactor}
               setClandestinoAreaM2={setClandestinoAreaM2}
               updateMetadata={updateMetadata}
             />

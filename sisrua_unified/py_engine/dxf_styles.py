@@ -63,6 +63,9 @@ class DXFStyleManager:
             ("BT_CALLOUT", 1, 0.18),
             ("BT_LABELS", 2, 0.15),
             ("BT_RAMAIS", 2, 0.15),
+            ("MT_POSTES", 30, 0.20),
+            ("MT_CONDUTORES", 30, 0.25),
+            ("MT_LABELS", 30, 0.15),
         ]
 
         # Standard CAD lineweights mapped (mm to internal int)
@@ -150,6 +153,18 @@ class DXFStyleManager:
             )
             blk.add_line(
                 (0, -1.7), (0, -4.8), dxfattribs={"layer": "BT_TRAFOS", "color": 3}
+            )
+
+        # MT_POSTE (Medium Voltage Pole — diamond with inner circle)
+        if "MT_POSTE" not in doc.blocks:
+            blk = doc.blocks.new(name="MT_POSTE")
+            blk.add_circle(
+                (0, 0), radius=0.65, dxfattribs={"layer": "MT_POSTES", "color": 30}
+            )
+            blk.add_lwpolyline(
+                [(0, 0.65), (0.65, 0), (0, -0.65), (-0.65, 0)],
+                close=True,
+                dxfattribs={"layer": "MT_POSTES", "color": 30},
             )
 
         # BANCO (Bench)

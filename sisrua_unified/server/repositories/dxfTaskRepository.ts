@@ -22,6 +22,7 @@ export interface DxfTaskPayload {
   projection?: string;
   contourRenderMode?: string;
   btContext?: Record<string, unknown> | null;
+  mtContext?: Record<string, unknown> | null;
 }
 
 export interface DxfTaskRow {

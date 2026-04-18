@@ -2,17 +2,17 @@
  * Centralized error handling utilities
  * Categorizes errors for better debugging and client feedback
  */
-import { config } from './config.js';
+import { config } from "./config.js";
 
 export enum ErrorCategory {
-  VALIDATION = 'ValidationError',
-  AUTHENTICATION = 'AuthenticationError',
-  AUTHORIZATION = 'AuthorizationError',
-  NOT_FOUND = 'NotFoundError',
-  CONFLICT = 'ConflictError',
-  RATE_LIMIT = 'RateLimitError',
-  EXTERNAL_SERVICE = 'ExternalServiceError',
-  INTERNAL = 'InternalError',
+  VALIDATION = "ValidationError",
+  AUTHENTICATION = "AuthenticationError",
+  AUTHORIZATION = "AuthorizationError",
+  NOT_FOUND = "NotFoundError",
+  CONFLICT = "ConflictError",
+  RATE_LIMIT = "RateLimitError",
+  EXTERNAL_SERVICE = "ExternalServiceError",
+  INTERNAL = "InternalError",
 }
 
 export interface ApiErrorResponse {
@@ -32,10 +32,10 @@ export class ApiError extends Error {
     message: string,
     statusCode: number,
     code: ErrorCategory,
-    details?: Record<string, any>
+    details?: Record<string, any>,
   ) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.statusCode = statusCode;
     this.code = code;
     this.details = details;
@@ -68,12 +68,17 @@ export const createError = {
     new ApiError(message, 403, ErrorCategory.AUTHORIZATION, details),
 
   notFound: (resource: string, details?: Record<string, any>) =>
-    new ApiError(`${resource} not found`, 404, ErrorCategory.NOT_FOUND, details),
+    new ApiError(
+      `${resource} not found`,
+      404,
+      ErrorCategory.NOT_FOUND,
+      details,
+    ),
 
   conflict: (message: string, details?: Record<string, any>) =>
     new ApiError(message, 409, ErrorCategory.CONFLICT, details),
 
-  rateLimit: (message = 'Too many requests', details?: Record<string, any>) =>
+  rateLimit: (message = "Too many requests", details?: Record<string, any>) =>
     new ApiError(message, 429, ErrorCategory.RATE_LIMIT, details),
 
   externalService: (service: string, originalError?: Error) =>
@@ -81,15 +86,15 @@ export const createError = {
       `Failed to reach external service: ${service}`,
       502,
       ErrorCategory.EXTERNAL_SERVICE,
-      { originalMessage: originalError?.message }
+      { originalMessage: originalError?.message },
     ),
 
   internal: (message: string, originalError?: Error) =>
     new ApiError(
-      message || 'Internal server error',
+      message || "Internal server error",
       500,
       ErrorCategory.INTERNAL,
-      { originalMessage: originalError?.message }
+      { originalMessage: originalError?.message },
     ),
 };
 
@@ -101,7 +106,7 @@ export const createError = {
  * @param res Express response
  * @param next Express next function
  */
-export function errorHandler(err: any, req: any, res: any, next: any) {
+export function errorHandler(err: any, req: any, res: any, _next: any) {
   const requestId = req.id || `req-${Date.now()}`;
 
   // Handle our custom ApiError
@@ -109,13 +114,13 @@ export function errorHandler(err: any, req: any, res: any, next: any) {
     const response: ApiErrorResponse = {
       error: err.message,
       code: err.code,
-      details: config.NODE_ENV === 'development' ? err.details : undefined,
+      details: config.NODE_ENV === "development" ? err.details : undefined,
       requestId,
       timestamp: new Date().toISOString(),
     };
 
     // Log error in development
-    if (config.NODE_ENV === 'development') {
+    if (config.NODE_ENV === "development") {
       console.error(`[${err.code}] ${err.message}`, {
         statusCode: err.statusCode,
         details: err.details,
@@ -134,19 +139,20 @@ export function errorHandler(err: any, req: any, res: any, next: any) {
 
   // Handle unknown errors
   const unknownError: ApiErrorResponse = {
-    error: config.NODE_ENV === 'development' ? err.message : 'Internal server error',
+    error:
+      config.NODE_ENV === "development" ? err.message : "Internal server error",
     code: ErrorCategory.INTERNAL,
     requestId,
     timestamp: new Date().toISOString(),
   };
 
-  if (config.NODE_ENV === 'development') {
-    console.error('[InternalError] Unknown error', {
+  if (config.NODE_ENV === "development") {
+    console.error("[InternalError] Unknown error", {
       error: err,
       stack: err.stack,
     });
   } else {
-    console.error('[InternalError]', {
+    console.error("[InternalError]", {
       requestId,
       errorType: err.constructor.name,
     });
@@ -159,7 +165,9 @@ export function errorHandler(err: any, req: any, res: any, next: any) {
  * Wraps async route handlers to catch errors and pass to errorHandler
  * Usage: app.get('/route', asyncHandler(async (req, res) => { ... }))
  */
-export function asyncHandler(fn: (req: any, res: any, next: any) => Promise<any>) {
+export function asyncHandler(
+  fn: (req: any, res: any, next: any) => Promise<any>,
+) {
   return (req: any, res: any, next: any) => {
     return Promise.resolve(fn(req, res, next)).catch(next);
   };

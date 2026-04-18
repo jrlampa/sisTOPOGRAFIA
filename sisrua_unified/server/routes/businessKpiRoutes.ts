@@ -72,7 +72,7 @@ const TenantParamSchema = z.object({
     .string()
     .min(1)
     .max(128)
-    .regex(/^[\w\-\.@]+$/, "tenantId inválido")
+    .regex(/^[\w.@-]+$/, "tenantId inválido")
     .refine((v) => !v.includes(".."), "tenantId não pode conter '..'"),
 });
 

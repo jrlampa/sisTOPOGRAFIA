@@ -115,6 +115,10 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
   const [uploadValidation, setUploadValidation] =
     useState<InlineValidationResult>(validateBatchUploadFile(null));
   const itemsRef = useRef(items);
+  // Keep a ref to onError so the polling interval always calls the latest version
+  // without restarting when the parent re-renders with a new callback reference.
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   useEffect(() => {
     itemsRef.current = items;
@@ -225,7 +229,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
             }
 
             if (status.status === "failed") {
-              onError(`Batch DXF failed: ${item.name}`);
+              onErrorRef.current(`Batch DXF failed: ${item.name}`);
               return {
                 jobId: item.jobId,
                 status: "failed" as const,
@@ -244,7 +248,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
           } catch (error) {
             const message =
               error instanceof Error ? error.message : "DXF generation failed";
-            onError(`Batch DXF failed: ${item.name}`);
+            onErrorRef.current(`Batch DXF failed: ${item.name}`);
             return {
               jobId: item.jobId,
               status: "failed" as const,
@@ -273,7 +277,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
     }, 5000);
 
     return () => window.clearInterval(intervalId);
-  }, [pendingJobs.length]);
+  }, [pendingJobs.length, onErrorRef]);
 
   useEffect(() => {
     if (allCompleted) {

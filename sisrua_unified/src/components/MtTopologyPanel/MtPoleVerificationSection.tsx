@@ -1,5 +1,6 @@
 import React from "react";
 import type { MtPoleNode, MtPoleStructures } from "../../types";
+import { MT_STRUCTURE_CATALOG } from "../../constants/mtStructureCatalog";
 
 interface MtPoleVerificationSectionProps {
   poles: MtPoleNode[];
@@ -147,6 +148,16 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
             <div className="mb-2 text-[10px] text-slate-600">
               Estruturas MT (n1-n4)
             </div>
+
+            {/* Datalist compartilhado — exibe código + descrição curta */}
+            <datalist id="mt-structures-datalist">
+              {MT_STRUCTURE_CATALOG.map((entry) => (
+                <option key={entry.code} value={entry.code}>
+                  {entry.label}
+                </option>
+              ))}
+            </datalist>
+
             <div className="grid grid-cols-2 gap-2">
               {(["n1", "n2", "n3", "n4"] as const).map((slot) => (
                 <div key={slot} className="flex flex-col gap-0.5">
@@ -155,9 +166,10 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
                   </label>
                   <input
                     type="text"
+                    list="mt-structures-datalist"
                     value={selectedPole.mtStructures?.[slot] ?? ""}
                     title={`Estrutura MT ${slot}`}
-                    placeholder={`Informe ${slot}`}
+                    placeholder={`ex: 13N1, 13CE2…`}
                     maxLength={120}
                     onChange={(e) => {
                       const nextValue = e.target.value;

@@ -72,5 +72,11 @@ describe('DXF directory consistency', () => {
 
     expect(payload.outputFile.startsWith(expectedDir)).toBe(true);
     expect(payload.outputFile.endsWith(payload.filename)).toBe(true);
+    expect((payload as any).requestMeta).toEqual(
+      expect.objectContaining({
+        endpoint: 'POST /api/dxf/',
+        source: 'POST /api/dxf/',
+      }),
+    );
   });
 });

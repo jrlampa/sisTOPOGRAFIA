@@ -67,7 +67,7 @@ describe('cloudTasksService (Postgres queue)', () => {
     const result = await createDxfTask({
       lat: 1,
       lon: 2,
-      radius: 3,
+      radius: 300,
       mode: 'circle',
       polygon: '[]',
       layers: {},
@@ -105,7 +105,7 @@ describe('cloudTasksService (Postgres queue)', () => {
     await createDxfTask({
       lat: 1,
       lon: 2,
-      radius: 3,
+      radius: 300,
       mode: 'circle',
       polygon: '[]',
       layers: {},
@@ -122,7 +122,7 @@ describe('cloudTasksService (Postgres queue)', () => {
     expect(fakeGenerate).toHaveBeenCalledWith(expect.objectContaining({
       lat: 1,
       lon: 2,
-      radius: 3,
+      radius: 300,
       outputFile: '/tmp/file.dxf',
     }));
     expect(jobStatusService.completeJob).toHaveBeenCalledWith(
@@ -132,5 +132,26 @@ describe('cloudTasksService (Postgres queue)', () => {
         filename: 'file.dxf',
       }),
     );
+  });
+
+  it('hard-fails before queue when lat/lon/radius are invalid', async () => {
+    const { createDxfTask } = await import('../services/cloudTasksService');
+
+    await expect(
+      createDxfTask({
+        lat: Number.NaN,
+        lon: 2,
+        radius: 300,
+        mode: 'circle',
+        polygon: '[]',
+        layers: {},
+        projection: 'local',
+        contourRenderMode: 'spline',
+        outputFile: '/tmp/file.dxf',
+        filename: 'file.dxf',
+        cacheKey: 'cache-key-invalid',
+        downloadUrl: 'https://example.com/downloads/file.dxf'
+      }),
+    ).rejects.toThrow('Invalid DXF input fields');
   });
 });

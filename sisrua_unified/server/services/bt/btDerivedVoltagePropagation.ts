@@ -93,12 +93,15 @@ const calculateVoltageDropPercent = (
     Number.isFinite(reactanceOhmPerKm) && reactanceOhmPerKm > 0
       ? reactanceOhmPerKm
       : 0;
-  const impedance = Math.sqrt(correctedResistanceOhmPerKm ** 2 + x ** 2);
-  const divisor = BT_LINE_REFERENCE_VOLTAGE_V ** 2 / 100;
-  return (
-    (BT_PHASE_FACTOR * accumulatedDemandKva * impedance * lengthMeters) /
-    divisor
+  const impedance = Math.sqrt(
+    Math.max(0, correctedResistanceOhmPerKm ** 2) + Math.max(0, x ** 2),
   );
+  const divisor = Math.max(1, BT_LINE_REFERENCE_VOLTAGE_V ** 2 / 100);
+  const drop =
+    (BT_PHASE_FACTOR * accumulatedDemandKva * impedance * lengthMeters) /
+    divisor;
+
+  return Number.isFinite(drop) ? Math.max(0, drop) : 0;
 };
 
 const estimateConductorTemperatureC = (

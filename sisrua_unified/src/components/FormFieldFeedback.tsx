@@ -64,6 +64,7 @@ const panelToneClasses: Record<
   },
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- utility co-located with FormFieldMessage component
 export function getValidationInputClassName(
   tone: InlineValidationState,
   palette: ValidationPalette = "dark",
@@ -71,6 +72,7 @@ export function getValidationInputClassName(
   return inputToneClasses[palette][tone];
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- utility co-located with FormFieldMessage component
 export function getValidationPanelClassName(
   tone: InlineValidationState,
   palette: ValidationPalette = "dark",

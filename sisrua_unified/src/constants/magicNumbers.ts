@@ -12,13 +12,13 @@ export const LEGACY_ID_ENTROPY = 1000;
 
 /** Entity ID prefixes for clarity */
 export const ENTITY_ID_PREFIXES = {
-  RAMAL_POLE: 'RP',
-  CONDUCTOR: 'C',
-  CONDUCTOR_REPLACEMENT: 'RC',
-  TRANSFORMER: 'T',
-  REGULATOR: 'R',
-  MT_POLE: 'MT',
-  MT_EDGE: 'V',
+  RAMAL_POLE: "RP",
+  CONDUCTOR: "C",
+  CONDUCTOR_REPLACEMENT: "RC",
+  TRANSFORMER: "T",
+  REGULATOR: "R",
+  MT_POLE: "MT",
+  MT_EDGE: "V",
 } as const;
 
 // ============================================================================
@@ -77,10 +77,10 @@ export const MIN_FILENAME_LENGTH = 3;
 export const MAX_FILENAME_LENGTH = 255;
 
 /** Valid filename regex - alphanumeric, dash, underscore, dot, space */
-export const VALID_FILENAME_REGEX = /^[\w\-\. ]{3,255}$/;
+export const VALID_FILENAME_REGEX = /^[\w\-. ]{3,255}$/;
 
 /** Valid path component regex - prevents path traversal */
-export const VALID_PATH_COMPONENT_REGEX = /^[\w\-\.]+$/;
+export const VALID_PATH_COMPONENT_REGEX = /^[\w\-.]+$/;
 
 /** Minimum numeric input value */
 export const MIN_NUMERIC_VALUE = 0;
@@ -93,16 +93,23 @@ export const MAX_NUMERIC_VALUE = Number.MAX_SAFE_INTEGER;
 // ============================================================================
 
 /** Enable CQT (Configuração Topológica) feature */
-const APP_ENV = (import.meta as { env?: Record<string, string | boolean | undefined> }).env ?? {};
+const APP_ENV =
+  (import.meta as { env?: Record<string, string | boolean | undefined> }).env ??
+  {};
 
 /** Enable CQT (Configuração Topológica) feature */
-export const FEATURE_CQT_ENABLED = String(APP_ENV.VITE_FEATURE_CQT ?? APP_ENV.REACT_APP_FEATURE_CQT ?? '') === 'true';
+export const FEATURE_CQT_ENABLED =
+  String(APP_ENV.VITE_FEATURE_CQT ?? APP_ENV.REACT_APP_FEATURE_CQT ?? "") ===
+  "true";
 
 /** Enable BT (Barramento Topológico) feature */
-export const FEATURE_BT_ENABLED = String(APP_ENV.VITE_FEATURE_BT ?? APP_ENV.REACT_APP_FEATURE_BT ?? '') === 'true';
+export const FEATURE_BT_ENABLED =
+  String(APP_ENV.VITE_FEATURE_BT ?? APP_ENV.REACT_APP_FEATURE_BT ?? "") ===
+  "true";
 
 /** Enable debug logging */
-export const DEBUG_MODE_ENABLED = APP_ENV.DEV === true || APP_ENV.MODE === 'development';
+export const DEBUG_MODE_ENABLED =
+  APP_ENV.DEV === true || APP_ENV.MODE === "development";
 
 // ============================================================================
 // API & Backend Configuration
@@ -122,16 +129,16 @@ export const RATE_LIMIT_REQUESTS_PER_MINUTE = 60;
 // ============================================================================
 
 /** LocalStorage key for autosave draft */
-export const AUTOSAVE_STORAGE_KEY = 'sisrua_draft';
+export const AUTOSAVE_STORAGE_KEY = "sisrua_draft";
 
 /** LocalStorage key for app settings */
-export const SETTINGS_STORAGE_KEY = 'sisrua_settings';
+export const SETTINGS_STORAGE_KEY = "sisrua_settings";
 
 /** LocalStorage key for UI state (preferences, sidebar state) */
-export const UI_STATE_STORAGE_KEY = 'sisrua_ui_state';
+export const UI_STATE_STORAGE_KEY = "sisrua_ui_state";
 
 /** Version key for data structure compatibility checks */
-export const STORAGE_VERSION_KEY = 'sisrua_version';
+export const STORAGE_VERSION_KEY = "sisrua_version";
 
 /** Current storage format version */
 export const CURRENT_STORAGE_VERSION = 1;

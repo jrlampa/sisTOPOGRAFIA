@@ -3,9 +3,15 @@
  * Provides BT topology state and handlers to deeply nested components
  * without passing through intermediate components
  */
-import React, { createContext, useContext } from 'react';
-import type { BtTopology, BtEditorMode, BtExportSummary, BtExportHistoryEntry, BtNetworkScenario } from '../types';
-import type { PendingNormalClassificationPole } from '../utils/btNormalization';
+import React, { createContext, useContext } from "react";
+import type {
+  BtTopology,
+  BtEditorMode,
+  BtExportSummary,
+  BtExportHistoryEntry,
+  BtNetworkScenario,
+} from "../types";
+import type { PendingNormalClassificationPole } from "../utils/btNormalization";
 
 export interface BtContextValue {
   // State
@@ -22,7 +28,10 @@ export interface BtContextValue {
   btCriticalPoleId: string | null;
   btAccumulatedByPole: Array<{ poleId: string; accumulatedDemandKva: number }>;
   btPoleCoordinateInput: string;
-  btTransformerDebugById: Record<string, { assignedClients: number; estimatedDemandKva: number }>;
+  btTransformerDebugById: Record<
+    string,
+    { assignedClients: number; estimatedDemandKva: number }
+  >;
 
   // Handlers
   updateBtTopology: (topology: BtTopology) => void;
@@ -31,17 +40,32 @@ export interface BtContextValue {
   handleBtDeleteEdge: (edgeId: string) => void;
   handleBtDeleteTransformer: (id: string) => void;
   handleBtSetEdgeChangeFlag: (edgeId: string, flag: any) => void;
-  handleBtToggleTransformerOnPole: (poleId: string, transformerId: string) => void;
+  handleBtToggleTransformerOnPole: (
+    poleId: string,
+    transformerId: string,
+  ) => void;
   handleBtQuickAddPoleRamal: (poleId: string, ramalType: string) => void;
   handleBtQuickRemovePoleRamal: (poleId: string, ramalIndex: number) => void;
-  handleBtQuickAddEdgeConductor: (edgeId: string, conductorName: string) => void;
-  handleBtQuickRemoveEdgeConductor: (edgeId: string, conductorIndex: number) => void;
-  handleBtSetEdgeReplacementFromConductors: (edgeId: string, conductors: any[]) => void;
+  handleBtQuickAddEdgeConductor: (
+    edgeId: string,
+    conductorName: string,
+  ) => void;
+  handleBtQuickRemoveEdgeConductor: (
+    edgeId: string,
+    conductorIndex: number,
+  ) => void;
+  handleBtSetEdgeReplacementFromConductors: (
+    edgeId: string,
+    conductors: any[],
+  ) => void;
   handleBtRenamePole: (poleId: string, title: string) => void;
   handleBtRenameTransformer: (id: string, title: string) => void;
   handleBtSetPoleVerified: (poleId: string, verified: boolean) => void;
   handleBtSetPoleChangeFlag: (poleId: string, flag: any) => void;
-  handleBtTogglePoleCircuitBreak: (poleId: string, circuitBreakPoint: boolean) => void;
+  handleBtTogglePoleCircuitBreak: (
+    poleId: string,
+    circuitBreakPoint: boolean,
+  ) => void;
   handleBtSetTransformerChangeFlag: (id: string, flag: any) => void;
   handleBtDragPole: (poleId: string, lat: number, lng: number) => void;
   handleBtDragTransformer: (id: string, lat: number, lng: number) => void;
@@ -56,14 +80,21 @@ export interface BtContextValue {
 
 const BtContext = createContext<BtContextValue | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook co-located with BtProvider by design
 export function useBtContext(): BtContextValue {
   const context = useContext(BtContext);
   if (!context) {
-    throw new Error('useBtContext must be used within BtProvider');
+    throw new Error("useBtContext must be used within BtProvider");
   }
   return context;
 }
 
-export function BtProvider({ children, value }: { children: React.ReactNode; value: BtContextValue }) {
+export function BtProvider({
+  children,
+  value,
+}: {
+  children: React.ReactNode;
+  value: BtContextValue;
+}) {
   return <BtContext.Provider value={value}>{children}</BtContext.Provider>;
 }

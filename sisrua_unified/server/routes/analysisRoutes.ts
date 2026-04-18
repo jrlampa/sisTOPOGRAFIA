@@ -4,7 +4,6 @@ import { logger } from "../utils/logger.js";
 import { analysisSchema } from "../schemas/apiSchemas.js";
 
 const router = Router();
-const MAX_ERROR_MESSAGE_LENGTH = 200;
 const MAX_BODY_PREVIEW_LENGTH = 200;
 
 router.get("/runtime", async (_req: Request, res: Response) => {

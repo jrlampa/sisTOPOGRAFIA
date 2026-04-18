@@ -117,10 +117,15 @@ export type BtEditorMode =
   | "add-transformer"
   | "add-edge";
 
-export type MtEditorMode = "none" | "mt-add-pole" | "mt-add-edge" | "mt-move-pole";
+export type MtEditorMode =
+  | "none"
+  | "mt-add-pole"
+  | "mt-add-edge"
+  | "mt-move-pole";
 export type BtNetworkScenario = "asis" | "projeto" | "proj1" | "proj2";
 export type BtTransformerCalculationMode = "automatic" | "manual";
 export type BtCqtScenario = "atual" | "proj1" | "proj2";
+export type BtQtPontoCalculationMethod = "impedance_modulus" | "power_factor";
 
 export interface BtCqtDmdiInputs {
   clandestinoEnabled: boolean;
@@ -131,6 +136,8 @@ export interface BtCqtDmdiInputs {
 
 export interface BtCqtComputationInputs {
   scenario: BtCqtScenario;
+  qtPontoCalculationMethod?: BtQtPontoCalculationMethod;
+  powerFactor?: number;
   dmdi?: BtCqtDmdiInputs;
   geral?: {
     pontoRamal: string;
@@ -304,6 +311,8 @@ export interface AppSettings {
   btNetworkScenario?: BtNetworkScenario;
   btEditorMode?: BtEditorMode;
   btTransformerCalculationMode?: BtTransformerCalculationMode;
+  btQtPontoCalculationMethod?: BtQtPontoCalculationMethod;
+  btCqtPowerFactor?: number;
   clandestinoAreaM2?: number;
   mtEditorMode?: MtEditorMode;
 }

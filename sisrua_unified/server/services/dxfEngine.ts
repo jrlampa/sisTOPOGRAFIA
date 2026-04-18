@@ -11,6 +11,7 @@ export interface DxfEngineOptions {
   projection?: string;
   contourRenderMode?: "spline" | "polyline";
   btContext?: Record<string, unknown> | null;
+  mtContext?: Record<string, unknown> | null;
 }
 
 export interface DxfEngine {

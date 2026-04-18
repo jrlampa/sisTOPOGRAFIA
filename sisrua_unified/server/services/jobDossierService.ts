@@ -52,6 +52,47 @@ export interface ReplayResult {
   message: string;
 }
 
+type FailedTaskClass =
+  | "missing_input"
+  | "python_runtime"
+  | "not_reprocessable"
+  | "other";
+
+interface FailedTaskRow {
+  task_id: string;
+  status: string;
+  attempts: number | null;
+  error: string | null;
+  payload: Record<string, unknown> | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface FailedTaskSanitationEntry {
+  taskId: string;
+  error?: string;
+  classification: FailedTaskClass;
+  source: string;
+  requestId?: string;
+  lat?: number;
+  lon?: number;
+  radius?: number;
+  action: "cancel" | "requeue" | "skip";
+}
+
+export interface FailedTaskSanitationPreview {
+  analyzed: number;
+  byClassification: Record<FailedTaskClass, number>;
+  bySource: Record<string, number>;
+  entries: FailedTaskSanitationEntry[];
+}
+
+export interface FailedTaskSanitationResult extends FailedTaskSanitationPreview {
+  cancelled: number;
+  requeued: number;
+  skipped: number;
+}
+
 // ─── Connection ───────────────────────────────────────────────────────────────
 
 let sqlClient: ReturnType<typeof postgres> | null = null;
@@ -123,6 +164,147 @@ const DOSSIER_SELECT = `
          error, created_at, updated_at, started_at, finished_at, payload
   FROM dxf_tasks
 `;
+
+function extractPayloadValue(
+  payload: Record<string, unknown> | null,
+  key: string,
+): unknown {
+  if (!payload || typeof payload !== "object") {
+    return undefined;
+  }
+  return payload[key];
+}
+
+function toFiniteNumber(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return undefined;
+  }
+  return value;
+}
+
+function isCoreInputValid(payload: Record<string, unknown> | null): boolean {
+  const lat = toFiniteNumber(extractPayloadValue(payload, "lat"));
+  const lon = toFiniteNumber(extractPayloadValue(payload, "lon"));
+  const radius = toFiniteNumber(extractPayloadValue(payload, "radius"));
+
+  return (
+    lat !== undefined &&
+    lon !== undefined &&
+    radius !== undefined &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lon >= -180 &&
+    lon <= 180 &&
+    radius >= 10 &&
+    radius <= 5000
+  );
+}
+
+function normalizeError(error: string | null | undefined): string {
+  return (error ?? "").toLowerCase();
+}
+
+function classifyFailedTask(row: FailedTaskRow): FailedTaskClass {
+  const errorText = normalizeError(row.error);
+  const hasInvalidCoreInput = !isCoreInputValid(row.payload);
+
+  if (
+    hasInvalidCoreInput ||
+    errorText.includes("missing required parameters") ||
+    errorText.includes("invalid dxf input fields") ||
+    errorText.includes("invalid queued payload fields") ||
+    errorText.includes("lat=undefined") ||
+    errorText.includes("lon=undefined") ||
+    errorText.includes("radius=undefined")
+  ) {
+    return "missing_input";
+  }
+
+  if (
+    errorText.includes("python script") ||
+    errorText.includes("failed to spawn python") ||
+    errorText.includes("python worker") ||
+    errorText.includes("module not found") ||
+    errorText.includes("no module named")
+  ) {
+    return isCoreInputValid(row.payload)
+      ? "python_runtime"
+      : "not_reprocessable";
+  }
+
+  return "other";
+}
+
+function extractSource(
+  payload: Record<string, unknown> | null,
+): { source: string; requestId?: string } {
+  const requestMeta =
+    payload && typeof payload.requestMeta === "object"
+      ? (payload.requestMeta as Record<string, unknown>)
+      : null;
+
+  const sourceCandidate =
+    (typeof requestMeta?.source === "string" && requestMeta.source) ||
+    (typeof requestMeta?.endpoint === "string" && requestMeta.endpoint) ||
+    "unknown_source";
+
+  const requestId =
+    typeof requestMeta?.requestId === "string" && requestMeta.requestId
+      ? requestMeta.requestId
+      : undefined;
+
+  return {
+    source: sourceCandidate,
+    ...(requestId ? { requestId } : {}),
+  };
+}
+
+function buildSanitationEntry(row: FailedTaskRow): FailedTaskSanitationEntry {
+  const classification = classifyFailedTask(row);
+  const payload = row.payload;
+  const source = extractSource(payload);
+
+  const lat = toFiniteNumber(extractPayloadValue(payload, "lat"));
+  const lon = toFiniteNumber(extractPayloadValue(payload, "lon"));
+  const radius = toFiniteNumber(extractPayloadValue(payload, "radius"));
+
+  const action: FailedTaskSanitationEntry["action"] =
+    classification === "missing_input"
+      ? "cancel"
+      : classification === "python_runtime"
+        ? "requeue"
+        : "skip";
+
+  return {
+    taskId: row.task_id,
+    ...(row.error ? { error: row.error } : {}),
+    classification,
+    source: source.source,
+    ...(source.requestId ? { requestId: source.requestId } : {}),
+    ...(lat !== undefined ? { lat } : {}),
+    ...(lon !== undefined ? { lon } : {}),
+    ...(radius !== undefined ? { radius } : {}),
+    action,
+  };
+}
+
+async function fetchFailedTasks(limit: number): Promise<FailedTaskRow[]> {
+  if (!sqlClient) {
+    return [];
+  }
+
+  const safeLimit = Math.min(Math.max(1, Math.trunc(limit)), 500);
+  const rows = (await sqlClient.unsafe(
+    `SELECT task_id, status, attempts, error, payload, created_at, updated_at
+       FROM dxf_tasks
+      WHERE status = 'failed'
+      ORDER BY updated_at DESC
+      LIMIT $1`,
+    [safeLimit],
+  )) as FailedTaskRow[];
+
+  return rows;
+}
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -222,6 +404,137 @@ export async function replayFailedTask(
 
   logger.warn("JobDossierService: replay recusado", { taskId, message });
   return { taskId, replayed: false, message };
+}
+
+export async function previewFailedTaskSanitation(
+  limit = 200,
+): Promise<FailedTaskSanitationPreview> {
+  await initConnection();
+  if (!available || !sqlClient) {
+    return {
+      analyzed: 0,
+      byClassification: {
+        missing_input: 0,
+        python_runtime: 0,
+        not_reprocessable: 0,
+        other: 0,
+      },
+      bySource: {},
+      entries: [],
+    };
+  }
+
+  const rows = await fetchFailedTasks(limit);
+  const entries = rows.map(buildSanitationEntry);
+
+  const byClassification: Record<FailedTaskClass, number> = {
+    missing_input: 0,
+    python_runtime: 0,
+    not_reprocessable: 0,
+    other: 0,
+  };
+  const bySource: Record<string, number> = {};
+
+  for (const entry of entries) {
+    byClassification[entry.classification] += 1;
+    bySource[entry.source] = (bySource[entry.source] ?? 0) + 1;
+  }
+
+  return {
+    analyzed: entries.length,
+    byClassification,
+    bySource,
+    entries,
+  };
+}
+
+export async function sanitizeAndReprocessFailedTasks(
+  limit = 200,
+): Promise<FailedTaskSanitationResult> {
+  await initConnection();
+  if (!available || !sqlClient) {
+    return {
+      analyzed: 0,
+      byClassification: {
+        missing_input: 0,
+        python_runtime: 0,
+        not_reprocessable: 0,
+        other: 0,
+      },
+      bySource: {},
+      entries: [],
+      cancelled: 0,
+      requeued: 0,
+      skipped: 0,
+    };
+  }
+
+  const preview = await previewFailedTaskSanitation(limit);
+  let cancelled = 0;
+  let requeued = 0;
+  let skipped = 0;
+
+  for (const entry of preview.entries) {
+    if (entry.action === "cancel") {
+      const updated = (await sqlClient.unsafe(
+        `UPDATE dxf_tasks
+            SET status = 'cancelled',
+                error = COALESCE(error, 'Sanitized by admin: missing_input') || ' | sanitized=missing_input',
+                finished_at = NOW(),
+                updated_at = NOW()
+          WHERE task_id = $1
+            AND status = 'failed'
+          RETURNING task_id`,
+        [entry.taskId],
+      )) as Array<{ task_id: string }>;
+
+      if (updated.length > 0) {
+        cancelled += 1;
+      } else {
+        skipped += 1;
+      }
+      continue;
+    }
+
+    if (entry.action === "requeue") {
+      const updated = (await sqlClient.unsafe(
+        `UPDATE dxf_tasks
+            SET status = 'queued',
+                attempts = 0,
+                error = NULL,
+                started_at = NULL,
+                finished_at = NULL,
+                updated_at = NOW()
+          WHERE task_id = $1
+            AND status = 'failed'
+          RETURNING task_id`,
+        [entry.taskId],
+      )) as Array<{ task_id: string }>;
+
+      if (updated.length > 0) {
+        requeued += 1;
+      } else {
+        skipped += 1;
+      }
+      continue;
+    }
+
+    skipped += 1;
+  }
+
+  logger.info("JobDossierService: failed-task sanitation executed", {
+    analyzed: preview.analyzed,
+    cancelled,
+    requeued,
+    skipped,
+  });
+
+  return {
+    ...preview,
+    cancelled,
+    requeued,
+    skipped,
+  };
 }
 
 /** Fecha conexão (para testes e graceful shutdown). */

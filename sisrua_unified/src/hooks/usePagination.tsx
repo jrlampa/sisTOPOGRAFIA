@@ -1,10 +1,10 @@
 /**
  * Hook para gerenciar paginação de listas
  * Item 23: Implementar paginação em histórico BT
- * 
+ *
  * Uso:
  * const pagination = usePagination(btExportHistory, 10); // 10 itens por página
- * 
+ *
  * pagination.items - itens da página atual
  * pagination.currentPage - página atual (1-indexed)
  * pagination.totalPages - total de páginas
@@ -15,7 +15,7 @@
  * pagination.canGoPrevious - pode ir anterior?
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo } from "react";
 
 export interface PaginationState<T> {
   items: T[];
@@ -35,9 +35,10 @@ export interface PaginationState<T> {
 /**
  * Hook React para paginação
  */
+// eslint-disable-next-line react-refresh/only-export-components -- PaginationState type is co-located with this hook
 export function usePagination<T>(
   items: T[],
-  itemsPerPage: number = 10
+  itemsPerPage: number = 10,
 ): PaginationState<T> {
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -111,8 +112,8 @@ export function PaginationControls({
   totalItems,
   onPreviousPage,
   onNextPage,
-  onGoToPage,
-  className = '',
+  onGoToPage: _onGoToPage,
+  className = "",
 }: PaginationControlsProps) {
   if (totalPages <= 1) {
     return null;

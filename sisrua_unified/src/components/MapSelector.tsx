@@ -1,8 +1,5 @@
 import React from "react";
-import {
-  MapContainer,
-  TileLayer,
-} from "react-leaflet";
+import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { GeoJsonObject } from "geojson";
@@ -107,14 +104,23 @@ interface MapSelectorProps {
   mtTopology?: MtTopology;
   mtEditorMode?: MtEditorMode;
   onMtMapClick?: (location: GeoLocation) => void;
-  onMtContextAction?: (action: "mt-add-pole" | "mt-add-edge", location: GeoLocation) => void;
+  onMtContextAction?: (
+    action: "mt-add-pole" | "mt-add-edge",
+    location: GeoLocation,
+  ) => void;
   onMtDeletePole?: (id: string) => void;
   onMtDeleteEdge?: (id: string) => void;
   onMtRenamePole?: (poleId: string, title: string) => void;
   onMtSetPoleVerified?: (poleId: string, verified: boolean) => void;
   onMtDragPole?: (poleId: string, lat: number, lng: number) => void;
-  onMtSetPoleChangeFlag?: (poleId: string, flag: "existing" | "new" | "remove" | "replace") => void;
-  onMtSetEdgeChangeFlag?: (edgeId: string, flag: "existing" | "new" | "remove" | "replace") => void;
+  onMtSetPoleChangeFlag?: (
+    poleId: string,
+    flag: "existing" | "new" | "remove" | "replace",
+  ) => void;
+  onMtSetEdgeChangeFlag?: (
+    edgeId: string,
+    flag: "existing" | "new" | "remove" | "replace",
+  ) => void;
 }
 
 const MapSelector: React.FC<MapSelectorProps> = ({
@@ -147,7 +153,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onBtSetEdgeReplacementFromConductors,
   onBtRenamePole,
   onBtRenameTransformer,
-  onBtSetPoleVerified,
+  onBtSetPoleVerified: _onBtSetPoleVerified,
   onBtSetPoleChangeFlag,
   onBtTogglePoleCircuitBreak,
   onBtSetTransformerChangeFlag,
@@ -157,13 +163,13 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   accumulatedByPole = [],
   onKmlDrop,
   mapStyle = "dark",
-  onMapStyleChange,
-  showAnalysis = false,
+  onMapStyleChange: _onMapStyleChange,
+  showAnalysis: _showAnalysis = false,
   keyboardPanEnabled = false,
   mtTopology,
   mtEditorMode = "none",
   onMtMapClick,
-  onMtContextAction,
+  onMtContextAction: _onMtContextAction,
   onMtDeletePole,
   onMtDeleteEdge,
   onMtRenamePole,
@@ -299,8 +305,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           paneName={btPolesPaneName}
           poles={topology.poles}
           btEditorMode={btEditorMode}
-          criticalPoleId={criticalPoleId}
-          pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId}
+          criticalPoleId={criticalPoleId ?? null}
+          pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId ?? null}
           poleHasTransformer={poleHasTransformer}
           accumulatedByPoleMap={accumulatedByPoleMap}
           onBtMapClick={onBtMapClick}
@@ -331,7 +337,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
             <MapSelectorMtEdgesLayer
               paneName={mtEdgesPaneName}
               topology={mtTopology}
-              polesById={new Map(mtTopology.poles.map(p => [p.id, p]))}
+              polesById={new Map(mtTopology.poles.map((p) => [p.id, p]))}
               onMtDeleteEdge={onMtDeleteEdge}
               onMtSetEdgeChangeFlag={onMtSetEdgeChangeFlag}
             />

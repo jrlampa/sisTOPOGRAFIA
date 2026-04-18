@@ -193,7 +193,7 @@ function App() {
     setNormalRamalModal,
     isSidebarDockedForRamalModal,
     updateBtTopology,
-    updateProjectType,
+    onProjectTypeChange: updateProjectType,
     updateClandestinoAreaM2,
     handleBtInsertPoleByCoordinates,
     handleBtMapClick,
@@ -586,7 +586,7 @@ function App() {
         selectionControlsProps: sidebarSelectionControlsProps,
         btEditorSectionProps: sidebarBtEditorSectionProps,
         mtEditorSectionProps: {
-          mtTopology: appState.mtTopology,
+          mtTopology: appState.mtTopology ?? { poles: [], edges: [] },
           onMtTopologyChange: updateMtTopology,
           mtEditorMode: settings.mtEditorMode ?? "none",
           onMtEditorModeChange: (mode) =>

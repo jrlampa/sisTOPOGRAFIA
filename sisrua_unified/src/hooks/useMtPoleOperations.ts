@@ -10,7 +10,11 @@ type Params = {
   showToast: (message: string, type: ToastType) => void;
 };
 
-export function useMtPoleOperations({ appState, setAppState, showToast }: Params) {
+export function useMtPoleOperations({
+  appState,
+  setAppState,
+  showToast: _showToast,
+}: Params) {
   const mtTopology = appState.mtTopology ?? { poles: [], edges: [] };
 
   const findNearestMtPole = (location: GeoLocation, maxDistanceM = 15) => {

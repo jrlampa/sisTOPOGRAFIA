@@ -125,9 +125,7 @@ export class GeocodingService {
     }
   }
 
-  private static parseUtm(
-    query: string,
-  ): {
+  private static parseUtm(query: string): {
     zone: number;
     hemisphere: "N" | "S";
     easting: number;
@@ -442,7 +440,7 @@ export class GeocodingService {
           lat: sumLat / coords.length,
         };
       }
-    } catch (e) {
+    } catch (_e) {
       // Silent fail
     }
     return null;

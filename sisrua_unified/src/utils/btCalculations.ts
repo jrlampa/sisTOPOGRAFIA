@@ -1,4 +1,4 @@
-import { BtProjectType, BtTopology } from "../types";
+import { BtProjectType } from "../types";
 import { haversineDistanceMeters } from "../../shared/geodesic";
 
 // Re-exports from sub-modules

@@ -7,9 +7,19 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowRight, BadgeCheck, BarChart3, Building2, Check,
-  ChevronDown, ChevronUp, Cloud, Compass, FileDown,
-  Globe, Lock, Map, ShieldCheck, Sparkles, Users, Zap,
+  ArrowRight,
+  BadgeCheck,
+  BarChart3,
+  Building2,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  FileDown,
+  Globe,
+  Map,
+  ShieldCheck,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 
 // ─── Dados estáticos ──────────────────────────────────────────────────────
@@ -139,7 +149,11 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         aria-expanded={open}
       >
         <span>{q}</span>
-        {open ? <ChevronUp className="h-4 w-4 shrink-0 text-indigo-400" /> : <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />}
+        {open ? (
+          <ChevronUp className="h-4 w-4 shrink-0 text-indigo-400" />
+        ) : (
+          <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+        )}
       </button>
       {open && (
         <div className="border-t border-white/10 px-5 pb-4 pt-3 text-sm text-slate-400 leading-relaxed">
@@ -156,19 +170,38 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-slate-100">
       {/* ── Atmosfera ── */}
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
-        <span className="absolute -left-48 -top-48 h-[600px] w-[600px] rounded-full opacity-[0.15]"
-          style={{ background: "radial-gradient(circle, #6366f1 0%, transparent 70%)" }} />
-        <span className="absolute -bottom-48 right-0 h-[500px] w-[500px] rounded-full opacity-[0.12]"
-          style={{ background: "radial-gradient(circle, #06b6d4 0%, transparent 70%)" }} />
-        <span className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 rounded-full opacity-[0.07]"
-          style={{ background: "radial-gradient(circle, #8b5cf6 0%, transparent 70%)" }} />
+      <div
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+        aria-hidden="true"
+      >
+        <span
+          className="absolute -left-48 -top-48 h-[600px] w-[600px] rounded-full opacity-[0.15]"
+          style={{
+            background: "radial-gradient(circle, #6366f1 0%, transparent 70%)",
+          }}
+        />
+        <span
+          className="absolute -bottom-48 right-0 h-[500px] w-[500px] rounded-full opacity-[0.12]"
+          style={{
+            background: "radial-gradient(circle, #06b6d4 0%, transparent 70%)",
+          }}
+        />
+        <span
+          className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 rounded-full opacity-[0.07]"
+          style={{
+            background: "radial-gradient(circle, #8b5cf6 0%, transparent 70%)",
+          }}
+        />
       </div>
 
       {/* ── Header ── */}
       <header className="relative z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-screen-xl items-center justify-between px-6">
-          <Link to="/" className="flex items-center gap-2" aria-label="Página inicial">
+          <Link
+            to="/"
+            className="flex items-center gap-2"
+            aria-label="Página inicial"
+          >
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 shadow-md shadow-indigo-500/30">
               <Map className="h-4 w-4 text-white" />
             </span>
@@ -179,18 +212,40 @@ export default function LandingPage() {
               SaaS
             </span>
           </Link>
-          <nav className="hidden items-center gap-6 md:flex" aria-label="Links do header">
-            <a href="#features" className="text-sm text-slate-400 transition-colors hover:text-slate-100">Funcionalidades</a>
-            <a href="#planos" className="text-sm text-slate-400 transition-colors hover:text-slate-100">Planos</a>
-            <a href="#faq" className="text-sm text-slate-400 transition-colors hover:text-slate-100">FAQ</a>
+          <nav
+            className="hidden items-center gap-6 md:flex"
+            aria-label="Links do header"
+          >
+            <a
+              href="#features"
+              className="text-sm text-slate-400 transition-colors hover:text-slate-100"
+            >
+              Funcionalidades
+            </a>
+            <a
+              href="#planos"
+              className="text-sm text-slate-400 transition-colors hover:text-slate-100"
+            >
+              Planos
+            </a>
+            <a
+              href="#faq"
+              className="text-sm text-slate-400 transition-colors hover:text-slate-100"
+            >
+              FAQ
+            </a>
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/dashboard"
-              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-slate-100">
+            <Link
+              to="/dashboard"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-slate-100"
+            >
               Entrar
             </Link>
-            <Link to="/app"
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/30 transition-all hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500">
+            <Link
+              to="/app"
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/30 transition-all hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
+            >
               Começar grátis
             </Link>
           </div>
@@ -211,8 +266,9 @@ export default function LandingPage() {
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-400">
-            sisTOPOGRAFIA extrai dados OSM, gera DXF 2.5D com BIM light e exporta para BDGD/ANEEL —
-            tudo em um SaaS enterprise multi-tenant com SLA contratual e compliance LGPD nativo.
+            sisTOPOGRAFIA extrai dados OSM, gera DXF 2.5D com BIM light e
+            exporta para BDGD/ANEEL — tudo em um SaaS enterprise multi-tenant
+            com SLA contratual e compliance LGPD nativo.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
@@ -231,22 +287,38 @@ export default function LandingPage() {
           </div>
           {/* Social proof */}
           <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-500">
-            <span className="flex items-center gap-1.5"><BadgeCheck className="h-4 w-4 text-emerald-500" /> Compliance LGPD nativo</span>
-            <span className="flex items-center gap-1.5"><BadgeCheck className="h-4 w-4 text-emerald-500" /> Dados armazenados no Brasil</span>
-            <span className="flex items-center gap-1.5"><BadgeCheck className="h-4 w-4 text-emerald-500" /> Exportação BDGD/ANEEL</span>
-            <span className="flex items-center gap-1.5"><BadgeCheck className="h-4 w-4 text-emerald-500" /> SLA contratual disponível</span>
+            <span className="flex items-center gap-1.5">
+              <BadgeCheck className="h-4 w-4 text-emerald-500" /> Compliance
+              LGPD nativo
+            </span>
+            <span className="flex items-center gap-1.5">
+              <BadgeCheck className="h-4 w-4 text-emerald-500" /> Dados
+              armazenados no Brasil
+            </span>
+            <span className="flex items-center gap-1.5">
+              <BadgeCheck className="h-4 w-4 text-emerald-500" /> Exportação
+              BDGD/ANEEL
+            </span>
+            <span className="flex items-center gap-1.5">
+              <BadgeCheck className="h-4 w-4 text-emerald-500" /> SLA contratual
+              disponível
+            </span>
           </div>
         </section>
 
         {/* ── Features ── */}
-        <section id="features" className="border-t border-white/5 bg-slate-900/40 px-6 py-20">
+        <section
+          id="features"
+          className="border-t border-white/5 bg-slate-900/40 px-6 py-20"
+        >
           <div className="mx-auto max-w-screen-xl">
             <div className="mb-12 text-center">
               <h2 className="text-3xl font-black text-slate-50">
                 Funcionalidades enterprise
               </h2>
               <p className="mt-3 text-slate-400">
-                Construído para concessionárias, construtoras e integradores de infraestrutura elétrica.
+                Construído para concessionárias, construtoras e integradores de
+                infraestrutura elétrica.
               </p>
             </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -260,8 +332,12 @@ export default function LandingPage() {
                   >
                     <f.icon className={`h-5 w-5 text-${f.color}-400`} />
                   </span>
-                  <h3 className="mb-2 text-sm font-bold text-slate-100">{f.title}</h3>
-                  <p className="text-sm leading-relaxed text-slate-400">{f.desc}</p>
+                  <h3 className="mb-2 text-sm font-bold text-slate-100">
+                    {f.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-slate-400">
+                    {f.desc}
+                  </p>
                 </div>
               ))}
             </div>
@@ -272,8 +348,12 @@ export default function LandingPage() {
         <section id="planos" className="px-6 py-20">
           <div className="mx-auto max-w-screen-xl">
             <div className="mb-12 text-center">
-              <h2 className="text-3xl font-black text-slate-50">Planos e preços</h2>
-              <p className="mt-3 text-slate-400">Escolha o plano ideal para seu volume de projetos.</p>
+              <h2 className="text-3xl font-black text-slate-50">
+                Planos e preços
+              </h2>
+              <p className="mt-3 text-slate-400">
+                Escolha o plano ideal para seu volume de projetos.
+              </p>
             </div>
             <div className="grid gap-8 lg:grid-cols-3">
               {PLANS.map((plan) => (
@@ -291,16 +371,29 @@ export default function LandingPage() {
                     </span>
                   )}
                   <div className="mb-6">
-                    <h3 className="text-lg font-bold text-slate-100">{plan.name}</h3>
-                    <p className="mt-1 text-xs text-slate-500">{plan.subtitle}</p>
+                    <h3 className="text-lg font-bold text-slate-100">
+                      {plan.name}
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {plan.subtitle}
+                    </p>
                     <div className="mt-4 flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-slate-50">{plan.price}</span>
-                      {plan.period && <span className="text-sm text-slate-400">{plan.period}</span>}
+                      <span className="text-3xl font-black text-slate-50">
+                        {plan.price}
+                      </span>
+                      {plan.period && (
+                        <span className="text-sm text-slate-400">
+                          {plan.period}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <ul className="mb-8 flex flex-col gap-3">
                     {plan.features.map((feat) => (
-                      <li key={feat} className="flex items-start gap-2 text-sm text-slate-300">
+                      <li
+                        key={feat}
+                        className="flex items-start gap-2 text-sm text-slate-300"
+                      >
                         <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
                         {feat}
                       </li>
@@ -325,13 +418,18 @@ export default function LandingPage() {
         </section>
 
         {/* ── FAQ ── */}
-        <section id="faq" className="border-t border-white/5 bg-slate-900/40 px-6 py-20">
+        <section
+          id="faq"
+          className="border-t border-white/5 bg-slate-900/40 px-6 py-20"
+        >
           <div className="mx-auto max-w-2xl">
             <h2 className="mb-10 text-center text-3xl font-black text-slate-50">
               Perguntas frequentes
             </h2>
             <div className="flex flex-col gap-3">
-              {FAQ.map((item) => <FaqItem key={item.q} {...item} />)}
+              {FAQ.map((item) => (
+                <FaqItem key={item.q} {...item} />
+              ))}
             </div>
           </div>
         </section>
@@ -339,9 +437,12 @@ export default function LandingPage() {
         {/* ── Contato ── */}
         <section id="contato" className="px-6 py-20">
           <div className="mx-auto max-w-xl text-center">
-            <h2 className="text-3xl font-black text-slate-50">Fale com nossa equipe</h2>
+            <h2 className="text-3xl font-black text-slate-50">
+              Fale com nossa equipe
+            </h2>
             <p className="mt-3 text-slate-400">
-              Para planos Enterprise, demonstrações técnicas ou perguntas sobre compliance.
+              Para planos Enterprise, demonstrações técnicas ou perguntas sobre
+              compliance.
             </p>
             <a
               href="mailto:contato@sistopografia.com.br"
@@ -357,11 +458,22 @@ export default function LandingPage() {
         <footer className="border-t border-white/10 bg-slate-950 px-6 py-10">
           <div className="mx-auto flex max-w-screen-xl flex-col items-center justify-between gap-4 sm:flex-row">
             <span className="text-xs text-slate-600">
-              © {new Date().getFullYear()} sisTOPOGRAFIA · SaaS enterprise de geoprocessamento
+              © {new Date().getFullYear()} sisTOPOGRAFIA · SaaS enterprise de
+              geoprocessamento
             </span>
             <div className="flex items-center gap-4 text-xs text-slate-600">
-              <Link to="/ajuda" className="transition-colors hover:text-slate-400">Central de Ajuda</Link>
-              <Link to="/status" className="transition-colors hover:text-slate-400">Status</Link>
+              <Link
+                to="/ajuda"
+                className="transition-colors hover:text-slate-400"
+              >
+                Central de Ajuda
+              </Link>
+              <Link
+                to="/status"
+                className="transition-colors hover:text-slate-400"
+              >
+                Status
+              </Link>
               <span>CNPJ: informar</span>
             </div>
           </div>

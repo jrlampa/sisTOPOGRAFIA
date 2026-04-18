@@ -1,14 +1,11 @@
 import React from "react";
 import type { BtTopology } from "../../types";
-import { DEFAULT_TEMPERATURE_FACTOR } from "../../constants/btPhysicalConstants";
 import {
   buildTopologyWithBulkRamais,
   normalizeHeaderKey,
-  parseWorkbookNumber,
   sanitizeWorkbookText,
 } from "./btBulkImportParser";
 
-const MAX_WORKBOOK_UPLOAD_BYTES = 5 * 1024 * 1024;
 const ALLOWED_WORKBOOK_EXTENSIONS = [".xlsx", ".xlsm", ".xlsb"];
 
 export interface BulkImportReviewState {
@@ -31,13 +28,14 @@ export const useBtTopologyPanelBulkImport = ({
   btTopology,
   onTopologyChange,
   onSelectedPoleChange,
-  onProjectTypeChange,
-  onClandestinoAreaChange,
+  onProjectTypeChange: _onProjectTypeChange,
+  onClandestinoAreaChange: _onClandestinoAreaChange,
 }: UseBtTopologyPanelBulkImportParams) => {
   const [isBulkRamalModalOpen, setIsBulkRamalModalOpen] = React.useState(false);
   const [bulkRamalText, setBulkRamalText] = React.useState("");
   const [bulkRamalFeedback, setBulkRamalFeedback] = React.useState("");
-  const [bulkImportReview, setBulkImportReview] = React.useState<BulkImportReviewState | null>(null);
+  const [bulkImportReview, setBulkImportReview] =
+    React.useState<BulkImportReviewState | null>(null);
   const bulkFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const focusPoleInMap = (poleId: string) => {
@@ -51,11 +49,17 @@ export const useBtTopologyPanelBulkImport = ({
       return;
     }
     onTopologyChange(result.nextTopology);
-    setBulkRamalFeedback(`Importação concluída: ${result.insertedRamais} ramais em ${result.countPoles} postes.`);
+    setBulkRamalFeedback(
+      `Importação concluída: ${result.insertedRamais} ramais em ${result.countPoles} postes.`,
+    );
   };
 
   const importBulkRamaisFromWorkbook = async (file: File) => {
-    if (!ALLOWED_WORKBOOK_EXTENSIONS.some(ext => file.name.toLowerCase().endsWith(ext))) {
+    if (
+      !ALLOWED_WORKBOOK_EXTENSIONS.some((ext) =>
+        file.name.toLowerCase().endsWith(ext),
+      )
+    ) {
       setBulkRamalFeedback("Extensão inválida.");
       return;
     }
@@ -64,14 +68,18 @@ export const useBtTopologyPanelBulkImport = ({
       const XLSX = await import("xlsx");
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
-      const sheetName = workbook.SheetNames.find(n => normalizeHeaderKey(n) === "RAMAL") ?? workbook.SheetNames[0];
+      const sheetName =
+        workbook.SheetNames.find((n) => normalizeHeaderKey(n) === "RAMAL") ??
+        workbook.SheetNames[0];
 
       if (!sheetName) return;
       const sheet = workbook.Sheets[sheetName];
-      const raw = sanitizeWorkbookText(XLSX.utils.sheet_to_csv(sheet, { FS: "\t" }));
+      const raw = sanitizeWorkbookText(
+        XLSX.utils.sheet_to_csv(sheet, { FS: "\t" }),
+      );
       setBulkRamalText(raw);
       applyBulkRamalInsertFromRaw(raw);
-    } catch (e) {
+    } catch {
       setBulkRamalFeedback("Falha ao ler arquivo Excel.");
     }
   };
@@ -99,6 +107,7 @@ export const useBtTopologyPanelBulkImport = ({
     setBulkImportReview,
     applyBulkRamalInsert: () => applyBulkRamalInsertFromRaw(bulkRamalText),
     importBulkRamaisFromWorkbook,
-    handleReviewNext: () => handleReviewStep((bulkImportReview?.currentPoleIndex ?? 0) + 1),
+    handleReviewNext: () =>
+      handleReviewStep((bulkImportReview?.currentPoleIndex ?? 0) + 1),
   };
 };

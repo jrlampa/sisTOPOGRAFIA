@@ -1,9 +1,15 @@
-import { useCallback } from 'react';
-import { useDxfExport } from './useDxfExport';
-import { buildBtDxfContext } from '../utils/btDxfContext';
-import type { AppSettings, BtNetworkScenario, BtTopology, GeoLocation, SelectionMode } from '../types';
-import { fetchBtDerivedState } from '../services/btDerivedService';
-import { calculateAccumulatedDemandByPole } from '../utils/btCalculations';
+import { useCallback } from "react";
+import { useDxfExport } from "./useDxfExport";
+import { buildBtDxfContext } from "../utils/btDxfContext";
+import type {
+  AppSettings,
+  BtNetworkScenario,
+  BtTopology,
+  GeoLocation,
+  SelectionMode,
+} from "../types";
+import { fetchBtDerivedState } from "../services/btDerivedService";
+import { calculateAccumulatedDemandByPole } from "../utils/btCalculations";
 
 type Params = {
   center: GeoLocation;
@@ -15,8 +21,14 @@ type Params = {
   btNetworkScenario: BtNetworkScenario;
   hasOsmData: boolean;
   validateBtBeforeExport: () => boolean;
-  showToast: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
-  ingestBtContextHistory: (btContextUrl: string, btContext: Record<string, unknown>) => Promise<void>;
+  showToast: (
+    message: string,
+    type: "success" | "error" | "info" | "warning",
+  ) => void;
+  ingestBtContextHistory: (
+    btContextUrl: string,
+    btContext: Record<string, unknown>,
+  ) => Promise<void>;
 };
 
 export function useBtDxfWorkflow({
@@ -33,37 +45,47 @@ export function useBtDxfWorkflow({
   ingestBtContextHistory,
 }: Params) {
   const handleDxfSuccess = useCallback(
-    (message: string) => showToast(message, 'success'),
-    [showToast]
+    (message: string) => showToast(message, "success"),
+    [showToast],
   );
 
   const handleDxfError = useCallback(
-    (message: string) => showToast(message, 'error'),
-    [showToast]
+    (message: string) => showToast(message, "error"),
+    [showToast],
   );
 
   const handleDxfWarning = useCallback(
-    (message: string) => showToast(message, 'warning'),
-    [showToast]
+    (message: string) => showToast(message, "warning"),
+    [showToast],
   );
 
   const handleBtContextLoaded = useCallback(
-    ({ btContextUrl, btContext }: { btContextUrl: string; btContext: Record<string, unknown> }) => {
+    ({
+      btContextUrl,
+      btContext,
+    }: {
+      btContextUrl: string;
+      btContext: Record<string, unknown>;
+    }) => {
       void ingestBtContextHistory(btContextUrl, btContext);
     },
-    [ingestBtContextHistory]
+    [ingestBtContextHistory],
   );
 
-  const { downloadDxf, isDownloading, jobId, jobStatus, jobProgress } = useDxfExport({
-    onSuccess: handleDxfSuccess,
-    onError: handleDxfError,
-    onWarning: handleDxfWarning,
-    onBtContextLoaded: handleBtContextLoaded,
-  });
+  const { downloadDxf, isDownloading, jobId, jobStatus, jobProgress } =
+    useDxfExport({
+      onSuccess: handleDxfSuccess,
+      onError: handleDxfError,
+      onWarning: handleDxfWarning,
+      onBtContextLoaded: handleBtContextLoaded,
+    });
 
   const handleDownloadDxf = async () => {
     if (!hasOsmData) {
-      showToast('Sem dados no servidor, DXF será gerado com topologia BT.', 'warning');
+      showToast(
+        "Sem dados no servidor, DXF será gerado com topologia BT.",
+        "warning",
+      );
     }
 
     if (!validateBtBeforeExport()) {
@@ -72,13 +94,13 @@ export function useBtDxfWorkflow({
 
     const fallbackAccumulatedByPole = calculateAccumulatedDemandByPole(
       btTopology,
-      settings.projectType ?? 'ramais',
-      settings.clandestinoAreaM2 ?? 0
+      settings.projectType ?? "ramais",
+      settings.clandestinoAreaM2 ?? 0,
     );
 
     const derivedState = await fetchBtDerivedState({
       topology: btTopology,
-      projectType: settings.projectType ?? 'ramais',
+      projectType: settings.projectType ?? "ramais",
       clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
     }).catch(() => null);
 
@@ -87,7 +109,8 @@ export function useBtDxfWorkflow({
       settings,
       btNetworkScenario,
       includeTopology: settings.layers.btNetwork,
-      accumulatedByPole: derivedState?.accumulatedByPole ?? fallbackAccumulatedByPole,
+      accumulatedByPole:
+        derivedState?.accumulatedByPole ?? fallbackAccumulatedByPole,
     });
 
     await downloadDxf(
@@ -98,7 +121,14 @@ export function useBtDxfWorkflow({
       settings.layers,
       settings.projection,
       settings.contourRenderMode,
-      btContext
+      btContext,
+      {
+        projectName: settings.projectMetadata.projectName,
+        companyName: settings.projectMetadata.companyName,
+        engineerName: settings.projectMetadata.engineerName,
+        revision: settings.projectMetadata.revision,
+        date: settings.projectMetadata.date,
+      },
     );
   };
 
@@ -107,7 +137,7 @@ export function useBtDxfWorkflow({
       return;
     }
 
-    showToast('GeoJSON export not implemented in client yet.', 'info');
+    showToast("GeoJSON export not implemented in client yet.", "info");
   };
 
   return {

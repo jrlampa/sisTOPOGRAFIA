@@ -14,7 +14,7 @@ import { dxfRateLimiter } from "../middleware/rateLimiter.js";
 import { metricsService } from "../services/metricsService.js";
 import { config } from "../config.js";
 import { attachCqtSnapshotToBtContext } from "../services/cqtContextService.js";
-import { parseBatchCsv, parseBatchFile } from "../services/batchService.js";
+import { parseBatchFile } from "../services/batchService.js";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
@@ -27,7 +27,9 @@ import {
 import {
   getJobDossier,
   listRecentJobs,
+  previewFailedTaskSanitation,
   replayFailedTask,
+  sanitizeAndReprocessFailedTasks,
 } from "../services/jobDossierService.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -141,6 +143,13 @@ const buildAllowedHosts = (): Set<string> => {
 
 const ALLOWED_HOSTS = buildAllowedHosts();
 
+const failedTaskSanitationBodySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(500).optional(),
+    dryRun: z.coerce.boolean().optional(),
+  })
+  .strict();
+
 const normalizeProtocol = (value: unknown): "http" | "https" | null => {
   if (typeof value !== "string" || value.trim().length === 0) {
     return null;
@@ -240,6 +249,36 @@ function extractCqtSummary(btContext: unknown): Record<string, unknown> | null {
   }
 }
 
+function buildDxfRequestSource(req: Request): {
+  endpoint: string;
+  requestId?: string;
+  source: string;
+  ip?: string;
+  userAgent?: string;
+  queuedAt: string;
+} {
+  const requestId =
+    typeof req.headers["x-request-id"] === "string"
+      ? req.headers["x-request-id"].trim()
+      : undefined;
+  const endpoint = `${req.method.toUpperCase()} ${req.baseUrl || ""}${req.path || ""}`.trim();
+  const sourceHeader =
+    typeof req.headers["x-client-source"] === "string"
+      ? req.headers["x-client-source"].trim()
+      : "";
+
+  return {
+    endpoint,
+    ...(requestId ? { requestId } : {}),
+    source: sourceHeader.length > 0 ? sourceHeader : endpoint,
+    ...(typeof req.ip === "string" && req.ip.length > 0 ? { ip: req.ip } : {}),
+    ...(typeof req.headers["user-agent"] === "string"
+      ? { userAgent: req.headers["user-agent"] }
+      : {}),
+    queuedAt: new Date().toISOString(),
+  };
+}
+
 // DXF Generation Endpoint
 router.post(
   "/",
@@ -247,13 +286,15 @@ router.post(
   requirePermission("export_dxf"),
   async (req: Request, res: Response) => {
     try {
+      const requestSource = buildDxfRequestSource(req);
       const validation = dxfRequestSchema.safeParse(req.body);
       if (!validation.success) {
         logger.warn("DXF validation failed", {
           issues: validation.error.issues,
           ip: req.ip,
+          requestSource,
         });
-        return res.status(400).json({
+        return res.status(422).json({
           error: "Invalid request body",
           details: validation.error.issues,
         });
@@ -269,6 +310,7 @@ router.post(
         projection,
         contourRenderMode,
         btContext: validatedBtContext,
+        mtContext: validatedMtContext,
       } = validation.data;
 
       // ── Item 8 · Validação topológica em tempo real ─────────────────────────
@@ -366,6 +408,7 @@ router.post(
           "cqtSnapshot" in btContext
         ),
         cacheKey,
+        requestSource,
       });
 
       const { taskId, alreadyCompleted } = await createDxfTask({
@@ -379,6 +422,8 @@ router.post(
         projection: projection || "local",
         contourRenderMode: resolvedContourRenderMode,
         btContext: btContext ?? null,
+        mtContext: validatedMtContext ?? null,
+        requestMeta: requestSource,
         outputFile,
         filename,
         cacheKey,
@@ -415,6 +460,7 @@ router.post(
   requirePermission("export_dxf"),
   async (req: Request, res: Response) => {
     try {
+      const requestSource = buildDxfRequestSource(req);
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
@@ -474,6 +520,10 @@ router.post(
             projection: "local",
             contourRenderMode: "spline",
             btContext: null,
+            requestMeta: {
+              ...requestSource,
+              source: `${requestSource.source}|batch:${name}`,
+            },
             outputFile,
             filename,
             downloadUrl,
@@ -498,6 +548,44 @@ router.post(
       logger.error("Batch DXF processing failed", { error: err.message });
       return res.status(500).json({ error: "Batch processing failed" });
     }
+  },
+);
+
+// GET /dxf/jobs/failed/sanitation-preview?limit=N — classifica failed por origem/causa
+router.get(
+  "/jobs/failed/sanitation-preview",
+  requirePermission("admin"),
+  async (req: Request, res: Response) => {
+    const raw = Number(req.query["limit"] ?? 200);
+    const limit = Number.isFinite(raw) ? raw : 200;
+    const preview = await previewFailedTaskSanitation(limit);
+    return res.json(preview);
+  },
+);
+
+// POST /dxf/jobs/failed/sanitize-reprocess — saneia inválidos e reprocessa elegíveis
+router.post(
+  "/jobs/failed/sanitize-reprocess",
+  requirePermission("admin"),
+  async (req: Request, res: Response) => {
+    const parsed = failedTaskSanitationBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Payload inválido",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const limit = parsed.data.limit ?? 200;
+    const dryRun = parsed.data.dryRun ?? false;
+
+    if (dryRun) {
+      const preview = await previewFailedTaskSanitation(limit);
+      return res.json({ dryRun: true, ...preview });
+    }
+
+    const result = await sanitizeAndReprocessFailedTasks(limit);
+    return res.json(result);
   },
 );
 

@@ -2,11 +2,7 @@ import React from "react";
 import { Pane, CircleMarker, Marker, Tooltip, Popup } from "react-leaflet";
 import L from "leaflet";
 import { Trash2, Triangle, Plus, Minus } from "lucide-react";
-import { 
-  BtPoleNode, 
-  BtEditorMode, 
-  GeoLocation 
-} from "../../types";
+import { BtPoleNode, BtEditorMode } from "../../types";
 import type { BtPoleAccumulatedDemand } from "../../utils/btTopologyFlow";
 import {
   getFlagColor,
@@ -25,10 +21,17 @@ interface MapSelectorPolesLayerProps {
   pendingBtEdgeStartPoleId: string | null;
   poleHasTransformer: Map<string, boolean>;
   accumulatedByPoleMap: Map<string, BtPoleAccumulatedDemand>;
-  onBtMapClick?: (location: { lat: number; lng: number; label?: string }) => void;
+  onBtMapClick?: (location: {
+    lat: number;
+    lng: number;
+    label?: string;
+  }) => void;
   onBtDragPole?: (poleId: string, lat: number, lng: number) => void;
   onBtRenamePole?: (poleId: string, title: string) => void;
-  onBtSetPoleChangeFlag?: (poleId: string, flag: "existing" | "new" | "remove" | "replace") => void;
+  onBtSetPoleChangeFlag?: (
+    poleId: string,
+    flag: "existing" | "new" | "remove" | "replace",
+  ) => void;
   onBtTogglePoleCircuitBreak?: (poleId: string, active: boolean) => void;
   onBtDeletePole?: (poleId: string) => void;
   onBtToggleTransformerOnPole?: (poleId: string) => void;
@@ -95,22 +98,34 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
     <Pane name={paneName} style={{ zIndex: 470 }}>
       {poles.map((pole) => {
         const poleAccumulated = accumulatedByPoleMap.get(pole.id);
-        const cqtClass = poleAccumulated?.cqtStatus === "CRÍTICO"
-          ? "text-red-600"
-          : poleAccumulated?.cqtStatus === "ATENÇÃO"
-            ? "text-amber-600"
-            : "text-emerald-700";
+        const cqtClass =
+          poleAccumulated?.cqtStatus === "CRÍTICO"
+            ? "text-red-600"
+            : poleAccumulated?.cqtStatus === "ATENÇÃO"
+              ? "text-amber-600"
+              : "text-emerald-700";
 
         return (
-          <React.Fragment key={`${pole.id}-${pole.verified ? "v" : "u"}-${pole.id === criticalPoleId ? "c" : "n"}-${pole.id === pendingBtEdgeStartPoleId ? "p" : "x"}-${poleHasTransformer.get(pole.id) ? "t" : "nt"}`}>
+          <React.Fragment
+            key={`${pole.id}-${pole.verified ? "v" : "u"}-${pole.id === criticalPoleId ? "c" : "n"}-${pole.id === pendingBtEdgeStartPoleId ? "p" : "x"}-${poleHasTransformer.get(pole.id) ? "t" : "nt"}`}
+          >
             <CircleMarker
               center={[pole.lat, pole.lng]}
-              radius={pole.id === criticalPoleId ? 9 : pole.id === pendingBtEdgeStartPoleId ? 8 : 7}
+              radius={
+                pole.id === criticalPoleId
+                  ? 9
+                  : pole.id === pendingBtEdgeStartPoleId
+                    ? 8
+                    : 7
+              }
               pathOptions={{
                 color: "#ffffff",
                 weight: 2,
                 opacity: 1,
-                fillColor: getFlagColor(getPoleChangeFlag(pole), pole.verified ? "#16a34a" : "#2563eb"),
+                fillColor: getFlagColor(
+                  getPoleChangeFlag(pole),
+                  pole.verified ? "#16a34a" : "#2563eb",
+                ),
                 fillOpacity: 0.95,
               }}
               interactive={false}
@@ -119,11 +134,22 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
               position={[pole.lat, pole.lng]}
               icon={makePoleIcon(pole.id, !!pole.verified)}
               zIndexOffset={1200}
-              draggable={btEditorMode !== "add-edge" && btEditorMode !== "add-transformer"}
+              draggable={
+                btEditorMode !== "add-edge" &&
+                btEditorMode !== "add-transformer"
+              }
               eventHandlers={{
                 click: () => {
-                  if ((btEditorMode === "add-edge" || btEditorMode === "add-transformer") && onBtMapClick) {
-                    onBtMapClick({ lat: pole.lat, lng: pole.lng, label: pole.title });
+                  if (
+                    (btEditorMode === "add-edge" ||
+                      btEditorMode === "add-transformer") &&
+                    onBtMapClick
+                  ) {
+                    onBtMapClick({
+                      lat: pole.lat,
+                      lng: pole.lng,
+                      label: pole.title,
+                    });
                   }
                 },
                 dragend: (e) => {
@@ -132,7 +158,12 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                 },
               }}
             >
-              <Tooltip permanent direction="top" offset={[0, -8]} opacity={0.85}>
+              <Tooltip
+                permanent
+                direction="top"
+                offset={[0, -8]}
+                opacity={0.85}
+              >
                 <span className="text-[10px] font-semibold">{pole.title}</span>
               </Tooltip>
               <Popup>
@@ -150,45 +181,70 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                     />
                   )}
                   {pole.id === criticalPoleId && (
-                    <div className="mt-0.5 font-bold text-red-500">⚠ Ponto crítico</div>
+                    <div className="mt-0.5 font-bold text-red-500">
+                      ⚠ Ponto crítico
+                    </div>
                   )}
                   {poleAccumulated && (
                     <div className="mt-1 text-slate-700">
                       <div>CLT acum.: {poleAccumulated.accumulatedClients}</div>
-                      <div>Demanda acum.: {poleAccumulated.accumulatedDemandKva.toFixed(2)} kVA</div>
-                      {(typeof poleAccumulated.voltageV === "number" || typeof poleAccumulated.dvAccumPercent === "number") && (
+                      <div>
+                        Demanda acum.:{" "}
+                        {poleAccumulated.accumulatedDemandKva.toFixed(2)} kVA
+                      </div>
+                      {(typeof poleAccumulated.voltageV === "number" ||
+                        typeof poleAccumulated.dvAccumPercent === "number") && (
                         <div className={`mt-0.5 font-semibold ${cqtClass}`}>
-                          Tensão: {poleAccumulated.voltageV?.toFixed(2) ?? "-"} V{" | "}
-                          dV: {poleAccumulated.dvAccumPercent?.toFixed(2) ?? "-"}%
-                          {poleAccumulated.cqtStatus ? ` | ${poleAccumulated.cqtStatus}` : ""}
+                          Tensão: {poleAccumulated.voltageV?.toFixed(2) ?? "-"}{" "}
+                          V{" | "}
+                          dV:{" "}
+                          {poleAccumulated.dvAccumPercent?.toFixed(2) ?? "-"}%
+                          {poleAccumulated.cqtStatus
+                            ? ` | ${poleAccumulated.cqtStatus}`
+                            : ""}
                         </div>
                       )}
                     </div>
                   )}
-                  <div className={`mt-0.5 font-semibold ${pole.verified ? "text-green-600" : "text-amber-600"}`}>
+                  <div
+                    className={`mt-0.5 font-semibold ${pole.verified ? "text-green-600" : "text-amber-600"}`}
+                  >
                     {pole.verified ? "✓ Verificado" : "○ Não verificado"}
                   </div>
                   <div className="mt-0.5 text-slate-700">
                     Flag: <strong>{getPoleChangeFlag(pole)}</strong>
                   </div>
                   {pole.circuitBreakPoint && (
-                    <div className="mt-0.5 font-bold text-sky-700">Separação física ativa.</div>
+                    <div className="mt-0.5 font-bold text-sky-700">
+                      Separação física ativa.
+                    </div>
                   )}
                   {onBtSetPoleChangeFlag && (
                     <div className={POPUP_FLAG_GRID_CLASS}>
-                      {(["existing", "new", "replace", "remove"] as const).map((flag) => (
-                        <button
-                          key={flag}
-                          onClick={(e) => { e.preventDefault(); onBtSetPoleChangeFlag(pole.id, flag); }}
-                          className={getFlagButtonClass(getPoleChangeFlag(pole) === flag, flag)}
-                        >
-                          {flag.charAt(0).toUpperCase() + flag.slice(1)}
-                        </button>
-                      ))}
+                      {(["existing", "new", "replace", "remove"] as const).map(
+                        (flag) => (
+                          <button
+                            key={flag}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              onBtSetPoleChangeFlag(pole.id, flag);
+                            }}
+                            className={getFlagButtonClass(
+                              getPoleChangeFlag(pole) === flag,
+                              flag,
+                            )}
+                          >
+                            {flag.charAt(0).toUpperCase() + flag.slice(1)}
+                          </button>
+                        ),
+                      )}
                       <button
                         onClick={(e) => {
                           e.preventDefault();
-                          onBtTogglePoleCircuitBreak?.(pole.id, !(pole.circuitBreakPoint ?? false));
+                          onBtTogglePoleCircuitBreak?.(
+                            pole.id,
+                            !(pole.circuitBreakPoint ?? false),
+                          );
                         }}
                         className={`h-6 rounded border text-[10px] font-bold ${pole.circuitBreakPoint ? "border-sky-400 bg-sky-100 text-sky-700" : "border-slate-400 bg-white text-slate-600"}`}
                       >
@@ -197,23 +253,38 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                     </div>
                   )}
                   <div className={POPUP_TOOLBAR_CLASS}>
-                    <button onClick={() => onBtDeletePole?.(pole.id)} className={getIconActionButtonClass("danger")} title="Deletar poste">
+                    <button
+                      onClick={() => onBtDeletePole?.(pole.id)}
+                      className={getIconActionButtonClass("danger")}
+                      title="Deletar poste"
+                    >
                       <Trash2 size={12} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => onBtToggleTransformerOnPole?.(pole.id)}
-                      className={getIconActionButtonClass("violet", !!poleHasTransformer.get(pole.id))}
+                      className={getIconActionButtonClass(
+                        "violet",
+                        !!poleHasTransformer.get(pole.id),
+                      )}
                       title="Toggle Trafo"
                     >
                       <Triangle size={12} className="rotate-180 fill-current" />
                     </button>
                     {onBtQuickAddPoleRamal && (
-                      <button onClick={() => onBtQuickAddPoleRamal(pole.id)} className={getIconActionButtonClass("sky")} title="Add Ramal">
+                      <button
+                        onClick={() => onBtQuickAddPoleRamal(pole.id)}
+                        className={getIconActionButtonClass("sky")}
+                        title="Add Ramal"
+                      >
                         <Plus size={12} />
                       </button>
                     )}
                     {onBtQuickRemovePoleRamal && (
-                      <button onClick={() => onBtQuickRemovePoleRamal(pole.id)} className={getIconActionButtonClass("slate")} title="Rem Ramal">
+                      <button
+                        onClick={() => onBtQuickRemovePoleRamal(pole.id)}
+                        className={getIconActionButtonClass("slate")}
+                        title="Rem Ramal"
+                      >
                         <Minus size={12} />
                       </button>
                     )}

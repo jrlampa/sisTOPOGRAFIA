@@ -63,6 +63,10 @@ export const AppSettingsSchema = z.object({
   btTransformerCalculationMode: z
     .enum(["automatic", "manual"])
     .default("automatic"),
+  btQtPontoCalculationMethod: z
+    .enum(["impedance_modulus", "power_factor"])
+    .default("impedance_modulus"),
+  btCqtPowerFactor: z.number().positive().max(1).default(0.92),
   clandestinoAreaM2: z.number().nonnegative().int().default(0),
 });
 

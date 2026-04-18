@@ -27,7 +27,7 @@ import { logger } from '../utils/logger.js';
 import {
     criarDossie,
     obterDossie,
-    listarDossies,
+    listarDossies as _listarDossies,
     resumoDossies,
     vincularValidacaoBdgd,
     adicionarArtefato,

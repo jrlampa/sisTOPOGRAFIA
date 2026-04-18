@@ -47,6 +47,7 @@ if _PYDANTIC_AVAILABLE:
         polygon: List[List[float]] = Field(default_factory=list)
         contour_style: Literal["spline", "polyline"] = "spline"
         bt_context: Dict[str, Any] = Field(default_factory=dict)
+        mt_context: Dict[str, Any] = Field(default_factory=dict)
         memory_limit_mb: int = Field(default=0, ge=0)
 
         @field_validator("polygon")
@@ -141,6 +142,7 @@ def main():
     parser.add_argument("--client_name",    type=str,   default="CLIENTE PADRÃO", help="Client name for title block")
     parser.add_argument("--project_id",     type=str,   default="PROJETO URBANISTICO", help="Project ID for title block")
     parser.add_argument("--bt_context",     type=str,   default="{}",   help="JSON with BT topology summary for DXF annotation")
+    parser.add_argument("--mt_context",     type=str,   default="{}",   help="JSON with MT topology for DXF annotation")
     parser.add_argument("--no-preview",     action="store_true",         help="Skip GeoJSON preview logs (prevents OOM in CLI)")
     # Item 99: limite de memória RSS para self-healing
     parser.add_argument("--memory-limit-mb", type=int, default=int(os.environ.get("PYTHON_MEMORY_LIMIT_MB", "0")),
@@ -161,6 +163,7 @@ def main():
 
         raw_polygon = json.loads(args.polygon)
         raw_bt_context = json.loads(args.bt_context)
+        raw_mt_context = json.loads(args.mt_context)
 
         def _normalize_point(p):
             if isinstance(p, dict):
@@ -169,6 +172,7 @@ def main():
 
         polygon = [_normalize_point(p) for p in raw_polygon] if raw_polygon else []
         bt_context = raw_bt_context if isinstance(raw_bt_context, dict) else {}
+        mt_context = raw_mt_context if isinstance(raw_mt_context, dict) else {}
 
         # Item 4: Pydantic validation — rejects malformed/out-of-range inputs before heavy processing
         validated = validate_inputs(
@@ -182,6 +186,7 @@ def main():
             polygon=polygon,
             contour_style=args.contour_style,
             bt_context=bt_context,
+            mt_context=mt_context,
             memory_limit_mb=args.memory_limit_mb,
         )
 
@@ -202,6 +207,7 @@ def main():
             "project": args.project_id,
         }
         controller.bt_context = validated.bt_context
+        controller.mt_context = validated.mt_context
         controller.run()
 
     except Exception as e:

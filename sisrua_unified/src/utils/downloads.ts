@@ -18,6 +18,7 @@ export function sanitizeFilename(filename: string): string {
   let safe = filename.split(/[\\/]+/).pop() || "download";
 
   // Remove null bytes and other control characters
+  // eslint-disable-next-line no-control-regex -- intentional: sanitize control characters from filenames
   safe = safe.replace(/[\u0000-\u001F\u007F]/g, "");
 
   // Remove leading/trailing dots and spaces

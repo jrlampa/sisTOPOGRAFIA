@@ -1,12 +1,6 @@
 import React from "react";
-import { Copy, Plus, Map as MapIcon } from "lucide-react";
-import type {
-  BtEdge,
-  BtNetworkScenario,
-  BtTopology,
-  GeoLocation,
-  BtProjectType,
-} from "../types";
+import { Copy } from "lucide-react";
+import type { BtNetworkScenario, BtTopology, BtProjectType } from "../types";
 import type {
   BtDerivedSummary,
   BtPoleAccumulatedDemand,
@@ -18,7 +12,6 @@ import BtTransformerEdgeSection from "./BtTopologyPanel/BtTransformerEdgeSection
 import BtTopologyPanelStats from "./BtTopologyPanel/BtTopologyPanelStats";
 import BtTopologyPanelBulkImportModal from "./BtTopologyPanel/BtTopologyPanelBulkImportModal";
 import { useBtTopologyPanelBulkImport } from "./BtTopologyPanel/useBtTopologyPanelBulkImport";
-import { calculateBtSummary } from "../utils/btCalculations";
 import type { CriticalConfirmationConfig } from "./BtModals";
 
 interface BtTopologyPanelProps {
@@ -26,8 +19,18 @@ interface BtTopologyPanelProps {
   btNetworkScenario?: BtNetworkScenario;
   onTopologyChange: (next: BtTopology) => void;
   onSelectedPoleChange?: (poleId: string) => void;
+  onSelectedTransformerChange?: (transformerId: string) => void;
+  onSelectedEdgeChange?: (edgeId: string) => void;
   onBtRenamePole?: (poleId: string, title: string) => void;
   onBtRenameTransformer?: (transformerId: string, title: string) => void;
+  onBtSetPoleChangeFlag?: (
+    poleId: string,
+    nodeChangeFlag: "existing" | "new" | "remove" | "replace",
+  ) => void;
+  onBtTogglePoleCircuitBreak?: (
+    poleId: string,
+    circuitBreakPoint: boolean,
+  ) => void;
   onBtSetTransformerChangeFlag?: (
     transformerId: string,
     transformerChangeFlag: "existing" | "new" | "remove" | "replace",
@@ -45,16 +48,12 @@ interface BtTopologyPanelProps {
   onProjectTypeChange: (next: BtProjectType) => void;
   clandestinoAreaM2: number;
   onClandestinoAreaChange: (next: number) => void;
-  onBtContextAction?: (
-    action: "add-edge" | "add-transformer" | "add-pole",
-    location: GeoLocation,
-  ) => void;
+  pointDemandKva?: number;
   criticalPoleId?: string | null;
   accumulatedByPole: BtPoleAccumulatedDemand[];
   summary: BtDerivedSummary;
   clandestinoDisplay: BtClandestinoDisplay;
   transformersDerived: BtTransformerDerived[];
-  mapCenter: GeoLocation;
 }
 
 const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
@@ -62,27 +61,33 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   btNetworkScenario = "asis",
   onTopologyChange,
   onSelectedPoleChange,
+  onSelectedTransformerChange,
+  onSelectedEdgeChange,
   onBtRenamePole,
   onBtRenameTransformer,
+  onBtSetPoleChangeFlag,
+  onBtTogglePoleCircuitBreak,
   onBtSetTransformerChangeFlag,
   onBtSetEdgeChangeFlag,
   onRequestCriticalConfirmation,
-  accumulatedByPole,
+  accumulatedByPole: _accumulatedByPole,
   summary,
-  clandestinoDisplay,
-  transformersDerived,
+  clandestinoDisplay: _clandestinoDisplay,
+  transformersDerived: _transformersDerived,
   transformerDebugById,
-  criticalPoleId,
+  criticalPoleId: _criticalPoleId,
   projectType,
   onProjectTypeChange,
-  clandestinoAreaM2,
+  clandestinoAreaM2: _clandestinoAreaM2,
   onClandestinoAreaChange,
-  onBtContextAction,
-  mapCenter,
+  pointDemandKva,
 }) => {
+  const [selectedPoleId, setSelectedPoleId] = React.useState("");
+  const [isPoleDropdownOpen, setIsPoleDropdownOpen] = React.useState(false);
   const [selectedTransformerId, setSelectedTransformerId] = React.useState("");
   const [selectedEdgeId, setSelectedEdgeId] = React.useState("");
-  const [isTransformerDropdownOpen, setIsTransformerDropdownOpen] = React.useState(false);
+  const [isTransformerDropdownOpen, setIsTransformerDropdownOpen] =
+    React.useState(false);
 
   const bulkImport = useBtTopologyPanelBulkImport({
     btTopology,
@@ -92,16 +97,117 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     onClandestinoAreaChange,
   });
 
-  const selectedTransformer = btTopology.transformers.find(t => t.id === selectedTransformerId) || null;
-  const selectedEdge = btTopology.edges.find(e => e.id === selectedEdgeId) || null;
+  React.useEffect(() => {
+    if (btTopology.poles.length === 0) {
+      setSelectedPoleId("");
+      return;
+    }
 
-  const summary = calculateBtSummary(btTopology);
+    if (!btTopology.poles.some((pole) => pole.id === selectedPoleId)) {
+      const nextPoleId = btTopology.poles[0].id;
+      setSelectedPoleId(nextPoleId);
+      onSelectedPoleChange?.(nextPoleId);
+    }
+  }, [btTopology.poles, selectedPoleId, onSelectedPoleChange]);
+
+  React.useEffect(() => {
+    if (btTopology.transformers.length === 0) {
+      setSelectedTransformerId("");
+      return;
+    }
+
+    if (!btTopology.transformers.some((t) => t.id === selectedTransformerId)) {
+      const nextTransformerId = btTopology.transformers[0].id;
+      setSelectedTransformerId(nextTransformerId);
+      onSelectedTransformerChange?.(nextTransformerId);
+    }
+  }, [
+    btTopology.transformers,
+    selectedTransformerId,
+    onSelectedTransformerChange,
+  ]);
+
+  React.useEffect(() => {
+    if (btTopology.edges.length === 0) {
+      setSelectedEdgeId("");
+      return;
+    }
+
+    if (!btTopology.edges.some((edge) => edge.id === selectedEdgeId)) {
+      const nextEdgeId = btTopology.edges[0].id;
+      setSelectedEdgeId(nextEdgeId);
+      onSelectedEdgeChange?.(nextEdgeId);
+    }
+  }, [btTopology.edges, selectedEdgeId, onSelectedEdgeChange]);
+
+  const selectPole = (poleId: string) => {
+    setSelectedPoleId(poleId);
+    setIsPoleDropdownOpen(false);
+    onSelectedPoleChange?.(poleId);
+  };
+
+  const selectTransformer = (transformerId: string) => {
+    setSelectedTransformerId(transformerId);
+    onSelectedTransformerChange?.(transformerId);
+  };
+
+  const selectEdge = (edgeId: string) => {
+    setSelectedEdgeId(edgeId);
+    onSelectedEdgeChange?.(edgeId);
+  };
+
+  const selectedPole =
+    btTopology.poles.find((pole) => pole.id === selectedPoleId) ?? null;
+  const selectedTransformer =
+    btTopology.transformers.find((t) => t.id === selectedTransformerId) ?? null;
+  const selectedEdge =
+    btTopology.edges.find((e) => e.id === selectedEdgeId) ?? null;
+
+  const effectivePointDemandKva =
+    pointDemandKva ?? summary.transformerDemandKva;
+
+  const updatePole = (
+    poleId: string,
+    updater: (pole: BtTopology["poles"][number]) => BtTopology["poles"][number],
+  ) => {
+    onTopologyChange({
+      ...btTopology,
+      poles: btTopology.poles.map((pole) =>
+        pole.id === poleId ? updater(pole) : pole,
+      ),
+    });
+  };
+
+  const updateTransformer = (
+    transformerId: string,
+    updater: (
+      transformer: BtTopology["transformers"][number],
+    ) => BtTopology["transformers"][number],
+  ) => {
+    onTopologyChange({
+      ...btTopology,
+      transformers: btTopology.transformers.map((transformer) =>
+        transformer.id === transformerId ? updater(transformer) : transformer,
+      ),
+    });
+  };
+
+  const updateEdge = (
+    edgeId: string,
+    updater: (edge: BtTopology["edges"][number]) => BtTopology["edges"][number],
+  ) => {
+    onTopologyChange({
+      ...btTopology,
+      edges: btTopology.edges.map((edge) =>
+        edge.id === edgeId ? updater(edge) : edge,
+      ),
+    });
+  };
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-slate-50/50">
       <div className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden p-4">
-        
-        <BtTopologyPanelStats 
+        <BtTopologyPanelStats
           poles={summary.poles}
           transformers={summary.transformers}
           edges={summary.edges}
@@ -110,11 +216,15 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         />
 
         <div className="rounded-lg border border-slate-300 bg-white p-3 shadow-sm">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tipo de Projeto</div>
-          <select 
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Tipo de Projeto
+          </div>
+          <select
             className="mt-2 w-full rounded border border-slate-300 p-1.5 text-xs font-semibold text-slate-700"
             value={projectType}
-            onChange={(e) => onProjectTypeChange(e.target.value as any)}
+            onChange={(e) =>
+              onProjectTypeChange(e.target.value as BtProjectType)
+            }
           >
             <option value="ramais">Ramais (Padrão)</option>
             <option value="clandestino">Clandestino (Carga por Área)</option>
@@ -128,37 +238,84 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           </button>
         </div>
 
-        <BtPoleVerificationSection 
+        <BtPoleVerificationSection
           btTopology={btTopology}
-          onTopologyChange={onTopologyChange}
-          onSelectedPoleChange={onSelectedPoleChange}
+          projectType={projectType}
+          selectedPoleId={selectedPoleId}
+          selectedPole={selectedPole}
+          isPoleDropdownOpen={isPoleDropdownOpen}
+          setIsPoleDropdownOpen={setIsPoleDropdownOpen}
+          selectPole={selectPole}
           onBtRenamePole={onBtRenamePole}
+          onBtSetPoleChangeFlag={onBtSetPoleChangeFlag}
+          onBtTogglePoleCircuitBreak={onBtTogglePoleCircuitBreak}
+          updatePoleVerified={(poleId, verified) =>
+            updatePole(poleId, (pole) => ({ ...pole, verified }))
+          }
+          updatePoleRamais={(poleId, ramais) =>
+            updatePole(poleId, (pole) => ({ ...pole, ramais }))
+          }
+          updatePoleSpec={(poleId, poleSpec) =>
+            updatePole(poleId, (pole) => ({ ...pole, poleSpec }))
+          }
+          updatePoleBtStructures={(poleId, btStructures) =>
+            updatePole(poleId, (pole) => ({ ...pole, btStructures }))
+          }
+          updatePoleConditionStatus={(poleId, conditionStatus) =>
+            updatePole(poleId, (pole) => ({ ...pole, conditionStatus }))
+          }
+          updatePoleEquipmentNotes={(poleId, equipmentNotes) =>
+            updatePole(poleId, (pole) => ({ ...pole, equipmentNotes }))
+          }
+          updatePoleGeneralNotes={(poleId, generalNotes) =>
+            updatePole(poleId, (pole) => ({ ...pole, generalNotes }))
+          }
         />
 
-        <BtTransformerEdgeSection 
+        <BtTransformerEdgeSection
           btTopology={btTopology}
           btNetworkScenario={btNetworkScenario}
           selectedTransformerId={selectedTransformerId}
           selectedTransformer={selectedTransformer}
           isTransformerDropdownOpen={isTransformerDropdownOpen}
           setIsTransformerDropdownOpen={setIsTransformerDropdownOpen}
-          selectTransformer={setSelectedTransformerId}
+          selectTransformer={selectTransformer}
           selectedEdgeId={selectedEdgeId}
           selectedEdge={selectedEdge}
-          selectEdge={setSelectedEdgeId}
+          selectEdge={selectEdge}
           onTopologyChange={onTopologyChange}
-          // ... other props
           transformerDebugById={transformerDebugById}
-          pointDemandKva={summary.transformerDemandKva} // Simplified for UI
-          totalNetworkLengthLabel={`${summary.totalLengthMeters.toFixed(1)} m`}
-          selectedEdgeLengthLabel={selectedEdge?.lengthMeters ? `${selectedEdge.lengthMeters.toFixed(1)} m` : "-"}
-          updateTransformerVerified={(id, v) => onTopologyChange({...btTopology, transformers: btTopology.transformers.map(t => t.id === id ? {...t, verified: v} : t)})}
-          updateTransformerReadings={(id, r) => onTopologyChange({...btTopology, transformers: btTopology.transformers.map(t => t.id === id ? {...t, readings: r} : t)})}
-          updateTransformerProjectPower={(id, p) => onTopologyChange({...btTopology, transformers: btTopology.transformers.map(t => t.id === id ? {...t, projectPowerKva: p} : t)})}
-          updateEdgeVerified={(id, v) => onTopologyChange({...btTopology, edges: btTopology.edges.map(e => e.id === id ? {...e, verified: v} : e)})}
-          updateEdgeCqtLengthMeters={(id, l) => onTopologyChange({...btTopology, edges: btTopology.edges.map(e => e.id === id ? {...e, cqtLengthMeters: l} : e)})}
-          updateEdgeConductors={(id, c) => onTopologyChange({...btTopology, edges: btTopology.edges.map(e => e.id === id ? {...e, conductors: c} : e)})}
-          updateEdgeReplacementFromConductors={(id, rc) => onTopologyChange({...btTopology, edges: btTopology.edges.map(e => e.id === id ? {...e, replacementFromConductors: rc} : e)})}
+          pointDemandKva={effectivePointDemandKva}
+          updateTransformerVerified={(id, verified) =>
+            updateTransformer(id, (transformer) => ({
+              ...transformer,
+              verified,
+            }))
+          }
+          updateTransformerReadings={(id, readings) =>
+            updateTransformer(id, (transformer) => ({
+              ...transformer,
+              readings,
+            }))
+          }
+          updateTransformerProjectPower={(id, projectPowerKva) =>
+            updateTransformer(id, (transformer) => ({
+              ...transformer,
+              projectPowerKva,
+            }))
+          }
+          updateEdgeVerified={(id, verified) =>
+            updateEdge(id, (edge) => ({ ...edge, verified }))
+          }
+          updateEdgeConductors={(id, conductors) =>
+            updateEdge(id, (edge) => ({ ...edge, conductors }))
+          }
+          updateEdgeReplacementFromConductors={(
+            id,
+            replacementFromConductors,
+          ) =>
+            updateEdge(id, (edge) => ({ ...edge, replacementFromConductors }))
+          }
           onBtRenameTransformer={onBtRenameTransformer}
           onBtSetTransformerChangeFlag={onBtSetTransformerChangeFlag}
           onBtSetEdgeChangeFlag={onBtSetEdgeChangeFlag}
@@ -166,7 +323,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         />
       </div>
 
-      <BtTopologyPanelBulkImportModal 
+      <BtTopologyPanelBulkImportModal
         isOpen={bulkImport.isBulkRamalModalOpen}
         onClose={() => bulkImport.setIsBulkRamalModalOpen(false)}
         bulkRamalText={bulkImport.bulkRamalText}

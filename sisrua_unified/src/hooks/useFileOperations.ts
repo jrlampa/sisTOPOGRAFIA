@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GlobalState, AppSettings } from "../types";
+import { GlobalState } from "../types";
 
 interface UseFileOperationsProps {
   appState: GlobalState;
@@ -48,7 +48,7 @@ export function useFileOperations({
       URL.revokeObjectURL(url);
 
       onSuccess("Project Saved");
-    } catch (error) {
+    } catch {
       onError("Failed to save project");
     } finally {
       setIsLoading(false);
@@ -107,7 +107,7 @@ export function useFileOperations({
 
         setAppState(loadedState, true);
         onSuccess("Project Loaded");
-      } catch (error) {
+      } catch {
         onError("Failed to load project");
       } finally {
         setIsLoading(false);

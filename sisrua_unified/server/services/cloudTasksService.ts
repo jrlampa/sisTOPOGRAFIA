@@ -27,6 +27,15 @@ export interface DxfTaskPayload {
   projection: string;
   contourRenderMode: "spline" | "polyline";
   btContext?: Record<string, unknown> | null;
+  mtContext?: Record<string, unknown> | null;
+  requestMeta?: {
+    endpoint?: string;
+    requestId?: string;
+    source?: string;
+    ip?: string;
+    userAgent?: string;
+    queuedAt?: string;
+  };
   outputFile: string;
   filename: string;
   cacheKey: string;
@@ -70,6 +79,42 @@ function extractTopologyOnlyWarning(pythonOutput: string): string | undefined {
     normalizedOutput.includes("dxf sera gerado apenas com a topologia bt");
 
   return hasNoOsmIndicator ? TOPOLOGY_ONLY_WARNING : undefined;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function validateDxfCoreInput(
+  payload: Pick<DxfTaskPayload, "lat" | "lon" | "radius">,
+): { valid: true } | { valid: false; fields: string[] } {
+  const fields: string[] = [];
+
+  if (!isFiniteNumber(payload.lat) || payload.lat < -90 || payload.lat > 90) {
+    fields.push("lat");
+  }
+  if (!isFiniteNumber(payload.lon) || payload.lon < -180 || payload.lon > 180) {
+    fields.push("lon");
+  }
+  if (!isFiniteNumber(payload.radius) || payload.radius < 10 || payload.radius > 5000) {
+    fields.push("radius");
+  }
+
+  if (fields.length > 0) {
+    return { valid: false, fields };
+  }
+
+  return { valid: true };
+}
+
+function buildPayloadSourceTag(payload: Partial<DxfTaskPayload>): string {
+  const meta = payload.requestMeta;
+  const source =
+    meta?.source?.trim() ||
+    meta?.endpoint?.trim() ||
+    "unknown_source";
+  const requestId = meta?.requestId?.trim();
+  return requestId ? `${source}#${requestId}` : source;
 }
 
 function persistBtContextSidecar(
@@ -173,6 +218,14 @@ async function processPayload(incomingPayload: any): Promise<void> {
       ? JSON.parse(incomingPayload)
       : incomingPayload;
 
+  const validation = validateDxfCoreInput(payload);
+  if (!validation.valid) {
+    const sourceTag = buildPayloadSourceTag(payload);
+    throw new Error(
+      `Invalid queued payload fields (${validation.fields.join(", ")}) before Python execution | source=${sourceTag}`,
+    );
+  }
+
   logger.info("[CloudTasksService] Processing payload", {
     taskId: payload.taskId,
     lat: payload.lat,
@@ -191,6 +244,7 @@ async function processPayload(incomingPayload: any): Promise<void> {
     projection: payload.projection,
     contourRenderMode: payload.contourRenderMode,
     btContext: payload.btContext ?? null,
+    mtContext: payload.mtContext ?? null,
     outputFile: payload.outputFile,
   });
   const warning = extractTopologyOnlyWarning(pythonOutput);
@@ -428,6 +482,23 @@ export async function createDxfTask(
   }
 
   const taskId = randomUUID();
+  const validation = validateDxfCoreInput(payload);
+  if (!validation.valid) {
+    const sourceTag = buildPayloadSourceTag(payload);
+    logger.warn("DXF task rejected before queue (invalid core input)", {
+      fields: validation.fields,
+      source: sourceTag,
+      payloadPreview: {
+        lat: payload.lat,
+        lon: payload.lon,
+        radius: payload.radius,
+      },
+    });
+    throw new Error(
+      `Invalid DXF input fields: ${validation.fields.join(", ")} | source=${sourceTag}`,
+    );
+  }
+
   const fullPayload: DxfTaskPayload = { taskId, ...payload };
 
   // Create the job as close as possible to queueing to avoid state races.

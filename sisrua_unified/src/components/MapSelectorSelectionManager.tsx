@@ -8,7 +8,12 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
-import { BtEditorMode, MtEditorMode, SelectionMode, GeoLocation } from "../types";
+import {
+  BtEditorMode,
+  MtEditorMode,
+  SelectionMode,
+  GeoLocation,
+} from "../types";
 
 interface SelectionManagerProps {
   center: GeoLocation;
@@ -213,26 +218,8 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
 
   React.useEffect(() => {
     flyToCenter(center);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- flyToCenter is stable (depends only on 'map' which is in deps); precision deps on lat/lng prevent re-flying on label-only changes.
   }, [center.lat, center.lng, map]);
-
-  React.useEffect(() => {
-    if (!flyToEdgeTarget) {
-      return;
-    }
-
-    const next = L.latLng(flyToEdgeTarget.lat, flyToEdgeTarget.lng);
-    const current = map.getCenter();
-    const distance = current.distanceTo(next);
-    const zoom = map.getZoom();
-
-    if (distance < 1) {
-      map.setView(next, zoom, { animate: false });
-      return;
-    }
-
-    const duration = distance > 5000 ? 1.8 : distance > 1000 ? 1.3 : 0.9;
-    map.flyTo(next, zoom, { duration, easeLinearity: 0.2, noMoveStart: true });
-  }, [flyToEdgeTarget?.token, map]);
 
   React.useEffect(() => {
     if (!flyToPoleTarget) {
@@ -251,7 +238,28 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
 
     const duration = distance > 5000 ? 1.8 : distance > 1000 ? 1.3 : 0.9;
     map.flyTo(next, zoom, { duration, easeLinearity: 0.2, noMoveStart: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- token is the intent-change signal; lat/lng read from flyToPoleTarget inside are stable within the same token.
   }, [flyToPoleTarget?.token, map]);
+
+  React.useEffect(() => {
+    if (!flyToEdgeTarget) {
+      return;
+    }
+
+    const next = L.latLng(flyToEdgeTarget.lat, flyToEdgeTarget.lng);
+    const current = map.getCenter();
+    const distance = current.distanceTo(next);
+    const zoom = map.getZoom();
+
+    if (distance < 1) {
+      map.setView(next, zoom, { animate: false });
+      return;
+    }
+
+    const duration = distance > 5000 ? 1.8 : distance > 1000 ? 1.3 : 0.9;
+    map.flyTo(next, zoom, { duration, easeLinearity: 0.2, noMoveStart: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- token is the intent-change signal; lat/lng read from flyToEdgeTarget inside are stable within the same token.
+  }, [flyToEdgeTarget?.token, map]);
 
   React.useEffect(() => {
     if (!flyToTransformerTarget) {
@@ -273,6 +281,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
 
     const duration = distance > 5000 ? 1.8 : distance > 1000 ? 1.3 : 0.9;
     map.flyTo(next, zoom, { duration, easeLinearity: 0.2, noMoveStart: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- token is the intent-change signal; lat/lng read from flyToTransformerTarget inside are stable within the same token.
   }, [flyToTransformerTarget?.token, map]);
 
   React.useEffect(() => {
