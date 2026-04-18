@@ -385,10 +385,7 @@ function App() {
         return;
       }
 
-      const nextEdges = btTopology.edges.map((
-        edge,
-        index,
-      ) => {
+      const nextEdges = btTopology.edges.map((edge, index) => {
         const directKey = `${edge.fromPoleId}->${edge.toPoleId}`;
         const reverseKey = `${edge.toPoleId}->${edge.fromPoleId}`;
         const suggestedConductor =
@@ -431,7 +428,8 @@ function App() {
       });
 
       const changedCount = nextEdges.reduce(
-        (count, edge, index) => (edge !== btTopology.edges[index] ? count + 1 : count),
+        (count, edge, index) =>
+          edge !== btTopology.edges[index] ? count + 1 : count,
         0,
       );
 
@@ -565,7 +563,7 @@ function App() {
     criticalPoleId: btCriticalPoleId,
     loadCenterPoleId:
       btNetworkScenario === "projeto"
-        ? btSectioningImpact.suggestedPoleId ?? null
+        ? (btSectioningImpact.suggestedPoleId ?? null)
         : null,
     accumulatedByPole: btAccumulatedByPole,
     onPolygonChange: handlePolygonChange,
@@ -675,88 +673,88 @@ function App() {
   return (
     <>
       <AppShellLayout
-      isDark={isDark}
-      canUndo={canUndo}
-      canRedo={canRedo}
-      onUndo={undo}
-      onRedo={redo}
-      onSaveProject={handleSaveProject}
-      onOpenProject={handleLoadProject}
-      onOpenSettings={openSettings}
-      appStatusStackProps={{
-        toast,
-        closeToast,
-        sessionDraft,
-        handleRestoreSession,
-        handleDismissSession,
-        isProcessing,
-        isDownloading,
-        progressValue,
-        statusMessage,
-        showDxfProgress,
-        dxfProgressLabel,
-        btExportSummaryProps: {
-          latestBtExport,
-          btExportHistory,
-          exportBtHistoryJson,
-          exportBtHistoryCsv,
-          clearBtExportHistory: handleClearBtExportHistory,
-          btHistoryTotal,
-          btHistoryLoading,
-          btHistoryCanLoadMore,
-          onLoadMoreBtHistory: handleLoadMoreBtHistory,
-          historyProjectTypeFilter: btHistoryProjectTypeFilter,
-          onHistoryProjectTypeFilterChange: setBtHistoryProjectTypeFilter,
-          historyCqtScenarioFilter: btHistoryCqtScenarioFilter,
-          onHistoryCqtScenarioFilterChange: setBtHistoryCqtScenarioFilter,
-        },
-      }}
-      appSettingsOverlayProps={{
-        showSettings,
-        closeSettings,
-        settings,
-        updateSettings,
-        selectionMode,
-        handleSelectionModeChange,
-        radius,
-        handleRadiusChange,
-        polygon,
-        handleClearPolygon,
-        hasData: !!osmData,
-        isDownloading,
-        handleDownloadDxf,
-        handleDownloadGeoJSON,
-        handleSaveProject,
-        handleLoadProject,
-      }}
-      sidebarWorkspaceProps={{
-        isSidebarDockedForRamalModal,
-        selectionControlsProps: sidebarSelectionControlsProps,
-        btEditorSectionProps: sidebarBtEditorSectionProps,
-        mtEditorSectionProps: {
-          mtTopology: appState.mtTopology ?? { poles: [], edges: [] },
-          onMtTopologyChange: updateMtTopology,
-          mtEditorMode: settings.mtEditorMode ?? "none",
-          onMtEditorModeChange: (mode) =>
-            updateSettings({ ...settings, mtEditorMode: mode }),
-        },
-        analysisResultsProps: sidebarAnalysisResultsProps,
-      }}
-      mainMapWorkspaceProps={{
-        mapSelectorProps,
-        floatingLayerPanelProps: {
+        isDark={isDark}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
+        onSaveProject={handleSaveProject}
+        onOpenProject={handleLoadProject}
+        onOpenSettings={openSettings}
+        appStatusStackProps={{
+          toast,
+          closeToast,
+          sessionDraft,
+          handleRestoreSession,
+          handleDismissSession,
+          isProcessing,
+          isDownloading,
+          progressValue,
+          statusMessage,
+          showDxfProgress,
+          dxfProgressLabel,
+          btExportSummaryProps: {
+            latestBtExport,
+            btExportHistory,
+            exportBtHistoryJson,
+            exportBtHistoryCsv,
+            clearBtExportHistory: handleClearBtExportHistory,
+            btHistoryTotal,
+            btHistoryLoading,
+            btHistoryCanLoadMore,
+            onLoadMoreBtHistory: handleLoadMoreBtHistory,
+            historyProjectTypeFilter: btHistoryProjectTypeFilter,
+            onHistoryProjectTypeFilterChange: setBtHistoryProjectTypeFilter,
+            historyCqtScenarioFilter: btHistoryCqtScenarioFilter,
+            onHistoryCqtScenarioFilterChange: setBtHistoryCqtScenarioFilter,
+          },
+        }}
+        appSettingsOverlayProps={{
+          showSettings,
+          closeSettings,
           settings,
-          onUpdateSettings: updateSettings,
+          updateSettings,
+          selectionMode,
+          handleSelectionModeChange,
+          radius,
+          handleRadiusChange,
+          polygon,
+          handleClearPolygon,
+          hasData: !!osmData,
+          isDownloading,
+          handleDownloadDxf,
+          handleDownloadGeoJSON,
+          handleSaveProject,
+          handleLoadProject,
+        }}
+        sidebarWorkspaceProps={{
+          isSidebarDockedForRamalModal,
+          selectionControlsProps: sidebarSelectionControlsProps,
+          btEditorSectionProps: sidebarBtEditorSectionProps,
+          mtEditorSectionProps: {
+            mtTopology: appState.mtTopology ?? { poles: [], edges: [] },
+            onMtTopologyChange: updateMtTopology,
+            mtEditorMode: settings.mtEditorMode ?? "none",
+            onMtEditorModeChange: (mode) =>
+              updateSettings({ ...settings, mtEditorMode: mode }),
+          },
+          analysisResultsProps: sidebarAnalysisResultsProps,
+        }}
+        mainMapWorkspaceProps={{
+          mapSelectorProps,
+          floatingLayerPanelProps: {
+            settings,
+            onUpdateSettings: updateSettings,
+            isDark,
+          },
+          elevationProfileData,
+          onCloseElevationProfile: () => {
+            clearProfile();
+            handleSelectionModeChange("circle");
+          },
           isDark,
-        },
-        elevationProfileData,
-        onCloseElevationProfile: () => {
-          clearProfile();
-          handleSelectionModeChange("circle");
-        },
-        isDark,
-        btModalStackProps,
-      }}
+          btModalStackProps,
+        }}
       />
 
       <BtTelescopicSuggestionModal
