@@ -193,11 +193,16 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 - [x] **Ponto 41**: Residência de Dados Brasil — `lgpdResidenciaService.ts` (inventário de localizações, verificação Art.33 LGPD transferência internacional, países com adequação ANPD, conformeGeral/sob_analise/nao_conforme por sistema, relatório geral de soberania) + `lgpdResidenciaRoutes.ts` (/api/lgpd/residencia/{localizacoes,conformidade,relatorio,pais-adequado}). 18 testes passando. Commit `8539e3d`.
 - [x] **Ponto 35 & 37**: Painel Admin Self-Service + Retenção de Dados — `AdminPage.tsx` + `AdminPageSectionRenderers.tsx` (frontend completo com 14 seções) + `adminRoutes.ts` + `dataRetentionRoutes.ts` + `sreRoutes.ts` + `vulnManagementRoutes.ts` + `infoClassificationRoutes.ts` + `holdingRoutes.ts` + `finOpsRoutes.ts` + `capacityPlanningRoutes.ts`. Todos endpoints /api/{retencao,capacidade,vulns,classificacao,holdings,finops,sre} registrados. Commits `72f651d`, `bdbf531`.
 - [x] **Ponto 17 & 19**: SRE/Operação 24x7 com SLOs + Chaos Engineering — `sreRoutes.ts` (/api/sre/{slos,alertas,runbooks}) com 5 Runbooks formalizados (RTO 10-30min, escalação, integração LGPD para incidentes de segurança) + `sloService.ts` (em memória, SLOs pré-registrados, error budget, alerting) + `chaos.test.ts` (4 cenários: OSM, DB, FS, Python engine). 17+32 testes passando. Commit `bdbf531`.
+- [x] **REDE NOVA Intelligence (Ponto 9 CQT++)**: Análise Telescópica de CQT BT — `btTelescopicAnalysis.ts` (algoritmo greedy trafo→tip, `calculateLmaxByConductor`, `analyzeTelescopicPaths`) + `btTypes.ts` (TelescopicPathEdge, TelescopicSuggestion, TelescopicAnalysisOutput) + `POST /api/bt/telescopic-analysis` + `BtTelescopicSuggestionModal.tsx` (modal framer-motion, tabela trafo→tip, Lmax summary) + `useBtTelescopicAnalysis.ts` + highlight de polo load-center no mapa + wiring completo em `App.tsx`. 11 testes passando. Commits `13d42d5`, `e1ee0a8`, `666b677`.
+- [x] **Ponto 68 & 124**: Audit Log Forense Multicamada + Circuit Breakers — `auditLogService.ts` (write-once, contexto Geography/Device/IP, SHA-256 tamper detection) + `circuitBreaker.ts` (CLOSED/OPEN/HALF_OPEN, fallback graceful) + integrado em `/health`. Verificado em 2026-04-18.
 
 ### Fase 2: Engenharia 2.0 & BIM
 
 - [ ] **Ponto 6 & 7**: Geração IFC 4.x e Registro de Proveniência Técnica.
 - [ ] **Ponto 43 & 45**: Integração SINAPI Master e Ciclo de Vida do Ativo (LCC).
+- [ ] **Pontos 116 & 120**: Matriz de Rastreabilidade Regulatória + Trilha de Evidências para Licitações.
+
+- [x] **Pontos 116 & 120**: Matriz de Rastreabilidade Regulatória + Trilha de Evidências para Licitações — `rastreabilidadeRegulatoriaService.ts` (10 requisitos canônicos ANEEL/ANPD/NBR/INTERNA, mapeamento bidirecional Requisito→Teste→Artefato, relatório de conformidade com percentual) + `rastreabilidadeRoutes.ts` (/api/rastreabilidade/{itens,relatorio}) + `licitacoesService.ts` (geração de pacote SHA-256, ciclo rascunho→validado→emitido, verificação de integridade) + `licitacoesRoutes.ts` (/api/licitacoes/{gerar,validar,emitir,integridade}). 34 testes passando.
 
 ### Fase 3: Inteligência & Resiliência
 
@@ -234,7 +239,7 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ---
 
-**Última Atualização**: 2026-04-17
+**Última Atualização**: 2026-04-18
 **Branch Ativa**: dev
 **Versão**: 1.3.1
 
