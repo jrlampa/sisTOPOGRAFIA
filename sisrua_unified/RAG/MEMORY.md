@@ -191,18 +191,17 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 - [x] **Ponto 54**: Dossiê Regulatório e Cadeia de Custódia — `dossieRegulatorioService.ts` (SHA-256 de artefatos, JSON canônico, ciclo rascunho→validado→submetido→arquivado, trilha de auditoria imutável, exportação com integrityHash verificável) + `dossieRoutes.ts` (GET/POST /api/dossie/*). 24 testes passando. Commit `a15218c`.
 - [x] **Ponto 40**: Retenção, Classificação e Descarte — `lgpdRetencaoService.ts` (políticas por categoria/nível, ciclo de vida agendado→em_execucao→concluido, descarte NIST SP 800-88 Clear/Purge/Destroy, certificado com SHA-256, detecção de pendentes vencidos) + `lgpdRetencaoRoutes.ts` (/api/lgpd/retencao/{politicas,eventos,certificados}). 22 testes passando. Commit `8539e3d`.
 - [x] **Ponto 41**: Residência de Dados Brasil — `lgpdResidenciaService.ts` (inventário de localizações, verificação Art.33 LGPD transferência internacional, países com adequação ANPD, conformeGeral/sob_analise/nao_conforme por sistema, relatório geral de soberania) + `lgpdResidenciaRoutes.ts` (/api/lgpd/residencia/{localizacoes,conformidade,relatorio,pais-adequado}). 18 testes passando. Commit `8539e3d`.
-- [ ] **Ponto 54**: Dossiê Regulatório e Cadeia de Custódia
+- [x] **Ponto 35 & 37**: Painel Admin Self-Service + Retenção de Dados — `AdminPage.tsx` + `AdminPageSectionRenderers.tsx` (frontend completo com 14 seções) + `adminRoutes.ts` + `dataRetentionRoutes.ts` + `sreRoutes.ts` + `vulnManagementRoutes.ts` + `infoClassificationRoutes.ts` + `holdingRoutes.ts` + `finOpsRoutes.ts` + `capacityPlanningRoutes.ts`. Todos endpoints /api/{retencao,capacidade,vulns,classificacao,holdings,finops,sre} registrados. Commits `72f651d`, `bdbf531`.
+- [x] **Ponto 17 & 19**: SRE/Operação 24x7 com SLOs + Chaos Engineering — `sreRoutes.ts` (/api/sre/{slos,alertas,runbooks}) com 5 Runbooks formalizados (RTO 10-30min, escalação, integração LGPD para incidentes de segurança) + `sloService.ts` (em memória, SLOs pré-registrados, error budget, alerting) + `chaos.test.ts` (4 cenários: OSM, DB, FS, Python engine). 17+32 testes passando. Commit `bdbf531`.
 
 ### Fase 2: Engenharia 2.0 & BIM
 
 - [ ] **Ponto 6 & 7**: Geração IFC 4.x e Registro de Proveniência Técnica.
 - [ ] **Ponto 43 & 45**: Integração SINAPI Master e Ciclo de Vida do Ativo (LCC).
-- [ ] **Ponto 35 & 37**: Multi-tenancy Seguro e BCP/DR com exercícios validados.
 
 ### Fase 3: Inteligência & Resiliência
 
 - [ ] **Ponto 11 & 14**: RAG de Normas Técnicas e Análise Preditiva de Carga.
-- [ ] **Ponto 17 & 19**: Operação SRE 24x7 e Injeção de Falhas (Chaos Engineering).
 - [ ] **Ponto 49 & 50**: Gestão de Vulnerabilidades e Pentests Periódicos.
 
 ### Fase 4: Operação de Campo & ESG
