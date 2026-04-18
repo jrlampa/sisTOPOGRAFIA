@@ -55,6 +55,7 @@ import lgpdRoutes from "./routes/lgpdRoutes.js";
 import dossieRoutes from "./routes/dossieRoutes.js";
 import lgpdRetencaoRoutes from "./routes/lgpdRetencaoRoutes.js";
 import lgpdResidenciaRoutes from "./routes/lgpdResidenciaRoutes.js";
+import sreRoutes from "./routes/sreRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -251,6 +252,7 @@ app.use("/api/lgpd", lgpdRoutes);
 app.use("/api/dossie", dossieRoutes);
 app.use("/api/lgpd/retencao", lgpdRetencaoRoutes);
 app.use("/api/lgpd/residencia", lgpdResidenciaRoutes);
+app.use("/api/sre", sreRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
