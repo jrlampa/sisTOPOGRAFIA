@@ -7,6 +7,20 @@ export default {
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },
+  transform: {
+    "^.+\\.(ts|tsx)$": [
+      "ts-jest",
+      {
+        tsconfig: {
+          // Force CommonJS output — tsconfig.server.json uses NodeNext which emits ESM
+          module: "CommonJS",
+          moduleResolution: "node",
+          esModuleInterop: true,
+          types: ["node", "jest"],
+        },
+      },
+    ],
+  },
   transformIgnorePatterns: [
     "node_modules/(?!(uuid|@google-cloud/firestore|@google-cloud/tasks)/)",
   ],
@@ -43,15 +57,4 @@ export default {
   },
   setupFilesAfterEnv: ["<rootDir>/server/tests/setup.ts"],
   coverageDirectory: "./coverage/backend",
-  globals: {
-    "ts-jest": {
-      tsconfig: {
-        // Force CommonJS output — tsconfig.server.json uses NodeNext which emits ESM
-        module: "CommonJS",
-        moduleResolution: "node",
-        esModuleInterop: true,
-        types: ["node", "jest"],
-      },
-    },
-  },
 };
