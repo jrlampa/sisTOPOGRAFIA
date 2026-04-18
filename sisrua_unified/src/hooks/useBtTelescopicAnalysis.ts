@@ -21,7 +21,10 @@ export interface UseBtTelescopicAnalysisReturn {
   triggerAnalysis: (
     topology: BtTopology,
     accumulatedByPole: BtPoleAccumulatedDemand[],
-    transformerDebugById: Record<string, { assignedClients: number; estimatedDemandKva: number }>,
+    transformerDebugById: Record<
+      string,
+      { assignedClients: number; estimatedDemandKva: number }
+    >,
     scenario: BtNetworkScenario,
     requestConfirmation: (onConfirm: () => void) => void,
   ) => void;
@@ -41,7 +44,10 @@ const TELESCOPIC_API_PATH = "/api/bt/telescopic-analysis";
 function buildTelescopicPayload(
   topology: BtTopology,
   accumulatedByPole: BtPoleAccumulatedDemand[],
-  _transformerDebugById: Record<string, { assignedClients: number; estimatedDemandKva: number }>,
+  _transformerDebugById: Record<
+    string,
+    { assignedClients: number; estimatedDemandKva: number }
+  >,
 ) {
   const accMap = new Map(accumulatedByPole.map((a) => [a.poleId, a]));
   const transformer = topology.transformers[0];
@@ -106,7 +112,8 @@ function buildTelescopicPayload(
 
 export function useBtTelescopicAnalysis(): UseBtTelescopicAnalysisReturn {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [suggestions, setSuggestions] = useState<TelescopicAnalysisOutput | null>(null);
+  const [suggestions, setSuggestions] =
+    useState<TelescopicAnalysisOutput | null>(null);
 
   const clearSuggestions = useCallback(() => {
     setSuggestions(null);
@@ -116,9 +123,16 @@ export function useBtTelescopicAnalysis(): UseBtTelescopicAnalysisReturn {
     async (
       topology: BtTopology,
       accumulatedByPole: BtPoleAccumulatedDemand[],
-      transformerDebugById: Record<string, { assignedClients: number; estimatedDemandKva: number }>,
+      transformerDebugById: Record<
+        string,
+        { assignedClients: number; estimatedDemandKva: number }
+      >,
     ) => {
-      const payload = buildTelescopicPayload(topology, accumulatedByPole, transformerDebugById);
+      const payload = buildTelescopicPayload(
+        topology,
+        accumulatedByPole,
+        transformerDebugById,
+      );
       if (!payload) return;
 
       setIsAnalyzing(true);
@@ -131,7 +145,11 @@ export function useBtTelescopicAnalysis(): UseBtTelescopicAnalysisReturn {
 
         if (!response.ok) {
           const errBody = await response.json().catch(() => ({}));
-          console.error("[TelescopicAnalysis] Erro na API", response.status, errBody);
+          console.error(
+            "[TelescopicAnalysis] Erro na API",
+            response.status,
+            errBody,
+          );
           return;
         }
 
@@ -150,14 +168,18 @@ export function useBtTelescopicAnalysis(): UseBtTelescopicAnalysisReturn {
     (
       topology: BtTopology,
       accumulatedByPole: BtPoleAccumulatedDemand[],
-      transformerDebugById: Record<string, { assignedClients: number; estimatedDemandKva: number }>,
+      transformerDebugById: Record<
+        string,
+        { assignedClients: number; estimatedDemandKva: number }
+      >,
       scenario: BtNetworkScenario,
       requestConfirmation: (onConfirm: () => void) => void,
     ) => {
       // Executa apenas no modo REDE NOVA
       if (scenario !== "projeto") return;
       // Deve ter pelo menos um transformador e uma aresta para analisar
-      if (topology.transformers.length === 0 || topology.edges.length === 0) return;
+      if (topology.transformers.length === 0 || topology.edges.length === 0)
+        return;
 
       requestConfirmation(() => {
         void runAnalysis(topology, accumulatedByPole, transformerDebugById);

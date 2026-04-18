@@ -20,11 +20,13 @@ import { useProjectDataWorkflow } from "./hooks/useProjectDataWorkflow";
 import { useAppAnalysisWorkflow } from "./hooks/useAppAnalysisWorkflow";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useBtCriticalConfirmations } from "./hooks/useBtCriticalConfirmations";
+import { useBtTelescopicAnalysis } from "./hooks/useBtTelescopicAnalysis";
 import { EMPTY_BT_TOPOLOGY } from "./utils/btNormalization";
 import { SidebarBtEditorSection } from "./components/SidebarBtEditorSection";
 import { SidebarAnalysisResults } from "./components/SidebarAnalysisResults";
 import { SidebarSelectionControls } from "./components/SidebarSelectionControls";
 import { BtModalStack } from "./components/BtModalStack";
+import { BtTelescopicSuggestionModal } from "./components/BtTelescopicSuggestionModal";
 import { AppShellLayout } from "./components/AppShellLayout";
 import { INITIAL_APP_STATE } from "./app/initialState";
 import { persistAppSettings } from "./utils/preferencesPersistence";
@@ -320,6 +322,146 @@ function App() {
   } = useBtNavigationState({ btTopology, showToast });
 
   const {
+    isAnalyzing: isBtTelescopicAnalyzing,
+    suggestions: btTelescopicSuggestions,
+    triggerAnalysis: triggerBtTelescopicAnalysis,
+    clearSuggestions: clearBtTelescopicSuggestions,
+  } = useBtTelescopicAnalysis();
+
+  const handleTriggerTelescopicAnalysis = React.useCallback(() => {
+    if (isBtTelescopicAnalyzing) {
+      showToast("Análise telescópica já está em execução.", "info");
+      return;
+    }
+
+    triggerBtTelescopicAnalysis(
+      btTopology,
+      btAccumulatedByPole,
+      btTransformerDebugById,
+      "projeto",
+      (onConfirm) => {
+        requestCriticalConfirmation({
+          title: "Executar análise telescópica da REDE NOVA?",
+          message:
+            "A análise avalia quedas de tensão e sugere substituições de condutores no sentido trafo para ponta.",
+          confirmLabel: "Executar análise",
+          cancelLabel: "Cancelar",
+          tone: "info",
+          onConfirm,
+        });
+      },
+    );
+  }, [
+    isBtTelescopicAnalyzing,
+    showToast,
+    triggerBtTelescopicAnalysis,
+    btTopology,
+    btAccumulatedByPole,
+    btTransformerDebugById,
+    requestCriticalConfirmation,
+  ]);
+
+  const handleApplyTelescopicSuggestions = React.useCallback(
+    (analysisOutput: NonNullable<typeof btTelescopicSuggestions>) => {
+      if ((settings.btNetworkScenario ?? "asis") !== "projeto") {
+        showToast(
+          "As sugestões telescópicas só podem ser aplicadas na REDE NOVA.",
+          "info",
+        );
+        clearBtTelescopicSuggestions();
+        return;
+      }
+
+      const conductorByEdgeId = new Map<string, string>();
+      for (const suggestion of analysisOutput.suggestions) {
+        for (const edge of suggestion.pathEdges) {
+          conductorByEdgeId.set(edge.edgeId, edge.suggestedConductorId);
+        }
+      }
+
+      if (conductorByEdgeId.size === 0) {
+        showToast("Nenhuma substituição de condutor foi sugerida.", "info");
+        clearBtTelescopicSuggestions();
+        return;
+      }
+
+      const nextEdges = btTopology.edges.map((
+        edge,
+        index,
+      ) => {
+        const directKey = `${edge.fromPoleId}->${edge.toPoleId}`;
+        const reverseKey = `${edge.toPoleId}->${edge.fromPoleId}`;
+        const suggestedConductor =
+          conductorByEdgeId.get(directKey) ?? conductorByEdgeId.get(reverseKey);
+
+        if (!suggestedConductor) {
+          return edge;
+        }
+
+        const currentPrimary = edge.conductors[0];
+        if (currentPrimary?.conductorName === suggestedConductor) {
+          return edge;
+        }
+
+        const nextPrimary = currentPrimary
+          ? {
+              ...currentPrimary,
+              quantity: 1,
+              conductorName: suggestedConductor,
+            }
+          : {
+              id: `cond-auto-${Date.now()}-${index}`,
+              quantity: 1,
+              conductorName: suggestedConductor,
+            };
+
+        return {
+          ...edge,
+          edgeChangeFlag: (edge.edgeChangeFlag === "new"
+            ? "new"
+            : "replace") as "new" | "replace",
+          removeOnExecution: false,
+          replacementFromConductors:
+            edge.replacementFromConductors &&
+            edge.replacementFromConductors.length > 0
+              ? edge.replacementFromConductors
+              : edge.conductors,
+          conductors: [nextPrimary],
+        };
+      });
+
+      const changedCount = nextEdges.reduce(
+        (count, edge, index) => (edge !== btTopology.edges[index] ? count + 1 : count),
+        0,
+      );
+
+      if (changedCount === 0) {
+        showToast("As sugestões já estavam refletidas na topologia.", "info");
+        clearBtTelescopicSuggestions();
+        return;
+      }
+
+      updateBtTopology({
+        ...btTopology,
+        edges: nextEdges,
+      });
+
+      showToast(
+        `${changedCount} trecho(s) atualizado(s) com sugestões telescópicas na REDE NOVA.`,
+        "success",
+      );
+      clearBtTelescopicSuggestions();
+    },
+    [
+      settings.btNetworkScenario,
+      showToast,
+      clearBtTelescopicSuggestions,
+      btTopology,
+      updateBtTopology,
+    ],
+  );
+
+  const {
     handleDownloadDxf,
     handleDownloadGeoJSON,
     isDownloading,
@@ -421,6 +563,10 @@ function App() {
     onBtDragPole: handleBtDragPole,
     onBtDragTransformer: handleBtDragTransformer,
     criticalPoleId: btCriticalPoleId,
+    loadCenterPoleId:
+      btNetworkScenario === "projeto"
+        ? btSectioningImpact.suggestedPoleId ?? null
+        : null,
     accumulatedByPole: btAccumulatedByPole,
     onPolygonChange: handlePolygonChange,
     measurePath: measurePathPoints,
@@ -510,6 +656,7 @@ function App() {
     btClandestinoDisplay,
     btTransformersDerived,
     requestCriticalConfirmation,
+    onTriggerTelescopicAnalysis: handleTriggerTelescopicAnalysis,
   };
 
   const sidebarAnalysisResultsProps: React.ComponentProps<
@@ -526,7 +673,8 @@ function App() {
   };
 
   return (
-    <AppShellLayout
+    <>
+      <AppShellLayout
       isDark={isDark}
       canUndo={canUndo}
       canRedo={canRedo}
@@ -609,7 +757,14 @@ function App() {
         isDark,
         btModalStackProps,
       }}
-    />
+      />
+
+      <BtTelescopicSuggestionModal
+        output={btTelescopicSuggestions}
+        onApply={handleApplyTelescopicSuggestions}
+        onCancel={clearBtTelescopicSuggestions}
+      />
+    </>
   );
 }
 
