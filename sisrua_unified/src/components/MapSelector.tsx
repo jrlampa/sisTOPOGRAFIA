@@ -95,6 +95,7 @@ interface MapSelectorProps {
   ) => void;
   criticalPoleId?: string | null;
   accumulatedByPole?: BtPoleAccumulatedDemand[];
+  loadCenterPoleId?: string | null;
   onKmlDrop?: (file: File) => void;
   mapStyle?: string;
   onMapStyleChange?: (style: string) => void;
@@ -161,6 +162,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onBtDragTransformer,
   criticalPoleId,
   accumulatedByPole = [],
+  loadCenterPoleId,
   onKmlDrop,
   mapStyle = "dark",
   onMapStyleChange: _onMapStyleChange,
@@ -307,6 +309,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           btEditorMode={btEditorMode}
           criticalPoleId={criticalPoleId ?? null}
           pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId ?? null}
+                    loadCenterPoleId={loadCenterPoleId ?? null}
           poleHasTransformer={poleHasTransformer}
           accumulatedByPoleMap={accumulatedByPoleMap}
           onBtMapClick={onBtMapClick}

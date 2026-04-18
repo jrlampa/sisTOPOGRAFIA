@@ -18,6 +18,7 @@ interface MapSelectorPolesLayerProps {
   poles: BtPoleNode[];
   btEditorMode: BtEditorMode;
   criticalPoleId: string | null;
+  loadCenterPoleId?: string | null;
   pendingBtEdgeStartPoleId: string | null;
   poleHasTransformer: Map<string, boolean>;
   accumulatedByPoleMap: Map<string, BtPoleAccumulatedDemand>;
@@ -44,6 +45,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
   poles,
   btEditorMode,
   criticalPoleId,
+  loadCenterPoleId,
   pendingBtEdgeStartPoleId,
   poleHasTransformer,
   accumulatedByPoleMap,
@@ -60,16 +62,18 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
   const makePoleIcon = (poleId: string, verified: boolean) => {
     const hasTransformer = !!poleHasTransformer.get(poleId);
     const isCritical = poleId === criticalPoleId;
+    const isLoadCenter = !!loadCenterPoleId && poleId === loadCenterPoleId;
     const isPending = poleId === pendingBtEdgeStartPoleId;
     const pole = poles.find((item) => item.id === poleId);
     const poleFlag = pole ? getPoleChangeFlag(pole) : "existing";
 
     if (hasTransformer) {
-      const bg = getFlagColor(poleFlag, verified ? "#15803d" : "#7c3aed");
-      const size = isCritical ? 22 : isPending ? 20 : 18;
+      const bg = isLoadCenter ? "#059669" : getFlagColor(poleFlag, verified ? "#15803d" : "#7c3aed");
+      const size = isCritical ? 22 : isLoadCenter ? 22 : isPending ? 20 : 18;
+      const glow = isLoadCenter ? ` filter: drop-shadow(0 0 5px #34d399);` : "";
       return L.divIcon({
         className: "bt-pole-transformer-icon",
-        html: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="filter: drop-shadow(0 0 2px rgba(15, 23, 42, 0.45));"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
+        html: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="${glow}filter: drop-shadow(0 0 2px rgba(15, 23, 42, 0.45));"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
       });
@@ -80,6 +84,9 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
     if (isCritical) {
       bg = "#ef4444";
       size = 20;
+    } else if (isLoadCenter) {
+      bg = "#059669";
+      size = 20;
     } else if (isPending) {
       bg = "#f59e0b";
       size = 18;
@@ -88,7 +95,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
     }
     return L.divIcon({
       className: "bt-pole-icon",
-      html: `<div style="background:${bg};border:2px solid #ffffff;width:${size}px;height:${size}px;border-radius:9999px;box-shadow:0 0 0 2px ${bg}50, 0 1px 4px rgba(15, 23, 42, 0.45);"></div>`,
+      html: `<div style="background:${bg};border:2px solid #ffffff;width:${size}px;height:${size}px;border-radius:9999px;${isLoadCenter ? "box-shadow:0 0 0 3px #34d39980, 0 0 8px #059669, 0 1px 4px rgba(15, 23, 42, 0.45);" : `box-shadow:0 0 0 2px ${bg}50, 0 1px 4px rgba(15, 23, 42, 0.45);`}"></div>`,
       iconSize: [size, size],
       iconAnchor: [size / 2, size / 2],
     });

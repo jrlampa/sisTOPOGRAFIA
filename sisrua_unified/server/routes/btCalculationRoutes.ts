@@ -17,6 +17,7 @@ import {
   calculateBtRadial,
   BtRadialValidationError,
 } from "../services/btRadialCalculationService.js";
+import { analyzeTelescopicPaths } from "../services/bt/btTelescopicAnalysis.js";
 import {
   getBtCatalog,
   getCatalogVersion,
@@ -245,5 +246,45 @@ router.get("/parity/scenarios", (req: Request, res: Response) => {
     }),
   });
 });
+
+/**
+ * POST /api/bt/telescopic-analysis
+ * REDE NOVA Intelligence: identifica terminais com queda excessiva e
+ * sugere substituição telescópica de condutores (trafo → ponta).
+ */
+router.post(
+  "/telescopic-analysis",
+  requireBtRadialEnabled,
+  (req: Request, res: Response) => {
+    const validation = btCalculateRequestSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Payload inválido",
+        details: validation.error.issues.map(
+          (i) => `${i.path.join(".")}: ${i.message}`,
+        ),
+      });
+    }
+
+    try {
+      const radialOutput = calculateBtRadial(validation.data);
+      const telescopicOutput = analyzeTelescopicPaths(
+        validation.data,
+        radialOutput,
+      );
+      return res.json(telescopicOutput);
+    } catch (err) {
+      if (err instanceof BtRadialValidationError) {
+        return res.status(422).json({
+          error: "Falha na validação da topologia",
+          code: err.code,
+          message: err.message,
+        });
+      }
+      logger.error("Erro na análise telescópica BT", { error: err });
+      return res.status(500).json({ error: "Erro interno de cálculo" });
+    }
+  },
+);
 
 export default router;

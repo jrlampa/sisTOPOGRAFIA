@@ -102,6 +102,27 @@ export interface TreeNode {
     children: Array<{ treeNode: TreeNode; edge: BtRadialEdge }>;
 }
 
+// ─── Telescopic analysis types (REDE NOVA intelligence) ──────────────────────
+
+export interface TelescopicPathEdge {
+    edgeId: string;
+    suggestedConductorId: string;
+    lengthM: number;
+}
+
+export interface TelescopicSuggestion {
+    terminalNodeId: string;
+    pathEdges: TelescopicPathEdge[];
+    projectedVoltageEndV: number;
+    saturationPct: number;
+    requiresTransformerUpgrade: boolean;
+}
+
+export interface TelescopicAnalysisOutput {
+    suggestions: TelescopicSuggestion[];
+    lmaxByConductor: Record<string, number>;
+}
+
 // ─── Validation error (E1-H1) ────────────────────────────────────────────────
 
 export class BtRadialValidationError extends Error {

@@ -80,6 +80,7 @@ export interface SidebarBtEditorSectionProps {
   btClandestinoDisplay: BtClandestinoDisplay;
   btTransformersDerived: BtTransformerDerived[];
   requestCriticalConfirmation: (config: CriticalConfirmationConfig) => void;
+  onTriggerTelescopicAnalysis?: () => void;
 }
 
 export function SidebarBtEditorSection({
@@ -113,6 +114,7 @@ export function SidebarBtEditorSection({
   btClandestinoDisplay,
   btTransformersDerived,
   requestCriticalConfirmation,
+  onTriggerTelescopicAnalysis,
 }: SidebarBtEditorSectionProps) {
   const coordinateValidation = getCoordinateInputFeedback(
     btPoleCoordinateInput,
@@ -145,9 +147,10 @@ export function SidebarBtEditorSection({
             REDE ATUAL
           </button>
           <button
-            onClick={() =>
-              updateSettings({ ...settings, btNetworkScenario: "projeto" })
-            }
+            onClick={() => {
+              updateSettings({ ...settings, btNetworkScenario: "projeto" });
+              onTriggerTelescopicAnalysis?.();
+            }}
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btNetworkScenario === "projeto" ? "border-fuchsia-600 bg-fuchsia-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             REDE NOVA
