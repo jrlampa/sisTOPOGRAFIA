@@ -181,13 +181,15 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 - [x] **Ponto 3**: Orquestração Confiável de Jobs → `jobDossierService.ts` (replay controlado, dossiê por job, listagem auditável)
 - [x] **Ponto 5**: Injeção de Dependências & IoC → `dxfEngine.ts` + `configureCloudTasksDependencies()` no `cloudTasksService.ts` para testes isolados sem subprocesso Python
 - [x] **Ponto 9**: Paridade CQT Full — `btParityService.ts` + `cqtParityReportService.ts` + `cqtRuntimeSnapshotService.ts`, com cobertura dedicada validando snapshots runtime contra baseline da planilha. Hardening concluído em 17/04/2026 com 1226 testes passando e **54.01% de branch coverage**.
-- [x] **Fase 2: Infraestrutura de Média Tensão (MT)** (Abril 2026)
+- [x] **Fasecm 2: Infraestrutura de Média Tensão (MT)** (Abril 2026)
   - [x] CRUD completo de postes e vãos MT.
   - [x] Camadas dedicadas no mapa (amber diamonds/lines).
   - [x] Workflow integrado (Estágio 3 no Sidebar).
   - [x] Exportação DXF com suporte a vãos MT.
-- [ ] **Ponto 53-54**: Conformidade BDGD ANEEL — exportação/validação
-- [x] **Ponto 53**: Conformidade BDGD ANEEL Nativa — `bdgdAneel.ts` (constantes PRODIST/REN 956) + `bdgdValidatorService.ts` (regras R1–R6: obrigatoriedade, maxLength, códigos ANEEL, ranges, unicidade COD_ID, geometria) + `bdgdRoutes.ts` (GET /api/bdgd/layers + POST /api/bdgd/validate). 18 testes passando. Implementado em 17/04/2026.
+- [x] **Ponto 53**: Conformidade BDGD ANEEL Nativa — `bdgdAneel.ts` (constantes PRODIST/REN 956) + `bdgdValidatorService.ts` (regras R1–R6: obrigatoriedade, maxLength, códigos ANEEL, ranges, unicidade COD_ID, geometria) + `bdgdRoutes.ts` (GET /api/bdgd/layers + POST /api/bdgd/validate). 18 testes passando. Commit `3f91a52`.
+- [x] **Pontos 38+39**: LGPD End-to-End (RIPD Automatizado + Playbook de Incidentes) — `lgpdFlowService.ts` (base legal Art.7º/11, RIPD, direitos titulares Art.18/19) + `lgpdIncidentPlaybookService.ts` (playbook 6 etapas, prazo ANPD 72h Art.48, Res. CD/ANPD nº 4/2023) + `lgpdRoutes.ts` (GET/POST /api/lgpd/{fluxos,direitos,incidentes}). 26 testes passando. Commit `b90d978`.
+- [ ] **Ponto 40**: Retenção, Classificação e Descarte — política formal de ciclo de vida, descarte seguro certificado NIST 800-88
+- [ ] **Ponto 41**: Residência de Dados Brasil — garantia de armazenamento em território nacional
 - [ ] **Ponto 54**: Dossiê Regulatório e Cadeia de Custódia
 
 ### Fase 2: Engenharia 2.0 & BIM
