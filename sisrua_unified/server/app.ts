@@ -190,6 +190,7 @@ app.get("/health", async (_req: Request, res: Response) => {
           heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
         },
         nodeVersion: process.version,
+        platform: process.platform,
       },
       dependencies: {
         database: dbStatus,

@@ -286,7 +286,7 @@ export default function LandingPage() {
             </a>
           </div>
           {/* Social proof */}
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-500">
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400">
             <span className="flex items-center gap-1.5">
               <BadgeCheck className="h-4 w-4 text-emerald-500" /> Compliance
               LGPD nativo
@@ -374,7 +374,7 @@ export default function LandingPage() {
                     <h3 className="text-lg font-bold text-slate-100">
                       {plan.name}
                     </h3>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-slate-400">
                       {plan.subtitle}
                     </p>
                     <div className="mt-4 flex items-baseline gap-1">
@@ -457,11 +457,11 @@ export default function LandingPage() {
         {/* ── Footer ── */}
         <footer className="border-t border-white/10 bg-slate-950 px-6 py-10">
           <div className="mx-auto flex max-w-screen-xl flex-col items-center justify-between gap-4 sm:flex-row">
-            <span className="text-xs text-slate-600">
+            <span className="text-xs text-slate-400">
               © {new Date().getFullYear()} sisTOPOGRAFIA · SaaS enterprise de
               geoprocessamento
             </span>
-            <div className="flex items-center gap-4 text-xs text-slate-600">
+            <div className="flex items-center gap-4 text-xs text-slate-400">
               <Link
                 to="/ajuda"
                 className="transition-colors hover:text-slate-400"

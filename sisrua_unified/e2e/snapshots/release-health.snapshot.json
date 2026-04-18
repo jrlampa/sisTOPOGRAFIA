@@ -4,18 +4,12 @@
   "dependencyKeys": [
     "database",
     "externalApis",
-    "googleCloudTasks",
-    "ollama",
-    "queueBackend"
+    "ollama"
   ],
   "configEnvironment": "test",
-  "constantsCatalogNamespaces": {
-    "cqt": false,
-    "clandestino": false,
-    "config": false
-  },
-  "queueBackendType": "string",
-  "queueBackendAllowed": true,
+  "constantsCatalogNamespaces": null,
+  "queueBackendType": "undefined",
+  "queueBackendAllowed": false,
   "hasExternalApiSection": true,
   "systemKeys": ["memory", "nodeVersion", "platform"]
 }

@@ -169,7 +169,8 @@ test.describe("A11y smoke – estrutura de headings @smoke @a11y", () => {
 
 test.describe("A11y transversal – fluxos críticos BT @a11y", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    // BT topology controls live in the /app route (ProjetoPage), not the landing page
+    await page.goto("/app");
     await waitForReactReady(page);
   });
 
@@ -201,7 +202,9 @@ test.describe("A11y transversal – fluxos críticos BT @a11y", () => {
     const resetButton = page.getByRole("button", { name: /ZERAR BT/i });
     await expect(resetButton).toBeVisible();
 
-    const reached = await tabUntilFocused(page, resetButton, 35);
+    // /app sidebar has many focusable elements before the reset button;
+    // allow up to 80 Tab presses to reach it.
+    const reached = await tabUntilFocused(page, resetButton, 80);
     expect(reached).toBeTruthy();
 
     await page.keyboard.press("Enter");
@@ -242,7 +245,13 @@ test.describe("A11y transversal – fluxos críticos BT @a11y", () => {
 
     const cancelButton = page.getByRole("button", { name: /Cancelar/i }).last();
     await expect(cancelButton).toBeVisible();
-    const focusedCancel = await tabUntilFocused(page, cancelButton, 20);
+    // The modal auto-focuses Cancelar via cancelRef (useEffect). Check if focus
+    // is already there before pressing Tab (which would move it away).
+    const alreadyFocused = await cancelButton.evaluate(
+      (el) => el === document.activeElement,
+    );
+    const focusedCancel =
+      alreadyFocused || (await tabUntilFocused(page, cancelButton, 20));
     expect(focusedCancel).toBeTruthy();
 
     await page.keyboard.press("Enter");
