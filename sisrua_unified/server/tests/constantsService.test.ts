@@ -300,4 +300,65 @@ describe('constantsService', () => {
       expect(constantsService.getSync('config', 'RATE_LIMIT_GENERAL_MAX')).toBe(80);
       expect(constantsService.stats()).toEqual({ config: 1 });
     });
+it('getRefreshEvents sorts by actor, httpStatus, durationMs, success', async () => {
+    const twoEvents = [
+      { namespaces: ['config'], success: true, http_status: 200, actor: 'bob', duration_ms: 100, error_message: null, created_at: '2026-04-07T10:00:00.000Z' },
+      { namespaces: ['cqt'], success: false, http_status: 401, actor: 'alice', duration_ms: 50, error_message: 'unauthorized', created_at: '2026-04-07T09:00:00.000Z' },
+    ];
+    for (let i = 0; i < 4; i++) sqlQueryMock.mockResolvedValueOnce(twoEvents);
+    const { constantsService } = await import('../services/constantsService');
+    const r1 = await constantsService.getRefreshEvents({ sortBy: 'actor', sortOrder: 'asc' });
+    expect(r1.events[0].actor).toBe('alice');
+    const r2 = await constantsService.getRefreshEvents({ sortBy: 'httpStatus', sortOrder: 'asc' });
+    expect(r2.events[0].httpStatus).toBe(200);
+    const r3 = await constantsService.getRefreshEvents({ sortBy: 'durationMs', sortOrder: 'asc' });
+    expect(r3.events[0].durationMs).toBe(50);
+    const r4 = await constantsService.getRefreshEvents({ sortBy: 'success', sortOrder: 'desc' });
+    expect(r4.events[0].success).toBe(true);
+  });
+
+  it('getRefreshEvents filters by namespace, actor, and success', async () => {
+    const threeEvents = [
+      { namespaces: ['config'], success: true, http_status: 200, actor: 'ops', duration_ms: 10, error_message: null, created_at: '2026-04-07T10:00:00.000Z' },
+      { namespaces: ['cqt'], success: false, http_status: 500, actor: 'bot', duration_ms: 20, error_message: 'err', created_at: '2026-04-07T09:00:00.000Z' },
+      { namespaces: ['config'], success: true, http_status: 200, actor: 'ops', duration_ms: 30, error_message: null, created_at: '2026-04-07T08:00:00.000Z' },
+    ];
+    for (let i = 0; i < 3; i++) sqlQueryMock.mockResolvedValueOnce(threeEvents);
+    const { constantsService } = await import('../services/constantsService');
+    const r1 = await constantsService.getRefreshEvents({ filters: { namespace: 'config' } });
+    expect(r1.events).toHaveLength(2);
+    const r2 = await constantsService.getRefreshEvents({ filters: { actor: 'ops' } });
+    expect(r2.events).toHaveLength(2);
+    const r3 = await constantsService.getRefreshEvents({ filters: { success: false } });
+    expect(r3.events).toHaveLength(1);
+  });
+
+  it('getRefreshEvents returns empty on SQL error', async () => {
+    sqlQueryMock.mockRejectedValueOnce(new Error('DB error'));
+    const { constantsService } = await import('../services/constantsService');
+    const result = await constantsService.getRefreshEvents({ limit: 5 });
+    expect(result.events).toHaveLength(0);
+  });
+
+  it('listSnapshots sorts by namespace, actor, entryCount', async () => {
+    const twoSnaps = [
+      { id: '1', namespace: 'zzz', actor: 'bob', label: null, entry_count: 10, created_at: '2026-04-07T10:00:00.000Z' },
+      { id: '2', namespace: 'aaa', actor: 'alice', label: null, entry_count: 5, created_at: '2026-04-07T09:00:00.000Z' },
+    ];
+    for (let i = 0; i < 3; i++) sqlQueryMock.mockResolvedValueOnce(twoSnaps);
+    const { constantsService } = await import('../services/constantsService');
+    const r1 = await constantsService.listSnapshots({ sortBy: 'namespace', sortOrder: 'asc' });
+    expect(r1.snapshots[0].namespace).toBe('aaa');
+    const r2 = await constantsService.listSnapshots({ sortBy: 'actor', sortOrder: 'asc' });
+    expect(r2.snapshots[0].actor).toBe('alice');
+    const r3 = await constantsService.listSnapshots({ sortBy: 'entryCount', sortOrder: 'asc' });
+    expect(r3.snapshots[0].entryCount).toBe(5);
+  });
+
+  it('listSnapshots returns empty on SQL error', async () => {
+    sqlQueryMock.mockRejectedValueOnce(new Error('DB error'));
+    const { constantsService } = await import('../services/constantsService');
+    const result = await constantsService.listSnapshots({ limit: 5 });
+    expect(result.snapshots).toHaveLength(0);
+  });
 });

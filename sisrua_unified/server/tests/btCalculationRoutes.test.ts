@@ -55,6 +55,13 @@ jest.mock("../services/btCatalogService", () => ({
 }));
 
 // Mock btParityService
+// Mock btTelescopicAnalysis
+const analyzeTelescopicPathsMock = jest.fn();
+jest.mock("../services/bt/btTelescopicAnalysis", () => ({
+  analyzeTelescopicPaths: (...args: unknown[]) =>
+    analyzeTelescopicPathsMock(...args),
+}));
+
 jest.mock("../services/btParityService", () => ({
   runBtParitySuite: jest.fn(() => ({
     generatedAt: "2026-04-09T00:00:00.000Z",
@@ -264,5 +271,118 @@ describe("btCalculationRoutes – parity endpoints", () => {
     expect(res.status).toBe(200);
     expect(res.body.scenarios).toEqual([{ id: "B2" }]);
     expect(res.body.meta.filters.search).toBe("b");
+  });
+});
+
+// ─── Additional coverage tests ────────────────────────────────────────────────
+
+describe("btCalculationRoutes – catalog 400 paths", () => {
+  it("GET /catalog returns 400 for unexpected query params", async () => {
+    const app = buildApp();
+    const res = await request(app).get("/catalog?unexpected=true");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid query parameters");
+  });
+
+  it("GET /catalog/version returns 400 for unexpected query params", async () => {
+    const app = buildApp();
+    const res = await request(app).get("/catalog/version?foo=bar");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid query parameters");
+  });
+});
+
+describe("btCalculationRoutes – parity 400/500 paths", () => {
+  it("GET /parity returns 400 for unexpected query params", async () => {
+    const app = buildApp();
+    const res = await request(app).get("/parity?unexpected=true");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid query parameters");
+  });
+
+  it("GET /parity returns 500 when runBtParitySuite throws", async () => {
+    const { runBtParitySuite } = await import("../services/btParityService.js");
+    (runBtParitySuite as jest.Mock).mockImplementationOnce(() => {
+      throw new Error("parity suite internal error");
+    });
+    const app = buildApp();
+    const res = await request(app).get("/parity");
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe("Parity suite execution failed");
+  });
+
+  it("GET /parity/scenarios returns 400 for invalid query params", async () => {
+    const app = buildApp();
+    const res = await request(app).get("/parity/scenarios?page=not-a-number");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid query parameters");
+  });
+
+  it("GET /parity/scenarios sorts descending by id", async () => {
+    const app = buildApp();
+    const res = await request(app).get("/parity/scenarios?sortOrder=desc");
+    expect(res.status).toBe(200);
+    expect(res.body.scenarios[0].id).toBe("B2");
+  });
+});
+
+describe("btCalculationRoutes – POST /telescopic-analysis", () => {
+  it("returns 400 for invalid body", async () => {
+    mockConfig.btRadialEnabled = true;
+    const app = buildApp();
+    const res = await request(app)
+      .post("/telescopic-analysis")
+      .send({ invalid: true });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Payload inv\u00e1lido");
+  });
+
+  it("returns 200 with telescopic analysis result", async () => {
+    mockConfig.btRadialEnabled = true;
+    calculateMock.mockReturnValueOnce({
+      qtTrafo: 0.035,
+      nodeResults: [],
+      terminalResults: [],
+      totalDemandKva: 10,
+    });
+    analyzeTelescopicPathsMock.mockReturnValueOnce({
+      suggestions: [],
+      lmaxByConductor: {},
+    });
+    const app = buildApp();
+    const res = await request(app)
+      .post("/telescopic-analysis")
+      .send(validBody());
+    expect(res.status).toBe(200);
+    expect(res.body.suggestions).toBeDefined();
+  });
+
+  it("returns 422 for BtRadialValidationError", async () => {
+    mockConfig.btRadialEnabled = true;
+    calculateMock.mockImplementationOnce(() => {
+      throw new BtRadialValidationErrorMock(
+        "DISCONNECTED_GRAPH",
+        "Disconnected",
+      );
+    });
+    const app = buildApp();
+    const res = await request(app)
+      .post("/telescopic-analysis")
+      .send(validBody());
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe("DISCONNECTED_GRAPH");
+  });
+
+  it("returns 500 for unexpected error", async () => {
+    mockConfig.btRadialEnabled = true;
+    calculateMock.mockImplementationOnce(() => {
+      throw new Error("unexpected");
+    });
+    const app = buildApp();
+    const res = await request(app)
+      .post("/telescopic-analysis")
+      .send(validBody());
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe("Erro interno de c\u00e1lculo");
   });
 });

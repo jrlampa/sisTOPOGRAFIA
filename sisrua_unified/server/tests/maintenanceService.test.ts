@@ -99,4 +99,51 @@ describe('MaintenanceService', () => {
 
         expect(fs.unlinkSync).not.toHaveBeenCalled();
     });
+
+    it('should skip DB cleanup when dbRetryAfterMs is in the future', async () => {
+        (maintenanceService as any).dbRetryAfterMs = Date.now() + 60_000;
+        (fs.existsSync as jest.Mock).mockReturnValue(false);
+
+        const stats = await maintenanceService.runMaintenance();
+
+        expect(mockSqlResult).not.toHaveBeenCalled();
+        expect(stats.auditLogsDeleted).toBe(0);
+        expect(stats.jobsDeleted).toBe(0);
+    });
+
+    it('should set dbRetryAfterMs and close sql on DNS resolution error', async () => {
+        mockSqlResult.mockRejectedValueOnce(new Error('getaddrinfo ENOTFOUND host'));
+        (fs.existsSync as jest.Mock).mockReturnValue(false);
+
+        const stats = await maintenanceService.runMaintenance();
+
+        expect(stats.auditLogsDeleted).toBe(0);
+        expect((maintenanceService as any).dbRetryAfterMs).toBeGreaterThan(Date.now());
+    });
+
+    it('start() should set up interval timer and stop() should clear it', async () => {
+        jest.useFakeTimers();
+        try {
+            maintenanceService.start();
+            expect((maintenanceService as any).timer).not.toBeNull();
+
+            // Second call should be a no-op
+            maintenanceService.start();
+
+            await maintenanceService.stop();
+            expect((maintenanceService as any).timer).toBeNull();
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    it('stop() should close sql connection if open', async () => {
+        const mockEnd = jest.fn().mockResolvedValue(undefined);
+        (maintenanceService as any).sql = { end: mockEnd };
+
+        await maintenanceService.stop();
+
+        expect(mockEnd).toHaveBeenCalled();
+        expect((maintenanceService as any).sql).toBeNull();
+    });
 });

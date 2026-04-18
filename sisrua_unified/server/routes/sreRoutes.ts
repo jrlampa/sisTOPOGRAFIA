@@ -89,7 +89,8 @@ const RUNBOOKS: Runbook[] = [
     id: "RB-003",
     titulo: "Banco de Dados Indisponível",
     servico: "database",
-    gatilho: "GET /health retorna database !== 'disponível' por 2 checks consecutivos",
+    gatilho:
+      "GET /health retorna database !== 'disponível' por 2 checks consecutivos",
     severidade: "critica",
     objetivo: "Restaurar conectividade com banco em até 10 minutos",
     passos: [
@@ -192,7 +193,9 @@ router.post("/slos/:sloId/observacoes", (req: Request, res: Response) => {
   const { sloId } = req.params;
   const parse = observacaoSchema.safeParse(req.body);
   if (!parse.success) {
-    return res.status(400).json({ erro: "Dados inválidos.", detalhes: parse.error.flatten() });
+    return res
+      .status(400)
+      .json({ erro: "Dados inválidos.", detalhes: parse.error.flatten() });
   }
   const status = getSLOStatus(sloId);
   if (!status) {
@@ -202,14 +205,18 @@ router.post("/slos/:sloId/observacoes", (req: Request, res: Response) => {
   recordObservation(sloId, parse.data.met, ts);
   logger.info("[SRE] Observação registrada", { sloId, met: parse.data.met });
   const novoStatus = getSLOStatus(sloId);
-  return res.status(201).json({ sloId, observacaoRegistrada: true, novoStatus });
+  return res
+    .status(201)
+    .json({ sloId, observacaoRegistrada: true, novoStatus });
 });
 
 // POST /api/sre/slos — registra novo SLO
 router.post("/slos", (req: Request, res: Response) => {
   const parse = sloSchema.safeParse(req.body);
   if (!parse.success) {
-    return res.status(400).json({ erro: "Dados inválidos.", detalhes: parse.error.flatten() });
+    return res
+      .status(400)
+      .json({ erro: "Dados inválidos.", detalhes: parse.error.flatten() });
   }
   const def: SLODefinition = parse.data;
   registerSLO(def);
@@ -231,9 +238,23 @@ router.get("/alertas", (_req: Request, res: Response) => {
 router.get("/runbooks", (_req: Request, res: Response) => {
   return res.json({
     total: RUNBOOKS.length,
-    runbooks: RUNBOOKS.map(({ id, titulo, servico, severidade, gatilho, tempoResolucaoAlvoMin }) => ({
-      id, titulo, servico, severidade, gatilho, tempoResolucaoAlvoMin,
-    })),
+    runbooks: RUNBOOKS.map(
+      ({
+        id,
+        titulo,
+        servico,
+        severidade,
+        gatilho,
+        tempoResolucaoAlvoMin,
+      }) => ({
+        id,
+        titulo,
+        servico,
+        severidade,
+        gatilho,
+        tempoResolucaoAlvoMin,
+      }),
+    ),
   });
 });
 
@@ -241,7 +262,9 @@ router.get("/runbooks", (_req: Request, res: Response) => {
 router.get("/runbooks/:id", (req: Request, res: Response) => {
   const rb = RUNBOOKS.find((r) => r.id === req.params.id);
   if (!rb) {
-    return res.status(404).json({ erro: `Runbook '${req.params.id}' não encontrado.` });
+    return res
+      .status(404)
+      .json({ erro: `Runbook '${req.params.id}' não encontrado.` });
   }
   return res.json(rb);
 });

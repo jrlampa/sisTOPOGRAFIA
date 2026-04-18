@@ -351,3 +351,127 @@ describe("elevationRoutes — batch", () => {
     expect(res.status).toBe(500);
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+// elevationRoutes — cache
+// ════════════════════════════════════════════════════════════════════════════
+
+describe("elevationRoutes — cache", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("GET /cache/status — 200 com stats do cache", async () => {
+    mockGetCacheStats.mockReturnValue({
+      files: 3,
+      totalSizeMB: 0.5,
+      tiles: ["a.tif"],
+    });
+    const res = await request(elevationApp).get("/cache/status");
+    expect(res.status).toBe(200);
+    expect(res.body.files).toBe(3);
+    expect(res.body.isBrazilianTerritory).toBe(true);
+  });
+
+  it("GET /cache/status — 500 em erro interno", async () => {
+    mockGetCacheStats.mockImplementation(() => {
+      throw new Error("disk error");
+    });
+    const res = await request(elevationApp).get("/cache/status");
+    expect(res.status).toBe(500);
+  });
+
+  it("POST /cache/clear — 200 limpa o cache", async () => {
+    mockClearCache.mockReturnValue(undefined);
+    const res = await request(elevationApp).post("/cache/clear");
+    expect(res.status).toBe(200);
+    expect(mockClearCache).toHaveBeenCalled();
+  });
+
+  it("POST /cache/clear — 500 em erro interno", async () => {
+    mockClearCache.mockImplementationOnce(() => {
+      throw new Error("fail");
+    });
+    const res = await request(elevationApp).post("/cache/clear");
+    expect(res.status).toBe(500);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// elevationRoutes — compare
+// ════════════════════════════════════════════════════════════════════════════
+
+describe("elevationRoutes — compare", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("GET /compare — 400 sem parâmetros", async () => {
+    const res = await request(elevationApp).get("/compare");
+    expect(res.status).toBe(400);
+  });
+
+  it("GET /compare — 200 com dados válidos", async () => {
+    mockTopodataGetElevation.mockResolvedValue(800);
+    mockIsWithinBrazil.mockReturnValue(true);
+    const res = await request(elevationApp).get("/compare?lat=-23.5&lng=-46.6");
+    expect(res.status).toBe(200);
+    expect(res.body.location).toBeDefined();
+    expect(res.body.topodata).toBeDefined();
+  });
+
+  it("GET /compare — 500 em erro interno", async () => {
+    mockTopodataGetElevation.mockRejectedValue(new Error("fail"));
+    const res = await request(elevationApp).get("/compare?lat=-23.5&lng=-46.6");
+    expect(res.status).toBe(500);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// elevationRoutes — stats sem dados
+// ════════════════════════════════════════════════════════════════════════════
+
+describe("elevationRoutes — stats sem dados", () => {
+  it("GET /stats — 404 quando não há pontos de elevação disponíveis", async () => {
+    mockGetElevationAt.mockResolvedValue(null);
+    const res = await request(elevationApp).get(
+      "/stats?lat=-23.5&lng=-46.6&radius=1000",
+    );
+    expect(res.status).toBe(404);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// elevationRoutes — slope
+// ════════════════════════════════════════════════════════════════════════════
+
+describe("elevationRoutes — slope", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("GET /slope — 400 sem parâmetros", async () => {
+    const res = await request(elevationApp).get("/slope");
+    expect(res.status).toBe(400);
+  });
+
+  it("GET /slope — 200 com dados válidos", async () => {
+    mockGetElevationAt.mockResolvedValue(500);
+    const res = await request(elevationApp).get(
+      "/slope?lat=-23.5&lng=-46.6&radius=500",
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.location).toBeDefined();
+    expect(typeof res.body.slope_percentage).toBe("number");
+  });
+
+  it("GET /slope — 404 quando dados insuficientes (null)", async () => {
+    mockGetElevationAt.mockResolvedValue(null);
+    const res = await request(elevationApp).get(
+      "/slope?lat=-23.5&lng=-46.6&radius=500",
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("GET /slope — 500 em erro interno", async () => {
+    mockGetElevationAt.mockRejectedValue(new Error("fail"));
+    const res = await request(elevationApp).get(
+      "/slope?lat=-23.5&lng=-46.6&radius=500",
+    );
+    expect(res.status).toBe(500);
+  });
+});

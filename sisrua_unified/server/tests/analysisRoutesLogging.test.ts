@@ -175,3 +175,74 @@ describe("analysisRoutes logging hardening", () => {
     });
   });
 });
+
+describe("analysisRoutes — rotas adicionais", () => {
+  afterEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+  });
+
+  async function buildApp() {
+    const { default: analysisRoutes } = await import("../routes/analysisRoutes");
+    const app = express();
+    app.use(express.json());
+    app.use("/api/analysis", analysisRoutes);
+    return app;
+  }
+
+  it("GET /runtime retorna 500 quando getRuntimeStatus lanca erro", async () => {
+    getRuntimeStatusMock.mockRejectedValueOnce(new Error("runtime crash"));
+    const app = await buildApp();
+    const res = await request(app).get("/api/analysis/runtime");
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe("Runtime status failed");
+  });
+
+  it("GET /runtime/governance retorna 500 quando getGovernanceStatus lanca erro", async () => {
+    getGovernanceStatusMock.mockRejectedValueOnce(new Error("gov crash"));
+    const app = await buildApp();
+    const res = await request(app).get("/api/analysis/runtime/governance");
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe("Governance status failed");
+  });
+
+  it("POST / retorna 400 para body invalido", async () => {
+    const app = await buildApp();
+    const res = await request(app)
+      .post("/api/analysis")
+      .send({ locationName: "x" }); // missing required stats
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid request");
+  });
+
+  it("POST / retorna 503 quando Ollama nao disponivel", async () => {
+    getRuntimeStatusMock.mockResolvedValueOnce({
+      available: false,
+      selectedModel: "llama3.2",
+      configuredModel: "llama3.2",
+      zeroCostCompliant: true,
+    });
+    const app = await buildApp();
+    const res = await request(app)
+      .post("/api/analysis")
+      .send({ locationName: "Area", stats: { buildings: 5 } });
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe("Ollama not available");
+  });
+
+  it("POST / retorna 200 quando analyzeArea bem-sucedido", async () => {
+    getRuntimeStatusMock.mockResolvedValueOnce({
+      available: true,
+      selectedModel: "llama3.2",
+      configuredModel: "llama3.2",
+      zeroCostCompliant: true,
+    });
+    analyzeAreaMock.mockResolvedValueOnce({ analysis: "tudo ok", model: "llama3.2" });
+    const app = await buildApp();
+    const res = await request(app)
+      .post("/api/analysis")
+      .send({ locationName: "Area", stats: { buildings: 5 } });
+    expect(res.status).toBe(200);
+    expect(res.body.analysis).toBe("tudo ok");
+  });
+});

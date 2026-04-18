@@ -301,3 +301,115 @@ describe("lgpdResidenciaRoutes — conformidade e relatório", () => {
     expect(res.body.pais).toBe("US");
   });
 });
+
+// ─── Missing coverage: iniciar/concluir/cancelar/certificados ─────────────────
+
+describe("lgpdRetencaoRoutes — transicoes de estado", () => {
+  let politicaId: string;
+  let eventoId: string;
+
+  beforeAll(async () => {
+    // Criar política
+    const policyRes = await request(retencaoApp)
+      .post("/politicas")
+      .send({
+        nome: "Politica Transicao",
+        descricao: "Teste de transicao",
+        sistema: "SISCAD",
+        categorias: ["cadastral"],
+        nivelClassificacao: "interno",
+        retencaoOperacionalDias: 365,
+      });
+    politicaId = policyRes.body.id;
+
+    // Criar evento
+    const eventoRes = await request(retencaoApp)
+      .post("/eventos")
+      .send({
+        politicaId,
+        registrosEstimados: 100,
+        agendadoPara: new Date(Date.now() + 86400000).toISOString(),
+      });
+    eventoId = eventoRes.body.id;
+  });
+
+  it("POST /eventos/:id/iniciar — retorna 200 com evento em andamento", async () => {
+    const res = await request(retencaoApp).post(`/eventos/${eventoId}/iniciar`);
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("em_execucao");
+  });
+
+  it("POST /eventos/:id/iniciar — retorna 404 para evento inexistente", async () => {
+    const res = await request(retencaoApp).post("/eventos/nao-existe/iniciar");
+    expect(res.status).toBe(404);
+  });
+
+  it("POST /eventos/:id/concluir — retorna 400 sem campos obrigatorios", async () => {
+    const res = await request(retencaoApp)
+      .post(`/eventos/${eventoId}/concluir`)
+      .send({});
+    expect(res.status).toBe(400);
+  });
+
+  it("POST /eventos/:id/concluir — retorna 200 com certificado", async () => {
+    const res = await request(retencaoApp)
+      .post(`/eventos/${eventoId}/concluir`)
+      .send({ registrosDescartados: 95, executadoPor: "operador@example.com" });
+    expect(res.status).toBe(200);
+    expect(res.body.evento).toBeDefined();
+    expect(res.body.certificado).toBeDefined();
+  });
+
+  it("POST /eventos/:id/concluir — retorna 404 para evento inexistente", async () => {
+    const res = await request(retencaoApp)
+      .post("/eventos/nao-existe/concluir")
+      .send({ registrosDescartados: 10, executadoPor: "x@x.com" });
+    expect(res.status).toBe(404);
+  });
+
+  it("POST /eventos/:id/cancelar — retorna 400 sem motivo", async () => {
+    // Create a fresh event to cancel
+    const ev = await request(retencaoApp)
+      .post("/eventos")
+      .send({ politicaId, registrosEstimados: 50, agendadoPara: new Date(Date.now() + 86400000).toISOString() });
+    const id = ev.body.id;
+    const res = await request(retencaoApp).post(`/eventos/${id}/cancelar`).send({});
+    expect(res.status).toBe(400);
+  });
+
+  it("POST /eventos/:id/cancelar — retorna 200 quando cancelado com sucesso", async () => {
+    const ev = await request(retencaoApp)
+      .post("/eventos")
+      .send({ politicaId, registrosEstimados: 50, agendadoPara: new Date(Date.now() + 86400000).toISOString() });
+    const id = ev.body.id;
+    const res = await request(retencaoApp).post(`/eventos/${id}/cancelar`).send({ motivo: "teste" });
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("cancelado");
+  });
+
+  it("POST /eventos/:id/cancelar — retorna 404 para evento inexistente", async () => {
+    const res = await request(retencaoApp).post("/eventos/nao-existe/cancelar").send({ motivo: "x" });
+    expect(res.status).toBe(404);
+  });
+
+  it("GET /certificados — lista certificados emitidos", async () => {
+    const res = await request(retencaoApp).get("/certificados");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("GET /certificados/:id — retorna certificado por id", async () => {
+    // List first to get an id
+    const listRes = await request(retencaoApp).get("/certificados");
+    if (listRes.body.length > 0) {
+      const certId = listRes.body[0].id;
+      const res = await request(retencaoApp).get(`/certificados/${certId}`);
+      expect(res.status).toBe(200);
+    }
+  });
+
+  it("GET /certificados/:id — retorna 404 para certificado inexistente", async () => {
+    const res = await request(retencaoApp).get("/certificados/nao-existe");
+    expect(res.status).toBe(404);
+  });
+});

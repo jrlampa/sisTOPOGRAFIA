@@ -277,3 +277,160 @@ describe('analyzeTelescopicPaths', () => {
         }
     });
 });
+
+// ─── analyzeTelescopicPaths – paths diretos com output pre-construido ─────────
+// Estes testes usam output pré-construído para garantir cobertura de todos
+// os ramos do algoritmo greedy independente do catálogo real.
+
+describe('analyzeTelescopicPaths – cobertura greedy e helpers', () => {
+    const conductor16 = {
+        id: '16 Al - Arm',
+        ampacity: 80,
+        resistance: 1.910,
+        reactance: 0.073,
+        alpha: 0.00403,
+        divisorR: 1,
+    };
+
+    const simpleInput: import('../services/bt/btTypes').BtRadialTopologyInput = {
+        transformer: { id: 'TR75', rootNodeId: 'R', kva: 75, zPercent: 0.035, qtMt: 0 },
+        nodes: [
+            { id: 'R', load: { localDemandKva: 0 } },
+            { id: 'A', load: { localDemandKva: 60 } },
+        ],
+        edges: [
+            { fromNodeId: 'R', toNodeId: 'A', conductorId: '16 Al - Arm', lengthMeters: 200 },
+        ],
+        phase: 'TRI',
+        temperatureC: 75,
+    };
+
+    const failingOutput: import('../services/bt/btTypes').BtRadialCalculationOutput = {
+        qtTrafo: 0.01,
+        nodeResults: [
+            {
+                nodeId: 'R',
+                qtSegment: 0,
+                qtAccumulated: 0,
+                voltageV: 127,
+                accumulatedDemandKva: 60,
+                pathFromRoot: ['R'],
+            },
+            {
+                nodeId: 'A',
+                qtSegment: 0.12,
+                qtAccumulated: 0.13,
+                voltageV: 110.5,
+                accumulatedDemandKva: 60,
+                pathFromRoot: ['R', 'A'],
+            },
+        ],
+        terminalResults: [
+            {
+                nodeId: 'A',
+                qtTerminal: 0.12,
+                qtRamal: 0.01,
+                qtTotal: 0.13,
+                voltageEndV: 107,
+                ramalConductorId: '16 Al - Arm',
+                ramalLengthMeters: 30,
+            },
+        ],
+        worstCase: {
+            worstTerminalNodeId: 'A',
+            cqtGlobal: 0.13,
+            criticalPath: ['R', 'A'],
+            qtTrafo: 0.01,
+        },
+        totalDemandKva: 60,
+        consistencyAlerts: [],
+    };
+
+    it('greedy telescopico gera pathEdges para terminal reprovado', () => {
+        const analysis = analyzeTelescopicPaths(simpleInput, failingOutput);
+        expect(analysis.suggestions.length).toBe(1);
+        expect(analysis.suggestions[0].pathEdges.length).toBeGreaterThan(0);
+        expect(analysis.suggestions[0].projectedVoltageEndV).toBeGreaterThanOrEqual(0);
+    });
+
+    it('buildEmptySuggestion quando qtTrafo consome todo orcamento', () => {
+        const exhaustedOutput = {
+            ...failingOutput,
+            qtTrafo: 1.0, // excede QT_MAX_ALLOWED (~0.079)
+        };
+        const analysis = analyzeTelescopicPaths(simpleInput, exhaustedOutput);
+        expect(analysis.suggestions.length).toBe(1);
+        expect(analysis.suggestions[0].pathEdges).toHaveLength(0);
+        expect(analysis.suggestions[0].requiresTransformerUpgrade).toBe(true);
+    });
+
+    it('pula terminal sem nodeResult (nodeId inexistente)', () => {
+        const orphanOutput = {
+            ...failingOutput,
+            terminalResults: [
+                {
+                    nodeId: 'ORPHAN',
+                    qtTerminal: 0.12,
+                    qtRamal: 0.01,
+                    qtTotal: 0.13,
+                    voltageEndV: 107,
+                    ramalConductorId: null,
+                    ramalLengthMeters: null,
+                },
+            ],
+        };
+        const analysis = analyzeTelescopicPaths(simpleInput, orphanOutput);
+        expect(analysis.suggestions).toHaveLength(0);
+    });
+
+    it('pula terminal com pathFromRoot de comprimento 1', () => {
+        const shortPathOutput = {
+            ...failingOutput,
+            nodeResults: [
+                ...failingOutput.nodeResults.filter((n) => n.nodeId !== 'A'),
+                {
+                    nodeId: 'A',
+                    qtSegment: 0.12,
+                    qtAccumulated: 0.13,
+                    voltageV: 110.5,
+                    accumulatedDemandKva: 60,
+                    pathFromRoot: ['A'], // < 2 → deve pular
+                },
+            ],
+        };
+        const analysis = analyzeTelescopicPaths(simpleInput, shortPathOutput);
+        expect(analysis.suggestions).toHaveLength(0);
+    });
+
+    it('usa fallback para ramalConductorId null', () => {
+        const nullRamalOutput = {
+            ...failingOutput,
+            terminalResults: [
+                { ...failingOutput.terminalResults[0], ramalConductorId: null },
+            ],
+        };
+        const analysis = analyzeTelescopicPaths(simpleInput, nullRamalOutput);
+        expect(analysis.suggestions.length).toBe(1);
+        // Deve completar sem erro
+    });
+
+    it('requiresTransformerUpgrade true quando demanda > trafo kVA', () => {
+        const overloadOutput = {
+            ...failingOutput,
+            totalDemandKva: 100, // > 75 kVA trafo
+        };
+        const analysis = analyzeTelescopicPaths(simpleInput, overloadOutput);
+        expect(analysis.suggestions[0].requiresTransformerUpgrade).toBe(true);
+    });
+
+    it('qtSegment retorna 0 quando lengthMeters = 0 (via greedy com edge de comprimento 0)', () => {
+        const zeroLenInput = {
+            ...simpleInput,
+            edges: [{ fromNodeId: 'R', toNodeId: 'A', conductorId: '16 Al - Arm', lengthMeters: 0 }],
+        };
+        // pathEdges vai skipar edge com length=0 no qtSegment mas não no loop
+        const analysis = analyzeTelescopicPaths(zeroLenInput, failingOutput);
+        // Deve completar sem erro
+        expect(analysis).toBeDefined();
+    });
+});

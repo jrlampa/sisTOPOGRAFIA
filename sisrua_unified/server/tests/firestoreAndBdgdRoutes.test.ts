@@ -148,3 +148,34 @@ describe("bdgdRoutes — validate", () => {
     expect(res.body.conformant).toBe(false);
   });
 });
+
+describe("firestoreRoutes — catch blocks", () => {
+  afterEach(() => {
+    // Restore useFirestore to plain property
+    Object.defineProperty(mockConfig, "useFirestore", {
+      value: false,
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  it("GET /health — retorna 500 quando config.useFirestore lanca erro", async () => {
+    Object.defineProperty(mockConfig, "useFirestore", {
+      get: () => { throw new Error("firestore config error"); },
+      configurable: true,
+    });
+    const res = await request(firestoreApp).get("/health");
+    expect(res.status).toBe(500);
+    expect(res.body.status).toBe("error");
+  });
+
+  it("GET /quota — retorna 500 quando config.useFirestore lanca erro", async () => {
+    Object.defineProperty(mockConfig, "useFirestore", {
+      get: () => { throw new Error("quota config error"); },
+      configurable: true,
+    });
+    const res = await request(firestoreApp).get("/quota");
+    expect(res.status).toBe(500);
+    expect(res.body.enabled).toBe(false);
+  });
+});

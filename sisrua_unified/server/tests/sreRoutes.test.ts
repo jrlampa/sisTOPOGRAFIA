@@ -40,7 +40,10 @@ describe("GET /api/sre/slos", () => {
 
   it("conta corretamente SLOs alertando", async () => {
     const alerting = { ...mockStatus, alerting: true };
-    (sloService.getAllSLOStatuses as jest.Mock).mockReturnValue([mockStatus, alerting]);
+    (sloService.getAllSLOStatuses as jest.Mock).mockReturnValue([
+      mockStatus,
+      alerting,
+    ]);
     const res = await request(app).get("/api/sre/slos");
     expect(res.status).toBe(200);
     expect(res.body.alertando).toBe(1);
@@ -75,7 +78,9 @@ describe("POST /api/sre/slos/:sloId/observacoes", () => {
     expect(res.status).toBe(201);
     expect(res.body.observacaoRegistrada).toBe(true);
     expect(sloService.recordObservation).toHaveBeenCalledWith(
-      "dxf_export_availability", true, expect.any(Date)
+      "dxf_export_availability",
+      true,
+      expect.any(Date),
     );
   });
 
@@ -86,7 +91,9 @@ describe("POST /api/sre/slos/:sloId/observacoes", () => {
       .send({ met: false, timestamp: "2026-04-20T10:00:00.000Z" });
     expect(res.status).toBe(201);
     expect(sloService.recordObservation).toHaveBeenCalledWith(
-      "dxf_export_availability", false, expect.any(Date)
+      "dxf_export_availability",
+      false,
+      expect.any(Date),
     );
   });
 

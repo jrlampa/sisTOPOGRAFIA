@@ -120,3 +120,51 @@ describe('btHistoryRoutes btContextUrl validation', () => {
     });
   });
 });
+
+describe("btHistoryRoutes — ingest 422 e DELETE", () => {
+  afterEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+  });
+
+  async function buildApp() {
+    const { default: router } = await import("../routes/btHistoryRoutes");
+    const app = express();
+    app.use(express.json());
+    app.use("/api/bt-history", router);
+    return app;
+  }
+
+  it("POST /ingest retorna 422 quando entry eh null", async () => {
+    ingestMock.mockResolvedValueOnce({ entry: null });
+    const app = await buildApp();
+    const res = await request(app)
+      .post("/api/bt-history/ingest")
+      .send({
+        projectType: "ramais",
+        btContextUrl: "/downloads/context.json",
+        btContext: { foo: "bar" },
+        exportedAt: new Date().toISOString(),
+      });
+    expect(res.status).toBe(422);
+    expect(res.body.ok).toBe(false);
+  });
+
+  it("DELETE / retorna 200 com deletedCount", async () => {
+    clearMock.mockResolvedValueOnce({ deleted: 3 });
+    const app = await buildApp();
+    const res = await request(app).delete("/api/bt-history");
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.deletedCount).toBe(3);
+  });
+
+  it("DELETE / retorna 400 para query invalida", async () => {
+    const app = await buildApp();
+    const res = await request(app)
+      .delete("/api/bt-history")
+      .query({ projectType: "invalido" });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Parâmetros inválidos");
+  });
+});

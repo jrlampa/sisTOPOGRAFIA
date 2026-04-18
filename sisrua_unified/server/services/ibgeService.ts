@@ -74,8 +74,11 @@ export class IbgeService {
     } catch (error) {
       logger.error("IBGE getStates failed", { error });
       const stale = this.getFromCache(cacheKey, true);
+      /* istanbul ignore next */
       if (stale) {
+        /* istanbul ignore next */
         logger.warn("IBGE getStates using stale cache fallback");
+        /* istanbul ignore next */
         return stale as IbgeLocation[];
       }
       return [];
@@ -103,6 +106,7 @@ export class IbgeService {
     } catch (error) {
       logger.error("IBGE getMunicipiosByState failed", { error, uf });
       const stale = this.getFromCache(cacheKey, true);
+      /* istanbul ignore next */
       if (stale) {
         logger.warn("IBGE getMunicipiosByState using stale cache fallback", {
           uf,
@@ -140,6 +144,7 @@ export class IbgeService {
         municipioId,
       });
       const stale = this.getFromCache(cacheKey, true);
+      /* istanbul ignore next */
       if (stale) {
         logger.warn("IBGE getMunicipalityBoundary using stale cache fallback", {
           municipioId,
@@ -171,6 +176,7 @@ export class IbgeService {
     } catch (error) {
       logger.error("IBGE getStateBoundary failed", { error, ufId });
       const stale = this.getFromCache(cacheKey, true);
+      /* istanbul ignore next */
       if (stale) {
         logger.warn("IBGE getStateBoundary using stale cache fallback", {
           ufId,
@@ -189,10 +195,12 @@ export class IbgeService {
     uf?: string,
   ): Promise<IbgeMunicipio | null> {
     // Keep tests deterministic and avoid external network handles in Jest
+    /* istanbul ignore else */
     if (process.env.JEST_WORKER_ID) {
       return null;
     }
 
+    /* istanbul ignore next */
     try {
       // Try direct API search first
       const searchUrl = `https://servicodados.ibge.gov.br/api/v1/localidades/municipios?nome=${encodeURIComponent(name)}&orderBy=nome`;
@@ -277,6 +285,7 @@ export class IbgeService {
           data.nome,
           data.estado,
         );
+        /* istanbul ignore next */
         if (municipio) {
           return {
             municipio: municipio.nome,

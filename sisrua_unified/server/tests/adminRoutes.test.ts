@@ -391,3 +391,140 @@ describe("sem token configurado (regra unificada)", () => {
     expect(res.status).toBe(200);
   });
 });
+
+// ─── Additional coverage: tenants DB, userId with .., servicos routes ────────
+
+const mockListServiceProfiles = jest.fn().mockResolvedValue([]);
+const mockUpsertServiceProfile = jest.fn();
+const mockRemoveServiceProfile = jest.fn();
+
+jest.mock("../services/tenantServiceProfileService", () => ({
+  listServiceProfiles: (...args: unknown[]) => mockListServiceProfiles(...args),
+  upsertServiceProfile: (...args: unknown[]) => mockUpsertServiceProfile(...args),
+  removeServiceProfile: (...args: unknown[]) => mockRemoveServiceProfile(...args),
+}));
+
+async function buildAppFull(adminToken: string | undefined, dbClient: unknown = null, nodeEnv = "test") {
+  jest.resetModules();
+  jest.doMock("../config", () => ({
+    config: {
+      ADMIN_TOKEN: adminToken,
+      METRICS_TOKEN: undefined,
+      NODE_ENV: nodeEnv,
+      APP_VERSION: "1.0.0-test",
+    },
+  }));
+  jest.doMock("../repositories/dbClient", () => ({
+    getDbClient: () => dbClient,
+    isDbAvailable: () => !!dbClient,
+  }));
+  const { default: adminRoutes } = await import("../routes/adminRoutes");
+  const app = express();
+  app.use(express.json());
+  app.use("/api/admin", adminRoutes);
+  return app;
+}
+
+const TOKEN2 = "admin-secret-token";
+const AUTH2 = "Bearer " + TOKEN2;
+
+describe("adminRoutes — userId com .. (path traversal bloqueado)", () => {
+  it("retorna 400 quando userId contem ..", async () => {
+    const app = await buildAppFull(TOKEN2);
+    const res = await request(app)
+      .put("/api/admin/usuarios/..%2Fevil/papel")
+      .set("Authorization", AUTH2)
+      .send({ papel: "admin", atribuidoPor: "tester" });
+    expect(res.status).toBe(400);
+    expect(res.body.erro).toBe("userId inválido");
+  });
+});
+
+describe("adminRoutes — tenants com DB disponivel", () => {
+  it("retorna lista de tenants quando SQL funciona", async () => {
+    const mockRows = [
+      { id: "1", slug: "tenant-a", name: "Tenant A", plan: "basic", is_active: true, created_at: "2024-01-01" },
+    ];
+    const mockSql = jest.fn().mockResolvedValue(mockRows);
+    const app = await buildAppFull(TOKEN2, mockSql);
+    const res = await request(app)
+      .get("/api/admin/tenants")
+      .set("Authorization", AUTH2);
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.tenants).toHaveLength(1);
+  });
+
+  it("retorna 500 quando SQL lanca erro", async () => {
+    const mockSqlErr = jest.fn().mockRejectedValue(new Error("db crash"));
+    const app = await buildAppFull(TOKEN2, mockSqlErr);
+    const res = await request(app)
+      .get("/api/admin/tenants")
+      .set("Authorization", AUTH2);
+    expect(res.status).toBe(500);
+    expect(res.body.erro).toContain("Erro interno");
+  });
+});
+
+describe("adminRoutes — rotas /servicos", () => {
+  const validTenantId = "550e8400-e29b-41d4-a716-446655440000";
+  const validServiceCode = "mapa-topografico";
+
+  it("GET /servicos retorna lista de perfis", async () => {
+    const mockProfiles = [{ tenantId: validTenantId, serviceCode: validServiceCode }];
+    mockListServiceProfiles.mockResolvedValueOnce(mockProfiles);
+    const app = await buildAppFull(TOKEN2);
+    const res = await request(app)
+      .get("/api/admin/servicos")
+      .set("Authorization", AUTH2);
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+  });
+
+  it("PUT /servicos/:tenantId/:serviceCode retorna perfil criado", async () => {
+    const mockProfile = { tenantId: validTenantId, serviceCode: validServiceCode, tier: "silver" };
+    mockUpsertServiceProfile.mockResolvedValueOnce(mockProfile);
+    const app = await buildAppFull(TOKEN2);
+    const res = await request(app)
+      .put(`/api/admin/servicos/${validTenantId}/${validServiceCode}`)
+      .set("Authorization", AUTH2)
+      .send({
+        serviceName: "Mapa Topografico",
+        tier: "silver",
+        slaAvailabilityPct: 99.5,
+        sloLatencyP95Ms: 500,
+        supportChannel: "email",
+        supportHours: "24x7",
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.upserted).toBe(true);
+  });
+
+  it("PUT /servicos — retorna 400 para tenantId invalido (nao UUID)", async () => {
+    const app = await buildAppFull(TOKEN2);
+    const res = await request(app)
+      .put(`/api/admin/servicos/not-a-uuid/${validServiceCode}`)
+      .set("Authorization", AUTH2)
+      .send({ serviceName: "x", tier: "silver", slaAvailabilityPct: 99, sloLatencyP95Ms: 500, supportChannel: "x", supportHours: "24x7" });
+    expect(res.status).toBe(400);
+  });
+
+  it("DELETE /servicos/:tenantId/:serviceCode retorna removed:true", async () => {
+    mockRemoveServiceProfile.mockResolvedValueOnce(true);
+    const app = await buildAppFull(TOKEN2);
+    const res = await request(app)
+      .delete(`/api/admin/servicos/${validTenantId}/${validServiceCode}`)
+      .set("Authorization", AUTH2);
+    expect(res.status).toBe(200);
+    expect(res.body.removed).toBe(true);
+  });
+
+  it("DELETE /servicos — retorna 404 quando perfil nao encontrado", async () => {
+    mockRemoveServiceProfile.mockResolvedValueOnce(false);
+    const app = await buildAppFull(TOKEN2);
+    const res = await request(app)
+      .delete(`/api/admin/servicos/${validTenantId}/${validServiceCode}`)
+      .set("Authorization", AUTH2);
+    expect(res.status).toBe(404);
+  });
+});
