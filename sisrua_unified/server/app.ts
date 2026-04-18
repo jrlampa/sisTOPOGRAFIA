@@ -5,7 +5,6 @@ import fs from "fs";
 import swaggerUi from "swagger-ui-express";
 import compression from "compression";
 import { randomUUID } from "crypto";
-import { fileURLToPath } from "url";
 
 import { config } from "./config.js";
 import { OllamaService } from "./services/ollamaService.js";
@@ -21,7 +20,7 @@ import { generalRateLimiter } from "./middleware/rateLimiter.js";
 import { requestMetrics } from "./middleware/requestMetrics.js";
 import { monitoringMiddleware } from "./middleware/monitoring.js";
 import { specs } from "./swagger.js";
-import { errorHandler, createError } from "./errorHandler.js";
+import { errorHandler } from "./errorHandler.js";
 
 // Import Routes
 import elevationRoutes from "./routes/elevationRoutes.js";
@@ -52,6 +51,7 @@ import finOpsRoutes from "./routes/finOpsRoutes.js";
 import opsRoutes from "./routes/opsRoutes.js";
 import storageRoutes from "./routes/storageRoutes.js";
 import bdgdRoutes from "./routes/bdgdRoutes.js";
+import lgpdRoutes from "./routes/lgpdRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -72,7 +72,6 @@ function resolveFrontendDistDirectory(): string {
   return existing || candidates[0];
 }
 
-const dxfDirectory = config.DXF_DIRECTORY;
 const frontendDistDirectory = resolveFrontendDistDirectory();
 
 // Middleware
@@ -135,14 +134,19 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
   const store = new Map();
   store.set("requestId", requestId);
-  if (correlationIds.operation_id) store.set("operation_id", correlationIds.operation_id);
-  if (correlationIds.projeto_id) store.set("projeto_id", correlationIds.projeto_id);
+  if (correlationIds.operation_id)
+    store.set("operation_id", correlationIds.operation_id);
+  if (correlationIds.projeto_id)
+    store.set("projeto_id", correlationIds.projeto_id);
   if (correlationIds.ponto_id) store.set("ponto_id", correlationIds.ponto_id);
   if (!requestContext) {
-    logger.error("CRITICAL: requestContext AsyncLocalStorage is undefined - middleware bypass", { 
-      requestId,
-      context: "initialization_failure"
-    });
+    logger.error(
+      "CRITICAL: requestContext AsyncLocalStorage is undefined - middleware bypass",
+      {
+        requestId,
+        context: "initialization_failure",
+      },
+    );
     return next();
   }
   requestContext.run(store, () => next());
@@ -156,9 +160,10 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 app.get("/health", async (_req: Request, res: Response) => {
   try {
     const memoryUsage = process.memoryUsage();
-    const ollamaStatus = await OllamaService.isAvailable();
     const externalCircuitBreakers = listCircuitBreakers();
-    const hasOpenExternalCircuit = externalCircuitBreakers.some((cb) => cb.state === "OPEN");
+    const hasOpenExternalCircuit = externalCircuitBreakers.some(
+      (cb) => cb.state === "OPEN",
+    );
 
     let dbStatus = "disabled";
     if (config.useSupabaseJobs || config.useDbConstantsConfig) {
@@ -167,7 +172,10 @@ app.get("/health", async (_req: Request, res: Response) => {
     }
 
     const healthData = {
-      status: dbStatus === "disconnected" || hasOpenExternalCircuit ? "degraded" : "online",
+      status:
+        dbStatus === "disconnected" || hasOpenExternalCircuit
+          ? "degraded"
+          : "online",
       service: "sisRUA Unified Backend",
       version: config.APP_VERSION,
       timestamp: new Date().toISOString(),
@@ -184,7 +192,9 @@ app.get("/health", async (_req: Request, res: Response) => {
         database: dbStatus,
         ollama: await OllamaService.getGovernanceStatus(),
         externalApis: {
-          openCircuits: externalCircuitBreakers.filter((cb) => cb.state === "OPEN").length,
+          openCircuits: externalCircuitBreakers.filter(
+            (cb) => cb.state === "OPEN",
+          ).length,
           totalRegistered: externalCircuitBreakers.length,
         },
       },
@@ -233,6 +243,7 @@ app.use("/api/classificacao", infoClassificationRoutes);
 app.use("/api/holdings", holdingRoutes);
 app.use("/api/finops", finOpsRoutes);
 app.use("/api/bdgd", bdgdRoutes);
+app.use("/api/lgpd", lgpdRoutes);
 
 // Static files
 app.use(express.static(frontendDistDirectory));
