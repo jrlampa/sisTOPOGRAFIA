@@ -188,6 +188,7 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
   - [x] Exportação DXF com suporte a vãos MT.
 - [x] **Ponto 53**: Conformidade BDGD ANEEL Nativa — `bdgdAneel.ts` (constantes PRODIST/REN 956) + `bdgdValidatorService.ts` (regras R1–R6: obrigatoriedade, maxLength, códigos ANEEL, ranges, unicidade COD_ID, geometria) + `bdgdRoutes.ts` (GET /api/bdgd/layers + POST /api/bdgd/validate). 18 testes passando. Commit `3f91a52`.
 - [x] **Pontos 38+39**: LGPD End-to-End (RIPD Automatizado + Playbook de Incidentes) — `lgpdFlowService.ts` (base legal Art.7º/11, RIPD, direitos titulares Art.18/19) + `lgpdIncidentPlaybookService.ts` (playbook 6 etapas, prazo ANPD 72h Art.48, Res. CD/ANPD nº 4/2023) + `lgpdRoutes.ts` (GET/POST /api/lgpd/{fluxos,direitos,incidentes}). 26 testes passando. Commit `b90d978`.
+- [x] **Ponto 54**: Dossiê Regulatório e Cadeia de Custódia — `dossieRegulatorioService.ts` (SHA-256 de artefatos, JSON canônico, ciclo rascunho→validado→submetido→arquivado, trilha de auditoria imutável, exportação com integrityHash verificável) + `dossieRoutes.ts` (GET/POST /api/dossie/*). 24 testes passando. Commit `a15218c`.
 - [ ] **Ponto 40**: Retenção, Classificação e Descarte — política formal de ciclo de vida, descarte seguro certificado NIST 800-88
 - [ ] **Ponto 41**: Residência de Dados Brasil — garantia de armazenamento em território nacional
 - [ ] **Ponto 54**: Dossiê Regulatório e Cadeia de Custódia
