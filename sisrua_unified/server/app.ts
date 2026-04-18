@@ -53,6 +53,8 @@ import storageRoutes from "./routes/storageRoutes.js";
 import bdgdRoutes from "./routes/bdgdRoutes.js";
 import lgpdRoutes from "./routes/lgpdRoutes.js";
 import dossieRoutes from "./routes/dossieRoutes.js";
+import lgpdRetencaoRoutes from "./routes/lgpdRetencaoRoutes.js";
+import lgpdResidenciaRoutes from "./routes/lgpdResidenciaRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -246,8 +248,8 @@ app.use("/api/finops", finOpsRoutes);
 app.use("/api/bdgd", bdgdRoutes);
 app.use("/api/lgpd", lgpdRoutes);
 app.use("/api/dossie", dossieRoutes);
-
-// Static files
+app.use("/api/lgpd/retencao", lgpdRetencaoRoutes);
+app.use("/api/lgpd/residencia", lgpdResidenciaRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
