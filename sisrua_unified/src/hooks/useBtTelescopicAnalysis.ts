@@ -41,7 +41,7 @@ const TELESCOPIC_API_PATH = "/api/bt/telescopic-analysis";
 function buildTelescopicPayload(
   topology: BtTopology,
   accumulatedByPole: BtPoleAccumulatedDemand[],
-  transformerDebugById: Record<string, { assignedClients: number; estimatedDemandKva: number }>,
+  _transformerDebugById: Record<string, { assignedClients: number; estimatedDemandKva: number }>,
 ) {
   const accMap = new Map(accumulatedByPole.map((a) => [a.poleId, a]));
   const transformer = topology.transformers[0];
