@@ -55,3 +55,13 @@ export {
   PostgresMaintenanceRepository,
 } from "./maintenanceRepository.js";
 export type { IMaintenanceRepository } from "./maintenanceRepository.js";
+
+export {
+  canonicalTopologyRepository,
+  PostgresCanonicalTopologyRepository,
+} from "./canonicalTopologyRepository.js";
+export type {
+  ICanonicalTopologyRepository,
+  TopologyReadResult,
+  TopologyReadSource,
+} from "./canonicalTopologyRepository.js";

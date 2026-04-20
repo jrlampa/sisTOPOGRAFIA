@@ -103,6 +103,14 @@ const EnvSchema = z.object({
   /** Enable the new radial BT calculation engine. Defaults to false. */
   BT_RADIAL_ENABLED: z.string().optional(),
 
+  // ── Canonical Topology (Poste-Driven migration) ────────────────────────
+  /**
+   * Habilita leitura prioritária das tabelas canonical_poles/canonical_edges
+   * em vez dos payloads legados de dxf_tasks.
+   * Defaults to false (legado).
+   */
+  CANONICAL_TOPOLOGY_READ: z.string().optional(),
+
   // ── CORS ──────────────────────────────────────────────────────────────────
   /**
    * Origens permitidas em produção (CSV). Ex: https://app.sisrua.com.br
@@ -220,6 +228,7 @@ function loadConfig() {
     raw.USE_DB_CONSTANTS_CLANDESTINO === "true";
   const useDbConstantsConfig: boolean = raw.USE_DB_CONSTANTS_CONFIG === "true";
   const btRadialEnabled: boolean = raw.BT_RADIAL_ENABLED === "true";
+  const canonicalTopologyRead: boolean = raw.CANONICAL_TOPOLOGY_READ === "true";
   const trustProxy = parseTrustProxyValue(raw.TRUST_PROXY, raw.NODE_ENV);
   const ollamaEnforceZeroCost: boolean =
     raw.OLLAMA_ENFORCE_ZERO_COST !== undefined
@@ -254,6 +263,7 @@ function loadConfig() {
     useDbConstantsClandestino,
     useDbConstantsConfig,
     btRadialEnabled,
+    canonicalTopologyRead,
     trustProxy,
     ollamaEnforceZeroCost,
     ollamaFallbackModels,

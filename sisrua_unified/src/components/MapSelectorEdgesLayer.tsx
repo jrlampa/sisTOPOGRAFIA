@@ -2,7 +2,7 @@ import React from "react";
 import { Pane, Polyline, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { Minus, Plus, Trash2 } from "lucide-react";
-import { BtEdge, BtPoleNode, BtTopology } from "../types";
+import type { MapBtEdge, MapBtPole, MapBtTopology } from "../types.map";
 import {
   ENTITY_ID_PREFIXES,
   LEGACY_ID_ENTROPY,
@@ -47,9 +47,9 @@ const POPUP_SELECT_CLASS =
 const POPUP_TOOLBAR_CLASS = "mt-1.5 flex items-center gap-2";
 const POPUP_FLAG_GRID_CLASS = "mt-1.5 grid grid-cols-2 gap-1.5";
 
-type BtEdgeChangeFlag = NonNullable<BtEdge["edgeChangeFlag"]>;
+type BtEdgeChangeFlag = NonNullable<MapBtEdge["edgeChangeFlag"]>;
 
-const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
+const getEdgeChangeFlag = (edge: MapBtEdge): BtEdgeChangeFlag => {
   if (edge.edgeChangeFlag) {
     return edge.edgeChangeFlag;
   }
@@ -57,7 +57,7 @@ const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
   return edge.removeOnExecution ? "remove" : "existing";
 };
 
-const getEdgeVisualConfig = (edge: BtEdge) => {
+const getEdgeVisualConfig = (edge: MapBtEdge) => {
   const flag = getEdgeChangeFlag(edge);
 
   if (flag === "new") {
@@ -150,8 +150,9 @@ const getRemovalMarkersForEdge = (
 
 interface MapSelectorEdgesLayerProps {
   paneName: string;
-  topology: BtTopology;
-  polesById: Map<string, BtPoleNode>;
+  topology: MapBtTopology;
+  popupTopology?: MapBtTopology;
+  polesById: Map<string, MapBtPole>;
   onBtDeleteEdge?: (id: string) => void;
   onBtSetEdgeChangeFlag?: (
     edgeId: string,
@@ -172,6 +173,7 @@ interface MapSelectorEdgesLayerProps {
 const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
   paneName,
   topology,
+  popupTopology,
   polesById,
   onBtDeleteEdge,
   onBtSetEdgeChangeFlag,
@@ -185,6 +187,32 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
   >({});
   const [edgeReplacementFromSelection, setEdgeReplacementFromSelection] =
     React.useState<Record<string, string>>({});
+  const popupEdgesById = React.useMemo(
+    () =>
+      new Map((popupTopology ?? topology).edges.map((edge) => [edge.id, edge])),
+    [popupTopology, topology],
+  );
+  const popupPolesById = React.useMemo(
+    () =>
+      new Map((popupTopology ?? topology).poles.map((pole) => [pole.id, pole])),
+    [popupTopology, topology],
+  );
+  const popupEventHandlers = React.useMemo(
+    () => ({
+      add: (event: any) => {
+        const popupEl = event?.popup?.getElement?.() as HTMLElement | null;
+        const contentEl = popupEl?.querySelector(
+          ".leaflet-popup-content",
+        ) as HTMLElement | null;
+        if (!contentEl) {
+          return;
+        }
+        L.DomEvent.disableClickPropagation(contentEl);
+        L.DomEvent.disableScrollPropagation(contentEl);
+      },
+    }),
+    [],
+  );
 
   return (
     <Pane name={paneName} style={{ zIndex: 420 }}>
@@ -196,35 +224,46 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
         }
 
         const edgeChangeFlag = getEdgeChangeFlag(edge);
+        const popupEdge = popupEdgesById.get(edge.id) ?? edge;
+        const popupFrom = popupPolesById.get(edge.fromPoleId) ?? from;
+        const popupTo = popupPolesById.get(edge.toPoleId) ?? to;
+        const popupEdgeChangeFlag = getEdgeChangeFlag(popupEdge);
         const edgeVisual = getEdgeVisualConfig(edge);
         const edgeFlagLabel =
-          edgeChangeFlag === "remove"
+          popupEdgeChangeFlag === "remove"
             ? "Remoção"
-            : edgeChangeFlag === "new"
+            : popupEdgeChangeFlag === "new"
               ? "Novo"
-              : edgeChangeFlag === "replace"
+              : popupEdgeChangeFlag === "replace"
                 ? "Substituição"
                 : "Existente";
 
         const selectedConductor =
           edgeConductorSelection[edge.id] ??
-          edge.conductors[edge.conductors.length - 1]?.conductorName ??
+          popupEdge.conductors[popupEdge.conductors.length - 1]
+            ?.conductorName ??
           CONDUCTOR_OPTIONS[0];
         const selectedReplacementFromConductor =
           edgeReplacementFromSelection[edge.id] ??
-          edge.replacementFromConductors?.[
-            edge.replacementFromConductors.length - 1
+          popupEdge.replacementFromConductors?.[
+            popupEdge.replacementFromConductors.length - 1
           ]?.conductorName ??
           CONDUCTOR_OPTIONS[0];
 
         const edgePopup = (
-          <Popup>
-            <div className="text-xs">
+          <Popup eventHandlers={popupEventHandlers}>
+            <div
+              className="text-xs"
+              onMouseDown={(event) => event.stopPropagation()}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+              onTouchStart={(event) => event.stopPropagation()}
+            >
               <div>
                 <strong>{edge.id}</strong>
               </div>
               <div className="mt-0.5 text-slate-700">
-                {from.title} {"<->"} {to.title}
+                {popupFrom.title} {"<->"} {popupTo.title}
               </div>
               <div className="mt-1 text-slate-700">
                 Flag: <strong>{edgeFlagLabel}</strong>
@@ -253,8 +292,10 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
               </div>
               <div className="mt-1.5 text-slate-700">
                 Metragem:{" "}
-                {typeof (edge.cqtLengthMeters ?? edge.lengthMeters) === "number"
-                  ? `${edge.cqtLengthMeters ?? edge.lengthMeters} m`
+                {typeof (
+                  popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters
+                ) === "number"
+                  ? `${popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters} m`
                   : "-"}
               </div>
               {onBtSetEdgeLengthMeters && (
@@ -267,9 +308,12 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                     min={0}
                     step={0.01}
                     defaultValue={
-                      typeof (edge.cqtLengthMeters ?? edge.lengthMeters) ===
-                      "number"
-                        ? Number(edge.cqtLengthMeters ?? edge.lengthMeters)
+                      typeof (
+                        popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters
+                      ) === "number"
+                        ? Number(
+                            popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters,
+                          )
                         : 0
                     }
                     onBlur={(e) => {
@@ -277,7 +321,9 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                       if (!Number.isFinite(parsed) || parsed < 0) {
                         e.target.value = String(
                           Number(
-                            edge.cqtLengthMeters ?? edge.lengthMeters ?? 0,
+                            popupEdge.cqtLengthMeters ??
+                              popupEdge.lengthMeters ??
+                              0,
                           ),
                         );
                         return;
@@ -289,7 +335,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                   />
                 </div>
               )}
-              {edgeChangeFlag === "replace" && (
+              {popupEdgeChangeFlag === "replace" && (
                 <>
                   <div className="mt-1.5 text-slate-700">Condutor que sai</div>
                   <div className="mt-0.5">
@@ -333,9 +379,9 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                   )}
                 </>
               )}
-              {edge.conductors.length > 0 ? (
+              {popupEdge.conductors.length > 0 ? (
                 <div className="mt-0.5 text-slate-700">
-                  {edge.conductors.map((entry) => (
+                  {popupEdge.conductors.map((entry) => (
                     <div key={entry.id}>
                       {entry.quantity} x {entry.conductorName}
                     </div>
@@ -346,22 +392,22 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                   Sem condutor informado
                 </div>
               )}
-              {(edge.mtConductors ?? []).length > 0 && (
+              {(popupEdge.mtConductors ?? []).length > 0 && (
                 <div className="mt-1 rounded border border-orange-200 bg-orange-50 px-1.5 py-1 text-[10px] text-orange-900">
                   <div className="font-bold uppercase tracking-wide">
                     Condutor MT Vinculado
                   </div>
-                  {(edge.mtConductors ?? []).map((entry) => (
+                  {(popupEdge.mtConductors ?? []).map((entry) => (
                     <div key={entry.id}>
                       {entry.quantity} x {entry.conductorName}
                     </div>
                   ))}
                 </div>
               )}
-              {edgeChangeFlag === "replace" && (
+              {popupEdgeChangeFlag === "replace" && (
                 <div className="mt-0.5 text-amber-900">
-                  {(edge.replacementFromConductors ?? []).length > 0 ? (
-                    (edge.replacementFromConductors ?? []).map((entry) => (
+                  {(popupEdge.replacementFromConductors ?? []).length > 0 ? (
+                    (popupEdge.replacementFromConductors ?? []).map((entry) => (
                       <div key={entry.id}>
                         Sai: {entry.quantity} x {entry.conductorName}
                       </div>
@@ -372,9 +418,9 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                 </div>
               )}
               <div
-                className={`mt-0.5 font-semibold ${edge.verified ? "text-green-600" : "text-amber-600"}`}
+                className={`mt-0.5 font-semibold ${popupEdge.verified ? "text-green-600" : "text-amber-600"}`}
               >
-                {edge.verified ? "✓ Verificado" : "○ Não verificado"}
+                {popupEdge.verified ? "✓ Verificado" : "○ Não verificado"}
               </div>
               {onBtSetEdgeChangeFlag && (
                 <div className={POPUP_FLAG_GRID_CLASS}>
@@ -385,7 +431,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                       onBtSetEdgeChangeFlag(edge.id, "existing");
                     }}
                     className={getFlagButtonClass(
-                      edgeChangeFlag === "existing",
+                      popupEdgeChangeFlag === "existing",
                       "existing",
                     )}
                   >
@@ -398,7 +444,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                       onBtSetEdgeChangeFlag(edge.id, "new");
                     }}
                     className={getFlagButtonClass(
-                      edgeChangeFlag === "new",
+                      popupEdgeChangeFlag === "new",
                       "new",
                     )}
                   >
@@ -411,7 +457,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                       onBtSetEdgeChangeFlag(edge.id, "replace");
                     }}
                     className={getFlagButtonClass(
-                      edgeChangeFlag === "replace",
+                      popupEdgeChangeFlag === "replace",
                       "replace",
                     )}
                   >
@@ -424,7 +470,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                       onBtSetEdgeChangeFlag(edge.id, "remove");
                     }}
                     className={getFlagButtonClass(
-                      edgeChangeFlag === "remove",
+                      popupEdgeChangeFlag === "remove",
                       "remove",
                     )}
                   >
