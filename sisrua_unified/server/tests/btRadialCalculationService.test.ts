@@ -10,6 +10,8 @@ import {
     BtRadialValidationError,
     type BtRadialTopologyInput,
 } from '../services/btRadialCalculationService';
+import { lookupConductorById } from '../services/btCatalogService';
+import { calculateCorrectedResistance } from '../services/cqtEngine';
 
 // ─── shared builders ──────────────────────────────────────────────────────────
 
@@ -202,6 +204,38 @@ describe('btRadialCalculationService – qt propagation (E3-H1)', () => {
         };
         const result = calculateBtRadial(input);
         expect(result.terminalResults).toHaveLength(2);
+    });
+
+    it('qtSegment uses Ω/km with length conversion m->km', () => {
+        const input = makeLinearInput({
+            transformer: {
+                id: 'TR225',
+                rootNodeId: 'R',
+                kva: 225,
+                zPercent: 0,
+                qtMt: 0,
+            },
+        });
+
+        const result = calculateBtRadial(input);
+        const aNode = result.nodeResults.find((n) => n.nodeId === 'A');
+        expect(aNode).toBeDefined();
+
+        const conductor = lookupConductorById('95 Al - Arm');
+        expect(conductor).toBeDefined();
+
+        const correctedResistance = calculateCorrectedResistance({
+            resistance: conductor!.resistance,
+            alpha: conductor!.alpha,
+            divisorR: conductor!.divisorR,
+            temperatureC: 75,
+        });
+        const impedance = Math.sqrt(
+            correctedResistance ** 2 + conductor!.reactance ** 2,
+        );
+        const expectedSegment = (1 * 15 * impedance * 50) / (1000 * 220 ** 2);
+
+        expect(aNode!.qtSegment).toBeCloseTo(expectedSegment, 12);
     });
 });
 

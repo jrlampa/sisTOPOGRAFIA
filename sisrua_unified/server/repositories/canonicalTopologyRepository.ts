@@ -472,20 +472,8 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
       edgeCount: 0,
     };
   }
-}
 
-// ─── Singleton exportado ──────────────────────────────────────────────────────
-
-export const canonicalTopologyRepository =
-  new PostgresCanonicalTopologyRepository();
-
-// ─── Método de instância: readTopologyForTenant ────────────────────────────────
-// Adicionado aqui fora da classe para evitar referência circular com config/tenantService
-// durante os testes unitários (que mockam dbClient diretamente).
-
-PostgresCanonicalTopologyRepository.prototype.readTopologyForTenant =
-  async function (
-    this: PostgresCanonicalTopologyRepository,
+  async readTopologyForTenant(
     tenantId: string,
     taskId?: string,
   ): Promise<TopologyReadResult> {
@@ -496,4 +484,10 @@ PostgresCanonicalTopologyRepository.prototype.readTopologyForTenant =
 
     // forceLegacy = true quando a flag está desligada (legado prioritário)
     return this.readTopology(taskId, !useCanonical);
-  };
+  }
+}
+
+// ─── Singleton exportado ──────────────────────────────────────────────────────
+
+export const canonicalTopologyRepository =
+  new PostgresCanonicalTopologyRepository();

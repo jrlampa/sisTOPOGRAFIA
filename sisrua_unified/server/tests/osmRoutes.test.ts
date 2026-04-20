@@ -1,7 +1,7 @@
-import express from 'express';
-import request from 'supertest';
+import express from "express";
+import request from "supertest";
 
-describe('osmRoutes', () => {
+describe("osmRoutes", () => {
   const originalEnv = process.env.NODE_ENV;
   const originalFetch = global.fetch;
 
@@ -13,61 +13,70 @@ describe('osmRoutes', () => {
     }
   });
 
-  it('returns 503 when all Overpass endpoints fail outside test environment', async () => {
-    process.env.NODE_ENV = 'production';
+  it("returns 503 when all Overpass endpoints fail outside test environment", async () => {
+    process.env.NODE_ENV = "production";
     jest.resetModules();
 
-    global.fetch = jest.fn().mockRejectedValue(new Error('overpass-down')) as unknown as typeof fetch;
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(new Error("overpass-down")) as unknown as typeof fetch;
 
-    const { default: osmRoutes } = await import('../routes/osmRoutes');
+    const { default: osmRoutes } = await import("../routes/osmRoutes");
     const app = express();
     app.use(express.json());
-    app.use('/api/osm', osmRoutes);
+    app.use("/api/osm", osmRoutes);
 
     const response = await request(app)
-      .post('/api/osm')
-      .send({ lat: -23.55, lng: -46.63, radius: 300 });
+      .post("/api/osm")
+      // Coordenadas únicas para evitar colisão com cache em memória de outros testes.
+      .send({ lat: -11.111111, lng: -57.777777, radius: 333 });
 
     expect(response.status).toBe(503);
-    expect(response.body).toEqual(expect.objectContaining({
-      error: 'OSM provider unavailable',
-      code: 'OVERPASS_UNAVAILABLE'
-    }));
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        error: "OSM provider unavailable",
+        code: "OVERPASS_UNAVAILABLE",
+      }),
+    );
   });
 
-  it('keeps synthetic fallback enabled only in test environment', async () => {
-    process.env.NODE_ENV = 'test';
+  it("keeps synthetic fallback enabled only in test environment", async () => {
+    process.env.NODE_ENV = "test";
     jest.resetModules();
 
-    global.fetch = jest.fn().mockRejectedValue(new Error('overpass-down')) as unknown as typeof fetch;
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(new Error("overpass-down")) as unknown as typeof fetch;
 
-    const { default: osmRoutes } = await import('../routes/osmRoutes');
+    const { default: osmRoutes } = await import("../routes/osmRoutes");
     const app = express();
     app.use(express.json());
-    app.use('/api/osm', osmRoutes);
+    app.use("/api/osm", osmRoutes);
 
     const response = await request(app)
-      .post('/api/osm')
+      .post("/api/osm")
       .send({ lat: -23.55, lng: -46.63, radius: 300 });
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual(expect.objectContaining({
-      _fallback: true
-    }));
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        _fallback: true,
+      }),
+    );
     expect(Array.isArray(response.body.elements)).toBe(true);
   });
 
-  it('blocks /mock route outside test environment', async () => {
-    process.env.NODE_ENV = 'production';
+  it("blocks /mock route outside test environment", async () => {
+    process.env.NODE_ENV = "production";
     jest.resetModules();
 
-    const { default: osmRoutes } = await import('../routes/osmRoutes');
+    const { default: osmRoutes } = await import("../routes/osmRoutes");
     const app = express();
     app.use(express.json());
-    app.use('/api/osm', osmRoutes);
+    app.use("/api/osm", osmRoutes);
 
     const response = await request(app)
-      .post('/api/osm/mock')
+      .post("/api/osm/mock")
       .send({ lat: -23.55, lng: -46.63, radius: 300 });
 
     expect(response.status).toBe(404);

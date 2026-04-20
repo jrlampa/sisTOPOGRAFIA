@@ -1,4 +1,4 @@
-import type { CanonicalNetworkTopology } from "./types.canonical";
+import type { CanonicalNetworkTopology } from "./types.canonical.js";
 
 export interface GeoLocation {
   lat: number;

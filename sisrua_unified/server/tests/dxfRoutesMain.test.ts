@@ -10,6 +10,7 @@
 
 import express from "express";
 import request from "supertest";
+import fs from "fs";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -27,8 +28,8 @@ jest.mock("../middleware/rateLimiter", () => ({
 }));
 
 jest.mock("../middleware/permissionHandler", () => ({
-  requirePermission:
-    () => (_req: unknown, _res: unknown, next: () => void) => next(),
+  requirePermission: () => (_req: unknown, _res: unknown, next: () => void) =>
+    next(),
 }));
 
 const createDxfTaskMock = jest.fn();
@@ -42,12 +43,15 @@ const deleteCachedFilenameMock = jest.fn();
 jest.mock("../services/cacheService", () => ({
   createCacheKey: (...args: unknown[]) => createCacheKeyMock(...args),
   getCachedFilename: (...args: unknown[]) => getCachedFilenameMock(...args),
-  deleteCachedFilename: (...args: unknown[]) => deleteCachedFilenameMock(...args),
+  deleteCachedFilename: (...args: unknown[]) =>
+    deleteCachedFilenameMock(...args),
 }));
 
 const recordDxfRequestMock = jest.fn();
 jest.mock("../services/metricsService", () => ({
-  metricsService: { recordDxfRequest: (...args: unknown[]) => recordDxfRequestMock(...args) },
+  metricsService: {
+    recordDxfRequest: (...args: unknown[]) => recordDxfRequestMock(...args),
+  },
 }));
 
 const attachCqtMock = jest.fn().mockImplementation((x: unknown) => x);
@@ -64,19 +68,25 @@ jest.mock("../utils/dxfDirectory", () => ({
   resolveDxfDirectory: () => "/tmp/dxf-test",
 }));
 
-const validateBtTopologyMock = jest.fn().mockReturnValue({ valid: true, errors: [], warnings: [] });
+const validateBtTopologyMock = jest
+  .fn()
+  .mockReturnValue({ valid: true, errors: [], warnings: [] });
 jest.mock("../services/topologicalValidator", () => ({
   validateBtTopology: (...args: unknown[]) => validateBtTopologyMock(...args),
 }));
 
 const previewFailedTaskMock = jest.fn().mockResolvedValue([]);
-const sanitizeReprocessMock = jest.fn().mockResolvedValue({ processed: 0, failed: 0 });
+const sanitizeReprocessMock = jest
+  .fn()
+  .mockResolvedValue({ processed: 0, failed: 0 });
 jest.mock("../services/jobDossierService", () => ({
   getJobDossier: jest.fn(),
   listRecentJobs: jest.fn(),
-  previewFailedTaskSanitation: (...args: unknown[]) => previewFailedTaskMock(...args),
+  previewFailedTaskSanitation: (...args: unknown[]) =>
+    previewFailedTaskMock(...args),
   replayFailedTask: jest.fn(),
-  sanitizeAndReprocessFailedTasks: (...args: unknown[]) => sanitizeReprocessMock(...args),
+  sanitizeAndReprocessFailedTasks: (...args: unknown[]) =>
+    sanitizeReprocessMock(...args),
 }));
 
 jest.mock("../config", () => ({
@@ -109,7 +119,11 @@ afterEach(() => {
   jest.clearAllMocks();
   createCacheKeyMock.mockReturnValue("cache-key-123");
   getCachedFilenameMock.mockReturnValue(null);
-  validateBtTopologyMock.mockReturnValue({ valid: true, errors: [], warnings: [] });
+  validateBtTopologyMock.mockReturnValue({
+    valid: true,
+    errors: [],
+    warnings: [],
+  });
   attachCqtMock.mockImplementation((x: unknown) => x);
 });
 
@@ -130,7 +144,10 @@ describe("POST /api/dxf — validação do body", () => {
   });
 
   it("retorna 202 (queued) para body valido", async () => {
-    createDxfTaskMock.mockResolvedValueOnce({ taskId: "task-123", alreadyCompleted: false });
+    createDxfTaskMock.mockResolvedValueOnce({
+      taskId: "task-123",
+      alreadyCompleted: false,
+    });
     const res = await request(app).post("/api/dxf").send(VALID_DXF_BODY);
     expect(res.status).toBe(202);
     expect(res.body.status).toBe("queued");
@@ -164,7 +181,6 @@ describe("POST /api/dxf — validação do body", () => {
   });
 
   it("retorna 200 com URL quando cache hit e arquivo existe", async () => {
-    const fs = require("fs");
     fs.existsSync.mockReturnValue(true);
     getCachedFilenameMock.mockReturnValue("cached_file.dxf");
 
@@ -175,10 +191,12 @@ describe("POST /api/dxf — validação do body", () => {
   });
 
   it("cache entry sem arquivo faz deleteCachedFilename e continua (202)", async () => {
-    const fs = require("fs");
     fs.existsSync.mockReturnValue(false);
     getCachedFilenameMock.mockReturnValue("missing_file.dxf");
-    createDxfTaskMock.mockResolvedValueOnce({ taskId: "task-456", alreadyCompleted: false });
+    createDxfTaskMock.mockResolvedValueOnce({
+      taskId: "task-456",
+      alreadyCompleted: false,
+    });
 
     const res = await request(app).post("/api/dxf").send(VALID_DXF_BODY);
     expect(deleteCachedFilenameMock).toHaveBeenCalled();
@@ -208,7 +226,16 @@ describe("POST /api/dxf/batch — upload de arquivo", () => {
 
   it("retorna 200 para arquivo CSV valido com rows processadas", async () => {
     parseBatchFileMock.mockResolvedValueOnce([
-      { row: { lat: -23.55, lon: -46.63, radius: 300, mode: "circle", name: "ponto1" }, line: 2 },
+      {
+        row: {
+          lat: -23.55,
+          lon: -46.63,
+          radius: 300,
+          mode: "circle",
+          name: "ponto1",
+        },
+        line: 2,
+      },
     ]);
     createDxfTaskMock.mockResolvedValueOnce({ taskId: "batch-task-1" });
 
@@ -241,8 +268,12 @@ describe("POST /api/dxf/batch — upload de arquivo", () => {
 
 describe("GET /api/dxf/jobs/failed/sanitation-preview", () => {
   it("retorna 200 com preview de failed tasks", async () => {
-    previewFailedTaskMock.mockResolvedValueOnce([{ jobId: "j1", cause: "validation" }]);
-    const res = await request(app).get("/api/dxf/jobs/failed/sanitation-preview");
+    previewFailedTaskMock.mockResolvedValueOnce([
+      { jobId: "j1", cause: "validation" },
+    ]);
+    const res = await request(app).get(
+      "/api/dxf/jobs/failed/sanitation-preview",
+    );
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
   });
@@ -259,7 +290,11 @@ describe("GET /api/dxf/jobs/failed/sanitation-preview", () => {
 
 describe("POST /api/dxf/jobs/failed/sanitize-reprocess", () => {
   it("retorna 200 quando body valido", async () => {
-    sanitizeReprocessMock.mockResolvedValueOnce({ sanitized: 2, requeued: 1, failed: 0 });
+    sanitizeReprocessMock.mockResolvedValueOnce({
+      sanitized: 2,
+      requeued: 1,
+      failed: 0,
+    });
     const res = await request(app)
       .post("/api/dxf/jobs/failed/sanitize-reprocess")
       .send({ limit: 10, dryRun: false });
