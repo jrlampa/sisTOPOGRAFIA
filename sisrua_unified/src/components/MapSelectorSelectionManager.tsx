@@ -66,13 +66,43 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
   const middlePanMovedRef = React.useRef(false);
   const suppressNextClickRef = React.useRef(false);
   const middlePanLastPointRef = React.useRef<L.Point | null>(null);
+  const lastDraggedPolygonMarkerRef = React.useRef<{
+    index: number;
+    at: number;
+  } | null>(null);
   const [contextMenuLocation, setContextMenuLocation] =
     React.useState<GeoLocation | null>(null);
+  const [polygonMarkerMenu, setPolygonMarkerMenu] = React.useState<{
+    index: number;
+    lat: number;
+    lng: number;
+  } | null>(null);
+
+  const removePolygonPoint = React.useCallback(
+    (indexToRemove: number) => {
+      if (selectionMode !== "polygon") {
+        return;
+      }
+      onPolygonChange(
+        polygonPoints.filter((_, index) => index !== indexToRemove),
+      );
+      setPolygonMarkerMenu(null);
+    },
+    [onPolygonChange, polygonPoints, selectionMode],
+  );
 
   const map = useMapEvents({
     click(e) {
       if (contextMenuLocation) {
         setContextMenuLocation(null);
+      }
+      if (polygonMarkerMenu) {
+        setPolygonMarkerMenu(null);
+      }
+
+      const clickTarget = e.originalEvent.target as HTMLElement | null;
+      if (clickTarget?.closest(".leaflet-popup, .leaflet-control")) {
+        return;
       }
 
       if (suppressNextClickRef.current) {
@@ -349,6 +379,16 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
     return () => window.removeEventListener("resize", handleResize);
   }, [map]);
 
+  React.useEffect(() => {
+    if (
+      polygonMarkerMenu &&
+      (polygonMarkerMenu.index < 0 ||
+        polygonMarkerMenu.index >= polygonPoints.length)
+    ) {
+      setPolygonMarkerMenu(null);
+    }
+  }, [polygonMarkerMenu, polygonPoints.length]);
+
   return (
     <>
       {contextMenuLocation && (
@@ -427,6 +467,45 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
         </Popup>
       )}
 
+      {polygonMarkerMenu && selectionMode === "polygon" && (
+        <Popup
+          position={[polygonMarkerMenu.lat, polygonMarkerMenu.lng]}
+          closeButton={true}
+          autoPan={false}
+          eventHandlers={{
+            remove: () => setPolygonMarkerMenu(null),
+          }}
+        >
+          <div className="flex min-w-[170px] flex-col gap-1 p-0.5 text-xs font-black uppercase tracking-wide text-slate-900">
+            <button
+              type="button"
+              className="rounded-md border border-rose-300 bg-rose-50 px-2 py-1.5 text-left transition hover:bg-rose-100"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                removePolygonPoint(polygonMarkerMenu.index);
+              }}
+            >
+              Excluir ponto
+            </button>
+            <button
+              type="button"
+              className="rounded-md border border-sky-300 bg-sky-50 px-2 py-1.5 text-left transition hover:bg-sky-100"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setPolygonMarkerMenu(null);
+              }}
+            >
+              Manter ponto
+            </button>
+            <p className="mt-1 px-1 text-[10px] font-semibold normal-case tracking-normal text-slate-600">
+              Dica: clique e arraste o marcador para reposicionar.
+            </p>
+          </div>
+        </Popup>
+      )}
+
       {selectionMode === "circle" && (
         <>
           <Marker position={[center.lat, center.lng]} />
@@ -446,7 +525,52 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
       {selectionMode === "polygon" && polygonPoints.length > 0 && (
         <>
           {polygonPoints.map((point: [number, number], i: number) => (
-            <Marker key={i} position={point} />
+            <Marker
+              key={`polygon-point-${i}-${point[0]}-${point[1]}`}
+              position={point}
+              draggable={true}
+              eventHandlers={{
+                click: (event) => {
+                  event.originalEvent.preventDefault();
+                  event.originalEvent.stopPropagation();
+
+                  const lastDrag = lastDraggedPolygonMarkerRef.current;
+                  if (
+                    lastDrag &&
+                    lastDrag.index === i &&
+                    Date.now() - lastDrag.at < 250
+                  ) {
+                    return;
+                  }
+
+                  removePolygonPoint(i);
+                },
+                contextmenu: (event) => {
+                  event.originalEvent.preventDefault();
+                  event.originalEvent.stopPropagation();
+                  setPolygonMarkerMenu({
+                    index: i,
+                    lat: point[0],
+                    lng: point[1],
+                  });
+                },
+                dragstart: () => {
+                  setPolygonMarkerMenu(null);
+                },
+                dragend: (event) => {
+                  const { lat, lng } = (event.target as L.Marker).getLatLng();
+                  onPolygonChange(
+                    polygonPoints.map((existingPoint, index) =>
+                      index === i ? [lat, lng] : existingPoint,
+                    ),
+                  );
+                  lastDraggedPolygonMarkerRef.current = {
+                    index: i,
+                    at: Date.now(),
+                  };
+                },
+              }}
+            />
           ))}
           {polygonPoints.length > 1 && (
             <Polyline

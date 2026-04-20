@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { FeatureFlag, loadFeatureFlags, resetFeatureFlags } from "../src/config/featureFlags";
+import {
+  FeatureFlag,
+  loadFeatureFlags,
+  resetFeatureFlags,
+} from "../src/config/featureFlags";
 import { selectMapTopologyRenderSources } from "../src/utils/selectMapTopologyRenderSources";
 
 const legacyBtTopology = {
@@ -102,9 +106,13 @@ describe("selectMapTopologyRenderSources", () => {
     expect(markersOnly.usingCanonicalMarkers).toBe(true);
     expect(markersOnly.usingCanonicalPopups).toBe(false);
     expect(markersOnly.btMarkerTopology).not.toBe(legacyBtTopology);
-    expect(markersOnly.btMarkerTopology.poles[0]?.title).toBe("Poste BT canonico");
+    expect(markersOnly.btMarkerTopology.poles[0]?.title).toBe(
+      "Poste BT canonico",
+    );
     expect(markersOnly.btPopupTopology).toBe(legacyBtTopology);
-    expect(markersOnly.mtMarkerTopology.poles[0]?.title).toBe("Poste MT canonico");
+    expect(markersOnly.mtMarkerTopology.poles[0]?.title).toBe(
+      "Poste MT canonico",
+    );
     expect(markersOnly.mtPopupTopology).toBe(legacyMtTopology);
 
     resetFeatureFlags();
@@ -123,8 +131,12 @@ describe("selectMapTopologyRenderSources", () => {
     expect(popupsOnly.usingCanonicalMarkers).toBe(false);
     expect(popupsOnly.usingCanonicalPopups).toBe(true);
     expect(popupsOnly.btMarkerTopology).toBe(legacyBtTopology);
-    expect(popupsOnly.btPopupTopology.poles[0]?.title).toBe("Poste BT canonico");
+    expect(popupsOnly.btPopupTopology.poles[0]?.title).toBe(
+      "Poste BT canonico",
+    );
     expect(popupsOnly.mtMarkerTopology).toBe(legacyMtTopology);
-    expect(popupsOnly.mtPopupTopology.poles[0]?.title).toBe("Poste MT canonico");
+    expect(popupsOnly.mtPopupTopology.poles[0]?.title).toBe(
+      "Poste MT canonico",
+    );
   });
 });

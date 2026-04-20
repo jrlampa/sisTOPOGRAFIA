@@ -2,7 +2,8 @@ import React from "react";
 import { Pane, CircleMarker, Marker, Tooltip, Popup } from "react-leaflet";
 import L from "leaflet";
 import { Trash2, Triangle, Plus, Minus } from "lucide-react";
-import { BtPoleNode, BtEditorMode } from "../../types";
+import { BtEditorMode } from "../../types";
+import type { MapBtPole } from "../../types.map";
 import type { BtPoleAccumulatedDemand } from "../../utils/btTopologyFlow";
 import {
   getFlagColor,
@@ -15,8 +16,8 @@ import {
 
 interface MapSelectorPolesLayerProps {
   paneName: string;
-  poles: BtPoleNode[];
-  popupPoles?: BtPoleNode[];
+  poles: MapBtPole[];
+  popupPoles?: MapBtPole[];
   btEditorMode: BtEditorMode;
   criticalPoleId: string | null;
   loadCenterPoleId?: string | null;

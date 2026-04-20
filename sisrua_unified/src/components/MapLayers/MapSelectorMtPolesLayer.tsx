@@ -2,7 +2,8 @@ import React from "react";
 import { Pane, Marker, Tooltip, Popup } from "react-leaflet";
 import L from "leaflet";
 import { Trash2 } from "lucide-react";
-import { MtPoleNode, MtEditorMode, GeoLocation } from "../../types";
+import { MtEditorMode, GeoLocation } from "../../types";
+import type { MapMtPole } from "../../types.map";
 import {
   getFlagColor,
   getFlagButtonClass,
@@ -11,8 +12,8 @@ import {
 
 interface MapSelectorMtPolesLayerProps {
   paneName: string;
-  poles: MtPoleNode[];
-  popupPoles?: MtPoleNode[];
+  poles: MapMtPole[];
+  popupPoles?: MapMtPole[];
   mtEditorMode: MtEditorMode;
   onMtMapClick?: (location: GeoLocation) => void;
   onMtDragPole?: (poleId: string, lat: number, lng: number) => void;
@@ -42,7 +43,7 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
     [popupPoles, poles],
   );
 
-  const makeMtPoleIcon = (pole: MtPoleNode) => {
+  const makeMtPoleIcon = (pole: MapMtPole) => {
     const flag = pole.nodeChangeFlag ?? "existing";
     const bg = getFlagColor(flag, pole.verified ? "#16a34a" : "#d97706");
     const size = 18;
@@ -63,92 +64,117 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
         const popupPole = popupPolesById.get(pole.id) ?? pole;
 
         return (
-        <React.Fragment key={`${pole.id}-${pole.verified ? "v" : "u"}`}>
-          <Marker
-            position={[pole.lat, pole.lng]}
-            icon={makeMtPoleIcon(pole)}
-            zIndexOffset={1300}
-            draggable={mtEditorMode !== "mt-add-edge"}
-            eventHandlers={{
-              click: () => {
-                if (mtEditorMode === "mt-add-edge" && onMtMapClick) {
-                  onMtMapClick({ lat: pole.lat, lng: pole.lng, label: pole.title });
-                }
-              },
-              dragend: (e) => {
-                const { lat, lng } = (e.target as L.Marker).getLatLng();
-                onMtDragPole?.(pole.id, lat, lng);
-              },
-            }}
-          >
-            <Tooltip permanent direction="top" offset={[0, -10]} opacity={0.85}>
-              <span className="text-[10px] font-bold text-orange-900 dark:text-orange-100">
-                {pole.title}
-              </span>
-            </Tooltip>
-            <Popup>
-              <div className="text-xs">
-                <div className="flex items-center justify-between gap-4">
-                  <strong>Poste MT: {popupPole.title}</strong>
-                  <span className={`text-[9px] font-bold ${popupPole.verified ? "text-green-600" : "text-orange-600"}`}>
-                    {popupPole.verified ? "VERIFICADO" : "PENDENTE"}
-                  </span>
-                </div>
-                <div className="mt-1 text-slate-500 font-mono text-[9px]">{popupPole.id}</div>
-
-                {onMtRenamePole && (
-                  <input
-                    type="text"
-                    value={popupPole.title}
-                    onChange={(e) => onMtRenamePole(pole.id, e.target.value)}
-                    className="mt-2 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
-                    placeholder="Nome do poste MT"
-                    title="Editar nome"
-                  />
-                )}
-
-                <div className="mt-2 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase text-slate-500">Estado</span>
-                    <button
-                      onClick={() => onMtSetPoleVerified?.(pole.id, !popupPole.verified)}
-                      className={`rounded px-2 py-0.5 text-[9px] font-bold transition-colors ${
-                        popupPole.verified 
-                        ? "bg-green-100 text-green-700 hover:bg-green-200" 
-                        : "bg-orange-100 text-orange-700 hover:bg-orange-200"
-                      }`}
+          <React.Fragment key={`${pole.id}-${pole.verified ? "v" : "u"}`}>
+            <Marker
+              position={[pole.lat, pole.lng]}
+              icon={makeMtPoleIcon(pole)}
+              zIndexOffset={1300}
+              draggable={mtEditorMode !== "mt-add-edge"}
+              eventHandlers={{
+                click: () => {
+                  if (mtEditorMode === "mt-add-edge" && onMtMapClick) {
+                    onMtMapClick({
+                      lat: pole.lat,
+                      lng: pole.lng,
+                      label: pole.title,
+                    });
+                  }
+                },
+                dragend: (e) => {
+                  const { lat, lng } = (e.target as L.Marker).getLatLng();
+                  onMtDragPole?.(pole.id, lat, lng);
+                },
+              }}
+            >
+              <Tooltip
+                permanent
+                direction="top"
+                offset={[0, -10]}
+                opacity={0.85}
+              >
+                <span className="text-[10px] font-bold text-orange-900 dark:text-orange-100">
+                  {pole.title}
+                </span>
+              </Tooltip>
+              <Popup>
+                <div className="text-xs">
+                  <div className="flex items-center justify-between gap-4">
+                    <strong>Poste MT: {popupPole.title}</strong>
+                    <span
+                      className={`text-[9px] font-bold ${popupPole.verified ? "text-green-600" : "text-orange-600"}`}
                     >
-                      {popupPole.verified ? "DESMARCAR" : "VERIFICAR"}
-                    </button>
+                      {popupPole.verified ? "VERIFICADO" : "PENDENTE"}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-slate-500 font-mono text-[9px]">
+                    {popupPole.id}
                   </div>
 
-                  <div className={POPUP_FLAG_GRID_CLASS}>
-                    {(["existing", "new", "replace", "remove"] as const).map((flag) => (
-                      <button
-                        key={flag}
-                        onClick={() => onMtSetPoleChangeFlag?.(pole.id, flag)}
-                        className={getFlagButtonClass((popupPole.nodeChangeFlag ?? "existing") === flag, flag)}
-                      >
-                        {flag.charAt(0).toUpperCase() + flag.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-
-                  {onMtDeletePole && (
-                    <button
-                      onClick={() => onMtDeletePole(pole.id)}
-                      className="flex h-7 items-center justify-center gap-1.5 rounded-lg border border-red-500 bg-red-50 text-[10px] font-black uppercase text-red-700 transition-colors hover:bg-red-100"
-                    >
-                      <Trash2 size={12} />
-                      Excluir Poste MT
-                    </button>
+                  {onMtRenamePole && (
+                    <input
+                      type="text"
+                      value={popupPole.title}
+                      onChange={(e) => onMtRenamePole(pole.id, e.target.value)}
+                      className="mt-2 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
+                      placeholder="Nome do poste MT"
+                      title="Editar nome"
+                    />
                   )}
+
+                  <div className="mt-2 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase text-slate-500">
+                        Estado
+                      </span>
+                      <button
+                        onClick={() =>
+                          onMtSetPoleVerified?.(pole.id, !popupPole.verified)
+                        }
+                        className={`rounded px-2 py-0.5 text-[9px] font-bold transition-colors ${
+                          popupPole.verified
+                            ? "bg-green-100 text-green-700 hover:bg-green-200"
+                            : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                        }`}
+                      >
+                        {popupPole.verified ? "DESMARCAR" : "VERIFICAR"}
+                      </button>
+                    </div>
+
+                    <div className={POPUP_FLAG_GRID_CLASS}>
+                      {(["existing", "new", "replace", "remove"] as const).map(
+                        (flag) => (
+                          <button
+                            key={flag}
+                            onClick={() =>
+                              onMtSetPoleChangeFlag?.(pole.id, flag)
+                            }
+                            className={getFlagButtonClass(
+                              (popupPole.nodeChangeFlag ?? "existing") === flag,
+                              flag,
+                            )}
+                          >
+                            {flag.charAt(0).toUpperCase() + flag.slice(1)}
+                          </button>
+                        ),
+                      )}
+                    </div>
+
+                    {onMtDeletePole && (
+                      <button
+                        onClick={() => onMtDeletePole(pole.id)}
+                        className="flex h-7 items-center justify-center gap-1.5 rounded-lg border border-red-500 bg-red-50 text-[10px] font-black uppercase text-red-700 transition-colors hover:bg-red-100"
+                      >
+                        <Trash2 size={12} />
+                        Excluir Poste MT
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Popup>
-          </Marker>
-        </React.Fragment>
-      )})}
+              </Popup>
+            </Marker>
+          </React.Fragment>
+        );
+      })}
     </Pane>
   );
 };

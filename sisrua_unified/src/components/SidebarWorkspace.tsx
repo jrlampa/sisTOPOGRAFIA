@@ -182,7 +182,7 @@ export function SidebarWorkspace({
       className={`app-sidebar z-20 flex flex-col gap-4 overflow-y-auto border-r transition-all duration-300 scrollbar-hide xl:shrink-0 ${
         isSidebarDockedForRamalModal || isCollapsed
           ? "w-0 p-0 opacity-0 pointer-events-none border-r-0"
-          : "w-full max-h-[56vh] p-4 opacity-100 xl:max-h-none xl:max-w-[420px]"
+          : "w-full max-h-[56vh] p-4 pb-3 opacity-100 xl:max-h-none xl:max-w-[420px] xl:pb-4"
       }`}
       aria-hidden={isSidebarDockedForRamalModal || isCollapsed}
     >
@@ -333,7 +333,7 @@ export function SidebarWorkspace({
         </div>
       </div>
 
-      <div className="glass-card sticky bottom-0 z-10 mt-auto p-3 backdrop-blur-sm">
+      <div className="glass-card mt-1 p-3 backdrop-blur-sm">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
             Próxima ação

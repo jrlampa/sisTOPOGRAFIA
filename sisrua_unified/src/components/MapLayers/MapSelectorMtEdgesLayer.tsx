@@ -1,12 +1,13 @@
 import React from "react";
 import { Pane, Polyline, Popup } from "react-leaflet";
 import { Trash2 } from "lucide-react";
-import { MtEdge, MtPoleNode, MtTopology } from "../../types";
+import L from "leaflet";
+import type { MapMtEdge, MapMtPole, MapMtTopology } from "../../types.map";
 
 const EDGE_HIT_AREA_WEIGHT = 24;
 const POPUP_FLAG_GRID_CLASS = "mt-1.5 grid grid-cols-2 gap-1.5";
 
-const getMtEdgeVisualConfig = (edge: MtEdge) => {
+const getMtEdgeVisualConfig = (edge: MapMtEdge) => {
   const flag = edge.edgeChangeFlag ?? "existing";
 
   if (flag === "new") {
@@ -42,9 +43,9 @@ const getFlagButtonClass = (
 
 interface MapSelectorMtEdgesLayerProps {
   paneName: string;
-  topology: MtTopology;
-  popupTopology?: MtTopology;
-  polesById: Map<string, MtPoleNode>;
+  topology: MapMtTopology;
+  popupTopology?: MapMtTopology;
+  polesById: Map<string, MapMtPole>;
   onMtDeleteEdge?: (id: string) => void;
   onMtSetEdgeChangeFlag?: (
     edgeId: string,
@@ -61,8 +62,30 @@ const MapSelectorMtEdgesLayer: React.FC<MapSelectorMtEdgesLayerProps> = ({
   onMtSetEdgeChangeFlag,
 }) => {
   const popupEdgesById = React.useMemo(
-    () => new Map((popupTopology ?? topology).edges.map((edge) => [edge.id, edge])),
+    () =>
+      new Map((popupTopology ?? topology).edges.map((edge) => [edge.id, edge])),
     [popupTopology, topology],
+  );
+  const popupPolesById = React.useMemo(
+    () =>
+      new Map((popupTopology ?? topology).poles.map((pole) => [pole.id, pole])),
+    [popupTopology, topology],
+  );
+  const popupEventHandlers = React.useMemo(
+    () => ({
+      add: (event: any) => {
+        const popupEl = event?.popup?.getElement?.() as HTMLElement | null;
+        const contentEl = popupEl?.querySelector(
+          ".leaflet-popup-content",
+        ) as HTMLElement | null;
+        if (!contentEl) {
+          return;
+        }
+        L.DomEvent.disableClickPropagation(contentEl);
+        L.DomEvent.disableScrollPropagation(contentEl);
+      },
+    }),
+    [],
   );
 
   return (
@@ -74,6 +97,8 @@ const MapSelectorMtEdgesLayer: React.FC<MapSelectorMtEdgesLayerProps> = ({
 
         const edgeVisual = getMtEdgeVisualConfig(edge);
         const popupEdge = popupEdgesById.get(edge.id) ?? edge;
+        const popupFrom = popupPolesById.get(edge.fromPoleId) ?? from;
+        const popupTo = popupPolesById.get(edge.toPoleId) ?? to;
         const edgeChangeFlag = popupEdge.edgeChangeFlag ?? "existing";
 
         return (
@@ -89,11 +114,17 @@ const MapSelectorMtEdgesLayer: React.FC<MapSelectorMtEdgesLayerProps> = ({
                 opacity: 0.01,
               }}
             >
-              <Popup>
-                <div className="text-xs">
+              <Popup eventHandlers={popupEventHandlers}>
+                <div
+                  className="text-xs"
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => event.stopPropagation()}
+                  onTouchStart={(event) => event.stopPropagation()}
+                >
                   <strong>Vão MT: {edge.id}</strong>
                   <div className="mt-1 text-slate-700">
-                    {from.title} {"<->"} {to.title}
+                    {popupFrom.title} {"<->"} {popupTo.title}
                   </div>
                   <div className="mt-1 text-slate-700">
                     Comprimento: {popupEdge.lengthMeters} m

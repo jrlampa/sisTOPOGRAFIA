@@ -11,13 +11,12 @@ import MapSelectorMtEdgesLayer from "./MapLayers/MapSelectorMtEdgesLayer";
 import MapSelectorMtPolesLayer from "./MapLayers/MapSelectorMtPolesLayer";
 import {
   BtEditorMode,
-  BtTopology,
   BtRamalEntry,
-  MtTopology,
   MtEditorMode,
   SelectionMode,
   GeoLocation,
 } from "../types";
+import type { MapBtTopology, MapMtTopology } from "../types.map";
 import type { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
 import { DefaultIcon } from "./MapSelectorStyles";
 
@@ -40,8 +39,8 @@ interface MapSelectorProps {
   onPolygonChange: (points: [number, number][]) => void;
   measurePath?: [number, number][];
   onMeasurePathChange?: (path: [number, number][]) => void;
-  btMarkerTopology?: BtTopology;
-  btPopupTopology?: BtTopology;
+  btMarkerTopology?: MapBtTopology;
+  btPopupTopology?: MapBtTopology;
   btEditorMode?: BtEditorMode;
   pendingBtEdgeStartPoleId?: string | null;
   onBtMapClick?: (location: {
@@ -103,8 +102,8 @@ interface MapSelectorProps {
   showAnalysis?: boolean;
   geojson?: GeoJsonObject | null;
   keyboardPanEnabled?: boolean;
-  mtMarkerTopology?: MtTopology;
-  mtPopupTopology?: MtTopology;
+  mtMarkerTopology?: MapMtTopology;
+  mtPopupTopology?: MapMtTopology;
   mtEditorMode?: MtEditorMode;
   onMtMapClick?: (location: GeoLocation) => void;
   onMtContextAction?: (

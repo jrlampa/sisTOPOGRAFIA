@@ -2,7 +2,8 @@ import React from "react";
 import { Pane, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { Trash2 } from "lucide-react";
-import { BtTransformer, BtEditorMode, BtPoleNode } from "../../types";
+import { BtEditorMode } from "../../types";
+import type { MapBtPole, MapBtTransformer } from "../../types.map";
 import {
   getFlagColor,
   getTransformerChangeFlag,
@@ -14,11 +15,19 @@ import {
 
 interface MapSelectorTransformersLayerProps {
   paneName: string;
-  transformers: BtTransformer[];
+  transformers: MapBtTransformer[];
   btEditorMode: BtEditorMode;
-  polesById: Map<string, BtPoleNode>;
-  onBtMapClick?: (location: { lat: number; lng: number; label?: string }) => void;
-  onBtDragTransformer?: (transformerId: string, lat: number, lng: number) => void;
+  polesById: Map<string, MapBtPole>;
+  onBtMapClick?: (location: {
+    lat: number;
+    lng: number;
+    label?: string;
+  }) => void;
+  onBtDragTransformer?: (
+    transformerId: string,
+    lat: number,
+    lng: number,
+  ) => void;
   onBtRenameTransformer?: (transformerId: string, title: string) => void;
   onBtSetTransformerChangeFlag?: (
     transformerId: string,

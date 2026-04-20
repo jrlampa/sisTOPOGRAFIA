@@ -2,14 +2,15 @@ import { deriveLegacyTopologiesFromCanonical } from "../adapters/canonicalTopolo
 import { FeatureFlag, isFeatureEnabled } from "../config/featureFlags";
 import type { BtTopology, MtTopology, BtTransformer } from "../types";
 import type { CanonicalNetworkTopology } from "../types.canonical";
+import type { MapBtTopology, MapMtTopology } from "../types.map";
 import { EMPTY_BT_TOPOLOGY } from "./btNormalization";
 import { EMPTY_MT_TOPOLOGY } from "./mtNormalization";
 
 export interface MapTopologyRenderSources {
-  btMarkerTopology: BtTopology;
-  btPopupTopology: BtTopology;
-  mtMarkerTopology: MtTopology;
-  mtPopupTopology: MtTopology;
+  btMarkerTopology: MapBtTopology;
+  btPopupTopology: MapBtTopology;
+  mtMarkerTopology: MapMtTopology;
+  mtPopupTopology: MapMtTopology;
   usingCanonicalMarkers: boolean;
   usingCanonicalPopups: boolean;
 }

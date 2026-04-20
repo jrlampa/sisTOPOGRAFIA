@@ -2,7 +2,7 @@ import React from "react";
 import { Pane, Polyline, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { Minus, Plus, Trash2 } from "lucide-react";
-import { BtEdge, BtPoleNode, BtTopology } from "../types";
+import type { MapBtEdge, MapBtPole, MapBtTopology } from "../types.map";
 import {
   ENTITY_ID_PREFIXES,
   LEGACY_ID_ENTROPY,
@@ -47,9 +47,9 @@ const POPUP_SELECT_CLASS =
 const POPUP_TOOLBAR_CLASS = "mt-1.5 flex items-center gap-2";
 const POPUP_FLAG_GRID_CLASS = "mt-1.5 grid grid-cols-2 gap-1.5";
 
-type BtEdgeChangeFlag = NonNullable<BtEdge["edgeChangeFlag"]>;
+type BtEdgeChangeFlag = NonNullable<MapBtEdge["edgeChangeFlag"]>;
 
-const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
+const getEdgeChangeFlag = (edge: MapBtEdge): BtEdgeChangeFlag => {
   if (edge.edgeChangeFlag) {
     return edge.edgeChangeFlag;
   }
@@ -57,7 +57,7 @@ const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
   return edge.removeOnExecution ? "remove" : "existing";
 };
 
-const getEdgeVisualConfig = (edge: BtEdge) => {
+const getEdgeVisualConfig = (edge: MapBtEdge) => {
   const flag = getEdgeChangeFlag(edge);
 
   if (flag === "new") {
@@ -150,9 +150,9 @@ const getRemovalMarkersForEdge = (
 
 interface MapSelectorEdgesLayerProps {
   paneName: string;
-  topology: BtTopology;
-  popupTopology?: BtTopology;
-  polesById: Map<string, BtPoleNode>;
+  topology: MapBtTopology;
+  popupTopology?: MapBtTopology;
+  polesById: Map<string, MapBtPole>;
   onBtDeleteEdge?: (id: string) => void;
   onBtSetEdgeChangeFlag?: (
     edgeId: string,
@@ -188,8 +188,30 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
   const [edgeReplacementFromSelection, setEdgeReplacementFromSelection] =
     React.useState<Record<string, string>>({});
   const popupEdgesById = React.useMemo(
-    () => new Map((popupTopology ?? topology).edges.map((edge) => [edge.id, edge])),
+    () =>
+      new Map((popupTopology ?? topology).edges.map((edge) => [edge.id, edge])),
     [popupTopology, topology],
+  );
+  const popupPolesById = React.useMemo(
+    () =>
+      new Map((popupTopology ?? topology).poles.map((pole) => [pole.id, pole])),
+    [popupTopology, topology],
+  );
+  const popupEventHandlers = React.useMemo(
+    () => ({
+      add: (event: any) => {
+        const popupEl = event?.popup?.getElement?.() as HTMLElement | null;
+        const contentEl = popupEl?.querySelector(
+          ".leaflet-popup-content",
+        ) as HTMLElement | null;
+        if (!contentEl) {
+          return;
+        }
+        L.DomEvent.disableClickPropagation(contentEl);
+        L.DomEvent.disableScrollPropagation(contentEl);
+      },
+    }),
+    [],
   );
 
   return (
@@ -203,6 +225,8 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
 
         const edgeChangeFlag = getEdgeChangeFlag(edge);
         const popupEdge = popupEdgesById.get(edge.id) ?? edge;
+        const popupFrom = popupPolesById.get(edge.fromPoleId) ?? from;
+        const popupTo = popupPolesById.get(edge.toPoleId) ?? to;
         const popupEdgeChangeFlag = getEdgeChangeFlag(popupEdge);
         const edgeVisual = getEdgeVisualConfig(edge);
         const edgeFlagLabel =
@@ -216,7 +240,8 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
 
         const selectedConductor =
           edgeConductorSelection[edge.id] ??
-          popupEdge.conductors[popupEdge.conductors.length - 1]?.conductorName ??
+          popupEdge.conductors[popupEdge.conductors.length - 1]
+            ?.conductorName ??
           CONDUCTOR_OPTIONS[0];
         const selectedReplacementFromConductor =
           edgeReplacementFromSelection[edge.id] ??
@@ -226,13 +251,19 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
           CONDUCTOR_OPTIONS[0];
 
         const edgePopup = (
-          <Popup>
-            <div className="text-xs">
+          <Popup eventHandlers={popupEventHandlers}>
+            <div
+              className="text-xs"
+              onMouseDown={(event) => event.stopPropagation()}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+              onTouchStart={(event) => event.stopPropagation()}
+            >
               <div>
                 <strong>{edge.id}</strong>
               </div>
               <div className="mt-0.5 text-slate-700">
-                {from.title} {"<->"} {to.title}
+                {popupFrom.title} {"<->"} {popupTo.title}
               </div>
               <div className="mt-1 text-slate-700">
                 Flag: <strong>{edgeFlagLabel}</strong>
@@ -261,7 +292,9 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
               </div>
               <div className="mt-1.5 text-slate-700">
                 Metragem:{" "}
-                {typeof (popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters) === "number"
+                {typeof (
+                  popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters
+                ) === "number"
                   ? `${popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters} m`
                   : "-"}
               </div>
@@ -275,9 +308,12 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                     min={0}
                     step={0.01}
                     defaultValue={
-                      typeof (popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters) ===
-                      "number"
-                        ? Number(popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters)
+                      typeof (
+                        popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters
+                      ) === "number"
+                        ? Number(
+                            popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters,
+                          )
                         : 0
                     }
                     onBlur={(e) => {
@@ -285,7 +321,9 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                       if (!Number.isFinite(parsed) || parsed < 0) {
                         e.target.value = String(
                           Number(
-                            popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters ?? 0,
+                            popupEdge.cqtLengthMeters ??
+                              popupEdge.lengthMeters ??
+                              0,
                           ),
                         );
                         return;
