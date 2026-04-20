@@ -16,6 +16,7 @@ import {
 interface MapSelectorPolesLayerProps {
   paneName: string;
   poles: BtPoleNode[];
+  popupPoles?: BtPoleNode[];
   btEditorMode: BtEditorMode;
   criticalPoleId: string | null;
   loadCenterPoleId?: string | null;
@@ -43,6 +44,7 @@ interface MapSelectorPolesLayerProps {
 const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
   paneName,
   poles,
+  popupPoles,
   btEditorMode,
   criticalPoleId,
   loadCenterPoleId,
@@ -59,6 +61,11 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
   onBtQuickAddPoleRamal,
   onBtQuickRemovePoleRamal,
 }) => {
+  const popupPolesById = React.useMemo(
+    () => new Map((popupPoles ?? poles).map((pole) => [pole.id, pole])),
+    [popupPoles, poles],
+  );
+
   const makePoleIcon = (poleId: string, verified: boolean) => {
     const hasTransformer = !!poleHasTransformer.get(poleId);
     const isCritical = poleId === criticalPoleId;
@@ -68,7 +75,9 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
     const poleFlag = pole ? getPoleChangeFlag(pole) : "existing";
 
     if (hasTransformer) {
-      const bg = isLoadCenter ? "#059669" : getFlagColor(poleFlag, verified ? "#15803d" : "#7c3aed");
+      const bg = isLoadCenter
+        ? "#059669"
+        : getFlagColor(poleFlag, verified ? "#15803d" : "#7c3aed");
       const size = isCritical ? 22 : isLoadCenter ? 22 : isPending ? 20 : 18;
       const glow = isLoadCenter ? ` filter: drop-shadow(0 0 5px #34d399);` : "";
       return L.divIcon({
@@ -104,6 +113,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
   return (
     <Pane name={paneName} style={{ zIndex: 470 }}>
       {poles.map((pole) => {
+        const popupPole = popupPolesById.get(pole.id) ?? pole;
         const poleAccumulated = accumulatedByPoleMap.get(pole.id);
         const cqtClass =
           poleAccumulated?.cqtStatus === "CRÍTICO"
@@ -175,12 +185,12 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
               </Tooltip>
               <Popup>
                 <div className="text-xs">
-                  <strong>{pole.title}</strong>
-                  <div>{pole.id}</div>
+                  <strong>{popupPole.title}</strong>
+                  <div>{popupPole.id}</div>
                   {onBtRenamePole && (
                     <input
                       type="text"
-                      value={pole.title}
+                      value={popupPole.title}
                       title={`Nome do poste ${pole.id}`}
                       placeholder="Nome do poste"
                       onChange={(e) => onBtRenamePole(pole.id, e.target.value)}
@@ -219,9 +229,9 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                     {pole.verified ? "✓ Verificado" : "○ Não verificado"}
                   </div>
                   <div className="mt-0.5 text-slate-700">
-                    Flag: <strong>{getPoleChangeFlag(pole)}</strong>
+                    Flag: <strong>{getPoleChangeFlag(popupPole)}</strong>
                   </div>
-                  {pole.circuitBreakPoint && (
+                  {popupPole.circuitBreakPoint && (
                     <div className="mt-0.5 font-bold text-sky-700">
                       Separação física ativa.
                     </div>
@@ -237,7 +247,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                               onBtSetPoleChangeFlag(pole.id, flag);
                             }}
                             className={getFlagButtonClass(
-                              getPoleChangeFlag(pole) === flag,
+                              getPoleChangeFlag(popupPole) === flag,
                               flag,
                             )}
                           >
@@ -250,10 +260,10 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                           e.preventDefault();
                           onBtTogglePoleCircuitBreak?.(
                             pole.id,
-                            !(pole.circuitBreakPoint ?? false),
+                            !(popupPole.circuitBreakPoint ?? false),
                           );
                         }}
-                        className={`h-6 rounded border text-[10px] font-bold ${pole.circuitBreakPoint ? "border-sky-400 bg-sky-100 text-sky-700" : "border-slate-400 bg-white text-slate-600"}`}
+                        className={`h-6 rounded border text-[10px] font-bold ${popupPole.circuitBreakPoint ? "border-sky-400 bg-sky-100 text-sky-700" : "border-slate-400 bg-white text-slate-600"}`}
                       >
                         -| |-
                       </button>

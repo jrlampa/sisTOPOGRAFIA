@@ -43,6 +43,7 @@ const getFlagButtonClass = (
 interface MapSelectorMtEdgesLayerProps {
   paneName: string;
   topology: MtTopology;
+  popupTopology?: MtTopology;
   polesById: Map<string, MtPoleNode>;
   onMtDeleteEdge?: (id: string) => void;
   onMtSetEdgeChangeFlag?: (
@@ -54,10 +55,16 @@ interface MapSelectorMtEdgesLayerProps {
 const MapSelectorMtEdgesLayer: React.FC<MapSelectorMtEdgesLayerProps> = ({
   paneName,
   topology,
+  popupTopology,
   polesById,
   onMtDeleteEdge,
   onMtSetEdgeChangeFlag,
 }) => {
+  const popupEdgesById = React.useMemo(
+    () => new Map((popupTopology ?? topology).edges.map((edge) => [edge.id, edge])),
+    [popupTopology, topology],
+  );
+
   return (
     <Pane name={paneName} style={{ zIndex: 430 }}>
       {(topology.edges || []).map((edge) => {
@@ -66,7 +73,8 @@ const MapSelectorMtEdgesLayer: React.FC<MapSelectorMtEdgesLayerProps> = ({
         if (!from || !to) return null;
 
         const edgeVisual = getMtEdgeVisualConfig(edge);
-        const edgeChangeFlag = edge.edgeChangeFlag ?? "existing";
+        const popupEdge = popupEdgesById.get(edge.id) ?? edge;
+        const edgeChangeFlag = popupEdge.edgeChangeFlag ?? "existing";
 
         return (
           <React.Fragment key={edge.id}>
@@ -88,7 +96,7 @@ const MapSelectorMtEdgesLayer: React.FC<MapSelectorMtEdgesLayerProps> = ({
                     {from.title} {"<->"} {to.title}
                   </div>
                   <div className="mt-1 text-slate-700">
-                    Comprimento: {edge.lengthMeters} m
+                    Comprimento: {popupEdge.lengthMeters} m
                   </div>
                   <div className="mt-1.5 flex flex-col gap-1.5">
                     <div className={POPUP_FLAG_GRID_CLASS}>

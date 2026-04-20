@@ -12,6 +12,7 @@ import {
 interface MapSelectorMtPolesLayerProps {
   paneName: string;
   poles: MtPoleNode[];
+  popupPoles?: MtPoleNode[];
   mtEditorMode: MtEditorMode;
   onMtMapClick?: (location: GeoLocation) => void;
   onMtDragPole?: (poleId: string, lat: number, lng: number) => void;
@@ -27,6 +28,7 @@ interface MapSelectorMtPolesLayerProps {
 const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
   paneName,
   poles,
+  popupPoles,
   mtEditorMode,
   onMtMapClick,
   onMtDragPole,
@@ -35,6 +37,11 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
   onMtDeletePole,
   onMtSetPoleVerified,
 }) => {
+  const popupPolesById = React.useMemo(
+    () => new Map((popupPoles ?? poles).map((pole) => [pole.id, pole])),
+    [popupPoles, poles],
+  );
+
   const makeMtPoleIcon = (pole: MtPoleNode) => {
     const flag = pole.nodeChangeFlag ?? "existing";
     const bg = getFlagColor(flag, pole.verified ? "#16a34a" : "#d97706");
@@ -52,7 +59,10 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
 
   return (
     <Pane name={paneName} style={{ zIndex: 480 }}>
-      {poles.map((pole) => (
+      {poles.map((pole) => {
+        const popupPole = popupPolesById.get(pole.id) ?? pole;
+
+        return (
         <React.Fragment key={`${pole.id}-${pole.verified ? "v" : "u"}`}>
           <Marker
             position={[pole.lat, pole.lng]}
@@ -79,17 +89,17 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
             <Popup>
               <div className="text-xs">
                 <div className="flex items-center justify-between gap-4">
-                  <strong>Poste MT: {pole.title}</strong>
-                  <span className={`text-[9px] font-bold ${pole.verified ? "text-green-600" : "text-orange-600"}`}>
-                    {pole.verified ? "VERIFICADO" : "PENDENTE"}
+                  <strong>Poste MT: {popupPole.title}</strong>
+                  <span className={`text-[9px] font-bold ${popupPole.verified ? "text-green-600" : "text-orange-600"}`}>
+                    {popupPole.verified ? "VERIFICADO" : "PENDENTE"}
                   </span>
                 </div>
-                <div className="mt-1 text-slate-500 font-mono text-[9px]">{pole.id}</div>
+                <div className="mt-1 text-slate-500 font-mono text-[9px]">{popupPole.id}</div>
 
                 {onMtRenamePole && (
                   <input
                     type="text"
-                    value={pole.title}
+                    value={popupPole.title}
                     onChange={(e) => onMtRenamePole(pole.id, e.target.value)}
                     className="mt-2 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
                     placeholder="Nome do poste MT"
@@ -101,14 +111,14 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase text-slate-500">Estado</span>
                     <button
-                      onClick={() => onMtSetPoleVerified?.(pole.id, !pole.verified)}
+                      onClick={() => onMtSetPoleVerified?.(pole.id, !popupPole.verified)}
                       className={`rounded px-2 py-0.5 text-[9px] font-bold transition-colors ${
-                        pole.verified 
+                        popupPole.verified 
                         ? "bg-green-100 text-green-700 hover:bg-green-200" 
                         : "bg-orange-100 text-orange-700 hover:bg-orange-200"
                       }`}
                     >
-                      {pole.verified ? "DESMARCAR" : "VERIFICAR"}
+                      {popupPole.verified ? "DESMARCAR" : "VERIFICAR"}
                     </button>
                   </div>
 
@@ -117,7 +127,7 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
                       <button
                         key={flag}
                         onClick={() => onMtSetPoleChangeFlag?.(pole.id, flag)}
-                        className={getFlagButtonClass((pole.nodeChangeFlag ?? "existing") === flag, flag)}
+                        className={getFlagButtonClass((popupPole.nodeChangeFlag ?? "existing") === flag, flag)}
                       >
                         {flag.charAt(0).toUpperCase() + flag.slice(1)}
                       </button>
@@ -138,7 +148,7 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
             </Popup>
           </Marker>
         </React.Fragment>
-      ))}
+      )})}
     </Pane>
   );
 };

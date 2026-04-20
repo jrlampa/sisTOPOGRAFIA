@@ -30,18 +30,29 @@ import { BtTelescopicSuggestionModal } from "./components/BtTelescopicSuggestion
 import { AppShellLayout } from "./components/AppShellLayout";
 import { INITIAL_APP_STATE } from "./app/initialState";
 import { persistAppSettings } from "./utils/preferencesPersistence";
+import { synchronizeGlobalTopologyState } from "./utils/synchronizeGlobalTopologyState";
+import { selectMapTopologyRenderSources } from "./utils/selectMapTopologyRenderSources";
 import type { CriticalConfirmationConfig } from "./components/BtModals";
 
 function App() {
   const {
     state: appState,
-    setState: setAppState,
+    setState: setAppStateBase,
     undo,
     redo,
     canUndo,
     canRedo,
     saveSnapshot,
-  } = useUndoRedo<GlobalState>(INITIAL_APP_STATE);
+  } = useUndoRedo<GlobalState>(
+    synchronizeGlobalTopologyState(INITIAL_APP_STATE),
+  );
+
+  const setAppState = React.useCallback(
+    (nextState: GlobalState, addToHistory = true) => {
+      setAppStateBase(synchronizeGlobalTopologyState(nextState), addToHistory);
+    },
+    [setAppStateBase],
+  );
 
   // Derived state
   const { center, radius, selectionMode, polygon, settings } = appState;
@@ -526,6 +537,17 @@ function App() {
     enabled: true,
   });
 
+  const mapRenderSources = React.useMemo(
+    () =>
+      selectMapTopologyRenderSources({
+        canonicalTopology: appState.canonicalTopology,
+        btTopology,
+        mtTopology: appState.mtTopology,
+        btTransformers: btTopology.transformers,
+      }),
+    [appState.canonicalTopology, appState.mtTopology, btTopology],
+  );
+
   const mapSelectorProps = {
     center,
     flyToEdgeTarget: btEdgeFlyToTarget,
@@ -536,7 +558,8 @@ function App() {
     polygonPoints,
     onLocationChange: handleMapClick,
     btEditorMode,
-    btTopology,
+    btMarkerTopology: mapRenderSources.btMarkerTopology,
+    btPopupTopology: mapRenderSources.btPopupTopology,
     onBtMapClick: handleBtMapClick,
     onBtContextAction: handleBtContextAction,
     pendingBtEdgeStartPoleId,
@@ -571,7 +594,8 @@ function App() {
     onMeasurePathChange: handleMeasurePathChange,
     onKmlDrop: handleKmlDrop,
     mapStyle: settings.mapProvider === "satellite" ? "satellite" : "dark",
-    mtTopology: appState.mtTopology,
+    mtMarkerTopology: mapRenderSources.mtMarkerTopology,
+    mtPopupTopology: mapRenderSources.mtPopupTopology,
     mtEditorMode: settings.mtEditorMode ?? "none",
     onMtMapClick: handleMtMapClick,
     onMtContextAction: handleMtContextAction,

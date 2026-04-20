@@ -40,7 +40,8 @@ interface MapSelectorProps {
   onPolygonChange: (points: [number, number][]) => void;
   measurePath?: [number, number][];
   onMeasurePathChange?: (path: [number, number][]) => void;
-  btTopology?: BtTopology;
+  btMarkerTopology?: BtTopology;
+  btPopupTopology?: BtTopology;
   btEditorMode?: BtEditorMode;
   pendingBtEdgeStartPoleId?: string | null;
   onBtMapClick?: (location: {
@@ -102,7 +103,8 @@ interface MapSelectorProps {
   showAnalysis?: boolean;
   geojson?: GeoJsonObject | null;
   keyboardPanEnabled?: boolean;
-  mtTopology?: MtTopology;
+  mtMarkerTopology?: MtTopology;
+  mtPopupTopology?: MtTopology;
   mtEditorMode?: MtEditorMode;
   onMtMapClick?: (location: GeoLocation) => void;
   onMtContextAction?: (
@@ -136,7 +138,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onPolygonChange,
   measurePath,
   onMeasurePathChange,
-  btTopology,
+  btMarkerTopology,
+  btPopupTopology,
   btEditorMode = "none",
   pendingBtEdgeStartPoleId,
   onBtMapClick,
@@ -168,7 +171,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onMapStyleChange: _onMapStyleChange,
   showAnalysis: _showAnalysis = false,
   keyboardPanEnabled = false,
-  mtTopology,
+  mtMarkerTopology,
+  mtPopupTopology,
   mtEditorMode = "none",
   onMtMapClick,
   onMtContextAction: _onMtContextAction,
@@ -180,7 +184,12 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onMtSetPoleChangeFlag,
   onMtSetEdgeChangeFlag,
 }) => {
-  const topology = btTopology ?? { poles: [], transformers: [], edges: [] };
+  const topology = btMarkerTopology ?? {
+    poles: [],
+    transformers: [],
+    edges: [],
+  };
+  const popupTopology = btPopupTopology ?? topology;
   const paneIdSuffix = React.useId().replace(/:/g, "-");
   const btEdgesPaneName = `bt-edges-pane-${paneIdSuffix}`;
   const btPolesPaneName = `bt-poles-pane-${paneIdSuffix}`;
@@ -292,6 +301,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         <MapSelectorEdgesLayer
           paneName={btEdgesPaneName}
           topology={topology}
+          popupTopology={popupTopology}
           polesById={polesById}
           onBtDeleteEdge={onBtDeleteEdge}
           onBtSetEdgeChangeFlag={onBtSetEdgeChangeFlag}
@@ -306,10 +316,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         <MapSelectorPolesLayer
           paneName={btPolesPaneName}
           poles={topology.poles}
+          popupPoles={popupTopology.poles}
           btEditorMode={btEditorMode}
           criticalPoleId={criticalPoleId ?? null}
           pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId ?? null}
-                    loadCenterPoleId={loadCenterPoleId ?? null}
+          loadCenterPoleId={loadCenterPoleId ?? null}
           poleHasTransformer={poleHasTransformer}
           accumulatedByPoleMap={accumulatedByPoleMap}
           onBtMapClick={onBtMapClick}
@@ -335,18 +346,20 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtDeleteTransformer={onBtDeleteTransformer}
         />
 
-        {mtTopology && (
+        {mtMarkerTopology && (
           <>
             <MapSelectorMtEdgesLayer
               paneName={mtEdgesPaneName}
-              topology={mtTopology}
-              polesById={new Map(mtTopology.poles.map((p) => [p.id, p]))}
+              topology={mtMarkerTopology}
+              popupTopology={mtPopupTopology ?? mtMarkerTopology}
+              polesById={new Map(mtMarkerTopology.poles.map((p) => [p.id, p]))}
               onMtDeleteEdge={onMtDeleteEdge}
               onMtSetEdgeChangeFlag={onMtSetEdgeChangeFlag}
             />
             <MapSelectorMtPolesLayer
               paneName={mtPolesPaneName}
-              poles={mtTopology.poles}
+              poles={mtMarkerTopology.poles}
+              popupPoles={(mtPopupTopology ?? mtMarkerTopology).poles}
               mtEditorMode={mtEditorMode}
               onMtMapClick={onMtMapClick}
               onMtDragPole={onMtDragPole}

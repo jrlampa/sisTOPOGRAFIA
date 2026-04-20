@@ -2,7 +2,7 @@
  * Feature Flags para controlar funcionalidades experimentais (Item 20).
  * Permite habilitar/desabilitar CQT, BT topology, e outras features
  * sem modificar código.
- * 
+ *
  * Estratégia:
  * - Produção: valores do environment ou arquivo config/
  * - Desenvolvimento: flags podem ser alteradas em runtime
@@ -11,28 +11,34 @@
 
 export enum FeatureFlag {
   /** Análise de clandestinos (CQT) */
-  CQT_ANALYSIS = 'cqt_analysis',
-  
+  CQT_ANALYSIS = "cqt_analysis",
+
   /** Editor de topologia de BT */
-  BT_TOPOLOGY_EDITOR = 'bt_topology_editor',
-  
+  BT_TOPOLOGY_EDITOR = "bt_topology_editor",
+
   /** Exportação de DXF */
-  DXF_EXPORT = 'dxf_export',
-  
+  DXF_EXPORT = "dxf_export",
+
   /** Importação de KML */
-  KML_IMPORT = 'kml_import',
-  
+  KML_IMPORT = "kml_import",
+
   /** Perfil de elevação */
-  ELEVATION_PROFILE = 'elevation_profile',
-  
+  ELEVATION_PROFILE = "elevation_profile",
+
   /** Análise de clandestinos com IA (Groq) */
-  AI_CLANDESTINO_ANALYSIS = 'ai_clandestino_analysis',
-  
+  AI_CLANDESTINO_ANALYSIS = "ai_clandestino_analysis",
+
   /** Suporte a múltiplos cenários de projeto (proj1, proj2) */
-  MULTI_SCENARIO_SUPPORT = 'multi_scenario_support',
-  
+  MULTI_SCENARIO_SUPPORT = "multi_scenario_support",
+
+  /** Usa o canônico como fonte dos popups do mapa. */
+  CANONICAL_MAP_POPUPS = "canonical_map_popups",
+
+  /** Usa o canônico como fonte dos marcadores/camadas do mapa. */
+  CANONICAL_MAP_MARKERS = "canonical_map_markers",
+
   /** Modo debug com logs verbosos */
-  DEBUG_MODE = 'debug_mode',
+  DEBUG_MODE = "debug_mode",
 }
 
 type FeatureFlagConfig = Record<FeatureFlag, boolean>;
@@ -64,9 +70,11 @@ export interface FeatureFlagTargetingConfig {
   tenants?: Record<string, FeatureFlagOverrideConfig>;
 }
 
-const APP_ENV = (import.meta as { env?: Record<string, string | boolean | undefined> }).env ?? {};
-const IS_PRODUCTION = APP_ENV.PROD === true || APP_ENV.MODE === 'production';
-const IS_DEVELOPMENT = APP_ENV.DEV === true || APP_ENV.MODE === 'development';
+const APP_ENV =
+  (import.meta as { env?: Record<string, string | boolean | undefined> }).env ??
+  {};
+const IS_PRODUCTION = APP_ENV.PROD === true || APP_ENV.MODE === "production";
+const IS_DEVELOPMENT = APP_ENV.DEV === true || APP_ENV.MODE === "development";
 
 /**
  * Configuração padrão para desenvolvimento.
@@ -80,6 +88,8 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlagConfig = {
   [FeatureFlag.ELEVATION_PROFILE]: true,
   [FeatureFlag.AI_CLANDESTINO_ANALYSIS]: true,
   [FeatureFlag.MULTI_SCENARIO_SUPPORT]: true,
+  [FeatureFlag.CANONICAL_MAP_POPUPS]: false,
+  [FeatureFlag.CANONICAL_MAP_MARKERS]: false,
   [FeatureFlag.DEBUG_MODE]: IS_DEVELOPMENT,
 };
 
@@ -95,6 +105,8 @@ const PRODUCTION_FEATURE_FLAGS: FeatureFlagConfig = {
   [FeatureFlag.ELEVATION_PROFILE]: true,
   [FeatureFlag.AI_CLANDESTINO_ANALYSIS]: false, // Custo de API, controlar via env
   [FeatureFlag.MULTI_SCENARIO_SUPPORT]: false, // Em desenvolvimento
+  [FeatureFlag.CANONICAL_MAP_POPUPS]: false,
+  [FeatureFlag.CANONICAL_MAP_MARKERS]: false,
   [FeatureFlag.DEBUG_MODE]: false,
 };
 
@@ -103,9 +115,7 @@ const PRODUCTION_FEATURE_FLAGS: FeatureFlagConfig = {
  * Em produção, deve ser read-only e carregado de env/config.
  */
 let runtimeFlags: FeatureFlagConfig = {
-  ...(IS_PRODUCTION
-    ? PRODUCTION_FEATURE_FLAGS
-    : DEFAULT_FEATURE_FLAGS),
+  ...(IS_PRODUCTION ? PRODUCTION_FEATURE_FLAGS : DEFAULT_FEATURE_FLAGS),
 };
 
 let runtimeTargeting: Required<FeatureFlagTargetingConfig> = {
@@ -124,7 +134,7 @@ const VALID_FEATURE_FLAGS = new Set<FeatureFlag>(
 );
 
 /** Chaves de prototype reservadas — bloqueadas para prevenir prototype pollution. */
-const BLOCKED_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+const BLOCKED_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 function sanitizeOverrideConfig(
   overrides: Partial<Record<string, unknown>>,
@@ -139,22 +149,22 @@ function sanitizeOverrideConfig(
 
     if (!VALID_FEATURE_FLAGS.has(featureFlagKey)) {
       console.warn(
-        `[FeatureFlags] Chave de override desconhecida ignorada: ${key}`
+        `[FeatureFlags] Chave de override desconhecida ignorada: ${key}`,
       );
       return acc;
     }
 
-    if (typeof value === 'boolean') {
+    if (typeof value === "boolean") {
       acc[featureFlagKey] = value;
-    } else if (value === 'true') {
+    } else if (value === "true") {
       // Coagir string boolean — formato comum em configs externas/JSON
       acc[featureFlagKey] = true;
-    } else if (value === 'false') {
+    } else if (value === "false") {
       // Coagir string boolean — formato comum em configs externas/JSON
       acc[featureFlagKey] = false;
     } else {
       console.warn(
-        `[FeatureFlags] Valor inválido para override "${key}". Esperado boolean, recebido ${typeof value}.`
+        `[FeatureFlags] Valor inválido para override "${key}". Esperado boolean, recebido ${typeof value}.`,
       );
     }
     return acc;
@@ -169,10 +179,12 @@ function sanitizeOverrideConfig(
  *   [FeatureFlag.AI_CLANDESTINO_ANALYSIS]: true,
  * })
  */
-export function loadFeatureFlags(customFlags: Partial<Record<string, unknown>>): void {
+export function loadFeatureFlags(
+  customFlags: Partial<Record<string, unknown>>,
+): void {
   if (IS_PRODUCTION && Object.keys(customFlags).length > 0) {
     console.warn(
-      'Feature flags customizadas não devem ser alteradas em produção. Use env vars.'
+      "Feature flags customizadas não devem ser alteradas em produção. Use env vars.",
     );
     return;
   }
@@ -200,7 +212,7 @@ export function loadFeatureFlagTargeting(
       acc[normalizedGroup] = sanitizeOverrideConfig(overrides);
       return acc;
     },
-    {} as Record<string, FeatureFlagOverrideConfig>
+    {} as Record<string, FeatureFlagOverrideConfig>,
   );
 
   const sanitizedRegions = Object.entries(targeting.regions ?? {}).reduce(
@@ -212,7 +224,7 @@ export function loadFeatureFlagTargeting(
       acc[normalizedRegion] = sanitizeOverrideConfig(overrides);
       return acc;
     },
-    {} as Record<string, FeatureFlagOverrideConfig>
+    {} as Record<string, FeatureFlagOverrideConfig>,
   );
 
   const sanitizedTenants = Object.entries(targeting.tenants ?? {}).reduce(
@@ -224,7 +236,7 @@ export function loadFeatureFlagTargeting(
       acc[normalizedTenant] = sanitizeOverrideConfig(overrides);
       return acc;
     },
-    {} as Record<string, FeatureFlagOverrideConfig>
+    {} as Record<string, FeatureFlagOverrideConfig>,
   );
 
   runtimeTargeting = {
@@ -258,8 +270,10 @@ export function isFeatureEnabledForContext(
 
   if (context?.userGroup) {
     const groupOverride =
-      runtimeTargeting.userGroups[normalizeContextKey(context.userGroup)]?.[flag];
-    if (typeof groupOverride === 'boolean') {
+      runtimeTargeting.userGroups[normalizeContextKey(context.userGroup)]?.[
+        flag
+      ];
+    if (typeof groupOverride === "boolean") {
       enabled = groupOverride;
     }
   }
@@ -267,7 +281,7 @@ export function isFeatureEnabledForContext(
   if (context?.region) {
     const regionOverride =
       runtimeTargeting.regions[normalizeContextKey(context.region)]?.[flag];
-    if (typeof regionOverride === 'boolean') {
+    if (typeof regionOverride === "boolean") {
       enabled = regionOverride;
     }
   }
@@ -275,7 +289,7 @@ export function isFeatureEnabledForContext(
   if (context?.tenantId) {
     const tenantOverride =
       runtimeTargeting.tenants[normalizeContextKey(context.tenantId)]?.[flag];
-    if (typeof tenantOverride === 'boolean') {
+    if (typeof tenantOverride === "boolean") {
       enabled = tenantOverride;
     }
   }
@@ -297,16 +311,16 @@ export function getAllFeatureFlags(): Readonly<FeatureFlagConfig> {
 export function toggleFeatureFlag(flag: FeatureFlag): boolean {
   if (IS_PRODUCTION) {
     throw new Error(
-      'Feature flags não podem ser alterados em produção. Configure via env vars.'
+      "Feature flags não podem ser alterados em produção. Configure via env vars.",
     );
   }
-  
+
   runtimeFlags[flag] = !runtimeFlags[flag];
-  
+
   if (runtimeFlags[FeatureFlag.DEBUG_MODE]) {
     console.log(`[FeatureFlags] ${flag} = ${runtimeFlags[flag]}`);
   }
-  
+
   return runtimeFlags[flag];
 }
 
@@ -314,10 +328,9 @@ export function toggleFeatureFlag(flag: FeatureFlag): boolean {
  * Reset para flags padrão (útil em testes).
  */
 export function resetFeatureFlags(): void {
-  runtimeFlags =
-    IS_PRODUCTION
-      ? { ...PRODUCTION_FEATURE_FLAGS }
-      : { ...DEFAULT_FEATURE_FLAGS };
+  runtimeFlags = IS_PRODUCTION
+    ? { ...PRODUCTION_FEATURE_FLAGS }
+    : { ...DEFAULT_FEATURE_FLAGS };
 
   runtimeTargeting = {
     userGroups: {},
@@ -329,7 +342,7 @@ export function resetFeatureFlags(): void {
 /**
  * Hook React para monitorar feature flags.
  * Reativa (sem estado, apenas checkagem).
- * 
+ *
  * @example
  * function MyComponent() {
  *   if (!useFeatureFlag(FeatureFlag.BT_TOPOLOGY_EDITOR)) {

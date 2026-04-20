@@ -1,3 +1,5 @@
+import type { CanonicalNetworkTopology } from "./types.canonical";
+
 export interface GeoLocation {
   lat: number;
   lng: number;
@@ -352,6 +354,12 @@ export interface MtTopology {
   edges: MtEdge[];
 }
 
+export interface CanonicalTopologyStateMeta {
+  source: "legacy-derived" | "canonical-hydrated" | "empty";
+  divergenceWarnings: string[];
+  lastSynchronizedAt: string;
+}
+
 // ─── Estado Global ─────────────────────────────────────────────────────────────
 
 export interface GlobalState {
@@ -365,4 +373,6 @@ export interface GlobalState {
   btExportSummary?: BtExportSummary | null;
   btExportHistory?: BtExportHistoryEntry[];
   mtTopology?: MtTopology;
+  canonicalTopology?: CanonicalNetworkTopology;
+  canonicalTopologyMeta?: CanonicalTopologyStateMeta;
 }
