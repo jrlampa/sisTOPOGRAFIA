@@ -11,6 +11,8 @@ import MapSelectorMtEdgesLayer from "./MapLayers/MapSelectorMtEdgesLayer";
 import MapSelectorMtPolesLayer from "./MapLayers/MapSelectorMtPolesLayer";
 import {
   BtEditorMode,
+  BtNetworkScenario,
+  BtProjectType,
   BtTopology,
   BtRamalEntry,
   MtTopology,
@@ -19,6 +21,7 @@ import {
   GeoLocation,
 } from "../types";
 import type { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
+import { calculateSectioningImpact } from "../utils/btTopologyFlow";
 import { DefaultIcon } from "./MapSelectorStyles";
 
 // Initialize Leaflet Default Icon fix
@@ -96,6 +99,9 @@ interface MapSelectorProps {
   criticalPoleId?: string | null;
   accumulatedByPole?: BtPoleAccumulatedDemand[];
   loadCenterPoleId?: string | null;
+  btNetworkScenario?: BtNetworkScenario;
+  btProjectType?: BtProjectType;
+  btClandestinoAreaM2?: number;
   onKmlDrop?: (file: File) => void;
   mapStyle?: string;
   onMapStyleChange?: (style: string) => void;
@@ -163,6 +169,9 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   criticalPoleId,
   accumulatedByPole = [],
   loadCenterPoleId,
+  btNetworkScenario,
+  btProjectType = "ramais",
+  btClandestinoAreaM2 = 0,
   onKmlDrop,
   mapStyle = "dark",
   onMapStyleChange: _onMapStyleChange,
@@ -195,6 +204,36 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   const accumulatedByPoleMap = React.useMemo(() => {
     return new Map(accumulatedByPole.map((entry) => [entry.poleId, entry]));
   }, [accumulatedByPole]);
+
+  const suggestedPoleIdFromSectioning = React.useMemo(() => {
+    if (btNetworkScenario !== "projeto") {
+      return null;
+    }
+
+    const sectioningImpact = calculateSectioningImpact(
+      topology,
+      btProjectType,
+      btClandestinoAreaM2,
+    );
+
+    return sectioningImpact.suggestedPoleId ?? null;
+  }, [btNetworkScenario, topology, btProjectType, btClandestinoAreaM2]);
+
+  const effectiveLoadCenterPoleId = React.useMemo(() => {
+    if (btNetworkScenario === "asis") {
+      return null;
+    }
+
+    if (btNetworkScenario === "projeto") {
+      return suggestedPoleIdFromSectioning ?? loadCenterPoleId ?? null;
+    }
+
+    return loadCenterPoleId ?? null;
+  }, [
+    btNetworkScenario,
+    suggestedPoleIdFromSectioning,
+    loadCenterPoleId,
+  ]);
 
   const poleHasTransformer = React.useMemo(() => {
     const byPole = new Map<string, boolean>();
@@ -312,7 +351,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           btEditorMode={btEditorMode}
           criticalPoleId={criticalPoleId ?? null}
           pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId ?? null}
-          loadCenterPoleId={loadCenterPoleId ?? null}
+          loadCenterPoleId={effectiveLoadCenterPoleId}
           poleHasTransformer={poleHasTransformer}
           accumulatedByPoleMap={accumulatedByPoleMap}
           onBtMapClick={onBtMapClick}
