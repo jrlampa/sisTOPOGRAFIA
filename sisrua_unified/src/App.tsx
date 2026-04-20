@@ -31,37 +31,18 @@ import { AppShellLayout } from "./components/AppShellLayout";
 import { INITIAL_APP_STATE } from "./app/initialState";
 import { persistAppSettings } from "./utils/preferencesPersistence";
 import { mergeMtTopologyWithBtPoles } from "./utils/mtTopologyBridge";
-import { migrateLegacyTopology } from "./utils/poleNetworkMigration";
 import type { CriticalConfirmationConfig } from "./components/BtModals";
 
 function App() {
   const {
     state: appState,
-    setState: _setAppState,
+    setState: setAppState,
     undo,
     redo,
     canUndo,
     canRedo,
     saveSnapshot,
   } = useUndoRedo<GlobalState>(INITIAL_APP_STATE);
-
-  // Auto-sincroniza o campo `network` (Poste-Driven) a cada mutação de estado.
-  // As escritas ainda passam por btTopology/mtTopology (write-path legácia preservado).
-  const setAppState = React.useCallback(
-    (nextState: GlobalState, commit?: boolean) => {
-      _setAppState(
-        {
-          ...nextState,
-          network: migrateLegacyTopology(
-            nextState.btTopology ?? EMPTY_BT_TOPOLOGY,
-            nextState.mtTopology,
-          ),
-        },
-        commit,
-      );
-    },
-    [_setAppState],
-  );
 
   // Derived state
   const { center, radius, selectionMode, polygon, settings } = appState;

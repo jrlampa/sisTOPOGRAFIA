@@ -22,7 +22,6 @@ import {
 } from "../types";
 import type { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
 import { calculateSectioningImpact } from "../utils/btTopologyFlow";
-import { migrateLegacyTopology } from "../utils/poleNetworkMigration";
 import { DefaultIcon } from "./MapSelectorStyles";
 
 // Initialize Leaflet Default Icon fix
@@ -202,16 +201,6 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     return new Map(topology.poles.map((pole) => [pole.id, pole]));
   }, [topology.poles]);
 
-  const unifiedPoles = React.useMemo(
-    () => migrateLegacyTopology(btTopology ?? { poles: [], transformers: [], edges: [] }, mtTopology).poles,
-    [btTopology, mtTopology],
-  );
-
-  const btPoleIds = React.useMemo(
-    () => new Set(topology.poles.map((p) => p.id)),
-    [topology.poles],
-  );
-
   const accumulatedByPoleMap = React.useMemo(() => {
     return new Map(accumulatedByPole.map((entry) => [entry.poleId, entry]));
   }, [accumulatedByPole]);
@@ -354,7 +343,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
 
         <MapSelectorPolesLayer
           paneName={btPolesPaneName}
-          poles={unifiedPoles}
+          poles={topology.poles}
           btEditorMode={btEditorMode}
           criticalPoleId={criticalPoleId ?? null}
           pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId ?? null}
@@ -395,7 +384,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
             />
             <MapSelectorMtPolesLayer
               paneName={mtPolesPaneName}
-              poles={mtTopology.poles.filter((p) => !btPoleIds.has(p.id))}
+              poles={mtTopology.poles}
               mtEditorMode={mtEditorMode}
               onMtMapClick={onMtMapClick}
               onMtDragPole={onMtDragPole}

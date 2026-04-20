@@ -203,34 +203,34 @@ describe("osmRoutes — success path, cache, mock route, stats branches", () => 
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.elements)).toBe(true);
-  });
+    });
 
-  it("POST / handles non-OK response status (500) from Overpass with graceful fallback", async () => {
-    process.env.NODE_ENV = "production";
-    jest.resetModules();
+    it("POST / handles non-OK response status (500) from Overpass with graceful fallback", async () => {
+      process.env.NODE_ENV = "production";
+      jest.resetModules();
 
-    global.fetch = jest.fn().mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      statusText: "Internal Server Error",
-    }) as unknown as typeof fetch;
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+      }) as unknown as typeof fetch;
 
-    const { default: osmRoutes } = await import("../routes/osmRoutes");
-    const app = express();
-    app.use(express.json());
-    app.use("/api/osm", osmRoutes);
+      const { default: osmRoutes } = await import("../routes/osmRoutes");
+      const app = express();
+      app.use(express.json());
+      app.use("/api/osm", osmRoutes);
 
-    const response = await request(app)
-      .post("/api/osm")
-      .send({ lat: -23.55, lng: -46.63, radius: 300 });
+      const response = await request(app)
+        .post("/api/osm")
+        .send({ lat: -23.55, lng: -46.63, radius: 300 });
 
-    // Should return 503 (unavailable) not 500, because error is caught properly
-    expect(response.status).toBe(503);
-    expect(response.body).toEqual(
-      expect.objectContaining({
-        error: "OSM provider unavailable",
-        code: "OVERPASS_UNAVAILABLE",
-      }),
-    );
+      // Should return 503 (unavailable) not 500, because error is caught properly
+      expect(response.status).toBe(503);
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          error: "OSM provider unavailable",
+          code: "OVERPASS_UNAVAILABLE",
+        }),
+      );
   });
 });

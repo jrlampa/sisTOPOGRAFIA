@@ -2,7 +2,6 @@ import { GlobalState } from "../types";
 import { DEFAULT_LOCATION } from "../constants";
 import { EMPTY_BT_TOPOLOGY } from "../utils/btNormalization";
 import { EMPTY_MT_TOPOLOGY } from "../utils/mtNormalization";
-import { EMPTY_NETWORK_TOPOLOGY } from "../utils/poleNetworkMigration";
 import { loadPersistedAppSettings } from "../utils/preferencesPersistence";
 
 const DEFAULT_APP_STATE: GlobalState = {
@@ -54,7 +53,6 @@ const DEFAULT_APP_STATE: GlobalState = {
   },
   btTopology: EMPTY_BT_TOPOLOGY,
   mtTopology: EMPTY_MT_TOPOLOGY,
-  network: EMPTY_NETWORK_TOPOLOGY,
   btExportSummary: null,
   btExportHistory: [],
 };
