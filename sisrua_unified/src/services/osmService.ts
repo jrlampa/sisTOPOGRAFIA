@@ -45,11 +45,18 @@ export const fetchOsmData = async (
           error?: string;
           message?: string;
           code?: string;
+          reason?: "RATE_LIMIT" | "NETWORK_OR_UPSTREAM";
         };
 
         if (payload.code === "OVERPASS_UNAVAILABLE") {
-          errorMessage =
-            "Overpass indisponível no momento (limite/rede). Tente novamente em alguns minutos.";
+          if (payload.reason === "RATE_LIMIT" || response.status === 429) {
+            errorMessage =
+              "Overpass em limite temporário de requisições. Aguarde alguns minutos e tente novamente.";
+          } else {
+            errorMessage =
+              payload.message ||
+              "Overpass indisponível por falha temporária de rede/serviço. Tente novamente em instantes.";
+          }
         } else {
           errorMessage = payload.message || payload.error || errorMessage;
         }
@@ -73,6 +80,8 @@ export const fetchOsmData = async (
       throw error;
     }
 
-    throw new Error("OSM indisponível no momento. Tente novamente em alguns minutos.");
+    throw new Error(
+      "OSM indisponível no momento. Tente novamente em alguns minutos.",
+    );
   }
 };

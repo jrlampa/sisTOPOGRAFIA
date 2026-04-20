@@ -69,6 +69,8 @@ const OVERPASS_ENDPOINTS = [
   "https://overpass.private.coffee/api/interpreter",
 ];
 
+type OverpassFailureReason = "RATE_LIMIT" | "NETWORK_OR_UPSTREAM";
+
 interface ParsedCacheKey {
   lat: number;
   lng: number;
@@ -85,7 +87,11 @@ function parseCacheKey(key: string): ParsedCacheKey | null {
   const lng = Number(lngStr);
   const radius = Number(radiusStr);
 
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(radius)) {
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    !Number.isFinite(radius)
+  ) {
     return null;
   }
 
@@ -114,9 +120,8 @@ function findNearestStaleCache(
   lng: number,
   radius: number,
 ): { data: any; timestamp: number; distanceMeters: number } | null {
-  let best:
-    | { data: any; timestamp: number; distanceMeters: number }
-    | null = null;
+  let best: { data: any; timestamp: number; distanceMeters: number } | null =
+    null;
 
   for (const [key, entry] of osmCache.entries()) {
     const parsed = parseCacheKey(key);
@@ -193,6 +198,23 @@ function getOverpassCircuitBreakerName(endpoint: string): string {
   }
 }
 
+function classifyOverpassFailure(error: unknown): OverpassFailureReason {
+  const message =
+    error instanceof Error
+      ? error.message.toLowerCase()
+      : String(error).toLowerCase();
+
+  if (
+    message.includes("429") ||
+    message.includes("too many requests") ||
+    message.includes("rate limit")
+  ) {
+    return "RATE_LIMIT";
+  }
+
+  return "NETWORK_OR_UPSTREAM";
+}
+
 router.post("/", async (req: Request, res: Response) => {
   const validation = osmRequestSchema.safeParse(req.body);
   if (!validation.success) {
@@ -222,6 +244,7 @@ router.post("/", async (req: Request, res: Response) => {
 
   const requestBody = `data=${encodeURIComponent(query)}`;
   let lastError: unknown = null;
+  let failureReason: OverpassFailureReason = "NETWORK_OR_UPSTREAM";
 
   for (const endpoint of OVERPASS_ENDPOINTS) {
     try {
@@ -239,6 +262,10 @@ router.post("/", async (req: Request, res: Response) => {
         { maxRetries: 1, initialDelay: 700, maxDelay: 2000 },
       );
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       const stats = computeOsmStats(data.elements ?? []);
       const result = { ...data, _stats: stats };
@@ -250,6 +277,7 @@ router.post("/", async (req: Request, res: Response) => {
       return res.json(result);
     } catch (error) {
       lastError = error;
+      failureReason = classifyOverpassFailure(error);
       const message = error instanceof Error ? error.message : String(error);
       logger.warn("Overpass endpoint failed", { endpoint, message });
     }
@@ -292,8 +320,11 @@ router.post("/", async (req: Request, res: Response) => {
   return res.status(503).json({
     error: "OSM provider unavailable",
     message:
-      "Nao foi possivel obter dados do Overpass no momento. Tente novamente mais tarde.",
+      failureReason === "RATE_LIMIT"
+        ? "Overpass em limite temporario de requisicoes. Aguarde alguns minutos e tente novamente."
+        : "Nao foi possivel obter dados do Overpass no momento por indisponibilidade de rede/servico. Tente novamente mais tarde.",
     code: "OVERPASS_UNAVAILABLE",
+    reason: failureReason,
   });
 });
 

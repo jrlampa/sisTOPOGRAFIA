@@ -7,6 +7,8 @@ import {
   getFlagColor,
   getFlagButtonClass,
   POPUP_FLAG_GRID_CLASS,
+  POPUP_TOOLBAR_CLASS,
+  getIconActionButtonClass,
 } from "../MapSelectorStyles";
 
 interface MapSelectorMtPolesLayerProps {
@@ -23,6 +25,11 @@ interface MapSelectorMtPolesLayerProps {
   onMtDeletePole?: (poleId: string) => void;
   onMtSetPoleVerified?: (poleId: string, verified: boolean) => void;
 }
+
+// ── Helper function ───────────────────────────────────────────────────────
+
+const getMtPoleChangeFlag = (pole: MtPoleNode): "existing" | "new" | "remove" | "replace" =>
+  pole.nodeChangeFlag ?? "existing";
 
 const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
   paneName,
@@ -85,56 +92,50 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
             </Tooltip>
             <Popup>
               <div className="text-xs">
-                <div className="flex items-center justify-between gap-4">
-                  <strong>Poste: {pole.title}</strong>
-                  <span
-                    className={`text-[9px] font-bold ${pole.verified ? "text-green-600" : "text-orange-600"}`}
-                  >
-                    {pole.verified ? "VERIFICADO" : "PENDENTE"}
-                  </span>
-                </div>
-                <div className="mt-1 text-slate-500 font-mono text-[9px]">
-                  {pole.id}
+                {/* Header com título, ID e status */}
+                <div>
+                  <strong>{pole.title}</strong>
+                  <div className="text-[9px] text-slate-500 font-mono">{pole.id}</div>
                 </div>
 
+                {/* Renomear */}
                 {onMtRenamePole && (
                   <input
                     type="text"
                     value={pole.title}
                     onChange={(e) => onMtRenamePole(pole.id, e.target.value)}
-                    className="mt-2 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
+                    className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
                     placeholder="Nome do poste"
                     title="Editar nome"
                   />
                 )}
 
-                <div className="mt-2 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase text-slate-500">
-                      Estado
-                    </span>
-                    <button
-                      onClick={() =>
-                        onMtSetPoleVerified?.(pole.id, !pole.verified)
-                      }
-                      className={`rounded px-2 py-0.5 text-[9px] font-bold transition-colors ${
-                        pole.verified
-                          ? "bg-green-100 text-green-700 hover:bg-green-200"
-                          : "bg-orange-100 text-orange-700 hover:bg-orange-200"
-                      }`}
-                    >
-                      {pole.verified ? "DESMARCAR" : "VERIFICAR"}
-                    </button>
-                  </div>
+                {/* Status com símbolo */}
+                <div
+                  className={`mt-0.5 font-semibold ${pole.verified ? "text-green-600" : "text-amber-600"}`}
+                >
+                  {pole.verified ? "✓ Verificado" : "○ Não verificado"}
+                </div>
 
+                {/* Exibição da flag */}
+                <div className="mt-0.5 text-slate-700">
+                  Flag: <strong>{getMtPoleChangeFlag(pole)}</strong>
+                </div>
+
+                {/* Grid de flags */}
+                {onMtSetPoleChangeFlag && (
                   <div className={POPUP_FLAG_GRID_CLASS}>
                     {(["existing", "new", "replace", "remove"] as const).map(
                       (flag) => (
                         <button
                           key={flag}
-                          onClick={() => onMtSetPoleChangeFlag?.(pole.id, flag)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onMtSetPoleChangeFlag(pole.id, flag);
+                          }}
                           className={getFlagButtonClass(
-                            (pole.nodeChangeFlag ?? "existing") === flag,
+                            getMtPoleChangeFlag(pole) === flag,
                             flag,
                           )}
                         >
@@ -143,14 +144,28 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
                       ),
                     )}
                   </div>
+                )}
+
+                {/* Toolbar com botões */}
+                <div className={POPUP_TOOLBAR_CLASS}>
+                  <button
+                    onClick={() => onMtSetPoleVerified?.(pole.id, !pole.verified)}
+                    className={`flex-1 rounded px-2 py-0.5 text-[9px] font-bold transition-colors ${
+                      pole.verified
+                        ? "bg-green-100 text-green-700 hover:bg-green-200"
+                        : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                    }`}
+                  >
+                    {pole.verified ? "DESMARCAR" : "VERIFICAR"}
+                  </button>
 
                   {onMtDeletePole && (
                     <button
                       onClick={() => onMtDeletePole(pole.id)}
-                      className="flex h-7 items-center justify-center gap-1.5 rounded-lg border border-red-500 bg-red-50 text-[10px] font-black uppercase text-red-700 transition-colors hover:bg-red-100"
+                      className={getIconActionButtonClass("danger")}
+                      title="Deletar poste"
                     >
                       <Trash2 size={12} />
-                      Excluir Poste
                     </button>
                   )}
                 </div>
