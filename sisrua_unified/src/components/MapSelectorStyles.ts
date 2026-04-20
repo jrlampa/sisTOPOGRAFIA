@@ -1,5 +1,5 @@
 import L from "leaflet";
-import { BtPoleNode, BtTransformer } from "../types";
+import { BtTransformer } from "../types";
 
 export const LEAFLET_ICON_BASE_URL = import.meta.env.BASE_URL;
 export const POPUP_TOOLBAR_CLASS = "mt-1.5 flex items-center gap-2";
@@ -59,8 +59,9 @@ export const getFlagColor = (
   return fallback;
 };
 
-export const getPoleChangeFlag = (pole: BtPoleNode) =>
-  pole.nodeChangeFlag ?? "existing";
+export const getPoleChangeFlag = (pole: {
+  nodeChangeFlag?: "existing" | "new" | "remove" | "replace";
+}) => pole.nodeChangeFlag ?? "existing";
 
 export const getTransformerChangeFlag = (transformer: BtTransformer) =>
   transformer.transformerChangeFlag ?? "existing";

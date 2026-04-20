@@ -8,6 +8,7 @@ const EMPTY_MT_TOPOLOGY: MtTopology = {
 const hasStructureValue = (value: string | undefined): boolean =>
   typeof value === "string" && value.trim().length > 0;
 
+/** @deprecated Use PoleNode.hasMt / mtStructures to inspecionar configuração MT. Será removido na Fase 4. */
 export const isMtPoleConfigured = (pole: MtPoleNode): boolean => {
   const hasStructure = Boolean(
     pole.mtStructures &&
@@ -24,6 +25,7 @@ export const isMtPoleConfigured = (pole: MtPoleNode): boolean => {
   );
 };
 
+/** @deprecated Verificar `network.poles.some(p => p.hasMt)` via migrateLegacyTopology. Será removido na Fase 4. */
 export const hasMeaningfulMtTopology = (mtTopology: MtTopology): boolean => {
   if (mtTopology.edges.length > 0) {
     return true;
@@ -32,6 +34,7 @@ export const hasMeaningfulMtTopology = (mtTopology: MtTopology): boolean => {
   return mtTopology.poles.some(isMtPoleConfigured);
 };
 
+/** @deprecated Use migrateLegacyTopology() de poleNetworkMigration.ts. Será removido na Fase 4. */
 export const mergeMtTopologyWithBtPoles = (
   btTopology: BtTopology | undefined,
   mtTopology: MtTopology | undefined,

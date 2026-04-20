@@ -204,6 +204,7 @@ export type BtPoleConditionStatus =
   | "trincado"
   | "condenado";
 
+/** @deprecated Use PoleNode instead. Será removido após migração completa para arquitetura Poste-Driven. */
 export interface BtPoleNode {
   id: string;
   lat: number;
@@ -263,6 +264,7 @@ export interface BtEdge {
   edgeChangeFlag?: "existing" | "new" | "remove" | "replace";
 }
 
+/** @deprecated Use NetworkTopology instead. Será removido após migração completa para arquitetura Poste-Driven. */
 export interface BtTopology {
   poles: BtPoleNode[];
   transformers: BtTransformer[];
@@ -329,6 +331,7 @@ export interface MtPoleStructures {
   n4?: string;
 }
 
+/** @deprecated Use PoleNode instead. Será removido após migração completa para arquitetura Poste-Driven. */
 export interface MtPoleNode {
   id: string;
   lat: number;
@@ -339,6 +342,7 @@ export interface MtPoleNode {
   nodeChangeFlag?: "existing" | "new" | "remove" | "replace";
 }
 
+/** @deprecated Use NetworkEdge instead. Será removido após migração completa para arquitetura Poste-Driven. */
 export interface MtEdge {
   id: string;
   fromPoleId: string;
@@ -349,6 +353,7 @@ export interface MtEdge {
   edgeChangeFlag?: "existing" | "new" | "remove" | "replace";
 }
 
+/** @deprecated Use NetworkTopology instead. Será removido após migração completa para arquitetura Poste-Driven. */
 export interface MtTopology {
   poles: MtPoleNode[];
   edges: MtEdge[];
@@ -367,4 +372,93 @@ export interface GlobalState {
   btExportSummary?: BtExportSummary | null;
   btExportHistory?: BtExportHistoryEntry[];
   mtTopology?: MtTopology;
+  /** Topologia unificada Poste-Driven. Coexiste com btTopology/mtTopology durante migração. */
+  network?: NetworkTopology;
+}
+
+// ─── Poste-Driven: modelo unificado ───────────────────────────────────────────
+// PoleNode é o Aggregate Root: tudo que existe fisicamente em um poste reside aqui.
+// Arestas (NetworkEdge) conectam postes e carregam apenas condutor + distância.
+
+export type PoleEquipmentType =
+  | "trafo"
+  | "medicao"
+  | "religador"
+  | "chave_faca"
+  | "chave_seccionadora"
+  | "para_raios"
+  | "banco_capacitor"
+  | "iluminacao"
+  | "outro";
+
+export interface PoleEquipmentEntry {
+  id: string;
+  type: PoleEquipmentType;
+  label?: string;
+  notes?: string;
+}
+
+/** Poste unificado — Aggregate Root da rede elétrica.
+ *  Superset backward-compatible de BtPoleNode + MtPoleNode.
+ *  Campos legados opcionais para migração incremental. */
+export interface PoleNode {
+  id: string;
+  lat: number;
+  lng: number;
+  title: string;
+
+  // Participação nas redes
+  hasBt?: boolean;
+  hasMt?: boolean;
+
+  // Estruturas físicas
+  btStructures?: BtPoleBtStructures; // si1–si4 (estruturas BT)
+  mtStructures?: MtPoleStructures; // n1–n4  (estruturas MT)
+
+  // Equipamentos instalados (catálogo estruturado)
+  equipments?: PoleEquipmentEntry[];
+
+  // Ramais de clientes fixados neste poste
+  ramais?: BtPoleRamalEntry[];
+
+  // Características físicas do poste
+  poleSpec?: BtPoleSpec;
+  conditionStatus?: BtPoleConditionStatus;
+
+  // Metadados
+  verified?: boolean;
+  generalNotes?: string;
+  /** @deprecated Usar equipments[]. Mantido para migração de dados legados. */
+  equipmentNotes?: string;
+  nodeChangeFlag?: "existing" | "new" | "remove" | "replace";
+  circuitBreakPoint?: boolean;
+}
+
+/** Aresta unificada — conecta dois PoleNodes carregando dados de condutor e distância.
+ *  Superset backward-compatible de BtEdge + MtEdge. */
+export interface NetworkEdge {
+  id: string;
+  fromPoleId: string;
+  toPoleId: string;
+  lengthMeters?: number;
+  /** Comprimento elétrico usado apenas para cálculos CQT. */
+  cqtLengthMeters?: number;
+
+  btConductors?: BtRamalEntry[]; // condutores BT neste vão
+  mtConductors?: BtRamalEntry[]; // condutores MT neste vão
+  replacementFromConductors?: BtRamalEntry[];
+
+  verified?: boolean;
+  removeOnExecution?: boolean;
+  edgeChangeFlag?: "existing" | "new" | "remove" | "replace";
+}
+
+/** Topologia unificada Poste-Driven.
+ *  poles[] são a fonte de verdade de tudo que existe fisicamente nos postes.
+ *  edges[] carregam apenas condutor + distância entre postes.
+ *  transformers[] mantidos separados pois possuem ciclo de vida próprio (leituras, kVA). */
+export interface NetworkTopology {
+  poles: PoleNode[];
+  edges: NetworkEdge[];
+  transformers: BtTransformer[];
 }
