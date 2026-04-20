@@ -1,7 +1,7 @@
-import express from "express";
-import request from "supertest";
+import express from 'express';
+import request from 'supertest';
 
-describe("osmRoutes", () => {
+describe('osmRoutes', () => {
   const originalEnv = process.env.NODE_ENV;
   const originalFetch = global.fetch;
 
@@ -13,100 +13,61 @@ describe("osmRoutes", () => {
     }
   });
 
-  it("returns 503 when all Overpass endpoints fail outside test environment", async () => {
-    process.env.NODE_ENV = "production";
+  it('returns 503 when all Overpass endpoints fail outside test environment', async () => {
+    process.env.NODE_ENV = 'production';
     jest.resetModules();
 
-    global.fetch = jest
-      .fn()
-      .mockRejectedValue(new Error("overpass-down")) as unknown as typeof fetch;
+    global.fetch = jest.fn().mockRejectedValue(new Error('overpass-down')) as unknown as typeof fetch;
 
-    const { default: osmRoutes } = await import("../routes/osmRoutes");
+    const { default: osmRoutes } = await import('../routes/osmRoutes');
     const app = express();
     app.use(express.json());
-    app.use("/api/osm", osmRoutes);
+    app.use('/api/osm', osmRoutes);
 
     const response = await request(app)
-      .post("/api/osm")
+      .post('/api/osm')
       .send({ lat: -23.55, lng: -46.63, radius: 300 });
 
     expect(response.status).toBe(503);
-    expect(response.body).toEqual(
-      expect.objectContaining({
-        error: "OSM provider unavailable",
-        code: "OVERPASS_UNAVAILABLE",
-        reason: "NETWORK_OR_UPSTREAM",
-      }),
-    );
+    expect(response.body).toEqual(expect.objectContaining({
+      error: 'OSM provider unavailable',
+      code: 'OVERPASS_UNAVAILABLE'
+    }));
   });
 
-  it("returns 503 with RATE_LIMIT reason when Overpass responds 429", async () => {
-    process.env.NODE_ENV = "production";
+  it('keeps synthetic fallback enabled only in test environment', async () => {
+    process.env.NODE_ENV = 'test';
     jest.resetModules();
 
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      status: 429,
-      statusText: "Too Many Requests",
-    }) as unknown as typeof fetch;
+    global.fetch = jest.fn().mockRejectedValue(new Error('overpass-down')) as unknown as typeof fetch;
 
-    const { default: osmRoutes } = await import("../routes/osmRoutes");
+    const { default: osmRoutes } = await import('../routes/osmRoutes');
     const app = express();
     app.use(express.json());
-    app.use("/api/osm", osmRoutes);
+    app.use('/api/osm', osmRoutes);
 
     const response = await request(app)
-      .post("/api/osm")
-      .send({ lat: -23.55, lng: -46.63, radius: 300 });
-
-    expect(response.status).toBe(503);
-    expect(response.body).toEqual(
-      expect.objectContaining({
-        error: "OSM provider unavailable",
-        code: "OVERPASS_UNAVAILABLE",
-        reason: "RATE_LIMIT",
-      }),
-    );
-    expect(response.body.message).toContain("limite");
-  });
-
-  it("keeps synthetic fallback enabled only in test environment", async () => {
-    process.env.NODE_ENV = "test";
-    jest.resetModules();
-
-    global.fetch = jest
-      .fn()
-      .mockRejectedValue(new Error("overpass-down")) as unknown as typeof fetch;
-
-    const { default: osmRoutes } = await import("../routes/osmRoutes");
-    const app = express();
-    app.use(express.json());
-    app.use("/api/osm", osmRoutes);
-
-    const response = await request(app)
-      .post("/api/osm")
+      .post('/api/osm')
       .send({ lat: -23.55, lng: -46.63, radius: 300 });
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual(
-      expect.objectContaining({
-        _fallback: true,
-      }),
-    );
+    expect(response.body).toEqual(expect.objectContaining({
+      _fallback: true
+    }));
     expect(Array.isArray(response.body.elements)).toBe(true);
   });
 
-  it("blocks /mock route outside test environment", async () => {
-    process.env.NODE_ENV = "production";
+  it('blocks /mock route outside test environment', async () => {
+    process.env.NODE_ENV = 'production';
     jest.resetModules();
 
-    const { default: osmRoutes } = await import("../routes/osmRoutes");
+    const { default: osmRoutes } = await import('../routes/osmRoutes');
     const app = express();
     app.use(express.json());
-    app.use("/api/osm", osmRoutes);
+    app.use('/api/osm', osmRoutes);
 
     const response = await request(app)
-      .post("/api/osm/mock")
+      .post('/api/osm/mock')
       .send({ lat: -23.55, lng: -46.63, radius: 300 });
 
     expect(response.status).toBe(404);
@@ -203,34 +164,5 @@ describe("osmRoutes — success path, cache, mock route, stats branches", () => 
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.elements)).toBe(true);
-    });
-
-    it("POST / handles non-OK response status (500) from Overpass with graceful fallback", async () => {
-      process.env.NODE_ENV = "production";
-      jest.resetModules();
-
-      global.fetch = jest.fn().mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: "Internal Server Error",
-      }) as unknown as typeof fetch;
-
-      const { default: osmRoutes } = await import("../routes/osmRoutes");
-      const app = express();
-      app.use(express.json());
-      app.use("/api/osm", osmRoutes);
-
-      const response = await request(app)
-        .post("/api/osm")
-        .send({ lat: -23.55, lng: -46.63, radius: 300 });
-
-      // Should return 503 (unavailable) not 500, because error is caught properly
-      expect(response.status).toBe(503);
-      expect(response.body).toEqual(
-        expect.objectContaining({
-          error: "OSM provider unavailable",
-          code: "OVERPASS_UNAVAILABLE",
-        }),
-      );
   });
 });

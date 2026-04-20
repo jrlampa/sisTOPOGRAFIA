@@ -229,7 +229,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     }
 
     return loadCenterPoleId ?? null;
-  }, [btNetworkScenario, suggestedPoleIdFromSectioning, loadCenterPoleId]);
+  }, [
+    btNetworkScenario,
+    suggestedPoleIdFromSectioning,
+    loadCenterPoleId,
+  ]);
 
   const poleHasTransformer = React.useMemo(() => {
     const byPole = new Map<string, boolean>();
