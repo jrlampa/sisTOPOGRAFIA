@@ -13,6 +13,7 @@ export interface SidebarMtEditorSectionProps {
   onMtTopologyChange: (next: MtTopology) => void;
   mtEditorMode: MtEditorMode;
   onMtEditorModeChange: (mode: MtEditorMode) => void;
+  hasBtPoles?: boolean;
 }
 
 export function SidebarMtEditorSection({
@@ -20,6 +21,7 @@ export function SidebarMtEditorSection({
   onMtTopologyChange,
   mtEditorMode,
   onMtEditorModeChange,
+  hasBtPoles = false,
 }: SidebarMtEditorSectionProps) {
   return (
     <div className="flex flex-col gap-3">
@@ -72,6 +74,7 @@ export function SidebarMtEditorSection({
           mtTopology={mtTopology}
           onTopologyChange={onMtTopologyChange}
           mtEditorMode={mtEditorMode}
+          hasBtPoles={hasBtPoles}
         />
       </Suspense>
     </div>

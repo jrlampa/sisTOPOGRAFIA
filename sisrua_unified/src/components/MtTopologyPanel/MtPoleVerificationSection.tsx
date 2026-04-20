@@ -47,7 +47,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
   if (poles.length === 0) {
     return (
       <div className="rounded border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-[11px] text-slate-500">
-        Nenhum poste MT cadastrado. Use o botão &quot;+ Poste MT&quot; acima.
+        Nenhum poste com MT cadastrado. Use o botão &quot;+ Poste&quot; acima.
       </div>
     );
   }
@@ -78,7 +78,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
                 value={renameValue}
                 autoFocus
                 maxLength={60}
-                title="Renomear poste MT"
+                title="Renomear poste"
                 placeholder="Nome do poste"
                 onChange={(e) => setRenameValue(e.target.value)}
                 onBlur={() => handleRenameCommit(pole.id)}
@@ -111,7 +111,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
             <button
               type="button"
               className="ml-auto flex-shrink-0 rounded p-0.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
-              title="Remover poste MT"
+              title="Remover poste"
               onClick={(e) => {
                 e.stopPropagation();
                 onRemovePole(pole.id);

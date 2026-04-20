@@ -63,9 +63,90 @@ function computeOsmStats(elements: any[]): OsmStats {
 
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
+  "https://lz4.overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
   "https://overpass.nchc.org.tw/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
 ];
+
+interface ParsedCacheKey {
+  lat: number;
+  lng: number;
+  radius: number;
+}
+
+function parseCacheKey(key: string): ParsedCacheKey | null {
+  const [latStr, lngStr, radiusStr] = key.split(",");
+  if (!latStr || !lngStr || !radiusStr) {
+    return null;
+  }
+
+  const lat = Number(latStr);
+  const lng = Number(lngStr);
+  const radius = Number(radiusStr);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(radius)) {
+    return null;
+  }
+
+  return { lat, lng, radius };
+}
+
+function haversineMeters(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const R = 6_371_000;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function findNearestStaleCache(
+  lat: number,
+  lng: number,
+  radius: number,
+): { data: any; timestamp: number; distanceMeters: number } | null {
+  let best:
+    | { data: any; timestamp: number; distanceMeters: number }
+    | null = null;
+
+  for (const [key, entry] of osmCache.entries()) {
+    const parsed = parseCacheKey(key);
+    if (!parsed) {
+      continue;
+    }
+
+    // Reusar somente quando o raio for equivalente (tolerancia de 20%).
+    const radiusDelta = Math.abs(parsed.radius - radius);
+    if (radiusDelta > radius * 0.2) {
+      continue;
+    }
+
+    const distanceMeters = haversineMeters(lat, lng, parsed.lat, parsed.lng);
+    // Limite pragmatico para evitar resposta muito distante.
+    if (distanceMeters > Math.max(1200, radius * 2)) {
+      continue;
+    }
+
+    if (!best || distanceMeters < best.distanceMeters) {
+      best = {
+        data: entry.data,
+        timestamp: entry.timestamp,
+        distanceMeters,
+      };
+    }
+  }
+
+  return best;
+}
 
 const buildMockOverpassPayload = (lat: number, lng: number, radius: number) => {
   const d = Math.max(0.0005, Math.min(radius / 111_000, 0.002));
@@ -180,6 +261,25 @@ router.post("/", async (req: Request, res: Response) => {
     radius,
     error: lastError instanceof Error ? lastError.message : String(lastError),
   });
+
+  const nearestStale = findNearestStaleCache(lat, lng, radius);
+  if (nearestStale) {
+    logger.warn("Using nearest stale OSM cache due Overpass outage", {
+      lat,
+      lng,
+      radius,
+      distanceMeters: Math.round(nearestStale.distanceMeters),
+      ageMinutes: Math.round((Date.now() - nearestStale.timestamp) / 60_000),
+    });
+
+    return res.status(200).json({
+      ...nearestStale.data,
+      _stale: true,
+      _staleReason: "OVERPASS_UNAVAILABLE",
+      _staleDistanceMeters: Math.round(nearestStale.distanceMeters),
+      _staleTimestamp: new Date(nearestStale.timestamp).toISOString(),
+    });
+  }
 
   // Strict behavior: synthetic fallback is allowed only in test environment.
   if (isTestEnvironment) {

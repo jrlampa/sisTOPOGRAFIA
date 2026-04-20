@@ -7,10 +7,13 @@
  * - Exporta JSON estruturado para entregas em processos licitatórios
  */
 
-import { createHash } from 'crypto';
-import { gerarRelatorio, listarItens } from './rastreabilidadeRegulatoriaService.js';
+import { createHash } from "crypto";
+import {
+  gerarRelatorio,
+  listarItens,
+} from "./rastreabilidadeRegulatoriaService.js";
 
-export type StatusPacoteLicitacao = 'rascunho' | 'validado' | 'emitido';
+export type StatusPacoteLicitacao = "rascunho" | "validado" | "emitido";
 
 export interface SumarioConformidade {
   totalRequisitos: number;
@@ -49,7 +52,7 @@ function gerarIdPacote(): string {
 
 function calcularHash(obj: unknown): string {
   const json = JSON.stringify(obj, null, 0);
-  return createHash('sha256').update(json).digest('hex');
+  return createHash("sha256").update(json).digest("hex");
 }
 
 export function gerarPacote(
@@ -65,7 +68,9 @@ export function gerarPacote(
     norma: item.requisito.norma,
     descricao: item.requisito.descricao,
     artefatos: [
-      ...item.implementacoes.map((i) => `[${i.tipo.toUpperCase()}] ${i.referencia}`),
+      ...item.implementacoes.map(
+        (i) => `[${i.tipo.toUpperCase()}] ${i.referencia}`,
+      ),
       ...item.testes.map((t) => `[TESTE] ${t.referencia}`),
     ],
     statusConformidade: item.status,
@@ -87,7 +92,7 @@ export function gerarPacote(
     titulo,
     orgaoEdital,
     numeroEdital,
-    status: 'rascunho',
+    status: "rascunho",
     sumario,
     evidencias,
     hashPacote,
@@ -111,8 +116,8 @@ export function obterPacote(id: string): PacoteLicitacao | undefined {
 export function validarPacote(id: string): PacoteLicitacao | null {
   const pacote = pacotes.get(id);
   if (!pacote) return null;
-  if (pacote.status === 'emitido') return pacote;
-  pacote.status = 'validado';
+  if (pacote.status === "emitido") return pacote;
+  pacote.status = "validado";
   // Recalcula hash após validação
   const conteudo = {
     titulo: pacote.titulo,
@@ -127,15 +132,19 @@ export function validarPacote(id: string): PacoteLicitacao | null {
 
 export function emitirPacote(id: string): PacoteLicitacao | null {
   const pacote = pacotes.get(id);
-  if (!pacote || pacote.status === 'rascunho') return null;
-  pacote.status = 'emitido';
+  if (!pacote || pacote.status === "rascunho") return null;
+  pacote.status = "emitido";
   pacote.emitidoEm = new Date();
   return pacote;
 }
 
-export function verificarIntegridade(id: string): { integro: boolean; hashEsperado: string; hashAtual: string } {
+export function verificarIntegridade(id: string): {
+  integro: boolean;
+  hashEsperado: string;
+  hashAtual: string;
+} {
   const pacote = pacotes.get(id);
-  if (!pacote) return { integro: false, hashEsperado: '', hashAtual: '' };
+  if (!pacote) return { integro: false, hashEsperado: "", hashAtual: "" };
   const conteudo = {
     titulo: pacote.titulo,
     orgaoEdital: pacote.orgaoEdital,

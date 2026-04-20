@@ -1,6 +1,6 @@
-import type { ToastType } from '../components/Toast';
-import type { GeoLocation, GlobalState, SelectionMode } from '../types';
-import { useSearch } from './useSearch';
+import type { ToastType } from "../components/Toast";
+import type { GeoLocation, GlobalState, SelectionMode } from "../types";
+import { useSearch } from "./useSearch";
 
 interface UseAppAnalysisWorkflowParams {
   appState: GlobalState;
@@ -9,7 +9,11 @@ interface UseAppAnalysisWorkflowParams {
   showToast: (message: string, type: ToastType) => void;
   clearPendingBtEdge: () => void;
   handleBaseSelectionModeChange: (mode: SelectionMode) => void;
-  runAnalysis: (center: GeoLocation, radius: number, enableAI: boolean) => Promise<boolean>;
+  runAnalysis: (
+    center: GeoLocation,
+    radius: number,
+    enableAI: boolean,
+  ) => Promise<{ success: true } | { success: false; errorMessage: string }>;
   isDownloading: boolean;
   jobId: string | null;
   jobStatus: string | null;
@@ -35,9 +39,9 @@ export function useAppAnalysisWorkflow({
     onLocationFound: (location) => {
       setAppState({ ...appState, center: location }, true);
       clearData();
-      showToast(`Locality found: ${location.label}`, 'success');
+      showToast(`Locality found: ${location.label}`, "success");
     },
-    onError: (message) => showToast(message, 'error'),
+    onError: (message) => showToast(message, "error"),
   });
 
   const handleSelectionModeChange = (mode: SelectionMode) => {
@@ -46,20 +50,21 @@ export function useAppAnalysisWorkflow({
   };
 
   const handleFetchAndAnalyze = async () => {
-    const success = await runAnalysis(center, radius, settings.enableAI);
-    if (success) {
-      showToast('Analysis Complete!', 'success');
+    const result = await runAnalysis(center, radius, settings.enableAI);
+    if (result.success) {
+      showToast("Análise concluída!", "success");
       return;
     }
 
-    showToast('Audit failed. Check backend logs.', 'error');
+    showToast(result.errorMessage || "Falha na análise.", "error");
   };
 
   const showDxfProgress = isDownloading || !!jobId;
   const dxfProgressValue = Math.max(0, Math.min(100, Math.round(jobProgress)));
-  const dxfProgressLabel = jobStatus === 'queued' || jobStatus === 'waiting'
-    ? 'A gerar DXF: na fila...'
-    : `A gerar DXF: ${dxfProgressValue}%...`;
+  const dxfProgressLabel =
+    jobStatus === "queued" || jobStatus === "waiting"
+      ? "A gerar DXF: na fila..."
+      : `A gerar DXF: ${dxfProgressValue}%...`;
 
   return {
     searchQuery,

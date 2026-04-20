@@ -256,6 +256,7 @@ export interface BtEdge {
   // Optional electrical length used only for CQT calculations (not map geometry).
   cqtLengthMeters?: number;
   conductors: BtRamalEntry[];
+  mtConductors?: BtRamalEntry[];
   replacementFromConductors?: BtRamalEntry[];
   verified?: boolean;
   removeOnExecution?: boolean;
@@ -343,6 +344,7 @@ export interface MtEdge {
   fromPoleId: string;
   toPoleId: string;
   lengthMeters?: number;
+  conductors?: BtRamalEntry[];
   verified?: boolean;
   edgeChangeFlag?: "existing" | "new" | "remove" | "replace";
 }

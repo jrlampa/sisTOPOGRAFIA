@@ -30,6 +30,7 @@ import { BtTelescopicSuggestionModal } from "./components/BtTelescopicSuggestion
 import { AppShellLayout } from "./components/AppShellLayout";
 import { INITIAL_APP_STATE } from "./app/initialState";
 import { persistAppSettings } from "./utils/preferencesPersistence";
+import { mergeMtTopologyWithBtPoles } from "./utils/mtTopologyBridge";
 import type { CriticalConfirmationConfig } from "./components/BtModals";
 
 function App() {
@@ -50,6 +51,11 @@ function App() {
     settings.btNetworkScenario ?? "asis";
   const isDark = settings.theme === "dark";
   const btEditorMode: BtEditorMode = settings.btEditorMode ?? "none";
+  const mtTopology = React.useMemo(
+    () => mergeMtTopologyWithBtPoles(btTopology, appState.mtTopology),
+    [btTopology, appState.mtTopology],
+  );
+  const hasBtPoles = btTopology.poles.length > 0;
 
   const {
     btAccumulatedByPole,
@@ -571,7 +577,7 @@ function App() {
     onMeasurePathChange: handleMeasurePathChange,
     onKmlDrop: handleKmlDrop,
     mapStyle: settings.mapProvider === "satellite" ? "satellite" : "dark",
-    mtTopology: appState.mtTopology,
+    mtTopology,
     mtEditorMode: settings.mtEditorMode ?? "none",
     onMtMapClick: handleMtMapClick,
     onMtContextAction: handleMtContextAction,
@@ -732,9 +738,10 @@ function App() {
           selectionControlsProps: sidebarSelectionControlsProps,
           btEditorSectionProps: sidebarBtEditorSectionProps,
           mtEditorSectionProps: {
-            mtTopology: appState.mtTopology ?? { poles: [], edges: [] },
+            mtTopology,
             onMtTopologyChange: updateMtTopology,
             mtEditorMode: settings.mtEditorMode ?? "none",
+            hasBtPoles,
             onMtEditorModeChange: (mode) =>
               updateSettings({ ...settings, mtEditorMode: mode }),
           },

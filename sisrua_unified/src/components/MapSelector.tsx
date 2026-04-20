@@ -106,7 +106,7 @@ interface MapSelectorProps {
   mtEditorMode?: MtEditorMode;
   onMtMapClick?: (location: GeoLocation) => void;
   onMtContextAction?: (
-    action: "mt-add-pole" | "mt-add-edge",
+    action: "add-pole" | "add-edge",
     location: GeoLocation,
   ) => void;
   onMtDeletePole?: (id: string) => void;
@@ -171,7 +171,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   mtTopology,
   mtEditorMode = "none",
   onMtMapClick,
-  onMtContextAction: _onMtContextAction,
+  onMtContextAction,
   onMtDeletePole,
   onMtDeleteEdge,
   onMtRenamePole,
@@ -286,6 +286,9 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           btEditorMode={btEditorMode}
           onBtMapClick={onBtMapClick}
           onBtContextAction={onBtContextAction}
+          mtEditorMode={mtEditorMode}
+          onMtMapClick={onMtMapClick}
+          onMtContextAction={onMtContextAction}
           keyboardPanEnabled={keyboardPanEnabled}
         />
 
@@ -309,7 +312,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           btEditorMode={btEditorMode}
           criticalPoleId={criticalPoleId ?? null}
           pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId ?? null}
-                    loadCenterPoleId={loadCenterPoleId ?? null}
+          loadCenterPoleId={loadCenterPoleId ?? null}
           poleHasTransformer={poleHasTransformer}
           accumulatedByPoleMap={accumulatedByPoleMap}
           onBtMapClick={onBtMapClick}

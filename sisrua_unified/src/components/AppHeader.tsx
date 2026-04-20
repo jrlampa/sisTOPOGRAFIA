@@ -1,7 +1,6 @@
 import React from "react";
 import {
   FolderOpen,
-  Layers,
   PanelLeftClose,
   PanelLeftOpen,
   Save,
@@ -92,9 +91,13 @@ export function AppHeader({
         <motion.div
           whileHover={{ scale: 1.03 }}
           transition={{ type: "spring", stiffness: 200, damping: 14 }}
-          className="flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-200 bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-400 shadow-[0_14px_28px_rgba(59,130,246,0.22)] dark:border-white/10"
+          className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-sky-200 bg-white shadow-[0_14px_28px_rgba(14,165,198,0.18)] dark:border-white/10 dark:bg-slate-900/80"
         >
-          <Layers size={22} className="text-white" aria-hidden="true" />
+          <img
+            src="/branding/logo_sisrua_optimized.png"
+            alt="Logo sisRUA"
+            className="h-8 w-8 object-contain"
+          />
         </motion.div>
         <div>
           <h1
@@ -102,7 +105,11 @@ export function AppHeader({
               isDark ? "text-slate-50" : "text-slate-900"
             }`}
           >
-            SIS RUA
+            <img
+              src="/branding/logo_sisrua_optimized.png"
+              alt="sisRUA"
+              className="h-7 w-7 rounded object-contain"
+            />
             <span
               className={`rounded-lg border px-2 py-0.5 text-[9px] font-black tracking-[0.14em] ${
                 isDark
@@ -119,8 +126,23 @@ export function AppHeader({
                 isDark ? "text-slate-400" : "text-slate-500"
               }`}
             >
-              Advanced Geo Analysis
+              Engenharia Geoelétrica
             </p>
+            <div className="hidden items-center gap-1.5 rounded-full border border-slate-200/70 bg-white/65 px-2 py-0.5 lg:flex dark:border-slate-700 dark:bg-slate-900/65">
+              <img
+                src="/branding/logo_im3.png"
+                alt="Logo IM3"
+                className="h-3.5 w-auto object-contain"
+              />
+              <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-300">
+                x
+              </span>
+              <img
+                src="/branding/logo_light_sa.gif"
+                alt="Logo Light S.A."
+                className="h-3.5 w-auto object-contain"
+              />
+            </div>
             <span
               className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${backendStatusClasses}`}
               title={
@@ -135,7 +157,11 @@ export function AppHeader({
               }
             >
               <span className="h-1.5 w-1.5 rounded-full bg-current" />
-              {backendStatus === "online" ? "API ONLINE" : backendStatus === "degraded" ? "API DEGRADADA" : "API OFFLINE"}
+              {backendStatus === "online"
+                ? "API ONLINE"
+                : backendStatus === "degraded"
+                  ? "API DEGRADADA"
+                  : "API OFFLINE"}
             </span>
           </div>
         </div>

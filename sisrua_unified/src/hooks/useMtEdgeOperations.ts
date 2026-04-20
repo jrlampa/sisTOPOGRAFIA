@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { GlobalState, GeoLocation, MtEdge } from "../types";
+import { BtRamalEntry, GlobalState, GeoLocation, MtEdge } from "../types";
 import { ToastType } from "../components/Toast";
 import { ENTITY_ID_PREFIXES } from "../constants/magicNumbers";
 import { normalizeMtEdge } from "../utils/mtNormalization";
+import { mergeMtTopologyWithBtPoles } from "../utils/mtTopologyBridge";
 import { haversineDistanceMeters } from "../../shared/geodesic";
 
 type Params = {
@@ -18,7 +19,10 @@ export function useMtEdgeOperations({
   showToast,
   findNearestMtPole,
 }: Params) {
-  const mtTopology = appState.mtTopology ?? { poles: [], edges: [] };
+  const mtTopology = mergeMtTopologyWithBtPoles(
+    appState.btTopology,
+    appState.mtTopology,
+  );
   const [pendingMtEdgeStartPoleId, setPendingMtEdgeStartPoleId] = useState<
     string | null
   >(null);
@@ -28,7 +32,7 @@ export function useMtEdgeOperations({
   const handleMtMapClickAddEdge = (location: GeoLocation) => {
     const nearestPole = findNearestMtPole(location);
     if (!nearestPole) {
-      showToast("Nenhum poste MT próximo (raio: 15m)", "error");
+      showToast("Nenhum poste com MT próximo (raio: 15m)", "error");
       return;
     }
 
@@ -39,7 +43,7 @@ export function useMtEdgeOperations({
     }
 
     if (pendingMtEdgeStartPoleId === nearestPole.id) {
-      showToast("Selecione um segundo poste MT para concluir o vão", "info");
+      showToast("Selecione um segundo poste para concluir o vão MT", "info");
       return;
     }
 
@@ -48,7 +52,7 @@ export function useMtEdgeOperations({
     );
     if (!fromPole) {
       setPendingMtEdgeStartPoleId(null);
-      showToast("Poste MT de origem não encontrado", "error");
+      showToast("Poste de origem do vão MT não encontrado", "error");
       return;
     }
 
@@ -87,6 +91,7 @@ export function useMtEdgeOperations({
               fromPoleId: fromPole.id,
               toPoleId: nearestPole.id,
               lengthMeters,
+              conductors: [],
               edgeChangeFlag: "existing",
               verified: false,
             },
@@ -137,11 +142,61 @@ export function useMtEdgeOperations({
     );
   };
 
+  const handleMtSetEdgeConductors = (
+    edgeId: string,
+    conductors: BtRamalEntry[],
+  ) => {
+    const targetEdge = mtTopology.edges.find((edge) => edge.id === edgeId);
+    if (!targetEdge) {
+      return;
+    }
+
+    const nextMtEdges = mtTopology.edges.map((edge) =>
+      edge.id === edgeId ? normalizeMtEdge({ ...edge, conductors }) : edge,
+    );
+
+    const nextBtTopology = appState.btTopology
+      ? {
+          ...appState.btTopology,
+          edges: appState.btTopology.edges.map((edge) => {
+            const sameDirection =
+              edge.fromPoleId === targetEdge.fromPoleId &&
+              edge.toPoleId === targetEdge.toPoleId;
+            const reverseDirection =
+              edge.fromPoleId === targetEdge.toPoleId &&
+              edge.toPoleId === targetEdge.fromPoleId;
+
+            if (!sameDirection && !reverseDirection) {
+              return edge;
+            }
+
+            return {
+              ...edge,
+              mtConductors: conductors,
+            };
+          }),
+        }
+      : appState.btTopology;
+
+    setAppState(
+      {
+        ...appState,
+        btTopology: nextBtTopology,
+        mtTopology: {
+          ...mtTopology,
+          edges: nextMtEdges,
+        },
+      },
+      true,
+    );
+  };
+
   return {
     pendingMtEdgeStartPoleId,
     clearPendingMtEdge,
     handleMtMapClickAddEdge,
     handleMtDeleteEdge,
     handleMtSetEdgeChangeFlag,
+    handleMtSetEdgeConductors,
   };
 }

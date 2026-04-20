@@ -41,7 +41,7 @@ Este documento estabelece a visão técnica, os pontos de melhoria prioritários
 - **Papéis (Agir de acordo)**:
   - **Tech Lead**: Orquestrador.
   - **Dev Fullstack Sênior**: Principal coder.
-  - **DevOps/QA**: Testes e infraestrutura.
+    ![1776681927051](image/STRATEGIC_ROADMAP_2026/1776681927051.png)![1776681928399](image/STRATEGIC_ROADMAP_2026/1776681928399.png)![1776681929658](image/STRATEGIC_ROADMAP_2026/1776681929658.png)![1776681931459](image/STRATEGIC_ROADMAP_2026/1776681931459.png)![1776681937140](image/STRATEGIC_ROADMAP_2026/1776681937140.png)![1776681938988](image/STRATEGIC_ROADMAP_2026/1776681938988.png)![1776682815634](image/STRATEGIC_ROADMAP_2026/1776682815634.png)![1776682820362](image/STRATEGIC_ROADMAP_2026/1776682820362.png)![1776684167199](image/STRATEGIC_ROADMAP_2026/1776684167199.png)![1776684962763](image/STRATEGIC_ROADMAP_2026/1776684962763.png)- **DevOps/QA**: Testes e infraestrutura.
   - **UI/UX Designer**: Criação de interfaces.
   - **Estagiário**: Criatividade fora da caixa.
 - **Finalização**: Ao terminar uma task: (1) executar suite de testes, (2) verificar cobertura, (3) realizar o **commit** na branch `dev`, (4) atualizar o `RAG/MEMORY.md`.

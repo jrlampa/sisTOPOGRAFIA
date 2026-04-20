@@ -346,6 +346,18 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                   Sem condutor informado
                 </div>
               )}
+              {(edge.mtConductors ?? []).length > 0 && (
+                <div className="mt-1 rounded border border-orange-200 bg-orange-50 px-1.5 py-1 text-[10px] text-orange-900">
+                  <div className="font-bold uppercase tracking-wide">
+                    Condutor MT Vinculado
+                  </div>
+                  {(edge.mtConductors ?? []).map((entry) => (
+                    <div key={entry.id}>
+                      {entry.quantity} x {entry.conductorName}
+                    </div>
+                  ))}
+                </div>
+              )}
               {edgeChangeFlag === "replace" && (
                 <div className="mt-0.5 text-amber-900">
                   {(edge.replacementFromConductors ?? []).length > 0 ? (

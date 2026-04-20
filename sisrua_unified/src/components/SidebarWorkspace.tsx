@@ -12,6 +12,7 @@ import { SidebarBtEditorSection } from "./SidebarBtEditorSection";
 import { SidebarSelectionControls } from "./SidebarSelectionControls";
 
 import { SidebarMtEditorSection } from "./SidebarMtEditorSection";
+import { hasMeaningfulMtTopology } from "../utils/mtTopologyBridge";
 
 type WorkflowStage = "capture" | "network" | "mt" | "analysis";
 
@@ -39,9 +40,9 @@ export function SidebarWorkspace({
     (btEditorSectionProps.btTopology?.poles?.length ?? 0) > 0 ||
     (btEditorSectionProps.btTopology?.edges?.length ?? 0) > 0 ||
     (btEditorSectionProps.btTopology?.transformers?.length ?? 0) > 0;
-  const hasMtTopology =
-    (mtEditorSectionProps.mtTopology?.poles?.length ?? 0) > 0 ||
-    (mtEditorSectionProps.mtTopology?.edges?.length ?? 0) > 0;
+  const hasMtTopology = hasMeaningfulMtTopology(
+    mtEditorSectionProps.mtTopology,
+  );
   const hasAnalysis = Boolean(analysisResultsProps.stats);
 
   const [activeStage, setActiveStage] = React.useState<WorkflowStage>(

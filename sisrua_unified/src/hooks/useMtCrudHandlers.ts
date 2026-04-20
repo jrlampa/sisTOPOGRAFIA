@@ -3,6 +3,7 @@ import { ToastType } from "../components/Toast";
 import { useMtPoleOperations } from "./useMtPoleOperations";
 import { useMtEdgeOperations } from "./useMtEdgeOperations";
 import { normalizeMtPoles, normalizeMtEdges } from "../utils/mtNormalization";
+import { mergeMtTopologyWithBtPoles } from "../utils/mtTopologyBridge";
 
 type Params = {
   appState: GlobalState;
@@ -24,13 +25,18 @@ export function useMtCrudHandlers({
   });
 
   const updateMtTopology = (nextTopology: MtTopology) => {
+    const mergedTopology = mergeMtTopologyWithBtPoles(
+      appState.btTopology,
+      nextTopology,
+    );
+
     setAppState(
       {
         ...appState,
         mtTopology: {
-          ...nextTopology,
-          poles: normalizeMtPoles(nextTopology.poles),
-          edges: normalizeMtEdges(nextTopology.edges),
+          ...mergedTopology,
+          poles: normalizeMtPoles(mergedTopology.poles),
+          edges: normalizeMtEdges(mergedTopology.edges),
         },
       },
       true,
