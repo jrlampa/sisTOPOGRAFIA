@@ -35,14 +35,7 @@ function satBadge(pct: number): { label: string; cls: string } {
 // ─── Sub-componente: card de terminal ─────────────────────────────────────────
 
 function TerminalCard({ suggestion }: { suggestion: TelescopicSuggestion }) {
-  const {
-    terminalNodeId,
-    currentVoltageEndV,
-    pathEdges,
-    projectedVoltageEndV,
-    saturationPct,
-    requiresTransformerUpgrade,
-  } = suggestion;
+  const { terminalNodeId, pathEdges, projectedVoltageEndV, saturationPct, requiresTransformerUpgrade } = suggestion;
   const sat = satBadge(saturationPct);
   const approved = projectedVoltageEndV >= 117;
 
@@ -68,15 +61,7 @@ function TerminalCard({ suggestion }: { suggestion: TelescopicSuggestion }) {
       {/* Tensão projetada */}
       <div className="flex items-center gap-1.5 text-xs">
         <TrendingDown size={13} className="text-slate-400" />
-        <span className="text-slate-500 dark:text-slate-400">Tensão atual:</span>
-        <span className={`font-bold ${voltageColor(currentVoltageEndV)}`}>
-          {currentVoltageEndV.toFixed(1)} V
-        </span>
-      </div>
-
-      <div className="flex items-center gap-1.5 text-xs">
-        <TrendingDown size={13} className="text-slate-400" />
-        <span className="text-slate-500 dark:text-slate-400">Tensão projetada:</span>
+        <span className="text-slate-500 dark:text-slate-400">Tensão na ponta:</span>
         <span className={`font-bold ${voltageColor(projectedVoltageEndV)}`}>
           {projectedVoltageEndV.toFixed(1)} V
         </span>

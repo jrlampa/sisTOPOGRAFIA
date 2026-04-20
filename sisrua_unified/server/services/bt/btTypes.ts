@@ -112,7 +112,6 @@ export interface TelescopicPathEdge {
 
 export interface TelescopicSuggestion {
     terminalNodeId: string;
-    currentVoltageEndV: number;
     pathEdges: TelescopicPathEdge[];
     projectedVoltageEndV: number;
     saturationPct: number;
