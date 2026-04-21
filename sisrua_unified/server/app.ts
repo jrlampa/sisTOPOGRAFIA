@@ -67,6 +67,7 @@ import contractualSlaRoutes from "./routes/contractualSlaRoutes.js";
 import rfpReadinessRoutes from "./routes/rfpReadinessRoutes.js";
 import knowledgeBaseRoutes from "./routes/knowledgeBaseRoutes.js";
 import enterpriseReadinessRoutes from "./routes/enterpriseReadinessRoutes.js";
+import supplyChainRoutes from "./routes/supplyChainRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -275,6 +276,7 @@ app.use("/api/sla", contractualSlaRoutes);
 app.use("/api/rfp", rfpReadinessRoutes);
 app.use("/api/knowledge", knowledgeBaseRoutes);
 app.use("/api/enterprise", enterpriseReadinessRoutes);
+app.use("/api/supply-chain", supplyChainRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");

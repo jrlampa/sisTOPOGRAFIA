@@ -1632,3 +1632,9 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - `npm run test:backend`: ✅ **PASS**
 - `npm run ci:non-negotiables`: ✅ **PASS**
 - Cobertura de Branches (`BT Core`): 86.58% ✅
+
+## 📌 Atualização Operacional (2026-04-21) - Supply Chain Security & Integridade (T1-15)
+- Implementado backend de Supply Chain Security com supplyChainService.ts + supplyChainRoutes.ts e registro no pp.ts.
+- Cobertura funcional: SBOM (inventário NPM/Python), npm audit, secret scanning com entropia, SAST findings/report e policy gates bloqueantes de release.
+- Endpoints: /api/supply-chain/sbom*, /api/supply-chain/npm-audit*, /api/supply-chain/secrets*, /api/supply-chain/sast*, /api/supply-chain/policy-gates*.
+- Testes: server/tests/supplyChainRoutes.test.ts com 20 testes passando (20/20).
