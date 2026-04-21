@@ -4,7 +4,7 @@ import { Trash2 } from "lucide-react";
 import L from "leaflet";
 import type { MapMtEdge, MapMtPole, MapMtTopology } from "../../types.map";
 
-const EDGE_HIT_AREA_WEIGHT = 24;
+const EDGE_HIT_AREA_WEIGHT = 44;
 const POPUP_FLAG_GRID_CLASS = "mt-1.5 grid grid-cols-2 gap-1.5";
 
 const getMtEdgeVisualConfig = (edge: MapMtEdge) => {

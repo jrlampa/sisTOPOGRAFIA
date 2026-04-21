@@ -164,6 +164,14 @@ Cada item priorizado para execução deve ter, no backlog operacional:
 - indicador de sucesso
 - evidência de aceite
 
+### Aditivo Operacional de Execução (DG)
+
+Para implementação faseada de Design Generativo sem reescrever este roadmap, usar em paralelo:
+
+- `docs/DG_IMPLEMENTATION_ADDENDUM_2026.md`
+
+Este aditivo consolida a ordem de execução em 3 frentes (Banco de Dados, Backend, Frontend) e a estratégia de branch de experimentação antes do promotion para `dev`.
+
 ---
 
 ## 🚀 Catálogo Detalhado: 130 Pontos de Maturidade Industrial

@@ -152,10 +152,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
               position={[pole.lat, pole.lng]}
               icon={makePoleIcon(pole.id, !!pole.verified)}
               zIndexOffset={1200}
-              draggable={
-                btEditorMode !== "add-edge" &&
-                btEditorMode !== "add-transformer"
-              }
+              draggable={true}
               eventHandlers={{
                 click: () => {
                   if (
@@ -272,7 +269,11 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                   )}
                   <div className={POPUP_TOOLBAR_CLASS}>
                     <button
-                      onClick={() => onBtDeletePole?.(pole.id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onBtDeletePole?.(pole.id);
+                      }}
                       className={getIconActionButtonClass("danger")}
                       title="Deletar poste"
                     >

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Aumentada a área clicável (hit area) das arestas BT e MT no mapa de 28/24 px para 44 px, melhorando significativamente a interação por toque em tablets (alinhado ao mínimo recomendado pela Apple/Google de 44–48 px)
+
 ## [0.9.0] - 2026-04-15 (Beta Maduro)
 
 ### Status

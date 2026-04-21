@@ -8,6 +8,13 @@
 
 Fornecer extração de dados geoespaciais de alta precisão para projetos de engenharia, arquitetura e topografia no Brasil, com elevação 30m (TOPODATA) e integração de dados oficiais (IBGE, INDE).
 
+### Atualização Operacional (2026-04-20) - Design Generativo em 3 Frentes
+
+- Documento paralelo oficial criado: `docs/DG_IMPLEMENTATION_ADDENDUM_2026.md`.
+- Ordem de execução definida para evitar retrabalho: 1) Banco de Dados, 2) Backend, 3) Frontend.
+- Fluxo de experimentação inicial autorizado em branch dedicada: `feat/dg-implementation-pilot`.
+- Regra de integração: estabilizar contratos e promover para `dev` via PR.
+
 ---
 
 ## 🏗️ Arquitetura

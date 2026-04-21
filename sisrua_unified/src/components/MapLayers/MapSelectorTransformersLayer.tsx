@@ -73,9 +73,7 @@ const MapSelectorTransformersLayer: React.FC<
             getTransformerChangeFlag(transformer),
           )}
           zIndexOffset={1400}
-          draggable={
-            btEditorMode !== "add-edge" && btEditorMode !== "add-transformer"
-          }
+          draggable={true}
           eventHandlers={{
             click: () => {
               if (
@@ -146,7 +144,11 @@ const MapSelectorTransformersLayer: React.FC<
               )}
               <div className={POPUP_TOOLBAR_CLASS}>
                 <button
-                  onClick={() => onBtDeleteTransformer?.(transformer.id)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onBtDeleteTransformer?.(transformer.id);
+                  }}
                   className={getIconActionButtonClass("danger")}
                   title="Deletar transformador"
                 >

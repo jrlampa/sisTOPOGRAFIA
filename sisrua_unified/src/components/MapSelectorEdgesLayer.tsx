@@ -41,7 +41,7 @@ const CONDUCTOR_OPTIONS = [
   "4/0 AWG",
 ];
 
-const EDGE_HIT_AREA_WEIGHT = 28;
+const EDGE_HIT_AREA_WEIGHT = 44;
 const POPUP_SELECT_CLASS =
   "w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[11px] text-slate-700";
 const POPUP_TOOLBAR_CLASS = "mt-1.5 flex items-center gap-2";

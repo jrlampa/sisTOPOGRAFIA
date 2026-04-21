@@ -67,7 +67,7 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
               position={[pole.lat, pole.lng]}
               icon={makeMtPoleIcon(pole)}
               zIndexOffset={1300}
-              draggable={mtEditorMode !== "mt-add-edge"}
+              draggable={true}
               eventHandlers={{
                 click: () => {
                   if (mtEditorMode === "mt-add-edge" && onMtMapClick) {
@@ -159,7 +159,11 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
 
                     {onMtDeletePole && (
                       <button
-                        onClick={() => onMtDeletePole(pole.id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onMtDeletePole(pole.id);
+                        }}
                         className="flex h-7 items-center justify-center gap-1.5 rounded-lg border border-red-500 bg-red-50 text-[10px] font-black uppercase text-red-700 transition-colors hover:bg-red-100"
                       >
                         <Trash2 size={12} />
