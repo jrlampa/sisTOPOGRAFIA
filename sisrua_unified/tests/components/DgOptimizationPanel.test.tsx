@@ -57,6 +57,8 @@ function defaultProps(
     isOptimizing: false,
     result: null,
     error: null,
+    activeAltIndex: -1,
+    onSetActiveAltIndex: vi.fn(),
     onRun: vi.fn(),
     onAcceptAll: vi.fn(),
     onAcceptTrafoOnly: vi.fn(),
@@ -206,5 +208,93 @@ describe("DgOptimizationPanel", () => {
       ),
     );
     expect(screen.getByText(/nenhuma solução viável/i)).toBeInTheDocument();
+  });
+
+  it("não exibe navegação de alternativas quando alternatives está vazio", () => {
+    render(
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ result: MOCK_OUTPUT }),
+      ),
+    );
+    // Sem alternativas, só o botão "Melhor" não deve aparecer como pill de nav
+    expect(screen.queryByRole("button", { name: /alt\. 1/i })).not.toBeInTheDocument();
+  });
+
+  it("exibe pills de alternativas quando há alternativas disponíveis", () => {
+    const ALT_SCENARIO = { ...MOCK_SCENARIO, scenarioId: "sc-2", objectiveScore: 75.0 };
+    const outputWithAlts = {
+      ...MOCK_OUTPUT,
+      recommendation: {
+        ...MOCK_OUTPUT.recommendation,
+        alternatives: [ALT_SCENARIO],
+      },
+    };
+    render(
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ result: outputWithAlts }),
+      ),
+    );
+    expect(screen.getByRole("button", { name: /melhor/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /alt\. 1/i })).toBeInTheDocument();
+  });
+
+  it("chama onSetActiveAltIndex(0) ao clicar em 'Alt. 1'", () => {
+    const ALT_SCENARIO = { ...MOCK_SCENARIO, scenarioId: "sc-2", objectiveScore: 75.0 };
+    const outputWithAlts = {
+      ...MOCK_OUTPUT,
+      recommendation: {
+        ...MOCK_OUTPUT.recommendation,
+        alternatives: [ALT_SCENARIO],
+      },
+    };
+    const onSetActiveAltIndex = vi.fn();
+    render(
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ result: outputWithAlts, onSetActiveAltIndex }),
+      ),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /alt\. 1/i }));
+    expect(onSetActiveAltIndex).toHaveBeenCalledWith(0);
+  });
+
+  it("chama onSetActiveAltIndex(-1) ao clicar em 'Melhor'", () => {
+    const ALT_SCENARIO = { ...MOCK_SCENARIO, scenarioId: "sc-2", objectiveScore: 75.0 };
+    const outputWithAlts = {
+      ...MOCK_OUTPUT,
+      recommendation: {
+        ...MOCK_OUTPUT.recommendation,
+        alternatives: [ALT_SCENARIO],
+      },
+    };
+    const onSetActiveAltIndex = vi.fn();
+    render(
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ result: outputWithAlts, activeAltIndex: 0, onSetActiveAltIndex }),
+      ),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /melhor/i }));
+    expect(onSetActiveAltIndex).toHaveBeenCalledWith(-1);
+  });
+
+  it("exibe score da alternativa selecionada quando activeAltIndex >= 0", () => {
+    const ALT_SCENARIO = { ...MOCK_SCENARIO, scenarioId: "sc-2", objectiveScore: 75.0 };
+    const outputWithAlts = {
+      ...MOCK_OUTPUT,
+      recommendation: {
+        ...MOCK_OUTPUT.recommendation,
+        alternatives: [ALT_SCENARIO],
+      },
+    };
+    render(
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ result: outputWithAlts, activeAltIndex: 0 }),
+      ),
+    );
+    expect(screen.getByText(/75/)).toBeInTheDocument();
   });
 });

@@ -90,10 +90,12 @@ export interface SidebarBtEditorSectionProps {
   isDgOptimizing?: boolean;
   dgResult?: DgOptimizationOutput | null;
   dgError?: string | null;
+  dgActiveAltIndex?: number;
   onRunDgOptimization?: () => void;
   onAcceptDgAll?: (scenario: DgScenario) => void;
   onAcceptDgTrafoOnly?: (scenario: DgScenario) => void;
   onClearDgResult?: () => void;
+  onSetDgActiveAltIndex?: (index: number) => void;
 }
 
 export function SidebarBtEditorSection({
@@ -131,10 +133,12 @@ export function SidebarBtEditorSection({
   isDgOptimizing = false,
   dgResult = null,
   dgError = null,
+  dgActiveAltIndex = -1,
   onRunDgOptimization,
   onAcceptDgAll,
   onAcceptDgTrafoOnly,
   onClearDgResult,
+  onSetDgActiveAltIndex,
 }: SidebarBtEditorSectionProps) {
   const coordinateValidation = getCoordinateInputFeedback(
     btPoleCoordinateInput,
@@ -346,6 +350,8 @@ export function SidebarBtEditorSection({
             isOptimizing={isDgOptimizing}
             result={dgResult}
             error={dgError}
+            activeAltIndex={dgActiveAltIndex}
+            onSetActiveAltIndex={onSetDgActiveAltIndex ?? (() => undefined)}
             onRun={onRunDgOptimization}
             onAcceptAll={onAcceptDgAll ?? (() => undefined)}
             onAcceptTrafoOnly={onAcceptDgTrafoOnly ?? (() => undefined)}

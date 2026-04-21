@@ -134,6 +134,12 @@ export function useDgOptimization() {
   });
 
   /**
+   * Índice da alternativa ativa na navegação do painel DG.
+   * -1 = melhor cenário; 0..N = alternatives[N].
+   */
+  const [activeAltIndex, setActiveAltIndex] = useState<number>(-1);
+
+  /**
    * Executa otimização DG para a topologia BT atual.
    * Requer ao menos 1 poste e 1 transformador.
    */
@@ -174,6 +180,7 @@ export function useDgOptimization() {
 
       const result = (await res.json()) as DgOptimizationOutput;
       setState({ isOptimizing: false, result, error: null });
+      setActiveAltIndex(-1); // Reinicia seleção ao melhor cenário
     } catch (err) {
       setState({
         isOptimizing: false,
@@ -186,6 +193,7 @@ export function useDgOptimization() {
   /** Limpa o resultado da última execução DG. */
   const clearDgResult = useCallback(() => {
     setState({ isOptimizing: false, result: null, error: null });
+    setActiveAltIndex(-1);
   }, []);
 
   /**
@@ -235,6 +243,15 @@ export function useDgOptimization() {
 
   return {
     ...state,
+    activeAltIndex,
+    setActiveAltIndex,
+    /** Cenário ativo: melhor (−1) ou alternativa selecionada. */
+    activeScenario:
+      state.result?.recommendation == null
+        ? null
+        : activeAltIndex === -1
+          ? state.result.recommendation.bestScenario
+          : (state.result.recommendation.alternatives[activeAltIndex] ?? null),
     runDgOptimization,
     clearDgResult,
     applyDgAll,

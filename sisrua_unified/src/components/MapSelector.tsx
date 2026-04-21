@@ -9,6 +9,7 @@ import MapSelectorPolesLayer from "./MapLayers/MapSelectorPolesLayer";
 import MapSelectorTransformersLayer from "./MapLayers/MapSelectorTransformersLayer";
 import MapSelectorMtEdgesLayer from "./MapLayers/MapSelectorMtEdgesLayer";
 import MapSelectorMtPolesLayer from "./MapLayers/MapSelectorMtPolesLayer";
+import MapSelectorDgOverlay from "./MapLayers/MapSelectorDgOverlay";
 import {
   BtEditorMode,
   BtRamalEntry,
@@ -18,6 +19,7 @@ import {
 } from "../types";
 import type { MapBtTopology, MapMtTopology } from "../types.map";
 import type { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
+import type { DgScenario } from "../hooks/useDgOptimization";
 import { DefaultIcon } from "./MapSelectorStyles";
 
 // Initialize Leaflet Default Icon fix
@@ -123,6 +125,8 @@ interface MapSelectorProps {
     edgeId: string,
     flag: "existing" | "new" | "remove" | "replace",
   ) => void;
+  /** Cenário DG ativo para sobreposição visual no mapa. */
+  dgScenario?: DgScenario | null;
 }
 
 const MapSelector: React.FC<MapSelectorProps> = ({
@@ -182,6 +186,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onMtDragPole,
   onMtSetPoleChangeFlag,
   onMtSetEdgeChangeFlag,
+  dgScenario,
 }) => {
   const topology = btMarkerTopology ?? {
     poles: [],
@@ -195,6 +200,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   const btTransformersPaneName = `bt-transformers-pane-${paneIdSuffix}`;
   const mtEdgesPaneName = `mt-edges-pane-${paneIdSuffix}`;
   const mtPolesPaneName = `mt-poles-pane-${paneIdSuffix}`;
+  const dgOverlayPaneName = `dg-overlay-pane-${paneIdSuffix}`;
 
   const polesById = React.useMemo(() => {
     return new Map(topology.poles.map((pole) => [pole.id, pole]));
@@ -371,6 +377,15 @@ const MapSelector: React.FC<MapSelectorProps> = ({
               onMtSetPoleVerified={onMtSetPoleVerified}
             />
           </>
+        )}
+
+        {/* Sobreposição DG – exibida quando há cenário ativo */}
+        {dgScenario && (
+          <MapSelectorDgOverlay
+            paneName={dgOverlayPaneName}
+            scenario={dgScenario}
+            polesById={polesById}
+          />
         )}
       </MapContainer>
     </div>

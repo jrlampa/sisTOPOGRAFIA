@@ -375,6 +375,9 @@ function App() {
     isOptimizing: isDgOptimizing,
     result: dgResult,
     error: dgError,
+    activeAltIndex: dgActiveAltIndex,
+    setActiveAltIndex: setDgActiveAltIndex,
+    activeScenario: dgActiveScenario,
     runDgOptimization,
     clearDgResult,
     applyDgAll,
@@ -401,7 +404,9 @@ function App() {
       showToast("Posição do trafo atualizada pelo DG.", "success");
     },
     [applyDgTrafoOnly, btTopology, updateBtTopology, clearDgResult, showToast],
-  ); = React.useCallback(() => {
+  );
+
+  const handleTriggerTelescopicAnalysis = React.useCallback(() => {
     if (isBtTelescopicAnalyzing) {
       showToast("Análise telescópica já está em execução.", "info");
       return;
@@ -668,6 +673,7 @@ function App() {
     onMtDragPole: handleMtDragPole,
     onMtSetPoleChangeFlag: handleMtSetPoleChangeFlag,
     onMtSetEdgeChangeFlag: handleMtSetEdgeChangeFlag,
+    dgScenario: dgActiveScenario,
   };
 
   const btModalStackProps: React.ComponentProps<typeof BtModalStack> = {
@@ -744,10 +750,12 @@ function App() {
     isDgOptimizing,
     dgResult,
     dgError,
+    dgActiveAltIndex,
     onRunDgOptimization: handleRunDgOptimization,
     onAcceptDgAll: handleAcceptDgAll,
     onAcceptDgTrafoOnly: handleAcceptDgTrafoOnly,
     onClearDgResult: clearDgResult,
+    onSetDgActiveAltIndex: setDgActiveAltIndex,
   };
 
   const sidebarAnalysisResultsProps: React.ComponentProps<
