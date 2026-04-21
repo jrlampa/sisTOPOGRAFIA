@@ -47,7 +47,7 @@ const MOCK_SCENARIO = {
   electricalResult: {
     cqtMaxFraction: 0.05,
     worstTerminalNodeId: "p2",
-    trafoUtilizationFraction: 0.40,
+    trafoUtilizationFraction: 0.4,
     totalCableLengthMeters: 28,
     feasible: true,
   },
@@ -119,7 +119,11 @@ describe("useDgOptimization", () => {
     vi.stubGlobal("fetch", fetchMock);
     const { result } = renderHook(() => useDgOptimization());
     await act(async () => {
-      await result.current.runDgOptimization({ poles: [], transformers: [], edges: [] });
+      await result.current.runDgOptimization({
+        poles: [],
+        transformers: [],
+        edges: [],
+      });
     });
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -144,7 +148,8 @@ describe("useDgOptimization", () => {
       await result.current.runDgOptimization(MOCK_TOPOLOGY);
     });
 
-    const [url, options] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    const [url, options] = (global.fetch as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, RequestInit];
     expect(url).toBe("/api/dg/optimize");
     expect(options.method).toBe("POST");
     const body = JSON.parse(options.body as string);
@@ -191,9 +196,16 @@ describe("useDgOptimization", () => {
 
   it("applyDgAll move trafo e substitui condutores", () => {
     const { result } = renderHook(() => useDgOptimization());
-    const nextTopology = result.current.applyDgAll(MOCK_TOPOLOGY, MOCK_SCENARIO);
-    expect(nextTopology.transformers[0].lat).toBe(MOCK_SCENARIO.trafoPositionLatLon.lat);
-    expect(nextTopology.transformers[0].lng).toBe(MOCK_SCENARIO.trafoPositionLatLon.lon);
+    const nextTopology = result.current.applyDgAll(
+      MOCK_TOPOLOGY,
+      MOCK_SCENARIO,
+    );
+    expect(nextTopology.transformers[0].lat).toBe(
+      MOCK_SCENARIO.trafoPositionLatLon.lat,
+    );
+    expect(nextTopology.transformers[0].lng).toBe(
+      MOCK_SCENARIO.trafoPositionLatLon.lon,
+    );
     // Deve ter 1 aresta correspondente ao cenário DG
     expect(nextTopology.edges).toHaveLength(1);
     expect(nextTopology.edges[0].fromPoleId).toBe("p1");
@@ -203,7 +215,10 @@ describe("useDgOptimization", () => {
 
   it("applyDgAll reutiliza aresta existente quando par de postes coincide", () => {
     const { result } = renderHook(() => useDgOptimization());
-    const nextTopology = result.current.applyDgAll(MOCK_TOPOLOGY, MOCK_SCENARIO);
+    const nextTopology = result.current.applyDgAll(
+      MOCK_TOPOLOGY,
+      MOCK_SCENARIO,
+    );
     // A aresta "e1" (p1→p2) deve ser reutilizada (mesmo par), não uma nova
     expect(nextTopology.edges[0].id).toBe("e1");
     expect(nextTopology.edges[0].lengthMeters).toBe(28); // length atualizado
@@ -211,9 +226,16 @@ describe("useDgOptimization", () => {
 
   it("applyDgTrafoOnly move apenas o trafo, sem alterar condutores", () => {
     const { result } = renderHook(() => useDgOptimization());
-    const nextTopology = result.current.applyDgTrafoOnly(MOCK_TOPOLOGY, MOCK_SCENARIO);
-    expect(nextTopology.transformers[0].lat).toBe(MOCK_SCENARIO.trafoPositionLatLon.lat);
-    expect(nextTopology.transformers[0].lng).toBe(MOCK_SCENARIO.trafoPositionLatLon.lon);
+    const nextTopology = result.current.applyDgTrafoOnly(
+      MOCK_TOPOLOGY,
+      MOCK_SCENARIO,
+    );
+    expect(nextTopology.transformers[0].lat).toBe(
+      MOCK_SCENARIO.trafoPositionLatLon.lat,
+    );
+    expect(nextTopology.transformers[0].lng).toBe(
+      MOCK_SCENARIO.trafoPositionLatLon.lon,
+    );
     // Condutores/arestas não devem ter mudado
     expect(nextTopology.edges).toStrictEqual(MOCK_TOPOLOGY.edges);
   });

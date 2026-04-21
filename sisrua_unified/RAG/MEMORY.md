@@ -15,6 +15,14 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - Fluxo de experimentação inicial autorizado em branch dedicada: `feat/dg-implementation-pilot`.
 - Regra de integração: estabilizar contratos e promover para `dev` via PR.
 
+### Atualização Operacional (2026-04-21) - DG Frente 3 (Frontend) Concluída
+
+- Hook criado e integrado: `src/hooks/useDgOptimization.ts` (execução `POST /api/dg/optimize`, limpeza de resultado e aplicação parcial/total no `BtTopology`).
+- Painel DG criado e integrado: `src/components/DgOptimizationPanel.tsx` + wiring no fluxo BT em `src/components/SidebarBtEditorSection.tsx` e `src/App.tsx`.
+- Aceite parcial implementado no fluxo de operação: "Só trafo" e "Aceitar tudo" com persistência pela topologia ativa.
+- Validação concluída com suíte completa: backend (Jest), frontend (Vitest + cobertura) e smoke E2E (Playwright).
+- Entrega promovida para `dev` com commit `4518839`.
+
 ---
 
 ## 🏗️ Arquitetura
@@ -246,7 +254,7 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ---
 
-**Última Atualização**: 2026-04-18
+**Última Atualização**: 2026-04-21
 **Branch Ativa**: dev
 **Versão**: 1.3.1
 

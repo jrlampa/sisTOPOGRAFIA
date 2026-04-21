@@ -5,7 +5,10 @@ import {
   getValidationInputClassName,
 } from "./FormFieldFeedback";
 import { DgOptimizationPanel } from "./DgOptimizationPanel";
-import type { DgOptimizationOutput, DgScenario } from "../hooks/useDgOptimization";
+import type {
+  DgOptimizationOutput,
+  DgScenario,
+} from "../hooks/useDgOptimization";
 import type {
   AppSettings,
   BtEditorMode,

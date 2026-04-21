@@ -34,7 +34,10 @@ function ScoreBar({ score }: { score: number }) {
     pct >= 70 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-red-500";
   return (
     <div className="w-full rounded-full bg-zinc-200 dark:bg-zinc-700 h-2 overflow-hidden">
-      <div className={`h-2 rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+      <div
+        className={`h-2 rounded-full transition-all ${color}`}
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }
@@ -51,7 +54,13 @@ function ElectricalResultRow({
   return (
     <div className="flex justify-between text-[10px]">
       <span className="text-zinc-500 dark:text-zinc-400">{label}</span>
-      <span className={warn ? "font-bold text-red-600 dark:text-red-400" : "font-semibold text-zinc-800 dark:text-zinc-200"}>
+      <span
+        className={
+          warn
+            ? "font-bold text-red-600 dark:text-red-400"
+            : "font-semibold text-zinc-800 dark:text-zinc-200"
+        }
+      >
         {value}
       </span>
     </div>
@@ -72,8 +81,12 @@ function DiscardReasonList({
       </div>
       {entries.map(([code, count]) => (
         <div key={code} className="flex justify-between text-[10px]">
-          <span className="text-zinc-600 dark:text-zinc-400">{CONSTRAINT_LABELS[code]}</span>
-          <span className="font-semibold text-zinc-700 dark:text-zinc-300">{count}×</span>
+          <span className="text-zinc-600 dark:text-zinc-400">
+            {CONSTRAINT_LABELS[code]}
+          </span>
+          <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+            {count}×
+          </span>
         </div>
       ))}
     </div>
@@ -174,7 +187,8 @@ export function DgOptimizationPanel({
             Nenhuma solução viável encontrada.
           </div>
           <div className="text-[10px] text-zinc-500 dark:text-zinc-400">
-            Candidatos avaliados: {result.totalCandidatesEvaluated} · Viáveis: {result.totalFeasible}
+            Candidatos avaliados: {result.totalCandidatesEvaluated} · Viáveis:{" "}
+            {result.totalFeasible}
           </div>
           {rec && <DiscardReasonList summary={rec.discardReasonSummary} />}
         </div>
@@ -214,7 +228,8 @@ export function DgOptimizationPanel({
 
           {/* Meta: candidatos / descartados */}
           <div className="text-[10px] text-zinc-500 dark:text-zinc-400">
-            {result.totalCandidatesEvaluated} candidatos · {rec?.discardedCount ?? 0} descartados
+            {result.totalCandidatesEvaluated} candidatos ·{" "}
+            {rec?.discardedCount ?? 0} descartados
           </div>
 
           {rec && <DiscardReasonList summary={rec.discardReasonSummary} />}

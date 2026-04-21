@@ -18,7 +18,7 @@ const MOCK_SCENARIO = {
   electricalResult: {
     cqtMaxFraction: 0.05,
     worstTerminalNodeId: "p2",
-    trafoUtilizationFraction: 0.40,
+    trafoUtilizationFraction: 0.4,
     totalCableLengthMeters: 28,
     feasible: true,
   },
@@ -70,17 +70,33 @@ function defaultProps(
 describe("DgOptimizationPanel", () => {
   it("renderiza botão 'OTIMIZAR REDE' quando há postes e transformador", () => {
     render(React.createElement(DgOptimizationPanel, defaultProps()));
-    expect(screen.getByRole("button", { name: /otimizar rede/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /otimizar rede/i }),
+    ).toBeInTheDocument();
   });
 
   it("botão 'OTIMIZAR REDE' está desabilitado quando não há postes", () => {
-    render(React.createElement(DgOptimizationPanel, defaultProps({ hasPoles: false })));
-    expect(screen.getByRole("button", { name: /otimizar rede/i })).toBeDisabled();
+    render(
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ hasPoles: false }),
+      ),
+    );
+    expect(
+      screen.getByRole("button", { name: /otimizar rede/i }),
+    ).toBeDisabled();
   });
 
   it("botão 'OTIMIZAR REDE' está desabilitado quando não há transformador", () => {
-    render(React.createElement(DgOptimizationPanel, defaultProps({ hasTransformer: false })));
-    expect(screen.getByRole("button", { name: /otimizar rede/i })).toBeDisabled();
+    render(
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ hasTransformer: false }),
+      ),
+    );
+    expect(
+      screen.getByRole("button", { name: /otimizar rede/i }),
+    ).toBeDisabled();
   });
 
   it("chama onRun ao clicar em 'OTIMIZAR REDE'", () => {
@@ -91,7 +107,12 @@ describe("DgOptimizationPanel", () => {
   });
 
   it("exibe indicador de carregamento durante otimização", () => {
-    render(React.createElement(DgOptimizationPanel, defaultProps({ isOptimizing: true })));
+    render(
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ isOptimizing: true }),
+      ),
+    );
     expect(screen.getByText(/otimizando/i)).toBeInTheDocument();
   });
 
@@ -106,18 +127,30 @@ describe("DgOptimizationPanel", () => {
   });
 
   it("exibe score e score-bar quando há resultado com recomendação", () => {
-    render(React.createElement(DgOptimizationPanel, defaultProps({ result: MOCK_OUTPUT })));
+    render(
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ result: MOCK_OUTPUT }),
+      ),
+    );
     // Score 82.5 deve aparecer formatado
     expect(screen.getByText(/82/)).toBeInTheDocument();
     // Botões de aceitação devem aparecer
-    expect(screen.getByRole("button", { name: /só trafo/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /aceitar tudo/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /só trafo/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /aceitar tudo/i }),
+    ).toBeInTheDocument();
   });
 
   it("chama onAcceptAll com o bestScenario ao clicar em 'ACEITAR TUDO'", () => {
     const onAcceptAll = vi.fn();
     render(
-      React.createElement(DgOptimizationPanel, defaultProps({ result: MOCK_OUTPUT, onAcceptAll })),
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ result: MOCK_OUTPUT, onAcceptAll }),
+      ),
     );
     fireEvent.click(screen.getByRole("button", { name: /aceitar tudo/i }));
     expect(onAcceptAll).toHaveBeenCalledWith(MOCK_SCENARIO);
@@ -138,14 +171,22 @@ describe("DgOptimizationPanel", () => {
   it("chama onDiscard ao clicar em 'DESCARTAR'", () => {
     const onDiscard = vi.fn();
     render(
-      React.createElement(DgOptimizationPanel, defaultProps({ result: MOCK_OUTPUT, onDiscard })),
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ result: MOCK_OUTPUT, onDiscard }),
+      ),
     );
     fireEvent.click(screen.getByRole("button", { name: /descartar/i }));
     expect(onDiscard).toHaveBeenCalledOnce();
   });
 
   it("exibe motivos de descarte quando discardReasonSummary não está vazio", () => {
-    render(React.createElement(DgOptimizationPanel, defaultProps({ result: MOCK_OUTPUT })));
+    render(
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ result: MOCK_OUTPUT }),
+      ),
+    );
     // MAX_SPAN_EXCEEDED → "Vão máximo excedido"
     expect(screen.getByText(/vão máximo excedido/i)).toBeInTheDocument();
     // CQT_LIMIT_EXCEEDED → "Limite CQT excedido"

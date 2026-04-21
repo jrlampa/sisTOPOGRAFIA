@@ -95,7 +95,10 @@ export interface DgRunState {
  * Converte arestas DG para formato BtEdge.
  * Reutiliza aresta existente (por par de postes) quando possível.
  */
-function dgEdgesToBtEdges(dgEdges: DgScenarioEdge[], existing: BtEdge[]): BtEdge[] {
+function dgEdgesToBtEdges(
+  dgEdges: DgScenarioEdge[],
+  existing: BtEdge[],
+): BtEdge[] {
   const ts = Date.now();
   return dgEdges.map((dge, i) => {
     const reuse = existing.find(
@@ -109,7 +112,13 @@ function dgEdgesToBtEdges(dgEdges: DgScenarioEdge[], existing: BtEdge[]): BtEdge
       fromPoleId: dge.fromPoleId,
       toPoleId: dge.toPoleId,
       lengthMeters: dge.lengthMeters,
-      conductors: [{ id: `dg-cond-${ts}-${i}`, quantity: 1, conductorName: dge.conductorId }],
+      conductors: [
+        {
+          id: `dg-cond-${ts}-${i}`,
+          quantity: 1,
+          conductorName: dge.conductorId,
+        },
+      ],
       edgeChangeFlag: "new" as const,
     };
   });
@@ -159,14 +168,18 @@ export function useDgOptimization() {
       });
 
       if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as { error?: string };
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? `HTTP ${res.status}`);
       }
 
       const result = (await res.json()) as DgOptimizationOutput;
       setState({ isOptimizing: false, result, error: null });
     } catch (err) {
-      setState({ isOptimizing: false, result: null, error: (err as Error).message });
+      setState({
+        isOptimizing: false,
+        result: null,
+        error: (err as Error).message,
+      });
     }
   }, []);
 
