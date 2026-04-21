@@ -1,5 +1,6 @@
 import { logger } from "../utils/logger.js";
 import { getDbClient } from "../repositories/dbClient.js";
+import { onRoleChange } from "./cacheService.js";
 
 export type UserRole = "admin" | "technician" | "viewer" | "guest";
 
@@ -145,6 +146,16 @@ export async function setUserRole(
 
     if (rows && rows.length > 0) {
       clearUserRoleCache(normalizedUserId);
+
+      // Invalidação proativa de cache sensível a permissões após mudança de papel.
+      try {
+        onRoleChange(normalizedUserId);
+      } catch (cacheErr: unknown) {
+        logger.warn("Falha ao invalidar cache após mudança de papel", {
+          userId: normalizedUserId,
+          error: cacheErr instanceof Error ? cacheErr.message : String(cacheErr),
+        });
+      }
 
       logger.info("Papel de usuário atualizado", {
         userId: normalizedUserId,

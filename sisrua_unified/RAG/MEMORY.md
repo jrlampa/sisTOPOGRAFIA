@@ -1644,3 +1644,9 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - Implementado predictiveObservabilityRoutes.ts e registro no pp.ts em /api/observability/*.
 - Endpoints: catálogo de métricas, ingestão, série temporal, stats, anomalias, sinal preditivo e overview consolidado.
 - Testes: server/tests/predictiveObservabilityRoutes.test.ts com 9 testes passando (9/9).
+
+## 📌 Atualização Operacional (2026-04-21) - Segurança e Retenção (T1-74/75/76)
+- **T1-74 (Invalidação Proativa de Cache em Mudanças de Papel):** oleService.setUserRole() passou a acionar onRoleChange(userId) do cacheService após update de role, invalidando chaves por tag/padrão imediatamente.
+- **T1-75 (Encryption at Rest com Master Keys Cliente):** novo ncryptionAtRestService.ts (AES-256-GCM, versionamento/rotação de CMK por cliente) + ncryptionAtRestRoutes.ts em /api/encryption/*.
+- **T1-76 (Time-series Cold Storage para Audit Logs):** novo uditColdStorageService.ts (hot->cold archive por idade, partição mensal, export NDJSON com SHA-256) + uditColdStorageRoutes.ts em /api/audit-cold/*.
+- Testes: oleService.test.ts + cacheInvalidation.test.ts + ncryptionAtRestRoutes.test.ts + uditColdStorageRoutes.test.ts = 53/53 passando.

@@ -17,6 +17,11 @@ jest.mock('../repositories/dbClient', () => ({
     isDbAvailable: () => true,
 }));
 
+const onRoleChangeMock = jest.fn();
+jest.mock('../services/cacheService', () => ({
+    onRoleChange: (userId: string) => onRoleChangeMock(userId),
+}));
+
 import {
     getUserRole,
     setUserRole,
@@ -29,6 +34,7 @@ import {
 describe('RoleService', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        onRoleChangeMock.mockClear();
         clearRoleCache();
     });
 
@@ -156,6 +162,7 @@ describe('RoleService', () => {
             mockSql.mockResolvedValueOnce([{ user_id: 'upd-user', role: 'admin' }]);
             const result = await setUserRole('upd-user', 'admin', 'admin-user', 'promotion');
             expect(result).toBe(true);
+            expect(onRoleChangeMock).toHaveBeenCalledWith('upd-user');
 
             // Cache invalidated: DB queried on next getUserRole
             mockSql.mockResolvedValueOnce([{ user_id: 'upd-user', role: 'admin' }]);
@@ -167,6 +174,7 @@ describe('RoleService', () => {
             mockSql.mockRejectedValueOnce(new Error('Write failed'));
             const result = await setUserRole('err-user', 'admin', 'system');
             expect(result).toBe(false);
+            expect(onRoleChangeMock).not.toHaveBeenCalled();
         });
 
         it('should return false if database returns empty rows', async () => {
