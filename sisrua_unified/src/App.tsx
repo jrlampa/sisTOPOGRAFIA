@@ -22,6 +22,8 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useBtCriticalConfirmations } from "./hooks/useBtCriticalConfirmations";
 import { useBtTelescopicAnalysis } from "./hooks/useBtTelescopicAnalysis";
 import { useMapUrlState } from "./hooks/useMapUrlState";
+import { useDgOptimization } from "./hooks/useDgOptimization";
+import type { DgScenario } from "./hooks/useDgOptimization";
 import { EMPTY_BT_TOPOLOGY } from "./utils/btNormalization";
 import { SidebarBtEditorSection } from "./components/SidebarBtEditorSection";
 import { SidebarAnalysisResults } from "./components/SidebarAnalysisResults";
@@ -368,7 +370,38 @@ function App() {
     clearSuggestions: clearBtTelescopicSuggestions,
   } = useBtTelescopicAnalysis();
 
-  const handleTriggerTelescopicAnalysis = React.useCallback(() => {
+  // Design Generativo – Frente 3 (Frontend)
+  const {
+    isOptimizing: isDgOptimizing,
+    result: dgResult,
+    error: dgError,
+    runDgOptimization,
+    clearDgResult,
+    applyDgAll,
+    applyDgTrafoOnly,
+  } = useDgOptimization();
+
+  const handleRunDgOptimization = React.useCallback(() => {
+    void runDgOptimization(btTopology);
+  }, [runDgOptimization, btTopology]);
+
+  const handleAcceptDgAll = React.useCallback(
+    (scenario: DgScenario) => {
+      updateBtTopology(applyDgAll(btTopology, scenario));
+      clearDgResult();
+      showToast("Solução DG aplicada: trafo + condutores atualizados.", "success");
+    },
+    [applyDgAll, btTopology, updateBtTopology, clearDgResult, showToast],
+  );
+
+  const handleAcceptDgTrafoOnly = React.useCallback(
+    (scenario: DgScenario) => {
+      updateBtTopology(applyDgTrafoOnly(btTopology, scenario));
+      clearDgResult();
+      showToast("Posição do trafo atualizada pelo DG.", "success");
+    },
+    [applyDgTrafoOnly, btTopology, updateBtTopology, clearDgResult, showToast],
+  ); = React.useCallback(() => {
     if (isBtTelescopicAnalyzing) {
       showToast("Análise telescópica já está em execução.", "info");
       return;
@@ -708,6 +741,13 @@ function App() {
     btTransformersDerived,
     requestCriticalConfirmation,
     onTriggerTelescopicAnalysis: handleTriggerTelescopicAnalysis,
+    isDgOptimizing,
+    dgResult,
+    dgError,
+    onRunDgOptimization: handleRunDgOptimization,
+    onAcceptDgAll: handleAcceptDgAll,
+    onAcceptDgTrafoOnly: handleAcceptDgTrafoOnly,
+    onClearDgResult: clearDgResult,
   };
 
   const sidebarAnalysisResultsProps: React.ComponentProps<

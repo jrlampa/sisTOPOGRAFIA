@@ -4,6 +4,8 @@ import {
   FormFieldMessage,
   getValidationInputClassName,
 } from "./FormFieldFeedback";
+import { DgOptimizationPanel } from "./DgOptimizationPanel";
+import type { DgOptimizationOutput, DgScenario } from "../hooks/useDgOptimization";
 import type {
   AppSettings,
   BtEditorMode,
@@ -81,6 +83,14 @@ export interface SidebarBtEditorSectionProps {
   btTransformersDerived: BtTransformerDerived[];
   requestCriticalConfirmation: (config: CriticalConfirmationConfig) => void;
   onTriggerTelescopicAnalysis?: () => void;
+  // Design Generativo (Frente 3)
+  isDgOptimizing?: boolean;
+  dgResult?: DgOptimizationOutput | null;
+  dgError?: string | null;
+  onRunDgOptimization?: () => void;
+  onAcceptDgAll?: (scenario: DgScenario) => void;
+  onAcceptDgTrafoOnly?: (scenario: DgScenario) => void;
+  onClearDgResult?: () => void;
 }
 
 export function SidebarBtEditorSection({
@@ -115,6 +125,13 @@ export function SidebarBtEditorSection({
   btTransformersDerived,
   requestCriticalConfirmation,
   onTriggerTelescopicAnalysis,
+  isDgOptimizing = false,
+  dgResult = null,
+  dgError = null,
+  onRunDgOptimization,
+  onAcceptDgAll,
+  onAcceptDgTrafoOnly,
+  onClearDgResult,
 }: SidebarBtEditorSectionProps) {
   const coordinateValidation = getCoordinateInputFeedback(
     btPoleCoordinateInput,
@@ -315,6 +332,24 @@ export function SidebarBtEditorSection({
           onRequestCriticalConfirmation={requestCriticalConfirmation}
         />
       </Suspense>
+
+      {/* Design Generativo – painel de otimização (Frente 3) */}
+      {onRunDgOptimization && (
+        <>
+          <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
+          <DgOptimizationPanel
+            hasPoles={btTopology.poles.length > 0}
+            hasTransformer={btTopology.transformers.length > 0}
+            isOptimizing={isDgOptimizing}
+            result={dgResult}
+            error={dgError}
+            onRun={onRunDgOptimization}
+            onAcceptAll={onAcceptDgAll ?? (() => undefined)}
+            onAcceptTrafoOnly={onAcceptDgTrafoOnly ?? (() => undefined)}
+            onDiscard={onClearDgResult ?? (() => undefined)}
+          />
+        </>
+      )}
     </>
   );
 }
