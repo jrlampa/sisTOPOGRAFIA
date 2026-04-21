@@ -59,7 +59,9 @@ const mockProvenance = {
 
 describe("GET /api/release/manifest", () => {
   it("retorna manifesto de release com artefatos e assinatura", async () => {
-    (ReleaseIntegrityService.generateManifest as jest.Mock).mockReturnValue(mockManifest);
+    (ReleaseIntegrityService.generateManifest as jest.Mock).mockReturnValue(
+      mockManifest,
+    );
     const res = await request(app).get("/api/release/manifest");
     expect(res.status).toBe(200);
     expect(res.body.version).toBe("0.9.0");
@@ -68,9 +70,11 @@ describe("GET /api/release/manifest", () => {
   });
 
   it("retorna 500 em caso de erro interno", async () => {
-    (ReleaseIntegrityService.generateManifest as jest.Mock).mockImplementation(() => {
-      throw new Error("falha leitura");
-    });
+    (ReleaseIntegrityService.generateManifest as jest.Mock).mockImplementation(
+      () => {
+        throw new Error("falha leitura");
+      },
+    );
     const res = await request(app).get("/api/release/manifest");
     expect(res.status).toBe(500);
     expect(res.body).toHaveProperty("error");
@@ -81,7 +85,9 @@ describe("GET /api/release/manifest", () => {
 
 describe("GET /api/release/provenance", () => {
   it("retorna informações de proveniência do build", async () => {
-    (ReleaseIntegrityService.getBuildProvenance as jest.Mock).mockReturnValue(mockProvenance);
+    (ReleaseIntegrityService.getBuildProvenance as jest.Mock).mockReturnValue(
+      mockProvenance,
+    );
     const res = await request(app).get("/api/release/provenance");
     expect(res.status).toBe(200);
     expect(res.body.version).toBe("0.9.0");
@@ -90,7 +96,9 @@ describe("GET /api/release/provenance", () => {
   });
 
   it("retorna 500 em caso de erro interno", async () => {
-    (ReleaseIntegrityService.getBuildProvenance as jest.Mock).mockImplementation(() => {
+    (
+      ReleaseIntegrityService.getBuildProvenance as jest.Mock
+    ).mockImplementation(() => {
       throw new Error("falha");
     });
     const res = await request(app).get("/api/release/provenance");

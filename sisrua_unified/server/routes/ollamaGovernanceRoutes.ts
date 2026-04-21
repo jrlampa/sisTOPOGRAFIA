@@ -26,7 +26,9 @@ router.get("/report", async (_req: Request, res: Response) => {
     logger.error("[OllamaGovernance] Erro ao gerar relatório de governança", {
       error,
     });
-    res.status(500).json({ error: "Erro interno ao gerar relatório de governança." });
+    res
+      .status(500)
+      .json({ error: "Erro interno ao gerar relatório de governança." });
   }
 });
 

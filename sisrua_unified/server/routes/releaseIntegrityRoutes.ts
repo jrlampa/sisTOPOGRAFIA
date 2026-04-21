@@ -21,7 +21,9 @@ router.get("/manifest", (_req: Request, res: Response) => {
     res.json(manifest);
   } catch (error) {
     logger.error("[ReleaseIntegrity] Erro ao gerar manifesto", { error });
-    res.status(500).json({ error: "Erro interno ao gerar manifesto de release." });
+    res
+      .status(500)
+      .json({ error: "Erro interno ao gerar manifesto de release." });
   }
 });
 
@@ -33,7 +35,9 @@ router.get("/provenance", (_req: Request, res: Response) => {
     res.json(provenance);
   } catch (error) {
     logger.error("[ReleaseIntegrity] Erro ao obter proveniência", { error });
-    res.status(500).json({ error: "Erro interno ao obter proveniência do build." });
+    res
+      .status(500)
+      .json({ error: "Erro interno ao obter proveniência do build." });
   }
 });
 
@@ -63,7 +67,8 @@ router.post("/verify", (req: Request, res: Response) => {
   const parsed = verifyBodySchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
-      error: "Corpo inválido. Forneça 'manifest' conforme o esquema ReleaseManifest.",
+      error:
+        "Corpo inválido. Forneça 'manifest' conforme o esquema ReleaseManifest.",
       detalhe: parsed.error.format(),
     });
     return;

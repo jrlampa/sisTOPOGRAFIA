@@ -392,7 +392,10 @@ function App() {
     (scenario: DgScenario) => {
       updateBtTopology(applyDgAll(btTopology, scenario));
       clearDgResult();
-      showToast("Solução DG aplicada: trafo + condutores atualizados.", "success");
+      showToast(
+        "Solução DG aplicada: trafo + condutores atualizados.",
+        "success",
+      );
     },
     [applyDgAll, btTopology, updateBtTopology, clearDgResult, showToast],
   );

@@ -12,16 +12,34 @@ import React from "react";
 vi.mock("react-leaflet", () => ({
   Pane: ({ children }: { children?: React.ReactNode }) =>
     React.createElement("div", { "data-testid": "leaflet-pane" }, children),
-  Polyline: ({ children, positions }: { children?: React.ReactNode; positions: unknown }) =>
+  Polyline: ({
+    children,
+    positions,
+  }: {
+    children?: React.ReactNode;
+    positions: unknown;
+  }) =>
     React.createElement(
       "div",
-      { "data-testid": "leaflet-polyline", "data-positions": JSON.stringify(positions) },
+      {
+        "data-testid": "leaflet-polyline",
+        "data-positions": JSON.stringify(positions),
+      },
       children,
     ),
-  CircleMarker: ({ children, center }: { children?: React.ReactNode; center: unknown }) =>
+  CircleMarker: ({
+    children,
+    center,
+  }: {
+    children?: React.ReactNode;
+    center: unknown;
+  }) =>
     React.createElement(
       "div",
-      { "data-testid": "leaflet-circlemarker", "data-center": JSON.stringify(center) },
+      {
+        "data-testid": "leaflet-circlemarker",
+        "data-center": JSON.stringify(center),
+      },
       children,
     ),
   Tooltip: ({ children }: { children?: React.ReactNode }) =>

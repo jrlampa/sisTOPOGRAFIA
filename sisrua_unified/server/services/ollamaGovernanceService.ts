@@ -61,7 +61,9 @@ export interface PromptRegressionResult {
 /** Relatório completo de governança. */
 export interface OllamaGovernanceReport {
   generatedAt: string;
-  governanceStatus: Awaited<ReturnType<typeof OllamaService.getGovernanceStatus>>;
+  governanceStatus: Awaited<
+    ReturnType<typeof OllamaService.getGovernanceStatus>
+  >;
   compatibilityMatrix: ModelCompatEntry[];
   activeModel: string;
   homologatedModel: string;
@@ -207,9 +209,7 @@ export class OllamaGovernanceService {
   static getDeprecationAlerts(daysAhead = 30): string[] {
     const alerts: string[] = [];
     const now = new Date();
-    const threshold = new Date(
-      now.getTime() + daysAhead * 24 * 60 * 60 * 1000,
-    );
+    const threshold = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
 
     for (const entry of COMPAT_MATRIX) {
       if (entry.deprecationDate) {
@@ -311,7 +311,9 @@ export class OllamaGovernanceService {
           const data = (await response.json()) as { response?: string };
           const text = data.response ?? "";
           responseSnippet = text.slice(0, 200);
-          passed = text.toLowerCase().includes(testCase.expectedContains.toLowerCase());
+          passed = text
+            .toLowerCase()
+            .includes(testCase.expectedContains.toLowerCase());
         } else {
           error = `HTTP ${response.status}`;
         }

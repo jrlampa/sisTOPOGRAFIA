@@ -218,11 +218,17 @@ describe("DgOptimizationPanel", () => {
       ),
     );
     // Sem alternativas, só o botão "Melhor" não deve aparecer como pill de nav
-    expect(screen.queryByRole("button", { name: /alt\. 1/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /alt\. 1/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("exibe pills de alternativas quando há alternativas disponíveis", () => {
-    const ALT_SCENARIO = { ...MOCK_SCENARIO, scenarioId: "sc-2", objectiveScore: 75.0 };
+    const ALT_SCENARIO = {
+      ...MOCK_SCENARIO,
+      scenarioId: "sc-2",
+      objectiveScore: 75.0,
+    };
     const outputWithAlts = {
       ...MOCK_OUTPUT,
       recommendation: {
@@ -237,11 +243,17 @@ describe("DgOptimizationPanel", () => {
       ),
     );
     expect(screen.getByRole("button", { name: /melhor/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /alt\. 1/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /alt\. 1/i }),
+    ).toBeInTheDocument();
   });
 
   it("chama onSetActiveAltIndex(0) ao clicar em 'Alt. 1'", () => {
-    const ALT_SCENARIO = { ...MOCK_SCENARIO, scenarioId: "sc-2", objectiveScore: 75.0 };
+    const ALT_SCENARIO = {
+      ...MOCK_SCENARIO,
+      scenarioId: "sc-2",
+      objectiveScore: 75.0,
+    };
     const outputWithAlts = {
       ...MOCK_OUTPUT,
       recommendation: {
@@ -261,7 +273,11 @@ describe("DgOptimizationPanel", () => {
   });
 
   it("chama onSetActiveAltIndex(-1) ao clicar em 'Melhor'", () => {
-    const ALT_SCENARIO = { ...MOCK_SCENARIO, scenarioId: "sc-2", objectiveScore: 75.0 };
+    const ALT_SCENARIO = {
+      ...MOCK_SCENARIO,
+      scenarioId: "sc-2",
+      objectiveScore: 75.0,
+    };
     const outputWithAlts = {
       ...MOCK_OUTPUT,
       recommendation: {
@@ -273,7 +289,11 @@ describe("DgOptimizationPanel", () => {
     render(
       React.createElement(
         DgOptimizationPanel,
-        defaultProps({ result: outputWithAlts, activeAltIndex: 0, onSetActiveAltIndex }),
+        defaultProps({
+          result: outputWithAlts,
+          activeAltIndex: 0,
+          onSetActiveAltIndex,
+        }),
       ),
     );
     fireEvent.click(screen.getByRole("button", { name: /melhor/i }));
@@ -281,7 +301,11 @@ describe("DgOptimizationPanel", () => {
   });
 
   it("exibe score da alternativa selecionada quando activeAltIndex >= 0", () => {
-    const ALT_SCENARIO = { ...MOCK_SCENARIO, scenarioId: "sc-2", objectiveScore: 75.0 };
+    const ALT_SCENARIO = {
+      ...MOCK_SCENARIO,
+      scenarioId: "sc-2",
+      objectiveScore: 75.0,
+    };
     const outputWithAlts = {
       ...MOCK_OUTPUT,
       recommendation: {

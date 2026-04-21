@@ -73,9 +73,7 @@ const MapSelectorDgOverlay: React.FC<MapSelectorDgOverlayProps> = ({
           }}
         >
           <Tooltip sticky>
-            <span className="text-[11px]">
-              DG: {edge.lengthM.toFixed(0)} m
-            </span>
+            <span className="text-[11px]">DG: {edge.lengthM.toFixed(0)} m</span>
           </Tooltip>
         </Polyline>
       ))}

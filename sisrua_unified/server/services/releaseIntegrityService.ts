@@ -81,7 +81,9 @@ const CRITICAL_ARTIFACTS_RELATIVE = [
  * Calcula SHA-256 de um arquivo.
  * Retorna null se o arquivo não existir.
  */
-function sha256OfFile(filePath: string): { hash: string; sizeBytes: number } | null {
+function sha256OfFile(
+  filePath: string,
+): { hash: string; sizeBytes: number } | null {
   try {
     const content = fs.readFileSync(filePath);
     const hash = crypto.createHash("sha256").update(content).digest("hex");
@@ -221,7 +223,11 @@ export class ReleaseIntegrityService {
    * Assina um manifesto com HMAC-SHA-256.
    * Serializa o manifesto sem o campo 'signature' antes de assinar.
    */
-  static signManifest(manifest: Omit<ReleaseManifest, "signature"> & { signature?: string | null }): string {
+  static signManifest(
+    manifest: Omit<ReleaseManifest, "signature"> & {
+      signature?: string | null;
+    },
+  ): string {
     const projectRoot = resolveProjectRoot();
     const key = getSigningKey(projectRoot);
     const { signature: _ignored, ...rest } = manifest;
@@ -252,7 +258,10 @@ export class ReleaseIntegrityService {
       const match = crypto.timingSafeEqual(expectedBuf, receivedBuf);
       return match
         ? { valid: true, reason: "Assinatura verificada com sucesso." }
-        : { valid: false, reason: "Assinatura inválida — possível adulteração." };
+        : {
+            valid: false,
+            reason: "Assinatura inválida — possível adulteração.",
+          };
     } catch (e) {
       logger.error("[ReleaseIntegrity] Erro na verificação de assinatura", {
         error: e,

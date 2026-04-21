@@ -67,7 +67,7 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
               position={[pole.lat, pole.lng]}
               icon={makeMtPoleIcon(pole)}
               zIndexOffset={1300}
-              draggable={true}
+              draggable={mtEditorMode !== "mt-add-edge"}
               eventHandlers={{
                 click: () => {
                   if (mtEditorMode === "mt-add-edge" && onMtMapClick) {

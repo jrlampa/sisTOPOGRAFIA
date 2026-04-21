@@ -152,7 +152,10 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
               position={[pole.lat, pole.lng]}
               icon={makePoleIcon(pole.id, !!pole.verified)}
               zIndexOffset={1200}
-              draggable={true}
+              draggable={
+                btEditorMode !== "add-edge" &&
+                btEditorMode !== "add-transformer"
+              }
               eventHandlers={{
                 click: () => {
                   if (
