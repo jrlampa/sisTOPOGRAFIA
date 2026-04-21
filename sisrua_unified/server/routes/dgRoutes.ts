@@ -8,10 +8,20 @@
  * Feature flag: DG_ENABLED (env var, default true em dev).
  */
 
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { logger } from "../utils/logger.js";
 import { runDgOptimization } from "../services/dgOptimizationService.js";
+import { permissionHandler } from "../middleware/permissionHandler";
+import { schemaValidator } from "../middleware/schemaValidator";
+import {
+  validateBufferZone,
+  validateMultiplePoints,
+} from "../services/dgBufferValidationService";
+import {
+  validateBufferZoneRequestSchema,
+  validateMultiplePointsRequestSchema,
+} from "../schemas/dgBufferValidation";
 
 const router = Router();
 
@@ -139,5 +149,134 @@ router.get("/runs/:id/recommendation", (req: Request, res: Response) => {
       "Persistência de runs DG ainda não implementada. Use POST /optimize.",
   });
 });
+
+// ─── BUFFER ZONE VALIDATION ROUTES ────────────────────────────────────────────
+
+/**
+ * POST /api/dg/validate-buffer-zone
+ * Validate a single candidate point against street buffer zones and buildings
+ */
+router.post(
+  "/validate-buffer-zone",
+  permissionHandler(["READ_DESIGN_GENERATIVO"]),
+  schemaValidator(validateBufferZoneRequestSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const request = req.body;
+
+      logger.info("Buffer zone validation requested", {
+        userId: res.locals.userId,
+        tenantId: res.locals.tenantId,
+        pointLat: request.candidatePoint.latitude,
+        pointLon: request.candidatePoint.longitude,
+        streetPolylineCount: request.streetPolylines.length,
+        buildingCount: request.buildingFootprints?.length || 0,
+      });
+
+      const result = await validateBufferZone(request);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        metadata: {
+          processedAt: new Date().toISOString(),
+          userId: res.locals.userId,
+        },
+      });
+    } catch (error) {
+      logger.error("Error in buffer zone validation endpoint", { error });
+      next(error);
+    }
+  }
+);
+
+/**
+ * POST /api/dg/validate-batch
+ * Validate multiple candidate points in batch
+ */
+router.post(
+  "/validate-batch",
+  permissionHandler(["READ_DESIGN_GENERATIVO"]),
+  schemaValidator(validateMultiplePointsRequestSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const request = req.body;
+
+      logger.info("Batch buffer validation requested", {
+        userId: res.locals.userId,
+        tenantId: res.locals.tenantId,
+        pointCount: request.candidatePoints.length,
+        streetPolylineCount: request.streetPolylines.length,
+        buildingCount: request.buildingFootprints?.length || 0,
+      });
+
+      const result = await validateMultiplePoints(request);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        metadata: {
+          processedAt: new Date().toISOString(),
+          userId: res.locals.userId,
+          acceptanceRatePercent: `${(result.acceptanceRate * 100).toFixed(
+            1
+          )}%`,
+        },
+      });
+    } catch (error) {
+      logger.error("Error in batch buffer validation endpoint", { error });
+      next(error);
+    }
+  }
+);
+
+/**
+ * GET /api/dg/buffer-config
+ * Get recommended buffer configurations by street type
+ */
+router.get(
+  "/buffer-config",
+  permissionHandler(["READ_DESIGN_GENERATIVO"]),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const bufferConfigurations = {
+        primary_curb: {
+          type: "primary",
+          minMeters: 0.3,
+          maxMeters: 0.5,
+          description: "Preferred: 0.3-0.5m from street curb edge",
+          applicability: "When precise curb data is available from INDE",
+        },
+        fallback_centerline: {
+          type: "fallback",
+          minMeters: 0.5,
+          maxMeters: 2.0,
+          description: "Fallback: 0.5-2.0m from street centerline",
+          applicability: "When only OSM centerline data is available",
+        },
+        strict_constraint: {
+          type: "primary",
+          minMeters: 0.2,
+          maxMeters: 0.3,
+          description: "Strict: 0.2-0.3m from curb (high precision)",
+          applicability: "Urban dense areas with precise requirements",
+        },
+      };
+
+      res.status(200).json({
+        success: true,
+        data: bufferConfigurations,
+        metadata: {
+          standardApproach: "primary_curb",
+          fallbackApproach: "fallback_centerline",
+          specification: "DG_IMPLEMENTATION_ADDENDUM_2026.md",
+        },
+      });
+    } catch (error) {
+      logger.error("Error in buffer config endpoint", { error });
+      next(error);
+    }
+  }
+);
 
 export default router;
