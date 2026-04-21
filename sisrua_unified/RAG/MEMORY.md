@@ -1638,3 +1638,9 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - Cobertura funcional: SBOM (inventário NPM/Python), npm audit, secret scanning com entropia, SAST findings/report e policy gates bloqueantes de release.
 - Endpoints: /api/supply-chain/sbom*, /api/supply-chain/npm-audit*, /api/supply-chain/secrets*, /api/supply-chain/sast*, /api/supply-chain/policy-gates*.
 - Testes: server/tests/supplyChainRoutes.test.ts com 20 testes passando (20/20).
+
+## 📌 Atualização Operacional (2026-04-21) - Observabilidade Preditiva (T1-18)
+- Implementado predictiveObservabilityService.ts com buffer circular por métrica, estatísticas p50/p95/p99, detecção de anomalias por z-score e sinal preditivo de tendência/risco.
+- Implementado predictiveObservabilityRoutes.ts e registro no pp.ts em /api/observability/*.
+- Endpoints: catálogo de métricas, ingestão, série temporal, stats, anomalias, sinal preditivo e overview consolidado.
+- Testes: server/tests/predictiveObservabilityRoutes.test.ts com 9 testes passando (9/9).
