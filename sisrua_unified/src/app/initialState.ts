@@ -1,8 +1,20 @@
 import { GlobalState } from "../types";
+import type { AppTheme } from "../types";
 import { DEFAULT_LOCATION } from "../constants";
 import { EMPTY_BT_TOPOLOGY } from "../utils/btNormalization";
 import { EMPTY_MT_TOPOLOGY } from "../utils/mtNormalization";
 import { loadPersistedAppSettings } from "../utils/preferencesPersistence";
+
+/** Detecta o esquema de cores preferido do sistema operacional. */
+function detectSystemTheme(): AppTheme {
+  try {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  } catch {
+    return "light";
+  }
+}
 
 const DEFAULT_APP_STATE: GlobalState = {
   center: DEFAULT_LOCATION,
@@ -16,7 +28,7 @@ const DEFAULT_APP_STATE: GlobalState = {
     orthogonalize: true,
     contourRenderMode: "spline",
     projection: "utm",
-    theme: "light",
+    theme: detectSystemTheme(),
     mapProvider: "vector",
     contourInterval: 5,
     projectType: "ramais",

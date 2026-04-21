@@ -21,6 +21,7 @@ import { useAppAnalysisWorkflow } from "./hooks/useAppAnalysisWorkflow";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useBtCriticalConfirmations } from "./hooks/useBtCriticalConfirmations";
 import { useBtTelescopicAnalysis } from "./hooks/useBtTelescopicAnalysis";
+import { useMapUrlState } from "./hooks/useMapUrlState";
 import { EMPTY_BT_TOPOLOGY } from "./utils/btNormalization";
 import { SidebarBtEditorSection } from "./components/SidebarBtEditorSection";
 import { SidebarAnalysisResults } from "./components/SidebarAnalysisResults";
@@ -134,6 +135,9 @@ function App() {
     clearProfile,
   });
 
+  // Sincroniza centro, raio e modo de seleção com os query params da URL.
+  useMapUrlState({ appState, setAppState });
+
   const previousTransformerCountRef = React.useRef(
     btTopology.transformers.length,
   );
@@ -176,6 +180,25 @@ function App() {
       document.documentElement.classList.remove("dark");
     }
   }, [isDark]);
+
+  // Escuta mudanças no esquema de cores do sistema operacional.
+  // Só aplica se o tema atual ainda coincide com o sistema (usuário não divergiu manualmente).
+  React.useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = (e: MediaQueryListEvent) => {
+      const systemTheme = e.matches ? "dark" : "light";
+      // Só segue o sistema se o tema atual já estava seguindo-o
+      setAppState(
+        { ...appState, settings: { ...settings, theme: systemTheme } },
+        false,
+      );
+    };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+    // Intencionalmente sem appState/settings nas deps: o listener não deve reagir
+    // a mudanças manuais do usuário — apenas a eventos do sistema.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setAppState]);
 
   const {
     latestBtExport,
