@@ -15,13 +15,15 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - Fluxo de experimentação inicial autorizado em branch dedicada: `feat/dg-implementation-pilot`.
 - Regra de integração: estabilizar contratos e promover para `dev` via PR.
 
-### Atualização Operacional (2026-04-21) - DG Frente 3 (Frontend) Concluída
+### Atualização Operacional (2026-04-21) - DG Sprint 3 (Frontend) Concluída
 
-- Hook criado e integrado: `src/hooks/useDgOptimization.ts` (execução `POST /api/dg/optimize`, limpeza de resultado e aplicação parcial/total no `BtTopology`).
-- Painel DG criado e integrado: `src/components/DgOptimizationPanel.tsx` + wiring no fluxo BT em `src/components/SidebarBtEditorSection.tsx` e `src/App.tsx`.
-- Aceite parcial implementado no fluxo de operação: "Só trafo" e "Aceitar tudo" com persistência pela topologia ativa.
-- Validação concluída com suíte completa: backend (Jest), frontend (Vitest + cobertura) e smoke E2E (Playwright).
-- Entrega promovida para `dev` com commit `4518839`.
+- MapSelectorDgOverlay criado: camada Leaflet com polylines violet tracejadas e CircleMarker para trafo DG sugerido.
+- useDgOptimization: `activeAltIndex` / `setActiveAltIndex` / `activeScenario` — navega entre melhor e alternativas sem novo request.
+- DgOptimizationPanel: pills de navegação "Melhor" / "Alt. 1..N" com score-bar e botões de aceite por cenário ativo.
+- SidebarBtEditorSection + App.tsx: wiring completo das novas props DG.
+- Bug corrigido: `handleTriggerTelescopicAnalysis` declaração `const` ausente em App.tsx.
+- Commit `968b495`. 375/375 testes passando (Vitest frontend).
+- DG Addendum Sprint 1+2+3 concluídos. Todas as frentes do Design Generativo entregues.
 
 ---
 

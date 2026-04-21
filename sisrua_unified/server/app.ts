@@ -59,6 +59,8 @@ import lgpdResidenciaRoutes from "./routes/lgpdResidenciaRoutes.js";
 import sreRoutes from "./routes/sreRoutes.js";
 import rastreabilidadeRoutes from "./routes/rastreabilidadeRoutes.js";
 import licitacoesRoutes from "./routes/licitacoesRoutes.js";
+import ollamaGovernanceRoutes from "./routes/ollamaGovernanceRoutes.js";
+import releaseIntegrityRoutes from "./routes/releaseIntegrityRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -259,6 +261,8 @@ app.use("/api/lgpd/residencia", lgpdResidenciaRoutes);
 app.use("/api/sre", sreRoutes);
 app.use("/api/rastreabilidade", rastreabilidadeRoutes);
 app.use("/api/licitacoes", licitacoesRoutes);
+app.use("/api/ollama/governance", ollamaGovernanceRoutes);
+app.use("/api/release", releaseIntegrityRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
