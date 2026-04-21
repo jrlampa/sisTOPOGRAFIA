@@ -1634,19 +1634,26 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - Cobertura de Branches (`BT Core`): 86.58% ✅
 
 ## 📌 Atualização Operacional (2026-04-21) - Supply Chain Security & Integridade (T1-15)
-- Implementado backend de Supply Chain Security com supplyChainService.ts + supplyChainRoutes.ts e registro no pp.ts.
+- Implementado backend de Supply Chain Security com supplyChainService.ts + supplyChainRoutes.ts e registro no app.ts.
 - Cobertura funcional: SBOM (inventário NPM/Python), npm audit, secret scanning com entropia, SAST findings/report e policy gates bloqueantes de release.
 - Endpoints: /api/supply-chain/sbom*, /api/supply-chain/npm-audit*, /api/supply-chain/secrets*, /api/supply-chain/sast*, /api/supply-chain/policy-gates*.
 - Testes: server/tests/supplyChainRoutes.test.ts com 20 testes passando (20/20).
 
 ## 📌 Atualização Operacional (2026-04-21) - Observabilidade Preditiva (T1-18)
 - Implementado predictiveObservabilityService.ts com buffer circular por métrica, estatísticas p50/p95/p99, detecção de anomalias por z-score e sinal preditivo de tendência/risco.
-- Implementado predictiveObservabilityRoutes.ts e registro no pp.ts em /api/observability/*.
+- Implementado predictiveObservabilityRoutes.ts e registro no app.ts em /api/observability/*.
 - Endpoints: catálogo de métricas, ingestão, série temporal, stats, anomalias, sinal preditivo e overview consolidado.
 - Testes: server/tests/predictiveObservabilityRoutes.test.ts com 9 testes passando (9/9).
 
 ## 📌 Atualização Operacional (2026-04-21) - Segurança e Retenção (T1-74/75/76)
-- **T1-74 (Invalidação Proativa de Cache em Mudanças de Papel):** oleService.setUserRole() passou a acionar onRoleChange(userId) do cacheService após update de role, invalidando chaves por tag/padrão imediatamente.
-- **T1-75 (Encryption at Rest com Master Keys Cliente):** novo ncryptionAtRestService.ts (AES-256-GCM, versionamento/rotação de CMK por cliente) + ncryptionAtRestRoutes.ts em /api/encryption/*.
-- **T1-76 (Time-series Cold Storage para Audit Logs):** novo uditColdStorageService.ts (hot->cold archive por idade, partição mensal, export NDJSON com SHA-256) + uditColdStorageRoutes.ts em /api/audit-cold/*.
-- Testes: oleService.test.ts + cacheInvalidation.test.ts + ncryptionAtRestRoutes.test.ts + uditColdStorageRoutes.test.ts = 53/53 passando.
+- T1-74 (Invalidação Proativa de Cache em Mudanças de Papel): roleService.setUserRole() passou a acionar onRoleChange(userId) do cacheService após update de role, invalidando chaves por tag/padrão imediatamente.
+- T1-75 (Encryption at Rest com Master Keys Cliente): novo encryptionAtRestService.ts (AES-256-GCM, versionamento/rotação de CMK por cliente) + encryptionAtRestRoutes.ts em /api/encryption/*.
+- T1-76 (Time-series Cold Storage para Audit Logs): novo auditColdStorageService.ts (hot->cold archive por idade, partição mensal, export NDJSON com SHA-256) + auditColdStorageRoutes.ts em /api/audit-cold/*.
+- Testes: roleService.test.ts + cacheInvalidation.test.ts + encryptionAtRestRoutes.test.ts + auditColdStorageRoutes.test.ts = 53/53 passando.
+
+## 📌 Atualização Operacional (2026-04-21) - Promotion Controlado Multiambiente (T1-20)
+- Implementado environmentPromotionService.ts com fluxo de promoção sequencial dev -> homolog -> preprod -> prod e bloqueio de saltos inválidos.
+- Policy gates obrigatórios por promoção: testsPassed, securityGatePassed e observabilityGatePassed.
+- Implementado environmentPromotionRoutes.ts e registro no app.ts em /api/promotion/*.
+- Endpoints: registro/listagem de builds, promoção, histórico e pipeline por ambiente.
+- Testes: server/tests/environmentPromotionRoutes.test.ts com 9 testes passando (9/9).

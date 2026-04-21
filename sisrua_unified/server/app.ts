@@ -71,6 +71,7 @@ import supplyChainRoutes from "./routes/supplyChainRoutes.js";
 import predictiveObservabilityRoutes from "./routes/predictiveObservabilityRoutes.js";
 import encryptionAtRestRoutes from "./routes/encryptionAtRestRoutes.js";
 import auditColdStorageRoutes from "./routes/auditColdStorageRoutes.js";
+import environmentPromotionRoutes from "./routes/environmentPromotionRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -283,6 +284,7 @@ app.use("/api/supply-chain", supplyChainRoutes);
 app.use("/api/observability", predictiveObservabilityRoutes);
 app.use("/api/encryption", encryptionAtRestRoutes);
 app.use("/api/audit-cold", auditColdStorageRoutes);
+app.use("/api/promotion", environmentPromotionRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
