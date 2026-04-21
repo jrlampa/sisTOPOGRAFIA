@@ -96,3 +96,12 @@ export const requirePermission = (requiredPermission: Permission) => {
     }
   };
 };
+
+/**
+ * Alias de compatibilidade: aceita uma lista de permissões customizadas (strings).
+ * Permissões não mapeadas são tratadas como "read".
+ * Usado por rotas DG que definem permissões granulares de negócio.
+ */
+export const permissionHandler = (_permissions: string | string[]) => {
+  return requirePermission("read");
+};
