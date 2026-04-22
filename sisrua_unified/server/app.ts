@@ -72,6 +72,12 @@ import predictiveObservabilityRoutes from "./routes/predictiveObservabilityRoute
 import encryptionAtRestRoutes from "./routes/encryptionAtRestRoutes.js";
 import auditColdStorageRoutes from "./routes/auditColdStorageRoutes.js";
 import environmentPromotionRoutes from "./routes/environmentPromotionRoutes.js";
+import tenantAuditExportRoutes from "./routes/tenantAuditExportRoutes.js";
+import zeroTrustRoutes from "./routes/zeroTrustRoutes.js";
+import blueGreenRoutes from "./routes/blueGreenRoutes.js";
+import pentestRoutes from "./routes/pentestRoutes.js";
+import bcpDrRoutes from "./routes/bcpDrRoutes.js";
+import complianceRoutes from "./routes/complianceRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -285,6 +291,12 @@ app.use("/api/observability", predictiveObservabilityRoutes);
 app.use("/api/encryption", encryptionAtRestRoutes);
 app.use("/api/audit-cold", auditColdStorageRoutes);
 app.use("/api/promotion", environmentPromotionRoutes);
+app.use("/api/tenant-audit", tenantAuditExportRoutes);
+app.use("/api/zero-trust", zeroTrustRoutes);
+app.use("/api/blue-green", blueGreenRoutes);
+app.use("/api/pentest", pentestRoutes);
+app.use("/api/bcp-dr", bcpDrRoutes);
+app.use("/api/compliance", complianceRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
