@@ -1270,6 +1270,60 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - `server/services/esgAmbientalService.ts` — GHG Protocol escopos 1/2/3; 8 FATORES_EMISSAO (IPCC AR6/CETESB 2023); ISO 14001 checklist 10 cláusulas; Score ESG = 40%×emissoes + 30%×ISO14001 + 30%×indicadores; classificação A(≥80)/B(≥60)/C(≥40)/D(<40)
 - Nota: `poste_madeira_eucalipto` = **-120 kg CO2eq/un** (sequestro de carbono)
 - FE SIN Brasil 2023: energia_eletrica_grid = 0.0728 kg CO2eq/kWh
+
+## 📌 Atualização Operacional (2026-04-22) - T2 ESG/Fundiário/Auditoria (Items 46/47/55/70)
+
+### T2-46 — Inventário de Vegetação Simulado
+
+- `server/services/vegetacaoInventarioService.ts` — Estimativa de supressão vegetal por tipologia fitogeográfica brasileira
+- Tipologias: floresta_amazonica(250m³/ha), floresta_atlantica(200), cerrado(80), mata_ciliar(150), vegetacao_secundaria(60), campo_cerrado(20)
+- Status de conservação + fator de compensação: primaria(3x), secundaria_avancada(2x), secundaria_inicial(1.5x), degradada(1x)
+- Conversão: biomassaTon = volume×0.5 (densidade madeira); carbonoToC = biomassa×0.47 (IPCC)
+- Referências: CONAMA 369/2006, Lei 11.428/2006 (Mata Atlântica), IBGE/MapBiomas
+- Métodos: `criarInventario`, `listarInventarios`, `obterInventario`, `adicionarUnidade`, `calcularSupressao`, `aprovarInventario`, `listarTipologias`
+- IDs: `inv-N`, `uveg-N`
+- `server/routes/vegetacaoInventarioRoutes.ts` — `/api/vegetacao-inventario/*`
+- `server/tests/vegetacaoInventarioRoutes.test.ts` — 15 testes
+
+### T2-47 — Calculadora de Créditos de Carbono
+
+- `server/services/creditosCarbonoService.ts` — Quantificação de créditos de carbono por ação de otimização de rede
+- FATORES_REDUCAO (tCO2eq/unidade): trocar_luminaria_convencional_led=0.20/luminária, reducao_perdas_rede=0.0728/MWh, substituicao_veiculo_diesel=0.00268/km, plantio_compensatorio_arvores=0.02/árvore, reflorestamento_ha=8.5/ha
+- Preço referencial mercado voluntário Brasil 2023: R$80/tCO2eq
+- Referências: VCS Verra (AMS-II.L, AM0046), REDD+, CETESB 2023, FE SIN ONS 2023
+- Métodos: `criarCalculo`, `listarCalculos`, `obterCalculo`, `adicionarAcao`, `calcular`, `emitirCertificado`, `listarTiposAcao`
+- IDs: `cc-N`, `acao-N`; status: rascunho→calculado→certificado
+- `server/routes/creditosCarbonoRoutes.ts` — `/api/creditos-carbono/*`
+- `server/tests/creditosCarbonoRoutes.test.ts` — 16 testes
+
+### T2-55 — Gestão de Servidões e Memoriais Fundiários
+
+- `server/services/servidoesFundiariosService.ts` — Geração automatizada de memoriais descritivos e cartas de anuência
+- Coordenadas em WGS84/SIRGAS 2000; formatação automática em DMS (graus, minutos, segundos)
+- Template memorial: "MEMORIAL DESCRITIVO DE SERVIDÃO DE PASSAGEM" com vértices em DMS, matrícula, proprietário, área
+- Template carta de anuência: "CARTA DE ANUÊNCIA — SERVIDÃO DE PASSAGEM" por imóvel
+- Referências: NBR 14166:1998, SIRGAS 2000 (EPSG:4674), CC/2002 art.1378-1389, Resolução ANEEL 414/2010
+- Métodos: `criarProcesso`, `listarProcessos`, `obterProcesso`, `adicionarImovel`, `gerarMemorial`, `emitirCartasAnuencia`, `aprovarProcesso`
+- IDs: `srv-N`, `imovel-N`; status: rascunho→memorial_gerado→carta_enviada→aprovado→registrado
+- `server/routes/servidoesFundiariosRoutes.ts` — `/api/servidoes-fundiarios/*`
+- `server/tests/servidoesFundiariosRoutes.test.ts` — 16 testes
+
+### T2-70 — Investor Audit Reporting
+
+- `server/services/investorAuditService.ts` — Relatórios de Saúde Técnica para Due Diligence
+- Dimensões (pesos fixos): confiabilidade_sistema(0.30), conformidade_regulatoria(0.30), qualidade_dados(0.20), saude_financeira(0.20)
+- Score por dimensão: média ponderada das métricas; Score geral: soma ponderada por dimensão (normalizado por pesos usados)
+- Classificação: Excelente(≥85), Bom(≥70), Regular(≥50), Ruim(<50)
+- Riscos com nível: baixo/medio/alto/critico; contagem por nível inclusa no resultado
+- SHA-256 hashIntegridade nos resultados calculados
+- Referências: IEC 62443, ISO/IEC 27001, NBR ISO 55001, ANEEL 1000/2021
+- Métodos: `criarRelatorio`, `listarRelatorios`, `obterRelatorio`, `adicionarMetrica`, `adicionarRisco`, `calcularScore`, `publicarRelatorio`, `listarDimensoes`
+- IDs: `audit-N`, `met-N`, `risco-N`; status: rascunho→calculado→publicado
+- `server/routes/investorAuditRoutes.ts` — `/api/investor-audit/*`
+- `server/tests/investorAuditRoutes.test.ts` — 14 testes
+
+### Commit
+- Hash: `206837b` — 61 testes passando, branch `dev`, pushed to `origin/dev`
 - Métodos: `criarRelatorio`, `listarRelatorios`, `obterRelatorio`, `adicionarEmissoes`, `atualizarIndicadores`, `atualizarChecklist`, `calcularRelatorio`, `publicarRelatorio`, `listarFatoresEmissao`
 - IDs: `esg-N`
 - `server/routes/esgAmbientalRoutes.ts` — `/api/esg-ambiental/*`: POST/GET /relatorios, GET /relatorios/:id, POST /relatorios/:id/emissoes, PUT /relatorios/:id/indicadores, PATCH /relatorios/:id/checklist, POST /relatorios/:id/calcular, POST /relatorios/:id/publicar, GET /fatores-emissao
