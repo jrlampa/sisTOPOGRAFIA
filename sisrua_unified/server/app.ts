@@ -78,6 +78,10 @@ import blueGreenRoutes from "./routes/blueGreenRoutes.js";
 import pentestRoutes from "./routes/pentestRoutes.js";
 import bcpDrRoutes from "./routes/bcpDrRoutes.js";
 import complianceRoutes from "./routes/complianceRoutes.js";
+import identityLifecycleRoutes from "./routes/identityLifecycleRoutes.js";
+import multiTenantIsolationRoutes from "./routes/multiTenantIsolationRoutes.js";
+import jobIdempotencyRoutes from "./routes/jobIdempotencyRoutes.js";
+import operationalRunbookRoutes from "./routes/operationalRunbookRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -297,6 +301,10 @@ app.use("/api/blue-green", blueGreenRoutes);
 app.use("/api/pentest", pentestRoutes);
 app.use("/api/bcp-dr", bcpDrRoutes);
 app.use("/api/compliance", complianceRoutes);
+app.use("/api/identity", identityLifecycleRoutes);
+app.use("/api/tenant-isolation", multiTenantIsolationRoutes);
+app.use("/api/idempotency", jobIdempotencyRoutes);
+app.use("/api/runbooks", operationalRunbookRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
