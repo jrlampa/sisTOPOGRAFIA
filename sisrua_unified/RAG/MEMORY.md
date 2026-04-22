@@ -242,6 +242,30 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ---
 
+## ✅ Atualização Operacional (2026-04-22) - Lote T2-102/104/106 Concluído
+
+- **T2-102 — Certificação de Proveniência Forense**
+  - `provenienciaForenseService.ts` + `provenienciaForenseRoutes.ts`
+  - Ciclo completo de dossiê: artefatos SHA-256, selo temporal RFC3161, assinatura ICP-Brasil, verificação de integridade e revogação.
+- **T2-104 — Assinatura Digital em Nuvem**
+  - `assinaturaNuvemService.ts` + `assinaturaNuvemRoutes.ts`
+  - Lotes multi-documento com fluxo preparado/enviado/assinado/falha/cancelado e provedores BirdID/SafeID.
+- **T2-106 — GIS Hardening (mTLS + Vault/HSM)**
+  - `gisHardeningService.ts` + `gisHardeningRoutes.ts`
+  - Perfis por ambiente, validação de handshake mTLS, eventos de segurança auditáveis e rotação de segredos.
+- **Integração no backend**
+  - Registro das 3 rotas em `server/app.ts`:
+    - `/api/proveniencia-forense`
+    - `/api/assinatura-nuvem`
+    - `/api/gis-hardening`
+- **Qualidade**
+  - Novas suítes: `provenienciaForenseRoutes.test.ts`, `assinaturaNuvemRoutes.test.ts`, `gisHardeningRoutes.test.ts`.
+  - Resultado validado: **20/20 testes passando**.
+- **Versionamento**
+  - Commit: `79389bc`.
+
+---
+
 ## 📝 Commits Recentes
 
 - `ecf3743` - fix: Geração DXF assíncrona em modo desenvolvimento
