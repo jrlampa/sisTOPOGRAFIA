@@ -1598,6 +1598,49 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 
 ---
 
+### T2-59 — Motor Least-Cost Path (LCP)
+
+- `server/services/lcpService.ts` — sugestão algorítmica de traçado de menor custo geográfico/técnico
+- Modelagem: `ProjetoLcp`, `SegmentoLcp`, `ResultadoLcp`
+- Cálculo com custo por tipo de território e distância geodésica simplificada
+- Status: `rascunho -> calculado -> aprovado`
+- Hash SHA-256 de integridade no cálculo (`hashCalculo`)
+- `server/routes/lcpRoutes.ts` — `/api/lcp/*`
+- `server/tests/lcpRoutes.test.ts`
+
+### T2-60 — Verificação NBR 9050 Automática
+
+- `server/services/nbr9050Service.ts` — análise de conformidade urbana por critérios NBR 9050
+- Critérios cobertos: largura de faixa livre, rampa, piso tátil, inclinações, sinalização e mobiliário
+- Score de conformidade (%) e status final `aprovado/reprovado`
+- Hash SHA-256 de análise (`hashAnalise`)
+- `server/routes/nbr9050Routes.ts` — `/api/nbr9050/*`
+- `server/tests/nbr9050Routes.test.ts`
+
+### T2-61 — Análise de Sombreamento 2.5D
+
+- `server/services/sombreamento2D5Service.ts` — simulação solar horária (24h) com eficiência e impacto
+- Resultado: horas em sombra, horas expostas, eficiência %, nível de impacto e perfis horários
+- Status: `pendente -> calculado -> aprovado`
+- Hash SHA-256 no resultado (`hashCalculo`)
+- `server/routes/sombreamento2D5Routes.ts` — `/api/sombreamento/*`
+- `server/tests/sombreamento2D5Routes.test.ts`
+
+### T2-108 — Verificador NBR 9050 (Calçadas)
+
+- `server/services/nbrCalcadasService.ts` — validação automática de faixa livre em calçadas
+- Regras por tipo de via: `local | coletora | arterial | expressa`
+- Score com penalidades por largura insuficiente e interferência de obstáculos
+- Status: `pendente -> conforme/nao_conforme`
+- Hash SHA-256 de análise (`hashAnalise`)
+- `server/routes/nbrCalcadasRoutes.ts` — `/api/nbr-calcadas/*`
+- `server/tests/nbrCalcadasRoutes.test.ts`
+
+### Commit
+- Hash: `bbe3023` — 43 testes passando (4 novas suites), branch `dev`, pushed to `origin/dev`
+
+---
+
 ## 📌 Atualização Operacional (2026-04-14) - Frontend Iteração Final de Polimento
 
 ### Escopo
