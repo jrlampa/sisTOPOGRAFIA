@@ -82,6 +82,10 @@ import identityLifecycleRoutes from "./routes/identityLifecycleRoutes.js";
 import multiTenantIsolationRoutes from "./routes/multiTenantIsolationRoutes.js";
 import jobIdempotencyRoutes from "./routes/jobIdempotencyRoutes.js";
 import operationalRunbookRoutes from "./routes/operationalRunbookRoutes.js";
+import sinapiRoutes from "./routes/sinapiRoutes.js";
+import bdiRoiRoutes from "./routes/bdiRoiRoutes.js";
+import lccRoutes from "./routes/lccRoutes.js";
+import esgAmbientalRoutes from "./routes/esgAmbientalRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -305,6 +309,10 @@ app.use("/api/identity", identityLifecycleRoutes);
 app.use("/api/tenant-isolation", multiTenantIsolationRoutes);
 app.use("/api/idempotency", jobIdempotencyRoutes);
 app.use("/api/runbooks", operationalRunbookRoutes);
+app.use("/api/sinapi", sinapiRoutes);
+app.use("/api/bdi-roi", bdiRoiRoutes);
+app.use("/api/lcc", lccRoutes);
+app.use("/api/esg-ambiental", esgAmbientalRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
