@@ -102,6 +102,10 @@ import servidoesFundiariasIncraRoutes from "./routes/servidoesFundiariasIncraRou
 import esgSustentabilidadeRoutes from "./routes/esgSustentabilidadeRoutes.js";
 import medicaoPagamentoRoutes from "./routes/medicaoPagamentoRoutes.js";
 import produtividadeTerritorialRoutes from "./routes/produtividadeTerritorialRoutes.js";
+import edicaoColaborativaRoutes from "./routes/edicaoColaborativaRoutes.js";
+import academyRoutes from "./routes/academyRoutes.js";
+import qrRastreabilidadeRoutes from "./routes/qrRastreabilidadeRoutes.js";
+import asBuiltMobileRoutes from "./routes/asBuiltMobileRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -345,6 +349,10 @@ app.use("/api/servidoes-incra", servidoesFundiariasIncraRoutes);
 app.use("/api/esg-sustentabilidade", esgSustentabilidadeRoutes);
 app.use("/api/medicao-pagamento", medicaoPagamentoRoutes);
 app.use("/api/produtividade-territorial", produtividadeTerritorialRoutes);
+app.use("/api/edicao-colaborativa", edicaoColaborativaRoutes);
+app.use("/api/academy", academyRoutes);
+app.use("/api/qr-rastreabilidade", qrRastreabilidadeRoutes);
+app.use("/api/as-built", asBuiltMobileRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
