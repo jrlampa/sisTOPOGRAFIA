@@ -1198,6 +1198,54 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 
 ## 📌 Atualização Operacional (2026-04-15) – Roadmap 2026 T1/T2 (Itens 90, 91, 92)
 
+---
+
+## 📌 Atualização Operacional (T1 Batch — Identity/Isolation/Idempotency/Runbooks/A11y/Grid)
+
+### T1-28/29 — Identity Lifecycle + SCIM v2
+
+- `server/services/identityLifecycleService.ts` — JML (Joiner/Mover/Leaver) + SCIM v2 provisioning.
+- IDs com prefixo `iam-X`. Status: `"ativo" | "inativo" | "movido"`.
+- SCIM schema: `urn:ietf:params:scim:schemas:core:2.0:User`.
+- Rotas em `/api/identity/{joiner,mover,leaver,users,audit,scim/v2/Users}`.
+- 11 testes em `server/tests/identityLifecycleRoutes.test.ts`.
+
+### T1-32 — Multi-tenant Isolation
+
+- `server/services/multiTenantIsolationService.ts` — perfis strict/standard/relaxed, rotação de chaves AES derivadas via SHA-256, verificação cross-tenant com contador de violações.
+- Namespace = primeiros 12 chars do SHA-256 do tenantId.
+- `registrarTenant` é idempotente.
+- Rotas em `/api/tenant-isolation/*`. 10 testes.
+
+### T1-71 — Job Idempotency
+
+- `server/services/jobIdempotencyService.ts` — chaves de idempotência com TTL 24h, hash SHA-256 do payload, status `processando | concluido | erro`.
+- `registrar` retorna `{ registro, duplicata: boolean }` — duplicata incrementa `tentativas`.
+- Purge automático de expirados a cada chamada. IDs `job-X`.
+- Rotas em `/api/idempotency/*`. 8 testes.
+
+### T1-112 — Operational Runbooks
+
+- `server/services/operationalRunbookService.ts` — catálogo de 5 runbooks pré-carregados (rb-001 a rb-005: falha_fila, python_oom, db_conexao, api_externa, segurança).
+- `_reset()` restaura o catálogo via `makeRunbooks()`.
+- Execuções rastreáveis passo a passo. IDs de execução `exec-X`.
+- Rotas em `/api/runbooks/*`. 11 testes.
+
+### T1-24 — WCAG 2.1 & eMAG 3.1 Conformance
+
+- `src/utils/a11y.ts` — utilitário de conformidade WCAG 2.1 + eMAG 3.1.
+- Funções: `hexToRgb`, `relativeLuminance`, `contrastRatio`, `wcagContrastLevel`, `validarLangHtml`, `buildAriaLabel`, `gerarIdAcessivel`, `regrasObrigatorias`, `verificarComponente`.
+- Catálogo `REGRAS_A11Y` com 10 regras (WCAG e eMAG). 30 testes em `tests/utils/a11y.test.ts`.
+
+### T1-27 — Grid Readability Focus
+
+- `src/utils/gridReadability.ts` — utilitário de legibilidade de grid para alta densidade.
+- Funções: `computeGridColumns`, `classificarDensidade`, `alturaLinhaPorDensidade`, `tamFontePorDensidade`, `truncarTexto`, `buildGridConfig`, `gridContainerClasses`, `gridCellClasses`.
+- Densidade: `baixa (≤50) | media (51-200) | alta (201-500) | muito_alta (>500)`.
+- 28 testes em `tests/utils/gridReadability.test.ts`.
+
+---
+
 ### T1-90 — Runbook SRE para Queda de Conexão de APIs
 
 - Criado `docs/runbooks/API_CONNECTION_OUTAGE_RUNBOOK.md` com:
