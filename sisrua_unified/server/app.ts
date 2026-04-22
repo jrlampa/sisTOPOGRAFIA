@@ -114,6 +114,9 @@ import teleEngenhariaArRoutes from "./routes/teleEngenhariaArRoutes.js";
 import acervoGedRoutes from "./routes/acervoGedRoutes.js";
 import hybridCloudRoutes from "./routes/hybridCloudRoutes.js";
 import portalStakeholderRoutes from "./routes/portalStakeholderRoutes.js";
+import provenienciaForenseRoutes from "./routes/provenienciaForenseRoutes.js";
+import assinaturaNuvemRoutes from "./routes/assinaturaNuvemRoutes.js";
+import gisHardeningRoutes from "./routes/gisHardeningRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -369,6 +372,9 @@ app.use("/api/tele-engenharia", teleEngenhariaArRoutes);
 app.use("/api/acervo-ged", acervoGedRoutes);
 app.use("/api/hybrid-cloud", hybridCloudRoutes);
 app.use("/api/portal-stakeholder", portalStakeholderRoutes);
+app.use("/api/proveniencia-forense", provenienciaForenseRoutes);
+app.use("/api/assinatura-nuvem", assinaturaNuvemRoutes);
+app.use("/api/gis-hardening", gisHardeningRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
