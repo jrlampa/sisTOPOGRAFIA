@@ -176,12 +176,14 @@ function App() {
       "data-theme",
       isDark ? "dark" : "light",
     );
+    document.documentElement.lang = settings.locale;
+    document.documentElement.setAttribute("data-locale", settings.locale);
     if (isDark) {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
-  }, [isDark]);
+  }, [isDark, settings.locale]);
 
   // Escuta mudanças no esquema de cores do sistema operacional.
   // Só aplica se o tema atual ainda coincide com o sistema (usuário não divergiu manualmente).

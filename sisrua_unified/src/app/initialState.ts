@@ -1,9 +1,10 @@
 import { GlobalState } from "../types";
-import type { AppTheme } from "../types";
+import type { AppLocale, AppTheme } from "../types";
 import { DEFAULT_LOCATION } from "../constants";
 import { EMPTY_BT_TOPOLOGY } from "../utils/btNormalization";
 import { EMPTY_MT_TOPOLOGY } from "../utils/mtNormalization";
 import { loadPersistedAppSettings } from "../utils/preferencesPersistence";
+import { normalizeAppLocale } from "../i18n/appLocale";
 
 /** Detecta o esquema de cores preferido do sistema operacional. */
 function detectSystemTheme(): AppTheme {
@@ -15,6 +16,16 @@ function detectSystemTheme(): AppTheme {
     return "light";
   }
 }
+
+function detectPreferredLocale(): AppLocale {
+  try {
+    return normalizeAppLocale(navigator.language);
+  } catch {
+    return "pt-BR";
+  }
+}
+
+const DEFAULT_LOCALE = detectPreferredLocale();
 
 const DEFAULT_APP_STATE: GlobalState = {
   center: DEFAULT_LOCATION,
@@ -28,6 +39,7 @@ const DEFAULT_APP_STATE: GlobalState = {
     orthogonalize: true,
     contourRenderMode: "spline",
     projection: "utm",
+    locale: DEFAULT_LOCALE,
     theme: detectSystemTheme(),
     mapProvider: "vector",
     contourInterval: 5,
@@ -58,7 +70,7 @@ const DEFAULT_APP_STATE: GlobalState = {
       projectName: "PROJECT OSM-01",
       companyName: "ENG CORP",
       engineerName: "ENG. LEAD",
-      date: new Date().toLocaleDateString("pt-BR"),
+      date: new Date().toLocaleDateString(DEFAULT_LOCALE),
       scale: "N/A",
       revision: "R00",
     },

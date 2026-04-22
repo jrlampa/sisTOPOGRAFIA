@@ -1,4 +1,5 @@
 import type { AppSettings, LayerConfig } from "../types";
+import { normalizeAppLocale } from "../i18n/appLocale";
 import {
   CURRENT_STORAGE_VERSION,
   SETTINGS_STORAGE_KEY,
@@ -91,6 +92,9 @@ export const loadPersistedAppSettings = (
   const projectMetadata = isRecord(parsed.projectMetadata)
     ? parsed.projectMetadata
     : {};
+  const locale = normalizeAppLocale(
+    typeof parsed.locale === "string" ? parsed.locale : fallback.locale,
+  );
   const mergedLayers = {
     ...fallback.layers,
     ...layers,
@@ -99,6 +103,7 @@ export const loadPersistedAppSettings = (
   return {
     ...fallback,
     ...parsed,
+    locale,
     layers: mergedLayers,
     projectMetadata: {
       ...fallback.projectMetadata,

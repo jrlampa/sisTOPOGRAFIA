@@ -21,12 +21,17 @@ import {
 import ConstantsCatalogOps from "../ConstantsCatalogOps";
 import {
   AppSettings,
+  AppLocale,
   ContourRenderMode,
   LayerConfig,
   MapProvider,
   ProjectionType,
   SimplificationLevel,
 } from "../../types";
+import {
+  getAppLocaleLabel,
+  SUPPORTED_APP_LOCALES,
+} from "../../i18n/appLocale";
 
 type SettingsModalGeneralTabProps = {
   settings: AppSettings;
@@ -147,6 +152,34 @@ export function SettingsModalGeneralTab({
             <Satellite size={16} />
             Satélite
           </button>
+        </div>
+
+        <div className="glass-panel rounded-lg p-3 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+            <Globe size={16} className="text-cyan-600 dark:text-cyan-300" />
+            Idioma da interface
+          </div>
+          <select
+            value={settings.locale}
+            onChange={(event) =>
+              onUpdateSettings({
+                ...settings,
+                locale: event.target.value as AppLocale,
+              })
+            }
+            aria-label="Selecionar idioma da interface"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          >
+            {SUPPORTED_APP_LOCALES.map((locale) => (
+              <option key={locale} value={locale}>
+                {getAppLocaleLabel(locale)}
+              </option>
+            ))}
+          </select>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            Base oficial do produto permanece em pt-BR; este seletor prepara a
+            camada de i18n para ambientes multiempresa.
+          </p>
         </div>
       </div>
 

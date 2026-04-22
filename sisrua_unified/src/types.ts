@@ -299,6 +299,8 @@ export interface BtExportHistoryEntry extends BtExportSummary {
   projectType: BtProjectType;
 }
 
+export type AppLocale = "pt-BR" | "en-US" | "es-ES";
+
 export interface AppSettings {
   enableAI: boolean;
   simplificationLevel: SimplificationLevel;
@@ -306,6 +308,7 @@ export interface AppSettings {
   contourRenderMode: ContourRenderMode;
   layers: LayerConfig;
   projection: ProjectionType;
+  locale: AppLocale;
   theme: AppTheme;
   mapProvider: MapProvider;
   projectMetadata: ProjectMetadata;

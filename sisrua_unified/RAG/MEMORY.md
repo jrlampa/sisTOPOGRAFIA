@@ -266,6 +266,26 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ---
 
+## ✅ Atualização Operacional (2026-04-22) - T2-26 Base de i18n Industrial
+
+- **Escopo entregue**
+  - Fundacão inicial de internacionalização no frontend sem romper a base canônica pt-BR.
+  - Locales suportados nesta etapa: `pt-BR`, `en-US`, `es-ES`.
+- **Implementação**
+  - Novo utilitário `src/i18n/appLocale.ts` com catálogo, rótulos e normalização de locale por idioma primário.
+  - `AppSettings` passou a persistir `locale` como preferência de usuário.
+  - `src/app/initialState.ts` agora detecta locale preferido do navegador com fallback seguro para `pt-BR`.
+  - `src/App.tsx` sincroniza `document.documentElement.lang` e `data-locale` com a configuração ativa.
+  - `SettingsModalGeneralTab.tsx` ganhou seletor de idioma na seção de Interface e Mapa.
+- **Qualidade**
+  - Teste focalizado: `tests/i18n/appLocale.test.ts` com **4/4 testes passando**.
+  - `npm run typecheck:frontend` validado com sucesso.
+  - `npm run build` validado com sucesso.
+- **Observação de escopo**
+  - Esta entrega estabelece a infraestrutura de i18n; a tradução progressiva das telas permanece como etapa incremental posterior.
+
+---
+
 ## 📝 Commits Recentes
 
 - `ecf3743` - fix: Geração DXF assíncrona em modo desenvolvimento
