@@ -1387,6 +1387,67 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 
 ---
 
+## 📌 Atualização Operacional (2026-04-21) - T2 LCC Família / EIV / Remuneração Regulatória / TCO (Items 94/95/101/105)
+
+### T2-94 — Gestão de Custos LCC por Família de Equipamentos
+
+- `server/services/lccFamiliaService.ts` — Custo do Ciclo de Vida por família de ativos de rede BT/MT
+- 10 famílias: poste_concreto(40a), poste_madeira(30a), transformador_trifasico(35a), cabo_multiplexado(30a), medidor(15a) + mais 5
+- calcularLCC(): VPL descontado (WACC padrão 7,28% ANEEL) para aquisição, instalação, manutenção anual, substituições e descarte ao longo do horizonte
+- Substituições calculadas a cada vidaUtilAnos ao longo do horizonte; descartes descontados ao fim
+- SHA-256 hashIntegridade nos resultados
+- Refs: ANEEL REN 905/2020, ABNT NBR 15688:2017, IEC 60300-3-3:2017
+- Métodos: `criarAnalise`, `listarAnalises`, `obterAnalise`, `adicionarEquipamento`, `calcularLCC`, `publicarAnalise`, `listarFamilias`
+- IDs: `lf-N`, `eq-N`; status: rascunho→calculado→publicado
+- `server/routes/lccFamiliaRoutes.ts` — `/api/lcc-familia/*`
+- `server/tests/lccFamiliaRoutes.test.ts` — 13 testes
+
+### T2-95 — Relatório de Impacto em Vizinhança Automatizado (EIV)
+
+- `server/services/eivService.ts` — Avaliação de impactos de empreendimentos de infraestrutura elétrica em áreas urbanas
+- 9 dimensões: trafego, ruido, paisagem_urbana, qualidade_ar, infraestrutura, patrimonio_historico, uso_solo, geracao_emprego, valoracao_imobiliaria
+- 5 níveis: desprezivel(0) | baixo(25) | moderado(50) | alto(75) | critico(100)
+- calcularEIV(): IEV = soma(pontuacao × peso) / soma(pesos); nivelGeral por faixas
+- exigeAudienciaPublica: IEV > 60 OU área > 10.000 m² (Estatuto da Cidade)
+- Dimensão duplicada rejeitada com 422; publicado bloqueia alterações
+- Refs: Lei 10.257/2001, CONAMA 237/1997, ABNT NBR 16280:2015, NBR ISO 14001:2015
+- Métodos: `criarEstudo`, `listarEstudos`, `obterEstudo`, `adicionarImpacto`, `calcularEIV`, `publicarEstudo`, `listarDimensoes`
+- IDs: `eiv-N`, `imp-N`; status: rascunho→calculado→publicado
+- `server/routes/eivRoutes.ts` — `/api/eiv/*`
+- `server/tests/eivRoutes.test.ts` — 12 testes
+
+### T2-101 — Dossiê de Remuneração Regulatória (MCPSE/ANEEL)
+
+- `server/services/remuneracaoRegulatoriaService.ts` — Base de Remuneração de Ativos (BRN) para distribuidoras ANEEL
+- 9 tipos de ativo com vida útil regulatória (REN 905/2020): rede_bt(30a), rede_mt(35a), rede_at(40a), transformador_distribuicao(35a), religador(30a) + mais 4
+- WACC regulatório padrão: 7,28% (ANEEL 7ª Revisão Periódica)
+- calcularRemuneracao(): BRB=VNR×qtd; depreciação linear; BRL=BRB−depreciação; remuneração=BRL×WACC
+- Fluxo de status: rascunho→calculado→publicado→homologado
+- Refs: ANEEL REN 905/2020, MCPSE ANEEL, ANEEL NT 49/2020, PRODIST Módulo 1
+- Métodos: `criarDossie`, `listarDossies`, `obterDossie`, `adicionarAtivo`, `calcularRemuneracao`, `publicarDossie`, `homologarDossie`, `listarTiposAtivo`
+- IDs: `rr-N`, `at-N`
+- `server/routes/remuneracaoRegulatoriaRoutes.ts` — `/api/remuneracao-regulatoria/*`
+- `server/tests/remuneracaoRegulatoriaRoutes.test.ts` — 14 testes
+
+### T2-105 — Simulador de Impacto Financeiro (TCO/Capex/Opex)
+
+- `server/services/tcoCapexOpexService.ts` — TCO com TIR, VPL e Payback para investimentos em infraestrutura elétrica
+- 9 tipos de investimento: nova_rede, expansao_rede, modernizacao, digitalizacao, automacao, smart_grid, microgeracao, reducao_perdas, outro
+- Horizonte máximo: 30 anos; taxa de desconto padrão: 7,28% (WACC ANEEL)
+- CAPEX por ano de desembolso; OPEX com taxa de crescimento anual configurável
+- calcularTCO(): VPL dos custos e benefícios; TIR por bissecção numérica; payback simples e descontado
+- viavel: true se vplLiquido ≥ 0; SHA-256 hashIntegridade
+- Refs: ABNT NBR 16660:2017, IEC 60300-3-3:2017, ANEEL NT 49/2020
+- Métodos: `criarSimulacao`, `listarSimulacoes`, `obterSimulacao`, `adicionarCapex`, `adicionarOpex`, `definirBeneficios`, `calcularTCO`, `aprovarSimulacao`, `listarTiposInvestimento`
+- IDs: `tco-N`, `cx-N`, `ox-N`; status: rascunho→calculado→aprovado
+- `server/routes/tcoCapexOpexRoutes.ts` — `/api/tco-capex-opex/*`
+- `server/tests/tcoCapexOpexRoutes.test.ts` — 13 testes
+
+### Commit
+- Hash: `70055b4` — 52 testes passando (4 novas suites), branch `dev`, pushed to `origin/dev`
+
+---
+
 ### T1-27 — Grid Readability Focus
 
 - `src/utils/gridReadability.ts` — utilitário de legibilidade de grid para alta densidade.
