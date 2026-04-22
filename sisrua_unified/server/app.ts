@@ -110,6 +110,10 @@ import lcpRoutes from "./routes/lcpRoutes.js";
 import nbr9050Routes from "./routes/nbr9050Routes.js";
 import sombreamento2D5Routes from "./routes/sombreamento2D5Routes.js";
 import nbrCalcadasRoutes from "./routes/nbrCalcadasRoutes.js";
+import teleEngenhariaArRoutes from "./routes/teleEngenhariaArRoutes.js";
+import acervoGedRoutes from "./routes/acervoGedRoutes.js";
+import hybridCloudRoutes from "./routes/hybridCloudRoutes.js";
+import portalStakeholderRoutes from "./routes/portalStakeholderRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -361,6 +365,10 @@ app.use("/api/lcp", lcpRoutes);
 app.use("/api/nbr9050", nbr9050Routes);
 app.use("/api/sombreamento", sombreamento2D5Routes);
 app.use("/api/nbr-calcadas", nbrCalcadasRoutes);
+app.use("/api/tele-engenharia", teleEngenhariaArRoutes);
+app.use("/api/acervo-ged", acervoGedRoutes);
+app.use("/api/hybrid-cloud", hybridCloudRoutes);
+app.use("/api/portal-stakeholder", portalStakeholderRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
