@@ -106,6 +106,10 @@ import edicaoColaborativaRoutes from "./routes/edicaoColaborativaRoutes.js";
 import academyRoutes from "./routes/academyRoutes.js";
 import qrRastreabilidadeRoutes from "./routes/qrRastreabilidadeRoutes.js";
 import asBuiltMobileRoutes from "./routes/asBuiltMobileRoutes.js";
+import lcpRoutes from "./routes/lcpRoutes.js";
+import nbr9050Routes from "./routes/nbr9050Routes.js";
+import sombreamento2D5Routes from "./routes/sombreamento2D5Routes.js";
+import nbrCalcadasRoutes from "./routes/nbrCalcadasRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -353,6 +357,10 @@ app.use("/api/edicao-colaborativa", edicaoColaborativaRoutes);
 app.use("/api/academy", academyRoutes);
 app.use("/api/qr-rastreabilidade", qrRastreabilidadeRoutes);
 app.use("/api/as-built", asBuiltMobileRoutes);
+app.use("/api/lcp", lcpRoutes);
+app.use("/api/nbr9050", nbr9050Routes);
+app.use("/api/sombreamento", sombreamento2D5Routes);
+app.use("/api/nbr-calcadas", nbrCalcadasRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
