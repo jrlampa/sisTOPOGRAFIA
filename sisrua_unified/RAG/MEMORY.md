@@ -1448,6 +1448,65 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 
 ---
 
+### T2-107 — Servidões Fundiárias SIRGAS 2000 (INCRA/SIGEF)
+
+- `server/services/servidoesFundiariasIncraService.ts` — Gestão de servidões fundiárias com georreferenciamento SIRGAS 2000
+- Tipos de servidão: passagem | eletrica | ductos | acesso_producao | hidrica | servidao_ambiental | faixa_dominio | reserva_legal
+- Classes de precisão GNSS (INCRA IN 77/2013): A(≤0.5m) | B(≤1.0m) | C(≤3.0m)
+- Cálculo geodésico: `haversineM()` (distância) + `areaGaussM2()` (área por Shoelace esférico)
+- `calcularAreaPerimetro()`: areaHa, perimetroM, classePrecisaoAtingida, hashIntegridade
+- LGPD: CPF/CNPJ de confrontantes armazenado apenas como SHA-256
+- `certificarProcesso()`: exige hashIntegridade + ≥1 confrontante
+- IDs: `sf-N`, `vt-N`, `cf-N`; status: em_tramitacao→certificada→averbada
+- Refs: INCRA IN 77/2013, INCRA IN 65/2010, Lei 10.267/2001, Decreto 9.311/2018
+- `server/routes/servidoesFundiariasIncraRoutes.ts` — `/api/servidoes-incra/*`
+- `server/tests/servidoesFundiariasIncraRoutes.test.ts` — 11 testes
+
+### T2-109 — Relatório ESG & Sustentabilidade Local (GRI Standards 2021)
+
+- `server/services/esgSustentabilidadeService.ts` — Relatório ESG com índice composto ponderado
+- Dimensões e pesos: ambiental(0.40), social(0.35), governança(0.25)
+- 6 indicadores ambientais: emissoes_co2_tco2e, consumo_energia_kwh, residuos_gerados_t, area_supressao_vegetal_ha, agua_consumida_m3, biodiversidade_impactada_ha
+- 5 indicadores sociais: empregos_gerados, empregos_locais_percentual, comunidades_beneficiadas, populacao_acesso_energia, horas_formacao_profissional
+- 5 indicadores de governança: conformidade_regulatoria_percentual, transparencia_publica_score, licencas_obtidas, auditorias_realizadas, reclamacoes_resolvidas_percentual
+- `calcularIndiceESG()`: média por dimensão → índice global ponderado; nivelMaturidade: inicial(0-40) | desenvolvimento(41-60) | consolidado(61-80) | lider(81-100)
+- Mapeamento ODS SDG por indicador
+- IDs: `esg-N`, `ind-N`; status: rascunho→calculado→publicado
+- Refs: GRI Standards 2021, ABNT NBR ISO 14001:2015, ABNT NBR ISO 26000:2010, ANEEL REN 1000/2021
+- `server/routes/esgSustentabilidadeRoutes.ts` — `/api/esg-sustentabilidade/*`
+- `server/tests/esgSustentabilidadeRoutes.test.ts` — 12 testes
+
+### T2-65 — Medição para Pagamento (EAP/WBS)
+
+- `server/services/medicaoPagamentoService.ts` — Controle de medições de obras de infraestrutura elétrica
+- 9 tipos de serviço: fornecimento_material, montagem_eletrica, obras_civis, instalacao_equipamentos, comissionamento, ensaios, supervisao, mobilizacao, desmobilizacao
+- `ItemMedicao`: wbsCode, valorTotal = quantidadeMedida × valorUnitario, percentualContrato
+- Validação: quantidadeMedida não pode exceder quantidadeContratada (422)
+- `calcularMedicao()`: totalBruto, retencao (padrão 5%), totalLiquido, percentualGeralContrato, hashIntegridade
+- Fluxo: em_elaboracao→submetida→aprovada/rejeitada→homologada→paga
+- `rejeitarMedicao()` requer campo `motivo`; armazenado em `motivoRejeicao`
+- IDs: `med-N`, `im-N`
+- Refs: ABNT NBR 16280:2015, PMI PMBOK 7ª Ed., Lei 14.133/2021, SINAPI
+- `server/routes/medicaoPagamentoRoutes.ts` — `/api/medicao-pagamento/*`
+- `server/tests/medicaoPagamentoRoutes.test.ts` — 14 testes
+
+### T2-69 — Dashboard de Produtividade Territorial
+
+- `server/services/produtividadeTerritorialService.ts` — Dashboard de produtividade de equipes de campo
+- 8 indicadores: km_rede_projetada, km_rede_executada, postes_projetados, postes_instalados, transformadores_instalados, ligacoes_novas, vistorias_realizadas, ocorrencias_registradas
+- Setores geográficos: distrito | bairro | municipio | regional | estado
+- Períodos: diario | semanal | mensal | trimestral | anual
+- `calcularProdutividade()`: produtividadeGlobal(%), taxaConformidade(métricas ≥95%), desvioMedioPercentual, rankingEquipes, indicadoresPorTipo, hashIntegridade
+- IDs: `pt-N`, `mt-N`; status: rascunho→calculado→publicado
+- Refs: ANEEL PRODIST Módulo 8, ANEEL REN 1000/2021, ABNT NBR ISO 9001:2015
+- `server/routes/produtividadeTerritorialRoutes.ts` — `/api/produtividade-territorial/*`
+- `server/tests/produtividadeTerritorialRoutes.test.ts` — 13 testes
+
+### Commit
+- Hash: `b328184` — 50 testes passando (4 novas suites), branch `dev`, pushed to `origin/dev`
+
+---
+
 ### T1-27 — Grid Readability Focus
 
 - `src/utils/gridReadability.ts` — utilitário de legibilidade de grid para alta densidade.
