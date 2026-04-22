@@ -1237,6 +1237,46 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - Funções: `hexToRgb`, `relativeLuminance`, `contrastRatio`, `wcagContrastLevel`, `validarLangHtml`, `buildAriaLabel`, `gerarIdAcessivel`, `regrasObrigatorias`, `verificarComponente`.
 - Catálogo `REGRAS_A11Y` com 10 regras (WCAG e eMAG). 30 testes em `tests/utils/a11y.test.ts`.
 
+## 📌 Atualização Operacional (2026-04-22) - T2 Orçamentação e ESG (Items 42/43/44/45)
+
+**Commit**: `a1e03fc` — `feat: [T2] items 42/43/44/45 — SINAPI/ORSE, BDI/ROI Analytics, LCC, ESG Ambiental (67 tests passing)`
+
+### T2-42 — SINAPI/ORSE
+
+- `server/services/sinapiService.ts` — catálogo 26 itens SINAPI/ORSE (postes, cabos ACSR/CAM/CAC/multiplexado, transformadores mono/trifásico, chave fusível, para-raios, serviços, luminárias LED, obras civis, ORSE)
+- Métodos: `listarCatalogo`, `obterItemPorCodigo`, `listarCategorias`, `gerarOrcamento`, `listarOrcamentos`, `obterOrcamento`, `atualizarStatusOrcamento`
+- IDs: `orc-N`; SHA-256 hashIntegridade por orçamento
+- `server/routes/sinapiRoutes.ts` — `/api/sinapi/*`: GET /catalogo, GET /catalogo/:codigo, GET /categorias, POST /orcamento (201/422), GET /orcamentos, GET /orcamento/:id, PATCH /orcamento/:id/status
+- `server/tests/sinapiRoutes.test.ts` — 20 testes
+
+### T2-43 — BDI/ROI Analytics
+
+- `server/services/bdiRoiService.ts` — BDI fórmula TCU Acórdão 2622/2013: `[(1+AC+S+DF)×(1+L)]/(1-T)-1`; 7 `TipoObra` com BDI referencial; ROI com VPL/TIR (bisseção 60 iter)/payback simples+descontado
+- Métodos: `calcularBdi`, `listarReferenciais`, `calcularRoi`, `listarAnalisesBdi`, `obterAnaliseBdi`, `listarAnalisesRoi`, `obterAnaliseRoi`
+- IDs: `bdi-N`, `roi-N`
+- `server/routes/bdiRoiRoutes.ts` — `/api/bdi-roi/*`: POST /calcular-bdi, GET /analises-bdi, GET /analises-bdi/:id, GET /referencias, POST /calcular-roi, GET /analises-roi, GET /analises-roi/:id
+- `server/tests/bdiRoiRoutes.test.ts` — 17 testes
+
+### T2-44 — LCC (Life Cycle Cost)
+
+- `server/services/lccService.ts` — LCC NBR ISO 15686-5; categorias: aquisicao/instalacao/operacao/manutencao/retrofit/descarte; VPL por fluxo anual; CAE = VPL×[i(1+i)^n/((1+i)^n-1)]
+- Métodos: `criarAnalise`, `listarAnalises`, `obterAnalise`, `adicionarAtivo`, `calcularLcc`, `compararAnalises`, `aprovarAnalise`
+- IDs: `lcc-N`, `atv-N`; comparação retorna `alternativaMaisEconomica: "A"|"B"|"empate"`
+- `server/routes/lccRoutes.ts` — `/api/lcc/*`: POST/GET /analises, GET /analises/:id, POST /analises/:id/ativos, POST /analises/:id/calcular, POST /analises/:id/aprovar, POST /comparar
+- `server/tests/lccRoutes.test.ts` — 16 testes
+
+### T2-45 — ESG Ambiental
+
+- `server/services/esgAmbientalService.ts` — GHG Protocol escopos 1/2/3; 8 FATORES_EMISSAO (IPCC AR6/CETESB 2023); ISO 14001 checklist 10 cláusulas; Score ESG = 40%×emissoes + 30%×ISO14001 + 30%×indicadores; classificação A(≥80)/B(≥60)/C(≥40)/D(<40)
+- Nota: `poste_madeira_eucalipto` = **-120 kg CO2eq/un** (sequestro de carbono)
+- FE SIN Brasil 2023: energia_eletrica_grid = 0.0728 kg CO2eq/kWh
+- Métodos: `criarRelatorio`, `listarRelatorios`, `obterRelatorio`, `adicionarEmissoes`, `atualizarIndicadores`, `atualizarChecklist`, `calcularRelatorio`, `publicarRelatorio`, `listarFatoresEmissao`
+- IDs: `esg-N`
+- `server/routes/esgAmbientalRoutes.ts` — `/api/esg-ambiental/*`: POST/GET /relatorios, GET /relatorios/:id, POST /relatorios/:id/emissoes, PUT /relatorios/:id/indicadores, PATCH /relatorios/:id/checklist, POST /relatorios/:id/calcular, POST /relatorios/:id/publicar, GET /fatores-emissao
+- `server/tests/esgAmbientalRoutes.test.ts` — 14 testes
+
+---
+
 ### T1-27 — Grid Readability Focus
 
 - `src/utils/gridReadability.ts` — utilitário de legibilidade de grid para alta densidade.
