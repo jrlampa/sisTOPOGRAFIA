@@ -1507,6 +1507,55 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 
 ---
 
+### T2-56 — Edição Colaborativa em Tempo Real
+
+- `server/services/edicaoColaborativaService.ts` — Edição simultânea geoespacial multicanal
+- Papéis: editor | revisor | observador; Status sessão: aberta | bloqueada | encerrada
+- 7 tipos de operação; detecção de conflito via `versaoBase < versaoAtual`
+- Observadores não podem registrar operações (422)
+- `encerrarSessao()` marca todos ativos como inativos com `saidaEm`
+- IDs: `sc-N`, `pp-N`, `op-N`
+- `server/routes/edicaoColaborativaRoutes.ts` — `/api/edicao-colaborativa/*`
+- `server/tests/edicaoColaborativaRoutes.test.ts`
+
+### T2-57 — sisTOPOGRAFIA Academy
+
+- `server/services/academyService.ts` — Trilhas de certificação técnica integradas
+- Entidades: Trilha (tr-N), Curso (cu-N), Modulo (mo-N), ProgressoAluno (pg-N)
+- Níveis: basico | intermediario | avancado | especialista
+- `emitirCertificado()`: exige 100% de conclusão; hash SHA-256 do progresso
+- `concluirModulo()`: recalcula percentualConcluido com base em todos os módulos da trilha
+- Trilha deve ser publicada antes de iniciar progresso
+- `server/routes/academyRoutes.ts` — `/api/academy/*`
+- `server/tests/academyRoutes.test.ts`
+
+### T2-66 — Rastreabilidade QR Code Industrial
+
+- `server/services/qrRastreabilidadeService.ts` — Link entre ativos e etiquetas físicas
+- QR code = `randomUUID()` gerado em `criarAtivo()`; evento de criação automático
+- `instalarAtivo()`: 422 se já instalado; atualiza coordenadas e `dataInstalacao`
+- Hash SHA-256 por evento: `${ativoId}|${tipoEvento}|${dataEvento}|${tecnicoResponsavel}`
+- 8 tipos de asset; status evolui conforme eventos
+- Rota `/ativos/qr/:qrCode` definida ANTES de `/ativos/:id` no router
+- `server/routes/qrRastreabilidadeRoutes.ts` — `/api/qr-rastreabilidade/*`
+- `server/tests/qrRastreabilidadeRoutes.test.ts`
+
+### T2-67 — Ciclo As-Built Mobile
+
+- `server/services/asBuiltMobileService.ts` — Retorno de dados de campo para o projeto
+- Status: em_campo | sincronizado | conflito | rejeitado | aprovado
+- `sincronizarRegistro()`: 422 sem desvios; detecta conflito se há desvio crítico
+- `aprovarRegistro()`: 422 se não sincronizado; gera hashIntegridade SHA-256
+- `rejeitarRegistro()`: armazena `motivoRejeicao`; rejeita desvios pendentes
+- IDs: `ab-N`, `dv-N`
+- `server/routes/asBuiltMobileRoutes.ts` — `/api/as-built/*`
+- `server/tests/asBuiltMobileRoutes.test.ts`
+
+### Commit
+- Hash: `476cf75` — 58 testes passando (4 novas suites), branch `dev`, pushed to `origin/dev`
+
+---
+
 ### T1-27 — Grid Readability Focus
 
 - `src/utils/gridReadability.ts` — utilitário de legibilidade de grid para alta densidade.
