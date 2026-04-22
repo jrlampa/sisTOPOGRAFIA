@@ -90,6 +90,10 @@ import vegetacaoInventarioRoutes from "./routes/vegetacaoInventarioRoutes.js";
 import creditosCarbonoRoutes from "./routes/creditosCarbonoRoutes.js";
 import servidoesFundiariosRoutes from "./routes/servidoesFundiariosRoutes.js";
 import investorAuditRoutes from "./routes/investorAuditRoutes.js";
+import perdasNaoTecnicasRoutes from "./routes/perdasNaoTecnicasRoutes.js";
+import expansaoCargasRoutes from "./routes/expansaoCargasRoutes.js";
+import speedDraftRoutes from "./routes/speedDraftRoutes.js";
+import licencaSocialRoutes from "./routes/licencaSocialRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -321,6 +325,10 @@ app.use("/api/vegetacao-inventario", vegetacaoInventarioRoutes);
 app.use("/api/creditos-carbono", creditosCarbonoRoutes);
 app.use("/api/servidoes-fundiarios", servidoesFundiariosRoutes);
 app.use("/api/investor-audit", investorAuditRoutes);
+app.use("/api/perdas-nao-tecnicas", perdasNaoTecnicasRoutes);
+app.use("/api/expansao-cargas", expansaoCargasRoutes);
+app.use("/api/speed-draft", speedDraftRoutes);
+app.use("/api/licenca-social", licencaSocialRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
