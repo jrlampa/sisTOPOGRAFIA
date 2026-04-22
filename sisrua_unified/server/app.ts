@@ -86,6 +86,10 @@ import sinapiRoutes from "./routes/sinapiRoutes.js";
 import bdiRoiRoutes from "./routes/bdiRoiRoutes.js";
 import lccRoutes from "./routes/lccRoutes.js";
 import esgAmbientalRoutes from "./routes/esgAmbientalRoutes.js";
+import vegetacaoInventarioRoutes from "./routes/vegetacaoInventarioRoutes.js";
+import creditosCarbonoRoutes from "./routes/creditosCarbonoRoutes.js";
+import servidoesFundiariosRoutes from "./routes/servidoesFundiariosRoutes.js";
+import investorAuditRoutes from "./routes/investorAuditRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -313,6 +317,10 @@ app.use("/api/sinapi", sinapiRoutes);
 app.use("/api/bdi-roi", bdiRoiRoutes);
 app.use("/api/lcc", lccRoutes);
 app.use("/api/esg-ambiental", esgAmbientalRoutes);
+app.use("/api/vegetacao-inventario", vegetacaoInventarioRoutes);
+app.use("/api/creditos-carbono", creditosCarbonoRoutes);
+app.use("/api/servidoes-fundiarios", servidoesFundiariosRoutes);
+app.use("/api/investor-audit", investorAuditRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
