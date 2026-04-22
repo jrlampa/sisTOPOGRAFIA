@@ -18,6 +18,7 @@ import {
 import { SettingsModalProjectTab } from "./settings/SettingsModalProjectTab";
 import { SettingsModalGeneralTab } from "./settings/SettingsModalGeneralTab";
 import { SettingsModalExportFooter } from "./settings/SettingsModalExportFooter";
+import { getSettingsModalText } from "../i18n/settingsModalText";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -64,6 +65,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<"general" | "project">("general");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const text = getSettingsModalText(settings.locale);
 
   useEffect(() => {
     if (!isOpen) {
@@ -155,12 +157,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             className="text-enterprise-blue flex items-center gap-2 text-xl font-bold"
           >
             <Cpu size={24} className="text-enterprise-blue-light" />
-            Painel de Controle
+            {text.panelTitle}
           </h2>
           <button
             onClick={onClose}
-            title="Fechar painel"
-            aria-label="Fechar painel"
+            title={text.closePanel}
+            aria-label={text.closePanel}
             className="text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
           >
             <X size={24} />
@@ -177,9 +179,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 ? "text-enterprise-blue border-enterprise-blue border-b-2 glass-panel-hover"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/20 dark:hover:bg-slate-800/40"
             } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60`}
-            title="Abrir aba Geral e Exportação"
+            title={text.generalTabTitle}
           >
-            Geral & Exportação
+            {text.generalTabLabel}
           </button>
           <button
             id="settings-tab-project"
@@ -189,9 +191,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 ? "text-enterprise-blue border-enterprise-blue border-b-2 glass-panel-hover"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-white/20 dark:hover:bg-slate-800/40"
             } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60`}
-            title="Abrir aba Projeto e Metadados"
+            title={text.projectTabTitle}
           >
-            Projeto & Metadados
+            {text.projectTabLabel}
           </button>
         </div>
 

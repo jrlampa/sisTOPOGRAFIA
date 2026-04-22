@@ -32,6 +32,7 @@ import {
   getAppLocaleLabel,
   SUPPORTED_APP_LOCALES,
 } from "../../i18n/appLocale";
+import { getSettingsModalText } from "../../i18n/settingsModalText";
 
 type SettingsModalGeneralTabProps = {
   settings: AppSettings;
@@ -89,6 +90,8 @@ export function SettingsModalGeneralTab({
   setContourRenderMode,
   toggleLayer,
 }: SettingsModalGeneralTabProps) {
+  const text = getSettingsModalText(settings.locale);
+
   return (
     <div
       role="tabpanel"
@@ -97,14 +100,13 @@ export function SettingsModalGeneralTab({
     >
       <div className="space-y-4">
         <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-          Interface e Mapa
+          {text.interfaceMapTitle}
         </h3>
 
         <div className="rounded-lg border border-cyan-200 bg-cyan-50/80 p-3 text-xs text-cyan-800 dark:border-cyan-400/20 dark:bg-cyan-950/30 dark:text-cyan-100">
-          <p className="font-semibold">Estilo visual canônico ativo</p>
+          <p className="font-semibold">{text.canonicalStyleTitle}</p>
           <p className="mt-1 opacity-90">
-            Mudanças globais de estilo são bloqueadas por padrão. Variações
-            futuras devem existir apenas como opção do usuário neste menu.
+            {text.canonicalStyleDescription}
           </p>
         </div>
 
@@ -115,12 +117,12 @@ export function SettingsModalGeneralTab({
             ) : (
               <Sun size={16} className="text-yellow-500" />
             )}
-            Tema {settings.theme === "dark" ? "Escuro" : "Claro"}
+            {settings.theme === "dark" ? text.themeLabelDark : text.themeLabelLight}
           </span>
           <button
             onClick={toggleTheme}
-            title="Alternar tema"
-            aria-label="Alternar tema"
+            title={text.toggleTheme}
+            aria-label={text.toggleTheme}
             className={`w-12 h-6 rounded-full relative transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 ${settings.theme === "dark" ? "bg-slate-400" : "bg-yellow-400"}`}
           >
             <span
@@ -139,7 +141,7 @@ export function SettingsModalGeneralTab({
             }`}
           >
             <MapIcon size={16} />
-            Mapa Vetorial
+            {text.mapVector}
           </button>
           <button
             onClick={() => setMapProvider("satellite")}
@@ -150,14 +152,14 @@ export function SettingsModalGeneralTab({
             }`}
           >
             <Satellite size={16} />
-            Satélite
+            {text.mapSatellite}
           </button>
         </div>
 
         <div className="glass-panel rounded-lg p-3 space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
             <Globe size={16} className="text-cyan-600 dark:text-cyan-300" />
-            Idioma da interface
+            {text.interfaceLanguage}
           </div>
           <select
             value={settings.locale}
@@ -177,8 +179,7 @@ export function SettingsModalGeneralTab({
             ))}
           </select>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Base oficial do produto permanece em pt-BR; este seletor prepara a
-            camada de i18n para ambientes multiempresa.
+            {text.interfaceLanguageHint}
           </p>
         </div>
       </div>
@@ -189,13 +190,13 @@ export function SettingsModalGeneralTab({
         <div className="flex items-center gap-2">
           <Layers size={16} className="text-slate-400" />
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Camadas DXF
+            {text.dxfLayersTitle}
           </h3>
         </div>
 
         <div className="grid grid-cols-1 gap-2">
           <LayerToggle
-            label="Edificações (Hatch Sólido)"
+            label={text.layerBuildings}
             icon={Building2}
             active={settings.layers.buildings}
             onClick={() => toggleLayer("buildings")}
@@ -224,7 +225,7 @@ export function SettingsModalGeneralTab({
                     : "text-slate-500"
                 }
               >
-                Gerar Cotas Automáticas
+                  {text.layerDimensions}
               </span>
               <div
                 className={`ml-auto w-2 h-2 rounded-full ${settings.layers.dimensions ? "bg-blue-500" : "bg-slate-700"}`}
@@ -233,7 +234,7 @@ export function SettingsModalGeneralTab({
           </div>
 
           <LayerToggle
-            label="Vias (Eixos e Bordas)"
+            label={text.layerRoads}
             icon={Car}
             active={settings.layers.roads}
             onClick={() => toggleLayer("roads")}
@@ -259,7 +260,7 @@ export function SettingsModalGeneralTab({
                     settings.layers.curbs ? "text-red-200" : "text-slate-500"
                   }
                 >
-                  Gerar Guias e Sarjetas (Offsets)
+                  {text.layerCurbs}
                 </span>
                 <div
                   className={`ml-auto w-2 h-2 rounded-full ${settings.layers.curbs ? "bg-red-500" : "bg-slate-700"}`}
@@ -269,14 +270,14 @@ export function SettingsModalGeneralTab({
           )}
 
           <LayerToggle
-            label="Terreno (Malha 2.5D)"
+            label={text.layerTerrain}
             icon={Mountain}
             active={settings.layers.terrain}
             onClick={() => toggleLayer("terrain")}
             colorClass="bg-purple-500/20 text-purple-500"
           />
           <LayerToggle
-            label="Curvas de Nível (Isolinhas)"
+            label={text.layerContours}
             icon={Activity}
             active={settings.layers.contours}
             onClick={() => toggleLayer("contours")}
@@ -318,7 +319,7 @@ export function SettingsModalGeneralTab({
           {settings.layers.contours && (
             <div className="ml-12 p-3 bg-slate-950/50 rounded-lg border border-slate-800 animate-in fade-in slide-in-from-top-2">
               <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                <span>Intervalo de Curva</span>
+                <span>{text.contourInterval}</span>
                 <span className="text-white font-mono">
                   {settings.contourInterval}m
                 </span>
@@ -340,7 +341,7 @@ export function SettingsModalGeneralTab({
               />
 
               <div className="mt-3">
-                <div className="text-xs text-slate-400 mb-2">Tipo de Curva</div>
+                <div className="text-xs text-slate-400 mb-2">{text.contourType}</div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setContourRenderMode("spline")}
@@ -350,7 +351,7 @@ export function SettingsModalGeneralTab({
                         : "bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200"
                     } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60`}
                   >
-                    Curva Suave (Spline)
+                    {text.contourSpline}
                   </button>
                   <button
                     onClick={() => setContourRenderMode("polyline")}
@@ -360,7 +361,7 @@ export function SettingsModalGeneralTab({
                         : "bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200"
                     } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60`}
                   >
-                    Polilinha (Compatível)
+                    {text.contourPolyline}
                   </button>
                 </div>
               </div>
@@ -368,14 +369,14 @@ export function SettingsModalGeneralTab({
           )}
 
           <LayerToggle
-            label="Detalhes (Árvores/Postes)"
+            label={text.layerFurniture}
             icon={LampFloor}
             active={settings.layers.furniture}
             onClick={() => toggleLayer("furniture")}
             colorClass="bg-orange-500/20 text-orange-500"
           />
           <LayerToggle
-            label="Rótulos e Dados BIM"
+            label={text.layerLabels}
             icon={Type}
             active={settings.layers.labels}
             onClick={() => toggleLayer("labels")}
@@ -397,7 +398,7 @@ export function SettingsModalGeneralTab({
               onClick={() => toggleLayer("grid")}
               className="flex-1 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 rounded"
             >
-              Malha de Coordenadas (Grid)
+              {text.layerGrid}
             </button>
             <div
               className={`w-3 h-3 rounded-full ${settings.layers.grid ? "bg-blue-500" : "bg-slate-700"}`}
@@ -410,14 +411,14 @@ export function SettingsModalGeneralTab({
 
       <div className="space-y-4">
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-          Sistema
+          {text.systemTitle}
         </h3>
 
         <div className="bg-slate-800/30 p-3 rounded-lg space-y-2">
           <div className="flex items-center gap-2 mb-2">
             <Zap size={14} className="text-yellow-500" />
             <span className="text-xs font-bold text-slate-400 uppercase">
-              Processamento Geométrico
+              {text.geometryProcessing}
             </span>
           </div>
 
@@ -436,10 +437,10 @@ export function SettingsModalGeneralTab({
                   {
                     (
                       {
-                        off: "Des.",
-                        low: "Baixa",
-                        medium: "Média",
-                        high: "Alta",
+                        off: text.simplificationOff,
+                        low: text.simplificationLow,
+                        medium: text.simplificationMedium,
+                        high: text.simplificationHigh,
                       } as Record<string, string>
                     )[level]
                   }
@@ -464,7 +465,7 @@ export function SettingsModalGeneralTab({
                   settings.orthogonalize ? "text-indigo-400" : "text-slate-600"
                 }
               />
-              <span>Forçar Ângulos Retos (Ortogonalizar)</span>
+              <span>{text.orthogonalize}</span>
             </div>
             <div
               className={`w-3 h-3 rounded-full ${settings.orthogonalize ? "bg-indigo-500" : "bg-slate-700"}`}
@@ -476,7 +477,7 @@ export function SettingsModalGeneralTab({
           <div className="flex items-center gap-2 mb-2">
             <Globe size={14} className="text-slate-400" />
             <span className="text-xs font-bold text-slate-400 uppercase">
-              Projeção DXF
+              {text.projectionTitle}
             </span>
           </div>
           <div className="flex gap-2">
@@ -488,7 +489,7 @@ export function SettingsModalGeneralTab({
                   : "bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200"
               }`}
             >
-              Local (Relativo)
+              {text.projectionLocal}
             </button>
             <button
               onClick={() => setProjection("utm")}
@@ -498,12 +499,11 @@ export function SettingsModalGeneralTab({
                   : "bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200"
               }`}
             >
-              UTM (Absoluto)
+              {text.projectionUtm}
             </button>
           </div>
           <p className="text-[10px] text-slate-500 mt-1">
-            UTM Absoluto usa coordenadas reais compatíveis com Google Earth e
-            GPS
+            {text.projectionHint}
           </p>
         </div>
 

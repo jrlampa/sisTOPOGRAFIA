@@ -286,6 +286,24 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ---
 
+## ✅ Atualização Operacional (2026-04-22) - T2-26 Tradução Visível no Modal de Configurações
+
+- **Escopo entregue**
+  - Primeira superfície visível da UI agora responde ao `settings.locale` com cópia traduzida em `pt-BR`, `en-US` e `es-ES`.
+  - O foco permaneceu controlado no modal de configurações, sem expandir para áreas ainda não preparadas para i18n.
+- **Implementação**
+  - Novo catálogo `src/i18n/settingsModalText.ts` centraliza os textos do cabeçalho do modal, rótulos das abas e conteúdos da aba Geral.
+  - `src/components/SettingsModal.tsx` passou a traduzir título do modal, ação de fechar e nomes das abas.
+  - `src/components/settings/SettingsModalGeneralTab.tsx` passou a traduzir seções de Interface e Mapa, Camadas DXF, Sistema, projeção e simplificação.
+- **Qualidade**
+  - Teste focalizado: `tests/components/SettingsModalGeneralTab.test.tsx` com **2/2 testes passando** para `en-US` e `es-ES`.
+  - `npm run typecheck:frontend` validado com sucesso.
+  - `npm run build` validado com sucesso.
+- **Próximo incremento natural**
+  - Estender o mesmo catálogo para `SettingsModalProjectTab.tsx` e blocos auxiliares ainda em pt-BR, como `ConstantsCatalogOps.tsx`.
+
+---
+
 ## 📝 Commits Recentes
 
 - `ecf3743` - fix: Geração DXF assíncrona em modo desenvolvimento
@@ -302,7 +320,7 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ---
 
-**Última Atualização**: 2026-04-21
+**Última Atualização**: 2026-04-22
 **Branch Ativa**: dev
 **Versão**: 1.3.1
 
