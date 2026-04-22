@@ -1323,6 +1323,7 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - `server/tests/investorAuditRoutes.test.ts` — 14 testes
 
 ### Commit
+
 - Hash: `206837b` — 61 testes passando, branch `dev`, pushed to `origin/dev`
 - Métodos: `criarRelatorio`, `listarRelatorios`, `obterRelatorio`, `adicionarEmissoes`, `atualizarIndicadores`, `atualizarChecklist`, `calcularRelatorio`, `publicarRelatorio`, `listarFatoresEmissao`
 - IDs: `esg-N`
@@ -1383,6 +1384,7 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - `server/tests/licencaSocialRoutes.test.ts` — 11 testes
 
 ### Commit
+
 - Hash: `cc8ca07` — 53 testes passando, branch `dev`, pushed to `origin/dev`
 
 ---
@@ -1444,6 +1446,7 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - `server/tests/tcoCapexOpexRoutes.test.ts` — 13 testes
 
 ### Commit
+
 - Hash: `70055b4` — 52 testes passando (4 novas suites), branch `dev`, pushed to `origin/dev`
 
 ---
@@ -1503,6 +1506,7 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - `server/tests/produtividadeTerritorialRoutes.test.ts` — 13 testes
 
 ### Commit
+
 - Hash: `b328184` — 50 testes passando (4 novas suites), branch `dev`, pushed to `origin/dev`
 
 ---
@@ -1552,6 +1556,7 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - `server/tests/asBuiltMobileRoutes.test.ts`
 
 ### Commit
+
 - Hash: `476cf75` — 58 testes passando (4 novas suites), branch `dev`, pushed to `origin/dev`
 
 ---
@@ -1637,6 +1642,7 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - `server/tests/nbrCalcadasRoutes.test.ts`
 
 ### Commit
+
 - Hash: `bbe3023` — 43 testes passando (4 novas suites), branch `dev`, pushed to `origin/dev`
 
 ---
@@ -2044,37 +2050,64 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - Cobertura de Branches (`BT Core`): 86.58% ✅
 
 ## 📌 Atualização Operacional (2026-04-21) - Supply Chain Security & Integridade (T1-15)
+
 - Implementado backend de Supply Chain Security com supplyChainService.ts + supplyChainRoutes.ts e registro no app.ts.
 - Cobertura funcional: SBOM (inventário NPM/Python), npm audit, secret scanning com entropia, SAST findings/report e policy gates bloqueantes de release.
-- Endpoints: /api/supply-chain/sbom*, /api/supply-chain/npm-audit*, /api/supply-chain/secrets*, /api/supply-chain/sast*, /api/supply-chain/policy-gates*.
+- Endpoints: /api/supply-chain/sbom*, /api/supply-chain/npm-audit*, /api/supply-chain/secrets*, /api/supply-chain/sast*, /api/supply-chain/policy-gates\*.
 - Testes: server/tests/supplyChainRoutes.test.ts com 20 testes passando (20/20).
 
 ## 📌 Atualização Operacional (2026-04-21) - Observabilidade Preditiva (T1-18)
+
 - Implementado predictiveObservabilityService.ts com buffer circular por métrica, estatísticas p50/p95/p99, detecção de anomalias por z-score e sinal preditivo de tendência/risco.
-- Implementado predictiveObservabilityRoutes.ts e registro no app.ts em /api/observability/*.
+- Implementado predictiveObservabilityRoutes.ts e registro no app.ts em /api/observability/\*.
 - Endpoints: catálogo de métricas, ingestão, série temporal, stats, anomalias, sinal preditivo e overview consolidado.
 - Testes: server/tests/predictiveObservabilityRoutes.test.ts com 9 testes passando (9/9).
 
 ## 📌 Atualização Operacional (2026-04-21) - Segurança e Retenção (T1-74/75/76)
+
 - T1-74 (Invalidação Proativa de Cache em Mudanças de Papel): roleService.setUserRole() passou a acionar onRoleChange(userId) do cacheService após update de role, invalidando chaves por tag/padrão imediatamente.
-- T1-75 (Encryption at Rest com Master Keys Cliente): novo encryptionAtRestService.ts (AES-256-GCM, versionamento/rotação de CMK por cliente) + encryptionAtRestRoutes.ts em /api/encryption/*.
-- T1-76 (Time-series Cold Storage para Audit Logs): novo auditColdStorageService.ts (hot->cold archive por idade, partição mensal, export NDJSON com SHA-256) + auditColdStorageRoutes.ts em /api/audit-cold/*.
+- T1-75 (Encryption at Rest com Master Keys Cliente): novo encryptionAtRestService.ts (AES-256-GCM, versionamento/rotação de CMK por cliente) + encryptionAtRestRoutes.ts em /api/encryption/\*.
+- T1-76 (Time-series Cold Storage para Audit Logs): novo auditColdStorageService.ts (hot->cold archive por idade, partição mensal, export NDJSON com SHA-256) + auditColdStorageRoutes.ts em /api/audit-cold/\*.
 - Testes: roleService.test.ts + cacheInvalidation.test.ts + encryptionAtRestRoutes.test.ts + auditColdStorageRoutes.test.ts = 53/53 passando.
 
 ## 📌 Atualização Operacional (2026-04-21) - Promotion Controlado Multiambiente (T1-20)
+
 - Implementado environmentPromotionService.ts com fluxo de promoção sequencial dev -> homolog -> preprod -> prod e bloqueio de saltos inválidos.
 - Policy gates obrigatórios por promoção: testsPassed, securityGatePassed e observabilityGatePassed.
-- Implementado environmentPromotionRoutes.ts e registro no app.ts em /api/promotion/*.
+- Implementado environmentPromotionRoutes.ts e registro no app.ts em /api/promotion/\*.
 - Endpoints: registro/listagem de builds, promoção, histórico e pipeline por ambiente.
 - Testes: server/tests/environmentPromotionRoutes.test.ts com 9 testes passando (9/9).
 
 ## 📌 Atualização Operacional (2026-04-22) - Zero Trust, Blue/Green, Audit Export, Pentest, BCP/DR, eMAG, ANEEL (T1-22/23/34/49/50/51/52/97/98)
-- **T1-22 (Zero Trust inter-service)**: zeroTrustService.ts — registro de identidades com certFingerprint, HMAC-SHA-256 token validation, políticas emissor/receptor, secretHash mascarado como "***" na response. Rotas em /api/zero-trust/*.
-- **T1-23 (Blue/Green Deployment)**: blueGreenService.ts — slots blue/green, smoke gate, switch bloqueado sem smoke tests, rollback por histórico. Rotas em /api/blue-green/*.
-- **T1-34 (Tenant Audit Export)**: tenantAuditExportService.ts — ingestão de eventos de auditoria por tenant, filtros de consulta, export JSON/NDJSON/CSV com hash SHA-256, estatísticas por tipo/resultado. Rotas em /api/tenant-audit/*.
-- **T1-49 (Pentest Engagement)**: pentestService.ts — lifecycle completo (agendado→em_andamento→concluido), findings com severidade/CVSS, relatório por engagement. Rotas em /api/pentest/*.
-- **T1-50 (Artifact Hardening)**: artifactHardeningService.ts — detecção de path_traversal, injecao_script, macro_embedded, encoding_suspeito, tamanho_excessivo; sanitização de texto e nomes. Sem estado (_reset não aplicável). Rotas combinadas em /api/pentest/hardening/*.
-- **T1-51+52 (BCP/DR + Geo Redundancy)**: bcpDrService.ts — cenários DR com RTO/RPO, execução de testes com evidenciaHash SHA-256, regiões cloud (sa-east-1 ativa por padrão), simularFailover com promoção automática. Rotas em /api/bcp-dr/*.
-- **T1-97 (eMAG 3.1 Cert)**: emagCertService.ts — catálogo de 10 requisitos eMAG (seções 1_marcacao→6_formulario, níveis A/AA), inspeções com evidências, certificado emitido se >=80% e nenhum nível-A non-conforme. IDs tipo `emag-X`. Rotas em /api/compliance/emag/*.
-- **T1-98 (ANEEL Provenance)**: aneelProvenanceService.ts — dossiê com cadeia de custódia, artefatos com hash SHA-256 por conteúdo, hashPacote = SHA-256 de todos os hashes concatenados, submissão ANEEL requer status=aprovado, verificação de integridade. IDs tipo `aneel-dos-X`. Rotas em /api/compliance/aneel/*.
+
+- **T1-22 (Zero Trust inter-service)**: zeroTrustService.ts — registro de identidades com certFingerprint, HMAC-SHA-256 token validation, políticas emissor/receptor, secretHash mascarado como "_\*\*" na response. Rotas em /api/zero-trust/_.
+- **T1-23 (Blue/Green Deployment)**: blueGreenService.ts — slots blue/green, smoke gate, switch bloqueado sem smoke tests, rollback por histórico. Rotas em /api/blue-green/\*.
+- **T1-34 (Tenant Audit Export)**: tenantAuditExportService.ts — ingestão de eventos de auditoria por tenant, filtros de consulta, export JSON/NDJSON/CSV com hash SHA-256, estatísticas por tipo/resultado. Rotas em /api/tenant-audit/\*.
+- **T1-49 (Pentest Engagement)**: pentestService.ts — lifecycle completo (agendado→em_andamento→concluido), findings com severidade/CVSS, relatório por engagement. Rotas em /api/pentest/\*.
+- **T1-50 (Artifact Hardening)**: artifactHardeningService.ts — detecção de path_traversal, injecao_script, macro_embedded, encoding_suspeito, tamanho_excessivo; sanitização de texto e nomes. Sem estado (\_reset não aplicável). Rotas combinadas em /api/pentest/hardening/\*.
+- **T1-51+52 (BCP/DR + Geo Redundancy)**: bcpDrService.ts — cenários DR com RTO/RPO, execução de testes com evidenciaHash SHA-256, regiões cloud (sa-east-1 ativa por padrão), simularFailover com promoção automática. Rotas em /api/bcp-dr/\*.
+- **T1-97 (eMAG 3.1 Cert)**: emagCertService.ts — catálogo de 10 requisitos eMAG (seções 1_marcacao→6_formulario, níveis A/AA), inspeções com evidências, certificado emitido se >=80% e nenhum nível-A non-conforme. IDs tipo `emag-X`. Rotas em /api/compliance/emag/\*.
+- **T1-98 (ANEEL Provenance)**: aneelProvenanceService.ts — dossiê com cadeia de custódia, artefatos com hash SHA-256 por conteúdo, hashPacote = SHA-256 de todos os hashes concatenados, submissão ANEEL requer status=aprovado, verificação de integridade. IDs tipo `aneel-dos-X`. Rotas em /api/compliance/aneel/\*.
 - Todos 7 módulos registrados em app.ts. 54 testes novos passando. Commit 37094f9, branch dev.
+
+## 📌 Atualização Operacional (2026-04-22) - Colaboração AR, GED CONARQ, Hybrid Cloud e Portal Stakeholder (T2-83/84/87/110)
+
+- **T2-83 (Tele-Engenharia com Desenho AR)**:
+  - `server/services/teleEngenhariaArService.ts`: sessões colaborativas AR com participantes, anotações geoespaciais e estado de sincronia.
+  - `server/routes/teleEngenhariaArRoutes.ts` em `/api/tele-engenharia/*`.
+  - `server/tests/teleEngenhariaArRoutes.test.ts`.
+- **T2-84 (Acervo Técnico GED - CONARQ)**:
+  - `server/services/acervoGedService.ts`: lifecycle de documentos técnicos (`rascunho -> em_revisao -> aprovado/arquivado`) com `conteudoHash` SHA-256.
+  - `server/routes/acervoGedRoutes.ts` em `/api/acervo-ged/*`.
+  - `server/tests/acervoGedRoutes.test.ts`.
+- **T2-87 (Hybrid Cloud Support)**:
+  - `server/services/hybridCloudService.ts`: cadastro de workers local/cloud, registro de jobs e roteamento por estratégia (`prefer_local`, `prefer_cloud`, `hibrido`).
+  - `server/routes/hybridCloudRoutes.ts` em `/api/hybrid-cloud/*`.
+  - `server/tests/hybridCloudRoutes.test.ts`.
+- **T2-110 (Portal Stakeholder Gov.br)**:
+  - `server/services/portalStakeholderService.ts`: gestão de acessos institucionais, token hash, solicitações e respostas de consulta.
+  - `server/routes/portalStakeholderRoutes.ts` em `/api/portal-stakeholder/*`.
+  - `server/tests/portalStakeholderRoutes.test.ts`.
+- Registro das 4 rotas em `server/app.ts`.
+- Validação: `32/32` testes passando nas 4 novas suites.
+- Commit do lote: `056eb0c` (branch `dev`, pushed to `origin/dev`).
