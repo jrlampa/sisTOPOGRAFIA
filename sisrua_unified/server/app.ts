@@ -98,6 +98,10 @@ import lccFamiliaRoutes from "./routes/lccFamiliaRoutes.js";
 import eivRoutes from "./routes/eivRoutes.js";
 import remuneracaoRegulatoriaRoutes from "./routes/remuneracaoRegulatoriaRoutes.js";
 import tcoCapexOpexRoutes from "./routes/tcoCapexOpexRoutes.js";
+import servidoesFundiariasIncraRoutes from "./routes/servidoesFundiariasIncraRoutes.js";
+import esgSustentabilidadeRoutes from "./routes/esgSustentabilidadeRoutes.js";
+import medicaoPagamentoRoutes from "./routes/medicaoPagamentoRoutes.js";
+import produtividadeTerritorialRoutes from "./routes/produtividadeTerritorialRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -337,6 +341,10 @@ app.use("/api/lcc-familia", lccFamiliaRoutes);
 app.use("/api/eiv", eivRoutes);
 app.use("/api/remuneracao-regulatoria", remuneracaoRegulatoriaRoutes);
 app.use("/api/tco-capex-opex", tcoCapexOpexRoutes);
+app.use("/api/servidoes-incra", servidoesFundiariasIncraRoutes);
+app.use("/api/esg-sustentabilidade", esgSustentabilidadeRoutes);
+app.use("/api/medicao-pagamento", medicaoPagamentoRoutes);
+app.use("/api/produtividade-territorial", produtividadeTerritorialRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
