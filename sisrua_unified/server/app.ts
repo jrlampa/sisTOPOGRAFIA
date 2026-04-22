@@ -94,6 +94,10 @@ import perdasNaoTecnicasRoutes from "./routes/perdasNaoTecnicasRoutes.js";
 import expansaoCargasRoutes from "./routes/expansaoCargasRoutes.js";
 import speedDraftRoutes from "./routes/speedDraftRoutes.js";
 import licencaSocialRoutes from "./routes/licencaSocialRoutes.js";
+import lccFamiliaRoutes from "./routes/lccFamiliaRoutes.js";
+import eivRoutes from "./routes/eivRoutes.js";
+import remuneracaoRegulatoriaRoutes from "./routes/remuneracaoRegulatoriaRoutes.js";
+import tcoCapexOpexRoutes from "./routes/tcoCapexOpexRoutes.js";
 import { pingDb } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -329,6 +333,10 @@ app.use("/api/perdas-nao-tecnicas", perdasNaoTecnicasRoutes);
 app.use("/api/expansao-cargas", expansaoCargasRoutes);
 app.use("/api/speed-draft", speedDraftRoutes);
 app.use("/api/licenca-social", licencaSocialRoutes);
+app.use("/api/lcc-familia", lccFamiliaRoutes);
+app.use("/api/eiv", eivRoutes);
+app.use("/api/remuneracao-regulatoria", remuneracaoRegulatoriaRoutes);
+app.use("/api/tco-capex-opex", tcoCapexOpexRoutes);
 app.use(express.static(frontendDistDirectory));
 app.get("*", (_req: Request, res: Response) => {
   const indexPath = path.join(frontendDistDirectory, "index.html");
