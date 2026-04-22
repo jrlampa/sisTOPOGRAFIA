@@ -1331,6 +1331,62 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 
 ---
 
+## 📌 Atualização Operacional (2026-04-21) - T2 Geoespacial/ESG/Social (Items 79/80/81/82)
+
+### T2-79 — Monitoramento de Perdas Não Técnicas via Twin
+
+- `server/services/perdasNaoTecnicasService.ts` — Monitoramento e análise de perdas comerciais em redes de distribuição
+- Categorias de perda: fraude_medicao, ligacao_clandestina, erro_medicao, inadimplencia_corte, nao_identificada
+- Meta regulatória ANEEL: 7,0% PNT (PRODIST Módulo 7); alertas: normal/atenção(+5pp)/crítico(+10pp)
+- Biomassa não técnica = injetada − faturada − técnicas (estimativa); SHA-256 hashIntegridade
+- Refs: ANEEL PRODIST Módulo 7, ABNT NBR 14519:2000, ANEEL RN 1000/2021
+- Métodos: `criarMonitoramento`, `listarMonitoramentos`, `obterMonitoramento`, `adicionarPontoMedicao`, `registrarOcorrencia`, `calcularPerdas`, `encerrarMonitoramento`
+- IDs: `pnt-N`, `pm-N`; status: ativo→encerrado
+- `server/routes/perdasNaoTecnicasRoutes.ts` — `/api/perdas-nao-tecnicas/*`
+- `server/tests/perdasNaoTecnicasRoutes.test.ts` — 14 testes
+
+### T2-80 — Simulador de Expansão de Cargas (What-if)
+
+- `server/services/expansaoCargasService.ts` — Simulação de impacto de novas cargas na rede BT existente
+- Tipos de carga: residencial_padrao(FD=0.65), residencial_alto_padrao(0.55), comercial_pequeno(0.70), comercial_medio(0.75), industrial_pequeno(0.80), carregador_ve(0.90), outro(0.75)
+- Limite operacional de carregamento: 80% da potência nominal do transformador (norma CEMIG/Light)
+- Recomendação automática de substituição de trafo quando carregamento previsto > 80%
+- Refs: ABNT NBR 5410:2004, ANEEL PRODIST Módulo 8, CEMIG ND 2.2, Light SN-RE-04, IEC 60364-5-52
+- Métodos: `criarSimulacao`, `listarSimulacoes`, `obterSimulacao`, `adicionarCargaExistente`, `adicionarNovaCarga`, `simular`, `aprovarSimulacao`
+- IDs: `sim-N`; status: rascunho→simulado→aprovado
+- `server/routes/expansaoCargasRoutes.ts` — `/api/expansao-cargas/*`
+- `server/tests/expansaoCargasRoutes.test.ts` — 15 testes
+
+### T2-81 — Templates de Speed Draft por Concessionária
+
+- `server/services/speedDraftService.ts` — Catálogo de templates de padrões técnicos por concessionária para projetos BT/MT
+- 3 templates embutidos: CEMIG (ND 2.2/2020), COPEL (NTC 813001/2021), LIGHT (SN-RE-04/2022)
+- 12 concessionárias suportadas: CEMIG, COPEL, LIGHT, ENEL_SP, ENEL_RJ, ENEL_CE, CELPE, COELBA, NEOENERGIA_PE, ENERGISA, EQUATORIAL, GENERICA
+- Restrição: vão máximo ≤ 40 m (PRODIST Módulo 8); fatorDemanda ∈ [0,1]
+- Templates de tenant adicionais com id `tpl-N` (contador inicia em 3 após templates de referência)
+- Refs: CEMIG ND 2.2, COPEL NTC 813001, LIGHT SN-RE-04, ENEL SP NOR-GD-069, CELPE NTE-011
+- Métodos: `listarTemplates`, `obterTemplate`, `criarTemplate`, `atualizarStatus`, `listarConcessionarias`
+- status: ativo→obsoleto|em_revisao
+- `server/routes/speedDraftRoutes.ts` — `/api/speed-draft/*`
+- `server/tests/speedDraftRoutes.test.ts` — 13 testes
+
+### T2-82 — Gestão de Licença Social (Public Opinion Insights)
+
+- `server/services/licencaSocialService.ts` — Controle de audiências públicas e consultas populares
+- Tipos: audiencia_publica, consulta_publica, reuniao_comunitaria, pesquisa_percepcao, oficina_participativa
+- Segmentos stakeholder: comunidade_local, poder_publico, organizacoes_sociedade_civil, setor_privado, academia, imprensa, orgaos_ambientais
+- Nível de aceitação: alto(≥70%), moderado(≥50%), baixo(≥30%), crítico(<30%); reprovação automática se crítico
+- Refs: CONAMA Res. 001/1986 e 009/1987, Lei 9.784/1999, ANEEL REN 395/2009 e REN 876/2020, NBR ISO 26000:2010, IFC PS5
+- Métodos: `criarConsulta`, `listarConsultas`, `obterConsulta`, `iniciarConsulta`, `registrarManifestacao`, `calcularResultado`, `aprovarConsulta`, `listarTiposConsulta`
+- IDs: `ls-N`, `mf-N`; status: planejado→em_consulta→concluido→aprovado|reprovado|cancelado
+- `server/routes/licencaSocialRoutes.ts` — `/api/licenca-social/*`
+- `server/tests/licencaSocialRoutes.test.ts` — 11 testes
+
+### Commit
+- Hash: `cc8ca07` — 53 testes passando, branch `dev`, pushed to `origin/dev`
+
+---
+
 ### T1-27 — Grid Readability Focus
 
 - `src/utils/gridReadability.ts` — utilitário de legibilidade de grid para alta densidade.
