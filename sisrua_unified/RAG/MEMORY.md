@@ -1657,3 +1657,14 @@ Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de 
 - Implementado environmentPromotionRoutes.ts e registro no app.ts em /api/promotion/*.
 - Endpoints: registro/listagem de builds, promoção, histórico e pipeline por ambiente.
 - Testes: server/tests/environmentPromotionRoutes.test.ts com 9 testes passando (9/9).
+
+## 📌 Atualização Operacional (2026-04-22) - Zero Trust, Blue/Green, Audit Export, Pentest, BCP/DR, eMAG, ANEEL (T1-22/23/34/49/50/51/52/97/98)
+- **T1-22 (Zero Trust inter-service)**: zeroTrustService.ts — registro de identidades com certFingerprint, HMAC-SHA-256 token validation, políticas emissor/receptor, secretHash mascarado como "***" na response. Rotas em /api/zero-trust/*.
+- **T1-23 (Blue/Green Deployment)**: blueGreenService.ts — slots blue/green, smoke gate, switch bloqueado sem smoke tests, rollback por histórico. Rotas em /api/blue-green/*.
+- **T1-34 (Tenant Audit Export)**: tenantAuditExportService.ts — ingestão de eventos de auditoria por tenant, filtros de consulta, export JSON/NDJSON/CSV com hash SHA-256, estatísticas por tipo/resultado. Rotas em /api/tenant-audit/*.
+- **T1-49 (Pentest Engagement)**: pentestService.ts — lifecycle completo (agendado→em_andamento→concluido), findings com severidade/CVSS, relatório por engagement. Rotas em /api/pentest/*.
+- **T1-50 (Artifact Hardening)**: artifactHardeningService.ts — detecção de path_traversal, injecao_script, macro_embedded, encoding_suspeito, tamanho_excessivo; sanitização de texto e nomes. Sem estado (_reset não aplicável). Rotas combinadas em /api/pentest/hardening/*.
+- **T1-51+52 (BCP/DR + Geo Redundancy)**: bcpDrService.ts — cenários DR com RTO/RPO, execução de testes com evidenciaHash SHA-256, regiões cloud (sa-east-1 ativa por padrão), simularFailover com promoção automática. Rotas em /api/bcp-dr/*.
+- **T1-97 (eMAG 3.1 Cert)**: emagCertService.ts — catálogo de 10 requisitos eMAG (seções 1_marcacao→6_formulario, níveis A/AA), inspeções com evidências, certificado emitido se >=80% e nenhum nível-A non-conforme. IDs tipo `emag-X`. Rotas em /api/compliance/emag/*.
+- **T1-98 (ANEEL Provenance)**: aneelProvenanceService.ts — dossiê com cadeia de custódia, artefatos com hash SHA-256 por conteúdo, hashPacote = SHA-256 de todos os hashes concatenados, submissão ANEEL requer status=aprovado, verificação de integridade. IDs tipo `aneel-dos-X`. Rotas em /api/compliance/aneel/*.
+- Todos 7 módulos registrados em app.ts. 54 testes novos passando. Commit 37094f9, branch dev.
