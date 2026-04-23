@@ -79,5 +79,8 @@ const DEFAULT_APP_STATE: GlobalState = {
 
 export const INITIAL_APP_STATE: GlobalState = {
   ...DEFAULT_APP_STATE,
-  settings: loadPersistedAppSettings(DEFAULT_APP_STATE.settings),
+  settings: {
+    ...loadPersistedAppSettings(DEFAULT_APP_STATE.settings),
+    locale: DEFAULT_LOCALE,
+  },
 };

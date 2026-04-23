@@ -61,21 +61,26 @@ export function SidebarWorkspace({
           : "capture",
   );
 
-  const sidebarRef = React.useRef<HTMLElement>(null);
+  const prevHasBt = React.useRef(hasBtTopology);
+  const prevHasMt = React.useRef(hasMtTopology);
+  const prevHasAnalysis = React.useRef(hasAnalysis);
 
   React.useEffect(() => {
-    if (hasAnalysis) {
+    // Auto-advance ONLY if a NEW milestone is reached for the first time
+    if (hasAnalysis && !prevHasAnalysis.current) {
       setActiveStage("analysis");
-      return;
-    }
-    if (hasMtTopology && activeStage === "network") {
+    } else if (hasMtTopology && !prevHasMt.current) {
       setActiveStage("mt");
-      return;
-    }
-    if (hasBtTopology && activeStage === "capture") {
+    } else if (hasBtTopology && !prevHasBt.current) {
       setActiveStage("network");
     }
-  }, [hasAnalysis, hasMtTopology, hasBtTopology, activeStage]);
+
+    prevHasBt.current = hasBtTopology;
+    prevHasMt.current = hasMtTopology;
+    prevHasAnalysis.current = hasAnalysis;
+  }, [hasAnalysis, hasMtTopology, hasBtTopology]);
+
+  const sidebarRef = React.useRef<HTMLElement>(null);
 
   // PageUp / PageDown: navigate between workflow stage cards
   React.useEffect(() => {
@@ -241,104 +246,127 @@ export function SidebarWorkspace({
         </div>
       </div>
 
-      <div className="glass-card p-4 md:p-5" data-card-stage="capture">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-              {t.step1Tag}
-            </p>
-            <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-              {t.step1Title}
-            </p>
-          </div>
-          {hasAreaSelection && (
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
-              OK
-            </span>
-          )}
-        </div>
-        <div
-          className={activeStage !== "capture" ? "opacity-95" : undefined}
-          aria-label={t.ariaContentStep1}
-        >
-          <SidebarSelectionControls {...selectionControlsProps} />
-        </div>
-      </div>
+      <AnimatePresence mode="wait">
+        {activeStage === "capture" && (
+          <motion.div
+            key="capture"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="glass-card p-4 md:p-5"
+            data-card-stage="capture"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                  {t.step1Tag}
+                </p>
+                <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  {t.step1Title}
+                </p>
+              </div>
+              {hasAreaSelection && (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
+                  OK
+                </span>
+              )}
+            </div>
+            <div aria-label={t.ariaContentStep1}>
+              <SidebarSelectionControls {...selectionControlsProps} />
+            </div>
+          </motion.div>
+        )}
 
-      <div className="glass-card p-4 md:p-5" data-card-stage="network">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-              {t.step2Tag}
-            </p>
-            <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-              {t.step2Title}
-            </p>
-          </div>
-          {hasBtTopology && (
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
-              OK
-            </span>
-          )}
-        </div>
-        <div
-          className={activeStage !== "network" ? "opacity-95" : undefined}
-          role="region"
-          aria-label={t.ariaContentStep2}
-        >
-          <SidebarBtEditorSection {...btEditorSectionProps} />
-        </div>
-      </div>
+        {activeStage === "network" && (
+          <motion.div
+            key="network"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="glass-card p-4 md:p-5"
+            data-card-stage="network"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                  {t.step2Tag}
+                </p>
+                <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  {t.step2Title}
+                </p>
+              </div>
+              {hasBtTopology && (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
+                  OK
+                </span>
+              )}
+            </div>
+            <div role="region" aria-label={t.ariaContentStep2}>
+              <SidebarBtEditorSection {...btEditorSectionProps} />
+            </div>
+          </motion.div>
+        )}
 
-      <div className="glass-card p-4 md:p-5" data-card-stage="mt">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-              {t.step3Tag}
-            </p>
-            <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-              {t.step3Title}
-            </p>
-          </div>
-          {hasMtTopology && (
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
-              OK
-            </span>
-          )}
-        </div>
-        <div
-          className={activeStage !== "mt" ? "opacity-95" : undefined}
-          role="region"
-          aria-label={t.ariaContentStep3}
-        >
-          <SidebarMtEditorSection {...mtEditorSectionProps} />
-        </div>
-      </div>
+        {activeStage === "mt" && (
+          <motion.div
+            key="mt"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="glass-card p-4 md:p-5"
+            data-card-stage="mt"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                  {t.step3Tag}
+                </p>
+                <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  {t.step3Title}
+                </p>
+              </div>
+              {hasMtTopology && (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
+                  OK
+                </span>
+              )}
+            </div>
+            <div role="region" aria-label={t.ariaContentStep3}>
+              <SidebarMtEditorSection {...mtEditorSectionProps} />
+            </div>
+          </motion.div>
+        )}
 
-      <div className="glass-card mb-1 p-4 md:p-5" data-card-stage="analysis">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-              {t.step4Tag}
-            </p>
-            <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-              {t.step4Title}
-            </p>
-          </div>
-          {hasAnalysis && (
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
-              OK
-            </span>
-          )}
-        </div>
-        <div
-          className={activeStage !== "analysis" ? "opacity-95" : undefined}
-          role="region"
-          aria-label={t.ariaContentStep4}
-        >
-          <SidebarAnalysisResults {...analysisResultsProps} />
-        </div>
-      </div>
+        {activeStage === "analysis" && (
+          <motion.div
+            key="analysis"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="glass-card p-4 md:p-5"
+            data-card-stage="analysis"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                  {t.step4Tag}
+                </p>
+                <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  {t.step4Title}
+                </p>
+              </div>
+              {hasAnalysis && (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
+                  OK
+                </span>
+              )}
+            </div>
+            <div role="region" aria-label={t.ariaContentStep4}>
+              <SidebarAnalysisResults {...analysisResultsProps} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="glass-card mt-1 p-3 backdrop-blur-sm">
         <div className="mb-2 flex items-center justify-between">
