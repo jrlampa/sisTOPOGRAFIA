@@ -556,10 +556,15 @@ router.get(
   "/jobs/failed/sanitation-preview",
   requirePermission("admin"),
   async (req: Request, res: Response) => {
-    const raw = Number(req.query["limit"] ?? 200);
-    const limit = Number.isFinite(raw) ? raw : 200;
-    const preview = await previewFailedTaskSanitation(limit);
-    return res.json(preview);
+    try {
+      const raw = Number(req.query["limit"] ?? 200);
+      const limit = Number.isFinite(raw) ? raw : 200;
+      const preview = await previewFailedTaskSanitation(limit);
+      return res.json(preview);
+    } catch (err) {
+      logger.error("Erro na prévia de saneação de tarefas com falha", { error: err });
+      return res.status(500).json({ error: "Falha ao gerar prévia de saneação" });
+    }
   },
 );
 
@@ -596,10 +601,15 @@ router.get(
   "/jobs",
   requirePermission("export_dxf"),
   async (req: Request, res: Response) => {
-    const raw = Number(req.query["limit"] ?? 50);
-    const limit = Number.isFinite(raw) ? raw : 50;
-    const jobs = await listRecentJobs(limit);
-    return res.json({ total: jobs.length, jobs });
+    try {
+      const raw = Number(req.query["limit"] ?? 50);
+      const limit = Number.isFinite(raw) ? raw : 50;
+      const jobs = await listRecentJobs(limit);
+      return res.json({ total: jobs.length, jobs });
+    } catch (err) {
+      logger.error("Erro ao listar jobs recentes", { error: err });
+      return res.status(500).json({ error: "Falha ao listar jobs" });
+    }
   },
 );
 

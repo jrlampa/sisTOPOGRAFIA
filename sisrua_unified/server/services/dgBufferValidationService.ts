@@ -9,8 +9,8 @@ import {
   BatchValidationResult,
   ValidateBufferZoneRequest,
   ValidateMultiplePointsRequest,
-} from '../schemas/dgBufferValidation';
-import { logger } from '../utils/logger';
+} from '../schemas/dgBufferValidation.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Design Generativo Buffer Validation Service
@@ -113,8 +113,8 @@ export async function validateBufferZone(
   request: ValidateBufferZoneRequest
 ): Promise<BufferValidationResult> {
   const pointId = `point-${randomUUID()}`;
-  const passedValidations: string[] = [];
-  const failedValidations: string[] = [];
+  const passedValidations: ("in_buffer_zone" | "outside_buildings" | "crs_conversion_success")[] = [];
+  const failedValidations: ("outside_buffer" | "inside_building" | "crs_error" | "no_nearby_streets")[] = [];
 
   try {
     // 1. Convert candidate point to UTM
@@ -258,13 +258,13 @@ export async function validateMultiplePoints(
       id: candidatePoint.id || randomUUID(),
     };
 
-    const validationRequest: ValidateBufferZoneRequest = {
+    const validationRequest = {
       candidatePoint,
       streetPolylines: request.streetPolylines,
       buildingFootprints: request.buildingFootprints,
-      bufferConfig: request.bufferConfig,
+      ...(request.bufferConfig ? { bufferConfig: request.bufferConfig } : {}),
       networkIsNewGreenfield: request.networkIsNewGreenfield,
-    };
+    } as ValidateBufferZoneRequest;
 
     const result = await validateBufferZone(validationRequest);
     results.push(result);
@@ -276,7 +276,7 @@ export async function validateMultiplePoints(
       if (result.failedValidations.includes('no_nearby_streets')) rejectionSummary.no_nearby_streets++;
       if (
         result.failedValidations.includes('crs_error') ||
-        result.failedValidations.some(v => !['outside_buffer', 'inside_building', 'no_nearby_streets'].includes(v))
+        result.failedValidations.some((v: string) => !['outside_buffer', 'inside_building', 'no_nearby_streets'].includes(v))
       ) {
         rejectionSummary.other_errors++;
       }

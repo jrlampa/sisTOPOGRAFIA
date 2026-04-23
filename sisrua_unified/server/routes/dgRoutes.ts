@@ -19,16 +19,16 @@ import {
   getDgRunScenarios,
   getDgRunRecommendation,
 } from "../services/dgOptimizationService.js";
-import { permissionHandler } from "../middleware/permissionHandler";
-import { schemaValidator } from "../middleware/schemaValidator";
+import { permissionHandler } from "../middleware/permissionHandler.js";
+import { schemaValidator } from "../middleware/schemaValidator.js";
 import {
   validateBufferZone,
   validateMultiplePoints,
-} from "../services/dgBufferValidationService";
+} from "../services/dgBufferValidationService.js";
 import {
   validateBufferZoneRequestSchema,
   validateMultiplePointsRequestSchema,
-} from "../schemas/dgBufferValidation";
+} from "../schemas/dgBufferValidation.js";
 
 const router = Router();
 

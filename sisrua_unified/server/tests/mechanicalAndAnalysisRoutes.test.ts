@@ -121,15 +121,15 @@ describe("POST /poste/calculate", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 when calculation throws", async () => {
+  it("returns 500 when calculation throws unexpected error", async () => {
     calculatePosteLoadMock.mockImplementation(() => {
       throw new Error("geometry error");
     });
     const res = await request(app)
       .post("/poste/calculate")
       .send({ poste: validPoste, forcas: [validForca] });
-    expect(res.status).toBe(400);
-    expect(res.body.error).toContain("geometry error");
+    expect(res.status).toBe(500);
+    expect(res.body.error).toContain("Erro interno no cálculo do poste");
   });
 });
 
@@ -172,14 +172,15 @@ describe("POST /poste/select", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 when selection throws", async () => {
+  it("returns 500 when selection throws unexpected error", async () => {
     selecionarPosteMock.mockImplementation(() => {
       throw new Error("no suitable pole");
     });
     const res = await request(app)
       .post("/poste/select")
       .send({ momentoFletorDaN_m: 500, catalogo: catalog });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(500);
+    expect(res.body.error).toContain("Erro interno na seleção do poste");
   });
 });
 
@@ -217,12 +218,13 @@ describe("POST /conductor/forces", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 when calculation throws", async () => {
+  it("returns 500 when calculation throws unexpected error", async () => {
     calculateForceVentoMock.mockImplementation(() => {
       throw new Error("invalid vano");
     });
     const res = await request(app).post("/conductor/forces").send(validBody);
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(500);
+    expect(res.body.error).toContain("Erro interno no cálculo de forças");
   });
 
   it("uses default alturaInstalacaoM of 8 when not provided", async () => {
@@ -293,14 +295,15 @@ describe("POST /analyze", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 when ranking throws", async () => {
+  it("returns 500 when ranking throws unexpected error", async () => {
     rankScenariosMock.mockImplementation(() => {
       throw new Error("calc error");
     });
     const res = await request(app)
       .post("/analyze")
       .send({ scenarios: [validScenario] });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(500);
+    expect(res.body.error).toContain("Erro interno na análise de cenários");
   });
 });
 

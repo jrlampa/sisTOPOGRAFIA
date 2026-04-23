@@ -25,7 +25,10 @@ const FalharSchema = z.object({
 router.post("/registrar", (req, res) => {
   const parsed = RegistrarSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ erro: parsed.error.issues });
-  const { registro, duplicata } = JobIdempotencyService.registrar(parsed.data);
+  const { registro, duplicata } = JobIdempotencyService.registrar({
+    chave: parsed.data.chave,
+    payload: parsed.data.payload ?? null,
+  });
   const status = duplicata ? 200 : 201;
   return res.status(status).json({ registro, duplicata });
 });

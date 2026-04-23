@@ -30,6 +30,7 @@ import {
 import { z } from "zod";
 import { createListQuerySchema } from "../schemas/apiSchemas.js";
 import { buildListMeta, comparePrimitiveValues } from "../utils/listing.js";
+import { logger } from "../utils/logger.js";
 
 const router = Router();
 
@@ -213,7 +214,13 @@ router.post(
         data: resultado,
       });
     } catch (err) {
-      return res.status(400).json({ error: String(err) });
+      const isExpectedError =
+        err instanceof Error && err.message.includes("inválido");
+      if (isExpectedError) {
+        return res.status(400).json({ error: err.message });
+      }
+      logger.error("Erro interno no cálculo do poste", { error: err });
+      return res.status(500).json({ error: "Erro interno no cálculo do poste" });
     }
   }),
 );
@@ -254,7 +261,7 @@ router.post(
       if (!posteEscolhido) {
         return res.status(404).json({
           success: false,
-          message: "No adequate pole found in catalog for given load",
+          message: "Nenhum poste adequado encontrado no catálogo para a carga informada.",
         });
       }
 
@@ -263,7 +270,8 @@ router.post(
         data: posteEscolhido,
       });
     } catch (err) {
-      return res.status(400).json({ error: String(err) });
+      logger.error("Erro interno na seleção do poste", { error: err });
+      return res.status(500).json({ error: "Erro interno na seleção do poste" });
     }
   }),
 );
@@ -312,7 +320,8 @@ router.post(
         },
       });
     } catch (err) {
-      return res.status(400).json({ error: String(err) });
+      logger.error("Erro interno no cálculo de forças no condutor", { error: err });
+      return res.status(500).json({ error: "Erro interno no cálculo de forças no condutor" });
     }
   }),
 );
@@ -366,7 +375,8 @@ router.post(
         },
       });
     } catch (err) {
-      return res.status(400).json({ error: String(err) });
+      logger.error("Erro interno na análise de cenários", { error: err });
+      return res.status(500).json({ error: "Erro interno na análise de cenários" });
     }
   }),
 );
@@ -414,7 +424,8 @@ router.post(
         },
       });
     } catch (err) {
-      return res.status(400).json({ error: String(err) });
+      logger.error("Erro interno na comparação de cenários", { error: err });
+      return res.status(500).json({ error: "Erro interno na comparação de cenários" });
     }
   }),
 );
@@ -677,11 +688,15 @@ router.get("/catalog/vento-coeficientes", (req: Request, res: Response) => {
 // ─── Error handler (must be last) ────────────────────────────────────────────
 
 router.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
-  console.error("[API Error]", err);
+  logger.error("[API Error] mechanical/scenarios route", {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+  });
   return res.status(500).json({
     success: false,
-    error: "Internal server error",
-    message: err.message,
+    error: "Erro interno no servidor",
   });
 });
 
