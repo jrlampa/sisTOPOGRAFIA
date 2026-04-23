@@ -23,14 +23,21 @@ const HandshakeSchema = z.object({
 });
 
 const RegistrarEventoSchema = z.object({
-  tipo: z.enum(["handshake_ok", "handshake_fail", "secret_rotated", "policy_violation", "cert_expired"]),
+  tipo: z.enum([
+    "handshake_ok",
+    "handshake_fail",
+    "secret_rotated",
+    "policy_violation",
+    "cert_expired",
+  ]),
   severidade: z.enum(["baixa", "media", "alta", "critica"]),
   descricao: z.string().min(3),
 });
 
 router.post("/perfis", (req: Request, res: Response) => {
   const parse = CriarPerfilSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
     return res.status(201).json(GisHardeningService.criarPerfil(parse.data));
   } catch (err: unknown) {
@@ -51,9 +58,15 @@ router.get("/perfis/:id", (req: Request, res: Response) => {
 
 router.post("/perfis/:id/validar-handshake", (req: Request, res: Response) => {
   const parse = HandshakeSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.json(GisHardeningService.validarHandshake(req.params.id, parse.data.certFingerprintRecebido));
+    return res.json(
+      GisHardeningService.validarHandshake(
+        req.params.id,
+        parse.data.certFingerprintRecebido,
+      ),
+    );
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }
@@ -61,9 +74,12 @@ router.post("/perfis/:id/validar-handshake", (req: Request, res: Response) => {
 
 router.post("/perfis/:id/eventos", (req: Request, res: Response) => {
   const parse = RegistrarEventoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.status(201).json(GisHardeningService.registrarEvento(req.params.id, parse.data));
+    return res
+      .status(201)
+      .json(GisHardeningService.registrarEvento(req.params.id, parse.data));
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }

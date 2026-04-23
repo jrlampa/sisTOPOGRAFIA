@@ -13,7 +13,11 @@ export type TipoDocumento =
   | "relatorio_fotografico"
   | "outro";
 
-export type StatusDocumento = "rascunho" | "em_revisao" | "aprovado" | "arquivado";
+export type StatusDocumento =
+  | "rascunho"
+  | "em_revisao"
+  | "aprovado"
+  | "arquivado";
 export type ClassificacaoSigilo = "publico" | "restrito" | "confidencial";
 
 export interface RevisaoDocumento {
@@ -72,7 +76,9 @@ export class AcervoGedService {
       status: "rascunho",
       classificacaoSigilo: data.classificacaoSigilo,
       retencaoAnos: data.retencaoAnos,
-      conteudoHash: createHash("sha256").update(`${id}|${data.titulo}|${data.conteudo}`).digest("hex"),
+      conteudoHash: createHash("sha256")
+        .update(`${id}|${data.titulo}|${data.conteudo}`)
+        .digest("hex"),
       criadoPor: data.criadoPor,
       criadoEm: now,
       atualizadoEm: now,
@@ -94,16 +100,21 @@ export class AcervoGedService {
   static enviarParaRevisao(id: string): DocumentoGed {
     const documento = _documentos.get(id);
     if (!documento) throw new Error("Documento não encontrado");
-    if (documento.status === "arquivado") throw new Error("Documento arquivado não pode entrar em revisão");
+    if (documento.status === "arquivado")
+      throw new Error("Documento arquivado não pode entrar em revisão");
     documento.status = "em_revisao";
     documento.atualizadoEm = new Date().toISOString();
     return documento;
   }
 
-  static registrarRevisao(id: string, data: { revisadoPor: string; observacao: string }): RevisaoDocumento {
+  static registrarRevisao(
+    id: string,
+    data: { revisadoPor: string; observacao: string },
+  ): RevisaoDocumento {
     const documento = _documentos.get(id);
     if (!documento) throw new Error("Documento não encontrado");
-    if (documento.status !== "em_revisao") throw new Error("Documento deve estar em revisão");
+    if (documento.status !== "em_revisao")
+      throw new Error("Documento deve estar em revisão");
     const revisao: RevisaoDocumento = {
       id: `rv-${++_revisaoCounter}`,
       versao: documento.revisoes.length + 1,
@@ -119,7 +130,8 @@ export class AcervoGedService {
   static aprovarDocumento(id: string): DocumentoGed {
     const documento = _documentos.get(id);
     if (!documento) throw new Error("Documento não encontrado");
-    if (documento.status !== "em_revisao") throw new Error("Documento deve estar em revisão para aprovação");
+    if (documento.status !== "em_revisao")
+      throw new Error("Documento deve estar em revisão para aprovação");
     documento.status = "aprovado";
     documento.atualizadoEm = new Date().toISOString();
     return documento;

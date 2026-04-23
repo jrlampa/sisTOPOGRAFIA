@@ -9,11 +9,24 @@ import { QrRastreabilidadeService } from "../services/qrRastreabilidadeService.j
 const router = Router();
 
 const TipoAssetEnum = z.enum([
-  "poste", "transformador", "medicao", "chave", "religador", "cabo", "subestacao", "outro",
+  "poste",
+  "transformador",
+  "medicao",
+  "chave",
+  "religador",
+  "cabo",
+  "subestacao",
+  "outro",
 ]);
 
 const TipoEventoEnum = z.enum([
-  "criacao", "impressao", "instalacao", "inspecao", "manutencao", "substituicao", "desativacao",
+  "criacao",
+  "impressao",
+  "instalacao",
+  "inspecao",
+  "manutencao",
+  "substituicao",
+  "desativacao",
 ]);
 
 const CriarAtivoSchema = z.object({
@@ -47,9 +60,12 @@ const InstalarAtivoSchema = z.object({
 // POST /ativos
 router.post("/ativos", (req: Request, res: Response) => {
   const parse = CriarAtivoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.status(201).json(QrRastreabilidadeService.criarAtivo(parse.data));
+    return res
+      .status(201)
+      .json(QrRastreabilidadeService.criarAtivo(parse.data));
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }
@@ -78,9 +94,14 @@ router.get("/ativos/:id", (req: Request, res: Response) => {
 // POST /ativos/:id/eventos
 router.post("/ativos/:id/eventos", (req: Request, res: Response) => {
   const parse = RegistrarEventoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.status(201).json(QrRastreabilidadeService.registrarEvento(req.params.id, parse.data));
+    return res
+      .status(201)
+      .json(
+        QrRastreabilidadeService.registrarEvento(req.params.id, parse.data),
+      );
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }
@@ -89,9 +110,12 @@ router.post("/ativos/:id/eventos", (req: Request, res: Response) => {
 // POST /ativos/:id/instalar
 router.post("/ativos/:id/instalar", (req: Request, res: Response) => {
   const parse = InstalarAtivoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.json(QrRastreabilidadeService.instalarAtivo(req.params.id, parse.data));
+    return res.json(
+      QrRastreabilidadeService.instalarAtivo(req.params.id, parse.data),
+    );
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }

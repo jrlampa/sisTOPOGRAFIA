@@ -5,7 +5,12 @@
 export type TipoWorker = "local" | "cloud";
 export type StatusWorker = "ativo" | "inativo" | "degradado";
 export type PrioridadeJob = "baixa" | "media" | "alta" | "critica";
-export type StatusJob = "enfileirado" | "roteado" | "executando" | "concluido" | "falha";
+export type StatusJob =
+  | "enfileirado"
+  | "roteado"
+  | "executando"
+  | "concluido"
+  | "falha";
 export type EstrategiaRoteamento = "prefer_local" | "prefer_cloud" | "hibrido";
 
 export interface WorkerNode {
@@ -40,7 +45,9 @@ const _workers = new Map<string, WorkerNode>();
 const _jobs = new Map<string, HybridJob>();
 
 function workerDisponivel(worker: WorkerNode): boolean {
-  return worker.status === "ativo" && worker.jobsAtivos < worker.capacidadeMaxJobs;
+  return (
+    worker.status === "ativo" && worker.jobsAtivos < worker.capacidadeMaxJobs
+  );
 }
 
 export class HybridCloudService {
@@ -117,11 +124,18 @@ export class HybridCloudService {
   static rotearJob(jobId: string): HybridJob {
     const job = _jobs.get(jobId);
     if (!job) throw new Error("Job não encontrado");
-    if (job.status !== "enfileirado") throw new Error("Job já processado para roteamento");
+    if (job.status !== "enfileirado")
+      throw new Error("Job já processado para roteamento");
 
-    const workersTenant = Array.from(_workers.values()).filter((w) => w.tenantId === job.tenantId);
-    const locals = workersTenant.filter((w) => w.tipoWorker === "local" && workerDisponivel(w));
-    const clouds = workersTenant.filter((w) => w.tipoWorker === "cloud" && workerDisponivel(w));
+    const workersTenant = Array.from(_workers.values()).filter(
+      (w) => w.tenantId === job.tenantId,
+    );
+    const locals = workersTenant.filter(
+      (w) => w.tipoWorker === "local" && workerDisponivel(w),
+    );
+    const clouds = workersTenant.filter(
+      (w) => w.tipoWorker === "cloud" && workerDisponivel(w),
+    );
 
     let escolhido: WorkerNode | undefined;
     if (job.estrategiaRoteamento === "prefer_local") {
@@ -130,7 +144,9 @@ export class HybridCloudService {
       escolhido = clouds[0] ?? locals[0];
     } else {
       // hibrido: prioriza menor latência entre disponíveis
-      escolhido = [...locals, ...clouds].sort((a, b) => a.latenciaMs - b.latenciaMs)[0];
+      escolhido = [...locals, ...clouds].sort(
+        (a, b) => a.latenciaMs - b.latenciaMs,
+      )[0];
     }
 
     if (!escolhido) throw new Error("Nenhum worker disponível para roteamento");
@@ -151,7 +167,11 @@ export class HybridCloudService {
     job.status = status;
     job.atualizadoEm = new Date().toISOString();
 
-    if (job.workerSelecionadoId && (status === "concluido" || status === "falha") && oldStatus !== status) {
+    if (
+      job.workerSelecionadoId &&
+      (status === "concluido" || status === "falha") &&
+      oldStatus !== status
+    ) {
       const worker = _workers.get(job.workerSelecionadoId);
       if (worker) worker.jobsAtivos = Math.max(0, worker.jobsAtivos - 1);
     }

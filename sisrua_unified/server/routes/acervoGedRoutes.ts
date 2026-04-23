@@ -34,7 +34,8 @@ const RevisaoSchema = z.object({
 
 router.post("/documentos", (req: Request, res: Response) => {
   const parse = CriarDocumentoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
     return res.status(201).json(AcervoGedService.criarDocumento(parse.data));
   } catch (err: unknown) {
@@ -49,7 +50,8 @@ router.get("/documentos", (req: Request, res: Response) => {
 
 router.get("/documentos/:id", (req: Request, res: Response) => {
   const documento = AcervoGedService.obterDocumento(req.params.id);
-  if (!documento) return res.status(404).json({ error: "Documento não encontrado" });
+  if (!documento)
+    return res.status(404).json({ error: "Documento não encontrado" });
   return res.json(documento);
 });
 
@@ -63,9 +65,12 @@ router.post("/documentos/:id/enviar-revisao", (req: Request, res: Response) => {
 
 router.post("/documentos/:id/revisoes", (req: Request, res: Response) => {
   const parse = RevisaoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.status(201).json(AcervoGedService.registrarRevisao(req.params.id, parse.data));
+    return res
+      .status(201)
+      .json(AcervoGedService.registrarRevisao(req.params.id, parse.data));
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }

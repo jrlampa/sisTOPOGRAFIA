@@ -32,7 +32,9 @@ describe("POST /api/lcp/projetos", () => {
   });
 
   it("deve retornar 400 se dados inválidos", async () => {
-    const res = await request(app).post("/api/lcp/projetos").send({ tenantId: "a" });
+    const res = await request(app)
+      .post("/api/lcp/projetos")
+      .send({ tenantId: "a" });
     expect(res.status).toBe(400);
   });
 });
@@ -46,7 +48,9 @@ describe("GET /api/lcp/projetos", () => {
 
   it("deve filtrar por tenantId", async () => {
     await request(app).post("/api/lcp/projetos").send(BASE_PROJETO);
-    await request(app).post("/api/lcp/projetos").send({ ...BASE_PROJETO, tenantId: "ten-02" });
+    await request(app)
+      .post("/api/lcp/projetos")
+      .send({ ...BASE_PROJETO, tenantId: "ten-02" });
     const res = await request(app).get("/api/lcp/projetos?tenantId=ten-01");
     expect(res.body).toHaveLength(1);
   });
@@ -74,14 +78,18 @@ describe("POST /api/lcp/projetos/:id/calcular", () => {
     expect(res.body.status).toBe("calculado");
     expect(res.body.resultado).toBeDefined();
     expect(res.body.resultado.custoEstimadoBRL).toBeGreaterThan(0);
-    expect(res.body.resultado.nivelDificuldade).toMatch(/^(baixo|medio|alto|critico)$/);
+    expect(res.body.resultado.nivelDificuldade).toMatch(
+      /^(baixo|medio|alto|critico)$/,
+    );
     expect(res.body.resultado.hashCalculo).toMatch(/^[a-f0-9]{64}$/);
   });
 
   it("deve retornar 422 se já aprovado", async () => {
     await request(app).post("/api/lcp/projetos").send(BASE_PROJETO);
     await request(app).post("/api/lcp/projetos/lcp-1/calcular");
-    await request(app).post("/api/lcp/projetos/lcp-1/aprovar").send({ aprovadoPor: "Eng. Silva" });
+    await request(app)
+      .post("/api/lcp/projetos/lcp-1/aprovar")
+      .send({ aprovadoPor: "Eng. Silva" });
     const res = await request(app).post("/api/lcp/projetos/lcp-1/calcular");
     expect(res.status).toBe(422);
   });
@@ -91,7 +99,9 @@ describe("POST /api/lcp/projetos/:id/aprovar", () => {
   it("deve aprovar traçado calculado", async () => {
     await request(app).post("/api/lcp/projetos").send(BASE_PROJETO);
     await request(app).post("/api/lcp/projetos/lcp-1/calcular");
-    const res = await request(app).post("/api/lcp/projetos/lcp-1/aprovar").send({ aprovadoPor: "Eng. Costa" });
+    const res = await request(app)
+      .post("/api/lcp/projetos/lcp-1/aprovar")
+      .send({ aprovadoPor: "Eng. Costa" });
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("aprovado");
     expect(res.body.aprovadoPor).toBe("Eng. Costa");
@@ -99,7 +109,9 @@ describe("POST /api/lcp/projetos/:id/aprovar", () => {
 
   it("deve retornar 422 se não calculado", async () => {
     await request(app).post("/api/lcp/projetos").send(BASE_PROJETO);
-    const res = await request(app).post("/api/lcp/projetos/lcp-1/aprovar").send({ aprovadoPor: "Eng. Costa" });
+    const res = await request(app)
+      .post("/api/lcp/projetos/lcp-1/aprovar")
+      .send({ aprovadoPor: "Eng. Costa" });
     expect(res.status).toBe(422);
   });
 });

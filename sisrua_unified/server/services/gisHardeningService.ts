@@ -89,11 +89,16 @@ export class GisHardeningService {
     return _perfis.get(id);
   }
 
-  static validarHandshake(perfilId: string, certFingerprintRecebido: string): { autorizado: boolean; motivo: string } {
+  static validarHandshake(
+    perfilId: string,
+    certFingerprintRecebido: string,
+  ): { autorizado: boolean; motivo: string } {
     const perfil = _perfis.get(perfilId);
     if (!perfil) throw new Error("Perfil não encontrado");
-    if (perfil.status !== "ativo") return { autorizado: false, motivo: "Perfil inativo" };
-    if (!perfil.mtlsObrigatorio) return { autorizado: true, motivo: "mTLS não obrigatório" };
+    if (perfil.status !== "ativo")
+      return { autorizado: false, motivo: "Perfil inativo" };
+    if (!perfil.mtlsObrigatorio)
+      return { autorizado: true, motivo: "mTLS não obrigatório" };
     if (perfil.certFingerprint !== certFingerprintRecebido) {
       this.registrarEvento(perfilId, {
         tipo: "handshake_fail",
@@ -112,7 +117,11 @@ export class GisHardeningService {
 
   static registrarEvento(
     perfilId: string,
-    data: { tipo: TipoEventoHardening; severidade: "baixa" | "media" | "alta" | "critica"; descricao: string }
+    data: {
+      tipo: TipoEventoHardening;
+      severidade: "baixa" | "media" | "alta" | "critica";
+      descricao: string;
+    },
   ): EventoHardening {
     const perfil = _perfis.get(perfilId);
     if (!perfil) throw new Error("Perfil não encontrado");
@@ -123,7 +132,9 @@ export class GisHardeningService {
       tipo: data.tipo,
       severidade: data.severidade,
       descricao: data.descricao,
-      hashEvento: createHash("sha256").update(`${perfilId}|${data.tipo}|${data.severidade}|${now}`).digest("hex"),
+      hashEvento: createHash("sha256")
+        .update(`${perfilId}|${data.tipo}|${data.severidade}|${now}`)
+        .digest("hex"),
       criadoEm: now,
     };
     const list = _eventos.get(perfilId) || [];
@@ -150,6 +161,12 @@ export class GisHardeningService {
   }
 
   static listarTiposEvento(): TipoEventoHardening[] {
-    return ["handshake_ok", "handshake_fail", "secret_rotated", "policy_violation", "cert_expired"];
+    return [
+      "handshake_ok",
+      "handshake_fail",
+      "secret_rotated",
+      "policy_violation",
+      "cert_expired",
+    ];
   }
 }

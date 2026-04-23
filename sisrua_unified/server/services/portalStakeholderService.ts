@@ -11,7 +11,11 @@ export type PerfilAcesso =
   | "orgao_ambiental"
   | "ministerio_publico";
 
-export type StatusAcesso = "convite_enviado" | "ativo" | "suspenso" | "revogado";
+export type StatusAcesso =
+  | "convite_enviado"
+  | "ativo"
+  | "suspenso"
+  | "revogado";
 export type StatusSolicitacao = "pendente" | "aprovado" | "negado" | "atendido";
 
 export interface AcessoStakeholder {
@@ -71,7 +75,9 @@ export class PortalStakeholderService {
       perfil: data.perfil,
       escopos: data.escopos,
       status: "convite_enviado",
-      tokenAcessoHash: createHash("sha256").update(`${data.email}|${tokenRaw}|${now}`).digest("hex"),
+      tokenAcessoHash: createHash("sha256")
+        .update(`${data.email}|${tokenRaw}|${now}`)
+        .digest("hex"),
       criadoEm: now,
       atualizadoEm: now,
     };
@@ -91,7 +97,8 @@ export class PortalStakeholderService {
   static ativarAcesso(id: string): AcessoStakeholder {
     const acesso = _acessos.get(id);
     if (!acesso) throw new Error("Acesso não encontrado");
-    if (acesso.status === "revogado") throw new Error("Acesso revogado não pode ser ativado");
+    if (acesso.status === "revogado")
+      throw new Error("Acesso revogado não pode ser ativado");
     acesso.status = "ativo";
     acesso.atualizadoEm = new Date().toISOString();
     return acesso;
@@ -100,7 +107,8 @@ export class PortalStakeholderService {
   static suspenderAcesso(id: string): AcessoStakeholder {
     const acesso = _acessos.get(id);
     if (!acesso) throw new Error("Acesso não encontrado");
-    if (acesso.status === "revogado") throw new Error("Acesso revogado não pode ser suspenso");
+    if (acesso.status === "revogado")
+      throw new Error("Acesso revogado não pode ser suspenso");
     acesso.status = "suspenso";
     acesso.atualizadoEm = new Date().toISOString();
     return acesso;
@@ -116,11 +124,15 @@ export class PortalStakeholderService {
 
   static criarSolicitacao(
     acessoId: string,
-    data: { tipoConsulta: "mapa" | "projeto" | "dossie" | "relatorio"; justificativa: string }
+    data: {
+      tipoConsulta: "mapa" | "projeto" | "dossie" | "relatorio";
+      justificativa: string;
+    },
   ): SolicitacaoStakeholder {
     const acesso = _acessos.get(acessoId);
     if (!acesso) throw new Error("Acesso não encontrado");
-    if (acesso.status !== "ativo") throw new Error("Acesso deve estar ativo para solicitar consulta");
+    if (acesso.status !== "ativo")
+      throw new Error("Acesso deve estar ativo para solicitar consulta");
     const now = new Date().toISOString();
     const solicitacao: SolicitacaoStakeholder = {
       id: `ss-${++_solicitacaoCounter}`,
@@ -137,7 +149,7 @@ export class PortalStakeholderService {
 
   static responderSolicitacao(
     solicitacaoId: string,
-    data: { status: "aprovado" | "negado" | "atendido"; resposta?: string }
+    data: { status: "aprovado" | "negado" | "atendido"; resposta?: string },
   ): SolicitacaoStakeholder {
     const solicitacao = _solicitacoes.get(solicitacaoId);
     if (!solicitacao) throw new Error("Solicitação não encontrada");
@@ -148,6 +160,12 @@ export class PortalStakeholderService {
   }
 
   static listarPerfis(): PerfilAcesso[] {
-    return ["prefeitura", "concessionaria", "fiscalizacao", "orgao_ambiental", "ministerio_publico"];
+    return [
+      "prefeitura",
+      "concessionaria",
+      "fiscalizacao",
+      "orgao_ambiental",
+      "ministerio_publico",
+    ];
   }
 }

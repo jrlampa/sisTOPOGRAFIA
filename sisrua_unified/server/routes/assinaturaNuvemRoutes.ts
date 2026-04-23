@@ -28,7 +28,8 @@ const RegistrarAssinaturaSchema = z.object({
 
 router.post("/lotes", (req: Request, res: Response) => {
   const parse = CriarLoteSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
     return res.status(201).json(AssinaturaNuvemService.criarLote(parse.data));
   } catch (err: unknown) {
@@ -49,9 +50,14 @@ router.get("/lotes/:id", (req: Request, res: Response) => {
 
 router.post("/lotes/:id/documentos", (req: Request, res: Response) => {
   const parse = AdicionarDocumentoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.status(201).json(AssinaturaNuvemService.adicionarDocumento(req.params.id, parse.data));
+    return res
+      .status(201)
+      .json(
+        AssinaturaNuvemService.adicionarDocumento(req.params.id, parse.data),
+      );
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }
@@ -65,21 +71,25 @@ router.post("/lotes/:id/enviar", (req: Request, res: Response) => {
   }
 });
 
-router.post("/lotes/:id/registrar-assinatura", (req: Request, res: Response) => {
-  const parse = RegistrarAssinaturaSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
-  try {
-    return res.json(
-      AssinaturaNuvemService.registrarAssinatura(
-        req.params.id,
-        parse.data.documentoId,
-        parse.data.status,
-      ),
-    );
-  } catch (err: unknown) {
-    return res.status(422).json({ error: (err as Error).message });
-  }
-});
+router.post(
+  "/lotes/:id/registrar-assinatura",
+  (req: Request, res: Response) => {
+    const parse = RegistrarAssinaturaSchema.safeParse(req.body);
+    if (!parse.success)
+      return res.status(400).json({ errors: parse.error.issues });
+    try {
+      return res.json(
+        AssinaturaNuvemService.registrarAssinatura(
+          req.params.id,
+          parse.data.documentoId,
+          parse.data.status,
+        ),
+      );
+    } catch (err: unknown) {
+      return res.status(422).json({ error: (err as Error).message });
+    }
+  },
+);
 
 router.post("/lotes/:id/cancelar", (req: Request, res: Response) => {
   try {

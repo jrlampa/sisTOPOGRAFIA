@@ -31,9 +31,12 @@ const AssinarSchema = z.object({
 
 router.post("/dossies", (req: Request, res: Response) => {
   const parse = CriarDossieSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.status(201).json(ProvenienciaForenseService.criarDossie(parse.data));
+    return res
+      .status(201)
+      .json(ProvenienciaForenseService.criarDossie(parse.data));
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }
@@ -52,9 +55,14 @@ router.get("/dossies/:id", (req: Request, res: Response) => {
 
 router.post("/dossies/:id/artefatos", (req: Request, res: Response) => {
   const parse = AdicionarArtefatoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.status(201).json(ProvenienciaForenseService.adicionarArtefato(req.params.id, parse.data));
+    return res
+      .status(201)
+      .json(
+        ProvenienciaForenseService.adicionarArtefato(req.params.id, parse.data),
+      );
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }
@@ -62,9 +70,15 @@ router.post("/dossies/:id/artefatos", (req: Request, res: Response) => {
 
 router.post("/dossies/:id/selo-temporal", (req: Request, res: Response) => {
   const parse = EmitirSeloSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.json(ProvenienciaForenseService.emitirSeloTemporal(req.params.id, parse.data.provedor));
+    return res.json(
+      ProvenienciaForenseService.emitirSeloTemporal(
+        req.params.id,
+        parse.data.provedor,
+      ),
+    );
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }
@@ -72,21 +86,32 @@ router.post("/dossies/:id/selo-temporal", (req: Request, res: Response) => {
 
 router.post("/dossies/:id/assinar-icp", (req: Request, res: Response) => {
   const parse = AssinarSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.json(ProvenienciaForenseService.assinarIcpBrasil(req.params.id, parse.data.certificadoSerial));
+    return res.json(
+      ProvenienciaForenseService.assinarIcpBrasil(
+        req.params.id,
+        parse.data.certificadoSerial,
+      ),
+    );
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }
 });
 
-router.get("/dossies/:id/verificar-integridade", (req: Request, res: Response) => {
-  try {
-    return res.json(ProvenienciaForenseService.verificarIntegridade(req.params.id));
-  } catch (err: unknown) {
-    return res.status(422).json({ error: (err as Error).message });
-  }
-});
+router.get(
+  "/dossies/:id/verificar-integridade",
+  (req: Request, res: Response) => {
+    try {
+      return res.json(
+        ProvenienciaForenseService.verificarIntegridade(req.params.id),
+      );
+    } catch (err: unknown) {
+      return res.status(422).json({ error: (err as Error).message });
+    }
+  },
+);
 
 router.post("/dossies/:id/revogar", (req: Request, res: Response) => {
   try {

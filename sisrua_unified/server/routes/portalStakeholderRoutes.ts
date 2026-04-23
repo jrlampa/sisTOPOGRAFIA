@@ -13,7 +13,13 @@ const CriarAcessoSchema = z.object({
   orgao: z.string().min(3),
   nomeResponsavel: z.string().min(3),
   email: z.string().email(),
-  perfil: z.enum(["prefeitura", "concessionaria", "fiscalizacao", "orgao_ambiental", "ministerio_publico"]),
+  perfil: z.enum([
+    "prefeitura",
+    "concessionaria",
+    "fiscalizacao",
+    "orgao_ambiental",
+    "ministerio_publico",
+  ]),
   escopos: z.array(z.string().min(2)).min(1),
 });
 
@@ -29,9 +35,12 @@ const ResponderSolicitacaoSchema = z.object({
 
 router.post("/acessos", (req: Request, res: Response) => {
   const parse = CriarAcessoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.status(201).json(PortalStakeholderService.criarAcesso(parse.data));
+    return res
+      .status(201)
+      .json(PortalStakeholderService.criarAcesso(parse.data));
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }
@@ -74,9 +83,14 @@ router.post("/acessos/:id/revogar", (req: Request, res: Response) => {
 
 router.post("/acessos/:id/solicitacoes", (req: Request, res: Response) => {
   const parse = CriarSolicitacaoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.status(201).json(PortalStakeholderService.criarSolicitacao(req.params.id, parse.data));
+    return res
+      .status(201)
+      .json(
+        PortalStakeholderService.criarSolicitacao(req.params.id, parse.data),
+      );
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }
@@ -84,9 +98,12 @@ router.post("/acessos/:id/solicitacoes", (req: Request, res: Response) => {
 
 router.post("/solicitacoes/:id/responder", (req: Request, res: Response) => {
   const parse = ResponderSolicitacaoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.json(PortalStakeholderService.responderSolicitacao(req.params.id, parse.data));
+    return res.json(
+      PortalStakeholderService.responderSolicitacao(req.params.id, parse.data),
+    );
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }

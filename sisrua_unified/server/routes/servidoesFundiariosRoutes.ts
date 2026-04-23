@@ -39,7 +39,9 @@ const adicionarImovelSchema = z.object({
 router.post("/processos", (req: Request, res: Response) => {
   const parse = criarProcessoSchema.safeParse(req.body);
   if (!parse.success) {
-    return res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.flatten() });
+    return res
+      .status(400)
+      .json({ erro: "Dados inválidos", detalhes: parse.error.flatten() });
   }
   const processo = ServidoesFundiariosService.criarProcesso(parse.data);
   return res.status(201).json(processo);
@@ -65,9 +67,14 @@ router.get("/processos/:id", (req: Request, res: Response) => {
 router.post("/processos/:id/imoveis", (req: Request, res: Response) => {
   const parse = adicionarImovelSchema.safeParse(req.body);
   if (!parse.success) {
-    return res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.flatten() });
+    return res
+      .status(400)
+      .json({ erro: "Dados inválidos", detalhes: parse.error.flatten() });
   }
-  const proc = ServidoesFundiariosService.adicionarImovel(req.params["id"]!, parse.data);
+  const proc = ServidoesFundiariosService.adicionarImovel(
+    req.params["id"]!,
+    parse.data,
+  );
   if (!proc) return res.status(404).json({ erro: "Processo não encontrado" });
   return res.status(201).json(proc);
 });
@@ -83,7 +90,9 @@ router.post("/processos/:id/memorial", (req: Request, res: Response) => {
 
 // ─── POST /processos/:id/cartas-anuencia ─────────────────────────────────────
 router.post("/processos/:id/cartas-anuencia", (req: Request, res: Response) => {
-  const resultado = ServidoesFundiariosService.emitirCartasAnuencia(req.params["id"]!);
+  const resultado = ServidoesFundiariosService.emitirCartasAnuencia(
+    req.params["id"]!,
+  );
   if ("erro" in resultado) {
     return res.status(422).json(resultado);
   }
@@ -94,7 +103,9 @@ router.post("/processos/:id/cartas-anuencia", (req: Request, res: Response) => {
 router.post("/processos/:id/aprovar", (req: Request, res: Response) => {
   const proc = ServidoesFundiariosService.aprovarProcesso(req.params["id"]!);
   if (!proc) {
-    return res.status(422).json({ erro: "Processo não encontrado ou em rascunho sem memorial" });
+    return res
+      .status(422)
+      .json({ erro: "Processo não encontrado ou em rascunho sem memorial" });
   }
   return res.json(proc);
 });

@@ -5,7 +5,13 @@
 import { createHash, randomUUID } from "crypto";
 
 export type ProvedorAssinatura = "birdid" | "safeid";
-export type StatusLote = "preparado" | "enviado" | "assinado" | "parcial" | "falha" | "cancelado";
+export type StatusLote =
+  | "preparado"
+  | "enviado"
+  | "assinado"
+  | "parcial"
+  | "falha"
+  | "cancelado";
 export type StatusDocumentoAssinatura = "pendente" | "assinado" | "falha";
 
 export interface DocumentoAssinavel {
@@ -73,10 +79,14 @@ export class AssinaturaNuvemService {
     return _lotes.get(id);
   }
 
-  static adicionarDocumento(loteId: string, data: { nomeArquivo: string; conteudo: string }): DocumentoAssinavel {
+  static adicionarDocumento(
+    loteId: string,
+    data: { nomeArquivo: string; conteudo: string },
+  ): DocumentoAssinavel {
     const lote = _lotes.get(loteId);
     if (!lote) throw new Error("Lote não encontrado");
-    if (lote.status !== "preparado") throw new Error("Lote deve estar em estado preparado");
+    if (lote.status !== "preparado")
+      throw new Error("Lote deve estar em estado preparado");
     const documento: DocumentoAssinavel = {
       id: `ad-${++_docCounter}`,
       nomeArquivo: data.nomeArquivo,
@@ -91,24 +101,34 @@ export class AssinaturaNuvemService {
   static enviarLote(loteId: string): LoteAssinatura {
     const lote = _lotes.get(loteId);
     if (!lote) throw new Error("Lote não encontrado");
-    if (lote.documentos.length === 0) throw new Error("Lote deve conter ao menos 1 documento");
+    if (lote.documentos.length === 0)
+      throw new Error("Lote deve conter ao menos 1 documento");
     if (lote.status === "cancelado") throw new Error("Lote cancelado");
     lote.status = "enviado";
     lote.atualizadoEm = new Date().toISOString();
     return lote;
   }
 
-  static registrarAssinatura(loteId: string, documentoId: string, status: "assinado" | "falha"): LoteAssinatura {
+  static registrarAssinatura(
+    loteId: string,
+    documentoId: string,
+    status: "assinado" | "falha",
+  ): LoteAssinatura {
     const lote = _lotes.get(loteId);
     if (!lote) throw new Error("Lote não encontrado");
-    if (lote.status !== "enviado" && lote.status !== "parcial") throw new Error("Lote deve estar enviado para registrar assinaturas");
+    if (lote.status !== "enviado" && lote.status !== "parcial")
+      throw new Error("Lote deve estar enviado para registrar assinaturas");
     const doc = lote.documentos.find((d) => d.id === documentoId);
     if (!doc) throw new Error("Documento não encontrado no lote");
     doc.status = status;
     if (status === "assinado") {
-      doc.assinaturaId = createHash("sha256").update(`${documentoId}|${randomUUID()}|${Date.now()}`).digest("hex");
+      doc.assinaturaId = createHash("sha256")
+        .update(`${documentoId}|${randomUUID()}|${Date.now()}`)
+        .digest("hex");
     }
-    const assinados = lote.documentos.filter((d) => d.status === "assinado").length;
+    const assinados = lote.documentos.filter(
+      (d) => d.status === "assinado",
+    ).length;
     const falhas = lote.documentos.filter((d) => d.status === "falha").length;
     if (assinados === lote.documentos.length) lote.status = "assinado";
     else if (falhas === lote.documentos.length) lote.status = "falha";
@@ -120,7 +140,8 @@ export class AssinaturaNuvemService {
   static cancelarLote(loteId: string): LoteAssinatura {
     const lote = _lotes.get(loteId);
     if (!lote) throw new Error("Lote não encontrado");
-    if (lote.status === "assinado") throw new Error("Lote assinado não pode ser cancelado");
+    if (lote.status === "assinado")
+      throw new Error("Lote assinado não pode ser cancelado");
     lote.status = "cancelado";
     lote.atualizadoEm = new Date().toISOString();
     return lote;

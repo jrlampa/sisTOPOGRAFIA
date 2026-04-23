@@ -49,7 +49,11 @@ export class ProvenienciaForenseService {
     _dossies.clear();
   }
 
-  static criarDossie(data: { tenantId: string; projetoId: string; titulo: string }): DossieForense {
+  static criarDossie(data: {
+    tenantId: string;
+    projetoId: string;
+    titulo: string;
+  }): DossieForense {
     const now = new Date().toISOString();
     const dossie: DossieForense = {
       id: `pf-${++_dossieCounter}`,
@@ -76,11 +80,17 @@ export class ProvenienciaForenseService {
 
   static adicionarArtefato(
     dossieId: string,
-    data: { nomeArquivo: string; mimeType: string; tamanhoBytes: number; conteudo: string }
+    data: {
+      nomeArquivo: string;
+      mimeType: string;
+      tamanhoBytes: number;
+      conteudo: string;
+    },
   ): ArtefatoForense {
     const dossie = _dossies.get(dossieId);
     if (!dossie) throw new Error("Dossiê não encontrado");
-    if (dossie.status === "revogado") throw new Error("Dossiê revogado não aceita artefatos");
+    if (dossie.status === "revogado")
+      throw new Error("Dossiê revogado não aceita artefatos");
     const artefato: ArtefatoForense = {
       id: `af-${++_artefatoCounter}`,
       nomeArquivo: data.nomeArquivo,
@@ -93,20 +103,28 @@ export class ProvenienciaForenseService {
     return artefato;
   }
 
-  static emitirSeloTemporal(dossieId: string, provedor: "rfc3161_homologado" | "rfc3161_interno"): DossieForense {
+  static emitirSeloTemporal(
+    dossieId: string,
+    provedor: "rfc3161_homologado" | "rfc3161_interno",
+  ): DossieForense {
     const dossie = _dossies.get(dossieId);
     if (!dossie) throw new Error("Dossiê não encontrado");
-    if (dossie.artefatos.length === 0) throw new Error("Dossiê deve ter ao menos 1 artefato");
+    if (dossie.artefatos.length === 0)
+      throw new Error("Dossiê deve ter ao menos 1 artefato");
 
     const cadeiaHash = createHash("sha256")
       .update(dossie.artefatos.map((a) => a.hashSha256).join("|"))
       .digest("hex");
     const emitidoEm = new Date().toISOString();
-    const validadeAte = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+    const validadeAte = new Date(
+      Date.now() + 365 * 24 * 60 * 60 * 1000,
+    ).toISOString();
     const selo: SeloTemporalRFC3161 = {
       id: `stp-${++_seloCounter}`,
       provedor,
-      tokenHash: createHash("sha256").update(`${cadeiaHash}|${randomUUID()}|${emitidoEm}`).digest("hex"),
+      tokenHash: createHash("sha256")
+        .update(`${cadeiaHash}|${randomUUID()}|${emitidoEm}`)
+        .digest("hex"),
       emitidoEm,
       validadeAte,
     };
@@ -117,10 +135,14 @@ export class ProvenienciaForenseService {
     return dossie;
   }
 
-  static assinarIcpBrasil(dossieId: string, certificadoSerial: string): DossieForense {
+  static assinarIcpBrasil(
+    dossieId: string,
+    certificadoSerial: string,
+  ): DossieForense {
     const dossie = _dossies.get(dossieId);
     if (!dossie) throw new Error("Dossiê não encontrado");
-    if (dossie.status !== "selado") throw new Error("Dossiê deve estar selado para assinatura ICP-Brasil");
+    if (dossie.status !== "selado")
+      throw new Error("Dossiê deve estar selado para assinatura ICP-Brasil");
     dossie.assinaturaIcpBrasil = createHash("sha256")
       .update(`${certificadoSerial}|${dossie.cadeiaHash}|${Date.now()}`)
       .digest("hex");
@@ -128,16 +150,23 @@ export class ProvenienciaForenseService {
     return dossie;
   }
 
-  static verificarIntegridade(dossieId: string): { integro: boolean; motivo: string } {
+  static verificarIntegridade(dossieId: string): {
+    integro: boolean;
+    motivo: string;
+  } {
     const dossie = _dossies.get(dossieId);
     if (!dossie) throw new Error("Dossiê não encontrado");
-    if (!dossie.cadeiaHash) return { integro: false, motivo: "Dossiê sem cadeia hash" };
+    if (!dossie.cadeiaHash)
+      return { integro: false, motivo: "Dossiê sem cadeia hash" };
     const recalculado = createHash("sha256")
       .update(dossie.artefatos.map((a) => a.hashSha256).join("|"))
       .digest("hex");
     return {
       integro: recalculado === dossie.cadeiaHash,
-      motivo: recalculado === dossie.cadeiaHash ? "Integridade confirmada" : "Divergência de hash",
+      motivo:
+        recalculado === dossie.cadeiaHash
+          ? "Integridade confirmada"
+          : "Divergência de hash",
     };
   }
 
@@ -149,7 +178,9 @@ export class ProvenienciaForenseService {
     return dossie;
   }
 
-  static listarProvedoresRFC3161(): Array<"rfc3161_homologado" | "rfc3161_interno"> {
+  static listarProvedoresRFC3161(): Array<
+    "rfc3161_homologado" | "rfc3161_interno"
+  > {
     return ["rfc3161_homologado", "rfc3161_interno"];
   }
 }

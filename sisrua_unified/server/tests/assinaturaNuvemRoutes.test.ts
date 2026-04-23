@@ -20,31 +20,67 @@ describe("assinaturaNuvemRoutes", () => {
   });
 
   it("POST /lotes/:id/documentos adiciona documento", async () => {
-    await request(app).post(`${BASE}/lotes`).send({ tenantId: "t1", projetoId: "p1", provedor: "birdid", solicitadoPor: "Ana Lima" });
-    const res = await request(app).post(`${BASE}/lotes/asn-1/documentos`).send({ nomeArquivo: "doc1.pdf", conteudo: "conteudo" });
+    await request(app)
+      .post(`${BASE}/lotes`)
+      .send({
+        tenantId: "t1",
+        projetoId: "p1",
+        provedor: "birdid",
+        solicitadoPor: "Ana Lima",
+      });
+    const res = await request(app)
+      .post(`${BASE}/lotes/asn-1/documentos`)
+      .send({ nomeArquivo: "doc1.pdf", conteudo: "conteudo" });
     expect(res.status).toBe(201);
     expect(res.body.id).toBe("ad-1");
   });
 
   it("POST /lotes/:id/enviar envia lote", async () => {
-    await request(app).post(`${BASE}/lotes`).send({ tenantId: "t1", projetoId: "p1", provedor: "birdid", solicitadoPor: "Ana Lima" });
-    await request(app).post(`${BASE}/lotes/asn-1/documentos`).send({ nomeArquivo: "doc1.pdf", conteudo: "conteudo" });
+    await request(app)
+      .post(`${BASE}/lotes`)
+      .send({
+        tenantId: "t1",
+        projetoId: "p1",
+        provedor: "birdid",
+        solicitadoPor: "Ana Lima",
+      });
+    await request(app)
+      .post(`${BASE}/lotes/asn-1/documentos`)
+      .send({ nomeArquivo: "doc1.pdf", conteudo: "conteudo" });
     const res = await request(app).post(`${BASE}/lotes/asn-1/enviar`);
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("enviado");
   });
 
   it("POST /lotes/:id/registrar-assinatura marca assinado", async () => {
-    await request(app).post(`${BASE}/lotes`).send({ tenantId: "t1", projetoId: "p1", provedor: "birdid", solicitadoPor: "Ana Lima" });
-    await request(app).post(`${BASE}/lotes/asn-1/documentos`).send({ nomeArquivo: "doc1.pdf", conteudo: "conteudo" });
+    await request(app)
+      .post(`${BASE}/lotes`)
+      .send({
+        tenantId: "t1",
+        projetoId: "p1",
+        provedor: "birdid",
+        solicitadoPor: "Ana Lima",
+      });
+    await request(app)
+      .post(`${BASE}/lotes/asn-1/documentos`)
+      .send({ nomeArquivo: "doc1.pdf", conteudo: "conteudo" });
     await request(app).post(`${BASE}/lotes/asn-1/enviar`);
-    const res = await request(app).post(`${BASE}/lotes/asn-1/registrar-assinatura`).send({ documentoId: "ad-1", status: "assinado" });
+    const res = await request(app)
+      .post(`${BASE}/lotes/asn-1/registrar-assinatura`)
+      .send({ documentoId: "ad-1", status: "assinado" });
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("assinado");
   });
 
   it("POST /lotes/:id/cancelar cancela lote não assinado", async () => {
-    await request(app).post(`${BASE}/lotes`).send({ tenantId: "t1", projetoId: "p1", provedor: "safeid", solicitadoPor: "Ana Lima" });
+    await request(app)
+      .post(`${BASE}/lotes`)
+      .send({
+        tenantId: "t1",
+        projetoId: "p1",
+        provedor: "safeid",
+        solicitadoPor: "Ana Lima",
+      });
     const res = await request(app).post(`${BASE}/lotes/asn-1/cancelar`);
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("cancelado");

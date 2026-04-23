@@ -25,12 +25,19 @@ const RegistrarJobSchema = z.object({
 });
 
 const AtualizarStatusSchema = z.object({
-  status: z.enum(["enfileirado", "roteado", "executando", "concluido", "falha"]),
+  status: z.enum([
+    "enfileirado",
+    "roteado",
+    "executando",
+    "concluido",
+    "falha",
+  ]),
 });
 
 router.post("/workers", (req: Request, res: Response) => {
   const parse = CadastrarWorkerSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
     return res.status(201).json(HybridCloudService.cadastrarWorker(parse.data));
   } catch (err: unknown) {
@@ -51,7 +58,8 @@ router.get("/workers/:id", (req: Request, res: Response) => {
 
 router.post("/jobs", (req: Request, res: Response) => {
   const parse = RegistrarJobSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
     return res.status(201).json(HybridCloudService.registrarJob(parse.data));
   } catch (err: unknown) {
@@ -74,9 +82,12 @@ router.post("/jobs/:id/rotear", (req: Request, res: Response) => {
 
 router.patch("/jobs/:id/status", (req: Request, res: Response) => {
   const parse = AtualizarStatusSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.json(HybridCloudService.atualizarStatusJob(req.params.id, parse.data.status));
+    return res.json(
+      HybridCloudService.atualizarStatusJob(req.params.id, parse.data.status),
+    );
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }

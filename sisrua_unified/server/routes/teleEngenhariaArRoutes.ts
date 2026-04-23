@@ -34,9 +34,12 @@ const AtualizarSincroniaSchema = z.object({
 
 router.post("/sessoes", (req: Request, res: Response) => {
   const parse = CriarSessaoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.status(201).json(TeleEngenhariaArService.criarSessao(parse.data));
+    return res
+      .status(201)
+      .json(TeleEngenhariaArService.criarSessao(parse.data));
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }
@@ -63,9 +66,12 @@ router.post("/sessoes/:id/iniciar", (req: Request, res: Response) => {
 
 router.post("/sessoes/:id/participantes", (req: Request, res: Response) => {
   const parse = EntrarSessaoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.status(201).json(TeleEngenhariaArService.entrarSessao(req.params.id, parse.data));
+    return res
+      .status(201)
+      .json(TeleEngenhariaArService.entrarSessao(req.params.id, parse.data));
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }
@@ -73,9 +79,14 @@ router.post("/sessoes/:id/participantes", (req: Request, res: Response) => {
 
 router.post("/sessoes/:id/anotacoes", (req: Request, res: Response) => {
   const parse = RegistrarAnotacaoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.status(201).json(TeleEngenhariaArService.registrarAnotacao(req.params.id, parse.data));
+    return res
+      .status(201)
+      .json(
+        TeleEngenhariaArService.registrarAnotacao(req.params.id, parse.data),
+      );
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }
@@ -83,9 +94,15 @@ router.post("/sessoes/:id/anotacoes", (req: Request, res: Response) => {
 
 router.patch("/sessoes/:id/sincronia", (req: Request, res: Response) => {
   const parse = AtualizarSincroniaSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.json(TeleEngenhariaArService.atualizarSincronia(req.params.id, parse.data.estadoSincronia));
+    return res.json(
+      TeleEngenhariaArService.atualizarSincronia(
+        req.params.id,
+        parse.data.estadoSincronia,
+      ),
+    );
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }

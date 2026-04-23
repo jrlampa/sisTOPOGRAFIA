@@ -6,7 +6,12 @@ export type PapelParticipante = "operador" | "revisor" | "fiscal";
 export type StatusParticipante = "conectado" | "desconectado";
 export type StatusSessao = "pendente" | "ativa" | "pausada" | "encerrada";
 export type EstadoSincronia = "online" | "offline" | "degradado";
-export type TipoAnotacao = "marcador" | "linha" | "poligono" | "texto" | "risco";
+export type TipoAnotacao =
+  | "marcador"
+  | "linha"
+  | "poligono"
+  | "texto"
+  | "risco";
 
 export interface ParticipanteTele {
   id: string;
@@ -97,7 +102,7 @@ export class TeleEngenhariaArService {
 
   static entrarSessao(
     sessaoId: string,
-    data: { usuarioId: string; nomeUsuario: string; papel: PapelParticipante }
+    data: { usuarioId: string; nomeUsuario: string; papel: PapelParticipante },
   ): ParticipanteTele {
     const sessao = _sessoes.get(sessaoId);
     if (!sessao) throw new Error("Sessão não encontrada");
@@ -122,14 +127,18 @@ export class TeleEngenhariaArService {
       tipoAnotacao: TipoAnotacao;
       geometria: Record<string, unknown>;
       observacao?: string;
-    }
+    },
   ): AnotacaoAr {
     const sessao = _sessoes.get(sessaoId);
     if (!sessao) throw new Error("Sessão não encontrada");
-    if (sessao.status !== "ativa") throw new Error("Sessão deve estar ativa para registrar anotação");
-    const participante = sessao.participantes.find((p) => p.id === data.participanteId);
+    if (sessao.status !== "ativa")
+      throw new Error("Sessão deve estar ativa para registrar anotação");
+    const participante = sessao.participantes.find(
+      (p) => p.id === data.participanteId,
+    );
     if (!participante) throw new Error("Participante não encontrado");
-    if (participante.status !== "conectado") throw new Error("Participante desconectado");
+    if (participante.status !== "conectado")
+      throw new Error("Participante desconectado");
 
     const anotacao: AnotacaoAr = {
       id: `ta-${++_anotacaoCounter}`,
@@ -144,7 +153,10 @@ export class TeleEngenhariaArService {
     return anotacao;
   }
 
-  static atualizarSincronia(sessaoId: string, estadoSincronia: EstadoSincronia): SessaoTeleEngenharia {
+  static atualizarSincronia(
+    sessaoId: string,
+    estadoSincronia: EstadoSincronia,
+  ): SessaoTeleEngenharia {
     const sessao = _sessoes.get(sessaoId);
     if (!sessao) throw new Error("Sessão não encontrada");
     sessao.estadoSincronia = estadoSincronia;

@@ -10,8 +10,14 @@ const router = Router();
 
 const TipoViaEnum = z.enum(["local", "coletora", "arterial", "expressa"]);
 const TipoObstaculoEnum = z.enum([
-  "poste_iluminacao", "poste_telefonia", "arvore", "banca_jornal",
-  "lixeira", "placa_publicidade", "mobiliario_urbano", "outros",
+  "poste_iluminacao",
+  "poste_telefonia",
+  "arvore",
+  "banca_jornal",
+  "lixeira",
+  "placa_publicidade",
+  "mobiliario_urbano",
+  "outros",
 ]);
 
 const CriarRegistroSchema = z.object({
@@ -37,7 +43,8 @@ const AdicionarObstaculoSchema = z.object({
 // POST /registros
 router.post("/registros", (req: Request, res: Response) => {
   const parse = CriarRegistroSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
     return res.status(201).json(NbrCalcadasService.criarRegistro(parse.data));
   } catch (err: unknown) {
@@ -54,16 +61,22 @@ router.get("/registros", (req: Request, res: Response) => {
 // GET /registros/:id
 router.get("/registros/:id", (req: Request, res: Response) => {
   const registro = NbrCalcadasService.obterRegistro(req.params.id);
-  if (!registro) return res.status(404).json({ error: "Registro de calçada não encontrado" });
+  if (!registro)
+    return res
+      .status(404)
+      .json({ error: "Registro de calçada não encontrado" });
   return res.json(registro);
 });
 
 // POST /registros/:id/obstaculos
 router.post("/registros/:id/obstaculos", (req: Request, res: Response) => {
   const parse = AdicionarObstaculoSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+  if (!parse.success)
+    return res.status(400).json({ errors: parse.error.issues });
   try {
-    return res.status(201).json(NbrCalcadasService.adicionarObstaculo(req.params.id, parse.data));
+    return res
+      .status(201)
+      .json(NbrCalcadasService.adicionarObstaculo(req.params.id, parse.data));
   } catch (err: unknown) {
     return res.status(422).json({ error: (err as Error).message });
   }

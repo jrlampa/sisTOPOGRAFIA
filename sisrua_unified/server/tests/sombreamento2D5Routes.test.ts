@@ -23,14 +23,18 @@ beforeEach(() => Sombreamento2D5Service._reset());
 
 describe("POST /api/sombreamento/analises", () => {
   it("deve criar análise com id e status pendente", async () => {
-    const res = await request(app).post("/api/sombreamento/analises").send(BASE_ANALISE);
+    const res = await request(app)
+      .post("/api/sombreamento/analises")
+      .send(BASE_ANALISE);
     expect(res.status).toBe(201);
     expect(res.body.id).toBe("sa-1");
     expect(res.body.status).toBe("pendente");
   });
 
   it("deve retornar 400 para payload inválido", async () => {
-    const res = await request(app).post("/api/sombreamento/analises").send({ tenantId: "x" });
+    const res = await request(app)
+      .post("/api/sombreamento/analises")
+      .send({ tenantId: "x" });
     expect(res.status).toBe(400);
   });
 });
@@ -45,8 +49,12 @@ describe("GET /api/sombreamento/analises", () => {
 
   it("deve filtrar por tenantId", async () => {
     await request(app).post("/api/sombreamento/analises").send(BASE_ANALISE);
-    await request(app).post("/api/sombreamento/analises").send({ ...BASE_ANALISE, tenantId: "ten-02" });
-    const res = await request(app).get("/api/sombreamento/analises?tenantId=ten-01");
+    await request(app)
+      .post("/api/sombreamento/analises")
+      .send({ ...BASE_ANALISE, tenantId: "ten-02" });
+    const res = await request(app).get(
+      "/api/sombreamento/analises?tenantId=ten-01",
+    );
     expect(res.body).toHaveLength(1);
   });
 });
@@ -61,7 +69,9 @@ describe("GET /api/sombreamento/analises/:id", () => {
 describe("POST /api/sombreamento/analises/:id/calcular", () => {
   it("deve calcular sombreamento com perfil de 24 horas", async () => {
     await request(app).post("/api/sombreamento/analises").send(BASE_ANALISE);
-    const res = await request(app).post("/api/sombreamento/analises/sa-1/calcular");
+    const res = await request(app).post(
+      "/api/sombreamento/analises/sa-1/calcular",
+    );
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("calculado");
     expect(res.body.resultado).toBeDefined();
@@ -71,8 +81,12 @@ describe("POST /api/sombreamento/analises/:id/calcular", () => {
 
   it("deve classificar nível de impacto válido", async () => {
     await request(app).post("/api/sombreamento/analises").send(BASE_ANALISE);
-    const res = await request(app).post("/api/sombreamento/analises/sa-1/calcular");
-    expect(res.body.resultado.nivelImpacto).toMatch(/^(minimo|baixo|moderado|alto|critico)$/);
+    const res = await request(app).post(
+      "/api/sombreamento/analises/sa-1/calcular",
+    );
+    expect(res.body.resultado.nivelImpacto).toMatch(
+      /^(minimo|baixo|moderado|alto|critico)$/,
+    );
   });
 });
 
@@ -80,14 +94,18 @@ describe("POST /api/sombreamento/analises/:id/aprovar", () => {
   it("deve aprovar análise calculada", async () => {
     await request(app).post("/api/sombreamento/analises").send(BASE_ANALISE);
     await request(app).post("/api/sombreamento/analises/sa-1/calcular");
-    const res = await request(app).post("/api/sombreamento/analises/sa-1/aprovar");
+    const res = await request(app).post(
+      "/api/sombreamento/analises/sa-1/aprovar",
+    );
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("aprovado");
   });
 
   it("deve retornar 422 se não estiver calculada", async () => {
     await request(app).post("/api/sombreamento/analises").send(BASE_ANALISE);
-    const res = await request(app).post("/api/sombreamento/analises/sa-1/aprovar");
+    const res = await request(app).post(
+      "/api/sombreamento/analises/sa-1/aprovar",
+    );
     expect(res.status).toBe(422);
   });
 });
