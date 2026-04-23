@@ -15,6 +15,7 @@
 import { randomUUID } from "crypto";
 import { logger } from "../utils/logger.js";
 import type {
+  DgDiscardRateByConstraint,
   DgOptimizationInput,
   DgOptimizationOutput,
   DgRecommendation,
@@ -170,6 +171,12 @@ export async function getDgRun(
 
 export async function listDgRuns(limit = 20): Promise<DgRunSummary[]> {
   return dgRunRepository.list(limit);
+}
+
+export async function listDgDiscardRates(
+  limit = 100,
+): Promise<DgDiscardRateByConstraint[]> {
+  return dgRunRepository.listDiscardRates(limit);
 }
 
 export async function getDgRunScenarios(

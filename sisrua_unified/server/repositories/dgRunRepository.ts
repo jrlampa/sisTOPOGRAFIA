@@ -9,6 +9,8 @@
 import { getDbClient } from "./dbClient.js";
 import { logger } from "../utils/logger.js";
 import type {
+  DgConstraintCode,
+  DgDiscardRateByConstraint,
   DgOptimizationOutput,
   DgRecommendation,
   DgRunSummary,
@@ -18,6 +20,7 @@ import type {
 export interface IDgRunRepository {
   save(run: DgOptimizationOutput): Promise<void>;
   list(limit?: number): Promise<DgRunSummary[]>;
+  listDiscardRates(limit?: number): Promise<DgDiscardRateByConstraint[]>;
   findById(runId: string): Promise<DgOptimizationOutput | null>;
   findScenarios(runId: string): Promise<DgScenario[] | null>;
   findRecommendation(runId: string): Promise<DgRecommendation | null>;
@@ -244,6 +247,44 @@ function sortByComputedAtDesc<T extends { computedAt: string }>(
   );
 }
 
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function buildDiscardRatesFromRun(
+  run: DgOptimizationOutput,
+): DgDiscardRateByConstraint[] {
+  const scenariosPerCode = new Map<DgConstraintCode, Set<string>>();
+
+  for (const scenario of run.allScenarios) {
+    const seenCodes = new Set<DgConstraintCode>();
+    for (const violation of scenario.violations) {
+      if (seenCodes.has(violation.code)) continue;
+      seenCodes.add(violation.code);
+      if (!scenariosPerCode.has(violation.code)) {
+        scenariosPerCode.set(violation.code, new Set<string>());
+      }
+      scenariosPerCode.get(violation.code)!.add(scenario.scenarioId);
+    }
+  }
+
+  const totalScenarios = run.allScenarios.length;
+  const rates: DgDiscardRateByConstraint[] = [];
+  for (const [code, scenarioIds] of scenariosPerCode.entries()) {
+    const discardedScenarios = scenarioIds.size;
+    rates.push({
+      runId: run.runId,
+      code,
+      discardedScenarios,
+      totalScenarios,
+      discardRatePercent:
+        totalScenarios === 0 ? 0 : round2((discardedScenarios / totalScenarios) * 100),
+    });
+  }
+
+  return rates.sort((a, b) => b.discardRatePercent - a.discardRatePercent);
+}
+
 export class PostgresDgRunRepository implements IDgRunRepository {
   async save(run: DgOptimizationOutput): Promise<void> {
     inMemoryRuns.set(run.runId, run);
@@ -342,6 +383,56 @@ export class PostgresDgRunRepository implements IDgRunRepository {
     }
 
     return sortByComputedAtDesc([...summaries.values()]).slice(0, limit);
+  }
+
+  async listDiscardRates(limit = 100): Promise<DgDiscardRateByConstraint[]> {
+    const rowsByRunAndCode = new Map<string, DgDiscardRateByConstraint>();
+
+    const inMemoryRunsSorted = sortByComputedAtDesc([...inMemoryRuns.values()]);
+    for (const run of inMemoryRunsSorted) {
+      for (const rate of buildDiscardRatesFromRun(run)) {
+        rowsByRunAndCode.set(`${rate.runId}:${rate.code}`, rate);
+      }
+    }
+
+    const sql = getDbClient();
+    if (sql) {
+      try {
+        const rows = await sql.unsafe(
+          `SELECT
+             v.run_id,
+             v.code,
+             v.discarded_scenarios,
+             v.total_scenarios,
+             v.discard_rate_percent
+           FROM dg_discard_rate_by_constraint_v v
+           JOIN dg_runs r ON r.run_id = v.run_id
+           ORDER BY r.computed_at DESC, v.discard_rate_percent DESC
+           LIMIT $1`,
+          [limit],
+        );
+
+        for (const row of rows as any[]) {
+          const item: DgDiscardRateByConstraint = {
+            runId: String(row.run_id),
+            code: String(row.code) as DgConstraintCode,
+            discardedScenarios: Number(row.discarded_scenarios ?? 0),
+            totalScenarios: Number(row.total_scenarios ?? 0),
+            discardRatePercent: Number(row.discard_rate_percent ?? 0),
+          };
+          rowsByRunAndCode.set(`${item.runId}:${item.code}`, item);
+        }
+      } catch (err) {
+        logger.warn(
+          "[DgRunRepository] listDiscardRates failed; using available fallback data",
+          { limit, err },
+        );
+      }
+    }
+
+    return [...rowsByRunAndCode.values()]
+      .sort((a, b) => b.discardRatePercent - a.discardRatePercent)
+      .slice(0, limit);
   }
 
   async findById(runId: string): Promise<DgOptimizationOutput | null> {

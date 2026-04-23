@@ -14,6 +14,7 @@ import { logger } from "../utils/logger.js";
 import {
   runDgOptimization,
   listDgRuns,
+  listDgDiscardRates,
   getDgRun,
   getDgRunScenarios,
   getDgRunRecommendation,
@@ -157,6 +158,29 @@ router.get("/runs", async (req: Request, res: Response) => {
       message: (err as Error).message,
     });
     return res.status(500).json({ error: "Erro ao listar runs DG." });
+  }
+});
+
+router.get("/discard-rates", async (req: Request, res: Response) => {
+  try {
+    const parsedLimit = Number(req.query.limit ?? 100);
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(Math.trunc(parsedLimit), 1), 200)
+      : 100;
+    const rates = await listDgDiscardRates(limit);
+
+    return res.status(200).json({
+      total: rates.length,
+      limit,
+      rows: rates,
+    });
+  } catch (err) {
+    logger.error("DG discard rates list error", {
+      message: (err as Error).message,
+    });
+    return res
+      .status(500)
+      .json({ error: "Erro ao listar taxas de descarte DG." });
   }
 });
 

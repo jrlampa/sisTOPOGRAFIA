@@ -208,3 +208,11 @@ export interface DgRunSummary {
     bestObjectiveScore: number | null;
     discardedCount: number;
 }
+
+export interface DgDiscardRateByConstraint {
+    runId: string;
+    code: DgConstraintCode;
+    discardedScenarios: number;
+    totalScenarios: number;
+    discardRatePercent: number;
+}

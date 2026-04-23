@@ -40,6 +40,33 @@ const optimizePayload = {
 };
 
 describe("dgRoutes", () => {
+  it("GET /discard-rates retorna agregados de descarte por restrição", async () => {
+    await request(app)
+      .post(`${BASE}/optimize`)
+      .send({
+        ...optimizePayload,
+        runId: "33333333-3333-4333-8333-333333333333",
+        params: {
+          maxSpanMeters: 1,
+        },
+      });
+
+    const res = await request(app).get(`${BASE}/discard-rates?limit=50`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBeGreaterThan(0);
+    expect(res.body.limit).toBe(50);
+    expect(Array.isArray(res.body.rows)).toBe(true);
+    expect(
+      res.body.rows.some(
+        (row: { runId: string; code: string; discardRatePercent: number }) =>
+          row.runId === "33333333-3333-4333-8333-333333333333" &&
+          typeof row.code === "string" &&
+          row.discardRatePercent >= 0,
+      ),
+    ).toBe(true);
+  });
+
   it("GET /runs retorna ranking recente limitado e ordenado por computedAt desc", async () => {
     await request(app)
       .post(`${BASE}/optimize`)

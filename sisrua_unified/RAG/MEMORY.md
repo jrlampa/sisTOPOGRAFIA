@@ -89,6 +89,21 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
   - `npm run test:all`
   - backend + frontend + smoke E2E concluídos com sucesso.
 
+### Atualização Operacional (2026-04-22) - DG Taxa de Descarte por Restrição (API)
+
+- Repositório DG ampliado com agregação operacional de descarte por restrição:
+  - método `listDiscardRates(limit)` em `server/repositories/dgRunRepository.ts`
+  - suporte híbrido: consulta de `dg_discard_rate_by_constraint_v` quando disponível + fallback em memória derivado dos cenários
+- Serviço DG passou a expor `listDgDiscardRates(limit)`.
+- `server/routes/dgRoutes.ts` recebeu endpoint:
+  - `GET /api/dg/discard-rates?limit=N`
+  - retorno: `{ total, limit, rows[] }` com `runId`, `code`, `discardedScenarios`, `totalScenarios`, `discardRatePercent`
+- Teste de rota adicionado em `server/tests/dgRoutes.test.ts` cobrindo resposta agregada de descarte.
+- Validação DG focal (verde):
+  - `npm run test:backend -- server/tests/dgRoutes.test.ts server/tests/dgOptimizationService.test.ts server/tests/dgRunRepository.test.ts`
+- Full suite executada (`npm run test:all`) com 1 falha não relacionada ao slice DG:
+  - `server/tests/supplyChainRoutes.test.ts` (timeout no caso `POST /api/supply-chain/npm-audit/run`).
+
 ---
 
 ## 🏗️ Arquitetura
