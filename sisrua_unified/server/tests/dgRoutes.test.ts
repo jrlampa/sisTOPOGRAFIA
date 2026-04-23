@@ -40,6 +40,24 @@ const optimizePayload = {
 };
 
 describe("dgRoutes", () => {
+  it("GET /runs retorna ranking recente limitado e ordenado por computedAt desc", async () => {
+    await request(app)
+      .post(`${BASE}/optimize`)
+      .send({ ...optimizePayload, runId: "11111111-1111-4111-8111-111111111111" });
+    await request(app)
+      .post(`${BASE}/optimize`)
+      .send({ ...optimizePayload, runId: "22222222-2222-4222-8222-222222222222" });
+
+    const res = await request(app).get(`${BASE}/runs?limit=1`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.limit).toBe(1);
+    expect(res.body.runs).toHaveLength(1);
+    expect(res.body.runs[0].runId).toBe("22222222-2222-4222-8222-222222222222");
+    expect(typeof res.body.runs[0].bestObjectiveScore === "number" || res.body.runs[0].bestObjectiveScore === null).toBe(true);
+  });
+
   it("POST /optimize executa otimização e persiste a run para consulta posterior", async () => {
     const optimizeRes = await request(app).post(`${BASE}/optimize`).send(optimizePayload);
 

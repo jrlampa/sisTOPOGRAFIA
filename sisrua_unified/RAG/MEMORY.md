@@ -39,6 +39,22 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
   - `server/tests/dgRoutes.test.ts`
   - Resultado focal: **2 suítes passando** no slice DG.
 
+### Atualização Operacional (2026-04-22) - DG Listagem e Ranking de Runs
+
+- Repositório DG ampliado com listagem resumida de runs, ordenada por `computedAt` decrescente e com limite configurável.
+- Serviço DG expõe leitura agregada de runs para consumo operacional.
+- `server/routes/dgRoutes.ts` agora serve `GET /api/dg/runs?limit=N`, retornando resumo com:
+  - `runId`
+  - `inputHash`
+  - `computedAt`
+  - `totalCandidatesEvaluated`
+  - `totalFeasible`
+  - `bestObjectiveScore`
+  - `discardedCount`
+- `server/tests/dgRoutes.test.ts` passou a validar ordenação decrescente e respeitar limite de paginação simples.
+- Validação focal mantida verde com:
+  - `npm run test:backend -- server/tests/dgOptimizationService.test.ts server/tests/dgRoutes.test.ts`
+
 ---
 
 ## 🏗️ Arquitetura

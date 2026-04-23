@@ -21,6 +21,7 @@ import type {
   DgScenario,
   DgConstraintCode,
   DgParams,
+  DgRunSummary,
 } from "./dg/dgTypes.js";
 import { DEFAULT_DG_PARAMS } from "./dg/dgTypes.js";
 import { generateCandidates, hashDgInput } from "./dg/dgCandidates.js";
@@ -161,8 +162,14 @@ export async function runDgOptimization(
   return output;
 }
 
-export async function getDgRun(runId: string): Promise<DgOptimizationOutput | null> {
+export async function getDgRun(
+  runId: string,
+): Promise<DgOptimizationOutput | null> {
   return dgRunRepository.findById(runId);
+}
+
+export async function listDgRuns(limit = 20): Promise<DgRunSummary[]> {
+  return dgRunRepository.list(limit);
 }
 
 export async function getDgRunScenarios(

@@ -13,6 +13,7 @@ import { z } from "zod";
 import { logger } from "../utils/logger.js";
 import {
   runDgOptimization,
+  listDgRuns,
   getDgRun,
   getDgRunScenarios,
   getDgRunRecommendation,
@@ -138,6 +139,29 @@ router.post("/optimize", async (req: Request, res: Response) => {
 
 // ─── GET /api/dg/runs/:id ─────────────────────────────────────────────────────
 
+router.get("/runs", async (req: Request, res: Response) => {
+  try {
+    const parsedLimit = Number(req.query.limit ?? 20);
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(Math.trunc(parsedLimit), 1), 100)
+      : 20;
+    const runs = await listDgRuns(limit);
+
+    return res.status(200).json({
+      total: runs.length,
+      limit,
+      runs,
+    });
+  } catch (err) {
+    logger.error("DG runs list error", {
+      message: (err as Error).message,
+    });
+    return res.status(500).json({ error: "Erro ao listar runs DG." });
+  }
+});
+
+// ─── GET /api/dg/runs/:id ─────────────────────────────────────────────────────
+
 router.get("/runs/:id", async (req: Request, res: Response) => {
   try {
     const run = await getDgRun(req.params.id);
@@ -254,7 +278,7 @@ router.post(
       logger.error("Error in buffer zone validation endpoint", { error });
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -285,16 +309,14 @@ router.post(
         metadata: {
           processedAt: new Date().toISOString(),
           userId: res.locals.userId,
-          acceptanceRatePercent: `${(result.acceptanceRate * 100).toFixed(
-            1
-          )}%`,
+          acceptanceRatePercent: `${(result.acceptanceRate * 100).toFixed(1)}%`,
         },
       });
     } catch (error) {
       logger.error("Error in batch buffer validation endpoint", { error });
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -343,7 +365,7 @@ router.get(
       logger.error("Error in buffer config endpoint", { error });
       next(error);
     }
-  }
+  },
 );
 
 export default router;

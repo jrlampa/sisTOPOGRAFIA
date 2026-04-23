@@ -11,11 +11,13 @@ import { logger } from "../utils/logger.js";
 import type {
   DgOptimizationOutput,
   DgRecommendation,
+  DgRunSummary,
   DgScenario,
 } from "../services/dg/dgTypes.js";
 
 export interface IDgRunRepository {
   save(run: DgOptimizationOutput): Promise<void>;
+  list(limit?: number): Promise<DgRunSummary[]>;
   findById(runId: string): Promise<DgOptimizationOutput | null>;
   findScenarios(runId: string): Promise<DgScenario[] | null>;
   findRecommendation(runId: string): Promise<DgRecommendation | null>;
@@ -27,10 +29,34 @@ function parseOutput(row: any): DgOptimizationOutput | null {
   const raw = row?.output_json;
   if (!raw) return null;
   try {
-    return (typeof raw === "string" ? JSON.parse(raw) : raw) as DgOptimizationOutput;
+    return (
+      typeof raw === "string" ? JSON.parse(raw) : raw
+    ) as DgOptimizationOutput;
   } catch {
     return null;
   }
+}
+
+function toSummary(run: DgOptimizationOutput): DgRunSummary {
+  return {
+    runId: run.runId,
+    inputHash: run.inputHash,
+    computedAt: run.computedAt,
+    totalCandidatesEvaluated: run.totalCandidatesEvaluated,
+    totalFeasible: run.totalFeasible,
+    bestObjectiveScore: run.recommendation?.bestScenario.objectiveScore ?? null,
+    discardedCount:
+      run.recommendation?.discardedCount ?? run.allScenarios.length,
+  };
+}
+
+function sortByComputedAtDesc<T extends { computedAt: string }>(
+  items: T[],
+): T[] {
+  return [...items].sort(
+    (a, b) =>
+      new Date(b.computedAt).getTime() - new Date(a.computedAt).getTime(),
+  );
 }
 
 export class PostgresDgRunRepository implements IDgRunRepository {
@@ -85,6 +111,40 @@ export class PostgresDgRunRepository implements IDgRunRepository {
         err,
       });
     }
+  }
+
+  async list(limit = 20): Promise<DgRunSummary[]> {
+    const summaries = new Map<string, DgRunSummary>();
+
+    for (const run of inMemoryRuns.values()) {
+      summaries.set(run.runId, toSummary(run));
+    }
+
+    const sql = getDbClient();
+    if (sql) {
+      try {
+        const rows = await sql.unsafe(
+          `SELECT output_json FROM dg_runs ORDER BY computed_at DESC LIMIT $1`,
+          [limit],
+        );
+        for (const row of rows as any[]) {
+          const parsed = parseOutput(row);
+          if (parsed) {
+            summaries.set(parsed.runId, toSummary(parsed));
+          }
+        }
+      } catch (err) {
+        logger.warn(
+          "[DgRunRepository] list failed; using available fallback data",
+          {
+            limit,
+            err,
+          },
+        );
+      }
+    }
+
+    return sortByComputedAtDesc([...summaries.values()]).slice(0, limit);
   }
 
   async findById(runId: string): Promise<DgOptimizationOutput | null> {

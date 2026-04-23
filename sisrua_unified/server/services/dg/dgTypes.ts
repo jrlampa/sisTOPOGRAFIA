@@ -198,3 +198,13 @@ export interface DgOptimizationOutput {
     allScenarios: DgScenario[];
     params: DgParams;
 }
+
+export interface DgRunSummary {
+    runId: string;
+    inputHash: string;
+    computedAt: string;
+    totalCandidatesEvaluated: number;
+    totalFeasible: number;
+    bestObjectiveScore: number | null;
+    discardedCount: number;
+}
