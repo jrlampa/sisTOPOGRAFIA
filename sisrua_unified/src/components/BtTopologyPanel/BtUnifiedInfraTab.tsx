@@ -170,9 +170,19 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
           </label>
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center bg-white/40 p-2 rounded-lg">
-              <span className="text-[10px] font-bold text-orange-900/70 uppercase">Estruturas MT</span>
+              <span className="text-[10px] font-bold text-orange-900/70 uppercase">
+                Estruturas MT
+              </span>
               <span className="text-xs font-mono font-bold text-orange-800">
-                {props.mtTopology.poles.find(p => p.id === pole.id)?.mtStructure || "N/A"}
+                {(() => {
+                  const mtPole = props.mtTopology.poles.find(
+                    (p) => p.id === pole.id,
+                  );
+                  if (!mtPole?.mtStructures) return "N/A";
+                  return Object.values(mtPole.mtStructures)
+                    .filter(Boolean)
+                    .join(" / ");
+                })()}
               </span>
             </div>
             <div className="flex justify-between items-center bg-white/40 p-2 rounded-lg">

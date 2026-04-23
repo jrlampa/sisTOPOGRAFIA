@@ -24,7 +24,10 @@ import {
 
 type Params = {
   appState: GlobalState;
-  setAppState: (state: GlobalState, addToHistory: boolean) => void;
+  setAppState: (
+    state: GlobalState | ((prev: GlobalState) => GlobalState),
+    addToHistory: boolean,
+  ) => void;
   showToast: (message: string, type: ToastType) => void;
   findNearestPole: (location: GeoLocation, maxDistanceMeters?: number) => any;
 };
@@ -155,32 +158,38 @@ export function useBtTransformerOperations({
       };
 
       setAppState(
-        (prev) => ({
+      (prev) => {
+        const btTopology = prev.btTopology ?? EMPTY_BT_TOPOLOGY;
+        return {
           ...prev,
           btTopology: {
-            ...prev.btTopology,
-            transformers: [...prev.btTopology.transformers, nextTransformer],
+            ...btTopology,
+            transformers: [...btTopology.transformers, nextTransformer],
           },
-        }),
-        true,
-      );
-      showToast(`Transformador adicionado em ${pole.title}`, "success");
-      return;
-    }
+        };
+      },
+      true,
+    );
+    showToast(`Transformador adicionado em ${pole.title}`, "success");
+    return;
+  }
 
     const removeIds = new Set(
       transformersOnPole.map((transformer) => transformer.id),
     );
     setAppState(
-      (prev) => ({
-        ...prev,
-        btTopology: {
-          ...prev.btTopology,
-          transformers: prev.btTopology.transformers.filter(
-            (transformer) => !removeIds.has(transformer.id),
-          ),
-        },
-      }),
+      (prev) => {
+        const btTopology = prev.btTopology ?? EMPTY_BT_TOPOLOGY;
+        return {
+          ...prev,
+          btTopology: {
+            ...btTopology,
+            transformers: btTopology.transformers.filter(
+              (transformer) => !removeIds.has(transformer.id),
+            ),
+          },
+        };
+      },
       true,
     );
     showToast(`Transformador removido de ${pole.title}`, "success");
@@ -198,37 +207,43 @@ export function useBtTransformerOperations({
     }
 
     setAppState(
-      (prev) => ({
-        ...prev,
-        btTopology: {
-          ...prev.btTopology,
-          transformers: prev.btTopology.transformers.map((t) =>
-            t.id === transformerId
-              ? {
-                  ...t,
-                  poleId: nearestPole.id,
-                  lat: nearestPole.lat,
-                  lng: nearestPole.lng,
-                }
-              : t,
-          ),
-        },
-      }),
+      (prev) => {
+        const btTopology = prev.btTopology ?? EMPTY_BT_TOPOLOGY;
+        return {
+          ...prev,
+          btTopology: {
+            ...btTopology,
+            transformers: btTopology.transformers.map((t) =>
+              t.id === transformerId
+                ? {
+                    ...t,
+                    poleId: nearestPole.id,
+                    lat: nearestPole.lat,
+                    lng: nearestPole.lng,
+                  }
+                : t,
+            ),
+          },
+        };
+      },
       true,
     );
   };
 
   const handleBtRenameTransformer = (transformerId: string, title: string) => {
     setAppState(
-      (prev) => ({
-        ...prev,
-        btTopology: {
-          ...prev.btTopology,
-          transformers: prev.btTopology.transformers.map((t) =>
-            t.id === transformerId ? { ...t, title } : t,
-          ),
-        },
-      }),
+      (prev) => {
+        const btTopology = prev.btTopology ?? EMPTY_BT_TOPOLOGY;
+        return {
+          ...prev,
+          btTopology: {
+            ...btTopology,
+            transformers: btTopology.transformers.map((t) =>
+              t.id === transformerId ? { ...t, title } : t,
+            ),
+          },
+        };
+      },
       true,
     );
   };
@@ -238,20 +253,23 @@ export function useBtTransformerOperations({
     transformerChangeFlag: BtTransformerChangeFlag,
   ) => {
     setAppState(
-      (prev) => ({
-        ...prev,
-        btTopology: {
-          ...prev.btTopology,
-          transformers: prev.btTopology.transformers.map((transformer) =>
-            transformer.id === transformerId
-              ? normalizeBtTransformer({
-                  ...transformer,
-                  transformerChangeFlag,
-                })
-              : transformer,
-          ),
-        },
-      }),
+      (prev) => {
+        const btTopology = prev.btTopology ?? EMPTY_BT_TOPOLOGY;
+        return {
+          ...prev,
+          btTopology: {
+            ...btTopology,
+            transformers: btTopology.transformers.map((transformer) =>
+              transformer.id === transformerId
+                ? normalizeBtTransformer({
+                    ...transformer,
+                    transformerChangeFlag,
+                  })
+                : transformer,
+            ),
+          },
+        };
+      },
       true,
     );
   };

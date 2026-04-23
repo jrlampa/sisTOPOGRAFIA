@@ -11,7 +11,10 @@ import { DEFAULT_LOCATION } from "../constants";
 
 interface UseMapStateParams {
   appState: GlobalState;
-  setAppState: (nextState: GlobalState, commit?: boolean) => void;
+  setAppState: (
+    nextState: GlobalState | ((prev: GlobalState) => GlobalState),
+    commit?: boolean,
+  ) => void;
   clearData: () => void;
   loadElevationProfile: (start: GeoLocation, end: GeoLocation) => Promise<void>;
   clearProfile: () => void;

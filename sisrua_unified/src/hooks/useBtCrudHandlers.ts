@@ -51,7 +51,10 @@ const escapeCsvCell = (value: string | number) => {
 
 type Params = {
   appState: GlobalState;
-  setAppState: (state: GlobalState, addToHistory: boolean) => void;
+  setAppState: (
+    state: GlobalState | ((prev: GlobalState) => GlobalState),
+    addToHistory: boolean,
+  ) => void;
   showToast: (message: string, type: ToastType) => void;
   onSelectedPoleChange?: (poleId: string) => void;
 };

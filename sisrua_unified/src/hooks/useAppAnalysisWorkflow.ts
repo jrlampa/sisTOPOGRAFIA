@@ -5,7 +5,10 @@ import { useSearch } from "./useSearch";
 
 interface UseAppAnalysisWorkflowParams {
   appState: GlobalState;
-  setAppState: (nextState: GlobalState, commit?: boolean) => void;
+  setAppState: (
+    nextState: GlobalState | ((prev: GlobalState) => GlobalState),
+    addToHistory: boolean,
+  ) => void;
   clearData: () => void;
   showToast: (message: string, type: ToastType) => void;
   clearPendingBtEdge: () => void;

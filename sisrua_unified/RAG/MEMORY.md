@@ -105,6 +105,17 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - **Próximo ciclo**
   - Mini-Auditoria Backend: tratamento de erros nas rotas de cálculo MT/BT + circuit-breaker review.
 
+### Atualização Operacional (2026-04-23) - Navegação Livre e Visibilidade Inteligente (Workflow)
+
+- **Workflow "Walk-at-Will"**: Refatorado `SidebarWorkspace.tsx` para permitir navegação livre entre as etapas do workflow. A lógica de auto-avanço agora só dispara quando um **novo marco** (milestone) é atingido pela primeira vez, respeitando a escolha manual do usuário de permanecer em uma etapa anterior.
+- **Smart Card Visibility**: Implementada renderização condicional estrita. Agora, apenas o conteúdo da etapa ativa é renderizado e visível, eliminando a poluição visual onde cards de MT ou Análise apareciam indevidamente durante a fase de BT.
+- **Transições Premium**: Utilização de `framer-motion` (`AnimatePresence`) para transições suaves de entrada e saída entre os cards do workflow, reforçando a estética de "cockpit industrial".
+- **Hardening de Localização**: Forçado o locale `pt-BR` no estado inicial e na persistência de configurações, garantindo que a interface permaneça em português mesmo após recarregamentos, cumprindo a regra não-negociável de GUI 100% pt-BR.
+- **Qualidade**:
+    - Validada a independência de navegação: clicar em "ÁREA" ou "BT" não força mais o retorno imediato para a etapa de "ANÁLISE".
+    - `npm run typecheck:frontend` → Exit 0.
+    - Commit: `771f8e4`.
+
 ### Atualização Operacional (2026-04-23) - Paradigma "Poste-Driven" (UX & Sincronização)
 
 - **Sincronização Mapa-Sidebar**: Estado de seleção (`selectedPoleId`, `selectedEdgeId`, `selectedTransformerId`) elevado para o `useBtNavigationState.ts` (Global Source of Truth).
@@ -117,6 +128,21 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
   - `BtTopologyPanel` convertido em componente controlado (props de seleção), removendo estados locais inconsistentes.
   - Ordem de hooks em `App.tsx` invertida para garantir que handlers de navegação precedam handlers de CRUD.
 - **Resultado**: Ganho massivo de agilidade operacional e eliminação de inconsistências visuais entre mapa e painel lateral.
+
+### Atualização Operacional (2026-04-23) — Estabilização de Build & State Management
+
+- **Resolução de Erros de Build (Exit 1)**: Corrigidos múltiplos erros críticos de TypeScript que impediam a compilação do projeto, atingindo 100% de sucesso no build de produção.
+- **State Management Hardening**:
+    - **Functional Updates**: Refatorada a função `setAppState` e todos os hooks de operação (`useBtPoleOperations`, `useMtPoleOperations`, `useMtEdgeOperations`, `useBtTransformerOperations`, etc.) para suportar atualizações funcionais (`prev => nextState`), eliminando problemas de estado obsoleto (stale state) em operações assíncronas e concorrentes.
+    - **GlobalState Integrity**: Propriedades `btTopology` e `mtTopology` tornadas mandatórias na interface `GlobalState`. Isso eliminou centenas de erros de `possibly undefined` e simplificou o fluxo de dados em toda a aplicação.
+    - **Safe Defaults**: Implementada a injeção sistemática de `EMPTY_BT_TOPOLOGY` e `EMPTY_MT_TOPOLOGY` em atualizações de estado onde a topologia pudesse estar ausente no snapshot inicial.
+- **Refino de Interfaces**:
+    - `OsmStats`: Expandida para incluir `estimatedDemandKw`, `density` (Baixa/Média/Alta) e `densityValue`, garantindo compatibilidade com o motor de análise Gemini/OSM.
+    - `BtUnifiedInfraTab`: Corrigido erro de acesso à propriedade `mtStructure` (substituída por `mtStructures`) e implementada renderização agregada das estruturas MT (n1-n4) no dashboard unificado.
+- **Qualidade & Validação**:
+    - `npm run build` → Exit 0 (Sucesso total).
+    - Verificação via Browser Agent: Validada navegação entre etapas, adição de postes e visibilidade do contexto MT no dashboard unificado.
+- **Commit**: `b6c4e1a` (Final stabilization of build and state architecture).
 
 
 ### Atualização Operacional (2026-04-23) - T2-26 Internacionalização da Sidebar

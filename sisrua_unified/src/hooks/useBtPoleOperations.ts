@@ -48,7 +48,10 @@ export type { PendingNormalClassificationPole };
 
 type Params = {
   appState: GlobalState;
-  setAppState: (state: GlobalState, addToHistory: boolean) => void;
+  setAppState: (
+    state: GlobalState | ((prev: GlobalState) => GlobalState),
+    addToHistory: boolean,
+  ) => void;
   showToast: (message: string, type: ToastType) => void;
   onSelectedPoleChange?: (poleId: string) => void;
 };
@@ -249,8 +252,9 @@ export function useBtPoleOperations({
 
     setAppState(
       (prev) => {
+        const btTopology = prev.btTopology ?? EMPTY_BT_TOPOLOGY;
         const nextBtTopology = {
-          ...prev.btTopology,
+          ...btTopology,
           poles: prev.btTopology.poles.filter((p) => p.id !== poleId),
           edges: prev.btTopology.edges.filter(
             (e) => e.fromPoleId !== poleId && e.toPoleId !== poleId,

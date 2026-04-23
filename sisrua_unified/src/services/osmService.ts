@@ -13,6 +13,9 @@ export interface OsmStats {
   totalNature: number;
   avgHeight: number;
   maxHeight: number;
+  estimatedDemandKw?: number;
+  density?: "Baixa" | "Média" | "Alta";
+  densityValue?: number;
 }
 
 export interface OsmFetchResult {

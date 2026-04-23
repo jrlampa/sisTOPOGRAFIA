@@ -3,7 +3,10 @@ import { GlobalState } from "../types";
 
 interface UseFileOperationsProps {
   appState: GlobalState;
-  setAppState: (state: GlobalState, saveSnapshot: boolean) => void;
+  setAppState: (
+    state: GlobalState | ((prev: GlobalState) => GlobalState),
+    addToHistory: boolean,
+  ) => void;
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
 }

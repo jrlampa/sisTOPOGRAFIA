@@ -52,8 +52,15 @@ function App() {
   );
 
   const setAppState = React.useCallback(
-    (nextState: GlobalState, addToHistory = true) => {
-      setAppStateBase(synchronizeGlobalTopologyState(nextState), addToHistory);
+    (
+      nextState: GlobalState | ((prev: GlobalState) => GlobalState),
+      addToHistory = true,
+    ) => {
+      setAppStateBase((prev) => {
+        const resolvedNext =
+          typeof nextState === "function" ? nextState(prev) : nextState;
+        return synchronizeGlobalTopologyState(resolvedNext);
+      }, addToHistory);
     },
     [setAppStateBase],
   );

@@ -1,13 +1,17 @@
 import { GlobalState, GeoLocation, MtPoleNode } from "../types";
 import { ToastType } from "../components/Toast";
 import { ENTITY_ID_PREFIXES } from "../constants/magicNumbers";
-import { normalizeMtPoles } from "../utils/mtNormalization";
+import { normalizeMtPoles, EMPTY_MT_TOPOLOGY } from "../utils/mtNormalization";
+import { EMPTY_BT_TOPOLOGY } from "../utils/btNormalization";
 import { mergeMtTopologyWithBtPoles } from "../utils/mtTopologyBridge";
 import { haversineDistanceMeters } from "../../shared/geodesic";
 
 type Params = {
   appState: GlobalState;
-  setAppState: (state: GlobalState, addToHistory: boolean) => void;
+  setAppState: (
+    state: GlobalState | ((prev: GlobalState) => GlobalState),
+    addToHistory: boolean,
+  ) => void;
   showToast: (message: string, type: ToastType) => void;
 };
 
@@ -64,13 +68,16 @@ export function useMtPoleOperations({
     };
 
     setAppState(
-      (prev) => ({
-        ...prev,
-        mtTopology: {
-          ...prev.mtTopology,
-          poles: normalizeMtPoles([...prev.mtTopology.poles, newPole]),
-        },
-      }),
+      (prev) => {
+        const mtTopology = prev.mtTopology ?? EMPTY_MT_TOPOLOGY;
+        return {
+          ...prev,
+          mtTopology: {
+            ...mtTopology,
+            poles: normalizeMtPoles([...mtTopology.poles, newPole]),
+          },
+        };
+      },
       true,
     );
     return newId;
@@ -79,10 +86,11 @@ export function useMtPoleOperations({
   const handleMtDeletePole = (poleId: string) => {
     setAppState(
       (prev) => {
+        const mtTopology = prev.mtTopology ?? EMPTY_MT_TOPOLOGY;
         const nextMtTopology = {
-          ...prev.mtTopology,
-          poles: prev.mtTopology.poles.filter((p) => p.id !== poleId),
-          edges: prev.mtTopology.edges.filter(
+          ...mtTopology,
+          poles: mtTopology.poles.filter((p) => p.id !== poleId),
+          edges: mtTopology.edges.filter(
             (e) => e.fromPoleId !== poleId && e.toPoleId !== poleId,
           ),
         };
@@ -94,16 +102,17 @@ export function useMtPoleOperations({
           return { ...prev, mtTopology: nextMtTopology };
         }
 
+        const btTopology = prev.btTopology ?? EMPTY_BT_TOPOLOGY;
         const nextBtTopology = {
-          ...prev.btTopology,
-          poles: prev.btTopology.poles.filter((p) => p.id !== poleId),
-          edges: prev.btTopology.edges.filter(
+          ...btTopology,
+          poles: btTopology.poles.filter((p) => p.id !== poleId),
+          edges: btTopology.edges.filter(
             (e) => e.fromPoleId !== poleId && e.toPoleId !== poleId,
           ),
-          transformers: prev.btTopology.transformers.filter(
+          transformers: btTopology.transformers.filter(
             (t) => {
                 if (t.poleId) return t.poleId !== poleId;
-                const p = prev.btTopology.poles.find(cand => cand.id === poleId);
+                const p = btTopology.poles.find(cand => cand.id === poleId);
                 if (!p) return true;
                 // Cascading removal for transformers near the deleted pole
                 return haversineDistanceMeters(t, p) > 6;
@@ -124,61 +133,70 @@ export function useMtPoleOperations({
 
   const handleMtRenamePole = (poleId: string, title: string) => {
     setAppState(
-      (prev) => ({
-        ...prev,
-        btTopology: prev.btTopology
-          ? {
-              ...prev.btTopology,
-              poles: prev.btTopology.poles.map((p) =>
-                p.id === poleId ? { ...p, title } : p,
-              ),
-            }
-          : prev.btTopology,
-        mtTopology: {
-          ...prev.mtTopology,
-          poles: prev.mtTopology.poles.map((p) =>
-            p.id === poleId ? { ...p, title } : p,
-          ),
-        },
-      }),
+      (prev) => {
+        const mtTopology = prev.mtTopology ?? EMPTY_MT_TOPOLOGY;
+        return {
+          ...prev,
+          btTopology: prev.btTopology
+            ? {
+                ...prev.btTopology,
+                poles: prev.btTopology.poles.map((p) =>
+                  p.id === poleId ? { ...p, title } : p,
+                ),
+              }
+            : prev.btTopology,
+          mtTopology: {
+            ...mtTopology,
+            poles: mtTopology.poles.map((p) =>
+              p.id === poleId ? { ...p, title } : p,
+            ),
+          },
+        };
+      },
       true,
     );
   };
 
   const handleMtSetPoleVerified = (poleId: string, verified: boolean) => {
     setAppState(
-      (prev) => ({
-        ...prev,
-        mtTopology: {
-          ...prev.mtTopology,
-          poles: prev.mtTopology.poles.map((p) =>
-            p.id === poleId ? { ...p, verified } : p,
-          ),
-        },
-      }),
+      (prev) => {
+        const mtTopology = prev.mtTopology ?? EMPTY_MT_TOPOLOGY;
+        return {
+          ...prev,
+          mtTopology: {
+            ...mtTopology,
+            poles: mtTopology.poles.map((p) =>
+              p.id === poleId ? { ...p, verified } : p,
+            ),
+          },
+        };
+      },
       true,
     );
   };
 
   const handleMtDragPole = (poleId: string, lat: number, lng: number) => {
     setAppState(
-      (prev) => ({
-        ...prev,
-        btTopology: prev.btTopology
-          ? {
-              ...prev.btTopology,
-              poles: prev.btTopology.poles.map((p) =>
-                p.id === poleId ? { ...p, lat, lng } : p,
-              ),
-            }
-          : prev.btTopology,
-        mtTopology: {
-          ...prev.mtTopology,
-          poles: prev.mtTopology.poles.map((p) =>
-            p.id === poleId ? { ...p, lat, lng } : p,
-          ),
-        },
-      }),
+      (prev) => {
+        const mtTopology = prev.mtTopology ?? EMPTY_MT_TOPOLOGY;
+        return {
+          ...prev,
+          btTopology: prev.btTopology
+            ? {
+                ...prev.btTopology,
+                poles: prev.btTopology.poles.map((p) =>
+                  p.id === poleId ? { ...p, lat, lng } : p,
+                ),
+              }
+            : prev.btTopology,
+          mtTopology: {
+            ...mtTopology,
+            poles: mtTopology.poles.map((p) =>
+              p.id === poleId ? { ...p, lat, lng } : p,
+            ),
+          },
+        };
+      },
       true,
     );
   };
@@ -188,15 +206,18 @@ export function useMtPoleOperations({
     nodeChangeFlag: MtPoleNode["nodeChangeFlag"],
   ) => {
     setAppState(
-      (prev) => ({
-        ...prev,
-        mtTopology: {
-          ...prev.mtTopology,
-          poles: prev.mtTopology.poles.map((p) =>
-            p.id === poleId ? { ...p, nodeChangeFlag } : p,
-          ),
-        },
-      }),
+      (prev) => {
+        const mtTopology = prev.mtTopology ?? EMPTY_MT_TOPOLOGY;
+        return {
+          ...prev,
+          mtTopology: {
+            ...mtTopology,
+            poles: mtTopology.poles.map((p) =>
+              p.id === poleId ? { ...p, nodeChangeFlag } : p,
+            ),
+          },
+        };
+      },
       true,
     );
   };

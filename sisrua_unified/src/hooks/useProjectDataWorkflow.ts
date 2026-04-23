@@ -5,7 +5,10 @@ import type { BtPoleNode, GlobalState } from '../types';
 
 type Params = {
   appState: GlobalState;
-  setAppState: (state: GlobalState, addToHistory: boolean) => void;
+  setAppState: (
+    state: GlobalState | ((prev: GlobalState) => GlobalState),
+    addToHistory: boolean,
+  ) => void;
   clearData: () => void;
   clearPendingBtEdge: () => void;
   showToast: (message: string, type: 'success' | 'error' | 'info') => void;

@@ -376,10 +376,10 @@ export interface GlobalState {
   polygon: GeoLocation[];
   measurePath: GeoLocation[];
   settings: AppSettings;
-  btTopology?: BtTopology;
+  btTopology: BtTopology;
   btExportSummary?: BtExportSummary | null;
-  btExportHistory?: BtExportHistoryEntry[];
-  mtTopology?: MtTopology;
+  btExportHistory: BtExportHistoryEntry[];
+  mtTopology: MtTopology;
   canonicalTopology?: CanonicalNetworkTopology;
   canonicalTopologyMeta?: CanonicalTopologyStateMeta;
 }

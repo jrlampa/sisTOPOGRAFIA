@@ -2,13 +2,17 @@ import { useState } from "react";
 import { BtRamalEntry, GlobalState, GeoLocation, MtEdge } from "../types";
 import { ToastType } from "../components/Toast";
 import { ENTITY_ID_PREFIXES } from "../constants/magicNumbers";
-import { normalizeMtEdge } from "../utils/mtNormalization";
+import { normalizeMtEdge, EMPTY_MT_TOPOLOGY } from "../utils/mtNormalization";
+import { EMPTY_BT_TOPOLOGY } from "../utils/btNormalization";
 import { mergeMtTopologyWithBtPoles } from "../utils/mtTopologyBridge";
 import { haversineDistanceMeters } from "../../shared/geodesic";
 
 type Params = {
   appState: GlobalState;
-  setAppState: (state: GlobalState, addToHistory: boolean) => void;
+  setAppState: (
+    state: GlobalState | ((prev: GlobalState) => GlobalState),
+    addToHistory: boolean,
+  ) => void;
   showToast: (message: string, type: ToastType) => void;
   findNearestMtPole: (location: GeoLocation, maxDistanceMeters?: number) => any;
 };
@@ -80,23 +84,26 @@ export function useMtEdgeOperations({
     );
 
     setAppState(
-      {
-        ...appState,
-        mtTopology: {
-          ...mtTopology,
-          edges: [
-            ...mtTopology.edges,
-            {
-              id: edgeId,
-              fromPoleId: fromPole.id,
-              toPoleId: nearestPole.id,
-              lengthMeters,
-              conductors: [],
-              edgeChangeFlag: "existing",
-              verified: false,
-            },
-          ],
-        },
+      (prev) => {
+        const mtTopology = prev.mtTopology ?? EMPTY_MT_TOPOLOGY;
+        return {
+          ...prev,
+          mtTopology: {
+            ...mtTopology,
+            edges: [
+              ...mtTopology.edges,
+              {
+                id: edgeId,
+                fromPoleId: fromPole.id,
+                toPoleId: nearestPole.id,
+                lengthMeters,
+                conductors: [],
+                edgeChangeFlag: "existing",
+                verified: false,
+              },
+            ],
+          },
+        };
       },
       true,
     );
@@ -110,12 +117,15 @@ export function useMtEdgeOperations({
 
   const handleMtDeleteEdge = (edgeId: string) => {
     setAppState(
-      {
-        ...appState,
-        mtTopology: {
-          ...mtTopology,
-          edges: mtTopology.edges.filter((e) => e.id !== edgeId),
-        },
+      (prev) => {
+        const mtTopology = prev.mtTopology ?? EMPTY_MT_TOPOLOGY;
+        return {
+          ...prev,
+          mtTopology: {
+            ...mtTopology,
+            edges: mtTopology.edges.filter((e) => e.id !== edgeId),
+          },
+        };
       },
       true,
     );
@@ -127,16 +137,19 @@ export function useMtEdgeOperations({
     edgeChangeFlag: MtEdge["edgeChangeFlag"],
   ) => {
     setAppState(
-      {
-        ...appState,
-        mtTopology: {
-          ...mtTopology,
-          edges: mtTopology.edges.map((edge) =>
-            edge.id === edgeId
-              ? normalizeMtEdge({ ...edge, edgeChangeFlag })
-              : edge,
-          ),
-        },
+      (prev) => {
+        const mtTopology = prev.mtTopology ?? EMPTY_MT_TOPOLOGY;
+        return {
+          ...prev,
+          mtTopology: {
+            ...mtTopology,
+            edges: mtTopology.edges.map((edge) =>
+              edge.id === edgeId
+                ? normalizeMtEdge({ ...edge, edgeChangeFlag })
+                : edge,
+            ),
+          },
+        };
       },
       true,
     );
@@ -146,19 +159,20 @@ export function useMtEdgeOperations({
     edgeId: string,
     conductors: BtRamalEntry[],
   ) => {
-    const targetEdge = mtTopology.edges.find((edge) => edge.id === edgeId);
-    if (!targetEdge) {
-      return;
-    }
+    setAppState(
+      (prev) => {
+        const mtTopology = prev.mtTopology ?? EMPTY_MT_TOPOLOGY;
+        const targetEdge = mtTopology.edges.find((edge) => edge.id === edgeId);
+        if (!targetEdge) return prev;
 
-    const nextMtEdges = mtTopology.edges.map((edge) =>
-      edge.id === edgeId ? normalizeMtEdge({ ...edge, conductors }) : edge,
-    );
+        const nextMtEdges = mtTopology.edges.map((edge) =>
+          edge.id === edgeId ? normalizeMtEdge({ ...edge, conductors }) : edge,
+        );
 
-    const nextBtTopology = appState.btTopology
-      ? {
-          ...appState.btTopology,
-          edges: appState.btTopology.edges.map((edge) => {
+        const btTopology = prev.btTopology ?? EMPTY_BT_TOPOLOGY;
+        const nextBtTopology = {
+          ...btTopology,
+          edges: btTopology.edges.map((edge) => {
             const sameDirection =
               edge.fromPoleId === targetEdge.fromPoleId &&
               edge.toPoleId === targetEdge.toPoleId;
@@ -175,17 +189,16 @@ export function useMtEdgeOperations({
               mtConductors: conductors,
             };
           }),
-        }
-      : appState.btTopology;
+        };
 
-    setAppState(
-      {
-        ...appState,
-        btTopology: nextBtTopology,
-        mtTopology: {
-          ...mtTopology,
-          edges: nextMtEdges,
-        },
+        return {
+          ...prev,
+          btTopology: nextBtTopology,
+          mtTopology: {
+            ...mtTopology,
+            edges: nextMtEdges,
+          },
+        };
       },
       true,
     );
