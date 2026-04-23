@@ -55,6 +55,25 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - Validação focal mantida verde com:
   - `npm run test:backend -- server/tests/dgOptimizationService.test.ts server/tests/dgRoutes.test.ts`
 
+### Atualização Operacional (2026-04-22) - DG Persistência Normalizada (Frente 1)
+
+- Nova migração `migrations/053_dg_normalized_persistence.sql` criada para complementar `dg_runs` com tabelas normalizadas:
+  - `dg_candidates`
+  - `dg_scenarios`
+  - `dg_constraints`
+  - `dg_recommendations`
+- A migração inclui índices operacionais por run/score/tempo e views de suporte:
+  - `dg_run_ranking_v`
+  - `dg_discard_rate_by_constraint_v`
+- Colunas e índices de geometria foram incluídos de forma condicional (ativam somente quando PostGIS estiver instalado).
+- `server/repositories/dgRunRepository.ts` passou a persistir também o modelo normalizado durante `save(run)`:
+  - limpeza idempotente por `run_id`
+  - inserção de candidatos, cenários, violações e recomendação ranqueada
+  - fallback mantido: falha na persistência normalizada não interrompe gravação em `dg_runs`
+- Validação focal DG mantida verde:
+  - `npm run test:backend -- server/tests/dgOptimizationService.test.ts server/tests/dgRoutes.test.ts`
+  - resultado: **2 suítes PASS**.
+
 ---
 
 ## 🏗️ Arquitetura

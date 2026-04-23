@@ -25,6 +25,191 @@ export interface IDgRunRepository {
 
 const inMemoryRuns = new Map<string, DgOptimizationOutput>();
 
+type RecommendationEntry = {
+  rankOrder: number;
+  kind: "best" | "alternative";
+  scenarioId: string | null;
+  objectiveScore: number | null;
+  payload: unknown;
+};
+
+function buildRecommendationEntries(
+  run: DgOptimizationOutput,
+): RecommendationEntry[] {
+  if (!run.recommendation) {
+    return [
+      {
+        rankOrder: 0,
+        kind: "best",
+        scenarioId: null,
+        objectiveScore: null,
+        payload: {
+          bestScenario: null,
+          alternatives: [],
+          discardedCount: run.allScenarios.length,
+          discardReasonSummary: {},
+        },
+      },
+    ];
+  }
+
+  const entries: RecommendationEntry[] = [
+    {
+      rankOrder: 0,
+      kind: "best",
+      scenarioId: run.recommendation.bestScenario.scenarioId,
+      objectiveScore: run.recommendation.bestScenario.objectiveScore,
+      payload: run.recommendation.bestScenario,
+    },
+  ];
+
+  run.recommendation.alternatives.forEach((scenario, index) => {
+    entries.push({
+      rankOrder: index + 1,
+      kind: "alternative",
+      scenarioId: scenario.scenarioId,
+      objectiveScore: scenario.objectiveScore,
+      payload: scenario,
+    });
+  });
+
+  return entries;
+}
+
+async function saveNormalizedDgData(
+  sql: ReturnType<typeof getDbClient>,
+  run: DgOptimizationOutput,
+): Promise<void> {
+  if (!sql) return;
+
+  // Regrava as tabelas normalizadas de forma idempotente por run.
+  await sql.unsafe(`DELETE FROM dg_constraints WHERE run_id = $1`, [run.runId]);
+  await sql.unsafe(`DELETE FROM dg_recommendations WHERE run_id = $1`, [run.runId]);
+  await sql.unsafe(`DELETE FROM dg_scenarios WHERE run_id = $1`, [run.runId]);
+  await sql.unsafe(`DELETE FROM dg_candidates WHERE run_id = $1`, [run.runId]);
+
+  const candidateMap = new Map<
+    string,
+    {
+      candidateId: string;
+      positionLatLon: { lat: number; lon: number };
+      positionUtm: { x: number; y: number };
+    }
+  >();
+
+  for (const scenario of run.allScenarios) {
+    if (!candidateMap.has(scenario.candidateId)) {
+      candidateMap.set(scenario.candidateId, {
+        candidateId: scenario.candidateId,
+        positionLatLon: scenario.trafoPositionLatLon,
+        positionUtm: scenario.trafoPositionUtm,
+      });
+    }
+  }
+
+  for (const candidate of candidateMap.values()) {
+    await sql.unsafe(
+      `INSERT INTO dg_candidates (
+         run_id,
+         candidate_id,
+         source,
+         position_latlon_json,
+         position_utm_json,
+         created_at
+       ) VALUES (
+         $1,$2,$3,$4::jsonb,$5::jsonb,NOW()
+       )`,
+      [
+        run.runId,
+        candidate.candidateId,
+        null,
+        JSON.stringify(candidate.positionLatLon),
+        JSON.stringify(candidate.positionUtm),
+      ],
+    );
+  }
+
+  for (const scenario of run.allScenarios) {
+    await sql.unsafe(
+      `INSERT INTO dg_scenarios (
+         run_id,
+         scenario_id,
+         candidate_id,
+         feasible,
+         objective_score,
+         electrical_json,
+         score_components_json,
+         violations_count,
+         scenario_json,
+         created_at
+       ) VALUES (
+         $1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8,$9::jsonb,NOW()
+       )`,
+      [
+        run.runId,
+        scenario.scenarioId,
+        scenario.candidateId,
+        scenario.feasible,
+        scenario.objectiveScore,
+        JSON.stringify(scenario.electricalResult),
+        JSON.stringify(scenario.scoreComponents),
+        scenario.violations.length,
+        JSON.stringify(scenario),
+      ],
+    );
+
+    for (let index = 0; index < scenario.violations.length; index += 1) {
+      const violation = scenario.violations[index]!;
+      await sql.unsafe(
+        `INSERT INTO dg_constraints (
+           run_id,
+           scenario_id,
+           ordinal,
+           code,
+           detail,
+           entity_id,
+           created_at
+         ) VALUES (
+           $1,$2,$3,$4,$5,$6,NOW()
+         )`,
+        [
+          run.runId,
+          scenario.scenarioId,
+          index,
+          violation.code,
+          violation.detail,
+          violation.entityId ?? null,
+        ],
+      );
+    }
+  }
+
+  const recommendationEntries = buildRecommendationEntries(run);
+  for (const entry of recommendationEntries) {
+    await sql.unsafe(
+      `INSERT INTO dg_recommendations (
+         run_id,
+         rank_order,
+         scenario_id,
+         kind,
+         objective_score,
+         recommendation_json,
+         created_at
+       ) VALUES (
+         $1,$2,$3,$4,$5,$6::jsonb,NOW()
+       )`,
+      [
+        run.runId,
+        entry.rankOrder,
+        entry.scenarioId,
+        entry.kind,
+        entry.objectiveScore,
+        JSON.stringify(entry.payload),
+      ],
+    );
+  }
+}
+
 function parseOutput(row: any): DgOptimizationOutput | null {
   const raw = row?.output_json;
   if (!raw) return null;
@@ -105,6 +290,18 @@ export class PostgresDgRunRepository implements IDgRunRepository {
           JSON.stringify(run.params),
         ],
       );
+
+      try {
+        await saveNormalizedDgData(sql, run);
+      } catch (err) {
+        logger.warn(
+          "[DgRunRepository] normalized save failed; run persisted in dg_runs",
+          {
+            runId: run.runId,
+            err,
+          },
+        );
+      }
     } catch (err) {
       logger.warn("[DgRunRepository] save failed; keeping in-memory fallback", {
         runId: run.runId,
