@@ -721,6 +721,7 @@ function App() {
   const sidebarBtEditorSectionProps: React.ComponentProps<
     typeof SidebarBtEditorSection
   > = {
+    locale: settings.locale,
     settings,
     updateSettings,
     btNetworkScenario,
@@ -835,6 +836,7 @@ function App() {
           handleLoadProject,
         }}
         sidebarWorkspaceProps={{
+          locale: settings.locale,
           isSidebarDockedForRamalModal,
           selectionControlsProps: sidebarSelectionControlsProps,
           btEditorSectionProps: sidebarBtEditorSectionProps,

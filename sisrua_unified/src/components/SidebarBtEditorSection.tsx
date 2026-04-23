@@ -20,9 +20,11 @@ import type {
   BtDerivedSummary,
   BtPoleAccumulatedDemand,
   BtClandestinoDisplay,
-  BtTransformerDerived,
 } from "../services/btDerivedService";
+import type { BtTransformerDerived } from "../services/btDerivedService";
 import type { PendingNormalClassificationPole } from "../utils/btNormalization";
+import type { AppLocale } from "../types";
+import { getSidebarBtEditorText } from "../i18n/sidebarBtEditorText";
 import type {
   BtEdgeChangeFlag,
   BtPoleChangeFlag,
@@ -49,6 +51,7 @@ const InlineSuspenseFallback = ({ label }: { label: string }) => (
 );
 
 export interface SidebarBtEditorSectionProps {
+  locale: AppLocale;
   settings: AppSettings;
   updateSettings: (s: AppSettings) => void;
   btNetworkScenario: BtNetworkScenario;
@@ -99,6 +102,7 @@ export interface SidebarBtEditorSectionProps {
 }
 
 export function SidebarBtEditorSection({
+  locale,
   settings,
   updateSettings,
   btNetworkScenario,
@@ -144,16 +148,18 @@ export function SidebarBtEditorSection({
     btPoleCoordinateInput,
   );
 
+  const t = getSidebarBtEditorText(locale);
+
   return (
     <>
       <div className="space-y-3">
         <div className="flex justify-between items-center">
           <label className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-800 dark:text-amber-100">
-            Editor BT
+            {t.editorTitle}
           </label>
           <span className="text-[9px] uppercase text-amber-700 dark:text-amber-300">
             {(settings.projectType ?? "ramais").toUpperCase()} /{" "}
-            {btNetworkScenario === "asis" ? "ATUAL" : "PROJETO"}
+            {btNetworkScenario === "asis" ? t.scenarioActual : t.scenarioProject}
           </span>
         </div>
 
@@ -168,7 +174,7 @@ export function SidebarBtEditorSection({
             }
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btNetworkScenario === "asis" ? "border-cyan-600 bg-cyan-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
-            REDE ATUAL
+            {t.btnActualNetwork}
           </button>
           <button
             onClick={() => {
@@ -177,7 +183,7 @@ export function SidebarBtEditorSection({
             }}
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btNetworkScenario === "projeto" ? "border-fuchsia-600 bg-fuchsia-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
-            REDE NOVA
+            {t.btnNewNetwork}
           </button>
         </div>
 
@@ -188,7 +194,7 @@ export function SidebarBtEditorSection({
             }
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "none" ? "border-slate-900 bg-slate-900 text-slate-100 dark:border-slate-700 dark:bg-zinc-800" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
-            NAVEGAR
+            {t.btnNavigate}
           </button>
           <button
             onClick={() =>
@@ -196,7 +202,7 @@ export function SidebarBtEditorSection({
             }
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "move-pole" ? "border-amber-600 bg-amber-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
-            MOVER
+            {t.btnMove}
           </button>
           <button
             onClick={() =>
@@ -204,7 +210,7 @@ export function SidebarBtEditorSection({
             }
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-pole" ? "border-blue-600 bg-blue-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
-            + POSTE
+            {t.btnAddPole}
           </button>
           <button
             onClick={() => {
@@ -213,7 +219,7 @@ export function SidebarBtEditorSection({
             }}
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-edge" ? "border-emerald-600 bg-emerald-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
-            + CONDUTOR
+            {t.btnAddEdge}
           </button>
           <button
             onClick={() =>
@@ -221,7 +227,7 @@ export function SidebarBtEditorSection({
             }
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-transformer" ? "border-violet-600 bg-violet-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
-            + TRAFO
+            {t.btnAddTransformer}
           </button>
         </div>
 
@@ -234,7 +240,7 @@ export function SidebarBtEditorSection({
             className="rounded-xl border-2 border-blue-700/35 bg-blue-50 p-2.5 space-y-2 transition-all dark:border-blue-500/40 dark:bg-blue-950/25"
           >
             <div className="text-[10px] font-semibold text-blue-800 dark:text-blue-200 uppercase tracking-wider">
-              Inserir poste por coordenadas
+              {t.insertPoleCoordinatesTitle}
             </div>
             <div className="relative group">
               <input
@@ -267,51 +273,48 @@ export function SidebarBtEditorSection({
               disabled={!coordinateValidation.isValid}
               className="w-full rounded-lg border border-blue-500 bg-blue-600 px-2 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-900/20 transition-all hover:bg-blue-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              INSERIR POR COORDENADA
+              {t.insertPoleCoordinatesBtn}
             </button>
           </form>
         )}
 
         {btEditorMode === "move-pole" && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-xs font-medium leading-snug text-amber-900 shadow-sm">
-            <div>Arraste fino de poste:</div>
-            <div>Clique e segure no poste para ajustar a posicao no mapa.</div>
+            <div>{t.dragPoleTitle}</div>
+            <div>{t.dragPoleHelp}</div>
           </div>
         )}
 
         {btNetworkScenario === "asis" && (
           <div className="text-[10px] text-cyan-900 bg-cyan-50 border border-cyan-300 rounded-lg p-2">
-            Rede Atual ativa: você pode navegar e lançar poste, condutor e trafo
-            na topologia existente.
+            {t.actualNetworkActiveMsg}
           </div>
         )}
         {settings.projectType === "clandestino" && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-[10px] text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-300">
-            Área clandestina: {settings.clandestinoAreaM2 ?? 0} m²
+            {t.clandestineAreaMsg(settings.clandestinoAreaM2 ?? 0)}
           </div>
         )}
         {settings.projectType !== "clandestino" &&
           pendingNormalClassificationPoles.length > 0 && (
             <div className="rounded-lg border border-rose-300 bg-rose-50 p-2 text-[10px] text-rose-800 dark:border-rose-700/50 dark:bg-rose-950/30 dark:text-rose-300">
-              Classificação pendente em{" "}
-              {pendingNormalClassificationPoles.length} poste(s). DXF bloqueado
-              até classificar.
+              {t.pendingClassificationMsg(pendingNormalClassificationPoles.length)}
             </div>
           )}
 
         <button
           onClick={handleResetBtTopology}
           className="w-full rounded-xl border border-rose-300 py-2 text-[10px] font-bold text-rose-700 transition-all hover:bg-rose-50 dark:border-rose-700/50 dark:text-rose-300 dark:hover:bg-rose-950/30"
-          title="Remover toda a topologia BT"
+          title={t.resetBtTopologyTitle}
         >
-          ZERAR BT (LIMPAR TUDO)
+          {t.resetBtTopologyBtn}
         </button>
       </div>
 
       <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
 
       <Suspense
-        fallback={<InlineSuspenseFallback label="Carregando painel BT" />}
+        fallback={<InlineSuspenseFallback label={t.loadingBtPanel} />}
       >
         <BtTopologyPanel
           btTopology={btTopology}

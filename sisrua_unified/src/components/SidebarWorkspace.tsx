@@ -13,12 +13,15 @@ import { SidebarSelectionControls } from "./SidebarSelectionControls";
 
 import { SidebarMtEditorSection } from "./SidebarMtEditorSection";
 import { hasMeaningfulMtTopology } from "../utils/mtTopologyBridge";
+import type { AppLocale } from "../types";
+import { getSidebarWorkspaceText } from "../i18n/sidebarWorkspaceText";
 
 type WorkflowStage = "capture" | "network" | "mt" | "analysis";
 
 const STAGE_ORDER: WorkflowStage[] = ["capture", "network", "mt", "analysis"];
 
 type Props = {
+  locale: AppLocale;
   isSidebarDockedForRamalModal: boolean;
   isCollapsed?: boolean;
   selectionControlsProps: React.ComponentProps<typeof SidebarSelectionControls>;
@@ -28,6 +31,7 @@ type Props = {
 };
 
 export function SidebarWorkspace({
+  locale,
   isSidebarDockedForRamalModal,
   isCollapsed = false,
   selectionControlsProps,
@@ -35,6 +39,8 @@ export function SidebarWorkspace({
   mtEditorSectionProps,
   analysisResultsProps,
 }: Props) {
+  const t = getSidebarWorkspaceText(locale);
+
   const hasAreaSelection = Boolean(selectionControlsProps.center?.label);
   const hasBtTopology =
     (btEditorSectionProps.btTopology?.poles?.length ?? 0) > 0 ||
@@ -124,29 +130,29 @@ export function SidebarWorkspace({
   }> = [
     {
       key: "capture",
-      label: "1. Área",
-      helper: "Seleção e parâmetros",
+      label: t.stage1Label,
+      helper: t.stage1Helper,
       icon: Compass,
       done: hasAreaSelection,
     },
     {
       key: "network",
-      label: "2. BT",
-      helper: "Baixa Tensão (n1-n4)",
+      label: t.stage2Label,
+      helper: t.stage2Helper,
       icon: Network,
       done: hasBtTopology,
     },
     {
       key: "mt",
-      label: "3. MT",
-      helper: "Média Tensão (n1-n4)",
+      label: t.stage3Label,
+      helper: t.stage3Helper,
       icon: Network,
       done: hasMtTopology,
     },
     {
       key: "analysis",
-      label: "4. Análise",
-      helper: "Insights e exportação",
+      label: t.stage4Label,
+      helper: t.stage4Helper,
       icon: LineChart,
       done: hasAnalysis,
     },
@@ -168,12 +174,12 @@ export function SidebarWorkspace({
 
   const guidanceText =
     activeStage === "capture"
-      ? "Defina a área-alvo e o modo de seleção para liberar a etapa BT."
+      ? t.guidanceCapture
       : activeStage === "network"
-        ? "Construa ou revise a topologia BT para habilitar a MT."
+        ? t.guidanceNetwork
         : activeStage === "mt"
-          ? "Modele as estruturas de MT (n1-n4) para habilitar análise e DXF."
-          : "Execute a análise e finalize com a exportação técnica.";
+          ? t.guidanceMt
+          : t.guidanceAnalysis;
 
   return (
     <motion.aside
@@ -191,10 +197,10 @@ export function SidebarWorkspace({
         <div className="mb-3 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
-              Workflow
+              {t.workflowTag}
             </p>
             <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-              Estação de trabalho guiada
+              {t.workflowTitle}
             </p>
           </div>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-black text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
@@ -239,10 +245,10 @@ export function SidebarWorkspace({
         <div className="mb-3 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-              Etapa 1
+              {t.step1Tag}
             </p>
             <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-              Captura da área
+              {t.step1Title}
             </p>
           </div>
           {hasAreaSelection && (
@@ -253,7 +259,7 @@ export function SidebarWorkspace({
         </div>
         <div
           className={activeStage !== "capture" ? "opacity-95" : undefined}
-          aria-label="Conteúdo da etapa captura"
+          aria-label={t.ariaContentStep1}
         >
           <SidebarSelectionControls {...selectionControlsProps} />
         </div>
@@ -263,10 +269,10 @@ export function SidebarWorkspace({
         <div className="mb-3 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-              Etapa 2
+              {t.step2Tag}
             </p>
             <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-              Edição da rede BT
+              {t.step2Title}
             </p>
           </div>
           {hasBtTopology && (
@@ -278,7 +284,7 @@ export function SidebarWorkspace({
         <div
           className={activeStage !== "network" ? "opacity-95" : undefined}
           role="region"
-          aria-label="Conteúdo da etapa BT"
+          aria-label={t.ariaContentStep2}
         >
           <SidebarBtEditorSection {...btEditorSectionProps} />
         </div>
@@ -288,10 +294,10 @@ export function SidebarWorkspace({
         <div className="mb-3 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-              Etapa 3
+              {t.step3Tag}
             </p>
             <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-              Edição da rede MT
+              {t.step3Title}
             </p>
           </div>
           {hasMtTopology && (
@@ -303,7 +309,7 @@ export function SidebarWorkspace({
         <div
           className={activeStage !== "mt" ? "opacity-95" : undefined}
           role="region"
-          aria-label="Conteúdo da etapa MT"
+          aria-label={t.ariaContentStep3}
         >
           <SidebarMtEditorSection {...mtEditorSectionProps} />
         </div>
@@ -313,10 +319,10 @@ export function SidebarWorkspace({
         <div className="mb-3 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-              Etapa 4
+              {t.step4Tag}
             </p>
             <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-              Análise e exportação
+              {t.step4Title}
             </p>
           </div>
           {hasAnalysis && (
@@ -328,7 +334,7 @@ export function SidebarWorkspace({
         <div
           className={activeStage !== "analysis" ? "opacity-95" : undefined}
           role="region"
-          aria-label="Conteúdo da etapa análise"
+          aria-label={t.ariaContentStep4}
         >
           <SidebarAnalysisResults {...analysisResultsProps} />
         </div>
@@ -337,11 +343,11 @@ export function SidebarWorkspace({
       <div className="glass-card mt-1 p-3 backdrop-blur-sm">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-            Próxima ação
+            {t.nextActionTag}
           </p>
           <span
             className="text-[9px] font-semibold text-slate-400 dark:text-slate-600 select-none"
-            title="Use PageUp/PageDown para navegar entre etapas"
+            title={t.pageNavigationHint}
           >
             PgUp / PgDn
           </span>
@@ -359,7 +365,7 @@ export function SidebarWorkspace({
           }}
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-400/20 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
         >
-          {nextStage ? "Avançar etapa" : "Fluxo concluído"}
+          {nextStage ? t.advanceStep : t.flowCompleted}
           {nextStage && <ArrowRight size={13} />}
         </button>
       </div>

@@ -25,6 +25,19 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - Commit `968b495`. 375/375 testes passando (Vitest frontend).
 - DG Addendum Sprint 1+2+3 concluídos. Todas as frentes do Design Generativo entregues.
 
+### Atualização Operacional (2026-04-22) - T2-26 Sidebar Localizada (i18n)
+
+- **Escopo entregue**
+  - Implementação de internacionalização (i18n) para os componentes `SidebarWorkspace` e `SidebarBtEditorSection`.
+  - As cópias fixas (hardcoded) em português foram extraídas para os dicionários de domínio `sidebarWorkspaceText.ts` e `sidebarBtEditorText.ts`.
+- **Implementação**
+  - Textos mapeados para `pt-BR`, `en-US` e `es-ES`.
+  - Atualização do componente pai `App.tsx` para injetar a propriedade `locale` na construção do `sidebarWorkspaceProps` e `sidebarBtEditorSectionProps`.
+- **Qualidade**
+  - `npm run typecheck:frontend` e `npm run test:frontend` executados com sucesso (Exit 0, Coverage ok).
+- **Próximo incremento natural**
+  - Continuar expandindo i18n para componentes restantes como `SidebarSelectionControls` e modais internos da topologia, preservando rigorosamente o baseline pt-BR.
+
 ### Atualização Operacional (2026-04-22) - T2-26 Cabeçalho do App Localizado
 
 - **Escopo entregue**
