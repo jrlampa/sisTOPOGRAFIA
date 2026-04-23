@@ -25,6 +25,19 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - Commit `968b495`. 375/375 testes passando (Vitest frontend).
 - DG Addendum Sprint 1+2+3 concluídos. Todas as frentes do Design Generativo entregues.
 
+### Atualização Operacional (2026-04-22) - T2-26 Cabeçalho do App Localizado
+
+- **Escopo entregue**
+  - O `AppHeader` passou a suportar i18n de maneira consistente com o locale selecionado no painel de configurações, substituindo todos os textos fixos por propriedades do catálogo.
+  - Sincronizado `AppShellLayout` e `App.tsx` para passar `locale` downstream sem quebrar props existentes.
+- **Implementação**
+  - Criação de `src/i18n/appHeaderText.ts` com chaves traduzidas em `pt-BR`, `en-US` e `es-ES`.
+  - Atualização nas interfaces do cabeçalho do mapa e layout geral da aplicação para escutar a mudança nativa de idioma.
+- **Qualidade**
+  - `npm run typecheck:frontend` e `npm run test:frontend` (coverage de componentes) validados com sucesso com 100% dos testes Vitest passando.
+- **Próximo incremento natural**
+  - Continuar varredura de superfícies fora do modal (Sidebar, Modais de Topologia BT) e remover cópia hardcoded garantindo integridade visual no baseline pt-BR.
+
 ### Atualização Operacional (2026-04-22) - DG Persistência Operacional de Runs
 
 - Persistência de execuções DG adicionada com migração `migrations/052_dg_runs_persistence.sql`.

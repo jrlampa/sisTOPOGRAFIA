@@ -779,6 +779,7 @@ function App() {
   return (
     <>
       <AppShellLayout
+        locale={settings.locale}
         isDark={isDark}
         canUndo={canUndo}
         canRedo={canRedo}

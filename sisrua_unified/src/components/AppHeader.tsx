@@ -9,8 +9,11 @@ import {
 import { motion } from "framer-motion";
 import HistoryControls from "./HistoryControls";
 import type { HealthStatus } from "../hooks/useBackendHealth";
+import type { AppLocale } from "../types";
+import { getAppHeaderText } from "../i18n/appHeaderText";
 
 interface AppHeaderProps {
+  locale: AppLocale;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -26,6 +29,7 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({
+  locale,
   canUndo,
   canRedo,
   onUndo,
@@ -43,12 +47,14 @@ export function AppHeader({
   const actionButtonClass =
     "flex h-11 w-11 items-center justify-center rounded-2xl border-2 transition-all";
 
+  const t = getAppHeaderText(locale);
+
   const backendStatusLabel =
     backendStatus === "online"
-      ? "Backend online"
+      ? t.backendStatusOnline
       : backendStatus === "degraded"
-        ? "Backend degradado"
-        : "Backend offline";
+        ? t.backendStatusDegraded
+        : t.backendStatusOffline;
 
   const backendStatusClasses =
     backendStatus === "online"
@@ -126,7 +132,7 @@ export function AppHeader({
                 isDark ? "text-slate-400" : "text-slate-500"
               }`}
             >
-              Engenharia Geoelétrica
+              {t.geoelectricEngineering}
             </p>
             <div className="hidden items-center gap-1.5 rounded-full border border-slate-200/70 bg-white/65 px-2 py-0.5 lg:flex dark:border-slate-700 dark:bg-slate-900/65">
               <img
@@ -158,10 +164,10 @@ export function AppHeader({
             >
               <span className="h-1.5 w-1.5 rounded-full bg-current" />
               {backendStatus === "online"
-                ? "API ONLINE"
+                ? t.apiOnline
                 : backendStatus === "degraded"
-                  ? "API DEGRADADA"
-                  : "API OFFLINE"}
+                  ? t.apiDegraded
+                  : t.apiOffline}
             </span>
           </div>
         </div>
@@ -179,13 +185,13 @@ export function AppHeader({
           }`}
           title={
             isSidebarCollapsed
-              ? "Mostrar painel lateral"
-              : "Engavetar painel lateral"
+              ? t.toggleSidebarOpen
+              : t.toggleSidebarClose
           }
           aria-label={
             isSidebarCollapsed
-              ? "Mostrar painel lateral"
-              : "Engavetar painel lateral"
+              ? t.toggleSidebarOpen
+              : t.toggleSidebarClose
           }
         >
           {isSidebarCollapsed ? (
@@ -203,7 +209,7 @@ export function AppHeader({
         />
         {isSidebarCollapsed && (
           <span className="hidden rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-700 xl:inline-flex dark:border-cyan-300/25 dark:bg-cyan-950/35 dark:text-cyan-100">
-            Modo mapa: keyboard+mouse
+            {t.mapModeInfo}
           </span>
         )}
 
@@ -217,8 +223,8 @@ export function AppHeader({
                 ? "border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
                 : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
             }`}
-            title="Salvar projeto"
-            aria-label="Salvar projeto"
+            title={t.saveProject}
+            aria-label={t.saveProject}
           >
             <Save size={18} />
           </motion.button>
@@ -232,8 +238,8 @@ export function AppHeader({
                 ? "border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
                 : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
             }`}
-            title="Abrir projeto"
-            aria-label="Abrir projeto"
+            title={t.openProject}
+            aria-label={t.openProject}
           >
             <FolderOpen size={18} />
           </motion.button>
@@ -241,8 +247,8 @@ export function AppHeader({
             ref={fileInputRef}
             type="file"
             accept=".srua,.json"
-            title="Selecionar arquivo de projeto"
-            aria-label="Selecionar arquivo de projeto"
+            title={t.selectProjectFile}
+            aria-label={t.selectProjectFile}
             onChange={handleProjectFileChange}
             className="hidden"
           />
@@ -257,8 +263,8 @@ export function AppHeader({
               ? "border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
               : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
           }`}
-          title="Abrir configurações"
-          aria-label="Abrir configurações"
+          title={t.openSettings}
+          aria-label={t.openSettings}
         >
           <Settings size={20} />
         </motion.button>

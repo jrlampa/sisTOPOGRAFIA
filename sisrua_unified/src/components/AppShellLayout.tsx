@@ -10,7 +10,10 @@ import {
   persistSidebarUiState,
 } from "../utils/preferencesPersistence";
 
+import type { AppLocale } from "../types";
+
 type Props = {
+  locale: AppLocale;
   isDark: boolean;
   canUndo: boolean;
   canRedo: boolean;
@@ -26,6 +29,7 @@ type Props = {
 };
 
 export function AppShellLayout({
+  locale,
   isDark,
   canUndo,
   canRedo,
@@ -62,6 +66,7 @@ export function AppShellLayout({
       <AppStatusStack {...appStatusStackProps} />
       <AppSettingsOverlay {...appSettingsOverlayProps} />
       <AppHeader
+        locale={locale}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={onUndo}
