@@ -25,6 +25,22 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - Commit `968b495`. 375/375 testes passando (Vitest frontend).
 - DG Addendum Sprint 1+2+3 concluídos. Todas as frentes do Design Generativo entregues.
 
+### Atualização Operacional (2026-04-23) - Auditoria Corretiva Backend (B1-B5)
+
+- **Escopo entregue**
+  - B1 (error-handling): Todas as chamadas `catch` com `String(err)` e retorno genérico `400` nos handlers de `mechanicalAndAnalysisRoutes.ts` foram substituídas por `logger.error` estruturado + HTTP `500` com mensagem em pt-BR.
+  - B2 (security): `console.error` no error handler local do router substituído por `logger.error` com contexto (`path`, `method`, `stack`).
+  - B3 (safety): Endpoints `GET /dxf/jobs/failed/sanitation-preview` e `GET /dxf/jobs` em `dxfRoutes.ts` envolvidos em try/catch — anteriormente poderiam causar UnhandledPromiseRejection silencioso.
+  - B4 (imports): Corrigidas extensões `.js` ausentes em `dgRoutes.ts`, `dgBufferValidationRoutes.ts` e `dgBufferValidationService.ts` (erro `TS2835` no TypeScript node16 module resolution).
+  - B5 (types): `payload` opcional convertido para `null` fallback em `jobIdempotencyRoutes.ts`; arrays `passedValidations`/`failedValidations` tipados como union literals; `bufferConfig` opcional resolvido com spread condicional e cast.
+  - Mensagem de erro `"No adequate pole found..."` traduzida para pt-BR.
+- **Qualidade**
+  - `npm run typecheck:backend` → Exit 0
+  - `npm run test:backend` → Exit 0 (2742/2742 testes)
+  - Commit: `4c56f51`
+- **Próximo ciclo**
+  - Auditoria DB: índices, migrações pendentes, análise de N+1 queries nas rotas de análise topológica.
+
 ### Atualização Operacional (2026-04-23) - Auditoria Corretiva Frontend (Mini-F1 a F4)
 
 - **Escopo entregue**
