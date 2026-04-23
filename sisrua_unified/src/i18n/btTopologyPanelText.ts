@@ -91,6 +91,16 @@ type BtTopologyPanelText = {
     reviewTitle: string;
     reviewSummary: string;
   };
+
+  dashboard: {
+    tabInfra: string;
+    tabElectrical: string;
+    tabCommercial: string;
+    poleContext: string;
+    transformerContext: string;
+    edgeContext: string;
+    noSelection: string;
+  };
 };
 
 const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
@@ -185,6 +195,16 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       reviewTitle: "Revisar Importação",
       reviewSummary: "itens processados",
     },
+
+    dashboard: {
+      tabInfra: "Infra",
+      tabElectrical: "Elétrica",
+      tabCommercial: "Comercial",
+      poleContext: "Poste",
+      transformerContext: "Trafo",
+      edgeContext: "Vão",
+      noSelection: "Selecione um item no mapa",
+    },
   },
   "en-US": {
     projectTypeTitle: "Project Type",
@@ -277,6 +297,16 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       reviewTitle: "Review Import",
       reviewSummary: "items processed",
     },
+
+    dashboard: {
+      tabInfra: "Infra",
+      tabElectrical: "Electrical",
+      tabCommercial: "Commercial",
+      poleContext: "Pole",
+      transformerContext: "Trafo",
+      edgeContext: "Span",
+      noSelection: "Select an item on the map",
+    },
   },
   "es-ES": {
     projectTypeTitle: "Tipo de Proyecto",
@@ -368,6 +398,16 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       btnImport: "Importar",
       reviewTitle: "Revisar Importación",
       reviewSummary: "ítems procesados",
+    },
+
+    dashboard: {
+      tabInfra: "Infra",
+      tabElectrical: "Eléctrica",
+      tabCommercial: "Comercial",
+      poleContext: "Poste",
+      transformerContext: "Trafo",
+      edgeContext: "Tramo",
+      noSelection: "Seleccione um item en el mapa",
     },
   },
 };

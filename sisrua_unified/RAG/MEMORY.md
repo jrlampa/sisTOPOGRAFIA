@@ -25,6 +25,23 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - Commit `968b495`. 375/375 testes passando (Vitest frontend).
 - DG Addendum Sprint 1+2+3 concluídos. Todas as frentes do Design Generativo entregues.
 
+### Atualização Operacional (2026-04-23) - Dashboard Unificado "Poste-Driven" (UX Premium)
+
+- **Unificação de Interface**: Seções fragmentadas de Poste, Transformador e Vãos consolidadas no novo `BtUnifiedDashboard.tsx`.
+- **Navegação por Abas (Smart Tabs)**:
+    - **Infra**: Dados físicos do poste (altura, esforço, estado, estruturas).
+    - **Elétrica**: Integração em tempo real com transformador e vãos conectados ao poste selecionado.
+    - **Comercial**: Gestão de ramais e visualização de carga/demanda (CQT).
+- **Estética & UX**:
+    - Implementação de design **Glassmorphism** com `framer-motion` para transições fluidas.
+    - Redução drástica de scroll vertical e clicks (fluxo 100% focado no poste).
+    - Sincronização automática de seleção: selecionar um poste no mapa agora pré-carrega todos os seus componentes elétricos na aba dedicada.
+- **Internacionalização (i18n)**: Adição de chaves de dashboard para `pt-BR`, `en-US` e `es-ES`.
+- **Qualidade**:
+    - `npm run typecheck:frontend` → Exit 0.
+    - Removidos estados redundantes (`isPoleDropdownOpen`, `isTransformerDropdownOpen`) e variáveis não utilizadas.
+    - Código modularizado seguindo o princípio de Responsabilidade Única (SRP).
+
 ### Atualização Operacional (2026-04-23) - Auditoria Corretiva Backend (B1-B5)
 
 - **Escopo entregue**

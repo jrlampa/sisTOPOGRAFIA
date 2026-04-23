@@ -85,13 +85,7 @@ function buildPythonEnvProbeCode(): string {
     "import importlib.util, json, os, platform, sys",
     `required=${modules}`,
     "missing=[m for m in required if importlib.util.find_spec(m) is None]",
-    "print(json.dumps({",
-    "'executable': sys.executable,",
-    "'version': platform.python_version(),",
-    "'missingModules': missing,",
-    "'cwd': os.getcwd(),",
-    "'pyEnginePathPresent': importlib.util.find_spec('controller') is not None",
-    "}))",
+    "print(json.dumps({'executable': sys.executable, 'version': platform.python_version(), 'missingModules': missing, 'cwd': os.getcwd(), 'pyEnginePathPresent': importlib.util.find_spec('controller') is not None}))",
   ].join(";");
 }
 

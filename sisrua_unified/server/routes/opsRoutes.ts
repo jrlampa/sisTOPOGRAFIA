@@ -3,6 +3,7 @@ import { z } from "zod";
 import { config } from "../config.js";
 import { OllamaService } from "../services/ollamaService.js";
 import { listCircuitBreakers } from "../utils/circuitBreaker.js";
+import { DbMaintenanceService } from "../services/dbMaintenanceService.js";
 import {
   isBearerRequestAuthorized,
   setBearerChallenge,
@@ -12,6 +13,10 @@ const router = Router();
 
 const externalApisQuerySchema = z.object({
   details: z.enum(["summary", "full"]).optional(),
+});
+
+const dbMaintenanceBodySchema = z.object({
+  tables: z.array(z.string()).optional(),
 });
 
 function isOpsRequestAuthorized(req: Request): boolean {
@@ -127,6 +132,31 @@ router.get("/ai-runtime", async (req: Request, res: Response) => {
   } catch {
     return res.status(500).json({
       error: "Ops AI runtime status failed",
+    });
+  }
+});
+
+router.post("/db/maintenance", async (req: Request, res: Response) => {
+  if (!isOpsRequestAuthorized(req)) {
+    setBearerChallenge(res, "ops");
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const validation = dbMaintenanceBodySchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({
+      error: "Payload inválido",
+      details: validation.error.flatten(),
+    });
+  }
+
+  try {
+    const result = await DbMaintenanceService.runVacuumAnalyze(validation.data.tables);
+    return res.status(result.success ? 200 : 207).json(result);
+  } catch (err: any) {
+    return res.status(500).json({
+      error: "Database maintenance failed",
+      message: err.message,
     });
   }
 });

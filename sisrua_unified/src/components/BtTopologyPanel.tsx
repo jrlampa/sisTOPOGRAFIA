@@ -8,12 +8,11 @@ import type {
   BtClandestinoDisplay,
   BtTransformerDerived,
 } from "../services/btDerivedService";
-import BtPoleVerificationSection from "./BtTopologyPanel/BtPoleVerificationSection";
-import BtTransformerEdgeSection from "./BtTopologyPanel/BtTransformerEdgeSection";
 import BtTopologyPanelStats from "./BtTopologyPanel/BtTopologyPanelStats";
 import BtTopologyPanelBulkImportModal from "./BtTopologyPanel/BtTopologyPanelBulkImportModal";
 import { useBtTopologyPanelBulkImport } from "./BtTopologyPanel/useBtTopologyPanelBulkImport";
 import type { CriticalConfirmationConfig } from "./BtModals";
+import BtUnifiedDashboard from "./BtTopologyPanel/BtUnifiedDashboard";
 
 interface BtTopologyPanelProps {
   locale: AppLocale;
@@ -97,10 +96,6 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   onSetSelectedEdgeId,
   onSetSelectedTransformerId,
 }) => {
-  const [isPoleDropdownOpen, setIsPoleDropdownOpen] = React.useState(false);
-  const [isTransformerDropdownOpen, setIsTransformerDropdownOpen] =
-    React.useState(false);
-
   const bulkImport = useBtTopologyPanelBulkImport({
     btTopology,
     onTopologyChange,
@@ -157,7 +152,6 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
   const selectPole = (poleId: string) => {
     onSetSelectedPoleId?.(poleId);
-    setIsPoleDropdownOpen(false);
     onSelectedPoleChange?.(poleId);
   };
 
@@ -177,9 +171,6 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     btTopology.transformers.find((t) => t.id === selectedTransformerId) ?? null;
   const selectedEdge =
     btTopology.edges.find((e) => e.id === selectedEdgeId) ?? null;
-
-  const effectivePointDemandKva =
-    pointDemandKva ?? summary.transformerDemandKva;
 
   const updatePole = (
     poleId: string,
@@ -254,15 +245,19 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           </button>
         </div>
 
-        <BtPoleVerificationSection
+        <BtUnifiedDashboard
           locale={locale}
           btTopology={btTopology}
+          btNetworkScenario={btNetworkScenario}
           projectType={projectType}
           selectedPoleId={selectedPoleId}
           selectedPole={selectedPole}
-          isPoleDropdownOpen={isPoleDropdownOpen}
-          setIsPoleDropdownOpen={setIsPoleDropdownOpen}
-          selectPole={selectPole}
+          selectedTransformerId={selectedTransformerId}
+          selectedTransformer={selectedTransformer}
+          selectedEdgeId={selectedEdgeId}
+          selectedEdge={selectedEdge}
+          accumulatedByPole={_accumulatedByPole}
+          transformerDebugById={transformerDebugById}
           onBtRenamePole={onBtRenamePole}
           onBtSetPoleChangeFlag={onBtSetPoleChangeFlag}
           onBtTogglePoleCircuitBreak={onBtTogglePoleCircuitBreak}
@@ -287,23 +282,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           updatePoleGeneralNotes={(poleId, generalNotes) =>
             updatePole(poleId, (pole) => ({ ...pole, generalNotes }))
           }
-        />
-
-        <BtTransformerEdgeSection
-          locale={locale}
-          btTopology={btTopology}
-          btNetworkScenario={btNetworkScenario}
-          selectedTransformerId={selectedTransformerId}
-          selectedTransformer={selectedTransformer}
-          isTransformerDropdownOpen={isTransformerDropdownOpen}
-          setIsTransformerDropdownOpen={setIsTransformerDropdownOpen}
-          selectTransformer={selectTransformer}
-          selectedEdgeId={selectedEdgeId}
-          selectedEdge={selectedEdge}
-          selectEdge={selectEdge}
-          onTopologyChange={onTopologyChange}
-          transformerDebugById={transformerDebugById}
-          pointDemandKva={effectivePointDemandKva}
+          onBtRenameTransformer={onBtRenameTransformer}
+          onBtSetTransformerChangeFlag={onBtSetTransformerChangeFlag}
           updateTransformerVerified={(id, verified) =>
             updateTransformer(id, (transformer) => ({
               ...transformer,
@@ -322,6 +302,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
               projectPowerKva,
             }))
           }
+          onBtSetEdgeChangeFlag={onBtSetEdgeChangeFlag}
           updateEdgeVerified={(id, verified) =>
             updateEdge(id, (edge) => ({ ...edge, verified }))
           }
@@ -334,10 +315,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           ) =>
             updateEdge(id, (edge) => ({ ...edge, replacementFromConductors }))
           }
-          onBtRenameTransformer={onBtRenameTransformer}
-          onBtSetTransformerChangeFlag={onBtSetTransformerChangeFlag}
-          onBtSetEdgeChangeFlag={onBtSetEdgeChangeFlag}
-          onRequestCriticalConfirmation={onRequestCriticalConfirmation}
+          onSelectedEdgeChange={selectEdge}
+          onSelectedTransformerChange={selectTransformer}
         />
       </div>
 
