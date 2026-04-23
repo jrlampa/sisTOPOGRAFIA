@@ -74,6 +74,21 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
   - `npm run test:backend -- server/tests/dgOptimizationService.test.ts server/tests/dgRoutes.test.ts`
   - resultado: **2 suítes PASS**.
 
+### Atualização Operacional (2026-04-22) - DG Hardening de Repositório (Testes)
+
+- Nova suíte unitária adicionada: `server/tests/dgRunRepository.test.ts`.
+- Coberturas funcionais validadas na persistência DG:
+  - gravação consolidada em `dg_runs` + gravação normalizada (`dg_candidates`, `dg_scenarios`, `dg_constraints`, `dg_recommendations`)
+  - comportamento resiliente quando a persistência normalizada falha (run principal continua gravada)
+  - fallback em memória sem dependência de banco
+  - leitura de cenários e recomendação via helpers do repositório
+- Validação DG focal executada com sucesso:
+  - `npm run test:backend -- server/tests/dgRunRepository.test.ts server/tests/dgOptimizationService.test.ts server/tests/dgRoutes.test.ts`
+  - resultado: **3 suítes PASS**.
+- Full suite executada:
+  - `npm run test:all`
+  - backend + frontend + smoke E2E concluídos com sucesso.
+
 ---
 
 ## 🏗️ Arquitetura
