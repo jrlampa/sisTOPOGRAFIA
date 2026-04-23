@@ -3,6 +3,8 @@ import { AnimatePresence } from "framer-motion";
 import { Keyboard, Loader2, PanelLeftOpen } from "lucide-react";
 import { BtModalStack } from "./BtModalStack";
 import { lazyWithRetry } from "../utils/lazyWithRetry";
+import type { AppLocale } from "../types";
+import { getMainMapWorkspaceText } from "../i18n/mainMapWorkspaceText";
 
 const MapSelector = React.lazy(() =>
   lazyWithRetry(() => import("./MapSelector")),
@@ -14,11 +16,11 @@ const ElevationProfile = React.lazy(() =>
   lazyWithRetry(() => import("./ElevationProfile")),
 );
 
-const MapSuspenseFallback = () => (
+const MapSuspenseFallback = ({ label }: { label: string }) => (
   <div className="absolute inset-0 flex items-center justify-center rounded-[1.75rem] border border-sky-200 bg-white text-slate-900 shadow-[0_18px_40px_rgba(148,163,184,0.18)] dark:border-white/10 dark:bg-slate-950 dark:text-slate-100 dark:shadow-none">
     <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold dark:border-white/10 dark:bg-slate-900">
       <Loader2 size={18} className="animate-spin" />
-      Carregando mapa 2.5D...
+      {label}
     </div>
   </div>
 );
@@ -31,6 +33,7 @@ const InlineSuspenseFallback = ({ label }: { label: string }) => (
 );
 
 type Props = {
+  locale: AppLocale;
   mapSelectorProps: any;
   floatingLayerPanelProps: any;
   elevationProfileData: any[];
@@ -42,6 +45,7 @@ type Props = {
 };
 
 export function MainMapWorkspace({
+  locale,
   mapSelectorProps,
   floatingLayerPanelProps,
   elevationProfileData,
@@ -51,9 +55,11 @@ export function MainMapWorkspace({
   onRestoreSidebar = () => {},
   btModalStackProps,
 }: Props) {
+  const t = getMainMapWorkspaceText(locale);
+
   return (
     <div className="relative z-10 flex-1 min-h-[44vh] p-3 md:p-4 xl:min-h-0">
-      <Suspense fallback={<MapSuspenseFallback />}>
+      <Suspense fallback={<MapSuspenseFallback label={t.mapLoading} />}>
         <div className="relative h-full rounded-[1.75rem] border border-sky-200 bg-white p-2 shadow-[0_18px_42px_rgba(148,163,184,0.2)] dark:border-white/10 dark:bg-slate-950 dark:shadow-none">
           <MapSelector
             {...mapSelectorProps}
@@ -65,7 +71,7 @@ export function MainMapWorkspace({
               <div className="pointer-events-auto flex items-center justify-between rounded-2xl border border-cyan-200 bg-white/95 px-3 py-2 shadow-[0_12px_24px_rgba(14,116,144,0.14)] backdrop-blur-sm dark:border-cyan-300/20 dark:bg-slate-900/95 dark:shadow-none">
                 <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-900 dark:text-cyan-100">
                   <Keyboard size={14} />
-                  Keyboard+Mouse First
+                  {t.keyboardMouseFirst}
                 </span>
                 <button
                   type="button"
@@ -73,19 +79,19 @@ export function MainMapWorkspace({
                   className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-700 transition hover:bg-cyan-100 dark:border-cyan-300/20 dark:bg-cyan-950/30 dark:text-cyan-100 dark:hover:bg-cyan-900/50"
                 >
                   <PanelLeftOpen size={12} />
-                  Abrir painel
+                  {t.openSidebar}
                 </button>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-slate-700 shadow-[0_12px_24px_rgba(148,163,184,0.14)] backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/95 dark:text-slate-100 dark:shadow-none">
                 <div className="mb-1 text-[9px] tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                  Hints de navegação
+                  {t.navHintsTitle}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span>W A S D: mover mapa</span>
-                  <span>Setas: mover mapa</span>
-                  <span>Roda do mouse: zoom</span>
-                  <span>Botão do meio: pan livre</span>
+                  <span>{t.navHintMove}</span>
+                  <span>{t.navHintArrows}</span>
+                  <span>{t.navHintScroll}</span>
+                  <span>{t.navHintMiddleBtn}</span>
                 </div>
               </div>
             </div>
@@ -99,7 +105,7 @@ export function MainMapWorkspace({
         {elevationProfileData.length > 0 && (
           <Suspense
             fallback={
-              <InlineSuspenseFallback label="Carregando perfil altimetrico" />
+              <InlineSuspenseFallback label={t.elevationProfileLoading} />
             }
           >
             <ElevationProfile
@@ -115,3 +121,4 @@ export function MainMapWorkspace({
     </div>
   );
 }
+

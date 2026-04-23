@@ -304,7 +304,7 @@ export function SettingsModalGeneralTab({
                       : "text-slate-500"
                   }
                 >
-                  Hachura de Declividade Crítica
+                  {text.slopeAnalysisLabel}
                 </span>
                 <div
                   className={`ml-auto w-2 h-2 rounded-full ${settings.layers.slopeAnalysis ? "bg-orange-500" : "bg-slate-700"}`}

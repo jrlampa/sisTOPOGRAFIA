@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import type { GlobalState } from "../types";
 import Toast, { ToastType } from "./Toast";

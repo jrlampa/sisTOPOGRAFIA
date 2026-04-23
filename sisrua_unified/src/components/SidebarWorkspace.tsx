@@ -207,7 +207,7 @@ export function SidebarWorkspace({
             {workflowStages.filter((stage) => stage.done).length}/4
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-1.5">
           {workflowStages.map((stage) => {
             const Icon = stage.icon;
             const isActive = stage.key === activeStage;
@@ -348,6 +348,8 @@ export function SidebarWorkspace({
           <span
             className="text-[9px] font-semibold text-slate-400 dark:text-slate-600 select-none"
             title={t.pageNavigationHint}
+            aria-label={t.pageNavigationHint}
+            role="note"
           >
             PgUp / PgDn
           </span>

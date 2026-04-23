@@ -25,18 +25,19 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - Commit `968b495`. 375/375 testes passando (Vitest frontend).
 - DG Addendum Sprint 1+2+3 concluídos. Todas as frentes do Design Generativo entregues.
 
-### Atualização Operacional (2026-04-22) - T2-26 Sidebar Localizada (i18n)
+### Atualização Operacional (2026-04-23) - T2-26 Internacionalização da Sidebar
 
 - **Escopo entregue**
-  - Implementação de internacionalização (i18n) completa para toda a superfície da barra lateral, cobrindo os componentes `SidebarWorkspace`, `SidebarBtEditorSection`, `SidebarSelectionControls`, `SidebarMtEditorSection` e `SidebarAnalysisResults`.
-  - As cópias fixas (hardcoded) em português foram extraídas para os dicionários de domínio: `sidebarWorkspaceText.ts`, `sidebarBtEditorText.ts`, `sidebarSelectionText.ts`, `sidebarMtEditorText.ts` e `sidebarAnalysisText.ts`.
+  - Implementação de internacionalização (i18n) completa para toda a superfície da barra lateral, cobrindo os componentes `SidebarWorkspace`, `SidebarBtEditorSection`, `SidebarSelectionControls`, `SidebarMtEditorSection`, `SidebarAnalysisResults`, `BtTopologyPanel` e todos os seus sub-componentes internos (`BtTopologyPanelStats`, `BtPoleVerificationSection`, `BtTopologyTransformerSubSection`, `BtTopologyEdgeSubSection`, `BtTransformerEdgeSection`, `BtTopologyPanelBulkImportModal`).
+  - As cópias fixas (hardcoded) em português foram extraídas para os dicionários de domínio: `sidebarWorkspaceText.ts`, `sidebarBtEditorText.ts`, `sidebarSelectionText.ts`, `sidebarMtEditorText.ts`, `sidebarAnalysisText.ts` e `btTopologyPanelText.ts`.
 - **Implementação**
   - Textos mapeados para `pt-BR`, `en-US` e `es-ES`.
   - Atualização do componente pai `App.tsx` para injetar a propriedade `locale` na construção de todas as propriedades enviadas à Sidebar (ex: `sidebarSelectionControlsProps`, `sidebarAnalysisResultsProps`).
+  - Propagação profunda da propriedade `locale` para os painéis de edição em massa de postes e edição de transformadores/trechos.
 - **Qualidade**
   - `npm run typecheck:frontend` e `npm run test:frontend` executados com sucesso (Exit 0, Coverage ok).
 - **Próximo incremento natural**
-  - Expandir i18n para os modais de topologia internos (`BtTopologyPanel`, `MtTopologyPanel`) e menus de contexto no mapa, preservando rigorosamente o baseline pt-BR.
+  - Expandir i18n para os modais de topologia de média tensão (`MtTopologyPanel`) e menus de contexto no mapa, preservando rigorosamente o baseline pt-BR.
 
 ### Atualização Operacional (2026-04-22) - T2-26 Cabeçalho do App Localizado
 

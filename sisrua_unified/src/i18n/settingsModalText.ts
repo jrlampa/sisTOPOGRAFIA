@@ -83,6 +83,7 @@ type SettingsModalText = {
   projectionLocal: string;
   projectionUtm: string;
   projectionHint: string;
+  slopeAnalysisLabel: string;
 };
 
 const TEXTS: Record<AppLocale, SettingsModalText> = {
@@ -177,6 +178,7 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     projectionUtm: "UTM (Absoluto)",
     projectionHint:
       "UTM Absoluto usa coordenadas reais compatíveis com Google Earth e GPS",
+    slopeAnalysisLabel: "Hachura de Declividade Crítica",
   },
   "en-US": {
     panelTitle: "Control Panel",
@@ -269,6 +271,7 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     projectionUtm: "UTM (Absolute)",
     projectionHint:
       "Absolute UTM uses real-world coordinates compatible with Google Earth and GPS",
+    slopeAnalysisLabel: "Critical Slope Hatch",
   },
   "es-ES": {
     panelTitle: "Panel de Control",
@@ -361,6 +364,7 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     projectionUtm: "UTM (Absoluta)",
     projectionHint:
       "UTM Absoluta usa coordenadas reales compatibles con Google Earth y GPS",
+    slopeAnalysisLabel: "Tramado de Pendiente Crítica",
   },
 };
 

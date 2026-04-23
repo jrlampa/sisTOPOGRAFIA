@@ -89,6 +89,7 @@ export function AppShellLayout({
         />
         <MainMapWorkspace
           {...mainMapWorkspaceProps}
+          locale={locale}
           isSidebarCollapsed={isSidebarCollapsed}
           onRestoreSidebar={() => setIsSidebarCollapsed(false)}
         />

@@ -854,6 +854,7 @@ function App() {
           analysisResultsProps: sidebarAnalysisResultsProps,
         }}
         mainMapWorkspaceProps={{
+          locale: settings.locale,
           mapSelectorProps,
           floatingLayerPanelProps: {
             settings,
