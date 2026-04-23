@@ -5,10 +5,13 @@ import {
   BtTransformer,
   BtNetworkScenario,
   BtTransformerReading,
+  AppLocale,
 } from "../../types";
 import { getTransformerChangeFlag, formatBr } from "./BtTopologyPanelUtils";
+import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
 
 interface BtTopologyTransformerSubSectionProps {
+  locale: AppLocale;
   btTopology: BtTopology;
   btNetworkScenario: BtNetworkScenario;
   selectedTransformer: BtTransformer | null;
@@ -33,6 +36,7 @@ interface BtTopologyTransformerSubSectionProps {
 const BtTopologyTransformerSubSection: React.FC<
   BtTopologyTransformerSubSectionProps
 > = ({
+  locale,
   btTopology,
   btNetworkScenario,
   selectedTransformer,
@@ -47,15 +51,16 @@ const BtTopologyTransformerSubSection: React.FC<
   updateTransformerReadings: _updateTransformerReadings,
   updateTransformerProjectPower: _updateTransformerProjectPower,
 }) => {
+  const t = getBtTopologyPanelText(locale).transformerEdge;
+
   return (
     <div className="space-y-2 rounded-lg border border-slate-300 bg-slate-50 p-3">
       <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-        Transformador (
-        {btNetworkScenario === "asis" ? "leituras atuais" : "projeto"})
+        {btNetworkScenario === "asis" ? t.transformerTitleAsis : t.transformerTitleProject}
       </div>
       {btTopology.transformers.length === 0 ? (
         <div className="text-[10px] text-slate-500 italic">
-          Nenhum transformador inserido.
+          {t.noTransformer}
         </div>
       ) : (
         <React.Fragment>
@@ -68,7 +73,7 @@ const BtTopologyTransformerSubSection: React.FC<
                 onBtRenameTransformer?.(selectedTransformer.id, e.target.value)
               }
               className="w-full rounded border border-slate-300 bg-white p-2 pr-8 text-xs font-medium text-slate-800"
-              title="Nome do Trafo"
+              title={t.placeholderTransformerName}
             />
             <button
               onClick={() =>
@@ -109,8 +114,8 @@ const BtTopologyTransformerSubSection: React.FC<
                   className="rounded border border-cyan-400 px-3 py-1 text-[10px] text-cyan-700 hover:bg-cyan-50"
                 >
                   {selectedTransformer.verified
-                    ? "Verificado"
-                    : "Marcar Verificado"}
+                    ? t.btnMarkUnverified
+                    : t.btnMarkVerified}
                 </button>
               </div>
 
@@ -138,7 +143,7 @@ const BtTopologyTransformerSubSection: React.FC<
               {/* Lógica de Leituras Simplificada para este componente */}
               <div className="rounded border border-slate-200 bg-white p-2 text-[10px] space-y-1">
                 <div className="flex justify-between">
-                  <span>Demanda:</span>
+                  <span>{t.demandKva}</span>
                   <span className="font-bold">
                     {formatBr(selectedTransformer.demandKva ?? 0)} kVA
                   </span>

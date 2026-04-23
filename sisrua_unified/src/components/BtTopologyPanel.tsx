@@ -1,6 +1,7 @@
 import React from "react";
 import { Copy } from "lucide-react";
-import type { BtNetworkScenario, BtTopology, BtProjectType } from "../types";
+import type { BtNetworkScenario, BtTopology, BtProjectType, AppLocale } from "../types";
+import { getBtTopologyPanelText } from "../i18n/btTopologyPanelText";
 import type {
   BtDerivedSummary,
   BtPoleAccumulatedDemand,
@@ -15,6 +16,7 @@ import { useBtTopologyPanelBulkImport } from "./BtTopologyPanel/useBtTopologyPan
 import type { CriticalConfirmationConfig } from "./BtModals";
 
 interface BtTopologyPanelProps {
+  locale: AppLocale;
   btTopology: BtTopology;
   btNetworkScenario?: BtNetworkScenario;
   onTopologyChange: (next: BtTopology) => void;
@@ -57,6 +59,7 @@ interface BtTopologyPanelProps {
 }
 
 const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
+  locale,
   btTopology,
   btNetworkScenario = "asis",
   onTopologyChange,
@@ -96,6 +99,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     onProjectTypeChange,
     onClandestinoAreaChange,
   });
+
+  const t = getBtTopologyPanelText(locale);
 
   React.useEffect(() => {
     if (btTopology.poles.length === 0) {
@@ -208,6 +213,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
     <div className="flex h-full flex-col overflow-hidden bg-slate-50/50">
       <div className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden p-4">
         <BtTopologyPanelStats
+          locale={locale}
           poles={summary.poles}
           transformers={summary.transformers}
           edges={summary.edges}
@@ -217,7 +223,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
         <div className="rounded-lg border border-slate-300 bg-white p-3 shadow-sm">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Tipo de Projeto
+            {t.projectTypeTitle}
           </div>
           <select
             className="mt-2 w-full rounded border border-slate-300 p-1.5 text-xs font-semibold text-slate-700"
@@ -226,19 +232,20 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
               onProjectTypeChange(e.target.value as BtProjectType)
             }
           >
-            <option value="ramais">Ramais (Padrão)</option>
-            <option value="clandestino">Clandestino (Carga por Área)</option>
+            <option value="ramais">{t.projectTypeRamais}</option>
+            <option value="clandestino">{t.projectTypeClandestino}</option>
           </select>
 
           <button
             onClick={() => bulkImport.setIsBulkRamalModalOpen(true)}
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-md transition-all"
           >
-            <Copy size={14} /> Importação em Massa
+            <Copy size={14} /> {t.btnBulkImport}
           </button>
         </div>
 
         <BtPoleVerificationSection
+          locale={locale}
           btTopology={btTopology}
           projectType={projectType}
           selectedPoleId={selectedPoleId}
@@ -273,6 +280,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         />
 
         <BtTransformerEdgeSection
+          locale={locale}
           btTopology={btTopology}
           btNetworkScenario={btNetworkScenario}
           selectedTransformerId={selectedTransformerId}
@@ -324,6 +332,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
       </div>
 
       <BtTopologyPanelBulkImportModal
+        locale={locale}
         isOpen={bulkImport.isBulkRamalModalOpen}
         onClose={() => bulkImport.setIsBulkRamalModalOpen(false)}
         bulkRamalText={bulkImport.bulkRamalText}

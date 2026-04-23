@@ -317,6 +317,7 @@ export function SidebarBtEditorSection({
         fallback={<InlineSuspenseFallback label={t.loadingBtPanel} />}
       >
         <BtTopologyPanel
+          locale={locale}
           btTopology={btTopology}
           accumulatedByPole={btAccumulatedByPole}
           summary={btSummary}

@@ -16,8 +16,11 @@ import {
   nextId,
   numberFromInput,
 } from "./BtTopologyPanelUtils";
+import type { AppLocale } from "../../types";
+import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
 
 interface BtPoleVerificationSectionProps {
+  locale: AppLocale;
   btTopology: BtTopology;
   projectType: "ramais" | "geral" | "clandestino";
   selectedPoleId: string;
@@ -57,25 +60,28 @@ interface BtPoleVerificationSectionProps {
 
 const POLE_CONDITION_OPTIONS: Array<{
   value: BtPoleConditionStatus;
-  label: string;
+  labelKey: "stateGood" | "stateLeaning" | "stateCracked" | "stateCondemned";
 }> = [
-  { value: "bom_estado", label: "Bom estado" },
-  { value: "desaprumado", label: "Desaprumado" },
-  { value: "trincado", label: "Trincado" },
-  { value: "condenado", label: "Condenado" },
+  { value: "bom_estado", labelKey: "stateGood" },
+  { value: "desaprumado", labelKey: "stateLeaning" },
+  { value: "trincado", labelKey: "stateCracked" },
+  { value: "condenado", labelKey: "stateCondemned" },
 ];
 
-const RAMAL_QUICK_NOTES: Array<{ value: BtRamalConditionNote; label: string }> =
-  [
-    { value: "deteriorado", label: "Deteriorado" },
-    { value: "emendas", label: "Emendas" },
-    { value: "sem_isolamento", label: "Sem isolamento" },
-    { value: "ramal_longo", label: "Longo" },
-    { value: "cruzamento", label: "Cruzamento" },
-    { value: "outro", label: "Outro" },
-  ];
+const RAMAL_QUICK_NOTES: Array<{
+  value: BtRamalConditionNote;
+  labelKey: "deteriorated" | "splices" | "noInsulation" | "long" | "crossing" | "other";
+}> = [
+  { value: "deteriorado", labelKey: "deteriorated" },
+  { value: "emendas", labelKey: "splices" },
+  { value: "sem_isolamento", labelKey: "noInsulation" },
+  { value: "ramal_longo", labelKey: "long" },
+  { value: "cruzamento", labelKey: "crossing" },
+  { value: "outro", labelKey: "other" },
+];
 
 const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
+  locale,
   btTopology,
   projectType,
   selectedPoleId,
@@ -94,17 +100,19 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
   updatePoleEquipmentNotes,
   updatePoleGeneralNotes,
 }) => {
+  const t = getBtTopologyPanelText(locale).poleVerification;
+
   return (
     <div className="space-y-3 rounded-lg border border-cyan-200 bg-slate-50 p-3">
       <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-800">
-        Postes / Verificação
+        {t.title}
       </div>
 
       <div className="space-y-2">
-        <div className="text-[10px] text-slate-400">Poste selecionado</div>
+        <div className="text-[10px] text-slate-400">{t.selectedPole}</div>
         {btTopology.poles.length === 0 ? (
           <div className="text-[10px] text-slate-500">
-            Nenhum poste cadastrado.
+            {t.noPole}
           </div>
         ) : (
           <>
@@ -130,14 +138,14 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
 
                   onBtRenamePole?.(selectedPole.id, nextTitle);
                 }}
-                title="Nome/seleção do poste"
+                title={t.placeholderPoleName}
                 className="w-full rounded border border-slate-300 bg-white p-2 pr-8 text-xs font-medium text-slate-800 focus:border-cyan-500/60 outline-none"
               />
               <button
                 type="button"
                 onClick={() => setIsPoleDropdownOpen((current) => !current)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
-                title="Selecionar poste"
+                title={t.selectPoleTitle}
               >
                 <ChevronDown size={14} />
               </button>
@@ -165,8 +173,8 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                   className="rounded border border-cyan-400 px-3 py-1 text-[10px] text-cyan-900 hover:bg-cyan-100"
                 >
                   {selectedPole.verified
-                    ? "Marcar como não verificado"
-                    : "Marcar poste como verificado"}
+                    ? t.btnMarkUnverified
+                    : t.btnMarkVerified}
                 </button>
 
                 {onBtSetPoleChangeFlag && (
@@ -177,7 +185,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                       }
                       className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === "remove" ? "border-rose-400 bg-rose-50 text-rose-700" : "border-slate-300 bg-white text-slate-700"}`}
                     >
-                      Remoção
+                      {t.flagRemove}
                     </button>
                     <button
                       onClick={() =>
@@ -185,7 +193,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                       }
                       className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === "new" ? "border-emerald-400 bg-emerald-50 text-emerald-700" : "border-slate-300 bg-white text-slate-700"}`}
                     >
-                      Novo
+                      {t.flagNew}
                     </button>
                     <button
                       onClick={() =>
@@ -193,7 +201,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                       }
                       className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === "replace" ? "border-yellow-400 bg-yellow-50 text-yellow-700" : "border-slate-300 bg-white text-slate-700"}`}
                     >
-                      Substituição
+                      {t.flagReplace}
                     </button>
                     <button
                       onClick={() =>
@@ -213,26 +221,25 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                       }
                       className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === "existing" ? "border-fuchsia-400 bg-fuchsia-50 text-fuchsia-700" : "border-slate-300 bg-white text-slate-700"}`}
                     >
-                      Existente
+                      {t.flagExisting}
                     </button>
                   </div>
                 )}
 
                 {(selectedPole.circuitBreakPoint ?? false) && (
                   <div className="rounded border border-sky-300 bg-sky-50 px-2 py-1 text-[10px] text-sky-800">
-                    Separacao fisica ativa: o circuito do trafo para neste
-                    poste.
+                    {t.activeCircuitBreak}
                   </div>
                 )}
 
                 <div className="rounded border border-slate-300 bg-white p-2">
                   <div className="mb-2 text-[10px] text-slate-600">
-                    Tamanho / Esforço nominal
+                    {t.sizeEffortTitle}
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col gap-0.5">
                       <label className="text-[9px] text-slate-400">
-                        Altura (m)
+                        {t.heightM}
                       </label>
                       <input
                         type="number"
@@ -263,7 +270,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                     <span className="mt-4 text-slate-400 text-sm">/</span>
                     <div className="flex flex-col gap-0.5">
                       <label className="text-[9px] text-slate-400">
-                        Esforço (daN)
+                        {t.effortDan}
                       </label>
                       <input
                         type="number"
@@ -303,7 +310,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
 
                 <div className="rounded border border-slate-300 bg-white p-2">
                   <div className="mb-2 text-[10px] text-slate-600">
-                    Estruturas BT (si1-si4)
+                    {t.structuresTitle}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {(["si1", "si2", "si3", "si4"] as const).map((slot) => (
@@ -347,7 +354,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
 
                 <div className="rounded border border-slate-300 bg-white p-2">
                   <div className="mb-2 text-[10px] text-slate-600">
-                    Estado do poste
+                    {t.poleStateTitle}
                   </div>
                   <div className="flex items-center gap-2">
                     <select
@@ -364,10 +371,10 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                       }}
                       className="w-full rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
                     >
-                      <option value="">Selecione o estado</option>
+                      <option value="">{t.selectState}</option>
                       {POLE_CONDITION_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
-                          {option.label}
+                          {t[option.labelKey]}
                         </option>
                       ))}
                     </select>
@@ -376,7 +383,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                         {POLE_CONDITION_OPTIONS.find(
                           (option) =>
                             option.value === selectedPole.conditionStatus,
-                        )?.label ?? selectedPole.conditionStatus}
+                        ) ? t[POLE_CONDITION_OPTIONS.find((o) => o.value === selectedPole.conditionStatus)!.labelKey] : selectedPole.conditionStatus}
                       </span>
                     )}
                   </div>
@@ -384,12 +391,12 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
 
                 <div className="rounded border border-slate-300 bg-white p-2">
                   <div className="mb-2 text-[10px] text-slate-600">
-                    Equipamentos
+                    {t.equipmentsTitle}
                   </div>
                   <textarea
                     value={selectedPole.equipmentNotes ?? ""}
-                    title="Equipamentos do poste"
-                    placeholder="Ex.: chave fusível, trafo 75 kVA, luminária, religador..."
+                    title={t.equipmentsTitle}
+                    placeholder={t.equipmentsPlaceholder}
                     maxLength={500}
                     rows={3}
                     onChange={(e) => {
@@ -409,12 +416,12 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
 
                 <div className="rounded border border-slate-300 bg-white p-2">
                   <div className="mb-2 text-[10px] text-slate-600">
-                    Observações gerais
+                    {t.generalNotesTitle}
                   </div>
                   <textarea
                     value={selectedPole.generalNotes ?? ""}
-                    title="Observações gerais do poste"
-                    placeholder="Ex.: acesso restrito, interferência com muro, vegetação próxima..."
+                    title={t.generalNotesTitle}
+                    placeholder={t.generalNotesPlaceholder}
                     maxLength={500}
                     rows={3}
                     onChange={(e) => {
@@ -434,7 +441,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
 
                 <div className="rounded border border-slate-300 bg-white p-2">
                   <div className="mb-2 flex items-center justify-between text-[10px] text-slate-600">
-                    <span>Ramais do poste</span>
+                    <span>{t.ramaisTitle}</span>
                     <button
                       onClick={() => {
                         const defaultRamalType =
@@ -452,13 +459,13 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                       }}
                       className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-slate-700 hover:bg-slate-100"
                     >
-                      <Plus size={12} /> Ramal
+                      <Plus size={12} /> {t.btnAddRamal}
                     </button>
                   </div>
 
                   {(selectedPole.ramais ?? []).length === 0 ? (
                     <div className="text-[10px] text-slate-500">
-                      Sem ramais cadastrados neste poste.
+                      {t.noRamais}
                     </div>
                   ) : (
                     <div className="space-y-1.5">
@@ -547,7 +554,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                                 );
                               }}
                               className="rounded border border-rose-300 p-1.5 text-rose-700 hover:bg-rose-50"
-                              title="Remover ramal"
+                              title={t.btnRemoveRamal}
                             >
                               <Trash2 size={12} />
                             </button>
@@ -558,11 +565,11 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                                 <button
                                   key={chip.value}
                                   type="button"
-                                  title={`Observação: ${chip.label}`}
+                                  title={`Observação: ${t.quickNotes[chip.labelKey]}`}
                                   onClick={() => {
                                     const current = ramal.notes ?? "";
                                     const next =
-                                      current === chip.label ? "" : chip.label;
+                                      current === t.quickNotes[chip.labelKey] ? "" : t.quickNotes[chip.labelKey];
                                     updatePoleRamais(
                                       selectedPole.id,
                                       (selectedPole.ramais ?? []).map((item) =>
@@ -579,12 +586,12 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                                     );
                                   }}
                                   className={`rounded border px-1.5 py-0.5 text-[9px] ${
-                                    ramal.notes === chip.label
+                                    ramal.notes === t.quickNotes[chip.labelKey]
                                       ? "border-amber-400 bg-amber-50 text-amber-800"
                                       : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
                                   }`}
                                 >
-                                  {chip.label}
+                                  {t.quickNotes[chip.labelKey]}
                                 </button>
                               ))}
                             </div>
@@ -593,7 +600,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                               value={ramal.notes ?? ""}
                               maxLength={80}
                               title={`Observação do ramal ${ramal.id}`}
-                              placeholder="Obs. livre..."
+                              placeholder={t.freeObservation}
                               onChange={(e) => {
                                 const next = e.target.value;
                                 updatePoleRamais(

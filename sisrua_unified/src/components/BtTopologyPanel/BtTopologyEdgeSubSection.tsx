@@ -5,9 +5,12 @@ import {
   CONDUCTOR_NAMES,
   getEdgeChangeFlag,
   nextId,
-} from "./BtTopologyPanelUtils";
+  } from "./BtTopologyPanelUtils";
+import type { AppLocale } from "../../types";
+import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
 
 interface BtTopologyEdgeSubSectionProps {
+  locale: AppLocale;
   btTopology: BtTopology;
   btNetworkScenario: BtNetworkScenario;
   selectedEdge: BtEdge | null;
@@ -29,6 +32,7 @@ interface BtTopologyEdgeSubSectionProps {
 }
 
 const BtTopologyEdgeSubSection: React.FC<BtTopologyEdgeSubSectionProps> = ({
+  locale,
   btTopology,
   btNetworkScenario,
   selectedEdge,
@@ -39,15 +43,17 @@ const BtTopologyEdgeSubSection: React.FC<BtTopologyEdgeSubSectionProps> = ({
   updateEdgeReplacementFromConductors: _updateEdgeReplacementFromConductors,
   onBtSetEdgeChangeFlag,
 }) => {
+  const t = getBtTopologyPanelText(locale).transformerEdge;
+  
   return (
     <div className="space-y-2 rounded-lg border border-slate-300 bg-slate-50 p-3">
       <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-        Condutor ({btNetworkScenario === "asis" ? "existente" : "projeto"})
+        {btNetworkScenario === "asis" ? t.edgeTitleAsis : t.edgeTitleProject}
       </div>
 
       {btTopology.edges.length === 0 ? (
         <div className="text-[10px] text-slate-500 italic">
-          Nenhum trecho inserido.
+          {t.noEdge}
         </div>
       ) : (
         <React.Fragment>
@@ -55,7 +61,7 @@ const BtTopologyEdgeSubSection: React.FC<BtTopologyEdgeSubSectionProps> = ({
             className="w-full rounded border border-slate-300 bg-white p-2 text-xs text-slate-800"
             value={selectedEdgeId}
             onChange={(e) => selectEdge(e.target.value)}
-            title="Selecionar Trecho"
+            title={t.edgeTitle}
           >
             {btTopology.edges.map((e) => (
               <option key={e.id} value={e.id}>
@@ -84,7 +90,7 @@ const BtTopologyEdgeSubSection: React.FC<BtTopologyEdgeSubSectionProps> = ({
 
               <div className="space-y-2">
                 <div className="text-[10px] font-bold text-slate-500 uppercase">
-                  Composição:
+                  {t.edgeComposition}
                 </div>
                 {selectedEdge.conductors.map((c) => (
                   <div key={c.id} className="flex gap-2 items-center">
@@ -121,7 +127,7 @@ const BtTopologyEdgeSubSection: React.FC<BtTopologyEdgeSubSectionProps> = ({
                   }
                   className="flex w-full items-center justify-center gap-1 rounded border border-dashed border-slate-300 py-1 text-[10px] text-slate-500 hover:bg-slate-100"
                 >
-                  <Plus size={10} /> Adicionar Condutor
+                  <Plus size={10} /> {t.btnAddConductor}
                 </button>
               </div>
             </div>

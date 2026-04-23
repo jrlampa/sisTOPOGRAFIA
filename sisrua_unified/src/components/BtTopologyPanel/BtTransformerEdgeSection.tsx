@@ -3,8 +3,10 @@ import { BtTopology, BtNetworkScenario, BtTransformer, BtEdge, BtTransformerRead
 import BtTopologyTransformerSubSection from "./BtTopologyTransformerSubSection";
 import BtTopologyEdgeSubSection from "./BtTopologyEdgeSubSection";
 import type { CriticalConfirmationConfig } from "../BtModals";
+import type { AppLocale } from "../../types";
 
 interface BtTransformerEdgeSectionProps {
+  locale: AppLocale;
   btTopology: BtTopology;
   btNetworkScenario: BtNetworkScenario;
   selectedTransformerId: string;
@@ -34,6 +36,7 @@ const BtTransformerEdgeSection: React.FC<BtTransformerEdgeSectionProps> = (props
   return (
     <div className="space-y-4">
       <BtTopologyTransformerSubSection 
+        locale={props.locale}
         btTopology={props.btTopology}
         btNetworkScenario={props.btNetworkScenario}
         selectedTransformer={props.selectedTransformer}
@@ -50,6 +53,7 @@ const BtTransformerEdgeSection: React.FC<BtTransformerEdgeSectionProps> = (props
       />
 
       <BtTopologyEdgeSubSection 
+        locale={props.locale}
         btTopology={props.btTopology}
         btNetworkScenario={props.btNetworkScenario}
         selectedEdge={props.selectedEdge}

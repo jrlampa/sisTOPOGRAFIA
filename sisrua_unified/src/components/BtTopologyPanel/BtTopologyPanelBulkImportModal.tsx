@@ -1,8 +1,11 @@
 import React, { useEffect } from "react";
 import { Copy, FileSpreadsheet, Play, SkipForward, X } from "lucide-react";
 import { BulkImportReviewState } from "./useBtTopologyPanelBulkImport";
+import type { AppLocale } from "../../types";
+import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
 
 interface BtTopologyPanelBulkImportModalProps {
+  locale: AppLocale;
   isOpen: boolean;
   onClose: () => void;
   bulkRamalText: string;
@@ -18,6 +21,7 @@ interface BtTopologyPanelBulkImportModalProps {
 const BtTopologyPanelBulkImportModal: React.FC<
   BtTopologyPanelBulkImportModalProps
 > = ({
+  locale,
   isOpen,
   onClose,
   bulkRamalText,
@@ -40,6 +44,8 @@ const BtTopologyPanelBulkImportModal: React.FC<
 
   if (!isOpen) return null;
 
+  const t = getBtTopologyPanelText(locale).bulkImport;
+
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
       <div className="relative flex h-[600px] w-full max-w-2xl flex-col rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden">
@@ -47,7 +53,7 @@ const BtTopologyPanelBulkImportModal: React.FC<
           <div className="flex items-center gap-2">
             <Copy className="text-blue-600 dark:text-blue-400" size={18} />
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-              Importação em Massa - Ramais BT
+              {t.title}
             </h3>
           </div>
           <button
@@ -62,9 +68,7 @@ const BtTopologyPanelBulkImportModal: React.FC<
         <div className="flex-1 overflow-auto p-4 space-y-4">
           <div className="rounded-xl border border-blue-200 dark:border-blue-700/40 bg-blue-50 dark:bg-blue-950/30 p-3">
             <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
-              Arraste seu arquivo Excel (.xlsx) para o mapa ou cole a tabela
-              abaixo (incluindo cabeçalhos <strong>POSTE</strong> e tipos de
-              ramal como <strong>13 CC</strong>).
+              {t.pasteData}
             </p>
           </div>
 
@@ -77,7 +81,7 @@ const BtTopologyPanelBulkImportModal: React.FC<
                 size={14}
                 className="text-emerald-600 dark:text-emerald-400"
               />
-              Selecionar Planilha
+              {t.loadExcel}
             </button>
             <input
               type="file"
@@ -94,7 +98,7 @@ const BtTopologyPanelBulkImportModal: React.FC<
             value={bulkRamalText}
             onChange={(e) => setBulkRamalText(e.target.value)}
             spellCheck={false}
-            placeholder="Cole aqui os dados da sua tabela..."
+            placeholder={t.placeholder}
             className="h-48 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 p-3 text-[11px] font-mono text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-700/40 outline-none transition-all resize-none shadow-inner"
           />
 
@@ -108,11 +112,10 @@ const BtTopologyPanelBulkImportModal: React.FC<
             <div className="rounded-xl border border-amber-300 dark:border-amber-700/40 bg-amber-50/50 dark:bg-amber-950/30 p-4 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
-                  Revisão Assistida
+                  {t.reviewTitle}
                 </span>
                 <span className="text-[10px] font-bold text-amber-800 dark:text-amber-200">
-                  Poste {bulkImportReview.currentPoleIndex + 1} de{" "}
-                  {bulkImportReview.orderedPoleIds.length}
+                  {bulkImportReview.currentPoleIndex + 1} / {bulkImportReview.orderedPoleIds.length} {t.reviewSummary}
                 </span>
               </div>
               <div className="flex gap-2">
@@ -121,7 +124,7 @@ const BtTopologyPanelBulkImportModal: React.FC<
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-white hover:bg-amber-600 transition-colors shadow-lg shadow-amber-200/30 dark:shadow-none"
                 >
                   <SkipForward size={14} />
-                  Próximo Poste
+                  {t.btnReview}
                 </button>
               </div>
             </div>
@@ -133,7 +136,7 @@ const BtTopologyPanelBulkImportModal: React.FC<
             onClick={onClose}
             className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
           >
-            Cancelar
+            {t.btnCancel}
           </button>
           <button
             onClick={onApply}
@@ -141,7 +144,7 @@ const BtTopologyPanelBulkImportModal: React.FC<
             disabled={!bulkRamalText.trim()}
           >
             <Play size={14} />
-            Aplicar Importação
+            {t.btnImport}
           </button>
         </div>
       </div>
