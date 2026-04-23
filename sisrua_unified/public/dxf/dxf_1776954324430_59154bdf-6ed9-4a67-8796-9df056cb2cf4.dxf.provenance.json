@@ -1,0 +1,12 @@
+{
+  "sha256": "f36db618d21f5eacd3b28a8549d04528841e3793a110a8ad4314d37ab665e54b",
+  "generated_at": "2026-04-23T14:25:35.001Z",
+  "generator": "sisTOPOGRAFIA/sisrua_unified/py_engine",
+  "version": "1.0.0",
+  "taskId": "95f170a2-e457-475f-ab9e-ec694f8d49ee",
+  "lat": -22.758878,
+  "lon": -42.881869,
+  "radius": 2000,
+  "mode": "circle",
+  "projection": "local"
+}

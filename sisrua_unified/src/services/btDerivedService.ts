@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../config/api";
+import { buildApiHeaders } from "./apiClient";
 import type { BtTopology, BtProjectType } from "../types";
 
 export interface BtPoleAccumulatedDemand {
@@ -84,7 +85,7 @@ export async function fetchBtDerivedState(
 ): Promise<BtDerivedResponse> {
   const response = await fetch(`${API_BASE_URL}/bt/derived`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildApiHeaders(),
     body: JSON.stringify(input),
   });
 

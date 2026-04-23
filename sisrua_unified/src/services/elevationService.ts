@@ -1,5 +1,6 @@
 import { GeoLocation, TerrainGrid, TerrainPoint } from '../types';
 import Logger from '../utils/logger';
+import { buildApiHeaders } from './apiClient';
 
 export const fetchElevationGrid = async (center: GeoLocation, radius: number, gridSize: number = 12): Promise<TerrainGrid> => {
   // Bounding box calculation
@@ -99,7 +100,7 @@ export const fetchElevationProfile = async (start: GeoLocation, end: GeoLocation
     Logger.debug('Fetching elevation profile');
     const response = await fetch('/api/elevation/profile', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildApiHeaders(),
       body: JSON.stringify({ start, end, steps: 25 })
     });
 

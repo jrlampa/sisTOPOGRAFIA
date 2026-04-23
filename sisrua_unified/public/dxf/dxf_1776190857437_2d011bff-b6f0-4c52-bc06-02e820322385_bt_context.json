@@ -1,0 +1,1281 @@
+{
+  "generatedAt": "2026-04-23T14:22:09.393Z",
+  "artifactSha256": "76ad160b8ef4a8b173f36a1101aaac5da934aa4511939c17cec7a7a75b9fb5b0",
+  "btContext": {
+    "topology": {
+      "edges": [
+        {
+          "id": "E1",
+          "toPoleId": "P2",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C1776189453424743",
+              "quantity": 1,
+              "conductorName": "70 Al - MX"
+            }
+          ],
+          "fromPoleId": "P1",
+          "lengthMeters": 40
+        },
+        {
+          "id": "E2",
+          "toPoleId": "P3",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C1776189581708231",
+              "quantity": 1,
+              "conductorName": "70 Al - MX"
+            }
+          ],
+          "fromPoleId": "P2",
+          "lengthMeters": 42
+        },
+        {
+          "id": "E3",
+          "toPoleId": "P4",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C1776189683502285",
+              "quantity": 1,
+              "conductorName": "70 Al - MX"
+            }
+          ],
+          "fromPoleId": "P3",
+          "lengthMeters": 41
+        },
+        {
+          "id": "E4",
+          "toPoleId": "P6",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C1776177544509530",
+              "quantity": 1,
+              "conductorName": "53 Al - QX"
+            }
+          ],
+          "fromPoleId": "P4",
+          "lengthMeters": 30
+        },
+        {
+          "id": "E5",
+          "toPoleId": "P7",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C1776189718445639",
+              "quantity": 1,
+              "conductorName": "70 Al - MX"
+            }
+          ],
+          "fromPoleId": "P4",
+          "lengthMeters": 16
+        },
+        {
+          "id": "E6",
+          "toPoleId": "P8",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C1776177567205949",
+              "quantity": 1,
+              "conductorName": "185 Al - MX"
+            }
+          ],
+          "fromPoleId": "P7",
+          "lengthMeters": 41
+        },
+        {
+          "id": "E7",
+          "toPoleId": "P9",
+          "verified": false,
+          "conductors": [
+            {
+              "id": "C1776177577411557",
+              "quantity": 1,
+              "conductorName": "185 Al - MX"
+            }
+          ],
+          "fromPoleId": "P8",
+          "lengthMeters": 43
+        },
+        {
+          "id": "E8",
+          "toPoleId": "P10",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C1776177676103216",
+              "quantity": 1,
+              "conductorName": "185 Al - MX"
+            }
+          ],
+          "fromPoleId": "P9",
+          "lengthMeters": 29
+        },
+        {
+          "id": "E9",
+          "toPoleId": "P13",
+          "verified": false,
+          "conductors": [
+            {
+              "id": "C1776177692312604",
+              "quantity": 1,
+              "conductorName": "70 Al - MX"
+            }
+          ],
+          "fromPoleId": "P10",
+          "lengthMeters": 13
+        },
+        {
+          "id": "E10",
+          "toPoleId": "P14",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C1776177702020822",
+              "quantity": 1,
+              "conductorName": "70 Al - MX"
+            }
+          ],
+          "fromPoleId": "P13",
+          "lengthMeters": 43
+        },
+        {
+          "id": "E11",
+          "toPoleId": "P15",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C1776177712486812",
+              "quantity": 1,
+              "conductorName": "70 Al - MX"
+            }
+          ],
+          "fromPoleId": "P14",
+          "lengthMeters": 29
+        },
+        {
+          "id": "E12",
+          "toPoleId": "P16",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C177617772167795",
+              "quantity": 1,
+              "conductorName": "70 Al - MX"
+            }
+          ],
+          "fromPoleId": "P15",
+          "lengthMeters": 44
+        },
+        {
+          "id": "E13",
+          "toPoleId": "P11",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C1776177733350786",
+              "quantity": 1,
+              "conductorName": "70 Al - MX"
+            }
+          ],
+          "fromPoleId": "P10",
+          "lengthMeters": 5
+        },
+        {
+          "id": "E14",
+          "toPoleId": "P12",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C1776177746799205",
+              "quantity": 1,
+              "conductorName": "70 Al - MX"
+            }
+          ],
+          "fromPoleId": "P11",
+          "lengthMeters": 38
+        },
+        {
+          "id": "E15",
+          "toPoleId": "P17",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C1776177760000730",
+              "quantity": 1,
+              "conductorName": "70 Al - MX"
+            }
+          ],
+          "fromPoleId": "P10",
+          "lengthMeters": 39
+        },
+        {
+          "id": "E16",
+          "toPoleId": "P18",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C1776177789598715",
+              "quantity": 1,
+              "conductorName": "70 Al - MX"
+            }
+          ],
+          "fromPoleId": "P17",
+          "lengthMeters": 36
+        },
+        {
+          "id": "E17",
+          "toPoleId": "P19",
+          "verified": true,
+          "conductors": [
+            {
+              "id": "C1776177810589429",
+              "quantity": 1,
+              "conductorName": "70 Al - MX"
+            }
+          ],
+          "fromPoleId": "P18",
+          "lengthMeters": 36
+        }
+      ],
+      "poles": [
+        {
+          "id": "P1",
+          "lat": -22.80465936609007,
+          "lng": -43.64641855442982,
+          "title": "1",
+          "ramais": [
+            {
+              "id": "RP1776177878806660",
+              "quantity": 4,
+              "ramalType": "13 DX 6 AWG"
+            },
+            {
+              "id": "RP177617787923791",
+              "quantity": 2,
+              "ramalType": "13 QX 6 AWG"
+            }
+          ],
+          "verified": true
+        },
+        {
+          "id": "P2",
+          "lat": -22.80495557378012,
+          "lng": -43.64620130441835,
+          "title": "2",
+          "ramais": [
+            {
+              "id": "RP1776177896815408",
+              "quantity": 1,
+              "ramalType": "13 DX 6 AWG"
+            }
+          ],
+          "verified": true
+        },
+        {
+          "id": "P3",
+          "lat": -22.80526064677286,
+          "lng": -43.64596448180315,
+          "title": "3",
+          "ramais": [
+            {
+              "id": "RP177617809031463",
+              "quantity": 2,
+              "ramalType": "13 DX 6 AWG"
+            },
+            {
+              "id": "RP1776178091395782",
+              "quantity": 1,
+              "ramalType": "13 QX 6 AWG"
+            }
+          ],
+          "verified": true
+        },
+        {
+          "id": "P4",
+          "lat": -22.80555660546307,
+          "lng": -43.64571800615665,
+          "title": "4",
+          "ramais": [],
+          "verified": true
+        },
+        {
+          "id": "P5",
+          "lat": -22.8055377156079,
+          "lng": -43.64562077249408,
+          "title": "A",
+          "ramais": [],
+          "verified": true
+        },
+        {
+          "id": "P6",
+          "lat": -22.80578105958293,
+          "lng": -43.64555991479217,
+          "title": "5",
+          "ramais": [],
+          "verified": true
+        },
+        {
+          "id": "P7",
+          "lat": -22.80567483772048,
+          "lng": -43.64581425802353,
+          "title": "6",
+          "ramais": [
+            {
+              "id": "RP1776178159270716",
+              "quantity": 2,
+              "ramalType": "13 DX 6 AWG"
+            },
+            {
+              "id": "RP1776178159544684",
+              "quantity": 3,
+              "ramalType": "13 QX 6 AWG"
+            }
+          ],
+          "verified": true
+        },
+        {
+          "id": "P8",
+          "lat": -22.80590326377974,
+          "lng": -43.64612374645009,
+          "title": "7",
+          "ramais": [
+            {
+              "id": "RP1776178182407363",
+              "quantity": 4,
+              "ramalType": "13 DX 6 AWG"
+            },
+            {
+              "id": "RP1776178182611842",
+              "quantity": 1,
+              "ramalType": "13 QX 6 AWG"
+            }
+          ],
+          "verified": true
+        },
+        {
+          "id": "P9",
+          "lat": -22.80613193742193,
+          "lng": -43.64646245971379,
+          "title": "8",
+          "ramais": [
+            {
+              "id": "RP1776178198695948",
+              "quantity": 4,
+              "ramalType": "13 DX 6 AWG"
+            },
+            {
+              "id": "RP1776178198968611",
+              "quantity": 2,
+              "ramalType": "21 QX 4 AWG"
+            }
+          ],
+          "verified": true
+        },
+        {
+          "id": "P10",
+          "lat": -22.80627842051946,
+          "lng": -43.64669482284693,
+          "title": "9",
+          "ramais": [],
+          "verified": true
+        },
+        {
+          "id": "P11",
+          "lat": -22.80623334754121,
+          "lng": -43.64670501012743,
+          "title": "10",
+          "ramais": [
+            {
+              "id": "RP1776178233123442",
+              "quantity": 1,
+              "ramalType": "13 QX 6 AWG"
+            }
+          ],
+          "verified": false
+        },
+        {
+          "id": "P12",
+          "lat": -22.80594608770822,
+          "lng": -43.64691243083181,
+          "title": "11",
+          "ramais": [],
+          "verified": true
+        },
+        {
+          "id": "P13",
+          "lat": -22.80634072873957,
+          "lng": -43.64658704435546,
+          "title": "12",
+          "ramais": [],
+          "verified": true
+        },
+        {
+          "id": "P14",
+          "lat": -22.80665483331351,
+          "lng": -43.646350130773,
+          "title": "13",
+          "ramais": [
+            {
+              "id": "RP1776178253288897",
+              "quantity": 1,
+              "ramalType": "13 DX 6 AWG"
+            },
+            {
+              "id": "RP1776178253492622",
+              "quantity": 2,
+              "ramalType": "13 QX 6 AWG"
+            }
+          ],
+          "verified": true
+        },
+        {
+          "id": "P15",
+          "lat": -22.80687017415453,
+          "lng": -43.64618238696232,
+          "title": "14",
+          "ramais": [
+            {
+              "id": "RP1776178268820793",
+              "quantity": 4,
+              "ramalType": "13 DX 6 AWG"
+            }
+          ],
+          "verified": false
+        },
+        {
+          "id": "P16",
+          "lat": -22.80718411252083,
+          "lng": -43.64592598882786,
+          "title": "15",
+          "ramais": [
+            {
+              "id": "RP177617829014565",
+              "quantity": 2,
+              "ramalType": "13 DX 6 AWG"
+            }
+          ],
+          "verified": true
+        },
+        {
+          "id": "P17",
+          "lat": -22.8064887827161,
+          "lng": -43.64700449250981,
+          "title": "16",
+          "ramais": [
+            {
+              "id": "RP1776178301713397",
+              "quantity": 1,
+              "ramalType": "13 QX 6 AWG"
+            }
+          ],
+          "verified": true
+        },
+        {
+          "id": "P18",
+          "lat": -22.80668986522423,
+          "lng": -43.64728502838034,
+          "title": "17",
+          "ramais": [
+            {
+              "id": "RP1776178310843288",
+              "quantity": 2,
+              "ramalType": "13 DX 6 AWG"
+            }
+          ],
+          "verified": false
+        },
+        {
+          "id": "P19",
+          "lat": -22.80689094727333,
+          "lng": -43.64756556508571,
+          "title": "18",
+          "ramais": [],
+          "verified": false
+        }
+      ],
+      "transformers": [
+        {
+          "id": "TR1",
+          "lat": -22.80495557378012,
+          "lng": -43.64620130441835,
+          "title": "RET - ZNA31232",
+          "poleId": "P2",
+          "demandKw": 86,
+          "verified": false,
+          "projectPowerKva": 75
+        },
+        {
+          "id": "TR2",
+          "lat": -22.80613193742193,
+          "lng": -43.64646245971379,
+          "title": "PROJ ZNA31232",
+          "poleId": "P9",
+          "demandKw": 63.95,
+          "verified": false,
+          "projectPowerKva": 112.5
+        }
+      ]
+    },
+    "totalEdges": 17,
+    "totalPoles": 19,
+    "cqtSnapshot": {
+      "db": {
+        "k8QtTr": 0,
+        "k10QtMttr": 0,
+        "k6TrAtual": 187.5,
+        "k7DemAtual": 149.95
+      },
+      "dmdi": {
+        "dmdi": 3.8448717948717945,
+        "source": "aa24-div-sumx"
+      },
+      "parity": {
+        "diffs": [
+          {
+            "cell": "RAMAL!AA30",
+            "absDiff": 1.0048717948717947,
+            "lineage": [
+              "RAMAL!AA24",
+              "RAMAL!X18:X77",
+              "GERAL!I2",
+              "DB/lookup reference inputs"
+            ],
+            "actualState": "value",
+            "actualValue": 3.8448717948717945,
+            "expectedState": "value",
+            "expectedValue": 2.84,
+            "withinTolerance": false
+          },
+          {
+            "cell": "DB!K6",
+            "absDiff": 37.5,
+            "lineage": [
+              "DB!K6 direct input (TR_ATUAL)"
+            ],
+            "actualState": "value",
+            "actualValue": 187.5,
+            "expectedState": "value",
+            "expectedValue": 225,
+            "withinTolerance": false
+          },
+          {
+            "cell": "DB!K7",
+            "absDiff": 47.994,
+            "lineage": [
+              "DB!K7 direct input (DEM_ATUAL)"
+            ],
+            "actualState": "value",
+            "actualValue": 149.95,
+            "expectedState": "value",
+            "expectedValue": 101.95599999999999,
+            "withinTolerance": false
+          },
+          {
+            "cell": "DB!K8",
+            "absDiff": 0.015859822222222222,
+            "lineage": [
+              "DB!K7",
+              "DB!K6",
+              "TRAFOS_Z lookup"
+            ],
+            "actualState": "value",
+            "actualValue": 0,
+            "expectedState": "value",
+            "expectedValue": 0.015859822222222222,
+            "withinTolerance": false
+          },
+          {
+            "cell": "DB!K10",
+            "absDiff": 0.03415982222222222,
+            "lineage": [
+              "DB!K8",
+              "QT_MT base"
+            ],
+            "actualState": "value",
+            "actualValue": 0,
+            "expectedState": "value",
+            "expectedValue": 0.03415982222222222,
+            "withinTolerance": false
+          }
+        ],
+        "failed": 5,
+        "passed": 0,
+        "pending": [],
+        "skipped": [
+          "GERAL!P31",
+          "GERAL!P32"
+        ],
+        "compared": 5,
+        "scenario": "atual",
+        "referenceCells": 7,
+        "referenceStatus": "partial"
+      },
+      "branches": {
+        "items": [
+          {
+            "ib": 51.59783901812797,
+            "fase": "TRI",
+            "ponto": "P2",
+            "status": "VERIFICAR",
+            "izCable": 202,
+            "qtPonto": 1.7127633790750973,
+            "trechoId": "E1",
+            "inBreaker": 50,
+            "conductorName": "70 Al - MX",
+            "correctedResistance": 0.46225638405740577
+          },
+          {
+            "ib": 73.60079415889797,
+            "fase": "TRI",
+            "ponto": "P3",
+            "status": "VERIFICAR",
+            "izCable": 202,
+            "qtPonto": 2.56529700991957,
+            "trechoId": "E2",
+            "inBreaker": 63,
+            "conductorName": "70 Al - MX",
+            "correctedResistance": 0.46225638405740577
+          },
+          {
+            "ib": 73.60079415889797,
+            "fase": "TRI",
+            "ponto": "P4",
+            "status": "VERIFICAR",
+            "izCable": 202,
+            "qtPonto": 2.50421850968339,
+            "trechoId": "E3",
+            "inBreaker": 63,
+            "conductorName": "70 Al - MX",
+            "correctedResistance": 0.46225638405740577
+          },
+          {
+            "ib": 73.60079415889797,
+            "fase": "TRI",
+            "ponto": "P6",
+            "status": "VERIFICAR",
+            "izCable": 63,
+            "qtPonto": 2.1209086494232703,
+            "trechoId": "E4",
+            "inBreaker": 63,
+            "conductorName": "53 Al - QX",
+            "correctedResistance": 0.5388528429919663
+          },
+          {
+            "ib": 109.51470854155973,
+            "fase": "TRI",
+            "ponto": "P7",
+            "status": "VERIFICAR",
+            "izCable": 202,
+            "qtPonto": 1.4541134731953869,
+            "trechoId": "E5",
+            "inBreaker": 100,
+            "conductorName": "70 Al - MX",
+            "correctedResistance": 0.46225638405740577
+          },
+          {
+            "ib": 146.6105998532711,
+            "fase": "TRI",
+            "ponto": "P8",
+            "status": "VERIFICAR",
+            "izCable": 355,
+            "qtPonto": 2.1882166861086496,
+            "trechoId": "E6",
+            "inBreaker": 125,
+            "conductorName": "185 Al - MX",
+            "correctedResistance": 0.1740591035634744
+          },
+          {
+            "ib": 290.7208638950911,
+            "fase": "TRI",
+            "ponto": "P9",
+            "status": "VERIFICAR",
+            "izCable": 355,
+            "qtPonto": 4.550779091923517,
+            "trechoId": "E7",
+            "inBreaker": 250,
+            "conductorName": "185 Al - MX",
+            "correctedResistance": 0.1740591035634744
+          },
+          {
+            "ib": 290.7208638950911,
+            "fase": "TRI",
+            "ponto": "P10",
+            "status": "VERIFICAR",
+            "izCable": 355,
+            "qtPonto": 3.069130085250744,
+            "trechoId": "E8",
+            "inBreaker": 250,
+            "conductorName": "185 Al - MX",
+            "correctedResistance": 0.1740591035634744
+          },
+          {
+            "ib": 95.60374929966795,
+            "fase": "TRI",
+            "ponto": "P13",
+            "status": "VERIFICAR",
+            "izCable": 202,
+            "qtPonto": 1.0313929079412796,
+            "trechoId": "E9",
+            "inBreaker": 80,
+            "conductorName": "70 Al - MX",
+            "correctedResistance": 0.46225638405740577
+          },
+          {
+            "ib": 66.64531453795207,
+            "fase": "TRI",
+            "ponto": "P14",
+            "status": "VERIFICAR",
+            "izCable": 202,
+            "qtPonto": 2.3781757244523347,
+            "trechoId": "E10",
+            "inBreaker": 63,
+            "conductorName": "70 Al - MX",
+            "correctedResistance": 0.46225638405740577
+          },
+          {
+            "ib": 66.64531453795207,
+            "fase": "TRI",
+            "ponto": "P15",
+            "status": "VERIFICAR",
+            "izCable": 202,
+            "qtPonto": 1.603885953700412,
+            "trechoId": "E11",
+            "inBreaker": 63,
+            "conductorName": "70 Al - MX",
+            "correctedResistance": 0.46225638405740577
+          },
+          {
+            "ib": 45.18788721058961,
+            "fase": "TRI",
+            "ponto": "P16",
+            "status": "VERIFICAR",
+            "izCable": 202,
+            "qtPonto": 1.6499872058860896,
+            "trechoId": "E12",
+            "inBreaker": 40,
+            "conductorName": "70 Al - MX",
+            "correctedResistance": 0.46225638405740577
+          },
+          {
+            "ib": 95.60374929966795,
+            "fase": "TRI",
+            "ponto": "P11",
+            "status": "VERIFICAR",
+            "izCable": 202,
+            "qtPonto": 0.3966895799774153,
+            "trechoId": "E13",
+            "inBreaker": 80,
+            "conductorName": "70 Al - MX",
+            "correctedResistance": 0.46225638405740577
+          },
+          {
+            "ib": 6.955479620945885,
+            "fase": "TRI",
+            "ponto": "P12",
+            "status": "VERIFICAR",
+            "izCable": 202,
+            "qtPonto": 0.21933934550534398,
+            "trechoId": "E14",
+            "inBreaker": 6,
+            "conductorName": "70 Al - MX",
+            "correctedResistance": 0.46225638405740577
+          },
+          {
+            "ib": 95.60374929966795,
+            "fase": "TRI",
+            "ponto": "P17",
+            "status": "VERIFICAR",
+            "izCable": 202,
+            "qtPonto": 3.094178723823839,
+            "trechoId": "E15",
+            "inBreaker": 80,
+            "conductorName": "70 Al - MX",
+            "correctedResistance": 0.46225638405740577
+          },
+          {
+            "ib": 22.00295514076999,
+            "fase": "TRI",
+            "ponto": "P18",
+            "status": "VERIFICAR",
+            "izCable": 202,
+            "qtPonto": 0.6573389673349009,
+            "trechoId": "E16",
+            "inBreaker": 20,
+            "conductorName": "70 Al - MX",
+            "correctedResistance": 0.46225638405740577
+          },
+          {
+            "ib": 15.047475519824104,
+            "fase": "TRI",
+            "ponto": "P19",
+            "status": "VERIFICAR",
+            "izCable": 202,
+            "qtPonto": 0.44954379790878557,
+            "trechoId": "E17",
+            "inBreaker": 10,
+            "conductorName": "70 Al - MX",
+            "correctedResistance": 0.46225638405740577
+          }
+        ],
+        "okCount": 0,
+        "verificarCount": 17
+      },
+      "scenario": "atual",
+      "generatedAt": "2026-04-14T18:20:57.428Z"
+    },
+    "projectType": "ramais",
+    "criticalPole": {
+      "poleId": "P9",
+      "voltageV": 122.15,
+      "cqtStatus": "OK",
+      "localClients": 6,
+      "dvAccumPercent": 3.82,
+      "worstRamalStatus": "OK",
+      "accumulatedClients": 39,
+      "worstRamalVoltageV": 120.92,
+      "worstRamalDvPercent": 4.79,
+      "accumulatedDemandKva": 63.95,
+      "localTrechoDemandKva": 10.67
+    },
+    "verifiedEdges": 15,
+    "verifiedPoles": 15,
+    "accumulatedByPole": [
+      {
+        "poleId": "P9",
+        "voltageV": 122.15,
+        "cqtStatus": "OK",
+        "localClients": 6,
+        "dvAccumPercent": 3.82,
+        "worstRamalStatus": "OK",
+        "accumulatedClients": 39,
+        "worstRamalVoltageV": 120.92,
+        "worstRamalDvPercent": 4.79,
+        "accumulatedDemandKva": 63.95,
+        "localTrechoDemandKva": 10.67
+      },
+      {
+        "poleId": "P8",
+        "voltageV": 121.41,
+        "cqtStatus": "OK",
+        "localClients": 5,
+        "dvAccumPercent": 4.4,
+        "worstRamalStatus": "ATENÇÃO",
+        "accumulatedClients": 20,
+        "worstRamalVoltageV": 120.28,
+        "worstRamalDvPercent": 5.29,
+        "accumulatedDemandKva": 32.25,
+        "localTrechoDemandKva": 8.16
+      },
+      {
+        "poleId": "P7",
+        "voltageV": 120.87,
+        "cqtStatus": "OK",
+        "localClients": 5,
+        "dvAccumPercent": 4.82,
+        "worstRamalStatus": "ATENÇÃO",
+        "accumulatedClients": 15,
+        "worstRamalVoltageV": 120.06,
+        "worstRamalDvPercent": 5.47,
+        "accumulatedDemandKva": 24.09,
+        "localTrechoDemandKva": 7.9
+      },
+      {
+        "poleId": "P10",
+        "voltageV": 121.77,
+        "cqtStatus": "OK",
+        "localClients": 0,
+        "dvAccumPercent": 4.11,
+        "accumulatedClients": 13,
+        "accumulatedDemandKva": 21.03,
+        "localTrechoDemandKva": 0
+      },
+      {
+        "poleId": "P3",
+        "voltageV": 118.71,
+        "cqtStatus": "ATENÇÃO",
+        "localClients": 3,
+        "dvAccumPercent": 6.53,
+        "worstRamalStatus": "ATENÇÃO",
+        "accumulatedClients": 10,
+        "worstRamalVoltageV": 118.16,
+        "worstRamalDvPercent": 6.96,
+        "accumulatedDemandKva": 16.19,
+        "localTrechoDemandKva": 4.84
+      },
+      {
+        "poleId": "P4",
+        "voltageV": 117.84,
+        "cqtStatus": "ATENÇÃO",
+        "localClients": 0,
+        "dvAccumPercent": 7.21,
+        "accumulatedClients": 10,
+        "accumulatedDemandKva": 16.19,
+        "localTrechoDemandKva": 0
+      },
+      {
+        "poleId": "P13",
+        "voltageV": 121.53,
+        "cqtStatus": "OK",
+        "localClients": 0,
+        "dvAccumPercent": 4.31,
+        "accumulatedClients": 9,
+        "accumulatedDemandKva": 14.66,
+        "localTrechoDemandKva": 0
+      },
+      {
+        "poleId": "P14",
+        "voltageV": 120.78,
+        "cqtStatus": "OK",
+        "localClients": 3,
+        "dvAccumPercent": 4.89,
+        "worstRamalStatus": "ATENÇÃO",
+        "accumulatedClients": 9,
+        "worstRamalVoltageV": 120.24,
+        "worstRamalDvPercent": 5.32,
+        "accumulatedDemandKva": 14.66,
+        "localTrechoDemandKva": 4.72
+      },
+      {
+        "poleId": "P2",
+        "voltageV": 119.58,
+        "cqtStatus": "ATENÇÃO",
+        "localClients": 1,
+        "dvAccumPercent": 5.84,
+        "worstRamalStatus": "ATENÇÃO",
+        "accumulatedClients": 7,
+        "worstRamalVoltageV": 119.29,
+        "worstRamalDvPercent": 6.07,
+        "accumulatedDemandKva": 11.35,
+        "localTrechoDemandKva": 1.66
+      },
+      {
+        "poleId": "P15",
+        "voltageV": 120.42,
+        "cqtStatus": "ATENÇÃO",
+        "localClients": 4,
+        "dvAccumPercent": 5.18,
+        "worstRamalStatus": "ATENÇÃO",
+        "accumulatedClients": 6,
+        "worstRamalVoltageV": 119.27,
+        "worstRamalDvPercent": 6.09,
+        "accumulatedDemandKva": 9.94,
+        "localTrechoDemandKva": 6.63
+      },
+      {
+        "poleId": "P1",
+        "voltageV": 119.09,
+        "cqtStatus": "ATENÇÃO",
+        "localClients": 6,
+        "dvAccumPercent": 6.23,
+        "worstRamalStatus": "ATENÇÃO",
+        "accumulatedClients": 6,
+        "worstRamalVoltageV": 117.97,
+        "worstRamalDvPercent": 7.11,
+        "accumulatedDemandKva": 9.69,
+        "localTrechoDemandKva": 9.69
+      },
+      {
+        "poleId": "P17",
+        "voltageV": 121.54,
+        "cqtStatus": "OK",
+        "localClients": 1,
+        "dvAccumPercent": 4.3,
+        "worstRamalStatus": "OK",
+        "accumulatedClients": 3,
+        "worstRamalVoltageV": 121.27,
+        "worstRamalDvPercent": 4.51,
+        "accumulatedDemandKva": 4.84,
+        "localTrechoDemandKva": 1.53
+      },
+      {
+        "poleId": "P16",
+        "voltageV": 120.23,
+        "cqtStatus": "ATENÇÃO",
+        "localClients": 2,
+        "dvAccumPercent": 5.33,
+        "worstRamalStatus": "ATENÇÃO",
+        "accumulatedClients": 2,
+        "worstRamalVoltageV": 119.66,
+        "worstRamalDvPercent": 5.78,
+        "accumulatedDemandKva": 3.31,
+        "localTrechoDemandKva": 3.31
+      },
+      {
+        "poleId": "P18",
+        "voltageV": 121.38,
+        "cqtStatus": "OK",
+        "localClients": 2,
+        "dvAccumPercent": 4.43,
+        "worstRamalStatus": "OK",
+        "accumulatedClients": 2,
+        "worstRamalVoltageV": 120.81,
+        "worstRamalDvPercent": 4.87,
+        "accumulatedDemandKva": 3.31,
+        "localTrechoDemandKva": 3.31
+      },
+      {
+        "poleId": "P11",
+        "voltageV": 121.77,
+        "cqtStatus": "OK",
+        "localClients": 1,
+        "dvAccumPercent": 4.12,
+        "worstRamalStatus": "OK",
+        "accumulatedClients": 1,
+        "worstRamalVoltageV": 121.5,
+        "worstRamalDvPercent": 4.33,
+        "accumulatedDemandKva": 1.53,
+        "localTrechoDemandKva": 1.53
+      },
+      {
+        "poleId": "P5",
+        "localClients": 0,
+        "accumulatedClients": 0,
+        "accumulatedDemandKva": 0,
+        "localTrechoDemandKva": 0
+      },
+      {
+        "poleId": "P6",
+        "voltageV": 117.84,
+        "cqtStatus": "ATENÇÃO",
+        "localClients": 0,
+        "dvAccumPercent": 7.21,
+        "accumulatedClients": 0,
+        "accumulatedDemandKva": 0,
+        "localTrechoDemandKva": 0
+      },
+      {
+        "poleId": "P12",
+        "voltageV": 121.77,
+        "cqtStatus": "OK",
+        "localClients": 0,
+        "dvAccumPercent": 4.12,
+        "accumulatedClients": 0,
+        "accumulatedDemandKva": 0,
+        "localTrechoDemandKva": 0
+      },
+      {
+        "poleId": "P19",
+        "voltageV": 121.38,
+        "cqtStatus": "OK",
+        "localClients": 0,
+        "dvAccumPercent": 4.43,
+        "accumulatedClients": 0,
+        "accumulatedDemandKva": 0,
+        "localTrechoDemandKva": 0
+      }
+    ],
+    "btNetworkScenario": "asis",
+    "clandestinoAreaM2": 0,
+    "totalTransformers": 2,
+    "cqtComputationInputs": {
+      "db": {
+        "qtMt": 0,
+        "trAtual": 187.5,
+        "demAtual": 149.95
+      },
+      "dmdi": {
+        "sumClientsX": 39,
+        "aa24DemandBase": 149.95,
+        "ab35LookupDmdi": 0,
+        "clandestinoEnabled": false
+      },
+      "branches": [
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P2",
+          "trechoId": "E1",
+          "acumuladaKva": 11.35,
+          "lengthMeters": 40,
+          "temperatureC": 30,
+          "conductorName": "70 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P3",
+          "trechoId": "E2",
+          "acumuladaKva": 16.19,
+          "lengthMeters": 42,
+          "temperatureC": 30,
+          "conductorName": "70 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P4",
+          "trechoId": "E3",
+          "acumuladaKva": 16.19,
+          "lengthMeters": 41,
+          "temperatureC": 30,
+          "conductorName": "70 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P6",
+          "trechoId": "E4",
+          "acumuladaKva": 16.19,
+          "lengthMeters": 30,
+          "temperatureC": 30,
+          "conductorName": "53 Al - QX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P7",
+          "trechoId": "E5",
+          "acumuladaKva": 24.09,
+          "lengthMeters": 16,
+          "temperatureC": 30,
+          "conductorName": "70 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P8",
+          "trechoId": "E6",
+          "acumuladaKva": 32.25,
+          "lengthMeters": 41,
+          "temperatureC": 30,
+          "conductorName": "185 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P9",
+          "trechoId": "E7",
+          "acumuladaKva": 63.95,
+          "lengthMeters": 43,
+          "temperatureC": 30,
+          "conductorName": "185 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P10",
+          "trechoId": "E8",
+          "acumuladaKva": 63.95,
+          "lengthMeters": 29,
+          "temperatureC": 30,
+          "conductorName": "185 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P13",
+          "trechoId": "E9",
+          "acumuladaKva": 21.03,
+          "lengthMeters": 13,
+          "temperatureC": 30,
+          "conductorName": "70 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P14",
+          "trechoId": "E10",
+          "acumuladaKva": 14.66,
+          "lengthMeters": 43,
+          "temperatureC": 30,
+          "conductorName": "70 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P15",
+          "trechoId": "E11",
+          "acumuladaKva": 14.66,
+          "lengthMeters": 29,
+          "temperatureC": 30,
+          "conductorName": "70 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P16",
+          "trechoId": "E12",
+          "acumuladaKva": 9.94,
+          "lengthMeters": 44,
+          "temperatureC": 30,
+          "conductorName": "70 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P11",
+          "trechoId": "E13",
+          "acumuladaKva": 21.03,
+          "lengthMeters": 5,
+          "temperatureC": 30,
+          "conductorName": "70 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P12",
+          "trechoId": "E14",
+          "acumuladaKva": 1.53,
+          "lengthMeters": 38,
+          "temperatureC": 30,
+          "conductorName": "70 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P17",
+          "trechoId": "E15",
+          "acumuladaKva": 21.03,
+          "lengthMeters": 39,
+          "temperatureC": 30,
+          "conductorName": "70 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P18",
+          "trechoId": "E16",
+          "acumuladaKva": 4.84,
+          "lengthMeters": 36,
+          "temperatureC": 30,
+          "conductorName": "70 Al - MX",
+          "tensaoTrifasicaV": 127
+        },
+        {
+          "eta": 1,
+          "fase": "TRI",
+          "ponto": "P19",
+          "trechoId": "E17",
+          "acumuladaKva": 3.31,
+          "lengthMeters": 36,
+          "temperatureC": 30,
+          "conductorName": "70 Al - MX",
+          "tensaoTrifasicaV": 127
+        }
+      ],
+      "scenario": "atual"
+    },
+    "verifiedTransformers": 0
+  }
+}

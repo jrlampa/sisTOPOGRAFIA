@@ -58,6 +58,17 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - **Próximo ciclo**
   - Auditoria DB: índices, migrações pendentes, análise de N+1 queries nas rotas de análise topológica.
 
+### Atualização Operacional (2026-04-23) — Estabilização de Infraestrutura e DXF
+- **Padronização de API**: Criado `src/services/apiClient.ts` para centralizar injeção de `x-user-id` e normalização de headers. Refatorados 5 serviços frontend para eliminar colisões de *rate limit*.
+- **Correção de Persistência (SQL)**:
+  - Resolvido erro `ON CONFLICT` em `cloudTasksService.ts` e `dxfTaskRepository.ts` através do alinhamento exato com o índice `uq_dxf_tasks_idempotency_key`.
+  - Corrigido mismatch de status (`pending` vs `queued`) no `jobRepository.ts` para conformidade com `chk_jobs_status`.
+  - Unificada lógica de persistência em `jobStatusService.ts` utilizando `ON CONFLICT ON CONSTRAINT`.
+- **Validação de Engenharia**:
+  - Executado script de teste `scratch/test_dxf_coords.ts` com coordenadas reais (-22.758878, -42.881869) em raio de 2000m.
+  - Resultado: Geração de DXF concluída com sucesso em ~30s; Idempotência validada; AI Analysis integrada.
+- **Commit**: `db3e2a1` (Stabilize DXF persistence & API Headers).
+
 ### Atualização Operacional (2026-04-23) - Auditoria Corretiva Frontend (Mini-F1 a F4)
 
 - **Escopo entregue**

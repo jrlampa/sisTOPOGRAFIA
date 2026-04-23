@@ -1,0 +1,31 @@
+Schema for 'jobs' table:
+  id                        text                      Nullable: NO
+  status                    text                      Nullable: NO
+  attempts                  integer                   Nullable: NO
+  created_at                timestamp with time zone  Nullable: NO
+  updated_at                timestamp with time zone  Nullable: NO
+  error                     text                      Nullable: YES
+  progress                  integer                   Nullable: NO
+  result                    jsonb                     Nullable: YES
+  deleted_at                timestamp with time zone  Nullable: YES
+  idempotency_key           text                      Nullable: YES
+  artifact_sha256           text                      Nullable: YES
+  tenant_id                 uuid                      Nullable: YES
+
+Constraints for 'jobs' table:
+  chk_jobs_status           Type: c
+  jobs_pkey                 Type: p
+  jobs_tenant_id_fkey       Type: f
+
+Indexes for 'jobs' table:
+  jobs_pkey                 CREATE UNIQUE INDEX jobs_pkey ON public.jobs USING btree (id)
+  idx_jobs_status           CREATE INDEX idx_jobs_status ON public.jobs USING btree (status)
+  idx_jobs_created_at       CREATE INDEX idx_jobs_created_at ON public.jobs USING btree (created_at DESC)
+  idx_jobs_status_active    CREATE INDEX idx_jobs_status_active ON public.jobs USING btree (status, created_at DESC) WHERE (deleted_at IS NULL)
+  idx_jobs_created_active   CREATE INDEX idx_jobs_created_active ON public.jobs USING btree (created_at DESC) WHERE (deleted_at IS NULL)
+  idx_jobs_status_created_active CREATE INDEX idx_jobs_status_created_active ON public.jobs USING btree (status, created_at DESC) WHERE (deleted_at IS NULL)
+  idx_jobs_updated_at       CREATE INDEX idx_jobs_updated_at ON public.jobs USING btree (updated_at DESC) WHERE (deleted_at IS NULL)
+  idx_brin_jobs_created_at  CREATE INDEX idx_brin_jobs_created_at ON public.jobs USING brin (created_at) WITH (pages_per_range='32')
+  idx_jobs_status_attempts  CREATE INDEX idx_jobs_status_attempts ON public.jobs USING btree (status, attempts) WHERE (deleted_at IS NULL)
+  uq_jobs_idempotency_key   CREATE UNIQUE INDEX uq_jobs_idempotency_key ON public.jobs USING btree (idempotency_key) WHERE ((idempotency_key IS NOT NULL) AND (status <> 'failed'::text))
+  idx_jobs_tenant_id        CREATE INDEX idx_jobs_tenant_id ON public.jobs USING btree (tenant_id)

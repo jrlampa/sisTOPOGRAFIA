@@ -68,7 +68,7 @@ export class PostgresDxfTaskRepository implements IDxfTaskRepository {
       const result = await sql.unsafe(
         `INSERT INTO dxf_tasks (task_id, status, payload, idempotency_key)
          VALUES ($1, 'queued', $2::jsonb, $3)
-         ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING
+         ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL AND status NOT IN ('failed', 'cancelled') DO NOTHING
          RETURNING task_id`,
         [taskId, JSON.stringify(payload), idempotencyKey ?? null],
       );

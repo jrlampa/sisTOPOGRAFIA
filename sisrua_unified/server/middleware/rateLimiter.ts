@@ -4,6 +4,28 @@ import { logger } from "../utils/logger.js";
 import { config } from "../config.js";
 import { constantsService } from "../services/constantsService.js";
 
+const LOOPBACK_IPS = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
+
+const isLoopbackIp = (ip: string | undefined): boolean => {
+  if (!ip) {
+    return false;
+  }
+
+  return LOOPBACK_IPS.has(ip);
+};
+
+export const shouldSkipGeneralRateLimit = (req: Request): boolean => {
+  if (req.path === "/health") {
+    return true;
+  }
+
+  if (req.method === "GET" && req.path.startsWith("/api/jobs/")) {
+    return true;
+  }
+
+  return config.NODE_ENV !== "production" && isLoopbackIp(req.ip);
+};
+
 /**
  * Custom key generator that prioritizes User ID over IP address.
  * 1. Checks for 'x-user-id' header (set by frontend).
@@ -115,7 +137,7 @@ const createGeneralRateLimiter = (windowMs: number) =>
     limit: () => getGeneralLimit(),
     standardHeaders: "draft-7",
     legacyHeaders: false,
-    skip: (req) => req.method === "GET" && req.path.startsWith("/api/jobs/"),
+    skip: shouldSkipGeneralRateLimit,
     keyGenerator,
     message: { error: "Too many requests, please try again later." },
     handler: (req, res, _next, options) => {

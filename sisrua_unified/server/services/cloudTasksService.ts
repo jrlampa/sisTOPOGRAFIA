@@ -508,7 +508,7 @@ export async function createDxfTask(
     await sqlClient.unsafe(
       `INSERT INTO dxf_tasks (task_id, status, payload, attempts, idempotency_key, updated_at)
        VALUES ($1, 'queued', $2::jsonb, 0, $3, now())
-       ON CONFLICT (idempotency_key) WHERE status NOT IN ('failed', 'cancelled') DO NOTHING`,
+       ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL AND status NOT IN ('failed', 'cancelled') DO NOTHING`,
       [taskId, JSON.stringify(fullPayload), payload.cacheKey],
     );
 

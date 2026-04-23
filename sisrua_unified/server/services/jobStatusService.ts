@@ -180,7 +180,7 @@ async function persistJob(job: JobInfo): Promise<void> {
       `
             insert into ${JOBS_TABLE} (id, status, progress, result, error, created_at, updated_at, attempts, idempotency_key)
             values ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9)
-            on conflict (id)
+            on conflict on constraint jobs_pkey
             do update set
                 status = excluded.status,
                 progress = excluded.progress,

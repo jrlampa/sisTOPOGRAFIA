@@ -1,6 +1,7 @@
 import { OverpassResponse, OsmElement } from "../types";
 import Logger from "../utils/logger";
 import { API_BASE_URL } from "../config/api";
+import { buildApiHeaders } from "./apiClient";
 
 type OverpassResponseWithStats = OverpassResponse & {
   _stats?: OsmStats;
@@ -30,9 +31,7 @@ export const fetchOsmData = async (
     );
     const response = await fetch(`${API_BASE_URL}/osm`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: buildApiHeaders(),
       body: JSON.stringify({ lat, lng, radius }),
     });
 

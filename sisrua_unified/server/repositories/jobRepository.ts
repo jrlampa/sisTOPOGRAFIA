@@ -9,7 +9,7 @@ import { logger } from "../utils/logger.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type JobStatus = "pending" | "processing" | "completed" | "failed";
+export type JobStatus = "queued" | "processing" | "completed" | "failed";
 
 export interface JobRow {
   id: string;
@@ -51,7 +51,7 @@ export class PostgresJobRepository implements IJobRepository {
       await sql.unsafe(
         `INSERT INTO jobs (id, status, progress, updated_at)
          VALUES ($1, $2, $3, NOW())
-         ON CONFLICT (id) DO UPDATE
+         ON CONFLICT ON CONSTRAINT jobs_pkey DO UPDATE
            SET status = EXCLUDED.status,
                progress = EXCLUDED.progress,
                updated_at = NOW()`,
