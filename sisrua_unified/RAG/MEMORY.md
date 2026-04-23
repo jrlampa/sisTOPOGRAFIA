@@ -304,6 +304,25 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ---
 
+## ✅ Atualização Operacional (2026-04-22) - T2-26 Tradução da Aba Projeto e Catálogo Operacional
+
+- **Escopo entregue**
+  - O modal de configurações passou a ter cobertura visível de i18n também na aba Projeto e no bloco operacional de catálogo de constantes.
+  - A formatação de datas do catálogo operacional agora respeita explicitamente o locale ativo da aplicação.
+- **Implementação**
+  - `src/i18n/settingsModalText.ts` foi ampliado para cobrir ações de persistência do projeto, metadados, modos da topologia BT e textos auxiliares da aba Projeto.
+  - `src/components/settings/SettingsModalProjectTab.tsx` passou a consumir o catálogo por `settings.locale`.
+  - `src/components/ConstantsCatalogOps.tsx` passou a receber `locale`, traduzir rótulos operacionais e formatar datas com `toLocaleString(locale)`.
+  - `src/components/settings/SettingsModalGeneralTab.tsx` agora propaga o locale ativo para `ConstantsCatalogOps`.
+- **Qualidade**
+  - Testes focalizados: `tests/components/SettingsModalProjectTab.test.tsx` e `tests/components/ConstantsCatalogOps.test.tsx` com **4/4 testes passando**.
+  - `npm run typecheck:frontend` validado com sucesso.
+  - `npm run build` validado com sucesso.
+- **Próximo incremento natural**
+  - Avançar para outras superfícies ainda com cópia hardcoded no fluxo de configurações e exportação, preservando pt-BR como baseline oficial.
+
+---
+
 ## 📝 Commits Recentes
 
 - `ecf3743` - fix: Geração DXF assíncrona em modo desenvolvimento

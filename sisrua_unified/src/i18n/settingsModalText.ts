@@ -7,6 +7,43 @@ type SettingsModalText = {
   generalTabTitle: string;
   projectTabLabel: string;
   projectTabTitle: string;
+  saveProject: string;
+  loadProject: string;
+  loadProjectFile: string;
+  titleBlockTitle: string;
+  titleBlockDescription: string;
+  projectName: string;
+  projectNamePlaceholder: string;
+  companyName: string;
+  companyNamePlaceholder: string;
+  engineerName: string;
+  engineerNamePlaceholder: string;
+  projectDate: string;
+  projectDatePlaceholder: string;
+  btTopologyTitle: string;
+  projectType: string;
+  projectTypeBranch: string;
+  projectTypeGeneral: string;
+  projectTypeClandestine: string;
+  clandestineArea: string;
+  clandestineAreaTitle: string;
+  clandestineAreaHelp: string;
+  mapEditorMode: string;
+  editorModeNavigate: string;
+  editorModeAddPole: string;
+  editorModeAddEdge: string;
+  editorModeAddTransformer: string;
+  transformerCalculationTitle: string;
+  transformerCalculationAuto: string;
+  transformerCalculationManual: string;
+  transformerCalculationHelp: string;
+  qtPontoMethodTitle: string;
+  qtPontoMethodImpedance: string;
+  qtPontoMethodPowerFactor: string;
+  qtPontoMethodHelp: string;
+  qtPowerFactorTitle: string;
+  qtPowerFactorInputTitle: string;
+  qtPowerFactorHelp: string;
   interfaceMapTitle: string;
   canonicalStyleTitle: string;
   canonicalStyleDescription: string;
@@ -52,6 +89,47 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     generalTabTitle: "Abrir aba Geral e Exportação",
     projectTabLabel: "Projeto & Metadados",
     projectTabTitle: "Abrir aba Projeto e Metadados",
+    saveProject: "Salvar Projeto",
+    loadProject: "Carregar Projeto",
+    loadProjectFile: "Carregar arquivo de projeto",
+    titleBlockTitle: "Carimbo (Title Block)",
+    titleBlockDescription: "Dados automáticos para o arquivo CAD.",
+    projectName: "Nome do Projeto",
+    projectNamePlaceholder: "Nome do projeto",
+    companyName: "Empresa",
+    companyNamePlaceholder: "Nome da empresa",
+    engineerName: "Responsável",
+    engineerNamePlaceholder: "Nome do responsável",
+    projectDate: "Data",
+    projectDatePlaceholder: "DD/MM/AAAA",
+    btTopologyTitle: "Topologia Rede BT",
+    projectType: "Tipo de Projeto",
+    projectTypeBranch: "RAMAIS",
+    projectTypeGeneral: "GERAL",
+    projectTypeClandestine: "CLANDEST.",
+    clandestineArea: "Área de Clandestinos (m²)",
+    clandestineAreaTitle: "Área de clandestinos em metros quadrados",
+    clandestineAreaHelp: "Campo obrigatório para o fluxo de clandestinos.",
+    mapEditorMode: "Modo de Edição no Mapa",
+    editorModeNavigate: "Navegar",
+    editorModeAddPole: "Inserir Poste",
+    editorModeAddEdge: "Inserir Condutor",
+    editorModeAddTransformer: "Inserir Trafo",
+    transformerCalculationTitle: "Cálculo dos Transformadores",
+    transformerCalculationAuto: "Automático",
+    transformerCalculationManual: "Manual",
+    transformerCalculationHelp:
+      "Automático: recalcula demanda/corrente conforme topologia. Manual: preserva o que for informado no card.",
+    qtPontoMethodTitle: "Método do QT-PONTO",
+    qtPontoMethodImpedance: "Módulo |Z|",
+    qtPontoMethodPowerFactor: "R·cosφ + X·sinφ",
+    qtPontoMethodHelp:
+      "Padrão: módulo da impedância para manter o cálculo mais conservador e compatível com a planilha atual.",
+    qtPowerFactorTitle: "Fator de Potência do QT",
+    qtPowerFactorInputTitle:
+      "Fator de potência usado no QT-PONTO quando o método com fator de potência estiver ativo",
+    qtPowerFactorHelp:
+      "Usado apenas quando o método R·cosφ + X·sinφ estiver ativo. Valor inicial: 0,92.",
     interfaceMapTitle: "Interface e Mapa",
     canonicalStyleTitle: "Estilo visual canônico ativo",
     canonicalStyleDescription:
@@ -98,6 +176,47 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     generalTabTitle: "Open General and Export tab",
     projectTabLabel: "Project & Metadata",
     projectTabTitle: "Open Project and Metadata tab",
+    saveProject: "Save Project",
+    loadProject: "Load Project",
+    loadProjectFile: "Load project file",
+    titleBlockTitle: "Title Block",
+    titleBlockDescription: "Automatic data for the CAD file.",
+    projectName: "Project Name",
+    projectNamePlaceholder: "Project name",
+    companyName: "Company",
+    companyNamePlaceholder: "Company name",
+    engineerName: "Responsible Engineer",
+    engineerNamePlaceholder: "Responsible engineer name",
+    projectDate: "Date",
+    projectDatePlaceholder: "MM/DD/YYYY",
+    btTopologyTitle: "LV Network Topology",
+    projectType: "Project Type",
+    projectTypeBranch: "BRANCHES",
+    projectTypeGeneral: "GENERAL",
+    projectTypeClandestine: "UNREG.",
+    clandestineArea: "Unregistered Area (m²)",
+    clandestineAreaTitle: "Unregistered area in square meters",
+    clandestineAreaHelp: "Required field for the unregistered-area workflow.",
+    mapEditorMode: "Map Editing Mode",
+    editorModeNavigate: "Navigate",
+    editorModeAddPole: "Add Pole",
+    editorModeAddEdge: "Add Conductor",
+    editorModeAddTransformer: "Add Transformer",
+    transformerCalculationTitle: "Transformer Calculation",
+    transformerCalculationAuto: "Automatic",
+    transformerCalculationManual: "Manual",
+    transformerCalculationHelp:
+      "Automatic: recalculates demand/current from topology. Manual: preserves what is entered in the card.",
+    qtPontoMethodTitle: "QT-POINT Method",
+    qtPontoMethodImpedance: "|Z| Modulus",
+    qtPontoMethodPowerFactor: "R·cosφ + X·sinφ",
+    qtPontoMethodHelp:
+      "Default: impedance modulus to keep the calculation conservative and compatible with the current spreadsheet.",
+    qtPowerFactorTitle: "QT Power Factor",
+    qtPowerFactorInputTitle:
+      "Power factor used in QT-POINT when the power-factor method is active",
+    qtPowerFactorHelp:
+      "Used only when the R·cosφ + X·sinφ method is active. Initial value: 0.92.",
     interfaceMapTitle: "Interface & Map",
     canonicalStyleTitle: "Canonical visual style active",
     canonicalStyleDescription:
@@ -144,6 +263,47 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     generalTabTitle: "Abrir pestaña General y Exportación",
     projectTabLabel: "Proyecto y Metadatos",
     projectTabTitle: "Abrir pestaña Proyecto y Metadatos",
+    saveProject: "Guardar Proyecto",
+    loadProject: "Cargar Proyecto",
+    loadProjectFile: "Cargar archivo de proyecto",
+    titleBlockTitle: "Rótulo (Title Block)",
+    titleBlockDescription: "Datos automáticos para el archivo CAD.",
+    projectName: "Nombre del Proyecto",
+    projectNamePlaceholder: "Nombre del proyecto",
+    companyName: "Empresa",
+    companyNamePlaceholder: "Nombre de la empresa",
+    engineerName: "Responsable",
+    engineerNamePlaceholder: "Nombre del responsable",
+    projectDate: "Fecha",
+    projectDatePlaceholder: "DD/MM/AAAA",
+    btTopologyTitle: "Topología Red BT",
+    projectType: "Tipo de Proyecto",
+    projectTypeBranch: "RAMALES",
+    projectTypeGeneral: "GENERAL",
+    projectTypeClandestine: "CLANDEST.",
+    clandestineArea: "Área de Clandestinos (m²)",
+    clandestineAreaTitle: "Área de clandestinos en metros cuadrados",
+    clandestineAreaHelp: "Campo obligatorio para el flujo de clandestinos.",
+    mapEditorMode: "Modo de Edición en el Mapa",
+    editorModeNavigate: "Navegar",
+    editorModeAddPole: "Insertar Poste",
+    editorModeAddEdge: "Insertar Conductor",
+    editorModeAddTransformer: "Insertar Trafo",
+    transformerCalculationTitle: "Cálculo de los Transformadores",
+    transformerCalculationAuto: "Automático",
+    transformerCalculationManual: "Manual",
+    transformerCalculationHelp:
+      "Automático: recalcula demanda/corriente según la topología. Manual: conserva lo informado en la tarjeta.",
+    qtPontoMethodTitle: "Método del QT-PUNTO",
+    qtPontoMethodImpedance: "Módulo |Z|",
+    qtPontoMethodPowerFactor: "R·cosφ + X·sinφ",
+    qtPontoMethodHelp:
+      "Predeterminado: módulo de la impedancia para mantener el cálculo más conservador y compatible con la hoja actual.",
+    qtPowerFactorTitle: "Factor de Potencia del QT",
+    qtPowerFactorInputTitle:
+      "Factor de potencia usado en QT-PUNTO cuando el método con factor de potencia está activo",
+    qtPowerFactorHelp:
+      "Usado solo cuando el método R·cosφ + X·sinφ está activo. Valor inicial: 0,92.",
     interfaceMapTitle: "Interfaz y Mapa",
     canonicalStyleTitle: "Estilo visual canónico activo",
     canonicalStyleDescription:

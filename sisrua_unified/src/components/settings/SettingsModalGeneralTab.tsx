@@ -28,10 +28,7 @@ import {
   ProjectionType,
   SimplificationLevel,
 } from "../../types";
-import {
-  getAppLocaleLabel,
-  SUPPORTED_APP_LOCALES,
-} from "../../i18n/appLocale";
+import { getAppLocaleLabel, SUPPORTED_APP_LOCALES } from "../../i18n/appLocale";
 import { getSettingsModalText } from "../../i18n/settingsModalText";
 
 type SettingsModalGeneralTabProps = {
@@ -105,9 +102,7 @@ export function SettingsModalGeneralTab({
 
         <div className="rounded-lg border border-cyan-200 bg-cyan-50/80 p-3 text-xs text-cyan-800 dark:border-cyan-400/20 dark:bg-cyan-950/30 dark:text-cyan-100">
           <p className="font-semibold">{text.canonicalStyleTitle}</p>
-          <p className="mt-1 opacity-90">
-            {text.canonicalStyleDescription}
-          </p>
+          <p className="mt-1 opacity-90">{text.canonicalStyleDescription}</p>
         </div>
 
         <div className="flex items-center justify-between glass-panel p-3 rounded-lg">
@@ -117,7 +112,9 @@ export function SettingsModalGeneralTab({
             ) : (
               <Sun size={16} className="text-yellow-500" />
             )}
-            {settings.theme === "dark" ? text.themeLabelDark : text.themeLabelLight}
+            {settings.theme === "dark"
+              ? text.themeLabelDark
+              : text.themeLabelLight}
           </span>
           <button
             onClick={toggleTheme}
@@ -225,7 +222,7 @@ export function SettingsModalGeneralTab({
                     : "text-slate-500"
                 }
               >
-                  {text.layerDimensions}
+                {text.layerDimensions}
               </span>
               <div
                 className={`ml-auto w-2 h-2 rounded-full ${settings.layers.dimensions ? "bg-blue-500" : "bg-slate-700"}`}
@@ -341,7 +338,9 @@ export function SettingsModalGeneralTab({
               />
 
               <div className="mt-3">
-                <div className="text-xs text-slate-400 mb-2">{text.contourType}</div>
+                <div className="text-xs text-slate-400 mb-2">
+                  {text.contourType}
+                </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setContourRenderMode("spline")}
@@ -507,7 +506,7 @@ export function SettingsModalGeneralTab({
           </p>
         </div>
 
-        <ConstantsCatalogOps />
+        <ConstantsCatalogOps locale={settings.locale} />
       </div>
     </div>
   );

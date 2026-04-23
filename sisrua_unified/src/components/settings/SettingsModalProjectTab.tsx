@@ -8,6 +8,7 @@ import {
   BtTransformerCalculationMode,
   ProjectMetadata,
 } from "../../types";
+import { getSettingsModalText } from "../../i18n/settingsModalText";
 
 type SettingsModalProjectTabProps = {
   settings: AppSettings;
@@ -40,6 +41,8 @@ export function SettingsModalProjectTab({
   setClandestinoAreaM2,
   updateMetadata,
 }: SettingsModalProjectTabProps) {
+  const text = getSettingsModalText(settings.locale);
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && onLoadProject) {
@@ -60,21 +63,21 @@ export function SettingsModalProjectTab({
           disabled={!onSaveProject}
           className="btn-enterprise flex items-center justify-center gap-2 p-3 rounded-lg border border-white/30 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-all disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
         >
-          <Save size={16} /> Salvar Projeto
+          <Save size={16} /> {text.saveProject}
         </button>
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={!onLoadProject}
           className="btn-enterprise flex items-center justify-center gap-2 p-3 rounded-lg border border-white/30 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-all disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
         >
-          <FolderOpen size={16} /> Carregar Projeto
+          <FolderOpen size={16} /> {text.loadProject}
         </button>
         <input
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
           accept=".srua,.osmpro,.json"
-          title="Carregar arquivo de projeto"
+          title={text.loadProjectFile}
           className="hidden"
         />
       </div>
@@ -82,22 +85,24 @@ export function SettingsModalProjectTab({
       <div className="glass-panel p-4 rounded-lg border border-white/20">
         <div className="text-enterprise-blue mb-4 flex items-center gap-2">
           <Briefcase size={18} />
-          <h3 className="font-bold text-sm uppercase">Carimbo (Title Block)</h3>
+          <h3 className="font-bold text-sm uppercase">
+            {text.titleBlockTitle}
+          </h3>
         </div>
         <p className="text-xs text-slate-600 mb-4">
-          Dados automáticos para o arquivo CAD.
+          {text.titleBlockDescription}
         </p>
 
         <div className="space-y-3">
           <div>
             <label className="text-xs text-slate-600 block mb-1">
-              Nome do Projeto
+              {text.projectName}
             </label>
             <input
               type="text"
               value={settings.projectMetadata?.projectName || ""}
-              title="Nome do projeto"
-              placeholder="Nome do projeto"
+              title={text.projectName}
+              placeholder={text.projectNamePlaceholder}
               onChange={(event) =>
                 updateMetadata("projectName", event.target.value)
               }
@@ -105,12 +110,14 @@ export function SettingsModalProjectTab({
             />
           </div>
           <div>
-            <label className="text-xs text-slate-600 block mb-1">Empresa</label>
+            <label className="text-xs text-slate-600 block mb-1">
+              {text.companyName}
+            </label>
             <input
               type="text"
               value={settings.projectMetadata?.companyName || ""}
-              title="Nome da empresa"
-              placeholder="Nome da empresa"
+              title={text.companyName}
+              placeholder={text.companyNamePlaceholder}
               onChange={(event) =>
                 updateMetadata("companyName", event.target.value)
               }
@@ -120,13 +127,13 @@ export function SettingsModalProjectTab({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-slate-600 block mb-1">
-                Responsável
+                {text.engineerName}
               </label>
               <input
                 type="text"
                 value={settings.projectMetadata?.engineerName || ""}
-                title="Nome do responsável"
-                placeholder="Nome do responsável"
+                title={text.engineerName}
+                placeholder={text.engineerNamePlaceholder}
                 onChange={(event) =>
                   updateMetadata("engineerName", event.target.value)
                 }
@@ -134,12 +141,14 @@ export function SettingsModalProjectTab({
               />
             </div>
             <div>
-              <label className="text-xs text-slate-600 block mb-1">Data</label>
+              <label className="text-xs text-slate-600 block mb-1">
+                {text.projectDate}
+              </label>
               <input
                 type="text"
                 value={settings.projectMetadata?.date || ""}
-                title="Data do projeto"
-                placeholder="DD/MM/AAAA"
+                title={text.projectDate}
+                placeholder={text.projectDatePlaceholder}
                 onChange={(event) => updateMetadata("date", event.target.value)}
                 className="w-full glass-panel border border-white/30 rounded p-2 text-sm text-slate-800 dark:text-slate-100 focus:border-cyan-500 outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
               />
@@ -151,20 +160,22 @@ export function SettingsModalProjectTab({
       <div className="glass-panel p-4 rounded-lg border border-white/20">
         <div className="text-enterprise-blue mb-4 flex items-center gap-2">
           <Activity size={18} />
-          <h3 className="font-bold text-sm uppercase">Topologia Rede BT</h3>
+          <h3 className="font-bold text-sm uppercase">
+            {text.btTopologyTitle}
+          </h3>
         </div>
 
         <div className="space-y-4">
           <div>
             <label className="text-xs text-slate-600 block mb-2">
-              Tipo de Projeto
+              {text.projectType}
             </label>
             <div className="grid grid-cols-3 gap-2">
               {(
                 [
-                  { value: "ramais", label: "RAMAIS" },
-                  { value: "geral", label: "GERAL" },
-                  { value: "clandestino", label: "CLANDEST." },
+                  { value: "ramais", label: text.projectTypeBranch },
+                  { value: "geral", label: text.projectTypeGeneral },
+                  { value: "clandestino", label: text.projectTypeClandestine },
                 ] as { value: BtProjectType; label: string }[]
               ).map((option) => (
                 <button
@@ -185,13 +196,13 @@ export function SettingsModalProjectTab({
           {(settings.projectType ?? "ramais") === "clandestino" && (
             <div>
               <label className="text-xs text-slate-600 block mb-1">
-                Área de Clandestinos (m²)
+                {text.clandestineArea}
               </label>
               <input
                 type="number"
                 min={0}
                 value={settings.clandestinoAreaM2 ?? 0}
-                title="Área de clandestinos em metros quadrados"
+                title={text.clandestineAreaTitle}
                 onFocus={(event) => event.target.select()}
                 onClick={(event) => event.currentTarget.select()}
                 onChange={(event) =>
@@ -200,22 +211,25 @@ export function SettingsModalProjectTab({
                 className="w-full glass-panel border border-white/30 rounded p-2 text-sm text-slate-800 dark:text-slate-100 focus:border-cyan-500 outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
               />
               <p className="text-[10px] text-slate-500 mt-1">
-                Campo obrigatório para o fluxo de clandestinos.
+                {text.clandestineAreaHelp}
               </p>
             </div>
           )}
 
           <div>
             <label className="text-xs text-slate-600 block mb-2">
-              Modo de Edição no Mapa
+              {text.mapEditorMode}
             </label>
             <div className="grid grid-cols-2 gap-2">
               {(
                 [
-                  { value: "none", label: "Navegar" },
-                  { value: "add-pole", label: "Inserir Poste" },
-                  { value: "add-edge", label: "Inserir Condutor" },
-                  { value: "add-transformer", label: "Inserir Trafo" },
+                  { value: "none", label: text.editorModeNavigate },
+                  { value: "add-pole", label: text.editorModeAddPole },
+                  { value: "add-edge", label: text.editorModeAddEdge },
+                  {
+                    value: "add-transformer",
+                    label: text.editorModeAddTransformer,
+                  },
                 ] as { value: BtEditorMode; label: string }[]
               ).map((option) => (
                 <button
@@ -235,13 +249,16 @@ export function SettingsModalProjectTab({
 
           <div>
             <label className="text-xs text-slate-600 block mb-2">
-              Cálculo dos Transformadores
+              {text.transformerCalculationTitle}
             </label>
             <div className="grid grid-cols-2 gap-2">
               {(
                 [
-                  { value: "automatic", label: "Automático" },
-                  { value: "manual", label: "Manual" },
+                  {
+                    value: "automatic",
+                    label: text.transformerCalculationAuto,
+                  },
+                  { value: "manual", label: text.transformerCalculationManual },
                 ] as { value: BtTransformerCalculationMode; label: string }[]
               ).map((option) => (
                 <button
@@ -259,25 +276,24 @@ export function SettingsModalProjectTab({
               ))}
             </div>
             <p className="text-[10px] text-slate-500 mt-1">
-              Automático: recalcula demanda/corrente conforme topologia. Manual:
-              preserva o que for informado no card.
+              {text.transformerCalculationHelp}
             </p>
           </div>
 
           <div>
             <label className="text-xs text-slate-600 block mb-2">
-              Método do QT-PONTO
+              {text.qtPontoMethodTitle}
             </label>
             <div className="grid grid-cols-2 gap-2">
               {(
                 [
                   {
                     value: "impedance_modulus",
-                    label: "Módulo |Z|",
+                    label: text.qtPontoMethodImpedance,
                   },
                   {
                     value: "power_factor",
-                    label: "R·cosφ + X·sinφ",
+                    label: text.qtPontoMethodPowerFactor,
                   },
                 ] as { value: BtQtPontoCalculationMethod; label: string }[]
               ).map((option) => (
@@ -296,14 +312,13 @@ export function SettingsModalProjectTab({
               ))}
             </div>
             <p className="text-[10px] text-slate-500 mt-1">
-              Padrão: módulo da impedância para manter o cálculo mais
-              conservador e compatível com a planilha atual.
+              {text.qtPontoMethodHelp}
             </p>
           </div>
 
           <div>
             <label className="text-xs text-slate-600 block mb-1">
-              Fator de Potência do QT
+              {text.qtPowerFactorTitle}
             </label>
             <input
               type="number"
@@ -311,7 +326,7 @@ export function SettingsModalProjectTab({
               max={1}
               step={0.01}
               value={settings.btCqtPowerFactor ?? 0.92}
-              title="Fator de potência usado no QT-PONTO quando o método com fator de potência estiver ativo"
+              title={text.qtPowerFactorInputTitle}
               onFocus={(event) => event.target.select()}
               onClick={(event) => event.currentTarget.select()}
               onChange={(event) =>
@@ -320,8 +335,7 @@ export function SettingsModalProjectTab({
               className="w-full glass-panel border border-white/30 rounded p-2 text-sm text-slate-800 dark:text-slate-100 focus:border-cyan-500 outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
             />
             <p className="text-[10px] text-slate-500 mt-1">
-              Usado apenas quando o método R·cosφ + X·sinφ estiver ativo. Valor
-              inicial: 0,92.
+              {text.qtPowerFactorHelp}
             </p>
           </div>
         </div>
