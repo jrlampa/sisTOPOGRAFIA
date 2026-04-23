@@ -104,6 +104,15 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - Full suite executada (`npm run test:all`) com 1 falha não relacionada ao slice DG:
   - `server/tests/supplyChainRoutes.test.ts` (timeout no caso `POST /api/supply-chain/npm-audit/run`).
 
+### Atualização Operacional (2026-04-22) - Estabilização da Full Suite (Supply Chain)
+
+- Ajuste de robustez aplicado em `server/tests/supplyChainRoutes.test.ts`:
+  - `jest.setTimeout(30000)` no escopo da suíte para acomodar latência real de `npm audit`.
+- Validação focal:
+  - `npm run test:backend -- server/tests/supplyChainRoutes.test.ts` (**PASS**).
+- Full suite reexecutada:
+  - `npm run test:all` concluída sem a falha de timeout anterior em supply-chain.
+
 ---
 
 ## 🏗️ Arquitetura

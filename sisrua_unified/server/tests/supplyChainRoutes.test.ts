@@ -6,6 +6,8 @@ import request from "supertest";
 import app from "../app.js";
 
 describe("Supply Chain Routes (15)", () => {
+  jest.setTimeout(30000);
+
   // ─── SBOM ──────────────────────────────────────────────────────────────────
 
   describe("POST /api/supply-chain/sbom/generate", () => {
