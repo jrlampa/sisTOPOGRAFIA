@@ -7,6 +7,10 @@ type SettingsModalText = {
   generalTabTitle: string;
   projectTabLabel: string;
   projectTabTitle: string;
+  exportResultsTitle: string;
+  exportDisabledMessage: string;
+  exportGeoJson: string;
+  exportDxf: string;
   saveProject: string;
   loadProject: string;
   loadProjectFile: string;
@@ -89,6 +93,11 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     generalTabTitle: "Abrir aba Geral e Exportação",
     projectTabLabel: "Projeto & Metadados",
     projectTabTitle: "Abrir aba Projeto e Metadados",
+    exportResultsTitle: "Exportar Resultados",
+    exportDisabledMessage:
+      "Realize uma análise primeiro para habilitar a exportação.",
+    exportGeoJson: "GeoJSON",
+    exportDxf: "DXF (CAD)",
     saveProject: "Salvar Projeto",
     loadProject: "Carregar Projeto",
     loadProjectFile: "Carregar arquivo de projeto",
@@ -176,6 +185,11 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     generalTabTitle: "Open General and Export tab",
     projectTabLabel: "Project & Metadata",
     projectTabTitle: "Open Project and Metadata tab",
+    exportResultsTitle: "Export Results",
+    exportDisabledMessage:
+      "Run an analysis first to enable export.",
+    exportGeoJson: "GeoJSON",
+    exportDxf: "DXF (CAD)",
     saveProject: "Save Project",
     loadProject: "Load Project",
     loadProjectFile: "Load project file",
@@ -263,6 +277,11 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     generalTabTitle: "Abrir pestaña General y Exportación",
     projectTabLabel: "Proyecto y Metadatos",
     projectTabTitle: "Abrir pestaña Proyecto y Metadatos",
+    exportResultsTitle: "Exportar Resultados",
+    exportDisabledMessage:
+      "Ejecute un análisis primero para habilitar la exportación.",
+    exportGeoJson: "GeoJSON",
+    exportDxf: "DXF (CAD)",
     saveProject: "Guardar Proyecto",
     loadProject: "Cargar Proyecto",
     loadProjectFile: "Cargar archivo de proyecto",

@@ -323,6 +323,24 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ---
 
+## ✅ Atualização Operacional (2026-04-22) - T2-26 Rodapé de Exportação Localizado
+
+- **Escopo entregue**
+  - O modal de configurações passou a ter cobertura de i18n também no rodapé de exportação, fechando a principal superfície visível desse fluxo.
+  - O estado sem dados e as ações de exportação agora respondem ao locale ativo do usuário.
+- **Implementação**
+  - `src/i18n/settingsModalText.ts` foi ampliado com as chaves do rodapé de exportação.
+  - `src/components/settings/SettingsModalExportFooter.tsx` passou a consumir `locale` e renderizar os textos localizados.
+  - `src/components/SettingsModal.tsx` agora propaga `settings.locale` para o rodapé.
+- **Qualidade**
+  - Teste focalizado: `tests/components/SettingsModalExportFooter.test.tsx` com **2/2 testes passando**.
+  - `npm run typecheck:frontend` validado com sucesso.
+  - `npm run build` validado com sucesso.
+- **Próximo incremento natural**
+  - Mapear outras superfícies fora do modal com cópia hardcoded para seguir T2-26 sem romper o baseline pt-BR.
+
+---
+
 ## 📝 Commits Recentes
 
 - `ecf3743` - fix: Geração DXF assíncrona em modo desenvolvimento

@@ -227,6 +227,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         <SettingsModalExportFooter
+          locale={settings.locale}
           hasData={hasData}
           isDownloading={isDownloading}
           onExportDxf={onExportDxf}
