@@ -226,6 +226,21 @@ function App() {
   });
 
   const {
+    btEdgeFlyToTarget,
+    btPoleFlyToTarget,
+    btTransformerFlyToTarget,
+    selectedPoleId,
+    selectedEdgeId,
+    selectedTransformerId,
+    handleBtSelectedEdgeChange,
+    handleBtSelectedPoleChange,
+    handleBtSelectedTransformerChange,
+    setSelectedPoleId,
+    setSelectedEdgeId,
+    setSelectedTransformerId,
+  } = useBtNavigationState({ btTopology, showToast });
+
+  const {
     btPoleCoordinateInput,
     setBtPoleCoordinateInput,
     pendingBtEdgeStartPoleId,
@@ -277,7 +292,12 @@ function App() {
     handleClandestinoToNormalConvertNow,
     handleNormalToClandestinoKeepClients,
     handleNormalToClandestinoZeroNormalClients,
-  } = useBtCrudHandlers({ appState, setAppState, showToast });
+  } = useBtCrudHandlers({ 
+    appState, 
+    setAppState, 
+    showToast,
+    onSelectedPoleChange: handleBtSelectedPoleChange,
+  });
 
   const {
     handleMtMapClick,
@@ -355,15 +375,6 @@ function App() {
       insertBtPoleAtLocation,
     ],
   );
-
-  const {
-    btEdgeFlyToTarget,
-    btPoleFlyToTarget,
-    btTransformerFlyToTarget,
-    handleBtSelectedEdgeChange,
-    handleBtSelectedPoleChange,
-    handleBtSelectedTransformerChange,
-  } = useBtNavigationState({ btTopology, showToast });
 
   const {
     isAnalyzing: isBtTelescopicAnalyzing,
@@ -678,6 +689,7 @@ function App() {
     onMtDragPole: handleMtDragPole,
     onMtSetPoleChangeFlag: handleMtSetPoleChangeFlag,
     onMtSetEdgeChangeFlag: handleMtSetEdgeChangeFlag,
+    onBtSelectPole: handleBtSelectedPoleChange,
     dgScenario: dgActiveScenario,
   };
 
@@ -763,6 +775,13 @@ function App() {
     onAcceptDgTrafoOnly: handleAcceptDgTrafoOnly,
     onClearDgResult: clearDgResult,
     onSetDgActiveAltIndex: setDgActiveAltIndex,
+    // Hoisted selection state
+    selectedPoleId,
+    selectedEdgeId,
+    selectedTransformerId,
+    onSetSelectedPoleId: setSelectedPoleId,
+    onSetSelectedEdgeId: setSelectedEdgeId,
+    onSetSelectedTransformerId: setSelectedTransformerId,
   };
 
   const sidebarAnalysisResultsProps: React.ComponentProps<

@@ -24,6 +24,9 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
   const [btEdgeFlyToTarget, setBtEdgeFlyToTarget] = useState<FlyToTarget | null>(null);
   const [btPoleFlyToTarget, setBtPoleFlyToTarget] = useState<FlyToTarget | null>(null);
   const [btTransformerFlyToTarget, setBtTransformerFlyToTarget] = useState<FlyToTarget | null>(null);
+  const [selectedPoleId, setSelectedPoleId] = useState<string>("");
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string>("");
+  const [selectedTransformerId, setSelectedTransformerId] = useState<string>("");
   const lastTransformerConflictSignatureRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -70,6 +73,7 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
       return;
     }
 
+    setSelectedEdgeId(edgeId);
     setBtEdgeFlyToTarget(buildFlyToTarget((fromPole.lat + toPole.lat) / 2, (fromPole.lng + toPole.lng) / 2));
   };
 
@@ -79,6 +83,7 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
       return;
     }
 
+    setSelectedPoleId(poleId);
     setBtPoleFlyToTarget(buildFlyToTarget(pole.lat, pole.lng));
   };
 
@@ -88,6 +93,7 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
       return;
     }
 
+    setSelectedTransformerId(transformerId);
     setBtTransformerFlyToTarget(buildFlyToTarget(transformer.lat, transformer.lng));
   };
 
@@ -95,8 +101,14 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
     btEdgeFlyToTarget,
     btPoleFlyToTarget,
     btTransformerFlyToTarget,
+    selectedPoleId,
+    selectedEdgeId,
+    selectedTransformerId,
     handleBtSelectedEdgeChange,
     handleBtSelectedPoleChange,
     handleBtSelectedTransformerChange,
+    setSelectedPoleId,
+    setSelectedEdgeId,
+    setSelectedTransformerId,
   };
 }

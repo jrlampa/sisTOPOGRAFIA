@@ -53,12 +53,14 @@ type Params = {
   appState: GlobalState;
   setAppState: (state: GlobalState, addToHistory: boolean) => void;
   showToast: (message: string, type: ToastType) => void;
+  onSelectedPoleChange?: (poleId: string) => void;
 };
 
 export function useBtCrudHandlers({
   appState,
   setAppState,
   showToast,
+  onSelectedPoleChange,
 }: Params) {
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
   const settings: AppSettings = appState.settings;
@@ -66,7 +68,12 @@ export function useBtCrudHandlers({
   const btExportHistory = appState.btExportHistory ?? [];
 
   // ── Compose 3 specialized hooks ────────────────────────────────────────────
-  const poles = useBtPoleOperations({ appState, setAppState, showToast });
+  const poles = useBtPoleOperations({ 
+    appState, 
+    setAppState, 
+    showToast,
+    onSelectedPoleChange,
+  });
   const edges = useBtEdgeOperations({
     appState,
     setAppState,

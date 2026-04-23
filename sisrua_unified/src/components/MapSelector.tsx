@@ -95,6 +95,7 @@ interface MapSelectorProps {
     lat: number,
     lng: number,
   ) => void;
+  onBtSelectPole?: (poleId: string) => void;
   criticalPoleId?: string | null;
   accumulatedByPole?: BtPoleAccumulatedDemand[];
   loadCenterPoleId?: string | null;
@@ -166,6 +167,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onBtSetTransformerChangeFlag,
   onBtDragPole,
   onBtDragTransformer,
+  onBtSelectPole,
   criticalPoleId,
   accumulatedByPole = [],
   loadCenterPoleId,
@@ -340,6 +342,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtToggleTransformerOnPole={onBtToggleTransformerOnPole}
           onBtQuickAddPoleRamal={onBtQuickAddPoleRamal}
           onBtQuickRemovePoleRamal={onBtQuickRemovePoleRamal}
+          onBtSelectPole={onBtSelectPole}
         />
 
         <MapSelectorTransformersLayer

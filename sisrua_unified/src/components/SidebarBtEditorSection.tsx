@@ -99,6 +99,13 @@ export interface SidebarBtEditorSectionProps {
   onAcceptDgTrafoOnly?: (scenario: DgScenario) => void;
   onClearDgResult?: () => void;
   onSetDgActiveAltIndex?: (index: number) => void;
+  // Hoisted selection state
+  selectedPoleId?: string;
+  selectedEdgeId?: string;
+  selectedTransformerId?: string;
+  onSetSelectedPoleId?: (id: string) => void;
+  onSetSelectedEdgeId?: (id: string) => void;
+  onSetSelectedTransformerId?: (id: string) => void;
 }
 
 export function SidebarBtEditorSection({
@@ -143,6 +150,12 @@ export function SidebarBtEditorSection({
   onAcceptDgTrafoOnly,
   onClearDgResult,
   onSetDgActiveAltIndex,
+  selectedPoleId = "",
+  selectedEdgeId = "",
+  selectedTransformerId = "",
+  onSetSelectedPoleId,
+  onSetSelectedEdgeId,
+  onSetSelectedTransformerId,
 }: SidebarBtEditorSectionProps) {
   const coordinateValidation = getCoordinateInputFeedback(
     btPoleCoordinateInput,
@@ -341,6 +354,12 @@ export function SidebarBtEditorSection({
           clandestinoDisplay={btClandestinoDisplay}
           transformersDerived={btTransformersDerived}
           onRequestCriticalConfirmation={requestCriticalConfirmation}
+          selectedPoleId={selectedPoleId}
+          selectedEdgeId={selectedEdgeId}
+          selectedTransformerId={selectedTransformerId}
+          onSetSelectedPoleId={onSetSelectedPoleId}
+          onSetSelectedEdgeId={onSetSelectedEdgeId}
+          onSetSelectedTransformerId={onSetSelectedTransformerId}
         />
       </Suspense>
 

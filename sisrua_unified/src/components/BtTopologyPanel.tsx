@@ -56,6 +56,12 @@ interface BtTopologyPanelProps {
   summary: BtDerivedSummary;
   clandestinoDisplay: BtClandestinoDisplay;
   transformersDerived: BtTransformerDerived[];
+  selectedPoleId?: string;
+  selectedEdgeId?: string;
+  selectedTransformerId?: string;
+  onSetSelectedPoleId?: (id: string) => void;
+  onSetSelectedEdgeId?: (id: string) => void;
+  onSetSelectedTransformerId?: (id: string) => void;
 }
 
 const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
@@ -84,11 +90,14 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   clandestinoAreaM2: _clandestinoAreaM2,
   onClandestinoAreaChange,
   pointDemandKva,
+  selectedPoleId = "",
+  selectedEdgeId = "",
+  selectedTransformerId = "",
+  onSetSelectedPoleId,
+  onSetSelectedEdgeId,
+  onSetSelectedTransformerId,
 }) => {
-  const [selectedPoleId, setSelectedPoleId] = React.useState("");
   const [isPoleDropdownOpen, setIsPoleDropdownOpen] = React.useState(false);
-  const [selectedTransformerId, setSelectedTransformerId] = React.useState("");
-  const [selectedEdgeId, setSelectedEdgeId] = React.useState("");
   const [isTransformerDropdownOpen, setIsTransformerDropdownOpen] =
     React.useState(false);
 
@@ -104,60 +113,61 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
   React.useEffect(() => {
     if (btTopology.poles.length === 0) {
-      setSelectedPoleId("");
+      onSetSelectedPoleId?.("");
       return;
     }
 
     if (!btTopology.poles.some((pole) => pole.id === selectedPoleId)) {
       const nextPoleId = btTopology.poles[0].id;
-      setSelectedPoleId(nextPoleId);
+      onSetSelectedPoleId?.(nextPoleId);
       onSelectedPoleChange?.(nextPoleId);
     }
-  }, [btTopology.poles, selectedPoleId, onSelectedPoleChange]);
+  }, [btTopology.poles, selectedPoleId, onSelectedPoleChange, onSetSelectedPoleId]);
 
   React.useEffect(() => {
     if (btTopology.transformers.length === 0) {
-      setSelectedTransformerId("");
+      onSetSelectedTransformerId?.("");
       return;
     }
 
     if (!btTopology.transformers.some((t) => t.id === selectedTransformerId)) {
       const nextTransformerId = btTopology.transformers[0].id;
-      setSelectedTransformerId(nextTransformerId);
+      onSetSelectedTransformerId?.(nextTransformerId);
       onSelectedTransformerChange?.(nextTransformerId);
     }
   }, [
     btTopology.transformers,
     selectedTransformerId,
     onSelectedTransformerChange,
+    onSetSelectedTransformerId,
   ]);
 
   React.useEffect(() => {
     if (btTopology.edges.length === 0) {
-      setSelectedEdgeId("");
+      onSetSelectedEdgeId?.("");
       return;
     }
 
     if (!btTopology.edges.some((edge) => edge.id === selectedEdgeId)) {
       const nextEdgeId = btTopology.edges[0].id;
-      setSelectedEdgeId(nextEdgeId);
+      onSetSelectedEdgeId?.(nextEdgeId);
       onSelectedEdgeChange?.(nextEdgeId);
     }
-  }, [btTopology.edges, selectedEdgeId, onSelectedEdgeChange]);
+  }, [btTopology.edges, selectedEdgeId, onSelectedEdgeChange, onSetSelectedEdgeId]);
 
   const selectPole = (poleId: string) => {
-    setSelectedPoleId(poleId);
+    onSetSelectedPoleId?.(poleId);
     setIsPoleDropdownOpen(false);
     onSelectedPoleChange?.(poleId);
   };
 
   const selectTransformer = (transformerId: string) => {
-    setSelectedTransformerId(transformerId);
+    onSetSelectedTransformerId?.(transformerId);
     onSelectedTransformerChange?.(transformerId);
   };
 
   const selectEdge = (edgeId: string) => {
-    setSelectedEdgeId(edgeId);
+    onSetSelectedEdgeId?.(edgeId);
     onSelectedEdgeChange?.(edgeId);
   };
 

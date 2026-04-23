@@ -211,17 +211,21 @@ async function readTopologyFromLegacyTask(
     }
 
     // Mapear postes MT legados (merge por id se já existe BT)
+    // Pré-construir Map<id, pole> para lookup O(1) em vez de O(n) por .find()
+    const poleById = new Map<string, CanonicalPoleNode>(
+      poles.map((p) => [p.id, p]),
+    );
     if (Array.isArray(mtTopo?.poles)) {
       for (const p of mtTopo.poles as Record<string, unknown>[]) {
         if (typeof p["id"] !== "string") continue;
-        const existing = poles.find((x) => x.id === (p["id"] as string));
+        const existing = poleById.get(p["id"] as string);
         if (existing) {
           existing.hasMt = true;
           existing.mtStructures = p[
             "mtStructures"
           ] as CanonicalPoleNode["mtStructures"];
         } else {
-          poles.push({
+          const newPole: CanonicalPoleNode = {
             id: p["id"] as string,
             lat: p["lat"] as number,
             lng: p["lng"] as number,
@@ -235,7 +239,9 @@ async function readTopologyFromLegacyTask(
             nodeChangeFlag: p[
               "nodeChangeFlag"
             ] as CanonicalPoleNode["nodeChangeFlag"],
-          });
+          };
+          poles.push(newPole);
+          poleById.set(newPole.id, newPole);
         }
       }
     }

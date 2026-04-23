@@ -138,33 +138,43 @@ export class PostgresBtExportHistoryRepository implements IBtExportHistoryReposi
   ): Promise<number> {
     const sql = getDbClient();
     if (!sql) return 0;
-    const conditions: string[] = [];
-    const params: SqlParam[] = [];
-    if (filter.projectType) {
-      conditions.push(`project_type = $${params.length + 1}`);
-      params.push(filter.projectType);
+    try {
+      const conditions: string[] = [];
+      const params: SqlParam[] = [];
+      if (filter.projectType) {
+        conditions.push(`project_type = $${params.length + 1}`);
+        params.push(filter.projectType);
+      }
+      if (filter.cqtScenario) {
+        conditions.push(`cqt_scenario = $${params.length + 1}`);
+        params.push(filter.cqtScenario);
+      }
+      const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+      const result = await sql.unsafe(
+        `SELECT COUNT(*) AS cnt FROM bt_export_history ${where}`,
+        params,
+      );
+      return Number((result as any[])[0]?.cnt ?? 0);
+    } catch (err) {
+      logger.warn("[BtExportHistoryRepository] count failed", { err });
+      return 0;
     }
-    if (filter.cqtScenario) {
-      conditions.push(`cqt_scenario = $${params.length + 1}`);
-      params.push(filter.cqtScenario);
-    }
-    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
-    const result = await sql.unsafe(
-      `SELECT COUNT(*) AS cnt FROM bt_export_history ${where}`,
-      params,
-    );
-    return Number((result as any[])[0]?.cnt ?? 0);
   }
 
   async deleteOlderThan(date: Date): Promise<number> {
     const sql = getDbClient();
     if (!sql) return 0;
-    const result = await sql.unsafe(
-      `WITH deleted AS (DELETE FROM bt_export_history WHERE created_at < $1 RETURNING id)
-       SELECT COUNT(*) AS cnt FROM deleted`,
-      [date.toISOString()],
-    );
-    return Number((result as any[])[0]?.cnt ?? 0);
+    try {
+      const result = await sql.unsafe(
+        `WITH deleted AS (DELETE FROM bt_export_history WHERE created_at < $1 RETURNING id)
+         SELECT COUNT(*) AS cnt FROM deleted`,
+        [date.toISOString()],
+      );
+      return Number((result as any[])[0]?.cnt ?? 0);
+    } catch (err) {
+      logger.warn("[BtExportHistoryRepository] deleteOlderThan failed", { err, date });
+      return 0;
+    }
   }
 }
 

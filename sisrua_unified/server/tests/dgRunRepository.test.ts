@@ -133,12 +133,15 @@ describe("PostgresDgRunRepository", () => {
     const sqlCalls = unsafeMock.mock.calls.map((c) => c[0] as string);
 
     expect(sqlCalls.some((q) => q.includes("INSERT INTO dg_runs"))).toBe(true);
+    expect(sqlCalls.some((q) => q === "BEGIN")).toBe(true);
+    expect(sqlCalls.some((q) => q === "COMMIT")).toBe(true);
     expect(sqlCalls.filter((q) => q.includes("DELETE FROM dg_")).length).toBe(
       4,
     );
+    // Agora é feito em BATCH (1 call em vez de 2)
     expect(
       sqlCalls.filter((q) => q.includes("INSERT INTO dg_candidates")).length,
-    ).toBe(2);
+    ).toBe(1);
     expect(
       sqlCalls.filter((q) => q.includes("INSERT INTO dg_scenarios")).length,
     ).toBe(2);

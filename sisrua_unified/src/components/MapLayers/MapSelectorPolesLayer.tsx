@@ -40,6 +40,7 @@ interface MapSelectorPolesLayerProps {
   onBtToggleTransformerOnPole?: (poleId: string) => void;
   onBtQuickAddPoleRamal?: (poleId: string) => void;
   onBtQuickRemovePoleRamal?: (poleId: string) => void;
+  onBtSelectPole?: (poleId: string) => void;
 }
 
 const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
@@ -61,6 +62,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
   onBtToggleTransformerOnPole,
   onBtQuickAddPoleRamal,
   onBtQuickRemovePoleRamal,
+  onBtSelectPole,
 }) => {
   const popupPolesById = React.useMemo(
     () => new Map((popupPoles ?? poles).map((pole) => [pole.id, pole])),
@@ -168,6 +170,9 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                       lng: pole.lng,
                       label: pole.title,
                     });
+                  } else if (onBtSelectPole) {
+                    // Sincronização Poste-Driven: seleciona na sidebar ao clicar no mapa
+                    onBtSelectPole(pole.id);
                   }
                 },
                 dragend: (e) => {

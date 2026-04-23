@@ -50,6 +50,7 @@ type Params = {
   appState: GlobalState;
   setAppState: (state: GlobalState, addToHistory: boolean) => void;
   showToast: (message: string, type: ToastType) => void;
+  onSelectedPoleChange?: (poleId: string) => void;
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -58,6 +59,7 @@ export function useBtPoleOperations({
   appState,
   setAppState,
   showToast,
+  onSelectedPoleChange,
 }: Params) {
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
   const settings: AppSettings = appState.settings;
@@ -138,7 +140,11 @@ export function useBtPoleOperations({
       lng: location.lng,
       title: `Poste ${nextId}`,
       ramais: [],
-      nodeChangeFlag: "existing",
+      nodeChangeFlag: "new", // Postes novos criados pelo usuário devem vir como 'new'
+      // Smart Specs: herda a especificação do último poste se disponível
+      poleSpec: appState.btTopology?.poles.length 
+        ? appState.btTopology.poles[appState.btTopology.poles.length - 1].poleSpec 
+        : undefined,
     };
 
     setAppState(
@@ -156,7 +162,12 @@ export function useBtPoleOperations({
       true,
     );
 
-    showToast(`${nextPole.title} inserido`, "success");
+    // Sincronização Poste-Driven: seleciona o poste recém-criado
+    setTimeout(() => {
+      onSelectedPoleChange?.(nextId);
+    }, 50);
+
+    showToast(`${nextPole.title} inserido e selecionado`, "success");
   };
 
   const resolveLocationFromBackend = async (

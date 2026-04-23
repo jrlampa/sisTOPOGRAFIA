@@ -57,6 +57,20 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - **Próximo ciclo**
   - Mini-Auditoria Backend: tratamento de erros nas rotas de cálculo MT/BT + circuit-breaker review.
 
+### Atualização Operacional (2026-04-23) - Paradigma "Poste-Driven" (UX & Sincronização)
+
+- **Sincronização Mapa-Sidebar**: Estado de seleção (`selectedPoleId`, `selectedEdgeId`, `selectedTransformerId`) elevado para o `useBtNavigationState.ts` (Global Source of Truth).
+- **Interação Reativa**: Clique em qualquer poste/trafo no mapa agora dispara a seleção global, atualizando instantaneamente a Sidebar e painéis de edição técnica.
+- **Fluxo "Add Pole" Otimizado**:
+  - **Auto-seleção**: Postes criados via clique no mapa são selecionados automaticamente.
+  - **Smart Specs (Herança de DNA)**: Novos postes herdam altura e esforço do poste anterior, eliminando redigitação burocrática.
+  - **Status Automático**: Postes criados manualmente assumem `nodeChangeFlag: "new"` por padrão.
+- **Refatoração Estrutural**:
+  - `BtTopologyPanel` convertido em componente controlado (props de seleção), removendo estados locais inconsistentes.
+  - Ordem de hooks em `App.tsx` invertida para garantir que handlers de navegação precedam handlers de CRUD.
+- **Resultado**: Ganho massivo de agilidade operacional e eliminação de inconsistências visuais entre mapa e painel lateral.
+
+
 ### Atualização Operacional (2026-04-23) - T2-26 Internacionalização da Sidebar
 
 - **Escopo entregue**
