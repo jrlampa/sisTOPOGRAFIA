@@ -65,3 +65,6 @@ export type {
   TopologyReadResult,
   TopologyReadSource,
 } from "./canonicalTopologyRepository.js";
+
+export { dgRunRepository, PostgresDgRunRepository } from "./dgRunRepository.js";
+export type { IDgRunRepository } from "./dgRunRepository.js";

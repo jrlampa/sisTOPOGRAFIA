@@ -25,6 +25,20 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - Commit `968b495`. 375/375 testes passando (Vitest frontend).
 - DG Addendum Sprint 1+2+3 concluídos. Todas as frentes do Design Generativo entregues.
 
+### Atualização Operacional (2026-04-22) - DG Persistência Operacional de Runs
+
+- Persistência de execuções DG adicionada com migração `migrations/052_dg_runs_persistence.sql`.
+- Novo repositório `server/repositories/dgRunRepository.ts` com estratégia híbrida: PostgreSQL quando disponível e fallback em memória quando indisponível.
+- `server/services/dgOptimizationService.ts` agora salva a saída completa da otimização e expõe leitura por run, cenários e recomendação.
+- `server/routes/dgRoutes.ts` passou a servir:
+  - `GET /api/dg/runs/:id`
+  - `GET /api/dg/runs/:id/scenarios`
+  - `GET /api/dg/runs/:id/recommendation`
+- Cobertura validada em backend:
+  - `server/tests/dgOptimizationService.test.ts`
+  - `server/tests/dgRoutes.test.ts`
+  - Resultado focal: **2 suítes passando** no slice DG.
+
 ---
 
 ## 🏗️ Arquitetura

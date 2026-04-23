@@ -11,7 +11,12 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { logger } from "../utils/logger.js";
-import { runDgOptimization } from "../services/dgOptimizationService.js";
+import {
+  runDgOptimization,
+  getDgRun,
+  getDgRunScenarios,
+  getDgRunRecommendation,
+} from "../services/dgOptimizationService.js";
 import { permissionHandler } from "../middleware/permissionHandler";
 import { schemaValidator } from "../middleware/schemaValidator";
 import {
@@ -133,21 +138,83 @@ router.post("/optimize", async (req: Request, res: Response) => {
 
 // ─── GET /api/dg/runs/:id ─────────────────────────────────────────────────────
 
-router.get("/runs/:id", (req: Request, res: Response) => {
-  // Placeholder – persistência em dg_runs (DB) a implementar
-  return res.status(404).json({
-    error:
-      "Persistência de runs DG ainda não implementada. Use POST /optimize.",
-  });
+router.get("/runs/:id", async (req: Request, res: Response) => {
+  try {
+    const run = await getDgRun(req.params.id);
+    if (!run) {
+      return res.status(404).json({ error: "Run DG não encontrada." });
+    }
+    return res.status(200).json(run);
+  } catch (err) {
+    logger.error("DG run lookup error", {
+      runId: req.params.id,
+      message: (err as Error).message,
+    });
+    return res.status(500).json({ error: "Erro ao consultar run DG." });
+  }
+});
+
+// ─── GET /api/dg/runs/:id/scenarios ──────────────────────────────────────────
+
+router.get("/runs/:id/scenarios", async (req: Request, res: Response) => {
+  try {
+    const scenarios = await getDgRunScenarios(req.params.id);
+    if (!scenarios) {
+      return res.status(404).json({ error: "Run DG não encontrada." });
+    }
+
+    const feasibleOnly = req.query.feasibleOnly === "true";
+    const filtered = feasibleOnly
+      ? scenarios.filter((scenario) => scenario.feasible)
+      : scenarios;
+
+    return res.status(200).json({
+      runId: req.params.id,
+      total: scenarios.length,
+      returned: filtered.length,
+      scenarios: filtered,
+    });
+  } catch (err) {
+    logger.error("DG run scenarios lookup error", {
+      runId: req.params.id,
+      message: (err as Error).message,
+    });
+    return res
+      .status(500)
+      .json({ error: "Erro ao consultar cenários da run DG." });
+  }
 });
 
 // ─── GET /api/dg/runs/:id/recommendation ─────────────────────────────────────
 
-router.get("/runs/:id/recommendation", (req: Request, res: Response) => {
-  return res.status(404).json({
-    error:
-      "Persistência de runs DG ainda não implementada. Use POST /optimize.",
-  });
+router.get("/runs/:id/recommendation", async (req: Request, res: Response) => {
+  try {
+    const recommendation = await getDgRunRecommendation(req.params.id);
+    if (!recommendation) {
+      const run = await getDgRun(req.params.id);
+      if (!run) {
+        return res.status(404).json({ error: "Run DG não encontrada." });
+      }
+      return res.status(200).json({
+        runId: req.params.id,
+        recommendation: null,
+        message: "Run encontrada, porém sem recomendação viável.",
+      });
+    }
+
+    return res.status(200).json({
+      runId: req.params.id,
+      recommendation,
+    });
+  } catch (err) {
+    logger.error("DG run recommendation lookup error", {
+      runId: req.params.id,
+      message: (err as Error).message,
+    });
+    return res
+      .status(500)
+      .json({ error: "Erro ao consultar recomendação da run DG." });
+  }
 });
 
 // ─── BUFFER ZONE VALIDATION ROUTES ────────────────────────────────────────────

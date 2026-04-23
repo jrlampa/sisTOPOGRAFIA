@@ -25,6 +25,7 @@ import type {
 import { DEFAULT_DG_PARAMS } from "./dg/dgTypes.js";
 import { generateCandidates, hashDgInput } from "./dg/dgCandidates.js";
 import { runDgOptimizer } from "./dg/dgOptimizer.js";
+import { dgRunRepository } from "../repositories/dgRunRepository.js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -145,7 +146,7 @@ export async function runDgOptimization(
     logger.warn("DG: nenhum cenário viável encontrado", { runId, inputHash });
   }
 
-  return {
+  const output: DgOptimizationOutput = {
     runId,
     inputHash,
     computedAt: new Date().toISOString(),
@@ -155,4 +156,23 @@ export async function runDgOptimization(
     allScenarios,
     params,
   };
+
+  await dgRunRepository.save(output);
+  return output;
+}
+
+export async function getDgRun(runId: string): Promise<DgOptimizationOutput | null> {
+  return dgRunRepository.findById(runId);
+}
+
+export async function getDgRunScenarios(
+  runId: string,
+): Promise<DgScenario[] | null> {
+  return dgRunRepository.findScenarios(runId);
+}
+
+export async function getDgRunRecommendation(
+  runId: string,
+): Promise<DgRecommendation | null> {
+  return dgRunRepository.findRecommendation(runId);
 }
