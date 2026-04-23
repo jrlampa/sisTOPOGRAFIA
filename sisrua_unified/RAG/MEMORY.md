@@ -355,6 +355,31 @@ O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md)
 
 ---
 
+## ✅ Atualização Operacional (2026-04-22) - DG Backend Persistência de Runs
+
+- **Escopo entregue**
+  - Persistência operacional de runs do Design Generativo com fallback resiliente em memória e leitura posterior por `runId`.
+  - Substituição de placeholders por endpoints reais de consulta de run, cenários e recomendação.
+- **Implementação**
+  - Novo repositório `server/repositories/dgRunRepository.ts` com:
+    - `save`, `findById`, `findScenarios`, `findRecommendation`.
+    - Persistência em PostgreSQL (`dg_runs`) com fallback in-memory.
+  - Integração no serviço `server/services/dgOptimizationService.ts`:
+    - Persistência ao final de `runDgOptimization`.
+    - Helpers de leitura `getDgRun*`.
+  - Rotas DG implementadas em `server/routes/dgRoutes.ts`:
+    - `GET /api/dg/runs/:id`
+    - `GET /api/dg/runs/:id/scenarios` (`feasibleOnly=true` opcional)
+    - `GET /api/dg/runs/:id/recommendation`
+  - Migration criada: `migrations/052_dg_runs_persistence.sql`.
+  - Export do repositório atualizado em `server/repositories/index.ts`.
+- **Qualidade**
+  - `npm run test:backend -- server/tests/dgOptimizationService.test.ts server/tests/dgRoutes.test.ts` com sucesso (2 suítes PASS).
+- **Versionamento**
+  - Commit de implementação: `59e9b12`.
+
+---
+
 ## 📝 Commits Recentes
 
 - `ecf3743` - fix: Geração DXF assíncrona em modo desenvolvimento
