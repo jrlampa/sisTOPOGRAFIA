@@ -5,6 +5,8 @@ import { Trash2, Triangle, Plus, Minus } from "lucide-react";
 import { BtEditorMode } from "../../types";
 import type { MapBtPole } from "../../types.map";
 import type { BtPoleAccumulatedDemand } from "../../utils/btTopologyFlow";
+import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
+import { AppLocale } from "../../types";
 import {
   getFlagColor,
   getPoleChangeFlag,
@@ -41,6 +43,7 @@ interface MapSelectorPolesLayerProps {
   onBtQuickAddPoleRamal?: (poleId: string) => void;
   onBtQuickRemovePoleRamal?: (poleId: string) => void;
   onBtSelectPole?: (poleId: string) => void;
+  locale: AppLocale;
 }
 
 const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
@@ -63,7 +66,9 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
   onBtQuickAddPoleRamal,
   onBtQuickRemovePoleRamal,
   onBtSelectPole,
+  locale,
 }) => {
+  const t = getBtTopologyPanelText(locale).poleVerification;
   const popupPolesById = React.useMemo(
     () => new Map((popupPoles ?? poles).map((pole) => [pole.id, pole])),
     [popupPoles, poles],
@@ -232,10 +237,15 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                   <div
                     className={`mt-0.5 font-semibold ${pole.verified ? "text-green-600" : "text-amber-600"}`}
                   >
-                    {pole.verified ? "✓ Verificado" : "○ Não verificado"}
+                    {pole.verified ? `✓ ${t.btnMarkVerified.replace("Marcar poste como ", "")}` : `○ ${t.btnMarkUnverified.replace("Marcar como ", "")}`}
                   </div>
                   <div className="mt-0.5 text-slate-700">
-                    Flag: <strong>{getPoleChangeFlag(popupPole)}</strong>
+                    Flag: <strong>{
+                      getPoleChangeFlag(popupPole) === "new" ? t.flagNew :
+                      getPoleChangeFlag(popupPole) === "remove" ? t.flagRemove :
+                      getPoleChangeFlag(popupPole) === "replace" ? t.flagReplace :
+                      t.flagExisting
+                    }</strong>
                   </div>
                   {popupPole.circuitBreakPoint && (
                     <div className="mt-0.5 font-bold text-sky-700">
@@ -257,7 +267,10 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                               flag,
                             )}
                           >
-                            {flag.charAt(0).toUpperCase() + flag.slice(1)}
+                            {flag === "new" ? t.flagNew :
+                             flag === "remove" ? t.flagRemove :
+                             flag === "replace" ? t.flagReplace :
+                             t.flagExisting}
                           </button>
                         ),
                       )}

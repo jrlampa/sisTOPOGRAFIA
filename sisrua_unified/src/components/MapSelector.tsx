@@ -16,6 +16,7 @@ import {
   MtEditorMode,
   SelectionMode,
   GeoLocation,
+  AppLocale,
 } from "../types";
 import type { MapBtTopology, MapMtTopology } from "../types.map";
 import type { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
@@ -128,6 +129,7 @@ interface MapSelectorProps {
   ) => void;
   /** Cenário DG ativo para sobreposição visual no mapa. */
   dgScenario?: DgScenario | null;
+  locale: AppLocale;
 }
 
 const MapSelector: React.FC<MapSelectorProps> = ({
@@ -189,6 +191,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onMtSetPoleChangeFlag,
   onMtSetEdgeChangeFlag,
   dgScenario,
+  locale,
 }) => {
   const topology = btMarkerTopology ?? {
     poles: [],
@@ -321,6 +324,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtSetEdgeReplacementFromConductors={
             onBtSetEdgeReplacementFromConductors
           }
+          locale={locale}
         />
 
         <MapSelectorPolesLayer
@@ -343,6 +347,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtQuickAddPoleRamal={onBtQuickAddPoleRamal}
           onBtQuickRemovePoleRamal={onBtQuickRemovePoleRamal}
           onBtSelectPole={onBtSelectPole}
+          locale={locale}
         />
 
         <MapSelectorTransformersLayer
@@ -355,6 +360,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtRenameTransformer={onBtRenameTransformer}
           onBtSetTransformerChangeFlag={onBtSetTransformerChangeFlag}
           onBtDeleteTransformer={onBtDeleteTransformer}
+          locale={locale}
         />
 
         {mtMarkerTopology && (
@@ -366,6 +372,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
               polesById={new Map(mtMarkerTopology.poles.map((p) => [p.id, p]))}
               onMtDeleteEdge={onMtDeleteEdge}
               onMtSetEdgeChangeFlag={onMtSetEdgeChangeFlag}
+              locale={locale}
             />
             <MapSelectorMtPolesLayer
               paneName={mtPolesPaneName}
@@ -378,6 +385,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
               onMtSetPoleChangeFlag={onMtSetPoleChangeFlag}
               onMtDeletePole={onMtDeletePole}
               onMtSetPoleVerified={onMtSetPoleVerified}
+              locale={locale}
             />
           </>
         )}

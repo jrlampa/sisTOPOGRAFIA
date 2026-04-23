@@ -8,7 +8,8 @@ import type {
   BtEdge,
   AppLocale,
   BtProjectType,
-  BtNetworkScenario
+  BtNetworkScenario,
+  MtTopology
 } from "../../types";
 import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
 import BtUnifiedInfraTab from "./BtUnifiedInfraTab";
@@ -47,9 +48,11 @@ interface BtUnifiedDashboardProps {
   onBtSetEdgeChangeFlag?: (id: string, flag: any) => void;
   updateEdgeVerified: (id: string, v: boolean) => void;
   updateEdgeConductors: (id: string, c: any) => void;
+  updateEdgeMtConductors: (id: string, mtc: any) => void;
   updateEdgeReplacementFromConductors: (id: string, rc: any) => void;
   onSelectedEdgeChange: (id: string) => void;
   onSelectedTransformerChange: (id: string) => void;
+  mtTopology: MtTopology;
 }
 
 type TabType = "infra" | "electrical" | "commercial";

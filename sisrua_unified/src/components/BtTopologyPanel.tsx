@@ -1,6 +1,6 @@
 import React from "react";
 import { Copy } from "lucide-react";
-import type { BtNetworkScenario, BtTopology, BtProjectType, AppLocale } from "../types";
+import type { BtNetworkScenario, BtTopology, BtProjectType, AppLocale, MtTopology } from "../types";
 import { getBtTopologyPanelText } from "../i18n/btTopologyPanelText";
 import type {
   BtDerivedSummary,
@@ -61,6 +61,7 @@ interface BtTopologyPanelProps {
   onSetSelectedPoleId?: (id: string) => void;
   onSetSelectedEdgeId?: (id: string) => void;
   onSetSelectedTransformerId?: (id: string) => void;
+  mtTopology: MtTopology;
 }
 
 const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
@@ -95,6 +96,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   onSetSelectedPoleId,
   onSetSelectedEdgeId,
   onSetSelectedTransformerId,
+  mtTopology,
 }) => {
   const bulkImport = useBtTopologyPanelBulkImport({
     btTopology,
@@ -309,6 +311,9 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           updateEdgeConductors={(id, conductors) =>
             updateEdge(id, (edge) => ({ ...edge, conductors }))
           }
+          updateEdgeMtConductors={(id, mtConductors) =>
+            updateEdge(id, (edge) => ({ ...edge, mtConductors }))
+          }
           updateEdgeReplacementFromConductors={(
             id,
             replacementFromConductors,
@@ -317,6 +322,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           }
           onSelectedEdgeChange={selectEdge}
           onSelectedTransformerChange={selectTransformer}
+          mtTopology={mtTopology}
         />
       </div>
 

@@ -15,6 +15,7 @@ import type {
   BtNetworkScenario,
   BtTopology,
   BtProjectType,
+  MtTopology,
 } from "../types";
 import type {
   BtDerivedSummary,
@@ -106,6 +107,7 @@ export interface SidebarBtEditorSectionProps {
   onSetSelectedPoleId?: (id: string) => void;
   onSetSelectedEdgeId?: (id: string) => void;
   onSetSelectedTransformerId?: (id: string) => void;
+  mtTopology: MtTopology;
 }
 
 export function SidebarBtEditorSection({
@@ -156,6 +158,7 @@ export function SidebarBtEditorSection({
   onSetSelectedPoleId,
   onSetSelectedEdgeId,
   onSetSelectedTransformerId,
+  mtTopology,
 }: SidebarBtEditorSectionProps) {
   const coordinateValidation = getCoordinateInputFeedback(
     btPoleCoordinateInput,
@@ -167,10 +170,10 @@ export function SidebarBtEditorSection({
     <>
       <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <label className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-800 dark:text-amber-100">
+          <label className="text-sm font-black uppercase tracking-[0.2em] text-amber-900/80 dark:text-amber-100/60">
             {t.editorTitle}
           </label>
-          <span className="text-[9px] uppercase text-amber-700 dark:text-amber-300">
+          <span className="text-xs font-black uppercase text-amber-700 dark:text-amber-300">
             {(settings.projectType ?? "ramais").toUpperCase()} /{" "}
             {btNetworkScenario === "asis" ? t.scenarioActual : t.scenarioProject}
           </span>
@@ -185,7 +188,7 @@ export function SidebarBtEditorSection({
                 btEditorMode: "none",
               })
             }
-            className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btNetworkScenario === "asis" ? "border-cyan-600 bg-cyan-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
+            className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btNetworkScenario === "asis" ? "border-cyan-600 bg-cyan-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnActualNetwork}
           </button>
@@ -194,7 +197,7 @@ export function SidebarBtEditorSection({
               updateSettings({ ...settings, btNetworkScenario: "projeto" });
               onTriggerTelescopicAnalysis?.();
             }}
-            className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btNetworkScenario === "projeto" ? "border-fuchsia-600 bg-fuchsia-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
+            className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btNetworkScenario === "projeto" ? "border-fuchsia-600 bg-fuchsia-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnNewNetwork}
           </button>
@@ -252,7 +255,7 @@ export function SidebarBtEditorSection({
             }}
             className="rounded-xl border-2 border-blue-700/35 bg-blue-50 p-2.5 space-y-2 transition-all dark:border-blue-500/40 dark:bg-blue-950/25"
           >
-            <div className="text-[10px] font-semibold text-blue-800 dark:text-blue-200 uppercase tracking-wider">
+            <div className="text-xs font-bold text-blue-800 dark:text-blue-200 uppercase tracking-widest">
               {t.insertPoleCoordinatesTitle}
             </div>
             <div className="relative group">
@@ -265,14 +268,14 @@ export function SidebarBtEditorSection({
                 placeholder="-22.9068 -43.1729 ou 23K 635806 7462003"
                 aria-label="Coordenadas do poste"
                 aria-describedby="bt-coordinate-feedback"
-                className={`w-full rounded-xl border-2 border-blue-700/25 bg-white p-2.5 text-[11px] font-mono text-blue-950 shadow-inner transition-all outline-none placeholder-blue-400 dark:border-blue-500/45 dark:bg-zinc-950 dark:text-blue-100 dark:placeholder-blue-300/60 ${getValidationInputClassName(coordinateValidation.state)}`}
+                className={`w-full rounded-xl border-2 border-blue-700/25 bg-white p-2.5 text-xs font-semibold text-blue-950 shadow-inner transition-all outline-none placeholder-blue-600 dark:border-blue-500/45 dark:bg-zinc-950 dark:text-blue-100 dark:placeholder-blue-300/60 ${getValidationInputClassName(coordinateValidation.state, settings.theme === "dark" ? "dark" : "light")}`}
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1 items-center">
                 {btPoleCoordinateInput &&
                   (coordinateValidation.state === "success" ? (
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
                   ) : (
-                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
                   ))}
               </div>
             </div>
@@ -280,6 +283,7 @@ export function SidebarBtEditorSection({
               id="bt-coordinate-feedback"
               tone={coordinateValidation.state}
               message={coordinateValidation.message}
+              palette={settings.theme === "dark" ? "dark" : "light"}
             />
             <button
               type="submit"
@@ -360,6 +364,7 @@ export function SidebarBtEditorSection({
           onSetSelectedPoleId={onSetSelectedPoleId}
           onSetSelectedEdgeId={onSetSelectedEdgeId}
           onSetSelectedTransformerId={onSetSelectedTransformerId}
+          mtTopology={mtTopology}
         />
       </Suspense>
 

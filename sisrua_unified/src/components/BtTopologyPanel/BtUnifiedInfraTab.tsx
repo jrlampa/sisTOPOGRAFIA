@@ -1,6 +1,6 @@
 import React from "react";
-import { CheckCircle2, Circle, MapPin, Hash, Activity, FileText } from "lucide-react";
-import type { BtPoleNode, AppLocale } from "../../types";
+import { CheckCircle2, Circle, MapPin, Hash, Activity, FileText, Zap } from "lucide-react";
+import type { BtPoleNode, AppLocale, MtTopology } from "../../types";
 import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
 import { getFlagColor } from "../MapSelectorStyles";
 
@@ -16,6 +16,7 @@ interface BtUnifiedInfraTabProps {
   updatePoleConditionStatus: (poleId: string, s: any) => void;
   updatePoleEquipmentNotes: (poleId: string, s: any) => void;
   updatePoleGeneralNotes: (poleId: string, s: any) => void;
+  mtTopology: MtTopology;
 }
 
 const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
@@ -160,6 +161,29 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
           placeholder={pt.generalNotesPlaceholder}
         />
       </div>
+
+      {/* MT Context (Unified Vision) */}
+      {props.mtTopology.poles.some(p => p.id === pole.id) && (
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-orange-200/50 rounded-2xl p-3 shadow-sm">
+          <label className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-orange-700/60 mb-2">
+            <Zap size={10} /> Contexto de Média Tensão (MT)
+          </label>
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between items-center bg-white/40 p-2 rounded-lg">
+              <span className="text-[10px] font-bold text-orange-900/70 uppercase">Estruturas MT</span>
+              <span className="text-xs font-mono font-bold text-orange-800">
+                {props.mtTopology.poles.find(p => p.id === pole.id)?.mtStructure || "N/A"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center bg-white/40 p-2 rounded-lg">
+              <span className="text-[10px] font-bold text-orange-900/70 uppercase">Conexões MT</span>
+              <span className="text-xs font-mono font-bold text-orange-800">
+                {props.mtTopology.edges.filter(e => e.fromPoleId === pole.id || e.toPoleId === pole.id).length} trecho(s)
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -81,6 +81,25 @@ export const CONDUCTOR_NAMES = [
   "4/0 AWG",
 ];
 
+export const MT_CONDUCTOR_NAMES = [
+  "35 Al",
+  "50 Al",
+  "70 Al",
+  "95 Al",
+  "120 Al",
+  "150 Al",
+  "185 Al",
+  "240 Al",
+  "1/0 AWG Al",
+  "2/0 AWG Al",
+  "3/0 AWG Al",
+  "4/0 AWG Al",
+  "35 Cu",
+  "50 Cu",
+  "70 Cu",
+  "95 Cu",
+];
+
 export const numberFromInput = (value: string, decimals?: number): number => {
   const normalized = value.replace(",", ".");
   const parsed = Number(normalized);

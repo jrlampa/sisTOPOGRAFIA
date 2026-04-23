@@ -85,13 +85,13 @@ export function useBtTransformerOperations({
     };
 
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
-          transformers: [...btTopology.transformers, nextTransformer],
+          ...prev.btTopology,
+          transformers: [...prev.btTopology.transformers, nextTransformer],
         },
-      },
+      }),
       true,
     );
     showToast(
@@ -102,15 +102,15 @@ export function useBtTransformerOperations({
 
   const handleBtDeleteTransformer = (transformerId: string) => {
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
-          transformers: btTopology.transformers.filter(
+          ...prev.btTopology,
+          transformers: prev.btTopology.transformers.filter(
             (t) => t.id !== transformerId,
           ),
         },
-      },
+      }),
       true,
     );
     showToast(`Transformador ${transformerId} removido`, "info");
@@ -155,13 +155,13 @@ export function useBtTransformerOperations({
       };
 
       setAppState(
-        {
-          ...appState,
+        (prev) => ({
+          ...prev,
           btTopology: {
-            ...btTopology,
-            transformers: [...btTopology.transformers, nextTransformer],
+            ...prev.btTopology,
+            transformers: [...prev.btTopology.transformers, nextTransformer],
           },
-        },
+        }),
         true,
       );
       showToast(`Transformador adicionado em ${pole.title}`, "success");
@@ -172,15 +172,15 @@ export function useBtTransformerOperations({
       transformersOnPole.map((transformer) => transformer.id),
     );
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
-          transformers: btTopology.transformers.filter(
+          ...prev.btTopology,
+          transformers: prev.btTopology.transformers.filter(
             (transformer) => !removeIds.has(transformer.id),
           ),
         },
-      },
+      }),
       true,
     );
     showToast(`Transformador removido de ${pole.title}`, "success");
@@ -198,11 +198,11 @@ export function useBtTransformerOperations({
     }
 
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
-          transformers: btTopology.transformers.map((t) =>
+          ...prev.btTopology,
+          transformers: prev.btTopology.transformers.map((t) =>
             t.id === transformerId
               ? {
                   ...t,
@@ -213,22 +213,22 @@ export function useBtTransformerOperations({
               : t,
           ),
         },
-      },
+      }),
       true,
     );
   };
 
   const handleBtRenameTransformer = (transformerId: string, title: string) => {
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
-          transformers: btTopology.transformers.map((t) =>
+          ...prev.btTopology,
+          transformers: prev.btTopology.transformers.map((t) =>
             t.id === transformerId ? { ...t, title } : t,
           ),
         },
-      },
+      }),
       true,
     );
   };
@@ -238,11 +238,11 @@ export function useBtTransformerOperations({
     transformerChangeFlag: BtTransformerChangeFlag,
   ) => {
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
-          transformers: btTopology.transformers.map((transformer) =>
+          ...prev.btTopology,
+          transformers: prev.btTopology.transformers.map((transformer) =>
             transformer.id === transformerId
               ? normalizeBtTransformer({
                   ...transformer,
@@ -251,7 +251,7 @@ export function useBtTransformerOperations({
               : transformer,
           ),
         },
-      },
+      }),
       true,
     );
   };

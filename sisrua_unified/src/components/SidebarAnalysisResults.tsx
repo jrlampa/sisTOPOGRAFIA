@@ -97,17 +97,17 @@ export function SidebarAnalysisResults({
               />
             </Suspense>
 
-            <div className="flex items-center gap-3 rounded-2xl border-2 border-amber-800/25 bg-amber-50 p-4 dark:border-amber-500/40 dark:bg-zinc-950">
+            <div className="flex items-center gap-4 rounded-3xl border-2 border-sky-500/10 bg-gradient-to-br from-sky-50 to-white p-5 dark:border-sky-500/20 dark:bg-zinc-950">
               <div
-                className={`rounded-xl p-2 ${terrainData ? "bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300" : "bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-500"}`}
+                className={`rounded-2xl p-3 shadow-inner ${terrainData ? "bg-sky-500 text-white dark:bg-sky-500/20 dark:text-sky-400" : "bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-500"}`}
               >
-                <Mountain size={18} />
+                <Mountain size={20} />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-200">
+                <span className="text-[11px] font-black uppercase tracking-widest text-sky-900/70 dark:text-sky-400">
                   {t.terrainEngineTitle}
                 </span>
-                <span className="text-xs font-bold text-amber-950 dark:text-amber-100">
+                <span className="text-base font-black text-sky-950 dark:text-sky-100 leading-tight">
                   {terrainData
                     ? t.terrainLoaded
                     : t.terrainPending}

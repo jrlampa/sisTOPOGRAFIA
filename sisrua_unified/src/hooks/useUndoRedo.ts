@@ -49,25 +49,29 @@ export function useUndoRedo<T>(initialPresent: T) {
     });
   }, []);
 
-  const set = useCallback((newPresent: T, commit: boolean = true) => {
-    // Verify immutability of new state (development mode only)
-    assertImmutable(newPresent, 'appState in useUndoRedo.set()');
-
+  const set = useCallback((newPresent: T | ((prev: T) => T), commit: boolean = true) => {
     setState(currentState => {
+      const resolvedNewPresent = typeof newPresent === 'function' 
+        ? (newPresent as (prev: T) => T)(currentState.present)
+        : newPresent;
+
+      // Verify immutability of new state (development mode only)
+      assertImmutable(resolvedNewPresent, 'appState in useUndoRedo.set()');
+
       if (commit) {
         // Prevent duplicate history entries if value hasn't effectively changed
-        if (JSON.stringify(currentState.present) === JSON.stringify(newPresent)) {
+        if (JSON.stringify(currentState.present) === JSON.stringify(resolvedNewPresent)) {
             return currentState;
         }
         return {
           past: [...currentState.past, currentState.present],
-          present: newPresent,
+          present: resolvedNewPresent,
           future: []
         };
       } else {
         return {
           ...currentState,
-          present: newPresent
+          present: resolvedNewPresent
         };
       }
     });

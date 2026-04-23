@@ -25,6 +25,26 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - Commit `968b495`. 375/375 testes passando (Vitest frontend).
 - DG Addendum Sprint 1+2+3 concluídos. Todas as frentes do Design Generativo entregues.
 
+### Atualização Operacional (2026-04-23) — Estabilização de Infraestrutura e DXF/OSM
+- **OSM Proxy**: Estabilizado. Implementado sistema de Multi-Endpoint (12 mirrors) com estratégia "GET-first" e User-Agent `curl/8.4.0` para máxima compatibilidade com infraestrutura pública.
+- **DXF Pipeline**: Estabilizado. Lógica de persistência corrigida e validada para grandes raios (2000m).
+- **Status Final**: Coordenadas reais (-22.758878, -42.881869) validadas via script de força bruta e logs do servidor confirmam resiliência a falhas de rede dos provedores Overpass.
+
+### Atualização Operacional (2026-04-23) - Padronização 100% pt-BR e Refatoração de i18n no Mapa
+
+- **Interface 100% pt-BR**: Forçada a detecção de locale para sempre retornar `pt-BR` em `initialState.ts`, garantindo conformidade com as regras não negociáveis do projeto, independentemente das configurações do navegador do usuário.
+- **Internacionalização de Camadas do Mapa**:
+    - Prop `locale` adicionada ao componente `MapSelector` e propagada para todas as sub-camadas (`MapSelectorPolesLayer`, `MapSelectorMtPolesLayer`, `MapSelectorEdgesLayer`, `MapSelectorTransformersLayer`, `MapSelectorMtEdgesLayer`).
+    - Migração de todas as strings hardcoded em inglês nos popups do mapa (ex: "Existing", "New", "Replace", "Verified", "Transformer", "Length") para o sistema centralizado `getBtTopologyPanelText`.
+- **Dicionário de Popups**: Criada nova seção `popup` em `btTopologyPanelText.ts` para centralizar traduções de metadados de rede, status de verificação e flags de alteração, com suporte a `pt-BR`, `en-US` e `es-ES`.
+- **Correções de UI/UX**:
+    - Localizados botões de ação e tooltips em todas as camadas de BT e MT.
+    - Padronizada a exibição de condutores e metragens nos popups de trechos.
+- **Qualidade & Estabilidade**:
+    - Corrigidos erros de importação e sintaxe introduzidos durante a refatoração das camadas de MT.
+    - `npm run typecheck:frontend` → Exit 0.
+    - Sincronização de estado de idioma mantida via `document.documentElement.lang`.
+
 ### Atualização Operacional (2026-04-23) - Dashboard Unificado "Poste-Driven" (UX Premium)
 
 - **Unificação de Interface**: Seções fragmentadas de Poste, Transformador e Vãos consolidadas no novo `BtUnifiedDashboard.tsx`.

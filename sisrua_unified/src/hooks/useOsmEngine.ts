@@ -23,6 +23,8 @@ const toAnalysisStats = (stats: OsmStats | null): AnalysisStats => {
     totalNature: stats.totalNature,
     avgHeight: stats.avgHeight,
     maxHeight: stats.maxHeight,
+    density: stats.density,
+    densityValue: stats.densityValue,
   };
 };
 

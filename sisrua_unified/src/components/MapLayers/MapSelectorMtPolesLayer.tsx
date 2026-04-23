@@ -9,6 +9,8 @@ import {
   getFlagButtonClass,
   POPUP_FLAG_GRID_CLASS,
 } from "../MapSelectorStyles";
+import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
+import { AppLocale } from "../../types";
 
 interface MapSelectorMtPolesLayerProps {
   paneName: string;
@@ -24,6 +26,7 @@ interface MapSelectorMtPolesLayerProps {
   ) => void;
   onMtDeletePole?: (poleId: string) => void;
   onMtSetPoleVerified?: (poleId: string, verified: boolean) => void;
+  locale: AppLocale;
 }
 
 const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
@@ -37,7 +40,9 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
   onMtSetPoleChangeFlag,
   onMtDeletePole,
   onMtSetPoleVerified,
+  locale,
 }) => {
+  const t = getBtTopologyPanelText(locale).poleVerification;
   const popupPolesById = React.useMemo(
     () => new Map((popupPoles ?? poles).map((pole) => [pole.id, pole])),
     [popupPoles, poles],
@@ -151,7 +156,10 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
                               flag,
                             )}
                           >
-                            {flag.charAt(0).toUpperCase() + flag.slice(1)}
+                            {flag === "new" ? t.flagNew :
+                             flag === "remove" ? t.flagRemove :
+                             flag === "replace" ? t.flagReplace :
+                             t.flagExisting}
                           </button>
                         ),
                       )}

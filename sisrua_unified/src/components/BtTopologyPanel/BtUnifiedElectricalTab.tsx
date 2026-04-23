@@ -23,6 +23,7 @@ interface BtUnifiedElectricalTabProps {
   onBtSetEdgeChangeFlag?: (id: string, flag: any) => void;
   updateEdgeVerified: (id: string, v: boolean) => void;
   updateEdgeConductors: (id: string, c: any) => void;
+  updateEdgeMtConductors: (id: string, mtc: any) => void;
   updateEdgeReplacementFromConductors: (id: string, rc: any) => void;
   onSelectedEdgeChange: (id: string) => void;
   onSelectedTransformerChange: (id: string) => void;
@@ -165,6 +166,7 @@ const BtUnifiedElectricalTab: React.FC<BtUnifiedElectricalTabProps> = (props) =>
                       selectEdge={props.onSelectedEdgeChange}
                       updateEdgeVerified={props.updateEdgeVerified}
                       updateEdgeConductors={props.updateEdgeConductors}
+                      updateEdgeMtConductors={props.updateEdgeMtConductors}
                       updateEdgeReplacementFromConductors={props.updateEdgeReplacementFromConductors}
                       onBtSetEdgeChangeFlag={props.onBtSetEdgeChangeFlag}
                     />

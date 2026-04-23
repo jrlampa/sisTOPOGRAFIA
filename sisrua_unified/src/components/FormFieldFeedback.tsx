@@ -24,11 +24,11 @@ const inputToneClasses: Record<
   },
   light: {
     default:
-      "border-slate-300 text-slate-800 placeholder-slate-400 focus:ring-blue-500/30",
+      "border-slate-300 text-slate-900 placeholder-slate-400 focus:ring-blue-500/30",
     success:
-      "border-emerald-500/60 text-slate-900 placeholder-emerald-300/70 focus:ring-emerald-500/30",
+      "border-emerald-600 text-emerald-900 placeholder-emerald-600/50 focus:ring-emerald-500/30",
     error:
-      "border-rose-500/60 text-slate-900 placeholder-rose-300/70 focus:ring-rose-500/30",
+      "border-rose-600 text-rose-900 placeholder-rose-600/50 focus:ring-rose-500/30",
   },
 };
 

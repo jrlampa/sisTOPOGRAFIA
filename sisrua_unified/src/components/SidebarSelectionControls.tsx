@@ -51,7 +51,7 @@ export function SidebarSelectionControls({
       {/* Search Card */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-600 dark:text-slate-300">
+          <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300">
             {t.targetArea}
           </label>
         </div>
@@ -120,7 +120,7 @@ export function SidebarSelectionControls({
       <div className="space-y-6">
         <div className="flex flex-col gap-1.5">
           <div className="flex justify-between items-center">
-              <label className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-600 dark:text-slate-300">
+              <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300">
               {t.selectionMode}
             </label>
           </div>
@@ -154,7 +154,7 @@ export function SidebarSelectionControls({
             className="space-y-4"
           >
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-600 dark:text-slate-300">
+              <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300">
                 {t.regionRadius}
               </label>
               <div className="rounded-xl border border-sky-200 bg-white px-2.5 py-1 shadow-sm dark:border-white/10 dark:bg-white/5">

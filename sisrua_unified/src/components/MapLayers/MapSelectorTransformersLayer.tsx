@@ -12,6 +12,8 @@ import {
   POPUP_FLAG_GRID_CLASS,
   POPUP_TOOLBAR_CLASS,
 } from "../MapSelectorStyles";
+import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
+import { AppLocale } from "../../types";
 
 interface MapSelectorTransformersLayerProps {
   paneName: string;
@@ -34,6 +36,7 @@ interface MapSelectorTransformersLayerProps {
     transformerChangeFlag: "existing" | "new" | "remove" | "replace",
   ) => void;
   onBtDeleteTransformer?: (id: string) => void;
+  locale: AppLocale;
 }
 
 const MapSelectorTransformersLayer: React.FC<
@@ -48,7 +51,9 @@ const MapSelectorTransformersLayer: React.FC<
   onBtRenameTransformer,
   onBtSetTransformerChangeFlag,
   onBtDeleteTransformer,
+  locale,
 }) => {
+  const t = getBtTopologyPanelText(locale).poleVerification;
   const makeTransformerIcon = (
     verified: boolean,
     transformerFlag: "existing" | "new" | "remove" | "replace",
@@ -136,7 +141,10 @@ const MapSelectorTransformersLayer: React.FC<
                           flag,
                         )}
                       >
-                        {flag.charAt(0).toUpperCase() + flag.slice(1)}
+                        {flag === "new" ? t.flagNew :
+                         flag === "remove" ? t.flagRemove :
+                         flag === "replace" ? t.flagReplace :
+                         t.flagExisting}
                       </button>
                     ),
                   )}

@@ -63,6 +63,8 @@ export interface AnalysisStats {
   totalNature: number;
   avgHeight: number;
   maxHeight: number;
+  density?: "Baixa" | "Média" | "Alta";
+  densityValue?: number;
 }
 
 export interface TerrainPoint {

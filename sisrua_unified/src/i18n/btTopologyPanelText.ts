@@ -101,6 +101,15 @@ type BtTopologyPanelText = {
     edgeContext: string;
     noSelection: string;
   };
+  popup: {
+    flag: string;
+    verified: string;
+    notVerified: string;
+    noConductor: string;
+    linkedMtConductor: string;
+    leaving: string;
+    noLeavingConductor: string;
+  };
 };
 
 const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
@@ -205,6 +214,15 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       edgeContext: "Vão",
       noSelection: "Selecione um item no mapa",
     },
+    popup: {
+      flag: "Flag",
+      verified: "Verificado",
+      notVerified: "Não verificado",
+      noConductor: "Sem condutor informado",
+      linkedMtConductor: "Condutor MT Vinculado",
+      leaving: "Sai",
+      noLeavingConductor: "Sem condutor de saída definido",
+    },
   },
   "en-US": {
     projectTypeTitle: "Project Type",
@@ -307,6 +325,15 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       edgeContext: "Span",
       noSelection: "Select an item on the map",
     },
+    popup: {
+      flag: "Flag",
+      verified: "Verified",
+      notVerified: "Not verified",
+      noConductor: "No conductor informed",
+      linkedMtConductor: "Linked MT Conductor",
+      leaving: "Leaves",
+      noLeavingConductor: "No leaving conductor defined",
+    },
   },
   "es-ES": {
     projectTypeTitle: "Tipo de Proyecto",
@@ -408,6 +435,15 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       transformerContext: "Trafo",
       edgeContext: "Tramo",
       noSelection: "Seleccione um item en el mapa",
+    },
+    popup: {
+      flag: "Flag",
+      verified: "Verificado",
+      notVerified: "No verificado",
+      noConductor: "Sin conductor informado",
+      linkedMtConductor: "Conductor MT Vinculado",
+      leaving: "Sale",
+      noLeavingConductor: "Sin conductor de salida definido",
     },
   },
 };

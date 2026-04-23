@@ -63,6 +63,7 @@ export function useSearch({
 
         if (location) {
           onLocationFound(location);
+          setSearchQuery(""); // Terminate search loop after success
         } else {
           throw new Error("No location data received");
         }

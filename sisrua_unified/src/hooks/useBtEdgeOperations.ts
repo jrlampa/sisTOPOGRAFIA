@@ -105,12 +105,12 @@ export function useBtEdgeOperations({
     );
 
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
+          ...prev.btTopology,
           edges: [
-            ...btTopology.edges,
+            ...prev.btTopology.edges,
             {
               id: edgeId,
               fromPoleId: fromPole.id,
@@ -123,7 +123,7 @@ export function useBtEdgeOperations({
             },
           ],
         },
-      },
+      }),
       true,
     );
 
@@ -136,13 +136,13 @@ export function useBtEdgeOperations({
 
   const handleBtDeleteEdge = (edgeId: string) => {
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
-          edges: btTopology.edges.filter((e) => e.id !== edgeId),
+          ...prev.btTopology,
+          edges: prev.btTopology.edges.filter((e) => e.id !== edgeId),
         },
-      },
+      }),
       true,
     );
     showToast(`Condutor ${edgeId} removido`, "info");
@@ -153,11 +153,11 @@ export function useBtEdgeOperations({
     edgeChangeFlag: BtEdgeChangeFlag,
   ) => {
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
-          edges: btTopology.edges.map((edge) => {
+          ...prev.btTopology,
+          edges: prev.btTopology.edges.map((edge) => {
             if (edge.id !== edgeId) {
               return edge;
             }
@@ -168,7 +168,7 @@ export function useBtEdgeOperations({
             });
           }),
         },
-      },
+      }),
       true,
     );
 
@@ -199,11 +199,11 @@ export function useBtEdgeOperations({
     conductors: BtEdge["conductors"],
   ) => {
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
-          edges: btTopology.edges.map((edge) =>
+          ...prev.btTopology,
+          edges: prev.btTopology.edges.map((edge) =>
             edge.id !== edgeId
               ? edge
               : normalizeBtEdge({
@@ -212,7 +212,7 @@ export function useBtEdgeOperations({
                 }),
           ),
         },
-      },
+      }),
       true,
     );
   };
@@ -319,11 +319,11 @@ export function useBtEdgeOperations({
       : 0;
 
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
-          edges: btTopology.edges.map((edge) =>
+          ...prev.btTopology,
+          edges: prev.btTopology.edges.map((edge) =>
             edge.id === edgeId
               ? {
                   ...edge,
@@ -332,7 +332,7 @@ export function useBtEdgeOperations({
               : edge,
           ),
         },
-      },
+      }),
       true,
     );
     showToast(

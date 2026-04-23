@@ -3,9 +3,15 @@ import { Pane, Polyline, Popup } from "react-leaflet";
 import { Trash2 } from "lucide-react";
 import L from "leaflet";
 import type { MapMtEdge, MapMtPole, MapMtTopology } from "../../types.map";
+import {
+  getFlagButtonClass,
+  POPUP_FLAG_GRID_CLASS,
+  POPUP_TOOLBAR_CLASS,
+} from "../MapSelectorStyles";
+import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
+import type { AppLocale } from "../../types";
 
 const EDGE_HIT_AREA_WEIGHT = 44;
-const POPUP_FLAG_GRID_CLASS = "mt-1.5 grid grid-cols-2 gap-1.5";
 
 const getMtEdgeVisualConfig = (edge: MapMtEdge) => {
   const flag = edge.edgeChangeFlag ?? "existing";
@@ -22,25 +28,6 @@ const getMtEdgeVisualConfig = (edge: MapMtEdge) => {
   return { color: "#d97706", dashArray: undefined, weight: 3.5 };
 };
 
-const getFlagButtonClass = (
-  isActive: boolean,
-  variant: "existing" | "new" | "replace" | "remove",
-) => {
-  const baseClass =
-    "h-6 rounded border bg-white text-[10px] font-bold transition-colors";
-
-  if (variant === "new") {
-    return `${baseClass} border-orange-500 text-orange-700 ${isActive ? "bg-orange-100" : "hover:bg-orange-50"}`;
-  }
-  if (variant === "replace") {
-    return `${baseClass} border-amber-400 text-amber-700 ${isActive ? "bg-amber-100" : "hover:bg-amber-50"}`;
-  }
-  if (variant === "remove") {
-    return `${baseClass} border-red-500 text-red-700 ${isActive ? "bg-red-100" : "hover:bg-red-50"}`;
-  }
-  return `${baseClass} border-orange-500 text-orange-700 ${isActive ? "bg-orange-100" : "hover:bg-orange-50"}`;
-};
-
 interface MapSelectorMtEdgesLayerProps {
   paneName: string;
   topology: MapMtTopology;
@@ -51,6 +38,7 @@ interface MapSelectorMtEdgesLayerProps {
     edgeId: string,
     edgeChangeFlag: "existing" | "new" | "remove" | "replace",
   ) => void;
+  locale: AppLocale;
 }
 
 const MapSelectorMtEdgesLayer: React.FC<MapSelectorMtEdgesLayerProps> = ({
@@ -60,7 +48,10 @@ const MapSelectorMtEdgesLayer: React.FC<MapSelectorMtEdgesLayerProps> = ({
   polesById,
   onMtDeleteEdge,
   onMtSetEdgeChangeFlag,
+  locale,
 }) => {
+  const t = getBtTopologyPanelText(locale).poleVerification;
+
   const popupEdgesById = React.useMemo(
     () =>
       new Map((popupTopology ?? topology).edges.map((edge) => [edge.id, edge])),
@@ -131,35 +122,36 @@ const MapSelectorMtEdgesLayer: React.FC<MapSelectorMtEdgesLayerProps> = ({
                   </div>
                   <div className="mt-1.5 flex flex-col gap-1.5">
                     <div className={POPUP_FLAG_GRID_CLASS}>
-                      <button
-                        onClick={() =>
-                          onMtSetEdgeChangeFlag?.(edge.id, "existing")
-                        }
-                        className={getFlagButtonClass(
-                          edgeChangeFlag === "existing",
-                          "existing",
-                        )}
-                      >
-                        Existente
-                      </button>
-                      <button
-                        onClick={() => onMtSetEdgeChangeFlag?.(edge.id, "new")}
-                        className={getFlagButtonClass(
-                          edgeChangeFlag === "new",
-                          "new",
-                        )}
-                      >
-                        Novo
-                      </button>
+                      {(["existing", "new", "replace", "remove"] as const).map(
+                        (flag) => (
+                          <button
+                            key={flag}
+                            onClick={() =>
+                              onMtSetEdgeChangeFlag?.(edge.id, flag)
+                            }
+                            className={getFlagButtonClass(
+                              edgeChangeFlag === flag,
+                              flag,
+                            )}
+                          >
+                            {flag === "new" ? t.flagNew :
+                             flag === "remove" ? t.flagRemove :
+                             flag === "replace" ? t.flagReplace :
+                             t.flagExisting}
+                          </button>
+                        ),
+                      )}
                     </div>
                     {onMtDeleteEdge && (
-                      <button
-                        onClick={() => onMtDeleteEdge(edge.id)}
-                        className="flex h-6 items-center justify-center gap-1.5 rounded border border-red-500 bg-red-50 text-[10px] font-bold text-red-700 transition-colors hover:bg-red-100"
-                      >
-                        <Trash2 size={12} />
-                        Deletar Vão
-                      </button>
+                      <div className={POPUP_TOOLBAR_CLASS}>
+                        <button
+                          onClick={() => onMtDeleteEdge(edge.id)}
+                          className="flex h-6 items-center justify-center gap-1.5 rounded border border-red-500 bg-red-50 px-3 text-[10px] font-bold text-red-700 transition-colors hover:bg-red-100"
+                        >
+                          <Trash2 size={12} />
+                          Deletar Vão
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

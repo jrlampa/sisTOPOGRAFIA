@@ -193,7 +193,10 @@ function App() {
       const systemTheme = e.matches ? "dark" : "light";
       // Só segue o sistema se o tema atual já estava seguindo-o
       setAppState(
-        { ...appState, settings: { ...settings, theme: systemTheme } },
+        (prev) => ({
+          ...prev,
+          settings: { ...prev.settings, theme: systemTheme },
+        }),
         false,
       );
     };
@@ -691,6 +694,7 @@ function App() {
     onMtSetEdgeChangeFlag: handleMtSetEdgeChangeFlag,
     onBtSelectPole: handleBtSelectedPoleChange,
     dgScenario: dgActiveScenario,
+    locale: settings.locale,
   };
 
   const btModalStackProps: React.ComponentProps<typeof BtModalStack> = {
@@ -782,6 +786,7 @@ function App() {
     onSetSelectedPoleId: setSelectedPoleId,
     onSetSelectedEdgeId: setSelectedEdgeId,
     onSetSelectedTransformerId: setSelectedTransformerId,
+    mtTopology: mtTopology,
   };
 
   const sidebarAnalysisResultsProps: React.ComponentProps<

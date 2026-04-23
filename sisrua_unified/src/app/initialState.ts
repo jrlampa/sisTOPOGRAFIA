@@ -18,11 +18,7 @@ function detectSystemTheme(): AppTheme {
 }
 
 function detectPreferredLocale(): AppLocale {
-  try {
-    return normalizeAppLocale(navigator.language);
-  } catch {
-    return "pt-BR";
-  }
+  return "pt-BR";
 }
 
 const DEFAULT_LOCALE = detectPreferredLocale();

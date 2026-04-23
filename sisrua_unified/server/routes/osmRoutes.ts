@@ -25,9 +25,11 @@ interface OsmStats {
   totalNature: number;
   avgHeight: number;
   maxHeight: number;
+  density?: "Baixa" | "Média" | "Alta";
+  densityValue?: number; // buildings per km2
 }
 
-function computeOsmStats(elements: any[]): OsmStats {
+function computeOsmStats(elements: any[], radiusMeters: number): OsmStats {
   let buildings = 0;
   let roads = 0;
   let nature = 0;
@@ -36,14 +38,20 @@ function computeOsmStats(elements: any[]): OsmStats {
   let maxHeight = 0;
 
   for (const el of elements) {
-    if (el.tags?.building) buildings++;
+    const isBuilding = !!el.tags?.building;
+    if (isBuilding) buildings++;
     if (el.tags?.highway) roads++;
     if (el.tags?.natural || el.tags?.landuse) nature++;
 
     let h = 0;
-    if (el.tags?.height) h = parseFloat(el.tags.height);
-    else if (el.tags?.["building:levels"])
+    if (el.tags?.height) {
+      h = parseFloat(el.tags.height);
+    } else if (el.tags?.["building:levels"]) {
       h = parseFloat(el.tags["building:levels"]) * 3.2;
+    } else if (isBuilding) {
+      // Heuristic: Assume 1 floor (3.5m) for buildings without height data
+      h = 3.5;
+    }
 
     if (h > 0) {
       totalHeight += h;
@@ -52,24 +60,38 @@ function computeOsmStats(elements: any[]): OsmStats {
     }
   }
 
+  // Calculate density (buildings per km2)
+  const areaKm2 = (Math.PI * Math.pow(radiusMeters, 2)) / 1_000_000;
+  const densityValue = buildings / areaKm2;
+  
+  let density: "Baixa" | "Média" | "Alta" = "Baixa";
+  if (densityValue > 1000) density = "Alta";
+  else if (densityValue > 250) density = "Média";
+
   return {
     totalBuildings: buildings,
     totalRoads: roads,
     totalNature: nature,
     avgHeight: heightCount > 0 ? totalHeight / heightCount : 0,
     maxHeight,
+    density,
+    densityValue,
   };
 }
 
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
   "https://lz4.overpass-api.de/api/interpreter",
+  "https://z.overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
   "https://overpass.nchc.org.tw/api/interpreter",
   "https://overpass.private.coffee/api/interpreter",
-  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "https://overpass.osm.viabit.com/api/interpreter",
+  "https://overpass.openstreetmap.fr/api/interpreter",
+  "https://overpass.karlsruhe.de/api/interpreter",
   "https://overpass.osm.ch/api/interpreter",
-  "https://overpass.openstreetmap.ru/api/interpreter",
+  "https://overpass.be/api/interpreter",
+  "https://overpass.ie/api/interpreter",
 ];
 
 interface ParsedCacheKey {
@@ -215,41 +237,78 @@ router.post("/", async (req: Request, res: Response) => {
     return res.json(cached.data);
   }
 
-  const query = `
-    [out:json][timeout:60];
-    (
-      nwr(around:${radius},${lat},${lng});
-    );
-    out body geom qt;
-  `;
+  const query = `[out:json][timeout:60];(node(around:${radius},${lat},${lng});way(around:${radius},${lat},${lng});rel(around:${radius},${lat},${lng}););out body geom qt;`;
 
-  const requestBody = `data=${encodeURIComponent(query)}`;
-  let lastError: unknown = null;
+    const body = new URLSearchParams();
+    body.append("data", query);
+    let lastError: unknown = null;
+  
+    // Randomize endpoints to avoid hitting the same "busy" server every time
+    const shuffledEndpoints = [...OVERPASS_ENDPOINTS].sort(() => Math.random() - 0.5);
 
-  for (const endpoint of OVERPASS_ENDPOINTS) {
-    try {
-      const response = await fetchWithCircuitBreaker(
-        getOverpassCircuitBreakerName(endpoint),
-        endpoint,
-        {
-          method: "POST",
-          body: requestBody,
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
+    for (const endpoint of shuffledEndpoints) {
+      try {
+        // Attempt 1: GET (Most compatible with public mirrors)
+        let response = await fetchWithCircuitBreaker(
+          getOverpassCircuitBreakerName(endpoint),
+          `${endpoint}?data=${encodeURIComponent(query)}`,
+          {
+            method: "GET",
+            headers: {
+              "User-Agent": "curl/8.4.0",
+              "Accept": "application/json",
+            },
+            signal: AbortSignal.timeout(60000),
           },
-          signal: AbortSignal.timeout(30000),
-        },
-        { maxRetries: 1, initialDelay: 700, maxDelay: 2000 },
-      );
+          { maxRetries: 1, initialDelay: 500, maxDelay: 2000 },
+        );
+
+        // Attempt 2: Fallback to POST if GET failed with 405 (Method Not Allowed)
+        if (!response.ok && response.status === 405) {
+          logger.info("Retrying with POST due to 405", { endpoint });
+          response = await fetchWithCircuitBreaker(
+            getOverpassCircuitBreakerName(endpoint) + "_POST",
+            endpoint,
+            {
+              method: "POST",
+              body: body,
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": "curl/8.4.0",
+              },
+              signal: AbortSignal.timeout(60000),
+            },
+            { maxRetries: 0 }
+          );
+        }
+
+        if (!response.ok) {
+           throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
       const data = await response.json();
-      const stats = computeOsmStats(data.elements ?? []);
+      const elementsCount = data.elements?.length || 0;
+      
+      // Se o servidor retornou 0 elementos, pode ser um servidor regional (ex: .ch, .ru) 
+      // ou um falso-positivo. Tentamos o próximo para garantir.
+      if (elementsCount === 0 && endpoint !== OVERPASS_ENDPOINTS[OVERPASS_ENDPOINTS.length - 1]) {
+        logger.warn("Overpass returned 0 elements, trying next endpoint...", { endpoint, lat, lng });
+        continue;
+      }
+
+      logger.info("Overpass request success", {
+        endpoint,
+        elementsCount,
+        lat,
+        lng,
+        radius 
+      });
+
+      const stats = computeOsmStats(data.elements ?? [], radius);
       const result = { ...data, _stats: stats };
 
       // Set Cache
       osmCache.set(cacheKey, { data: result, timestamp: Date.now() });
-      logger.info("OSM Cache Set", { lat, lng, radius });
-
       return res.json(result);
     } catch (error) {
       lastError = error;

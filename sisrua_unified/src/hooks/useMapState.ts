@@ -78,24 +78,24 @@ export function useMapState({
   };
 
   const updateSettings = (newSettings: AppSettings) => {
-    setAppState({ ...appState, settings: newSettings }, true);
+    setAppState((prev) => ({ ...prev, settings: newSettings }), true);
   };
 
   const handleMapClick = (newCenter: GeoLocation) => {
-    setAppState({ ...appState, center: newCenter }, true);
+    setAppState((prev) => ({ ...prev, center: newCenter }), true);
     clearData();
   };
 
   const handleSelectionModeChange = (mode: SelectionMode) => {
     setAppState(
-      { ...appState, selectionMode: mode, polygon: [], measurePath: [] },
+      (prev) => ({ ...prev, selectionMode: mode, polygon: [], measurePath: [] }),
       true,
     );
   };
 
   const handleMeasurePathChange = async (path: [number, number][]) => {
     const geoPath = path.map((point) => ({ lat: point[0], lng: point[1] }));
-    setAppState({ ...appState, measurePath: geoPath }, false);
+    setAppState((prev) => ({ ...prev, measurePath: geoPath }), false);
 
     if (geoPath.length === 2) {
       await loadElevationProfile(geoPath[0], geoPath[1]);
@@ -106,16 +106,16 @@ export function useMapState({
   };
 
   const handleRadiusChange = (nextRadius: number) => {
-    setAppState({ ...appState, radius: nextRadius }, false);
+    setAppState((prev) => ({ ...prev, radius: nextRadius }), false);
   };
 
   const handleClearPolygon = () => {
-    setAppState({ ...appState, polygon: [] }, true);
+    setAppState((prev) => ({ ...prev, polygon: [] }), true);
   };
 
   const handlePolygonChange = (points: [number, number][]) => {
     const geoPoints = points.map((point) => ({ lat: point[0], lng: point[1] }));
-    setAppState({ ...appState, polygon: geoPoints }, true);
+    setAppState((prev) => ({ ...prev, polygon: geoPoints }), true);
   };
 
   // Set center to current geolocation on mount (only when center is the default placeholder)
@@ -129,14 +129,14 @@ export function useMapState({
         (position) => {
           const latest = latestAppStateRef.current;
           setAppState(
-            {
-              ...latest,
+            (prev) => ({
+              ...prev,
               center: {
                 lat: position.coords.latitude,
                 lng: position.coords.longitude,
                 label: "Current Location",
               },
-            },
+            }),
             false,
           );
         },

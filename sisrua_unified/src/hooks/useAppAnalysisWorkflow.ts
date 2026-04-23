@@ -1,3 +1,4 @@
+import React from "react";
 import type { ToastType } from "../components/Toast";
 import type { GeoLocation, GlobalState, SelectionMode } from "../types";
 import { useSearch } from "./useSearch";
@@ -35,21 +36,37 @@ export function useAppAnalysisWorkflow({
 }: UseAppAnalysisWorkflowParams) {
   const { center, radius, settings } = appState;
 
-  const { searchQuery, setSearchQuery, isSearching, handleSearch } = useSearch({
-    onLocationFound: (location) => {
-      setAppState({ ...appState, center: location }, true);
+  const onLocationFound = React.useCallback(
+    (location: GeoLocation) => {
+      setAppState(
+        (prev) => ({ ...prev, center: location, selectionMode: "circle" }),
+        true,
+      );
       clearData();
       showToast(`Locality found: ${location.label}`, "success");
     },
-    onError: (message) => showToast(message, "error"),
+    [setAppState, clearData, showToast],
+  );
+
+  const onError = React.useCallback(
+    (message: string) => showToast(message, "error"),
+    [showToast],
+  );
+
+  const { searchQuery, setSearchQuery, isSearching, handleSearch } = useSearch({
+    onLocationFound,
+    onError,
   });
 
-  const handleSelectionModeChange = (mode: SelectionMode) => {
-    clearPendingBtEdge();
-    handleBaseSelectionModeChange(mode);
-  };
+  const handleSelectionModeChange = React.useCallback(
+    (mode: SelectionMode) => {
+      clearPendingBtEdge();
+      handleBaseSelectionModeChange(mode);
+    },
+    [clearPendingBtEdge, handleBaseSelectionModeChange],
+  );
 
-  const handleFetchAndAnalyze = async () => {
+  const handleFetchAndAnalyze = React.useCallback(async () => {
     const result = await runAnalysis(center, radius, settings.enableAI);
     if (result.success) {
       showToast("Análise concluída!", "success");
@@ -57,7 +74,7 @@ export function useAppAnalysisWorkflow({
     }
 
     showToast(result.errorMessage || "Falha na análise.", "error");
-  };
+  }, [runAnalysis, center, radius, settings.enableAI, showToast]);
 
   const showDxfProgress = isDownloading || !!jobId;
   const dxfProgressValue = Math.max(0, Math.min(100, Math.round(jobProgress)));

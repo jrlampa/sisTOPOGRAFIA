@@ -64,103 +64,121 @@ export function useMtPoleOperations({
     };
 
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         mtTopology: {
-          ...mtTopology,
-          poles: normalizeMtPoles([...mtTopology.poles, newPole]),
+          ...prev.mtTopology,
+          poles: normalizeMtPoles([...prev.mtTopology.poles, newPole]),
         },
-      },
+      }),
       true,
     );
     return newId;
   };
 
   const handleMtDeletePole = (poleId: string) => {
-    if (appState.btTopology?.poles.some((pole) => pole.id === poleId)) {
-      showToast(
-        "Poste compartilhado BT/MT: remova na etapa BT para manter integridade.",
-        "info",
-      );
-      return;
-    }
-
     setAppState(
-      {
-        ...appState,
-        mtTopology: {
-          ...mtTopology,
-          poles: mtTopology.poles.filter((p) => p.id !== poleId),
-          edges: mtTopology.edges.filter(
+      (prev) => {
+        const nextMtTopology = {
+          ...prev.mtTopology,
+          poles: prev.mtTopology.poles.filter((p) => p.id !== poleId),
+          edges: prev.mtTopology.edges.filter(
             (e) => e.fromPoleId !== poleId && e.toPoleId !== poleId,
           ),
-        },
+        };
+
+        // Unified deletion: if it exists in BT, clean it up there too
+        const isShared = prev.btTopology?.poles.some((p) => p.id === poleId);
+        
+        if (!isShared) {
+          return { ...prev, mtTopology: nextMtTopology };
+        }
+
+        const nextBtTopology = {
+          ...prev.btTopology,
+          poles: prev.btTopology.poles.filter((p) => p.id !== poleId),
+          edges: prev.btTopology.edges.filter(
+            (e) => e.fromPoleId !== poleId && e.toPoleId !== poleId,
+          ),
+          transformers: prev.btTopology.transformers.filter(
+            (t) => {
+                if (t.poleId) return t.poleId !== poleId;
+                const p = prev.btTopology.poles.find(cand => cand.id === poleId);
+                if (!p) return true;
+                // Cascading removal for transformers near the deleted pole
+                return haversineDistanceMeters(t, p) > 6;
+            }
+          ),
+        };
+
+        return {
+          ...prev,
+          mtTopology: nextMtTopology,
+          btTopology: nextBtTopology,
+        };
       },
       true,
     );
+    showToast(`Poste ${poleId} removido globalmente (BT/MT)`, "info");
   };
 
   const handleMtRenamePole = (poleId: string, title: string) => {
-    const nextBtTopology = appState.btTopology
-      ? {
-          ...appState.btTopology,
-          poles: appState.btTopology.poles.map((p) =>
-            p.id === poleId ? { ...p, title } : p,
-          ),
-        }
-      : appState.btTopology;
-
     setAppState(
-      {
-        ...appState,
-        btTopology: nextBtTopology,
+      (prev) => ({
+        ...prev,
+        btTopology: prev.btTopology
+          ? {
+              ...prev.btTopology,
+              poles: prev.btTopology.poles.map((p) =>
+                p.id === poleId ? { ...p, title } : p,
+              ),
+            }
+          : prev.btTopology,
         mtTopology: {
-          ...mtTopology,
-          poles: mtTopology.poles.map((p) =>
+          ...prev.mtTopology,
+          poles: prev.mtTopology.poles.map((p) =>
             p.id === poleId ? { ...p, title } : p,
           ),
         },
-      },
+      }),
       true,
     );
   };
 
   const handleMtSetPoleVerified = (poleId: string, verified: boolean) => {
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         mtTopology: {
-          ...mtTopology,
-          poles: mtTopology.poles.map((p) =>
+          ...prev.mtTopology,
+          poles: prev.mtTopology.poles.map((p) =>
             p.id === poleId ? { ...p, verified } : p,
           ),
         },
-      },
+      }),
       true,
     );
   };
 
   const handleMtDragPole = (poleId: string, lat: number, lng: number) => {
-    const nextBtTopology = appState.btTopology
-      ? {
-          ...appState.btTopology,
-          poles: appState.btTopology.poles.map((p) =>
-            p.id === poleId ? { ...p, lat, lng } : p,
-          ),
-        }
-      : appState.btTopology;
-
     setAppState(
-      {
-        ...appState,
-        btTopology: nextBtTopology,
+      (prev) => ({
+        ...prev,
+        btTopology: prev.btTopology
+          ? {
+              ...prev.btTopology,
+              poles: prev.btTopology.poles.map((p) =>
+                p.id === poleId ? { ...p, lat, lng } : p,
+              ),
+            }
+          : prev.btTopology,
         mtTopology: {
-          ...mtTopology,
-          poles: mtTopology.poles.map((p) =>
+          ...prev.mtTopology,
+          poles: prev.mtTopology.poles.map((p) =>
             p.id === poleId ? { ...p, lat, lng } : p,
           ),
         },
-      },
+      }),
       true,
     );
   };
@@ -170,15 +188,15 @@ export function useMtPoleOperations({
     nodeChangeFlag: MtPoleNode["nodeChangeFlag"],
   ) => {
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         mtTopology: {
-          ...mtTopology,
-          poles: mtTopology.poles.map((p) =>
+          ...prev.mtTopology,
+          poles: prev.mtTopology.poles.map((p) =>
             p.id === poleId ? { ...p, nodeChangeFlag } : p,
           ),
         },
-      },
+      }),
       true,
     );
   };

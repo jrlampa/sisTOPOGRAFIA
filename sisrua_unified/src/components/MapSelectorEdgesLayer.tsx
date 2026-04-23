@@ -7,6 +7,8 @@ import {
   ENTITY_ID_PREFIXES,
   LEGACY_ID_ENTROPY,
 } from "../constants/magicNumbers";
+import { getBtTopologyPanelText } from "../i18n/btTopologyPanelText";
+import { AppLocale } from "../types";
 
 const CONDUCTOR_OPTIONS = [
   "70 Al - MX",
@@ -168,6 +170,7 @@ interface MapSelectorEdgesLayerProps {
     edgeId: string,
     conductors: Array<{ id: string; quantity: number; conductorName: string }>,
   ) => void;
+  locale: AppLocale;
 }
 
 const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
@@ -181,7 +184,10 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
   onBtQuickRemoveEdgeConductor,
   onBtSetEdgeLengthMeters,
   onBtSetEdgeReplacementFromConductors,
+  locale,
 }) => {
+  const t = getBtTopologyPanelText(locale);
+  const { poleVerification: tp, transformerEdge: te } = t;
   const [edgeConductorSelection, setEdgeConductorSelection] = React.useState<
     Record<string, string>
   >({});
@@ -231,12 +237,12 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
         const edgeVisual = getEdgeVisualConfig(edge);
         const edgeFlagLabel =
           popupEdgeChangeFlag === "remove"
-            ? "Remoção"
+            ? tp.flagRemove
             : popupEdgeChangeFlag === "new"
-              ? "Novo"
+              ? tp.flagNew
               : popupEdgeChangeFlag === "replace"
-                ? "Substituição"
-                : "Existente";
+                ? tp.flagReplace
+                : tp.flagExisting;
 
         const selectedConductor =
           edgeConductorSelection[edge.id] ??
@@ -268,7 +274,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
               <div className="mt-1 text-slate-700">
                 Flag: <strong>{edgeFlagLabel}</strong>
               </div>
-              <div className="mt-1 text-slate-700">Condutor</div>
+              <div className="mt-1 text-slate-700">{te.conductorPhase}</div>
               <div className="mt-0.5">
                 <select
                   value={selectedConductor}
@@ -290,8 +296,8 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                   ))}
                 </select>
               </div>
-              <div className="mt-1.5 text-slate-700">
-                Metragem:{" "}
+              <div className="mt-1 text-slate-700">
+                {t.stats.networkLengthMeters.replace("m de rede", "Metragem")}:{" "}
                 {typeof (
                   popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters
                 ) === "number"
@@ -337,7 +343,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
               )}
               {popupEdgeChangeFlag === "replace" && (
                 <>
-                  <div className="mt-1.5 text-slate-700">Condutor que sai</div>
+                  <div className="mt-1.5 text-slate-700">{te.replaceConductor.replace("Substituir condutores de", "Condutor que sai")}</div>
                   <div className="mt-0.5">
                     <select
                       value={selectedReplacementFromConductor}
@@ -379,6 +385,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                   )}
                 </>
               )}
+
               {popupEdge.conductors.length > 0 ? (
                 <div className="mt-0.5 text-slate-700">
                   {popupEdge.conductors.map((entry) => (
@@ -389,13 +396,13 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                 </div>
               ) : (
                 <div className="mt-0.5 text-slate-500">
-                  Sem condutor informado
+                  {t.popup.noConductor}
                 </div>
               )}
               {(popupEdge.mtConductors ?? []).length > 0 && (
                 <div className="mt-1 rounded border border-orange-200 bg-orange-50 px-1.5 py-1 text-[10px] text-orange-900">
                   <div className="font-bold uppercase tracking-wide">
-                    Condutor MT Vinculado
+                    {t.popup.linkedMtConductor}
                   </div>
                   {(popupEdge.mtConductors ?? []).map((entry) => (
                     <div key={entry.id}>
@@ -409,18 +416,18 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                   {(popupEdge.replacementFromConductors ?? []).length > 0 ? (
                     (popupEdge.replacementFromConductors ?? []).map((entry) => (
                       <div key={entry.id}>
-                        Sai: {entry.quantity} x {entry.conductorName}
+                        {t.popup.leaving}: {entry.quantity} x {entry.conductorName}
                       </div>
                     ))
                   ) : (
-                    <div>Sem condutor de saída definido</div>
+                    <div>{t.popup.noLeavingConductor}</div>
                   )}
                 </div>
               )}
               <div
                 className={`mt-0.5 font-semibold ${popupEdge.verified ? "text-green-600" : "text-amber-600"}`}
               >
-                {popupEdge.verified ? "✓ Verificado" : "○ Não verificado"}
+                {popupEdge.verified ? `✓ ${t.popup.verified}` : `○ ${t.popup.notVerified}`}
               </div>
               {onBtSetEdgeChangeFlag && (
                 <div className={POPUP_FLAG_GRID_CLASS}>
@@ -435,7 +442,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                       "existing",
                     )}
                   >
-                    Existente
+                    {tp.flagExisting}
                   </button>
                   <button
                     onClick={(e) => {
@@ -448,7 +455,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                       "new",
                     )}
                   >
-                    Novo
+                    {tp.flagNew}
                   </button>
                   <button
                     onClick={(e) => {
@@ -461,7 +468,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                       "replace",
                     )}
                   >
-                    Substituição
+                    {tp.flagReplace}
                   </button>
                   <button
                     onClick={(e) => {
@@ -474,7 +481,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                       "remove",
                     )}
                   >
-                    Remoção
+                    {tp.flagRemove}
                   </button>
                 </div>
               )}
