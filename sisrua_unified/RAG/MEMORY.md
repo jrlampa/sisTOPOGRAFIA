@@ -25,6 +25,22 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 - Commit `968b495`. 375/375 testes passando (Vitest frontend).
 - DG Addendum Sprint 1+2+3 concluídos. Todas as frentes do Design Generativo entregues.
 
+### Atualização Operacional (2026-04-23) - Auditoria Corretiva Frontend (Mini-F1 a F4)
+
+- **Escopo entregue**
+  - Mini-F1 (i18n): `slopeAnalysisLabel` adicionado ao `settingsModalText.ts` para `pt-BR`, `en-US` e `es-ES`. String hardcoded `"Hachura de Declividade Crítica"` substituída em `SettingsModalGeneralTab.tsx`.
+  - Mini-F2 (layout/UX): Bug crítico corrigido em `SidebarWorkspace.tsx` — grid de workflow stages estava com `grid-cols-3` causando o 4º estágio (Análise) ficar cortado/invisível em resolução padrão. Corrigido para `grid-cols-4`.
+  - Mini-F3 (i18n + a11y): `MainMapWorkspace.tsx` totalmente refatorado — criado `src/i18n/mainMapWorkspaceText.ts` com todas as strings de navegação de teclado (WA SD, setas, roda do mouse) e `mapLoading` para os 3 locales. Prop `locale` adicionada ao componente e propagada via `AppShellLayout.tsx` e `App.tsx`.
+  - Mini-F4 (a11y): `SettingsModal.tsx` recebeu `autoFocus` no botão fechar (X) para garantir focus trap correto ao abrir o modal via teclado.
+  - Fix: `AppStatusStack.tsx` recebia React sem import explícito — corrigido.
+  - Fix CORS: `server/app.ts` liberou `http://localhost:3001` e `http://127.0.0.1:3001` nas origens permitidas em DEV.
+- **Qualidade**
+  - `npm run typecheck:frontend` → Exit 0
+  - `npm run test:frontend` → Exit 0 (375 specs)
+  - Commit: `2f1c299`
+- **Próximo ciclo**
+  - Mini-Auditoria Backend: tratamento de erros nas rotas de cálculo MT/BT + circuit-breaker review.
+
 ### Atualização Operacional (2026-04-23) - T2-26 Internacionalização da Sidebar
 
 - **Escopo entregue**
