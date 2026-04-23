@@ -7,8 +7,11 @@ import {
 import { MAX_RADIUS, MIN_RADIUS } from "../constants";
 import type { GeoLocation, SelectionMode } from "../types";
 import { getSearchQueryFeedback } from "../utils/validation";
+import type { AppLocale } from "../types";
+import { getSidebarSelectionText } from "../i18n/sidebarSelectionText";
 
 type Props = {
+  locale: AppLocale;
   center: GeoLocation;
   searchQuery: string;
   setSearchQuery: (value: string) => void;
@@ -25,6 +28,7 @@ type Props = {
 };
 
 export function SidebarSelectionControls({
+  locale,
   center,
   searchQuery,
   setSearchQuery,
@@ -40,6 +44,7 @@ export function SidebarSelectionControls({
   isPolygonValid,
 }: Props) {
   const searchValidation = getSearchQueryFeedback(searchQuery);
+  const t = getSidebarSelectionText(locale);
 
   return (
     <>
@@ -47,15 +52,15 @@ export function SidebarSelectionControls({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-600 dark:text-slate-300">
-            Área alvo
+            {t.targetArea}
           </label>
         </div>
         <form onSubmit={handleSearch} className="space-y-2">
           <div className="relative group">
             <input
               type="text"
-              placeholder="Cidade, endereço ou coordenadas (UTM)"
-              aria-label="Buscar área"
+              placeholder={t.searchPlaceholder}
+              aria-label={t.targetArea}
               aria-describedby="area-alvo-feedback"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -78,7 +83,7 @@ export function SidebarSelectionControls({
                   {isSearching ? (
                     <Loader2 className="animate-spin" size={12} />
                   ) : (
-                    "BUSCAR"
+                    t.btnSearch
                   )}
                 </motion.button>
               )}
@@ -116,7 +121,7 @@ export function SidebarSelectionControls({
         <div className="flex flex-col gap-1.5">
           <div className="flex justify-between items-center">
               <label className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-600 dark:text-slate-300">
-              Modo de seleção
+              {t.selectionMode}
             </label>
           </div>
           <div className="flex rounded-2xl border border-sky-200 bg-sky-50/70 p-1 shadow-[0_12px_24px_rgba(148,163,184,0.14)] dark:border-white/10 dark:bg-white/5 dark:shadow-none">
@@ -124,18 +129,18 @@ export function SidebarSelectionControls({
               onClick={() => onSelectionModeChange("circle")}
               className={`flex-1 rounded-xl py-2 text-[10px] font-black transition-all ${selectionMode === "circle" ? "bg-cyan-100 text-cyan-700 shadow-sm ring-1 ring-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-100 dark:ring-cyan-400/25" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"}`}
             >
-              RAIO
+              {t.modeRadius}
             </button>
             <button
               onClick={() => onSelectionModeChange("polygon")}
               className={`flex-1 rounded-xl py-2 text-[10px] font-black transition-all ${selectionMode === "polygon" ? "bg-cyan-100 text-cyan-700 shadow-sm ring-1 ring-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-100 dark:ring-cyan-400/25" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"}`}
             >
-              POLÍGONO
+              {t.modePolygon}
             </button>
             <button
               onClick={() => onSelectionModeChange("measure")}
               className={`flex-none rounded-xl px-3 py-2 transition-all ${selectionMode === "measure" ? "bg-cyan-100 text-cyan-700 shadow-sm ring-1 ring-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-100 dark:ring-cyan-400/25" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"}`}
-              title="Modo perfil"
+              title={t.modeProfileTitle}
             >
               <TrendingUp size={14} />
             </button>
@@ -150,14 +155,14 @@ export function SidebarSelectionControls({
           >
             <div className="flex justify-between items-center">
               <label className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-600 dark:text-slate-300">
-                Raio da região
+                {t.regionRadius}
               </label>
               <div className="rounded-xl border border-sky-200 bg-white px-2.5 py-1 shadow-sm dark:border-white/10 dark:bg-white/5">
                 <span className="text-xs font-mono font-bold text-cyan-700 dark:text-cyan-300">
                   {radius}
                 </span>
                 <span className="ml-1 text-[10px] text-slate-500 dark:text-slate-400">
-                  METROS
+                  {t.meters}
                 </span>
               </div>
             </div>
@@ -203,14 +208,14 @@ export function SidebarSelectionControls({
           {isProcessing ? (
             <>
               <Loader2 className="animate-spin" size={18} />
-              PROCESSANDO...
+              {t.btnProcessing}
             </>
           ) : (
             <>
               <div className="rounded bg-white/10 p-1 transition-transform group-hover:rotate-12">
                 <TrendingUp size={16} />
               </div>
-              ANALISAR REGIÃO
+              {t.btnAnalyzeRegion}
             </>
           )}
         </motion.button>
@@ -220,8 +225,8 @@ export function SidebarSelectionControls({
             tone={isPolygonValid ? "default" : "error"}
             message={
               isPolygonValid
-                ? "Poligono pronto para análise."
-                : "Desenhe ao menos 3 pontos válidos para habilitar a análise da área."
+                ? t.polygonReady
+                : t.polygonInvalid
             }
           />
         )}

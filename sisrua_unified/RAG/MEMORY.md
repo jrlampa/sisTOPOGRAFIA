@@ -28,15 +28,15 @@ Fornecer extração de dados geoespaciais de alta precisão para projetos de eng
 ### Atualização Operacional (2026-04-22) - T2-26 Sidebar Localizada (i18n)
 
 - **Escopo entregue**
-  - Implementação de internacionalização (i18n) para os componentes `SidebarWorkspace` e `SidebarBtEditorSection`.
-  - As cópias fixas (hardcoded) em português foram extraídas para os dicionários de domínio `sidebarWorkspaceText.ts` e `sidebarBtEditorText.ts`.
+  - Implementação de internacionalização (i18n) completa para toda a superfície da barra lateral, cobrindo os componentes `SidebarWorkspace`, `SidebarBtEditorSection`, `SidebarSelectionControls`, `SidebarMtEditorSection` e `SidebarAnalysisResults`.
+  - As cópias fixas (hardcoded) em português foram extraídas para os dicionários de domínio: `sidebarWorkspaceText.ts`, `sidebarBtEditorText.ts`, `sidebarSelectionText.ts`, `sidebarMtEditorText.ts` e `sidebarAnalysisText.ts`.
 - **Implementação**
   - Textos mapeados para `pt-BR`, `en-US` e `es-ES`.
-  - Atualização do componente pai `App.tsx` para injetar a propriedade `locale` na construção do `sidebarWorkspaceProps` e `sidebarBtEditorSectionProps`.
+  - Atualização do componente pai `App.tsx` para injetar a propriedade `locale` na construção de todas as propriedades enviadas à Sidebar (ex: `sidebarSelectionControlsProps`, `sidebarAnalysisResultsProps`).
 - **Qualidade**
   - `npm run typecheck:frontend` e `npm run test:frontend` executados com sucesso (Exit 0, Coverage ok).
 - **Próximo incremento natural**
-  - Continuar expandindo i18n para componentes restantes como `SidebarSelectionControls` e modais internos da topologia, preservando rigorosamente o baseline pt-BR.
+  - Expandir i18n para os modais de topologia internos (`BtTopologyPanel`, `MtTopologyPanel`) e menus de contexto no mapa, preservando rigorosamente o baseline pt-BR.
 
 ### Atualização Operacional (2026-04-22) - T2-26 Cabeçalho do App Localizado
 

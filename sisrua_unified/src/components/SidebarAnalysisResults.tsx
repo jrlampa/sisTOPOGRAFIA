@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { AnalysisStats, TerrainGrid } from "../types";
 import type { ToastType } from "./Toast";
 import { lazyWithRetry } from "../utils/lazyWithRetry";
+import type { AppLocale } from "../types";
+import { getSidebarAnalysisText } from "../i18n/sidebarAnalysisText";
 
 const Dashboard = React.lazy(() => lazyWithRetry(() => import("./Dashboard")));
 const DxfLegend = React.lazy(() => lazyWithRetry(() => import("./DxfLegend")));
@@ -19,6 +21,7 @@ const InlineSuspenseFallback = ({ label }: { label: string }) => (
 );
 
 interface SidebarAnalysisResultsProps {
+  locale: AppLocale;
   osmData: unknown;
   stats: AnalysisStats | null;
   analysisText: string;
@@ -30,6 +33,7 @@ interface SidebarAnalysisResultsProps {
 }
 
 export function SidebarAnalysisResults({
+  locale,
   osmData,
   stats,
   analysisText,
@@ -39,6 +43,8 @@ export function SidebarAnalysisResults({
   isDownloading,
   showToast,
 }: SidebarAnalysisResultsProps) {
+  const t = getSidebarAnalysisText(locale);
+
   return (
     <>
       {/* Error Display */}
@@ -67,14 +73,14 @@ export function SidebarAnalysisResults({
             <div className="mx-1 h-px bg-amber-800/20 dark:bg-amber-500/30" />
 
             <Suspense
-              fallback={<InlineSuspenseFallback label="Carregando análise" />}
+              fallback={<InlineSuspenseFallback label={t.loadingAnalysis} />}
             >
               <Dashboard stats={stats} analysisText={analysisText} />
             </Suspense>
 
             <Suspense
               fallback={
-                <InlineSuspenseFallback label="Carregando legenda DXF" />
+                <InlineSuspenseFallback label={t.loadingDxfLegend} />
               }
             >
               <DxfLegend />
@@ -82,7 +88,7 @@ export function SidebarAnalysisResults({
 
             <Suspense
               fallback={
-                <InlineSuspenseFallback label="Carregando importação em lote" />
+                <InlineSuspenseFallback label={t.loadingBatchUpload} />
               }
             >
               <BatchUpload
@@ -99,12 +105,12 @@ export function SidebarAnalysisResults({
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-200">
-                  MOTOR DE TERRENO
+                  {t.terrainEngineTitle}
                 </span>
                 <span className="text-xs font-bold text-amber-950 dark:text-amber-100">
                   {terrainData
-                    ? "Grade de alta resolução carregada"
-                    : "Grade pendente..."}
+                    ? t.terrainLoaded
+                    : t.terrainPending}
                 </span>
               </div>
             </div>
@@ -123,7 +129,7 @@ export function SidebarAnalysisResults({
                   <Download size={18} />
                 </div>
               )}
-              {isDownloading ? "GERANDO..." : "BAIXAR DXF"}
+              {isDownloading ? t.btnGenerating : t.btnDownloadDxf}
             </motion.button>
           </motion.div>
         )}

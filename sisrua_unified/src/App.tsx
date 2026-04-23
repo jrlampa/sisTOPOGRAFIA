@@ -703,6 +703,7 @@ function App() {
   const sidebarSelectionControlsProps: React.ComponentProps<
     typeof SidebarSelectionControls
   > = {
+    locale: settings.locale,
     center,
     searchQuery,
     setSearchQuery,
@@ -767,6 +768,7 @@ function App() {
   const sidebarAnalysisResultsProps: React.ComponentProps<
     typeof SidebarAnalysisResults
   > = {
+    locale: settings.locale,
     osmData,
     stats,
     analysisText,
@@ -841,6 +843,7 @@ function App() {
           selectionControlsProps: sidebarSelectionControlsProps,
           btEditorSectionProps: sidebarBtEditorSectionProps,
           mtEditorSectionProps: {
+            locale: settings.locale,
             mtTopology,
             onMtTopologyChange: updateMtTopology,
             mtEditorMode: settings.mtEditorMode ?? "none",

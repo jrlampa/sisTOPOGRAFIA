@@ -7,8 +7,11 @@ const MtTopologyPanel = React.lazy(() =>
   lazyWithRetry(() => import("./MtTopologyPanel")),
 );
 import { Plus, Link as LinkIcon, MousePointer2 } from "lucide-react";
+import type { AppLocale } from "../types";
+import { getSidebarMtEditorText } from "../i18n/sidebarMtEditorText";
 
 export interface SidebarMtEditorSectionProps {
+  locale: AppLocale;
   mtTopology: MtTopology;
   onMtTopologyChange: (next: MtTopology) => void;
   mtEditorMode: MtEditorMode;
@@ -17,12 +20,15 @@ export interface SidebarMtEditorSectionProps {
 }
 
 export function SidebarMtEditorSection({
+  locale,
   mtTopology,
   onMtTopologyChange,
   mtEditorMode,
   onMtEditorModeChange,
   hasBtPoles = false,
 }: SidebarMtEditorSectionProps) {
+  const t = getSidebarMtEditorText(locale);
+
   return (
     <div className="flex flex-col gap-3">
       {/* MT Editor Mode Selector */}
@@ -36,7 +42,7 @@ export function SidebarMtEditorSection({
           }`}
         >
           <MousePointer2 size={12} />
-          Nav
+          {t.btnNav}
         </button>
         <button
           onClick={() => onMtEditorModeChange("mt-add-pole")}
@@ -47,7 +53,7 @@ export function SidebarMtEditorSection({
           }`}
         >
           <Plus size={12} />
-          Poste
+          {t.btnPole}
         </button>
         <button
           onClick={() => onMtEditorModeChange("mt-add-edge")}
@@ -58,7 +64,7 @@ export function SidebarMtEditorSection({
           }`}
         >
           <LinkIcon size={12} />
-          Vão
+          {t.btnEdge}
         </button>
       </div>
 
@@ -66,7 +72,7 @@ export function SidebarMtEditorSection({
         fallback={
           <div className="flex items-center justify-center gap-2 rounded-xl border-2 border-orange-800/25 bg-orange-50 p-4 text-xs font-semibold uppercase tracking-wide text-orange-900 shadow-[4px_4px_0_rgba(124,45,18,0.16)]">
             <Loader2 size={14} className="animate-spin" />
-            Carregando painel MT…
+            {t.loadingMtPanel}
           </div>
         }
       >
