@@ -30,6 +30,7 @@ ENV/
 *.dxf
 public/dxf/*.dxf
 public/dxf/*.log
+public/dxf/*.provenance.json
 test_api*.dxf
 test_utm*.dxf
 test_utm_validation.py
@@ -66,6 +67,11 @@ Light_estudo/*.xlsm
 Light_estudo/*.xls
 !Light_estudo/README.md
 
+# Excel artifacts in root
+/*.xlsx
+/*.xlsm
+/*.xls
+
 # Coverage reports
 coverage/
 *.coverage
@@ -81,6 +87,8 @@ chaos_output.txt
 
 # Artifacts (brain cache, RAG outputs gerados)
 artifacts/
+scratch/
+cache/
 
 # Editor directories and files
 .vscode/*

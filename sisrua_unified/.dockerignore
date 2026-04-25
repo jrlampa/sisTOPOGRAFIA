@@ -86,8 +86,14 @@ chaos_output.txt
 
 # Artifacts (brain cache, RAG outputs gerados)
 artifacts
+scratch
 
-# Scripts de manutenção one-off (não necessários na imagem)
+# Excel files
+*.xlsx
+*.xlsm
+*.xls
+
+# Maintenance scripts
 apply_partitioning.py
 apply_perf_migrations.py
 check_migrations.py
