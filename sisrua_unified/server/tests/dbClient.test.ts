@@ -64,10 +64,13 @@ describe('dbClient', () => {
   });
 
   it('initDbClient: trata falha na conexão (warm-up rejeita)', async () => {
-    mockClientInstance.mockRejectedValueOnce(new Error('conn refused'));
+    const originalSetTimeout = global.setTimeout;
+    (global as any).setTimeout = (cb: any) => cb();
+    mockClientInstance.mockRejectedValue(new Error('conn refused'));
     const { initDbClient, isDbAvailable } = await loadModule();
     await initDbClient();
     expect(isDbAvailable()).toBe(false);
+    global.setTimeout = originalSetTimeout;
   });
 
   it('initDbClient: NODE_ENV production usa ssl=require', async () => {

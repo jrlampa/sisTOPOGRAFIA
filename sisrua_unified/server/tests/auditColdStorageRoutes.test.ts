@@ -10,9 +10,9 @@ describe("Audit Cold Storage Routes (76)", () => {
   const recentTs = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
   const tenant = `tenant-cold-${Date.now()}`;
 
-  describe("POST /api/audit-cold/logs", () => {
+  describe("POST /api/audit-cold-storage/logs", () => {
     it("deve ingerir logs na camada quente", async () => {
-      const r1 = await request(app).post("/api/audit-cold/logs").send({
+      const r1 = await request(app).post("/api/audit-cold-storage/logs").send({
         tenantId: tenant,
         actor: "user-1",
         action: "role_update",
@@ -22,7 +22,7 @@ describe("Audit Cold Storage Routes (76)", () => {
       });
       expect(r1.status).toBe(201);
 
-      const r2 = await request(app).post("/api/audit-cold/logs").send({
+      const r2 = await request(app).post("/api/audit-cold-storage/logs").send({
         tenantId: tenant,
         actor: "user-2",
         action: "login",
@@ -34,17 +34,17 @@ describe("Audit Cold Storage Routes (76)", () => {
     });
 
     it("deve retornar 400 para payload inválido", async () => {
-      const res = await request(app).post("/api/audit-cold/logs").send({
+      const res = await request(app).post("/api/audit-cold-storage/logs").send({
         tenantId: "",
       });
       expect(res.status).toBe(400);
     });
   });
 
-  describe("POST /api/audit-cold/archive/run", () => {
+  describe("POST /api/audit-cold-storage/archive/run", () => {
     it("deve mover logs antigos para cold storage", async () => {
       const res = await request(app)
-        .post("/api/audit-cold/archive/run")
+        .post("/api/audit-cold-storage/archive/run")
         .send({ olderThanDays: 90 });
       expect(res.status).toBe(200);
       expect(res.body.moved).toBeGreaterThanOrEqual(1);
@@ -52,9 +52,9 @@ describe("Audit Cold Storage Routes (76)", () => {
     });
   });
 
-  describe("GET /api/audit-cold/stats", () => {
+  describe("GET /api/audit-cold-storage/stats", () => {
     it("deve retornar estatísticas de partições frias", async () => {
-      const res = await request(app).get("/api/audit-cold/stats");
+      const res = await request(app).get("/api/audit-cold-storage/stats");
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty("hotCount");
       expect(res.body).toHaveProperty("coldCount");
@@ -62,10 +62,10 @@ describe("Audit Cold Storage Routes (76)", () => {
     });
   });
 
-  describe("GET /api/audit-cold/logs", () => {
+  describe("GET /api/audit-cold-storage/logs", () => {
     it("deve consultar logs frios por tenant", async () => {
       const res = await request(app).get(
-        `/api/audit-cold/logs?tenantId=${tenant}&limit=50&offset=0`,
+        `/api/audit-cold-storage/logs?tenantId=${tenant}&limit=50&offset=0`,
       );
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
@@ -76,11 +76,11 @@ describe("Audit Cold Storage Routes (76)", () => {
     });
   });
 
-  describe("GET /api/audit-cold/partitions/:month/export", () => {
+  describe("GET /api/audit-cold-storage/partitions/:month/export", () => {
     it("deve exportar partição em NDJSON com hash", async () => {
       const month = oldTs.slice(0, 7);
       const res = await request(app).get(
-        `/api/audit-cold/partitions/${month}/export`,
+        `/api/audit-cold-storage/partitions/${month}/export`,
       );
       expect(res.status).toBe(200);
       expect(res.body.month).toBe(month);
@@ -91,7 +91,7 @@ describe("Audit Cold Storage Routes (76)", () => {
 
     it("deve retornar 400 para month inválido", async () => {
       const res = await request(app).get(
-        "/api/audit-cold/partitions/2026_04/export",
+        "/api/audit-cold-storage/partitions/2026_04/export",
       );
       expect(res.status).toBe(400);
     });

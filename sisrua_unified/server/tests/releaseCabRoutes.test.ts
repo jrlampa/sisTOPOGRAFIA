@@ -8,9 +8,9 @@ import app from "../app.js";
 describe("Release CAB Routes (111 + 118)", () => {
   // ── 111: Releases ──────────────────────────────────────────────────────────
 
-  describe("GET /api/cab/releases", () => {
+  describe("GET /api/release-cab/releases", () => {
     it("deve retornar lista de releases", async () => {
-      const res = await request(app).get("/api/cab/releases");
+      const res = await request(app).get("/api/release-cab/releases");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
       // Release pré-semeado 0.9.0
@@ -18,9 +18,9 @@ describe("Release CAB Routes (111 + 118)", () => {
     });
   });
 
-  describe("GET /api/cab/releases/changelog", () => {
+  describe("GET /api/release-cab/releases/changelog", () => {
     it("deve retornar changelog executivo", async () => {
-      const res = await request(app).get("/api/cab/releases/changelog");
+      const res = await request(app).get("/api/release-cab/releases/changelog");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
       // 0.9.0 está concluído
@@ -30,20 +30,20 @@ describe("Release CAB Routes (111 + 118)", () => {
     });
   });
 
-  describe("GET /api/cab/releases/:id", () => {
+  describe("GET /api/release-cab/releases/:id", () => {
     it("deve retornar release existente por ID", async () => {
-      const res = await request(app).get("/api/cab/releases/rel-0.9.0");
+      const res = await request(app).get("/api/release-cab/releases/rel-0.9.0");
       expect(res.status).toBe(200);
       expect(res.body.version).toBe("0.9.0");
     });
 
     it("deve retornar 404 para release inexistente", async () => {
-      const res = await request(app).get("/api/cab/releases/inexistente-123");
+      const res = await request(app).get("/api/release-cab/releases/inexistente-123");
       expect(res.status).toBe(404);
     });
   });
 
-  describe("POST /api/cab/releases", () => {
+  describe("POST /api/release-cab/releases", () => {
     it("deve registrar novo release válido", async () => {
       const payload = {
         version: "0.9.1",
@@ -57,7 +57,7 @@ describe("Release CAB Routes (111 + 118)", () => {
         rollbackPlan: "git revert abc1234",
         changelogEntry: "Correção de CVE-2026-XXXX",
       };
-      const res = await request(app).post("/api/cab/releases").send(payload);
+      const res = await request(app).post("/api/release-cab/releases").send(payload);
       expect(res.status).toBe(201);
       expect(res.body.version).toBe("0.9.1");
       expect(res.body.status).toBe("planejado");
@@ -65,16 +65,16 @@ describe("Release CAB Routes (111 + 118)", () => {
 
     it("deve retornar 400 para payload inválido", async () => {
       const res = await request(app)
-        .post("/api/cab/releases")
+        .post("/api/release-cab/releases")
         .send({ version: "" }); // campos obrigatórios ausentes
       expect(res.status).toBe(400);
     });
   });
 
-  describe("POST /api/cab/releases/:id/approve", () => {
+  describe("POST /api/release-cab/releases/:id/approve", () => {
     it("deve aprovar release com 2 aprovadores", async () => {
       // Primeiro registra um release
-      const regRes = await request(app).post("/api/cab/releases").send({
+      const regRes = await request(app).post("/api/release-cab/releases").send({
         version: "0.9.2",
         type: "minor",
         title: "Nova feature",
@@ -91,14 +91,14 @@ describe("Release CAB Routes (111 + 118)", () => {
 
       // Primeira aprovação — ainda planejado
       const r1 = await request(app)
-        .post(`/api/cab/releases/${id}/approve`)
+        .post(`/api/release-cab/releases/${id}/approve`)
         .send({ approver: "aprovador-1" });
       expect(r1.status).toBe(200);
       expect(r1.body.status).toBe("planejado");
 
       // Segunda aprovação — muda para aprovado
       const r2 = await request(app)
-        .post(`/api/cab/releases/${id}/approve`)
+        .post(`/api/release-cab/releases/${id}/approve`)
         .send({ approver: "aprovador-2" });
       expect(r2.status).toBe(200);
       expect(r2.body.status).toBe("aprovado");
@@ -107,16 +107,16 @@ describe("Release CAB Routes (111 + 118)", () => {
 
   // ── 118: Change Management ─────────────────────────────────────────────────
 
-  describe("GET /api/cab/frozen-windows", () => {
+  describe("GET /api/release-cab/frozen-windows", () => {
     it("deve retornar períodos de congelamento", async () => {
-      const res = await request(app).get("/api/cab/frozen-windows");
+      const res = await request(app).get("/api/release-cab/frozen-windows");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
       expect(res.body[0]).toHaveProperty("reason");
     });
   });
 
-  describe("POST /api/cab/mudancas", () => {
+  describe("POST /api/release-cab/mudancas", () => {
     it("deve criar RDM válida", async () => {
       const payload = {
         title: "Atualização de dependências",
@@ -130,30 +130,30 @@ describe("Release CAB Routes (111 + 118)", () => {
         windowStartUtc: "2026-06-05T02:00:00.000Z",
         windowEndUtc: "2026-06-05T04:00:00.000Z",
       };
-      const res = await request(app).post("/api/cab/mudancas").send(payload);
+      const res = await request(app).post("/api/release-cab/mudancas").send(payload);
       expect(res.status).toBe(201);
       expect(res.body.status).toBe("pendente_aprovacao");
     });
 
     it("deve retornar 400 para payload inválido", async () => {
       const res = await request(app)
-        .post("/api/cab/mudancas")
+        .post("/api/release-cab/mudancas")
         .send({ title: "" });
       expect(res.status).toBe(400);
     });
   });
 
-  describe("GET /api/cab/mudancas", () => {
+  describe("GET /api/release-cab/mudancas", () => {
     it("deve listar RDMs", async () => {
-      const res = await request(app).get("/api/cab/mudancas");
+      const res = await request(app).get("/api/release-cab/mudancas");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
     });
   });
 
-  describe("POST /api/cab/mudancas/:id/approve", () => {
+  describe("POST /api/release-cab/mudancas/:id/approve", () => {
     it("deve aprovar RDM com 1 aprovador (prioridade media)", async () => {
-      const createRes = await request(app).post("/api/cab/mudancas").send({
+      const createRes = await request(app).post("/api/release-cab/mudancas").send({
         title: "Change para aprovar",
         description: "Descr",
         type: "normal",
@@ -169,7 +169,7 @@ describe("Release CAB Routes (111 + 118)", () => {
       const rdmId = createRes.body.id;
 
       const approveRes = await request(app)
-        .post(`/api/cab/mudancas/${rdmId}/approve`)
+        .post(`/api/release-cab/mudancas/${rdmId}/approve`)
         .send({ approver: "gerente" });
       expect(approveRes.status).toBe(200);
       expect(approveRes.body.status).toBe("aprovado");

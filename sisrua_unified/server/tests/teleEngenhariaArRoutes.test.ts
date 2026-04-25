@@ -2,7 +2,7 @@ import request from "supertest";
 import app from "../app.js";
 import { TeleEngenhariaArService } from "../services/teleEngenhariaArService.js";
 
-const BASE = "/api/tele-engenharia";
+const BASE = "/api/tele-engenharia-ar";
 
 beforeEach(() => TeleEngenhariaArService._reset());
 

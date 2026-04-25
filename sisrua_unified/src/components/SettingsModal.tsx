@@ -163,7 +163,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={onClose}
             title={text.closePanel}
             aria-label={text.closePanel}
-            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             className="text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
           >

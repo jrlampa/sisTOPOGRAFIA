@@ -8,9 +8,9 @@ import app from "../app.js";
 describe("Enterprise Readiness Routes (121+122+123)", () => {
   // ── 121: Hardening ──────────────────────────────────────────────────────────
 
-  describe("GET /api/enterprise/hardening/checks", () => {
+  describe("GET /api/enterprise-readiness/hardening/checks", () => {
     it("deve retornar verificações de hardening com status", async () => {
-      const res = await request(app).get("/api/enterprise/hardening/checks");
+      const res = await request(app).get("/api/enterprise-readiness/hardening/checks");
       // 207 se há falhas, 200 se tudo OK
       expect([200, 207]).toContain(res.status);
       expect(res.body).toHaveProperty("checks");
@@ -25,7 +25,7 @@ describe("Enterprise Readiness Routes (121+122+123)", () => {
     });
 
     it("cada verificação deve ter status válido", async () => {
-      const res = await request(app).get("/api/enterprise/hardening/checks");
+      const res = await request(app).get("/api/enterprise-readiness/hardening/checks");
       const validStatuses = ["ok", "aviso", "falha", "nao_aplicavel"];
       for (const check of res.body.checks) {
         expect(validStatuses).toContain(check.status);
@@ -35,9 +35,9 @@ describe("Enterprise Readiness Routes (121+122+123)", () => {
 
   // ── 122: Onboarding Checklist ───────────────────────────────────────────────
 
-  describe("GET /api/enterprise/onboarding/checklist", () => {
+  describe("GET /api/enterprise-readiness/onboarding/checklist", () => {
     it("deve retornar checklist completo", async () => {
-      const res = await request(app).get("/api/enterprise/onboarding/checklist");
+      const res = await request(app).get("/api/enterprise-readiness/onboarding/checklist");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
       expect(res.body.length).toBeGreaterThanOrEqual(10);
@@ -48,7 +48,7 @@ describe("Enterprise Readiness Routes (121+122+123)", () => {
 
     it("deve filtrar checklist por área rede", async () => {
       const res = await request(app).get(
-        "/api/enterprise/onboarding/checklist?area=rede",
+        "/api/enterprise-readiness/onboarding/checklist?area=rede",
       );
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
@@ -58,9 +58,9 @@ describe("Enterprise Readiness Routes (121+122+123)", () => {
     });
   });
 
-  describe("GET /api/enterprise/onboarding/progress", () => {
+  describe("GET /api/enterprise-readiness/onboarding/progress", () => {
     it("deve retornar progresso do checklist", async () => {
-      const res = await request(app).get("/api/enterprise/onboarding/progress");
+      const res = await request(app).get("/api/enterprise-readiness/onboarding/progress");
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty("total");
       expect(res.body).toHaveProperty("verified");
@@ -71,10 +71,10 @@ describe("Enterprise Readiness Routes (121+122+123)", () => {
     });
   });
 
-  describe("PATCH /api/enterprise/onboarding/checklist/:id", () => {
+  describe("PATCH /api/enterprise-readiness/onboarding/checklist/:id", () => {
     it("deve marcar item do checklist como verificado", async () => {
       const res = await request(app)
-        .patch("/api/enterprise/onboarding/checklist/net-001")
+        .patch("/api/enterprise-readiness/onboarding/checklist/net-001")
         .send({ verified: true, note: "Conectividade testada com sucesso" });
       expect(res.status).toBe(200);
       expect(res.body.verified).toBe(true);
@@ -85,14 +85,14 @@ describe("Enterprise Readiness Routes (121+122+123)", () => {
 
     it("deve retornar 400 para payload inválido", async () => {
       const res = await request(app)
-        .patch("/api/enterprise/onboarding/checklist/net-001")
+        .patch("/api/enterprise-readiness/onboarding/checklist/net-001")
         .send({ verified: "nao-boolean" });
       expect(res.status).toBe(400);
     });
 
     it("deve retornar 422 para ID inexistente", async () => {
       const res = await request(app)
-        .patch("/api/enterprise/onboarding/checklist/id-inexistente")
+        .patch("/api/enterprise-readiness/onboarding/checklist/id-inexistente")
         .send({ verified: true });
       expect(res.status).toBe(422);
     });
@@ -100,9 +100,9 @@ describe("Enterprise Readiness Routes (121+122+123)", () => {
 
   // ── 123: Deployment Modes ──────────────────────────────────────────────────
 
-  describe("GET /api/enterprise/deployment/modes", () => {
+  describe("GET /api/enterprise-readiness/deployment/modes", () => {
     it("deve retornar os 3 modos de implantação", async () => {
-      const res = await request(app).get("/api/enterprise/deployment/modes");
+      const res = await request(app).get("/api/enterprise-readiness/deployment/modes");
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
       expect(res.body.length).toBe(3);
@@ -114,7 +114,7 @@ describe("Enterprise Readiness Routes (121+122+123)", () => {
 
     it("deve filtrar por modo on_premise", async () => {
       const res = await request(app).get(
-        "/api/enterprise/deployment/modes?mode=on_premise",
+        "/api/enterprise-readiness/deployment/modes?mode=on_premise",
       );
       expect(res.status).toBe(200);
       expect(res.body.length).toBe(1);
@@ -123,9 +123,9 @@ describe("Enterprise Readiness Routes (121+122+123)", () => {
     });
   });
 
-  describe("GET /api/enterprise/deployment/detect", () => {
+  describe("GET /api/enterprise-readiness/deployment/detect", () => {
     it("deve detectar modo de implantação atual", async () => {
-      const res = await request(app).get("/api/enterprise/deployment/detect");
+      const res = await request(app).get("/api/enterprise-readiness/deployment/detect");
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty("detectedMode");
       expect(res.body).toHaveProperty("confidence");

@@ -11,10 +11,10 @@ describe("Encryption at Rest Routes (75)", () => {
   const firstKey = crypto.randomBytes(32).toString("base64");
   const secondKey = crypto.randomBytes(32).toString("base64");
 
-  describe("POST /api/encryption/master-keys/register", () => {
+  describe("POST /api/encryption-at-rest/master-keys/register", () => {
     it("deve registrar master key válida", async () => {
       const res = await request(app)
-        .post("/api/encryption/master-keys/register")
+        .post("/api/encryption-at-rest/master-keys/register")
         .send({ customerId, keyMaterialB64: firstKey });
 
       expect(res.status).toBe(201);
@@ -25,22 +25,22 @@ describe("Encryption at Rest Routes (75)", () => {
 
     it("deve retornar 422 ao registrar segunda key sem rotação", async () => {
       const res = await request(app)
-        .post("/api/encryption/master-keys/register")
+        .post("/api/encryption-at-rest/master-keys/register")
         .send({ customerId, keyMaterialB64: crypto.randomBytes(32).toString("base64") });
       expect(res.status).toBe(422);
     });
   });
 
-  describe("POST /api/encryption/encrypt + decrypt", () => {
+  describe("POST /api/encryption-at-rest/encrypt + decrypt", () => {
     it("deve criptografar e decriptografar payload", async () => {
-      const enc = await request(app).post("/api/encryption/encrypt").send({
+      const enc = await request(app).post("/api/encryption-at-rest/encrypt").send({
         customerId,
         plaintext: "payload-sensivel-123",
       });
       expect(enc.status).toBe(201);
       expect(enc.body).toHaveProperty("ciphertextB64");
 
-      const dec = await request(app).post("/api/encryption/decrypt").send({
+      const dec = await request(app).post("/api/encryption-at-rest/decrypt").send({
         payload: enc.body,
       });
       expect(dec.status).toBe(200);
@@ -48,10 +48,10 @@ describe("Encryption at Rest Routes (75)", () => {
     });
   });
 
-  describe("POST /api/encryption/master-keys/:customerId/rotate", () => {
+  describe("POST /api/encryption-at-rest/master-keys/:customerId/rotate", () => {
     it("deve rotacionar master key do cliente", async () => {
       const rotate = await request(app)
-        .post(`/api/encryption/master-keys/${customerId}/rotate`)
+        .post(`/api/encryption-at-rest/master-keys/${customerId}/rotate`)
         .send({ keyMaterialB64: secondKey });
       expect(rotate.status).toBe(201);
       expect(rotate.body.version).toBe(2);
@@ -60,7 +60,7 @@ describe("Encryption at Rest Routes (75)", () => {
     });
 
     it("deve listar versões de key com apenas uma ativa", async () => {
-      const list = await request(app).get(`/api/encryption/master-keys/${customerId}`);
+      const list = await request(app).get(`/api/encryption-at-rest/master-keys/${customerId}`);
       expect(list.status).toBe(200);
       expect(Array.isArray(list.body)).toBe(true);
       expect(list.body.length).toBeGreaterThanOrEqual(2);
@@ -74,14 +74,14 @@ describe("Encryption at Rest Routes (75)", () => {
   describe("validações", () => {
     it("deve retornar 400 para payload inválido", async () => {
       const res = await request(app)
-        .post("/api/encryption/master-keys/register")
+        .post("/api/encryption-at-rest/master-keys/register")
         .send({ customerId: "", keyMaterialB64: "x" });
       expect(res.status).toBe(400);
     });
 
     it("deve retornar 422 para decrypt com payload inconsistente", async () => {
       const res = await request(app)
-        .post("/api/encryption/decrypt")
+        .post("/api/encryption-at-rest/decrypt")
         .send({
           payload: {
             customerId,

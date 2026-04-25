@@ -6,7 +6,7 @@ import request from "supertest";
 import app from "../app.js";
 import { AsBuiltMobileService } from "../services/asBuiltMobileService.js";
 
-const BASE = "/api/as-built";
+const BASE = "/api/as-built-mobile";
 
 beforeEach(() => AsBuiltMobileService._reset());
 

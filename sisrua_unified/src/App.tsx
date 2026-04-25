@@ -211,7 +211,6 @@ function App() {
     return () => mq.removeEventListener("change", handler);
     // Intencionalmente sem appState/settings nas deps: o listener não deve reagir
     // a mudanças manuais do usuário — apenas a eventos do sistema.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setAppState]);
 
   const {

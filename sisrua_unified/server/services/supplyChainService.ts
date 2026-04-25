@@ -156,9 +156,9 @@ const SECRET_PATTERNS: Array<{ name: string; regex: RegExp }> = [
 
 let _lastSbom: SbomReport | null = null;
 let _lastNpmAudit: NpmAuditResult | null = null;
-let _secretMatches: SecretMatch[] = [];
+const _secretMatches: SecretMatch[] = [];
 let _secretScanCounter = 0;
-let _sastFindings: SastFinding[] = _seedSastFindings();
+const _sastFindings: SastFinding[] = _seedSastFindings();
 let _lastPolicyEval: PolicyEvaluation | null = null;
 
 // ─── Seed de SAST findings pré-existentes (corrigidos) ───────────────────────
@@ -311,7 +311,7 @@ export class SupplyChainService {
    * Em ambiente de teste/CI sem acesso à rede, retorna resultado mock baseado em SBOM em memória.
    */
   static runNpmAudit(projectRoot: string): NpmAuditResult {
-    let findings: VulnFinding[] = [];
+    const findings: VulnFinding[] = [];
     const now = new Date().toISOString();
 
     try {

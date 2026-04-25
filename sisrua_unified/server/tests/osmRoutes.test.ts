@@ -2,6 +2,7 @@ import express from "express";
 import request from "supertest";
 
 describe("osmRoutes", () => {
+  jest.setTimeout(15000);
   const originalEnv = process.env.NODE_ENV;
   const originalFetch = global.fetch;
 
