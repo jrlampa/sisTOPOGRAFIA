@@ -27,13 +27,14 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 
 ## Estado Atual
 - **Infraestrutura**: Estabilização concluída, Cache Advanced Configuration (CAC) formalizado em `RAG/CAC.md`.
-- **Fase 2 BIM**: Concluída integração de metadados de Engenharia (BIM) nos componentes de mapa (`MapSelector` e sub-layers). Postes, trechos e transformadores agora exibem dados técnicos (altura, esforço, condutores, potência) via Tooltips e Popups.
+- **Fase 2 BIM**: Concluída integração de metadados de Engenharia (BIM) nos componentes de mapa (`MapSelector` e sub-layers).
+- **Fase 3 BIM**: Concluída exportação de metadados BIM enriquecidos no DXF. Blocos (Postes, Trafos, Condutores) agora incluem Atributos Invisíveis (ATTDEF) para uso com `DATAEXTRACTION` no AutoCAD/Civil3D.
 - **Correção de Build**: Resolvido erro de destructuring no `App.tsx` referente ao export de CSV.
 
 ## Próximos Passos (Próxima Sessão)
 1. **Dashboard de Monitoramento**: Implementar visualização de KPIs de rede e saúde do sistema baseada em Supabase MVs.
 2. **Auditoria de Performance**: Executar `apply_perf_migrations.py` e validar ganhos de latência.
-3. **BIM Phase 3**: Exportação de metadados estendidos no DXF (Atributos de Bloco).
+3. **Multi-Tenancy**: Refinar RLS e governança de projetos por organização.
 
 ## Padrões Técnicos (Non-negotiables)
 - **Thin Frontend / Smart Backend**: Lógica pesada no servidor (Node.js/Python).

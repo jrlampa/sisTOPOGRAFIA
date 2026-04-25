@@ -4,6 +4,10 @@ set -e
 # Ensure runtime permissions for volumes and app root
 echo "[Entrypoint] Verificando permissões de volumes e root..."
 chown appuser:appuser /app
+# Fix for Vite EACCES in dev mode when node_modules is a volume
+if [ -d "/app/node_modules" ]; then
+    chown -R appuser:appuser /app/node_modules
+fi
 chown -R appuser:appuser /app/public/dxf /app/cache /app/logs
 chmod -R 755 /app/public/dxf /app/cache /app/logs
 

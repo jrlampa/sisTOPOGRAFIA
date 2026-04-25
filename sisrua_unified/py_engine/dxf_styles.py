@@ -131,6 +131,9 @@ class DXFStyleManager:
             blk.add_attdef(
                 "V_LEVEL", (0.5, -0.3), dxfattribs={"height": 0.2, "color": 1}
             ).dxf.text = "0V"
+            # BIM Invisible Attributes for general poles
+            blk.add_attdef("BIM_ID", (0, 0), dxfattribs={"invisible": True}).dxf.text = "-"
+            blk.add_attdef("BIM_SOURCE", (0, 0), dxfattribs={"invisible": True}).dxf.text = "OSM"
 
         if "BT_POSTE" not in doc.blocks:
             blk = doc.blocks.new(name="BT_POSTE")
@@ -143,6 +146,20 @@ class DXFStyleManager:
             blk.add_line(
                 (0, -0.4), (0, 0.4), dxfattribs={"layer": "BT_POSTES", "color": 2}
             )
+            # BIM Invisible Attributes for DataExtraction
+            # Attributes: height, effort, structures, and original ID
+            blk.add_attdef(
+                "BIM_ID", (0, 0), dxfattribs={"invisible": True}
+            ).dxf.text = "-"
+            blk.add_attdef(
+                "BIM_ALTURA", (0, 0), dxfattribs={"invisible": True}
+            ).dxf.text = "-"
+            blk.add_attdef(
+                "BIM_ESFORCO", (0, 0), dxfattribs={"invisible": True}
+            ).dxf.text = "-"
+            blk.add_attdef(
+                "BIM_ESTRUTURA", (0, 0), dxfattribs={"invisible": True}
+            ).dxf.text = "-"
 
         if "BT_TRAFO_INV" not in doc.blocks:
             blk = doc.blocks.new(name="BT_TRAFO_INV")
@@ -154,6 +171,13 @@ class DXFStyleManager:
             blk.add_line(
                 (0, -1.7), (0, -4.8), dxfattribs={"layer": "BT_TRAFOS", "color": 3}
             )
+            # BIM Invisible Attributes
+            blk.add_attdef(
+                "BIM_ID", (0, 0), dxfattribs={"invisible": True}
+            ).dxf.text = "-"
+            blk.add_attdef(
+                "BIM_POTENCIA", (0, 0), dxfattribs={"invisible": True}
+            ).dxf.text = "-"
 
         # MT_POSTE (Medium Voltage Pole — diamond with inner circle)
         if "MT_POSTE" not in doc.blocks:
@@ -166,6 +190,20 @@ class DXFStyleManager:
                 close=True,
                 dxfattribs={"layer": "MT_POSTES", "color": 30},
             )
+            # BIM Invisible Attributes for MT
+            blk.add_attdef(
+                "BIM_ID", (0, 0), dxfattribs={"invisible": True}
+            ).dxf.text = "-"
+            blk.add_attdef(
+                "BIM_ESTRUTURA_MT", (0, 0), dxfattribs={"invisible": True}
+            ).dxf.text = "-"
+
+        if "BT_CABO_META" not in doc.blocks:
+            # Anchor block for conductor metadata (no geometry, just attributes)
+            blk = doc.blocks.new(name="BT_CABO_META")
+            blk.add_attdef("BIM_ID", (0, 0), dxfattribs={"invisible": True}).dxf.text = "-"
+            blk.add_attdef("BIM_CONDUTOR", (0, 0), dxfattribs={"invisible": True}).dxf.text = "-"
+            blk.add_attdef("BIM_COMPRIMENTO", (0, 0), dxfattribs={"invisible": True}).dxf.text = "-"
 
         # BANCO (Bench)
         if "BANCO" not in doc.blocks:

@@ -91,7 +91,30 @@ class BtTopologiaMixin:
     def _draw_bt_pole(self, pole):
         x = self._safe_v(pole.get("x", 0.0) - self.diff_x)
         y = self._safe_v(pole.get("y", 0.0) - self.diff_y)
-        self.msp.add_blockref("BT_POSTE", (x, y))
+
+        # BIM Attributes extraction
+        spec = pole.get("poleSpec") or {}
+        structs = pole.get("btStructures") or {}
+
+        bim_attribs = {
+            "BIM_ID": str(pole.get("id", "-")),
+            "BIM_ALTURA": str(spec.get("heightM", "-")),
+            "BIM_ESFORCO": str(spec.get("nominalEffortDan", "-")),
+            "BIM_ESTRUTURA": ", ".join(
+                filter(
+                    None,
+                    [
+                        structs.get("si1"),
+                        structs.get("si2"),
+                        structs.get("si3"),
+                        structs.get("si4"),
+                    ],
+                )
+            )
+            or "-",
+        }
+
+        self.msp.add_blockref("BT_POSTE", (x, y)).add_auto_attribs(bim_attribs)
 
         pole_label = str(
             pole.get("title", pole.get("id", "POSTE")) or pole.get("id", "POSTE")
@@ -126,6 +149,21 @@ class BtTopologiaMixin:
         )
 
         label = self._format_conductor_label(edge.get("conductors", []))
+
+        # BIM Metadata anchor for conductors
+        mid_x = (points[0][0] + points[1][0]) / 2
+        mid_y = (points[0][1] + points[1][1]) / 2
+        length_m = edge.get("lengthMeters") or math.dist(points[0], points[1])
+
+        bim_edge_attribs = {
+            "BIM_ID": str(edge.get("id", "-")),
+            "BIM_CONDUTOR": label or "-",
+            "BIM_COMPRIMENTO": f"{length_m:.2f}",
+        }
+        self.msp.add_blockref("BT_CABO_META", (mid_x, mid_y)).add_auto_attribs(
+            bim_edge_attribs
+        )
+
         edge_change_flag = str(edge.get("edgeChangeFlag", "") or "").lower()
         replacement_from_label = self._format_conductor_label(
             edge.get("replacementFromConductors", [])
@@ -211,7 +249,14 @@ class BtTopologiaMixin:
     def _draw_bt_transformer(self, transformer):
         x = self._safe_v(transformer.get("x", 0.0) - self.diff_x)
         y = self._safe_v(transformer.get("y", 0.0) - self.diff_y)
-        self.msp.add_blockref("BT_TRAFO_INV", (x, y))
+
+        # BIM Attributes extraction
+        bim_attribs = {
+            "BIM_ID": str(transformer.get("id", "-")),
+            "BIM_POTENCIA": str(transformer.get("projectPowerKva", "-")),
+        }
+
+        self.msp.add_blockref("BT_TRAFO_INV", (x, y)).add_auto_attribs(bim_attribs)
 
         title = str(
             transformer.get("title", transformer.get("id", "TRAFO"))

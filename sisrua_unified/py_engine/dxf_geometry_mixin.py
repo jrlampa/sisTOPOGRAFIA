@@ -544,6 +544,8 @@ class DXFGeometryMixin:
                 "ID": tags.get("osmid", "999"),
                 "TYPE": tags.get("power", tags.get("amenity", "UNKNOWN")),
                 "V_LEVEL": tags.get("voltage", "0V"),
+                "BIM_ID": tags.get("osmid", "-"),
+                "BIM_SOURCE": "OSM",
             }
         )
 

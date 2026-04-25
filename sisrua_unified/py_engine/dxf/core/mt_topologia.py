@@ -19,7 +19,18 @@ class MtTopologiaMixin:
     def _draw_mt_pole(self, pole):
         x = self._safe_v(pole.get("x", 0.0) - self.diff_x)
         y = self._safe_v(pole.get("y", 0.0) - self.diff_y)
-        self.msp.add_blockref("MT_POSTE", (x, y))
+        
+        # BIM Attributes extraction
+        mt_structures = pole.get("mtStructures") or {}
+        bim_attribs = {
+            "BIM_ID": str(pole.get("id", "-")),
+            "BIM_ESTRUTURA_MT": ", ".join(filter(None, [
+                mt_structures.get("n1"), mt_structures.get("n2"),
+                mt_structures.get("n3"), mt_structures.get("n4")
+            ])) or "-"
+        }
+        
+        self.msp.add_blockref("MT_POSTE", (x, y)).add_auto_attribs(bim_attribs)
 
         pole_label = str(
             pole.get("title", pole.get("id", "POSTE-MT")) or pole.get("id", "POSTE-MT")
