@@ -1,5 +1,5 @@
 import React from "react";
-import { Pane, Polyline, Marker, Popup } from "react-leaflet";
+import { Pane, Polyline, Marker, Popup, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import type { MapBtEdge, MapBtPole, MapBtTopology } from "../types.map";
@@ -8,7 +8,7 @@ import {
   LEGACY_ID_ENTROPY,
 } from "../constants/magicNumbers";
 import { getBtTopologyPanelText } from "../i18n/btTopologyPanelText";
-import { AppLocale } from "../types";
+import { AppLocale, LayerConfig } from "../types";
 
 const CONDUCTOR_OPTIONS = [
   "70 Al - MX",
@@ -171,6 +171,7 @@ interface MapSelectorEdgesLayerProps {
     conductors: Array<{ id: string; quantity: number; conductorName: string }>,
   ) => void;
   locale: AppLocale;
+  layerConfig?: LayerConfig;
 }
 
 const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
@@ -185,6 +186,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
   onBtSetEdgeLengthMeters,
   onBtSetEdgeReplacementFromConductors,
   locale,
+  layerConfig,
 }) => {
   const t = getBtTopologyPanelText(locale);
   const { poleVerification: tp, transformerEdge: te } = t;
@@ -549,6 +551,26 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
               }}
             >
               {edgePopup}
+              {layerConfig?.labels && (
+                <Tooltip
+                  permanent
+                  direction="center"
+                  opacity={0.8}
+                  className="bt-edge-tooltip"
+                >
+                  <div className="flex flex-col items-center bg-white/90 px-1 py-0.5 rounded border border-slate-200 shadow-sm pointer-events-none">
+                    {edge.conductors.length > 0 ? (
+                      edge.conductors.map((c) => (
+                        <div key={c.id} className="text-[8px] font-bold text-slate-800 leading-tight">
+                          {c.quantity}x{c.conductorName}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-[8px] italic text-slate-400">Sem cabo</div>
+                    )}
+                  </div>
+                </Tooltip>
+              )}
             </Polyline>
             <Polyline
               positions={[

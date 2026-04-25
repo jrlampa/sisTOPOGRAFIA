@@ -1,8 +1,8 @@
 import React from "react";
-import { Pane, Marker, Popup } from "react-leaflet";
+import { Pane, Marker, Popup, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import { Trash2 } from "lucide-react";
-import { BtEditorMode } from "../../types";
+import { BtEditorMode, LayerConfig, AppLocale } from "../../types";
 import type { MapBtPole, MapBtTransformer } from "../../types.map";
 import {
   getFlagColor,
@@ -13,7 +13,6 @@ import {
   POPUP_TOOLBAR_CLASS,
 } from "../MapSelectorStyles";
 import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
-import { AppLocale } from "../../types";
 
 interface MapSelectorTransformersLayerProps {
   paneName: string;
@@ -37,6 +36,7 @@ interface MapSelectorTransformersLayerProps {
   ) => void;
   onBtDeleteTransformer?: (id: string) => void;
   locale: AppLocale;
+  layerConfig?: LayerConfig;
 }
 
 const MapSelectorTransformersLayer: React.FC<
@@ -52,6 +52,7 @@ const MapSelectorTransformersLayer: React.FC<
   onBtSetTransformerChangeFlag,
   onBtDeleteTransformer,
   locale,
+  layerConfig,
 }) => {
   const t = getBtTopologyPanelText(locale).poleVerification;
   const makeTransformerIcon = (
@@ -110,10 +111,29 @@ const MapSelectorTransformersLayer: React.FC<
             },
           }}
         >
+          <Tooltip direction="top" offset={[0, -10]} opacity={0.9}>
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-bold text-violet-900">{transformer.title}</span>
+              {layerConfig?.labels && typeof transformer.projectPowerKva === "number" && (
+                <span className="text-[9px] font-black text-violet-700">
+                  {transformer.projectPowerKva} kVA
+                </span>
+              )}
+            </div>
+          </Tooltip>
           <Popup>
             <div className="text-xs">
               <strong>{transformer.title}</strong>
               <div className="text-[10px] text-slate-500">{transformer.id}</div>
+
+              {/* Transformer BIM Specs Section */}
+              {typeof transformer.projectPowerKva === "number" && (
+                <div className="mt-1 border-t border-slate-100 pt-1">
+                  <div className="font-bold text-violet-800">
+                    Potência: {transformer.projectPowerKva} kVA
+                  </div>
+                </div>
+              )}
               {onBtRenameTransformer && (
                 <input
                   type="text"

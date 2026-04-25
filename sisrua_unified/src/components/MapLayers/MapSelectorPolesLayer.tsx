@@ -2,11 +2,10 @@ import React from "react";
 import { Pane, CircleMarker, Marker, Tooltip, Popup } from "react-leaflet";
 import L from "leaflet";
 import { Trash2, Triangle, Plus, Minus } from "lucide-react";
-import { BtEditorMode } from "../../types";
+import { BtEditorMode, LayerConfig, AppLocale } from "../../types";
 import type { MapBtPole } from "../../types.map";
 import type { BtPoleAccumulatedDemand } from "../../utils/btTopologyFlow";
 import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
-import { AppLocale } from "../../types";
 import {
   getFlagColor,
   getPoleChangeFlag,
@@ -44,6 +43,7 @@ interface MapSelectorPolesLayerProps {
   onBtQuickRemovePoleRamal?: (poleId: string) => void;
   onBtSelectPole?: (poleId: string) => void;
   locale: AppLocale;
+  layerConfig?: LayerConfig;
 }
 
 const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
@@ -67,6 +67,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
   onBtQuickRemovePoleRamal,
   onBtSelectPole,
   locale,
+  layerConfig,
 }) => {
   const t = getBtTopologyPanelText(locale).poleVerification;
   const popupPolesById = React.useMemo(
@@ -192,12 +193,53 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                 offset={[0, -8]}
                 opacity={0.85}
               >
-                <span className="text-[10px] font-semibold">{pole.title}</span>
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-bold">{pole.title}</span>
+                  {layerConfig?.labels && pole.poleSpec && (
+                    <span className="text-[8px] text-slate-700">
+                      {pole.poleSpec.heightM}m / {pole.poleSpec.nominalEffortDan}
+                      daN
+                    </span>
+                  )}
+                  {layerConfig?.labels && pole.btStructures && (
+                    <span className="text-[8px] text-sky-700">
+                      {[
+                        pole.btStructures.si1,
+                        pole.btStructures.si2,
+                        pole.btStructures.si3,
+                        pole.btStructures.si4,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </span>
+                  )}
+                </div>
               </Tooltip>
               <Popup>
                 <div className="text-xs">
                   <strong>{popupPole.title}</strong>
-                  <div>{popupPole.id}</div>
+                  <div className="text-[10px] text-slate-500">{popupPole.id}</div>
+
+                  {/* BIM Specs Section */}
+                  {(popupPole.poleSpec || popupPole.btStructures) && (
+                    <div className="mt-1 border-t border-slate-100 pt-1">
+                      {popupPole.poleSpec && (
+                        <div className="font-semibold text-slate-800">
+                          BIM: {popupPole.poleSpec.heightM}m | {popupPole.poleSpec.nominalEffortDan}daN
+                        </div>
+                      )}
+                      {popupPole.btStructures && (
+                        <div className="text-sky-800 italic">
+                          Estruturas: {[
+                            popupPole.btStructures.si1,
+                            popupPole.btStructures.si2,
+                            popupPole.btStructures.si3,
+                            popupPole.btStructures.si4,
+                          ].filter(Boolean).join(", ") || "-"}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {onBtRenamePole && (
                     <input
                       type="text"

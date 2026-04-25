@@ -566,6 +566,7 @@ function App() {
   const {
     handleDownloadDxf,
     handleDownloadGeoJSON,
+    handleDownloadCoordinatesCsv,
     isDownloading,
     jobId,
     jobStatus,
@@ -702,6 +703,7 @@ function App() {
     onBtSelectPole: handleBtSelectedPoleChange,
     dgScenario: dgActiveScenario,
     locale: settings.locale,
+    layerConfig: settings.layers,
   };
 
   const btModalStackProps: React.ComponentProps<typeof BtModalStack> = {

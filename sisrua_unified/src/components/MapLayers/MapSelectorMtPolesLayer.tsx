@@ -2,7 +2,7 @@ import React from "react";
 import { Pane, Marker, Tooltip, Popup } from "react-leaflet";
 import L from "leaflet";
 import { Trash2 } from "lucide-react";
-import { MtEditorMode, GeoLocation } from "../../types";
+import { MtEditorMode, GeoLocation, LayerConfig } from "../../types";
 import type { MapMtPole } from "../../types.map";
 import {
   getFlagColor,
@@ -27,6 +27,7 @@ interface MapSelectorMtPolesLayerProps {
   onMtDeletePole?: (poleId: string) => void;
   onMtSetPoleVerified?: (poleId: string, verified: boolean) => void;
   locale: AppLocale;
+  layerConfig?: LayerConfig;
 }
 
 const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
@@ -41,6 +42,7 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
   onMtDeletePole,
   onMtSetPoleVerified,
   locale,
+  layerConfig,
 }) => {
   const t = getBtTopologyPanelText(locale).poleVerification;
   const popupPolesById = React.useMemo(
@@ -95,9 +97,23 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
                 offset={[0, -10]}
                 opacity={0.85}
               >
-                <span className="text-[10px] font-bold text-orange-900 dark:text-orange-100">
-                  {pole.title}
-                </span>
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-bold text-orange-900 dark:text-orange-100">
+                    {pole.title}
+                  </span>
+                  {layerConfig?.labels && pole.mtStructures && (
+                    <span className="text-[8px] font-bold text-orange-700">
+                      {[
+                        pole.mtStructures.n1,
+                        pole.mtStructures.n2,
+                        pole.mtStructures.n3,
+                        pole.mtStructures.n4,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </span>
+                  )}
+                </div>
               </Tooltip>
               <Popup>
                 <div className="text-xs">
@@ -112,6 +128,20 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
                   <div className="mt-1 text-slate-500 font-mono text-[9px]">
                     {popupPole.id}
                   </div>
+
+                  {/* MT BIM Specs Section */}
+                  {popupPole.mtStructures && (
+                    <div className="mt-1 border-t border-slate-100 pt-1">
+                      <div className="text-orange-800 italic">
+                        Estruturas MT: {[
+                          popupPole.mtStructures.n1,
+                          popupPole.mtStructures.n2,
+                          popupPole.mtStructures.n3,
+                          popupPole.mtStructures.n4,
+                        ].filter(Boolean).join(", ") || "-"}
+                      </div>
+                    </div>
+                  )}
 
                   {onMtRenamePole && (
                     <input

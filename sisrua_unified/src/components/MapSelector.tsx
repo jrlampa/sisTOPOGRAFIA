@@ -17,6 +17,7 @@ import {
   SelectionMode,
   GeoLocation,
   AppLocale,
+  LayerConfig,
 } from "../types";
 import type { MapBtTopology, MapMtTopology } from "../types.map";
 import type { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
@@ -130,6 +131,7 @@ interface MapSelectorProps {
   /** Cenário DG ativo para sobreposição visual no mapa. */
   dgScenario?: DgScenario | null;
   locale: AppLocale;
+  layerConfig?: LayerConfig;
 }
 
 const MapSelector: React.FC<MapSelectorProps> = ({
@@ -192,6 +194,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onMtSetEdgeChangeFlag,
   dgScenario,
   locale,
+  layerConfig,
 }) => {
   const topology = btMarkerTopology ?? {
     poles: [],
@@ -326,6 +329,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
             onBtSetEdgeReplacementFromConductors
           }
           locale={locale}
+          layerConfig={layerConfig}
         />
 
         <MapSelectorPolesLayer
@@ -349,6 +353,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtQuickRemovePoleRamal={onBtQuickRemovePoleRamal}
           onBtSelectPole={onBtSelectPole}
           locale={locale}
+          layerConfig={layerConfig}
         />
 
         <MapSelectorTransformersLayer
@@ -362,6 +367,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtSetTransformerChangeFlag={onBtSetTransformerChangeFlag}
           onBtDeleteTransformer={onBtDeleteTransformer}
           locale={locale}
+          layerConfig={layerConfig}
         />
 
         {mtMarkerTopology && (
@@ -387,6 +393,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
               onMtDeletePole={onMtDeletePole}
               onMtSetPoleVerified={onMtSetPoleVerified}
               locale={locale}
+              layerConfig={layerConfig}
             />
           </>
         )}

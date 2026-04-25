@@ -25,10 +25,15 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
     - **MtEdgeVerification**: Integrado e estabilizado no frontend unificado.
     - **Exportação de Coordenadas (CSV)**: Implementada conversão Lat/Lng para UTM (WGS84) via `proj4` com exportação direta para Excel/CSV no padrão Light S.A.
 
+## Estado Atual
+- **Infraestrutura**: Estabilização concluída, Cache Advanced Configuration (CAC) formalizado em `RAG/CAC.md`.
+- **Fase 2 BIM**: Concluída integração de metadados de Engenharia (BIM) nos componentes de mapa (`MapSelector` e sub-layers). Postes, trechos e transformadores agora exibem dados técnicos (altura, esforço, condutores, potência) via Tooltips e Popups.
+- **Correção de Build**: Resolvido erro de destructuring no `App.tsx` referente ao export de CSV.
+
 ## Próximos Passos (Próxima Sessão)
-1. **Fase 2 BIM**: Iniciar integração de metadados de Engenharia e BIM nos componentes de mapa.
-2. **Dashboard de Monitoramento**: Implementar visão de KPIs operacionais no frontend.
-3. **Auditoria de Performance**: Validar tempo de carregamento com as novas dependências.
+1. **Dashboard de Monitoramento**: Implementar visualização de KPIs de rede e saúde do sistema baseada em Supabase MVs.
+2. **Auditoria de Performance**: Executar `apply_perf_migrations.py` e validar ganhos de latência.
+3. **BIM Phase 3**: Exportação de metadados estendidos no DXF (Atributos de Bloco).
 
 ## Padrões Técnicos (Non-negotiables)
 - **Thin Frontend / Smart Backend**: Lógica pesada no servidor (Node.js/Python).
