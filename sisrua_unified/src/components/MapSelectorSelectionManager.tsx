@@ -8,14 +8,17 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
-import {
+import type {
   BtEditorMode,
   MtEditorMode,
   SelectionMode,
   GeoLocation,
+  AppLocale,
 } from "../types";
+import { getSelectionManagerText } from "../i18n/selectionManagerText";
 
 interface SelectionManagerProps {
+  locale: AppLocale;
   center: GeoLocation;
   flyToEdgeTarget?: { lat: number; lng: number; token: number } | null;
   flyToPoleTarget?: { lat: number; lng: number; token: number } | null;
@@ -43,6 +46,7 @@ interface SelectionManagerProps {
 }
 
 const SelectionManager: React.FC<SelectionManagerProps> = ({
+  locale,
   center,
   flyToEdgeTarget,
   flyToPoleTarget,
@@ -62,6 +66,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
   onMtContextAction,
   keyboardPanEnabled = false,
 }) => {
+  const t = getSelectionManagerText(locale);
   const middlePanActiveRef = React.useRef(false);
   const middlePanMovedRef = React.useRef(false);
   const suppressNextClickRef = React.useRef(false);
@@ -118,7 +123,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
         onBtMapClick({
           lat: e.latlng.lat,
           lng: e.latlng.lng,
-          label: `BT (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
+          label: `${t.btLabel} (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
         });
         return;
       }
@@ -131,7 +136,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
         onMtMapClick({
           lat: e.latlng.lat,
           lng: e.latlng.lng,
-          label: `MT (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
+          label: `${t.mtLabel} (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
         });
         return;
       }
@@ -140,7 +145,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
         onLocationChange({
           lat: e.latlng.lat,
           lng: e.latlng.lng,
-          label: `Selecionado (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
+          label: `${t.selectedLabel} (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
         });
       } else if (selectionMode === "polygon") {
         onPolygonChange([...polygonPoints, [e.latlng.lat, e.latlng.lng]]);
@@ -157,7 +162,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
         setContextMenuLocation({
           lat: e.latlng.lat,
           lng: e.latlng.lng,
-          label: `BT (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
+          label: `${t.btLabel} (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
         });
         return;
       }
@@ -166,7 +171,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
         setContextMenuLocation({
           lat: e.latlng.lat,
           lng: e.latlng.lng,
-          label: `MT (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
+          label: `${t.mtLabel} (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
         });
       }
     },
@@ -412,7 +417,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
                     runBtContextAction("add-edge");
                   }}
                 >
-                  +CONDUTOR (BT)
+                  {t.addConductorBt}
                 </button>
                 <button
                   type="button"
@@ -423,7 +428,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
                     runBtContextAction("add-transformer");
                   }}
                 >
-                  +TRAFO (BT)
+                  {t.addTransformerBt}
                 </button>
                 <button
                   type="button"
@@ -434,7 +439,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
                     runBtContextAction("add-pole");
                   }}
                 >
-                  +POSTE (BT)
+                  {t.addPoleBt}
                 </button>
               </>
             ) : (
@@ -448,7 +453,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
                     runMtContextAction("add-edge");
                   }}
                 >
-                  +VÃO (MT)
+                  {t.addSpanMt}
                 </button>
                 <button
                   type="button"
@@ -459,7 +464,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
                     runMtContextAction("add-pole");
                   }}
                 >
-                  +POSTE (MT)
+                  {t.addPoleMt}
                 </button>
               </>
             )}
@@ -486,7 +491,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
                 removePolygonPoint(polygonMarkerMenu.index);
               }}
             >
-              Excluir ponto
+              {t.deletePoint}
             </button>
             <button
               type="button"
@@ -497,10 +502,10 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
                 setPolygonMarkerMenu(null);
               }}
             >
-              Manter ponto
+              {t.keepPoint}
             </button>
             <p className="mt-1 px-1 text-[10px] font-semibold normal-case tracking-normal text-slate-600">
-              Dica: clique e arraste o marcador para reposicionar.
+              {t.dragHint}
             </p>
           </div>
         </Popup>

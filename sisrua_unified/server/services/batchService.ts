@@ -1,6 +1,6 @@
 import csvParser from 'csv-parser';
 import { Readable } from 'stream';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 type RawBatchRow = {
     name?: string;
@@ -19,7 +19,14 @@ const normalizeRow = (row: Record<string, unknown>): RawBatchRow => {
     const normalized: RawBatchRow = {};
     Object.entries(row).forEach(([key, value]) => {
         const trimmedKey = key.trim().toLowerCase();
-        const trimmedValue = typeof value === 'string' ? value.trim() : value;
+        let normalizedValue = value;
+        
+        // Handle ExcelJS cell objects if necessary (though usually it gives primitive values)
+        if (value && typeof value === 'object' && 'result' in value) {
+            normalizedValue = (value as any).result;
+        }
+
+        const trimmedValue = typeof normalizedValue === 'string' ? normalizedValue.trim() : normalizedValue;
         
         // Map common synonyms for coordinate headers
         let mappedKey = trimmedKey;
@@ -30,7 +37,7 @@ const normalizeRow = (row: Record<string, unknown>): RawBatchRow => {
 
         normalized[mappedKey as keyof RawBatchRow] = typeof trimmedValue === 'string'
             ? trimmedValue
-            : trimmedValue ? String(trimmedValue) : undefined;
+            : (trimmedValue !== null && trimmedValue !== undefined) ? String(trimmedValue) : undefined;
     });
 
     return normalized;
@@ -56,18 +63,44 @@ const parseBatchCsv = (buffer: Buffer): Promise<ParsedBatchRow[]> =>
             .on('end', () => resolve(rows));
     });
 
-const parseBatchExcel = (buffer: Buffer): ParsedBatchRow[] => {
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
-    const firstSheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[firstSheetName];
+const parseBatchExcel = async (buffer: Buffer): Promise<ParsedBatchRow[]> => {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
     
-    // Convert to JSON with headers
-    const rawData = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' });
+    const worksheet = workbook.getWorksheet(1); // Get first sheet
+    if (!worksheet) return [];
+
+    const rows: ParsedBatchRow[] = [];
     
-    return rawData.map((data, index) => ({
-        line: index + 2, // Excel rows start at 1, header is 1
-        row: normalizeRow(data)
-    }));
+    // Get headers from first row
+    const headerRow = worksheet.getRow(1);
+    const headers: string[] = [];
+    headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        headers[colNumber] = cell.text ? cell.text.trim() : `column_${colNumber}`;
+    });
+
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+        if (rowNumber === 1) return; // Skip header
+
+        const rowData: Record<string, unknown> = {};
+        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+            const header = headers[colNumber];
+            if (header) {
+                rowData[header] = cell.value;
+            }
+        });
+
+        const normalized = normalizeRow(rowData);
+        const hasValues = Object.values(normalized).some((value) => value && value.length > 0);
+        if (hasValues) {
+            rows.push({
+                line: rowNumber,
+                row: normalized
+            });
+        }
+    });
+
+    return rows;
 };
 
 /**
@@ -89,7 +122,7 @@ const parseBatchFile = async (buffer: Buffer, mimetype: string): Promise<ParsedB
 
     // Attempt Excel as fallback if mimetype is generic
     try {
-        return parseBatchExcel(buffer);
+        return await parseBatchExcel(buffer);
     } catch {
         // Last resort: try CSV
         return parseBatchCsv(buffer);

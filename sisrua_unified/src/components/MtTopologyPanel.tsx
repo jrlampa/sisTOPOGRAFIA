@@ -6,11 +6,14 @@ import type {
   MtPoleStructures,
   MtTopology,
   MtEditorMode,
+  AppLocale,
 } from "../types";
 import MtPoleVerificationSection from "./MtTopologyPanel/MtPoleVerificationSection";
 import MtEdgeVerificationSection from "./MtTopologyPanel/MtEdgeVerificationSection";
+import { getMtTopologyPanelText } from "../i18n/mtTopologyPanelText";
 
 interface MtTopologyPanelProps {
+  locale: AppLocale;
   mtTopology: MtTopology;
   onTopologyChange: (next: MtTopology) => void;
   mtEditorMode?: MtEditorMode;
@@ -18,10 +21,12 @@ interface MtTopologyPanelProps {
 }
 
 const MtTopologyPanel: React.FC<MtTopologyPanelProps> = ({
+  locale,
   mtTopology,
   onTopologyChange,
   hasBtPoles = false,
 }) => {
+  const t = getMtTopologyPanelText(locale);
   const [selectedPoleId, setSelectedPoleId] = React.useState<string | null>(
     null,
   );
@@ -133,14 +138,20 @@ const MtTopologyPanel: React.FC<MtTopologyPanelProps> = ({
         <div className="flex items-center gap-1.5">
           <Zap size={14} className="text-orange-600" />
           <span className="text-[10px] font-black uppercase tracking-[0.15em] text-orange-900 dark:text-orange-100">
-            Média Tensão
+            {t.title}
           </span>
         </div>
         <div className="flex gap-2 text-[9px] font-bold text-slate-500">
-          <span>{totalPoles}P</span>
-          <span>{totalEdges}V</span>
+          <span>
+            {totalPoles}
+            {t.polesCount}
+          </span>
+          <span>
+            {totalEdges}
+            {t.edgesCount}
+          </span>
           <span className="text-orange-600">
-            {verifiedCount}/{totalPoles} OK
+            {verifiedCount}/{totalPoles} {t.verifiedStatus}
           </span>
         </div>
       </div>
@@ -149,6 +160,7 @@ const MtTopologyPanel: React.FC<MtTopologyPanelProps> = ({
         {/* Seção de Postes */}
         <div className="flex flex-col gap-2">
           <MtPoleVerificationSection
+            locale={locale}
             poles={mtTopology.poles}
             selectedPoleId={selectedPoleId}
             onSelectPole={setSelectedPoleId}
@@ -160,8 +172,7 @@ const MtTopologyPanel: React.FC<MtTopologyPanelProps> = ({
 
           {hasBtPoles ? (
             <div className="rounded border border-amber-200 bg-amber-50 px-2.5 py-2 text-[10px] text-amber-900">
-              MT reutiliza os mesmos postes da BT. Selecione o poste no mapa ou
-              na lista para informar estruturas n1-n4.
+              {t.sharedBtMessage}
             </div>
           ) : (
             <button
@@ -169,13 +180,14 @@ const MtTopologyPanel: React.FC<MtTopologyPanelProps> = ({
               onClick={addPole}
               className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-orange-300 bg-orange-50/50 py-1.5 text-[10px] font-black uppercase tracking-wide text-orange-700 transition-all hover:bg-orange-100 dark:border-orange-900/30 dark:bg-orange-950/20 dark:text-orange-400"
             >
-              + Adicionar Estrutura
+              {t.addStructure}
             </button>
           )}
         </div>
 
         {/* Seção de Vãos */}
         <MtEdgeVerificationSection
+          locale={locale}
           edges={mtTopology.edges}
           polesById={polesById}
           onRemoveEdge={removeEdge}
@@ -186,7 +198,7 @@ const MtTopologyPanel: React.FC<MtTopologyPanelProps> = ({
 
       {totalPoles > 0 && (
         <p className="mt-2 text-center text-[9px] font-medium text-slate-400">
-          Dica: Use <strong>SHIFT+M</strong> para alternar modo MT
+          {t.shortcutHint}
         </p>
       )}
     </div>

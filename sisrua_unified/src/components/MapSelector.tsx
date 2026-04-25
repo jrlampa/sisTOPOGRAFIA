@@ -291,6 +291,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         />
 
         <SelectionManager
+          locale={locale}
           center={center}
           flyToEdgeTarget={flyToEdgeTarget}
           flyToPoleTarget={flyToPoleTarget}

@@ -1,0 +1,50 @@
+# Development Dockerfile for SIS RUA Unified
+FROM node:22-bookworm
+
+WORKDIR /app
+
+# Install Python, development dependencies and gosu
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-venv \
+    build-essential \
+    curl \
+    gosu \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser
+
+# Setup Python virtual environment
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Python dependencies
+COPY py_engine/requirements.txt ./py_engine/
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r py_engine/requirements.txt
+
+# Copy package files
+COPY package*.json ./
+RUN npm install
+
+# Create necessary directories for volumes
+RUN mkdir -p /app/public/dxf /app/cache /app/logs && \
+    chown -R appuser:appuser /app
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Environment variables for dev
+ENV NODE_ENV=development \
+    PORT=3001 \
+    PYTHON_COMMAND=python3 \
+    DOCKER_ENV=true
+
+EXPOSE 3000
+EXPOSE 3001
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["npm", "run", "dev"]

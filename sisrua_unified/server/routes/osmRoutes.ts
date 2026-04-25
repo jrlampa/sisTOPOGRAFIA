@@ -346,7 +346,7 @@ router.post("/", async (req: Request, res: Response) => {
   // Strict behavior: synthetic fallback is allowed only in test environment.
   if (isTestEnvironment) {
     const mock = buildMockOverpassPayload(lat, lng, radius);
-    const fallbackStats = computeOsmStats(mock.elements ?? []);
+    const fallbackStats = computeOsmStats(mock.elements ?? [], radius);
     const result = { ...mock, _fallback: true, _stats: fallbackStats };
     return res.status(200).json(result);
   }

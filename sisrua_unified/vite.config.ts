@@ -174,8 +174,8 @@ export default defineConfig(({ mode }) => {
             if (id.includes("node_modules/recharts/") || id.includes("node_modules/d3") || id.includes("node_modules/victory-vendor/")) {
               return "recharts";
             }
-            if (id.includes("node_modules/xlsx/")) {
-              return "xlsx";
+            if (id.includes("node_modules/exceljs/")) {
+              return "exceljs";
             }
             if (id.includes("node_modules/posthog-js/")) {
               return "analytics";

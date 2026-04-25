@@ -1,8 +1,10 @@
 import React from "react";
-import type { MtPoleNode, MtPoleStructures } from "../../types";
+import type { AppLocale, MtPoleNode, MtPoleStructures } from "../../types";
 import { MT_STRUCTURE_CATALOG } from "../../constants/mtStructureCatalog";
+import { getMtTopologyPanelText } from "../../i18n/mtTopologyPanelText";
 
 interface MtPoleVerificationSectionProps {
+  locale: AppLocale;
   poles: MtPoleNode[];
   selectedPoleId: string | null;
   onSelectPole: (poleId: string) => void;
@@ -16,6 +18,7 @@ interface MtPoleVerificationSectionProps {
 }
 
 const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
+  locale,
   poles,
   selectedPoleId,
   onSelectPole,
@@ -24,6 +27,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
   onRemovePole,
   onRenamePole,
 }) => {
+  const t = getMtTopologyPanelText(locale);
   const [renamingPoleId, setRenamingPoleId] = React.useState<string | null>(
     null,
   );
@@ -47,7 +51,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
   if (poles.length === 0) {
     return (
       <div className="rounded border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-[11px] text-slate-500">
-        Nenhum poste com MT cadastrado. Use o botão &quot;+ Poste&quot; acima.
+        {t.noPoles}
       </div>
     );
   }
@@ -70,7 +74,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
               className={`inline-block h-2 w-2 rounded-full flex-shrink-0 ${
                 pole.verified ? "bg-green-500" : "bg-slate-300"
               }`}
-              title={pole.verified ? "Verificado" : "Não verificado"}
+              title={pole.verified ? t.verifiedLabel : t.notVerifiedLabel}
             />
             {renamingPoleId === pole.id ? (
               <input
@@ -78,8 +82,8 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
                 value={renameValue}
                 autoFocus
                 maxLength={60}
-                title="Renomear poste"
-                placeholder="Nome do poste"
+                title={t.renameTitle}
+                placeholder={t.renamePlaceholder}
                 onChange={(e) => setRenameValue(e.target.value)}
                 onBlur={() => handleRenameCommit(pole.id)}
                 onKeyDown={(e) => {
@@ -95,7 +99,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
                   e.stopPropagation();
                   handleRenameStart(pole);
                 }}
-                title={`${pole.title} (duplo clique para renomear)`}
+                title={`${pole.title} (${t.doubleClickToRename})`}
               >
                 {pole.title}
               </span>
@@ -105,13 +109,13 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
                 (v) => typeof v === "string" && v.trim().length > 0,
               ) && (
                 <span className="rounded bg-orange-100 px-1 py-0 text-[9px] font-semibold uppercase tracking-wide text-orange-700">
-                  n1-n4
+                  {t.mtStructuresLabel}
                 </span>
               )}
             <button
               type="button"
               className="ml-auto flex-shrink-0 rounded p-0.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
-              title="Remover poste"
+              title={t.removePole}
               onClick={(e) => {
                 e.stopPropagation();
                 onRemovePole(pole.id);
@@ -139,14 +143,14 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
                 }
                 className="h-3 w-3 rounded accent-green-600"
               />
-              Verificado
+              {t.verifiedLabel}
             </label>
           </div>
 
           {/* Grid n1-n4 */}
           <div className="rounded border border-slate-300 bg-white p-2">
             <div className="mb-2 text-[10px] text-slate-600">
-              Estruturas MT (n1-n4)
+              {t.structuresTitle}
             </div>
 
             {/* Datalist compartilhado — exibe código + descrição curta */}
@@ -168,8 +172,8 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
                     type="text"
                     list="mt-structures-datalist"
                     value={selectedPole.mtStructures?.[slot] ?? ""}
-                    title={`Estrutura MT ${slot}`}
-                    placeholder={`ex: 13N1, 13CE2…`}
+                    title={`${t.structureSlotTitle} ${slot}`}
+                    placeholder={t.structureSlotPlaceholder}
                     maxLength={120}
                     onChange={(e) => {
                       const nextValue = e.target.value;

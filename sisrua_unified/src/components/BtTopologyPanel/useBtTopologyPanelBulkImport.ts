@@ -65,21 +65,34 @@ export const useBtTopologyPanelBulkImport = ({
     }
 
     try {
-      const XLSX = await import("xlsx");
+      const ExcelJS = await import("exceljs");
       const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: "array" });
-      const sheetName =
-        workbook.SheetNames.find((n) => normalizeHeaderKey(n) === "RAMAL") ??
-        workbook.SheetNames[0];
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
 
-      if (!sheetName) return;
-      const sheet = workbook.Sheets[sheetName];
-      const raw = sanitizeWorkbookText(
-        XLSX.utils.sheet_to_csv(sheet, { FS: "\t" }),
-      );
-      setBulkRamalText(raw);
-      applyBulkRamalInsertFromRaw(raw);
-    } catch {
+      const worksheet = 
+        workbook.getWorksheet("RAMAL") || 
+        workbook.getWorksheet(1);
+
+      if (!worksheet) return;
+
+      let raw = "";
+      worksheet.eachRow({ includeEmpty: true }, (row) => {
+        const rowValues: string[] = [];
+        // exceljs col numbers are 1-indexed
+        const rowCount = row.cellCount;
+        for (let i = 1; i <= rowCount; i++) {
+          const cell = row.getCell(i);
+          rowValues.push(cell.text ? cell.text.trim() : "");
+        }
+        raw += rowValues.join("\t") + "\n";
+      });
+
+      const sanitizedRaw = sanitizeWorkbookText(raw);
+      setBulkRamalText(sanitizedRaw);
+      applyBulkRamalInsertFromRaw(sanitizedRaw);
+    } catch (err) {
+      console.error("Falha ao ler arquivo Excel", err);
       setBulkRamalFeedback("Falha ao ler arquivo Excel.");
     }
   };

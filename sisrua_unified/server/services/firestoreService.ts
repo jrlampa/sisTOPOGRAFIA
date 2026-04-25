@@ -72,54 +72,77 @@ class FirestoreService {
     private async ensureInitialized(): Promise<void> {
         if (this.initialized) return;
         
-        const { Firestore } = await loadFirestore();
-        
-        // Initialize Firestore
-        this.db = new Firestore({
-            projectId: process.env.GCP_PROJECT,
-            // Uses Application Default Credentials (ADC) in Cloud Run
-            // For local dev, set GOOGLE_APPLICATION_CREDENTIALS
-        });
+        try {
+            const { Firestore } = await loadFirestore();
+            
+            // Initialize Firestore
+            this.db = new Firestore({
+                projectId: process.env.GCP_PROJECT,
+                // Uses Application Default Credentials (ADC) in Cloud Run
+                // For local dev, set GOOGLE_APPLICATION_CREDENTIALS
+            });
 
-        logger.info('Firestore initialized', {
-            project: process.env.GCP_PROJECT,
-            quotas: QUOTAS
-        });
-        
-        this.initialized = true;
+            // Test connection with a simple request or just check if db is created
+            // Note: new Firestore() might not throw until first request, but some drivers do.
+            // We just log it for now.
+            logger.info('Firestore initialized', {
+                project: process.env.GCP_PROJECT,
+                quotas: QUOTAS
+            });
+            this.initialized = true;
+        } catch (error: any) {
+            this.db = null;
+            this.initialized = true; // Mark as initialized so we don't keep trying
+            logger.warn('Firestore initialization failed (missing credentials?). Service will be disabled.', {
+                project: process.env.GCP_PROJECT,
+                error: error.message
+            });
+        }
     }
 
     /**
      * Start quota monitoring and auto-cleanup
      */
     async start(): Promise<void> {
-        await this.ensureInitialized();
-        logger.info('Starting Firestore quota monitoring');
-
-        // Initialize quota document for today
-        await this.initializeDailyQuota();
-
-        // Monitor quotas every 5 minutes
-        this.quotaMonitorInterval = setInterval(async () => {
-            try {
-                await this.monitorQuotas();
-            } catch (error) {
-                logger.error('Quota monitoring failed', { error });
+        try {
+            await this.ensureInitialized();
+            
+            if (!this.db) {
+                logger.warn('Firestore service skipped: No database initialized');
+                return;
             }
-        }, 5 * 60 * 1000); // 5 minutes
 
-        // Cleanup check every 30 minutes
-        this.cleanupInterval = setInterval(async () => {
-            try {
-                await this.checkAndCleanup();
-            } catch (error) {
-                logger.error('Auto-cleanup failed', { error });
-            }
-        }, 30 * 60 * 1000); // 30 minutes
+            logger.info('Starting Firestore quota monitoring');
 
-        // Initial check
-        await this.monitorQuotas();
-        await this.checkAndCleanup();
+            // Initialize quota document for today
+            await this.initializeDailyQuota();
+
+            // Monitor quotas every 5 minutes
+            this.quotaMonitorInterval = setInterval(async () => {
+                try {
+                    await this.monitorQuotas();
+                } catch (error) {
+                    logger.error('Quota monitoring failed', { error });
+                }
+            }, 5 * 60 * 1000); // 5 minutes
+
+            // Cleanup check every 30 minutes
+            this.cleanupInterval = setInterval(async () => {
+                try {
+                    await this.checkAndCleanup();
+                } catch (error) {
+                    logger.error('Auto-cleanup failed', { error });
+                }
+            }, 30 * 60 * 1000); // 30 minutes
+
+            // Initial check
+            await this.monitorQuotas();
+            await this.checkAndCleanup();
+        } catch (error: any) {
+            this.initialized = true;
+            this.db = null;
+            logger.error('Firestore service failed to start. Running without Firestore.', { error: error.message });
+        }
     }
 
     /**

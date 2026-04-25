@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { AlertCircle, Download, Loader2, Mountain } from "lucide-react";
+import { AlertCircle, Download, Loader2, Mountain, Table } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { AnalysisStats, TerrainGrid } from "../types";
 import type { ToastType } from "./Toast";
@@ -28,6 +28,7 @@ interface SidebarAnalysisResultsProps {
   terrainData: TerrainGrid | null;
   error: string | null;
   handleDownloadDxf: () => Promise<void>;
+  handleDownloadCoordinatesCsv: () => void;
   isDownloading: boolean;
   showToast: (message: string, type: ToastType) => void;
 }
@@ -40,6 +41,7 @@ export function SidebarAnalysisResults({
   terrainData,
   error,
   handleDownloadDxf,
+  handleDownloadCoordinatesCsv,
   isDownloading,
   showToast,
 }: SidebarAnalysisResultsProps) {
@@ -114,6 +116,18 @@ export function SidebarAnalysisResults({
                 </span>
               </div>
             </div>
+
+            <motion.button
+              whileHover={{ scale: 1.02, x: 5 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleDownloadCoordinatesCsv}
+              className="group flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-amber-800/25 bg-gradient-to-r from-amber-600 to-orange-500 py-4 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-amber-600/20 transition-all hover:brightness-110"
+            >
+              <div className="p-1 rounded bg-white/10 group-hover:animate-bounce">
+                <Table size={18} />
+              </div>
+              {t.btnDownloadCoordinatesCsv}
+            </motion.button>
 
             <motion.button
               whileHover={{ scale: 1.02, x: 5 }}

@@ -439,6 +439,14 @@ export class OllamaService {
    * Start the Ollama background process if not already running.
    */
   static async startProcess(): Promise<void> {
+    // Only try to start local process if host is local
+    if (!isLocalOllamaHost(OLLAMA_BASE_URL)) {
+      logger.info("[Ollama] Remote host configured, skipping local process management", { host: OLLAMA_BASE_URL });
+      // Ensure the model is available on the remote host
+      await this.verifyAndPullModel();
+      return;
+    }
+
     if (await this.isAvailable()) {
       logger.info("[Ollama] Service already running");
       await this.verifyAndPullModel();
@@ -447,10 +455,31 @@ export class OllamaService {
 
     try {
       logger.info("[Ollama] Starting background process...");
+      
       ollamaProcess = spawn("ollama", ["serve"], {
         detached: false,
         stdio: "pipe",
       });
+
+      let binaryMissing = false;
+
+      // CRITICAL: Handle error event to prevent crash if binary is missing (ENOENT)
+      ollamaProcess.on("error", (err: any) => {
+        if (err.code === "ENOENT") {
+           binaryMissing = true;
+           logger.warn("[Ollama] Binary 'ollama' not found in system PATH. Local LLM analysis will be disabled.");
+        } else {
+           logger.error("[Ollama] Process error", {
+             error: err.message,
+             code: err.code
+           });
+        }
+        ollamaProcess = null;
+      });
+
+      // Wait a tiny bit to see if 'error' fires immediately (ENOENT does)
+      await new Promise(r => setTimeout(r, 100));
+      if (binaryMissing || !ollamaProcess) return;
 
       ollamaProcess.stdout?.on("data", (d) =>
         logger.info(`Ollama (stdout): ${d.toString().trim()}`),
@@ -463,6 +492,7 @@ export class OllamaService {
       let ready = false;
       const maxRetries = 5;
       for (let i = 0; i < maxRetries; i++) {
+        if (binaryMissing) break;
         await new Promise((r) => setTimeout(r, config.OLLAMA_STARTUP_WAIT_MS / maxRetries));
         if (await this.isAvailable()) {
           ready = true;
@@ -474,7 +504,7 @@ export class OllamaService {
       if (ready) {
         logger.info("[Ollama] Service is now ready");
         await this.verifyAndPullModel();
-      } else {
+      } else if (!binaryMissing) {
         logger.warn(
           "[Ollama] Process started but service is not responding yet",
         );
@@ -493,18 +523,46 @@ export class OllamaService {
       const target = normalizeModelName(OLLAMA_MODEL);
       if (!models.some(m => normalizeModelName(m) === target)) {
         logger.info(`[Ollama] Model '${OLLAMA_MODEL}' missing. Pulling...`);
-        const pullProcess = spawn("ollama", ["pull", OLLAMA_MODEL]);
         
-        return new Promise((resolve) => {
-          pullProcess.on("close", (code) => {
-            if (code === 0) {
-              logger.info(`[Ollama] Model '${OLLAMA_MODEL}' pulled successfully`);
+        if (!isLocalOllamaHost(OLLAMA_BASE_URL)) {
+          // Remote Pull via API
+          try {
+            const response = await fetch(`${OLLAMA_BASE_URL}/api/pull`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: OLLAMA_MODEL, stream: false }),
+            });
+            if (response.ok) {
+              logger.info(`[Ollama] Model '${OLLAMA_MODEL}' pull triggered successfully (remote)`);
             } else {
-              logger.warn(`[Ollama] Failed to pull model '${OLLAMA_MODEL}' (exit code ${code})`);
+              logger.warn(`[Ollama] Failed to trigger pull for '${OLLAMA_MODEL}' (remote status: ${response.status})`);
             }
-            resolve();
+          } catch (apiErr) {
+            logger.error(`[Ollama] Remote model pull request failed`, apiErr);
+          }
+        } else {
+          // Local Pull via binary
+          const pullProcess = spawn("ollama", ["pull", OLLAMA_MODEL]);
+          
+          // Handle error event (binary missing)
+          pullProcess.on("error", (err: any) => {
+            logger.error("[Ollama] Model pull failed (binary missing)", { error: err.message });
           });
-        });
+
+          return new Promise((resolve) => {
+            pullProcess.on("close", (code) => {
+              if (code === 0) {
+                logger.info(`[Ollama] Model '${OLLAMA_MODEL}' pulled successfully`);
+              } else {
+                logger.warn(`[Ollama] Failed to pull model '${OLLAMA_MODEL}' (exit code ${code})`);
+              }
+              resolve();
+            });
+            
+            // Also resolve on error to avoid hanging promise
+            pullProcess.on("error", () => resolve());
+          });
+        }
       }
     } catch (e) {
       logger.error("[Ollama] Model verification/pull failed", e);

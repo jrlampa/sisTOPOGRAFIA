@@ -9,6 +9,7 @@ type SidebarAnalysisText = {
   terrainPending: string;
   btnGenerating: string;
   btnDownloadDxf: string;
+  btnDownloadCoordinatesCsv: string;
 };
 
 const TEXTS: Record<AppLocale, SidebarAnalysisText> = {
@@ -21,6 +22,7 @@ const TEXTS: Record<AppLocale, SidebarAnalysisText> = {
     terrainPending: "Grade pendente...",
     btnGenerating: "GERANDO...",
     btnDownloadDxf: "BAIXAR DXF",
+    btnDownloadCoordinatesCsv: "EXPORTAR COORDENADAS (CSV)",
   },
   "en-US": {
     loadingAnalysis: "Loading analysis",
@@ -31,6 +33,7 @@ const TEXTS: Record<AppLocale, SidebarAnalysisText> = {
     terrainPending: "Grid pending...",
     btnGenerating: "GENERATING...",
     btnDownloadDxf: "DOWNLOAD DXF",
+    btnDownloadCoordinatesCsv: "EXPORT COORDINATES (CSV)",
   },
   "es-ES": {
     loadingAnalysis: "Cargando análisis",
@@ -41,6 +44,7 @@ const TEXTS: Record<AppLocale, SidebarAnalysisText> = {
     terrainPending: "Cuadrícula pendiente...",
     btnGenerating: "GENERANDO...",
     btnDownloadDxf: "DESCARGAR DXF",
+    btnDownloadCoordinatesCsv: "EXPORTAR COORDENADAS (CSV)",
   },
 };
 

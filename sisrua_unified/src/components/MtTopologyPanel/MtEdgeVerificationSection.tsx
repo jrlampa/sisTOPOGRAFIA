@@ -1,6 +1,7 @@
 import React from "react";
-import { Trash2, Link as LinkIcon } from "lucide-react";
-import type { BtRamalEntry, MtEdge, MtPoleNode } from "../../types";
+import { Link as LinkIcon, Trash2 } from "lucide-react";
+import type { AppLocale, BtRamalEntry, MtEdge, MtPoleNode } from "../../types";
+import { getMtTopologyPanelText } from "../../i18n/mtTopologyPanelText";
 
 const MT_CONDUCTOR_OPTIONS = [
   "70 Al - MX",
@@ -16,6 +17,7 @@ const MT_CONDUCTOR_OPTIONS = [
 ];
 
 interface MtEdgeVerificationSectionProps {
+  locale: AppLocale;
   edges: MtEdge[];
   polesById: Map<string, MtPoleNode>;
   onRemoveEdge: (id: string) => void;
@@ -27,12 +29,14 @@ interface MtEdgeVerificationSectionProps {
 }
 
 const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
+  locale,
   edges,
   polesById,
   onRemoveEdge,
   onSetEdgeChangeFlag,
   onSetEdgeConductors,
 }) => {
+  const t = getMtTopologyPanelText(locale);
   const [edgeConductorSelection, setEdgeConductorSelection] = React.useState<
     Record<string, string>
   >({});
@@ -40,7 +44,7 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
   if (edges.length === 0) {
     return (
       <div className="rounded border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-[10px] text-slate-500">
-        Nenhum vão MT cadastrado. Use o modo &quot;Vão&quot; no mapa.
+        {t.addSpanMode}
       </div>
     );
   }
@@ -50,7 +54,7 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
       <div className="flex items-center gap-1.5 mb-1 px-1">
         <LinkIcon size={12} className="text-orange-600" />
         <span className="text-[10px] font-bold uppercase tracking-wider text-orange-900">
-          Vãos MT ({edges.length})
+          {t.edgesSectionTitle} ({edges.length})
         </span>
       </div>
       <div className="max-h-[160px] overflow-y-auto flex flex-col gap-1 pr-1 scrollbar-hide">
@@ -78,8 +82,8 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
                 </span>
                 <button
                   onClick={() => onRemoveEdge(edge.id)}
-                  title={`Remover vão ${edge.id}`}
-                  aria-label={`Remover vão ${edge.id}`}
+                  title={`${t.removeEdge} ${edge.id}`}
+                  aria-label={`${t.removeEdge} ${edge.id}`}
                   className="rounded p-1 text-slate-300 transition-colors hover:bg-red-50 hover:text-red-500"
                 >
                   <Trash2 size={10} />
@@ -98,7 +102,7 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
                         : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"
                     }`}
                   >
-                    Ext
+                    {t.ext}
                   </button>
                   <button
                     onClick={() => onSetEdgeChangeFlag(edge.id, "new")}
@@ -108,13 +112,13 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
                         : "bg-white border-slate-200 text-slate-400 hover:border-orange-200"
                     }`}
                   >
-                    Novo
+                    {t.newShort}
                   </button>
                 </div>
               </div>
               <div className="rounded border border-orange-100 bg-orange-50/40 p-1.5">
                 <div className="text-[9px] font-bold uppercase text-orange-800">
-                  Condutor MT
+                  {t.conductorsLabel}
                 </div>
                 <div className="mt-1 flex items-center gap-1">
                   <select
@@ -127,7 +131,7 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
                       }));
                     }}
                     className="h-6 min-w-0 flex-1 rounded border border-orange-200 bg-white px-1 text-[10px] text-slate-700"
-                    aria-label={`Condutor MT do vão ${edge.id}`}
+                    aria-label={`${t.conductorsLabel} ${edge.id}`}
                   >
                     {MT_CONDUCTOR_OPTIONS.map((name) => (
                       <option key={name} value={name}>
@@ -147,7 +151,7 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
                     }
                     className="h-6 rounded border border-orange-300 px-1.5 text-[9px] font-black uppercase text-orange-800 transition-colors hover:bg-orange-100"
                   >
-                    Aplicar
+                    {t.apply}
                   </button>
                 </div>
                 <div className="mt-1 text-[9px] text-orange-900">
@@ -158,7 +162,7 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
                             `${entry.quantity}x ${entry.conductorName}`,
                         )
                         .join(" | ")
-                    : "Sem condutor MT informado"}
+                    : t.noConductor}
                 </div>
               </div>
             </div>

@@ -22,22 +22,36 @@ export async function initDbClient(): Promise<void> {
   if (_client || !config.DATABASE_URL) {
     return;
   }
-  try {
-    _client = postgres(config.DATABASE_URL, {
-      max: 5,
-      connect_timeout: 8,
-      ssl: config.NODE_ENV === "production" ? "require" : false,
-    });
-    // Warm-up: verify connectivity
-    await _client`SELECT 1`;
-    _available = true;
-    logger.info("[DB] PostgreSQL connection pool initialised");
-  } catch (err) {
-    _available = false;
-    logger.warn(
-      "[DB] PostgreSQL unavailable – repositories will use fallbacks",
-      { err },
-    );
+
+  const maxAttempts = 5;
+  let attempt = 0;
+
+  while (attempt < maxAttempts) {
+    attempt++;
+    try {
+      _client = postgres(config.DATABASE_URL, {
+        max: 5,
+        connect_timeout: 10,
+        ssl: config.NODE_ENV === "production" ? "require" : false,
+      });
+      // Warm-up: verify connectivity
+      await _client`SELECT 1`;
+      _available = true;
+      logger.info(`[DB] PostgreSQL initialised (Attempt ${attempt})`);
+      return;
+    } catch (err) {
+      _available = false;
+      const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+      logger.warn(
+        `[DB] PostgreSQL connection attempt ${attempt}/${maxAttempts} failed. Retrying in ${delay}ms...`,
+        { error: (err as Error).message },
+      );
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        logger.error("[DB] PostgreSQL initialization failed after max attempts. Fallbacks active.");
+      }
+    }
   }
 }
 

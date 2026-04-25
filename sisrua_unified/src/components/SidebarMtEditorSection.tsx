@@ -77,6 +77,7 @@ export function SidebarMtEditorSection({
         }
       >
         <MtTopologyPanel
+          locale={locale}
           mtTopology={mtTopology}
           onTopologyChange={onMtTopologyChange}
           mtEditorMode={mtEditorMode}

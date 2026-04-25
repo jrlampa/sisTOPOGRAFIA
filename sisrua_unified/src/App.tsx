@@ -806,6 +806,7 @@ function App() {
     terrainData,
     error,
     handleDownloadDxf,
+    handleDownloadCoordinatesCsv,
     isDownloading,
     showToast,
   };

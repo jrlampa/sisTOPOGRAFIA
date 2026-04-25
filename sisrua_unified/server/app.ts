@@ -5,6 +5,7 @@ import fs from "fs";
 import swaggerUi from "swagger-ui-express";
 import compression from "compression";
 import { randomUUID } from "crypto";
+import helmet from "helmet";
 
 import { config } from "./config.js";
 import { OllamaService } from "./services/ollamaService.js";
@@ -124,6 +125,18 @@ const dirname = path.join(process.cwd(), "server");
 
 const app: Express = express();
 
+// Security Hardening with Helmet
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "img-src": ["'self'", "data:", "blob:", "https://*.tile.openstreetmap.org", "https://server.arcgisonline.com"],
+      "connect-src": ["'self'", "https://*.posthog.com", "https://*.supabase.co", "https://overpass-api.de"],
+      "script-src": ["'self'", "'unsafe-inline'"],
+    },
+  },
+}));
+
 function resolveFrontendDistDirectory(): string {
   const candidates = [
     path.resolve(dirname, "../dist"),
@@ -134,37 +147,37 @@ function resolveFrontendDistDirectory(): string {
   const existing = candidates.find((c) =>
     fs.existsSync(path.join(c, "index.html")),
   );
-  return existing || candidates[0];
+  const result = existing || candidates[0];
+  console.log(`[Frontend] Serving from: ${result}`);
+  return result;
 }
 
 const frontendDistDirectory = resolveFrontendDistDirectory();
 
 // Middleware
 const isProduction = config.NODE_ENV === "production";
-let allowedOrigins: string[];
+let allowedOrigins: string[] = [];
+
 if (isProduction) {
-  if (!config.CORS_ORIGIN) {
-    allowedOrigins = [];
-  } else {
-    allowedOrigins = config.CORS_ORIGIN.split(",")
-      .map((o) => o.trim())
-      .filter((o) => o !== "*" && o.length > 0);
-  }
+  allowedOrigins = config.CORS_ORIGIN ? config.CORS_ORIGIN.split(",").map(o => o.trim()) : [];
 } else {
-  allowedOrigins = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-    "http://localhost:5173",
-    "http://localhost:4173",
-    "http://127.0.0.1:5173",
-  ];
+  // Em desenvolvimento, permitimos qualquer porta do localhost para facilitar o uso com Docker/DevServer
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:"))) {
+      res.header("Access-Control-Allow-Origin", origin);
+      res.header("Access-Control-Allow-Credentials", "true");
+      res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+      res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-request-id");
+    }
+    next();
+  });
 }
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || isProduction === false || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error(`CORS policy: origin ${origin} not allowed`));
@@ -183,6 +196,7 @@ app.use(
     ],
   }),
 );
+
 app.use(express.json({ limit: config.BODY_LIMIT }));
 app.use(compression());
 
@@ -206,6 +220,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   if (correlationIds.projeto_id)
     store.set("projeto_id", correlationIds.projeto_id);
   if (correlationIds.ponto_id) store.set("ponto_id", correlationIds.ponto_id);
+  
   if (!requestContext) {
     logger.error(
       "CRITICAL: requestContext AsyncLocalStorage is undefined - middleware bypass",
@@ -266,19 +281,12 @@ app.get("/health", async (_req: Request, res: Response) => {
           totalRegistered: externalCircuitBreakers.length,
         },
       },
-      config: {
-        environment: config.NODE_ENV,
-        constantsCatalog: {
-          cacheSize: Object.keys(constantsService.stats()).length,
-        },
-      },
     };
 
-    const statusCode = healthData.status === "online" ? 200 : 503;
-    res.status(statusCode).json(healthData);
-  } catch (err: any) {
-    logger.error("Health check failed", { error: err.message });
-    res.status(500).json({ status: "error", error: err.message });
+    res.status(healthData.status === "online" ? 200 : 503).json(healthData);
+  } catch (err) {
+    logger.error("Health check failed critically", { err });
+    res.status(500).json({ status: "error", message: "Health check failed" });
   }
 });
 
@@ -288,60 +296,60 @@ app.use("/api/search", searchRoutes);
 app.use("/api/osm", osmRoutes);
 app.use("/api/ibge", ibgeRoutes);
 app.use("/api/inde", indeRoutes);
-app.use("/api/analyze", analysisRoutes);
+app.use("/api/analysis", analysisRoutes);
 app.use("/api/constants", constantsRoutes);
 app.use("/api/bt-history", btHistoryRoutes);
-app.use("/api/bt", btDerivedRoutes);
-app.use("/api/bt", btCalculationRoutes);
+app.use("/api/bt-derived", btDerivedRoutes);
+app.use("/api/bt-calculation", btCalculationRoutes);
 app.use("/api/dg", dgRoutes);
 app.use("/api/jobs", jobRoutes);
-if (config.useFirestore) app.use("/api/firestore", firestoreRoutes);
-app.use("/api/storage", storageRoutes);
+app.use("/api/firestore", firestoreRoutes);
 app.use("/api/dxf", dxfRoutes);
-app.use("/api/ops", opsRoutes);
-app.use("/metrics", metricsRoutes);
+app.use("/api/metrics", metricsRoutes);
 app.use("/api/feature-flags", featureFlagRoutes);
-app.use("/api/tenant-quotas", quotaRoutes);
-app.use("/api/cost-centers", costCenterRoutes);
-app.use("/api/business-kpi", businessKpiRoutes);
+app.use("/api/quota", quotaRoutes);
+app.use("/api/cost-center", costCenterRoutes);
+app.use("/api/business-kpis", businessKpiRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/retencao", dataRetentionRoutes);
-app.use("/api/capacidade", capacityPlanningRoutes);
-app.use("/api/vulns", vulnManagementRoutes);
-app.use("/api/classificacao", infoClassificationRoutes);
-app.use("/api/holdings", holdingRoutes);
+app.use("/api/data-retention", dataRetentionRoutes);
+app.use("/api/capacity-planning", capacityPlanningRoutes);
+app.use("/api/vuln-management", vulnManagementRoutes);
+app.use("/api/info-classification", infoClassificationRoutes);
+app.use("/api/holding", holdingRoutes);
 app.use("/api/finops", finOpsRoutes);
+app.use("/api/ops", opsRoutes);
+app.use("/api/storage", storageRoutes);
 app.use("/api/bdgd", bdgdRoutes);
 app.use("/api/lgpd", lgpdRoutes);
 app.use("/api/dossie", dossieRoutes);
-app.use("/api/lgpd/retencao", lgpdRetencaoRoutes);
-app.use("/api/lgpd/residencia", lgpdResidenciaRoutes);
+app.use("/api/lgpd-retencao", lgpdRetencaoRoutes);
+app.use("/api/lgpd-residencia", lgpdResidenciaRoutes);
 app.use("/api/sre", sreRoutes);
 app.use("/api/rastreabilidade", rastreabilidadeRoutes);
 app.use("/api/licitacoes", licitacoesRoutes);
-app.use("/api/ollama/governance", ollamaGovernanceRoutes);
-app.use("/api/release", releaseIntegrityRoutes);
-app.use("/api/cab", releaseCabRoutes);
-app.use("/api/servicedesk", serviceDeskRoutes);
-app.use("/api/sla", contractualSlaRoutes);
-app.use("/api/rfp", rfpReadinessRoutes);
-app.use("/api/knowledge", knowledgeBaseRoutes);
-app.use("/api/enterprise", enterpriseReadinessRoutes);
+app.use("/api/ollama-governance", ollamaGovernanceRoutes);
+app.use("/api/release-integrity", releaseIntegrityRoutes);
+app.use("/api/release-cab", releaseCabRoutes);
+app.use("/api/service-desk", serviceDeskRoutes);
+app.use("/api/contractual-sla", contractualSlaRoutes);
+app.use("/api/rfp-readiness", rfpReadinessRoutes);
+app.use("/api/knowledge-base", knowledgeBaseRoutes);
+app.use("/api/enterprise-readiness", enterpriseReadinessRoutes);
 app.use("/api/supply-chain", supplyChainRoutes);
-app.use("/api/observability", predictiveObservabilityRoutes);
-app.use("/api/encryption", encryptionAtRestRoutes);
-app.use("/api/audit-cold", auditColdStorageRoutes);
-app.use("/api/promotion", environmentPromotionRoutes);
-app.use("/api/tenant-audit", tenantAuditExportRoutes);
+app.use("/api/predictive-observability", predictiveObservabilityRoutes);
+app.use("/api/encryption-at-rest", encryptionAtRestRoutes);
+app.use("/api/audit-cold-storage", auditColdStorageRoutes);
+app.use("/api/environment-promotion", environmentPromotionRoutes);
+app.use("/api/tenant-audit-export", tenantAuditExportRoutes);
 app.use("/api/zero-trust", zeroTrustRoutes);
 app.use("/api/blue-green", blueGreenRoutes);
 app.use("/api/pentest", pentestRoutes);
 app.use("/api/bcp-dr", bcpDrRoutes);
 app.use("/api/compliance", complianceRoutes);
-app.use("/api/identity", identityLifecycleRoutes);
-app.use("/api/tenant-isolation", multiTenantIsolationRoutes);
-app.use("/api/idempotency", jobIdempotencyRoutes);
-app.use("/api/runbooks", operationalRunbookRoutes);
+app.use("/api/identity-lifecycle", identityLifecycleRoutes);
+app.use("/api/multi-tenant-isolation", multiTenantIsolationRoutes);
+app.use("/api/job-idempotency", jobIdempotencyRoutes);
+app.use("/api/operational-runbook", operationalRunbookRoutes);
 app.use("/api/sinapi", sinapiRoutes);
 app.use("/api/bdi-roi", bdiRoiRoutes);
 app.use("/api/lcc", lccRoutes);
@@ -358,32 +366,35 @@ app.use("/api/lcc-familia", lccFamiliaRoutes);
 app.use("/api/eiv", eivRoutes);
 app.use("/api/remuneracao-regulatoria", remuneracaoRegulatoriaRoutes);
 app.use("/api/tco-capex-opex", tcoCapexOpexRoutes);
-app.use("/api/servidoes-incra", servidoesFundiariasIncraRoutes);
+app.use("/api/servidoes-fundiarias-incra", servidoesFundiariasIncraRoutes);
 app.use("/api/esg-sustentabilidade", esgSustentabilidadeRoutes);
 app.use("/api/medicao-pagamento", medicaoPagamentoRoutes);
 app.use("/api/produtividade-territorial", produtividadeTerritorialRoutes);
 app.use("/api/edicao-colaborativa", edicaoColaborativaRoutes);
 app.use("/api/academy", academyRoutes);
 app.use("/api/qr-rastreabilidade", qrRastreabilidadeRoutes);
-app.use("/api/as-built", asBuiltMobileRoutes);
+app.use("/api/as-built-mobile", asBuiltMobileRoutes);
 app.use("/api/lcp", lcpRoutes);
-app.use("/api/nbr9050", nbr9050Routes);
-app.use("/api/sombreamento", sombreamento2D5Routes);
+app.use("/api/nbr-9050", nbr9050Routes);
+app.use("/api/sombreamento-2d5", sombreamento2D5Routes);
 app.use("/api/nbr-calcadas", nbrCalcadasRoutes);
-app.use("/api/tele-engenharia", teleEngenhariaArRoutes);
+app.use("/api/tele-engenharia-ar", teleEngenhariaArRoutes);
 app.use("/api/acervo-ged", acervoGedRoutes);
 app.use("/api/hybrid-cloud", hybridCloudRoutes);
 app.use("/api/portal-stakeholder", portalStakeholderRoutes);
 app.use("/api/proveniencia-forense", provenienciaForenseRoutes);
 app.use("/api/assinatura-nuvem", assinaturaNuvemRoutes);
 app.use("/api/gis-hardening", gisHardeningRoutes);
+
+// Static files
 app.use(express.static(frontendDistDirectory));
+
+// Fallback to index.html for React Router
 app.get("*", (_req: Request, res: Response) => {
-  const indexPath = path.join(frontendDistDirectory, "index.html");
-  if (fs.existsSync(indexPath)) res.sendFile(indexPath);
-  else res.status(404).json({ error: "Frontend not found" });
+  res.sendFile(path.join(frontendDistDirectory, "index.html"));
 });
 
+// Error Handler
 app.use(errorHandler);
 
 export default app;
