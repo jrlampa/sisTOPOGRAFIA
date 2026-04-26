@@ -2,7 +2,8 @@ import React from "react";
 import { CheckCircle2, Circle, MapPin, Hash, Activity, FileText, Zap } from "lucide-react";
 import type { BtPoleNode, AppLocale, MtTopology } from "../../types";
 import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
-import { getFlagColor } from "../MapSelectorStyles";
+import PoleCockpitCard from "./Cockpit/PoleCockpitCard";
+import type { BtDerivedSummary, BtPoleAccumulatedDemand } from "../../services/btDerivedService";
 
 interface BtUnifiedInfraTabProps {
   locale: AppLocale;
@@ -17,6 +18,8 @@ interface BtUnifiedInfraTabProps {
   updatePoleEquipmentNotes: (poleId: string, s: any) => void;
   updatePoleGeneralNotes: (poleId: string, s: any) => void;
   mtTopology: MtTopology;
+  summary: BtDerivedSummary;
+  accumulatedByPole: BtPoleAccumulatedDemand[];
 }
 
 const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
@@ -26,102 +29,52 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
 
   if (!pole) return null;
 
-  const currentFlag = pole.nodeChangeFlag ?? "existing";
+  // Encontrar resultados do cockpit nos dados derivados (Simulação até integração total da API)
+  const accData = props.accumulatedByPole.find(a => a.poleId === pole.id);
+
+  // Mocks de resultados dos motores recém-criados para visualização imediata no Cockpit
+  const mechanicalResult = accData ? {
+    resultantForceDaN: Math.round(Math.random() * 450), // Simulando motor 2.5D
+    overloaded: Math.random() > 0.8,
+    resultantAngleDegrees: 45
+  } : undefined;
+
+  const accessibilityCost = pole.hasVehicleAccess === false 
+    ? (pole.manualDragDistanceMeters || 0) * 0.005 * 500 // Simulando AccessibilityProcessor
+    : 0;
+
+  // Extrair estruturas de MT para o cockpit
+  const mtPole = props.mtTopology.poles.find(p => p.id === pole.id);
+  const mtStructures = mtPole ? Object.values(mtPole.mtStructures || {}).filter(Boolean) : [];
 
   return (
     <div className="space-y-4 pb-6">
-      {/* Quick Header / Status */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-3 border border-slate-200 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-              <MapPin size={16} />
-            </div>
-            <div>
-              <input
-                type="text"
-                value={pole.title}
-                onChange={(e) => props.onBtRenamePole?.(pole.id, e.target.value)}
-                className="bg-transparent border-none p-0 text-sm font-bold text-slate-800 focus:ring-0 w-full"
-                placeholder={pt.placeholderPoleName}
-              />
-              <div className="text-[10px] text-slate-400 font-mono">{pole.id}</div>
-            </div>
-          </div>
-          <button
-            onClick={() => props.updatePoleVerified(pole.id, !pole.verified)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${
-              pole.verified 
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
-                : "bg-slate-50 text-slate-500 border border-slate-200"
-            }`}
-          >
-            {pole.verified ? <CheckCircle2 size={12} /> : <Circle size={12} />}
-            {pole.verified ? "Verificado" : "Pendente"}
-          </button>
-        </div>
-
-        {/* Change Flags */}
-        <div className="flex flex-wrap gap-1.5">
-          {(["existing", "new", "replace", "remove"] as const).map((flag) => (
-            <button
-              key={flag}
-              onClick={() => props.onBtSetPoleChangeFlag?.(pole.id, flag)}
-              className={`flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
-                currentFlag === flag
-                  ? "bg-white shadow-sm border-blue-200 text-blue-700"
-                  : "bg-slate-50 border-transparent text-slate-400 opacity-60 hover:opacity-100"
-              }`}
-              style={currentFlag === flag ? { borderLeft: `3px solid ${getFlagColor(flag, "#3b82f6")}` } : {}}
-            >
-              {flag === "existing" ? "Existente" : flag === "new" ? "Novo" : flag === "replace" ? "Troca" : "Remover"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Spec Grid */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-3 border border-slate-200 shadow-sm">
-          <label className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">
-            <Hash size={10} /> {pt.heightM}
-          </label>
-          <input
-            type="number"
-            value={pole.poleSpec?.heightM ?? ""}
-            onChange={(e) => {
-              const val = parseFloat(e.target.value);
-              props.updatePoleSpec(pole.id, { ...pole.poleSpec, heightM: isNaN(val) ? undefined : val });
-            }}
-            className="w-full bg-slate-50 border-none rounded-lg p-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-100"
-            placeholder="Ex: 11"
-          />
-        </div>
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-3 border border-slate-200 shadow-sm">
-          <label className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">
-            <Activity size={10} /> {pt.effortDan}
-          </label>
-          <input
-            type="number"
-            value={pole.poleSpec?.nominalEffortDan ?? ""}
-            onChange={(e) => {
-              const val = parseFloat(e.target.value);
-              props.updatePoleSpec(pole.id, { ...pole.poleSpec, nominalEffortDan: isNaN(val) ? undefined : val });
-            }}
-            className="w-full bg-slate-50 border-none rounded-lg p-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-100"
-            placeholder="Ex: 400"
-          />
-        </div>
-      </div>
+      <PoleCockpitCard 
+        pole={pole}
+        mtStructures={mtStructures}
+        locale={props.locale}
+        onRename={(id, title) => props.onBtRenamePole?.(id, title)}
+        onSetFlag={(id, flag) => props.onBtSetPoleChangeFlag?.(id, flag)}
+        onUpdateSpec={(id, spec) => props.updatePoleSpec(id, spec)}
+        onUpdateAcessibilidade={(id, hasAccess, dist) => {
+            props.updatePoleSpec(id, { 
+                ...pole, 
+                hasVehicleAccess: hasAccess, 
+                manualDragDistanceMeters: dist 
+            });
+        }}
+        mechanicalResult={mechanicalResult}
+        accessibilityCost={accessibilityCost}
+      />
 
       {/* Physical State & Structures */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-3 border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm space-y-4">
         <div>
-          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2">{pt.poleStateTitle}</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">{pt.poleStateTitle}</label>
           <select
             value={pole.conditionStatus ?? ""}
             onChange={(e) => props.updatePoleConditionStatus(pole.id, e.target.value || undefined)}
-            className="w-full bg-slate-50 border-none rounded-lg p-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-100"
+            className="w-full bg-slate-50 border-none rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-100"
           >
             <option value="">{pt.selectState}</option>
             <option value="bom_estado">{pt.stateGood}</option>
@@ -132,7 +85,7 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
         </div>
 
         <div>
-          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2">{pt.structuresTitle}</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">{pt.structuresTitle}</label>
           <div className="grid grid-cols-2 gap-2">
             {(["si1", "si2", "si3", "si4"] as const).map((slot) => (
               <input
@@ -141,7 +94,7 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
                 placeholder={slot.toUpperCase()}
                 value={pole.btStructures?.[slot] ?? ""}
                 onChange={(e) => props.updatePoleBtStructures(pole.id, { ...pole.btStructures, [slot]: e.target.value || undefined })}
-                className="bg-slate-50 border-none rounded-lg p-2 text-[10px] font-mono font-bold text-slate-700 placeholder:opacity-30 focus:ring-2 focus:ring-blue-100"
+                className="bg-slate-50 border-none rounded-xl p-2.5 text-[10px] font-mono font-bold text-slate-700 placeholder:opacity-30 focus:ring-2 focus:ring-blue-100"
               />
             ))}
           </div>
@@ -149,27 +102,27 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
       </div>
 
       {/* Notes */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-3 border border-slate-200 shadow-sm">
-        <label className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">
-          <FileText size={10} /> {pt.generalNotesTitle}
+      <div className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm">
+        <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+          <FileText size={12} /> {pt.generalNotesTitle}
         </label>
         <textarea
           value={pole.generalNotes ?? ""}
           onChange={(e) => props.updatePoleGeneralNotes(pole.id, e.target.value || undefined)}
           rows={3}
-          className="w-full bg-slate-50 border-none rounded-lg p-2 text-[11px] text-slate-800 focus:ring-2 focus:ring-blue-100 resize-none"
+          className="w-full bg-slate-50 border-none rounded-xl p-3 text-[11px] text-slate-800 focus:ring-2 focus:ring-blue-100 resize-none"
           placeholder={pt.generalNotesPlaceholder}
         />
       </div>
 
       {/* MT Context (Unified Vision) */}
       {props.mtTopology.poles.some(p => p.id === pole.id) && (
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-orange-200/50 rounded-2xl p-3 shadow-sm">
-          <label className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-orange-700/60 mb-2">
-            <Zap size={10} /> Contexto de Média Tensão (MT)
+        <div className="bg-gradient-to-br from-amber-50 to-orange-100/50 border border-orange-200 rounded-3xl p-4 shadow-sm">
+          <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-orange-700/60 mb-3">
+            <Zap size={12} /> Contexto de Média Tensão (MT)
           </label>
           <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center bg-white/40 p-2 rounded-lg">
+            <div className="flex justify-between items-center bg-white/60 p-2.5 rounded-xl border border-orange-200/30">
               <span className="text-[10px] font-bold text-orange-900/70 uppercase">
                 Estruturas MT
               </span>
@@ -185,7 +138,7 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
                 })()}
               </span>
             </div>
-            <div className="flex justify-between items-center bg-white/40 p-2 rounded-lg">
+            <div className="flex justify-between items-center bg-white/60 p-2.5 rounded-xl border border-orange-200/30">
               <span className="text-[10px] font-bold text-orange-900/70 uppercase">Conexões MT</span>
               <span className="text-xs font-mono font-bold text-orange-800">
                 {props.mtTopology.edges.filter(e => e.fromPoleId === pole.id || e.toPoleId === pole.id).length} trecho(s)

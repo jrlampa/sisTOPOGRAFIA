@@ -193,6 +193,7 @@ export interface BtPoleRamalEntry {
 export interface BtPoleSpec {
   heightM?: number;
   nominalEffortDan?: number;
+  material?: "CC" | "DT" | "MAD" | "FIB" | "FER"; // Light Field Abbreviations
 }
 
 export interface BtPoleBtStructures {
@@ -222,6 +223,9 @@ export interface BtPoleNode {
   btStructures?: BtPoleBtStructures;
   nodeChangeFlag?: "existing" | "new" | "remove" | "replace";
   circuitBreakPoint?: boolean;
+  hasVehicleAccess?: boolean;
+  manualDragDistanceMeters?: number;
+  equipmentType?: string;
 }
 
 export interface BtTransformerReading {

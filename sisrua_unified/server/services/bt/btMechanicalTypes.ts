@@ -13,6 +13,7 @@ export interface BtMechanicalNode {
 export interface BtMechanicalConductor {
     conductorName: string;
     quantity: number;
+    circuitType?: 'BT' | 'MT' | 'TELECOM' | 'OTHER';
 }
 
 export interface BtMechanicalEdge {
@@ -51,10 +52,21 @@ export interface BtMechanicalOutput {
  * Traction (daN) represents the design tension under worst-case loading (EDS or Max Load).
  */
 export const LIGHT_CONDUCTOR_MECHANICAL_DATA: Record<string, { weightDaNm: number; designTractionDaN: number }> = {
+    // Baixa Tensão (BT) - Multiplexados
     "70 Al - MX": { weightDaNm: 0.85, designTractionDaN: 200 },
     "35 Al - MX": { weightDaNm: 0.45, designTractionDaN: 110 },
     "120 Al - MX": { weightDaNm: 1.45, designTractionDaN: 350 },
     "185 Al - MX": { weightDaNm: 2.20, designTractionDaN: 520 },
+
+    // Média Tensão (MT) - Alumínio Nu (Exemplos Light)
+    "MT-4-AWG-AL": { weightDaNm: 0.15, designTractionDaN: 150 },
+    "MT-1/0-AWG-AL": { weightDaNm: 0.35, designTractionDaN: 300 },
+    "MT-4/0-AWG-AL": { weightDaNm: 0.65, designTractionDaN: 550 },
+    
+    // Média Tensão (MT) - Protegidos/Compactos
+    "MT-70-PROT": { weightDaNm: 0.90, designTractionDaN: 250 },
+    "MT-150-PROT": { weightDaNm: 1.80, designTractionDaN: 450 },
+
     "DEFAULT": { weightDaNm: 0.85, designTractionDaN: 200 }
 };
 

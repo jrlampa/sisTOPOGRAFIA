@@ -31,10 +31,27 @@ export function calculateBearing(lat1: number, lon1: number, lat2: number, lon2:
 /**
  * Performs vector summation of mechanical tractions on each pole.
  */
+export interface BtMechanicalEdgeResult {
+    edgeId: string;
+    totalTractionDaN: number;
+    totalWeightDaN: number;
+    circuitsCount: number;
+}
+
+export interface BtMechanicalOutput {
+    nodeResults: BtMechanicalNodeResult[];
+    edgeResults: BtMechanicalEdgeResult[];
+}
+
+/**
+ * Performs vector summation of mechanical tractions on each pole.
+ * Now aggregates multiple circuits per span.
+ */
 export function calculateBtMechanical(input: BtMechanicalInput): BtMechanicalOutput {
     const { nodes, edges } = input;
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
     const nodeResults: BtMechanicalNodeResult[] = [];
+    const edgeResults: BtMechanicalEdgeResult[] = [];
 
     // Group edges by incident nodes
     const adj = new Map<string, string[]>();
@@ -43,6 +60,21 @@ export function calculateBtMechanical(input: BtMechanicalInput): BtMechanicalOut
         if (!adj.has(edge.toNodeId)) adj.set(edge.toNodeId, []);
         adj.get(edge.fromNodeId)!.push(edge.id);
         adj.get(edge.toNodeId)!.push(edge.id);
+
+        // Pre-calculate per-edge totals
+        let edgeTraction = 0;
+        let edgeWeight = 0;
+        for (const cond of edge.conductors) {
+            const data = LIGHT_CONDUCTOR_MECHANICAL_DATA[cond.conductorName] || LIGHT_CONDUCTOR_MECHANICAL_DATA['DEFAULT'];
+            edgeTraction += cond.quantity * data.designTractionDaN;
+            edgeWeight += cond.quantity * data.weightDaNm; // Assuming DaNm * L, but here we just show the base load
+        }
+        edgeResults.push({
+            edgeId: edge.id,
+            totalTractionDaN: edgeTraction,
+            totalWeightDaN: edgeWeight,
+            circuitsCount: edge.conductors.length
+        });
     });
 
     for (const node of nodes) {

@@ -296,17 +296,81 @@ export function useBtPoleOperations({
     nodeChangeFlag: BtPoleChangeFlag,
   ) => {
     setAppState(
-      (prev) => ({
-        ...prev,
-        btTopology: {
-          ...prev.btTopology,
-          poles: prev.btTopology.poles.map((pole) =>
+      (prev) => {
+        // 1. Update BT Topology with Smart Inheritance
+        const btTopology = prev.btTopology;
+        const targetPole = btTopology.poles.find((p) => p.id === poleId);
+        
+        let nextBtTopology = {
+          ...btTopology,
+          poles: btTopology.poles.map((pole) =>
             pole.id === poleId
               ? normalizeBtPole({ ...pole, nodeChangeFlag })
               : pole,
           ),
-        },
-      }),
+        };
+
+        // If REMOVE, propagate to edges and transformers
+        if (nodeChangeFlag === "remove") {
+          nextBtTopology = {
+            ...nextBtTopology,
+            edges: nextBtTopology.edges.map((edge) =>
+              edge.fromPoleId === poleId || edge.toPoleId === poleId
+                ? { ...edge, edgeChangeFlag: "remove", removeOnExecution: true }
+                : edge,
+            ),
+            transformers: nextBtTopology.transformers.map((transformer) => {
+              const isLinked = transformer.poleId === poleId;
+              const isClose = !transformer.poleId && targetPole && 
+                distanceMeters(
+                  { lat: transformer.lat, lng: transformer.lng },
+                  { lat: targetPole.lat, lng: targetPole.lng }
+                ) <= 6;
+              
+              return isLinked || isClose
+                ? { ...transformer, transformerChangeFlag: "remove" }
+                : transformer;
+            }),
+          };
+        }
+
+        // 2. Update MT Topology with Smart Inheritance
+        const mtTopology = prev.mtTopology;
+        let nextMtTopology = {
+          ...mtTopology,
+          poles: mtTopology.poles.map((pole) =>
+            pole.id === poleId
+              ? { ...pole, nodeChangeFlag } // MT also has nodeChangeFlag in some versions
+              : pole,
+          ),
+        };
+
+        if (nodeChangeFlag === "remove") {
+          nextMtTopology = {
+            ...nextMtTopology,
+            edges: nextMtTopology.edges.map((edge) =>
+              edge.fromPoleId === poleId || edge.toPoleId === poleId
+                ? { ...edge, edgeChangeFlag: "remove" }
+                : edge,
+            ),
+            transformers: nextMtTopology.transformers.map((transformer) =>
+              transformer.poleId === poleId
+                ? { ...transformer, transformerChangeFlag: "remove" }
+                : transformer,
+            ),
+          };
+        }
+
+        if (nodeChangeFlag === "remove") {
+          showToast(`Poste ${poleId} e elementos dependentes (BT/MT) marcados para remoção.`, "info");
+        }
+
+        return {
+          ...prev,
+          btTopology: nextBtTopology,
+          mtTopology: nextMtTopology,
+        };
+      },
       true,
     );
   };
