@@ -5,7 +5,6 @@
 
 import {
     BtMechanicalInput,
-    BtMechanicalOutput,
     BtMechanicalNodeResult,
     BtMechanicalValidationError,
     LIGHT_CONDUCTOR_MECHANICAL_DATA
@@ -134,5 +133,5 @@ export function calculateBtMechanical(input: BtMechanicalInput): BtMechanicalOut
         });
     }
 
-    return { nodeResults };
+    return { nodeResults, edgeResults };
 }

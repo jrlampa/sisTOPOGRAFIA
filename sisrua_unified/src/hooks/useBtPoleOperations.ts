@@ -353,11 +353,6 @@ export function useBtPoleOperations({
                 ? { ...edge, edgeChangeFlag: "remove" }
                 : edge,
             ),
-            transformers: nextMtTopology.transformers.map((transformer) =>
-              transformer.poleId === poleId
-                ? { ...transformer, transformerChangeFlag: "remove" }
-                : transformer,
-            ),
           };
         }
 

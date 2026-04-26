@@ -15,7 +15,7 @@ import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
 import BtUnifiedInfraTab from "./BtUnifiedInfraTab";
 import BtUnifiedElectricalTab from "./BtUnifiedElectricalTab";
 import BtUnifiedCommercialTab from "./BtUnifiedCommercialTab";
-import type { BtPoleAccumulatedDemand } from "../../services/btDerivedService";
+import type { BtPoleAccumulatedDemand, BtDerivedSummary } from "../../services/btDerivedService";
 
 interface BtUnifiedDashboardProps {
   locale: AppLocale;
@@ -29,6 +29,7 @@ interface BtUnifiedDashboardProps {
   selectedEdgeId: string;
   selectedEdge: BtEdge | null;
   accumulatedByPole: BtPoleAccumulatedDemand[];
+  summary: BtDerivedSummary;
   transformerDebugById: Record<string, { assignedClients: number; estimatedDemandKva: number }>;
   onBtRenamePole?: (poleId: string, title: string) => void;
   onBtSetPoleChangeFlag?: (poleId: string, flag: any) => void;

@@ -29,9 +29,22 @@ interface BtTopologyEdgeSubSectionProps {
   selectedEdgeId: string;
   selectEdge: (id: string) => void;
   updateEdgeVerified: (id: string, v: boolean) => void;
-  updateEdgeConductors: (id: string, c: any[]) => void;
-  updateEdgeMtConductors?: (id: string, mtc: any[]) => void;
-  onBtSetEdgeChangeFlag?: (id: string, flag: any) => void;
+  updateEdgeConductors: (
+    id: string,
+    c: BtTopology["edges"][number]["conductors"],
+  ) => void;
+  updateEdgeReplacementFromConductors: (
+    id: string,
+    rc: BtTopology["edges"][number]["conductors"],
+  ) => void;
+  updateEdgeMtConductors?: (
+    id: string,
+    mtc: BtTopology["edges"][number]["conductors"],
+  ) => void;
+  onBtSetEdgeChangeFlag?: (
+    id: string,
+    flag: "existing" | "new" | "remove" | "replace",
+  ) => void;
 }
 
 const BtTopologyEdgeSubSection: React.FC<BtTopologyEdgeSubSectionProps> = ({
@@ -41,7 +54,9 @@ const BtTopologyEdgeSubSection: React.FC<BtTopologyEdgeSubSectionProps> = ({
   selectedEdge,
   selectedEdgeId,
   selectEdge,
+  updateEdgeVerified: _updateEdgeVerified,
   updateEdgeConductors,
+  updateEdgeReplacementFromConductors: _updateEdgeReplacementFromConductors,
   updateEdgeMtConductors,
   onBtSetEdgeChangeFlag,
 }) => {

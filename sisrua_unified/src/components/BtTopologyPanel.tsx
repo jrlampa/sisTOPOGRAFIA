@@ -259,6 +259,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           selectedEdgeId={selectedEdgeId}
           selectedEdge={selectedEdge}
           accumulatedByPole={_accumulatedByPole}
+          summary={summary}
           transformerDebugById={transformerDebugById}
           onBtRenamePole={onBtRenamePole}
           onBtSetPoleChangeFlag={onBtSetPoleChangeFlag}

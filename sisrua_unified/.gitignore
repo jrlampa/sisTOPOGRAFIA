@@ -89,6 +89,9 @@ chaos_output.txt
 artifacts/
 scratch/
 cache/
+.cache/
+.agents/
+.gemini/
 
 # Editor directories and files
 .vscode/*
