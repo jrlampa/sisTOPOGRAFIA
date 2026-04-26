@@ -5,11 +5,12 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 
 ## Histórico de Decisões de Arquitetura
 
-### **Estado Atual: Implementação de Engenharia Mecânica 2.5D (Abril 2026)**
+### **Estado Atual: Implementação de Engenharia e Acessibilidade (Abril 2026)**
+- **Acessibilidade (Arraste Manual)**: Implementado Motor de Cálculo de custos de transporte manual (baremos) para áreas sem acesso veicular.
 - **MechanicalProcessor**: Integrado Motor de Cálculo Mecânico Vetorial baseado nas normas da Light S.A.
 - **Geoprocessamento**: Implementado cálculo de Bearing (azimute) e decomposição vetorial para soma de esforços em postes.
-- **API & Schemas**: Criado endpoint `/api/bt-calculation/calculate-mechanical` e schemas Zod para validação de esforços.
-- **Testes & Cobertura**: 98% de cobertura no novo serviço mecânico.
+- **API & Schemas**: Criados endpoints e schemas Zod para validação de esforços mecânicos e acessibilidade.
+- **Testes & Cobertura**: 100% de cobertura no serviço de acessibilidade e 98% no mecânico.
 
 ### **Fase Anterior: Auditoria Técnica Corretiva Concluída (Abril 2026)**
 - **Testes & Cobertura**: Refatoração massiva de rotas e mocks (24 test suites corrigidos). Alcançado 100% de sucesso na suite de testes backend (191 suites, 2735 testes passando).

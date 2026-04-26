@@ -51,6 +51,9 @@ const nodeLoadSchema = z.object({
 const nodeSchema = z.object({
   id: z.string().min(1),
   load: nodeLoadSchema,
+  hasVehicleAccess: z.boolean().optional(),
+  manualDragDistanceMeters: z.number().nonnegative().optional(),
+  equipmentType: z.string().optional(),
 });
 
 const edgeSchema = z.object({

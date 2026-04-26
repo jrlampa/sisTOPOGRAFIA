@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BT Radial Calculation Service – orchestrator (E1-E5)
  *
  * This file is intentionally thin: it composes the bt/* sub-modules and
@@ -42,6 +42,7 @@ import { accumulateDemand } from './bt/btDemand.js';
 import { propagateQt } from './bt/btVoltage.js';
 import type { PropagationContext } from './bt/btVoltage.js';
 import { buildWorstCase, buildConsistencyAlerts } from './bt/btCqt.js';
+import { calculateManualDraggingCosts } from './btAccessibilityService.js';
 import type {
     BtRadialTopologyInput,
     BtRadialNodeResult,
@@ -106,6 +107,14 @@ export function calculateBtRadial(input: BtRadialTopologyInput): BtRadialCalcula
         input.transformer.rootNodeId,
     );
 
+    // Step 6.1: accessibility & manual dragging calculation (New Feature)
+    const accessibilityResults = calculateManualDraggingCosts(input.nodes.map(n => ({
+        id: n.id,
+        hasVehicleAccess: n.hasVehicleAccess ?? true,
+        manualDragDistanceMeters: n.manualDragDistanceMeters,
+        equipmentType: n.equipmentType
+    })));
+
     const output: BtRadialCalculationOutput = {
         qtTrafo,
         nodeResults,
@@ -113,6 +122,7 @@ export function calculateBtRadial(input: BtRadialTopologyInput): BtRadialCalcula
         worstCase,
         totalDemandKva,
         consistencyAlerts: [],
+        accessibilityResults
     };
 
     // Step 7: consistency alerts (E5-H2)

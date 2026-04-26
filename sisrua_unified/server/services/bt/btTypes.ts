@@ -21,6 +21,9 @@ export interface BtRadialNodeLoad {
 export interface BtRadialNode {
     id: string;
     load: BtRadialNodeLoad;
+    hasVehicleAccess?: boolean;
+    manualDragDistanceMeters?: number;
+    equipmentType?: string;
 }
 
 export interface BtRadialEdge {
@@ -85,6 +88,8 @@ export interface BtRadialConsistencyAlert {
     severity: 'error' | 'warn';
 }
 
+import { BtAccessibilityOutput } from './btAccessibilityTypes.js';
+
 export interface BtRadialCalculationOutput {
     qtTrafo: number;
     nodeResults: BtRadialNodeResult[];
@@ -92,6 +97,7 @@ export interface BtRadialCalculationOutput {
     worstCase: BtRadialWorstCase;
     totalDemandKva: number;
     consistencyAlerts: BtRadialConsistencyAlert[];
+    accessibilityResults?: BtAccessibilityOutput;
 }
 
 // ─── Internal tree type ───────────────────────────────────────────────────────
