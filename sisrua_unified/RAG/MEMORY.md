@@ -5,7 +5,13 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 
 ## Histórico de Decisões de Arquitetura
 
-### **Estado Atual: Auditoria Técnica Corretiva Concluída (Abril 2026)**
+### **Estado Atual: Implementação de Engenharia Mecânica 2.5D (Abril 2026)**
+- **MechanicalProcessor**: Integrado Motor de Cálculo Mecânico Vetorial baseado nas normas da Light S.A.
+- **Geoprocessamento**: Implementado cálculo de Bearing (azimute) e decomposição vetorial para soma de esforços em postes.
+- **API & Schemas**: Criado endpoint `/api/bt-calculation/calculate-mechanical` e schemas Zod para validação de esforços.
+- **Testes & Cobertura**: 98% de cobertura no novo serviço mecânico.
+
+### **Fase Anterior: Auditoria Técnica Corretiva Concluída (Abril 2026)**
 - **Testes & Cobertura**: Refatoração massiva de rotas e mocks (24 test suites corrigidos). Alcançado 100% de sucesso na suite de testes backend (191 suites, 2735 testes passando).
 - **Linting & Types**: Corrigidos erros de declaração de variáveis (prefer-const em `supplyChainService.ts`), dependências `helmet` no `app.ts` (tsconfig checks) e diretivas ESLint ociosas no frontend.
 - **Resiliência de Testes**: Lógica de warm-up do `dbClient` refatorada no ambiente Jest para evitar falsos positivos por timeouts. Skips intencionais adicionados para `ExcelJS` streams corrompidos em ambiente JSDOM/Node.
