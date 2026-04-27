@@ -7,13 +7,14 @@
  * Referência: docs/DG_IMPLEMENTATION_ADDENDUM_2026.md – Frente 3
  */
 
-import React from "react";
+import React, { useState } from "react";
 import { Loader2, Zap, CheckCircle, XCircle, Info } from "lucide-react";
 import type {
   DgOptimizationOutput,
   DgScenario,
   DgConstraintCode,
 } from "../hooks/useDgOptimization";
+import { DgWizardModal, DgWizardParams } from "./DgWizardModal";
 
 // ─── Labels em pt-BR ───────────────────────────────────────────────────────────
 
@@ -98,13 +99,14 @@ function DiscardReasonList({
 export interface DgOptimizationPanelProps {
   hasPoles: boolean;
   hasTransformer: boolean;
+  hasProjectedPoles?: boolean;
   isOptimizing: boolean;
   result: DgOptimizationOutput | null;
   error: string | null;
   /** Índice da alternativa ativa: −1 = melhor, 0..N = alternatives[N]. */
   activeAltIndex: number;
   onSetActiveAltIndex: (index: number) => void;
-  onRun: () => void;
+  onRun: (wizardParams?: DgWizardParams) => void;
   onAcceptAll: (scenario: DgScenario) => void;
   onAcceptTrafoOnly: (scenario: DgScenario) => void;
   onDiscard: () => void;
@@ -115,6 +117,7 @@ export interface DgOptimizationPanelProps {
 export function DgOptimizationPanel({
   hasPoles,
   hasTransformer,
+  hasProjectedPoles = false,
   isOptimizing,
   result,
   error,
@@ -125,7 +128,11 @@ export function DgOptimizationPanel({
   onAcceptTrafoOnly,
   onDiscard,
 }: DgOptimizationPanelProps) {
-  const canRun = hasPoles && hasTransformer && !isOptimizing;
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+
+  const canRunLegacy = hasPoles && hasTransformer && !isOptimizing;
+  const canRunFull = hasPoles && !isOptimizing;
+  
   const rec = result?.recommendation ?? null;
   // Cenário exibido: melhor ou alternativa selecionada
   const active: DgScenario | null =
@@ -134,6 +141,20 @@ export function DgOptimizationPanel({
       : activeAltIndex === -1
         ? rec.bestScenario
         : (rec.alternatives[activeAltIndex] ?? null);
+
+  const handleMainAction = () => {
+    // Se não tem trafo OU tem postes projetados, abre wizard
+    if (!hasTransformer || hasProjectedPoles) {
+      setIsWizardOpen(true);
+    } else {
+      onRun();
+    }
+  };
+
+  const handleExecuteWizard = (params: DgWizardParams) => {
+    setIsWizardOpen(false);
+    onRun(params);
+  };
 
   return (
     <div className="rounded-xl border-2 border-violet-700/30 bg-violet-50 p-3 space-y-3 dark:border-violet-500/35 dark:bg-violet-950/20">
@@ -156,20 +177,18 @@ export function DgOptimizationPanel({
         )}
       </div>
 
-      {/* Pré-requisito: sem poste ou sem trafo */}
-      {(!hasPoles || !hasTransformer) && (
+      {/* Pré-requisito: sem poste */}
+      {!hasPoles && (
         <p className="text-[10px] text-violet-700 dark:text-violet-300">
-          {!hasPoles
-            ? "Adicione ao menos 1 poste para otimizar."
-            : "Adicione 1 transformador para otimizar."}
+          Adicione ao menos 1 poste para otimizar.
         </p>
       )}
 
       {/* Botão executar */}
       {!result && (
         <button
-          onClick={onRun}
-          disabled={!canRun}
+          onClick={handleMainAction}
+          disabled={!canRunFull}
           className="w-full rounded-xl border-2 border-violet-700/40 bg-violet-700 py-2 text-[10px] font-black text-white transition-all hover:bg-violet-800 disabled:opacity-40 dark:border-violet-400/40 dark:bg-violet-700 dark:hover:bg-violet-600"
         >
           {isOptimizing ? (
@@ -178,7 +197,7 @@ export function DgOptimizationPanel({
               Otimizando…
             </span>
           ) : (
-            "OTIMIZAR REDE"
+            hasProjectedPoles || !hasTransformer ? "PROJETAR REDE (WIZARD)" : "OTIMIZAR REDE"
           )}
         </button>
       )}
@@ -249,6 +268,12 @@ export function DgOptimizationPanel({
 
           {/* Resultados elétricos */}
           <div className="space-y-1">
+            {active.metadata?.selectedKva && (
+                <ElectricalResultRow
+                  label="Trafo Dimensionado"
+                  value={`${active.metadata.selectedKva} kVA`}
+                />
+            )}
             <ElectricalResultRow
               label="CQT máx."
               value={`${(active.electricalResult.cqtMaxFraction * 100).toFixed(1)}%`}
@@ -279,7 +304,7 @@ export function DgOptimizationPanel({
               onClick={() => onAcceptTrafoOnly(active)}
               className="rounded-xl border-2 border-violet-700/40 py-2 text-[10px] font-black text-violet-800 transition-all hover:bg-violet-100 dark:border-violet-500/40 dark:text-violet-200 dark:hover:bg-violet-900/30"
             >
-              SÓ TRAFO
+              {hasTransformer ? "SÓ REALOCAR" : "SÓ NOVO TRAFO"}
             </button>
             <button
               onClick={() => onAcceptAll(active)}
@@ -293,6 +318,12 @@ export function DgOptimizationPanel({
           </div>
         </div>
       )}
+
+      <DgWizardModal 
+        isOpen={isWizardOpen} 
+        onClose={() => setIsWizardOpen(false)} 
+        onExecute={handleExecuteWizard} 
+      />
     </div>
   );
 }

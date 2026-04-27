@@ -38,11 +38,41 @@ import {
   latLonToUtm,
   utmToLatLon,
 } from "./dgCandidates.js";
-import { evaluateHardConstraints } from "./dgConstraints.js";
+import { evaluateHardConstraints, checkTrafoOverload } from "./dgConstraints.js";
 import {
   calculateObjectiveScore,
   totalCableLengthMeters,
 } from "./dgObjective.js";
+
+// ─── Derivação de Demanda (Wizard) ───────────────────────────────────────────
+
+/**
+ * Deriva a demanda por poste a partir dos parâmetros do Wizard.
+ * Definido em docs/DG_IMPLEMENTATION_ADDENDUM_2026.md
+ */
+function derivePolesDemand(
+  poles: DgPoleInput[],
+  params: DgParams,
+): DgPoleInput[] {
+  if (params.projectMode !== "full_project") return poles;
+
+  const clientes = params.clientesPorPoste ?? 1;
+  const demandaMedia = params.demandaMediaClienteKva ?? 1.5;
+  const fatorSimult = params.fatorSimultaneidade ?? 0.8;
+
+  // Demanda base por poste
+  const baseDemand = clientes * demandaMedia * fatorSimult;
+
+  // Carga clandestina rateada (assumindo 0.02 kVA/m² como padrão se não informado)
+  const extraClandestinaTotal = (params.areaClandestinaM2 ?? 0) * 0.02;
+  const extraPerPole = poles.length > 0 ? extraClandestinaTotal / poles.length : 0;
+
+  return poles.map((p) => ({
+    ...p,
+    demandKva: p.demandKva > 0 ? p.demandKva : baseDemand + extraPerPole,
+    clients: p.clients > 0 ? p.clients : clientes,
+  }));
+}
 
 // ─── MST via Kruskal (topologia mínima trafo → postes) ───────────────────────
 
@@ -235,7 +265,7 @@ function evaluateElectrically(
 function evaluateCandidate(
   candidate: DgCandidate,
   poles: DgPoleInput[],
-  transformer: DgTransformerInput,
+  transformer: DgTransformerInput | undefined,
   exclusionPolygons: DgExclusionPolygon[],
   roadCorridors: DgRoadCorridor[],
   params: DgParams,
@@ -246,7 +276,7 @@ function evaluateCandidate(
     positionUtm: latLonToUtm(p.position.lat, p.position.lon),
   }));
 
-  // 1. Restrições duras
+  // 1. Restrições duras (espaciais e conectividade)
   const constraintResult = evaluateHardConstraints(
     candidate,
     poles,
@@ -257,30 +287,7 @@ function evaluateCandidate(
   );
 
   if (!constraintResult.feasible) {
-    return {
-      scenarioId: randomUUID(),
-      candidateId: candidate.candidateId,
-      trafoPositionUtm: candidate.positionUtm,
-      trafoPositionLatLon: candidate.position,
-      edges: [],
-      electricalResult: {
-        cqtMaxFraction: 1,
-        worstTerminalNodeId: "",
-        trafoUtilizationFraction: 1,
-        totalCableLengthMeters: 0,
-        feasible: false,
-      },
-      objectiveScore: 0,
-      scoreComponents: {
-        cableCostScore: 0,
-        poleCostScore: 0,
-        trafoCostScore: 0,
-        cqtPenaltyScore: 0,
-        overloadPenaltyScore: 0,
-      },
-      violations: constraintResult.violations,
-      feasible: false,
-    };
+    return createFailedScenario(candidate, constraintResult.violations);
   }
 
   // 2. MST topology
@@ -289,40 +296,47 @@ function evaluateCandidate(
   // 3. Span check
   const spanViolation = mstHasSpanViolation(mst, params.maxSpanMeters);
   if (spanViolation) {
-    return {
-      scenarioId: randomUUID(),
-      candidateId: candidate.candidateId,
-      trafoPositionUtm: candidate.positionUtm,
-      trafoPositionLatLon: candidate.position,
-      edges: [],
-      electricalResult: {
-        cqtMaxFraction: 1,
-        worstTerminalNodeId: "",
-        trafoUtilizationFraction: 1,
-        totalCableLengthMeters: 0,
-        feasible: false,
-      },
-      objectiveScore: 0,
-      scoreComponents: {
-        cableCostScore: 0,
-        poleCostScore: 0,
-        trafoCostScore: 0,
-        cqtPenaltyScore: 0,
-        overloadPenaltyScore: 0,
-      },
-      violations: [{ code: "MAX_SPAN_EXCEEDED", detail: spanViolation }],
-      feasible: false,
-    };
+    return createFailedScenario(candidate, [
+      { code: "MAX_SPAN_EXCEEDED", detail: spanViolation },
+    ]);
   }
 
-  // 4. Avaliação elétrica
-  const electricalResult = evaluateElectrically(
-    trafoId,
-    candidate.positionUtm,
-    transformer.kva,
-    polesUtm,
-    mst,
-  );
+  // 4. Dimensionamento de Trafo e Avaliação Elétrica
+  // Se houver trafo fixo, avalia apenas ele. 
+  // Se não (Full Project), itera sobre faixas de kVA comerciais.
+  const kvaFaixa = transformer 
+    ? [transformer.kva] 
+    : (params.faixaKvaTrafoPermitida ?? [15, 30, 45, 75, 112.5]);
+
+  const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
+  let bestKvaResult: DgElectricalResult | null = null;
+  let selectedKva = 0;
+
+  for (const kva of kvaFaixa) {
+    // Check overload for this KVA
+    const overload = checkTrafoOverload(totalDemandKva, kva, params.trafoMaxUtilization);
+    if (overload.length > 0) continue;
+
+    const electrical = evaluateElectrically(
+      trafoId,
+      candidate.positionUtm,
+      kva,
+      polesUtm,
+      mst,
+    );
+
+    if (electrical.feasible) {
+      bestKvaResult = electrical;
+      selectedKva = kva;
+      break; // Encontrou o menor kVA viável
+    }
+  }
+
+  if (!bestKvaResult) {
+    return createFailedScenario(candidate, [
+      { code: "TRAFO_OVERLOAD", detail: "Nenhum kVA na faixa permitida é viável." },
+    ]);
+  }
 
   const edges: DgScenarioEdge[] = mst.map((e) => ({
     fromPoleId: e.fromId,
@@ -334,33 +348,11 @@ function evaluateCandidate(
   // 5. Score objetivo
   const { objectiveScore, scoreComponents } = calculateObjectiveScore({
     edges,
-    electricalResult,
+    electricalResult: bestKvaResult,
     candidateSource: candidate.source,
     newPolesCount: candidate.source === "grid" ? 1 : 0,
     weights: params.objectiveWeights,
   });
-
-  const violations = electricalResult.feasible
-    ? []
-    : [
-        ...(electricalResult.cqtMaxFraction > params.cqtLimitFraction
-          ? [
-              {
-                code: "CQT_LIMIT_EXCEEDED" as DgConstraintCode,
-                detail: `CQT ${(electricalResult.cqtMaxFraction * 100).toFixed(2)}%`,
-              },
-            ]
-          : []),
-        ...(electricalResult.trafoUtilizationFraction >
-        params.trafoMaxUtilization
-          ? [
-              {
-                code: "TRAFO_OVERLOAD" as DgConstraintCode,
-                detail: `Utilização ${(electricalResult.trafoUtilizationFraction * 100).toFixed(1)}%`,
-              },
-            ]
-          : []),
-      ];
 
   return {
     scenarioId: randomUUID(),
@@ -368,11 +360,44 @@ function evaluateCandidate(
     trafoPositionUtm: candidate.positionUtm,
     trafoPositionLatLon: candidate.position,
     edges,
-    electricalResult,
+    electricalResult: {
+        ...bestKvaResult,
+        trafoUtilizationFraction: totalDemandKva / selectedKva,
+    },
     objectiveScore,
     scoreComponents,
+    violations: [],
+    feasible: true,
+  };
+}
+
+function createFailedScenario(
+  candidate: DgCandidate,
+  violations: DgConstraintViolation[],
+): DgScenario {
+  return {
+    scenarioId: randomUUID(),
+    candidateId: candidate.candidateId,
+    trafoPositionUtm: candidate.positionUtm,
+    trafoPositionLatLon: candidate.position,
+    edges: [],
+    electricalResult: {
+      cqtMaxFraction: 1,
+      worstTerminalNodeId: "",
+      trafoUtilizationFraction: 1,
+      totalCableLengthMeters: 0,
+      feasible: false,
+    },
+    objectiveScore: 0,
+    scoreComponents: {
+      cableCostScore: 0,
+      poleCostScore: 0,
+      trafoCostScore: 0,
+      cqtPenaltyScore: 0,
+      overloadPenaltyScore: 0,
+    },
     violations,
-    feasible: electricalResult.feasible && violations.length === 0,
+    feasible: false,
   };
 }
 
@@ -386,7 +411,7 @@ function evaluateCandidate(
 function graspLocalImprovement(
   scenarios: DgScenario[],
   poles: DgPoleInput[],
-  transformer: DgTransformerInput,
+  transformer: DgTransformerInput | undefined,
   exclusionPolygons: DgExclusionPolygon[],
   roadCorridors: DgRoadCorridor[],
   params: DgParams,
@@ -454,11 +479,12 @@ export interface OptimizerResult {
 export function runDgOptimizer(
   candidates: DgCandidate[],
   poles: DgPoleInput[],
-  transformer: DgTransformerInput,
+  transformer: DgTransformerInput | undefined,
   exclusionPolygons: DgExclusionPolygon[],
   roadCorridors: DgRoadCorridor[],
   params: DgParams,
 ): OptimizerResult {
+  const derivedPoles = derivePolesDemand(poles, params);
   let candidatesToEvaluate = candidates;
 
   if (params.searchMode === "heuristic") {
@@ -471,7 +497,7 @@ export function runDgOptimizer(
   const evaluated: DgScenario[] = candidatesToEvaluate.map((cand) =>
     evaluateCandidate(
       cand,
-      poles,
+      derivedPoles,
       transformer,
       exclusionPolygons,
       roadCorridors,
@@ -485,7 +511,7 @@ export function runDgOptimizer(
   if (params.searchMode === "heuristic") {
     const improved = graspLocalImprovement(
       evaluated,
-      poles,
+      derivedPoles,
       transformer,
       exclusionPolygons,
       roadCorridors,

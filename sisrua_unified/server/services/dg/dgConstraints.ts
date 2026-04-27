@@ -226,7 +226,7 @@ export interface ConstraintEvaluationResult {
 export function evaluateHardConstraints(
   candidate: DgCandidate,
   poles: DgPoleInput[],
-  transformer: DgTransformerInput,
+  transformer: DgTransformerInput | undefined,
   exclusionPolygons: DgExclusionPolygon[],
   roadCorridors: DgRoadCorridor[],
   params: DgParams,
@@ -241,11 +241,13 @@ export function evaluateHardConstraints(
     ...checkExclusionZones(candidate.positionUtm, exclusionPolygons),
     ...checkRoadCorridor(candidate.positionUtm, roadCorridors),
     ...checkMaxSpan(candidate.positionUtm, polesUtm, params.maxSpanMeters),
-    ...checkTrafoOverload(
-      totalDemandKva,
-      transformer.kva,
-      params.trafoMaxUtilization,
-    ),
+    ...(transformer 
+      ? checkTrafoOverload(
+          totalDemandKva,
+          transformer.kva,
+          params.trafoMaxUtilization,
+        )
+      : []),
     ...checkCqtLimit(candidate.positionUtm, polesUtm, params.cqtLimitFraction),
   ];
 
@@ -256,4 +258,4 @@ export function evaluateHardConstraints(
 }
 
 /** Exporta utilitário para testes. */
-export { isPointInsidePolygon, pointToPolylineDistance, estimateCqt };
+export { isPointInsidePolygon, pointToPolylineDistance, estimateCqt, checkTrafoOverload };

@@ -4,6 +4,8 @@ type BtTopologyPanelText = {
   projectTypeTitle: string;
   projectTypeRamais: string;
   projectTypeClandestino: string;
+  clandestinoAreaTitle: string;
+  clandestinoAreaPlaceholder: string;
   btnBulkImport: string;
   
   stats: {
@@ -35,6 +37,7 @@ type BtTopologyPanelText = {
     poleStateTitle: string;
     selectState: string;
     stateGood: string;
+    stateProjected: string;
     stateLeaning: string;
     stateCracked: string;
     stateCondemned: string;
@@ -122,6 +125,8 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
     projectTypeTitle: "Tipo de Projeto",
     projectTypeRamais: "Ramais (Padrão)",
     projectTypeClandestino: "Clandestino (Carga por Área)",
+    clandestinoAreaTitle: "Área de clandestinos (m²)",
+    clandestinoAreaPlaceholder: "Informe a área em m²",
     btnBulkImport: "Importação em Massa",
 
     stats: {
@@ -153,6 +158,7 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       poleStateTitle: "Estado do poste",
       selectState: "Selecione o estado",
       stateGood: "Bom estado",
+      stateProjected: "Projetado",
       stateLeaning: "Desaprumado",
       stateCracked: "Trincado",
       stateCondemned: "Condenado",
@@ -238,6 +244,8 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
     projectTypeTitle: "Project Type",
     projectTypeRamais: "Connections (Standard)",
     projectTypeClandestino: "Unregistered (Load by Area)",
+    clandestinoAreaTitle: "Unregistered area (m²)",
+    clandestinoAreaPlaceholder: "Enter area in m²",
     btnBulkImport: "Bulk Import",
 
     stats: {
@@ -269,6 +277,7 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       poleStateTitle: "Pole state",
       selectState: "Select state",
       stateGood: "Good condition",
+      stateProjected: "Projected",
       stateLeaning: "Leaning",
       stateCracked: "Cracked",
       stateCondemned: "Condemned",
@@ -354,6 +363,8 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
     projectTypeTitle: "Tipo de Proyecto",
     projectTypeRamais: "Acometidas (Estándar)",
     projectTypeClandestino: "Clandestino (Carga por Área)",
+    clandestinoAreaTitle: "Área clandestina (m²)",
+    clandestinoAreaPlaceholder: "Informe el área en m²",
     btnBulkImport: "Importación Masiva",
 
     stats: {
@@ -385,6 +396,7 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       poleStateTitle: "Estado del poste",
       selectState: "Seleccione el estado",
       stateGood: "Buen estado",
+      stateProjected: "Proyectado",
       stateLeaning: "Inclinado",
       stateCracked: "Agrietado",
       stateCondemned: "Condenado",

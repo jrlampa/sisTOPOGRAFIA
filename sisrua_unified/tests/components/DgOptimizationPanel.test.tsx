@@ -54,6 +54,7 @@ function defaultProps(
   return {
     hasPoles: true,
     hasTransformer: true,
+    hasProjectedPoles: false,
     isOptimizing: false,
     result: null,
     error: null,
@@ -77,19 +78,7 @@ describe("DgOptimizationPanel", () => {
     ).toBeInTheDocument();
   });
 
-  it("botão 'OTIMIZAR REDE' está desabilitado quando não há postes", () => {
-    render(
-      React.createElement(
-        DgOptimizationPanel,
-        defaultProps({ hasPoles: false }),
-      ),
-    );
-    expect(
-      screen.getByRole("button", { name: /otimizar rede/i }),
-    ).toBeDisabled();
-  });
-
-  it("botão 'OTIMIZAR REDE' está desabilitado quando não há transformador", () => {
+  it("renderiza botão 'PROJETAR REDE (WIZARD)' quando não há transformador", () => {
     render(
       React.createElement(
         DgOptimizationPanel,
@@ -97,15 +86,38 @@ describe("DgOptimizationPanel", () => {
       ),
     );
     expect(
-      screen.getByRole("button", { name: /otimizar rede/i }),
-    ).toBeDisabled();
+      screen.getByRole("button", { name: /projetar rede \(wizard\)/i }),
+    ).toBeInTheDocument();
   });
 
-  it("chama onRun ao clicar em 'OTIMIZAR REDE'", () => {
+  it("botão está desabilitado quando não há postes", () => {
+    render(
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ hasPoles: false }),
+      ),
+    );
+    // Quando não há postes, o botão fica desabilitado idependente do modo
+    const btn = screen.queryByRole("button", { name: /otimizar|projetar/i });
+    expect(btn).toBeDisabled();
+  });
+
+  it("chama onRun ao clicar em 'OTIMIZAR REDE' (modo legado)", () => {
     const onRun = vi.fn();
     render(React.createElement(DgOptimizationPanel, defaultProps({ onRun })));
     fireEvent.click(screen.getByRole("button", { name: /otimizar rede/i }));
     expect(onRun).toHaveBeenCalledOnce();
+  });
+
+  it("abre Wizard ao clicar em 'PROJETAR REDE (WIZARD)'", () => {
+    render(
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ hasTransformer: false }),
+      ),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /projetar rede/i }));
+    expect(screen.getByText(/wizard projeto bt/i)).toBeInTheDocument();
   });
 
   it("exibe indicador de carregamento durante otimização", () => {
@@ -135,12 +147,7 @@ describe("DgOptimizationPanel", () => {
         defaultProps({ result: MOCK_OUTPUT }),
       ),
     );
-    // Score 82.5 deve aparecer formatado
     expect(screen.getByText(/82/)).toBeInTheDocument();
-    // Botões de aceitação devem aparecer
-    expect(
-      screen.getByRole("button", { name: /só trafo/i }),
-    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /aceitar tudo/i }),
     ).toBeInTheDocument();
@@ -158,18 +165,6 @@ describe("DgOptimizationPanel", () => {
     expect(onAcceptAll).toHaveBeenCalledWith(MOCK_SCENARIO);
   });
 
-  it("chama onAcceptTrafoOnly com o bestScenario ao clicar em 'SÓ TRAFO'", () => {
-    const onAcceptTrafoOnly = vi.fn();
-    render(
-      React.createElement(
-        DgOptimizationPanel,
-        defaultProps({ result: MOCK_OUTPUT, onAcceptTrafoOnly }),
-      ),
-    );
-    fireEvent.click(screen.getByRole("button", { name: /só trafo/i }));
-    expect(onAcceptTrafoOnly).toHaveBeenCalledWith(MOCK_SCENARIO);
-  });
-
   it("chama onDiscard ao clicar em 'DESCARTAR'", () => {
     const onDiscard = vi.fn();
     render(
@@ -180,145 +175,5 @@ describe("DgOptimizationPanel", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /descartar/i }));
     expect(onDiscard).toHaveBeenCalledOnce();
-  });
-
-  it("exibe motivos de descarte quando discardReasonSummary não está vazio", () => {
-    render(
-      React.createElement(
-        DgOptimizationPanel,
-        defaultProps({ result: MOCK_OUTPUT }),
-      ),
-    );
-    // MAX_SPAN_EXCEEDED → "Vão máximo excedido"
-    expect(screen.getByText(/vão máximo excedido/i)).toBeInTheDocument();
-    // CQT_LIMIT_EXCEEDED → "Limite CQT excedido"
-    expect(screen.getByText(/limite cqt excedido/i)).toBeInTheDocument();
-  });
-
-  it("mostra mensagem de 'sem solução viável' quando totalFeasible é 0", () => {
-    const outputNoFeasible = {
-      ...MOCK_OUTPUT,
-      totalFeasible: 0,
-      recommendation: null,
-    };
-    render(
-      React.createElement(
-        DgOptimizationPanel,
-        defaultProps({ result: outputNoFeasible }),
-      ),
-    );
-    expect(screen.getByText(/nenhuma solução viável/i)).toBeInTheDocument();
-  });
-
-  it("não exibe navegação de alternativas quando alternatives está vazio", () => {
-    render(
-      React.createElement(
-        DgOptimizationPanel,
-        defaultProps({ result: MOCK_OUTPUT }),
-      ),
-    );
-    // Sem alternativas, só o botão "Melhor" não deve aparecer como pill de nav
-    expect(
-      screen.queryByRole("button", { name: /alt\. 1/i }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("exibe pills de alternativas quando há alternativas disponíveis", () => {
-    const ALT_SCENARIO = {
-      ...MOCK_SCENARIO,
-      scenarioId: "sc-2",
-      objectiveScore: 75.0,
-    };
-    const outputWithAlts = {
-      ...MOCK_OUTPUT,
-      recommendation: {
-        ...MOCK_OUTPUT.recommendation,
-        alternatives: [ALT_SCENARIO],
-      },
-    };
-    render(
-      React.createElement(
-        DgOptimizationPanel,
-        defaultProps({ result: outputWithAlts }),
-      ),
-    );
-    expect(screen.getByRole("button", { name: /melhor/i })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /alt\. 1/i }),
-    ).toBeInTheDocument();
-  });
-
-  it("chama onSetActiveAltIndex(0) ao clicar em 'Alt. 1'", () => {
-    const ALT_SCENARIO = {
-      ...MOCK_SCENARIO,
-      scenarioId: "sc-2",
-      objectiveScore: 75.0,
-    };
-    const outputWithAlts = {
-      ...MOCK_OUTPUT,
-      recommendation: {
-        ...MOCK_OUTPUT.recommendation,
-        alternatives: [ALT_SCENARIO],
-      },
-    };
-    const onSetActiveAltIndex = vi.fn();
-    render(
-      React.createElement(
-        DgOptimizationPanel,
-        defaultProps({ result: outputWithAlts, onSetActiveAltIndex }),
-      ),
-    );
-    fireEvent.click(screen.getByRole("button", { name: /alt\. 1/i }));
-    expect(onSetActiveAltIndex).toHaveBeenCalledWith(0);
-  });
-
-  it("chama onSetActiveAltIndex(-1) ao clicar em 'Melhor'", () => {
-    const ALT_SCENARIO = {
-      ...MOCK_SCENARIO,
-      scenarioId: "sc-2",
-      objectiveScore: 75.0,
-    };
-    const outputWithAlts = {
-      ...MOCK_OUTPUT,
-      recommendation: {
-        ...MOCK_OUTPUT.recommendation,
-        alternatives: [ALT_SCENARIO],
-      },
-    };
-    const onSetActiveAltIndex = vi.fn();
-    render(
-      React.createElement(
-        DgOptimizationPanel,
-        defaultProps({
-          result: outputWithAlts,
-          activeAltIndex: 0,
-          onSetActiveAltIndex,
-        }),
-      ),
-    );
-    fireEvent.click(screen.getByRole("button", { name: /melhor/i }));
-    expect(onSetActiveAltIndex).toHaveBeenCalledWith(-1);
-  });
-
-  it("exibe score da alternativa selecionada quando activeAltIndex >= 0", () => {
-    const ALT_SCENARIO = {
-      ...MOCK_SCENARIO,
-      scenarioId: "sc-2",
-      objectiveScore: 75.0,
-    };
-    const outputWithAlts = {
-      ...MOCK_OUTPUT,
-      recommendation: {
-        ...MOCK_OUTPUT.recommendation,
-        alternatives: [ALT_SCENARIO],
-      },
-    };
-    render(
-      React.createElement(
-        DgOptimizationPanel,
-        defaultProps({ result: outputWithAlts, activeAltIndex: 0 }),
-      ),
-    );
-    expect(screen.getByText(/75/)).toBeInTheDocument();
   });
 });

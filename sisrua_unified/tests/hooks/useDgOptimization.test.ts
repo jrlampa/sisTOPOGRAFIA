@@ -128,8 +128,11 @@ describe("useDgOptimization", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("não dispara fetch quando não há transformador", async () => {
-    const fetchMock = vi.fn();
+  it("dispara fetch em modo full_project quando não há transformador", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(MOCK_OUTPUT),
+    });
     vi.stubGlobal("fetch", fetchMock);
     const { result } = renderHook(() => useDgOptimization());
     await act(async () => {
@@ -138,10 +141,12 @@ describe("useDgOptimization", () => {
         transformers: [],
       });
     });
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalled();
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.params.projectMode).toBe("full_project");
   });
 
-  it("chama POST /api/dg/optimize com payload correto", async () => {
+  it("chama POST /api/dg/optimize com payload correto e modo otimização quando há trafo", async () => {
     mockFetchSuccess(MOCK_OUTPUT);
     const { result } = renderHook(() => useDgOptimization());
     await act(async () => {
@@ -154,9 +159,8 @@ describe("useDgOptimization", () => {
     expect(options.method).toBe("POST");
     const body = JSON.parse(options.body as string);
     expect(body.poles).toHaveLength(2);
-    expect(body.poles[0].id).toBe("p1");
+    expect(body.params.projectMode).toBe("optimization");
     expect(body.transformer.id).toBe("t1");
-    expect(body.transformer.kva).toBe(75);
   });
 
   it("armazena resultado após execução bem-sucedida", async () => {

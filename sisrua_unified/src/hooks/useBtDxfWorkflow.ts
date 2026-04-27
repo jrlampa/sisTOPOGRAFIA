@@ -153,19 +153,32 @@ export function useBtDxfWorkflow({
       return;
     }
 
-    const header = ["Nome", "Easting", "Northing", "Lat", "Lng", "Zona"];
+    const header = ["X", "Y", "Z", "Name"];
     const rows: string[][] = [];
+
+    const resolveZ = (item: unknown): number => {
+      if (!item || typeof item !== "object") {
+        return 0;
+      }
+      const record = item as Record<string, unknown>;
+      const candidates = [record.Z, record.z, record.altitude, record.elevation];
+      for (const candidate of candidates) {
+        if (typeof candidate === "number" && Number.isFinite(candidate)) {
+          return candidate;
+        }
+      }
+      return 0;
+    };
 
     // Process Poles
     allPoles.forEach((pole) => {
       const utm = toUtm(pole.lat, pole.lng);
+      const z = resolveZ(pole);
       rows.push([
+        utm.easting.toFixed(10),
+        utm.northing.toFixed(10),
+        z.toFixed(10),
         pole.title || pole.id,
-        utm.easting.toFixed(3),
-        utm.northing.toFixed(3),
-        pole.lat.toFixed(7),
-        pole.lng.toFixed(7),
-        `${utm.zone}${utm.band}${utm.isSouth ? "S" : "N"}`,
       ]);
     });
 
@@ -174,29 +187,31 @@ export function useBtDxfWorkflow({
       // Check if trafo is already represented by a pole
       if (!allPoles.some(p => p.id === trafo.poleId)) {
         const utm = toUtm(trafo.lat, trafo.lng);
+        const z = resolveZ(trafo);
         rows.push([
+          utm.easting.toFixed(10),
+          utm.northing.toFixed(10),
+          z.toFixed(10),
           trafo.title || trafo.id,
-          utm.easting.toFixed(3),
-          utm.northing.toFixed(3),
-          trafo.lat.toFixed(7),
-          trafo.lng.toFixed(7),
-          `${utm.zone}${utm.band}${utm.isSouth ? "S" : "N"}`,
         ]);
       }
     });
 
     const csvContent = [
-      header.join(";"),
-      ...rows.map((row) => row.join(";")),
+      header.join(","),
+      ...rows.map((row) => row.join(",")),
     ].join("\n");
 
     const projectName = settings.projectMetadata.projectName || "sisRUA";
-    const utmZone = rows.length > 0 ? rows[0][5].toLowerCase() : "utm";
-    const filename = `${projectName}_${utmZone}.csv`;
+    const firstReference =
+      allPoles[0] ?? btTopology.transformers[0] ?? { lat: center.lat, lng: center.lng };
+    const firstUtm = toUtm(firstReference.lat, firstReference.lng);
+    const hemisphere = firstUtm.isSouth ? "s" : "n";
+    const filename = `${projectName}_utm_${firstUtm.zone}${hemisphere}.csv`;
 
     downloadCsv(csvContent, filename);
     showToast(`Coordenadas exportadas: ${filename}`, "success");
-  }, [btTopology, settings.projectMetadata.projectName, showToast]);
+  }, [btTopology, center.lat, center.lng, settings.projectMetadata.projectName, showToast]);
 
   return {
     handleDownloadDxf,

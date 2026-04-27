@@ -132,7 +132,19 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
     - `server/tests/dgOptimizationService.test.ts` passou a cobrir propagação de `tenantId`.
     - alinhados `server/tests/dbClient.test.ts`, `server/tests/analysisRoutesLogging.test.ts` e `server/tests/healthStatus.test.ts` com os contratos atuais de `dbClient`, runtime Ollama e wake-up middleware do app.
     - correção importante: usar reset completo de mocks em `analysisRoutesLogging.test.ts` para eliminar vazamento de estado entre casos.
-- Validações executadas:
-    - `npm run test:backend -- server/tests/dgRunRepository.test.ts server/tests/dgOptimizationService.test.ts server/tests/dgRoutes.test.ts` (passou)
-    - `npm run test:backend -- server/tests/dbClient.test.ts server/tests/analysisRoutesLogging.test.ts server/tests/healthStatus.test.ts` (passou)
-    - `npm run test:all` executado; backend e frontend unitários passaram, mas a etapa Playwright smoke permaneceu falhando em cenários de UI (`e2e/a11y-smoke.spec.ts`, `e2e/i18n-sidebar.spec.ts`), fora do slice DG/tenant-aware.
+## Atualização Operacional (2026-04-27E)
+
+- **Design Generativo (DG) Wizard — "Full Project Mode"**:
+    - O motor DG evoluiu de refinador para ferramenta de concepção de projeto (Greenfield).
+    - **Backend Evolution**:
+        - Implementado dimensionamento iterativo de kVA: busca automática do menor transformador comercial viável ([15, 30, 45, 75, 112.5] kVA) para cada posição candidata.
+        - Derivação automática de demanda baseada em parâmetros de projeto (clientes/poste, demanda média, simultaneidade e área clandestina).
+        - Isolamento seguro: transformador inicial tornou-se opcional, mas o modo clássico de otimização mantém a obrigatoriedade e o determinismo de kVA para evitar regressão.
+    - **Frontend Wizard**:
+        - Novo componente `DgWizardModal.tsx` com 4 etapas de configuração técnica.
+        - `DgOptimizationPanel.tsx` integrado para alternar dinamicamente entre "OTIMIZAR REDE" e "PROJETAR REDE (WIZARD)" conforme o estado da malha.
+        - `useDgOptimization.ts` agora suporta criação automática de novos ativos (transformadores) no store ao aceitar projeto sugerido.
+- **Validações executadas**:
+    - `npm run test:backend server/tests/dgOptimizationService.test.ts` (passou).
+    - `npm run test:frontend -- tests/hooks/useDgOptimization.test.ts tests/components/DgOptimizationPanel.test.tsx` (passou).
+    - 490 testes de frontend e 28 testes de serviço backend confirmaram a integridade total do sistema.

@@ -5,8 +5,9 @@ import {
   ChevronUp,
   MapPin,
   AlertTriangle,
-  Activity,
+  Zap,
   Truck,
+  Users,
 } from "lucide-react";
 import type { BtPoleNode, AppLocale } from "../../../types";
 import { getFlagColor } from "../../MapSelectorStyles";
@@ -50,222 +51,262 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
   return (
     <motion.div
       layout
-      className="bg-white rounded-[2rem] border border-slate-200 shadow-2xl overflow-hidden mb-4"
+      className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden mb-3"
     >
-      {/* Header: Identificação do Ponto */}
-      <div className="p-4 bg-slate-50/50 border-bottom border-slate-100 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0"
-            style={{ backgroundColor: getFlagColor(currentFlag, "#3b82f6") }}
-          >
-            <MapPin size={24} />
-          </div>
-          <div>
-            <input
-              type="text"
-              value={pole.title}
-              onChange={(e) => onRename(pole.id, e.target.value)}
-              className="bg-transparent border-none p-0 text-lg font-black text-slate-900 focus:ring-0 w-full"
-            />
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono font-bold text-slate-400">
-                ID: {pole.id}
+      {/* ── Header ── */}
+      <div className="px-4 py-3 flex items-center gap-3 border-b border-slate-100">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow shrink-0"
+          style={{ backgroundColor: getFlagColor(currentFlag, "#3b82f6") }}
+        >
+          <MapPin size={18} />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <input
+            type="text"
+            value={pole.title}
+            onChange={(e) => onRename(pole.id, e.target.value)}
+            className="bg-transparent border-none p-0 text-sm font-bold text-slate-900 focus:ring-0 w-full leading-tight"
+          />
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-[10px] font-mono text-slate-400">
+              ID: {pole.id}
+            </span>
+            {mechanicalResult?.overloaded && (
+              <span className="bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase flex items-center gap-0.5">
+                <AlertTriangle size={8} /> Sobrecarga
               </span>
-              {mechanicalResult?.overloaded && (
-                <span className="bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase flex items-center gap-0.5">
-                  <AlertTriangle size={8} /> Sobrecarga
-                </span>
-              )}
-            </div>
+            )}
           </div>
         </div>
+
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="p-2 text-slate-400"
+          className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors shrink-0"
+          aria-label={isExpanded ? "Recolher" : "Expandir"}
         >
-          {isExpanded ? <ChevronUp /> : <ChevronDown />}
+          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
       </div>
 
       <AnimatePresence>
         {isExpanded && (
           <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: "auto" }}
-            exit={{ height: 0 }}
-            className="p-5"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden"
           >
-            {/* Narrativa Vertical (Croqui) */}
-            <div className="relative pl-6 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
-              {/* 1. O POSTE */}
-              <div className="relative">
-                <div className="absolute -left-[23px] top-1 w-4 h-4 rounded-full bg-slate-900 border-4 border-white shadow-sm z-10" />
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs font-black text-slate-400">1.</span>
-                  <div className="flex gap-1 items-center bg-slate-900 text-white px-2.5 py-1 rounded-lg shadow-sm">
-                    <input
-                      type="number"
-                      value={pole.poleSpec?.heightM ?? ""}
-                      onChange={(e) =>
-                        onUpdateSpec(pole.id, {
-                          ...pole.poleSpec,
-                          heightM: Number(e.target.value),
-                        })
-                      }
-                      className="bg-transparent border-none p-0 w-6 text-center text-xs font-black focus:ring-0"
-                      placeholder="H"
-                    />
-                    <span className="opacity-30">/</span>
-                    <input
-                      type="number"
-                      value={pole.poleSpec?.nominalEffortDan ?? ""}
-                      onChange={(e) =>
-                        onUpdateSpec(pole.id, {
-                          ...pole.poleSpec,
-                          nominalEffortDan: Number(e.target.value),
-                        })
-                      }
-                      className="bg-transparent border-none p-0 w-8 text-center text-xs font-black focus:ring-0"
-                      placeholder="daN"
-                    />
-                  </div>
-                  <select
-                    value={pole.poleSpec?.material ?? "CC"}
-                    onChange={(e) =>
-                      onUpdateSpec(pole.id, {
-                        ...pole.poleSpec,
-                        material: e.target.value,
-                      })
-                    }
-                    className="bg-slate-100 border border-slate-200 rounded-md px-1.5 py-0.5 text-[10px] font-black text-slate-700 focus:ring-0 appearance-none"
-                  >
-                    <option value="CC">CC</option>
-                    <option value="DT">DT</option>
-                    <option value="MAD">MAD</option>
-                    <option value="FIB">FIB</option>
-                    <option value="FER">FER</option>
-                  </select>
-                  <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest hidden sm:inline">
-                    {pole.poleSpec?.material === "CC"
-                      ? "(Concreto Circular)"
-                      : pole.poleSpec?.material === "DT"
-                        ? "(Duplo T)"
-                        : pole.poleSpec?.material === "MAD"
-                          ? "(Madeira)"
-                          : pole.poleSpec?.material === "FIB"
-                            ? "(Fibra)"
-                            : pole.poleSpec?.material === "FER"
-                              ? "(Ferro/Aço)"
-                              : ""}
-                  </span>
-                </div>
-              </div>
+            <div className="px-4 py-3 space-y-3">
 
-              {/* 2 & 3. MÉDIA TENSÃO (MT) */}
-              {mtStructures.length > 0 ? (
-                mtStructures.map((struct, idx) => (
-                  <div key={idx} className="relative">
-                    <div className="absolute -left-[23px] top-1 w-4 h-4 rounded-full bg-amber-500 border-4 border-white shadow-sm z-10" />
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xs font-black text-slate-400">
-                        {idx + 2}.
-                      </span>
-                      <span className="text-xs font-black text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-md uppercase">
-                        {struct}
-                      </span>
+              {/* ── Especificação do poste ── */}
+              <section>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                  Especificação
+                </p>
+                <div className="flex items-center gap-2">
+                  {/* Altura */}
+                  <div className="flex flex-col items-center bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 min-w-[3rem]">
+                    <span className="text-[8px] font-bold text-slate-400 leading-none mb-0.5">
+                      Altura
+                    </span>
+                    <div className="flex items-baseline gap-0.5">
+                      <input
+                        type="number"
+                        value={pole.poleSpec?.heightM ?? ""}
+                        onChange={(e) =>
+                          onUpdateSpec(pole.id, {
+                            ...pole.poleSpec,
+                            heightM: Number(e.target.value),
+                          })
+                        }
+                        className="bg-transparent border-none p-0 w-7 text-center text-xs font-black text-slate-800 focus:ring-0"
+                        placeholder="—"
+                      />
+                      <span className="text-[8px] text-slate-400">m</span>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="relative opacity-30">
-                  <div className="absolute -left-[23px] top-1 w-4 h-4 rounded-full bg-slate-200 border-4 border-white z-10" />
-                  <span className="text-[10px] font-bold italic ml-5">
-                    Sem estruturas MT
-                  </span>
-                </div>
-              )}
 
-              {/* 4. BAIXA TENSÃO (BT) */}
-              <div className="relative">
-                <div className="absolute -left-[23px] top-1 w-4 h-4 rounded-full bg-blue-500 border-4 border-white shadow-sm z-10" />
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs font-black text-slate-400">
-                    {mtStructures.length + 2}.
-                  </span>
+                  {/* Esforço */}
+                  <div className="flex flex-col items-center bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 min-w-[3.5rem]">
+                    <span className="text-[8px] font-bold text-slate-400 leading-none mb-0.5">
+                      Esforço
+                    </span>
+                    <div className="flex items-baseline gap-0.5">
+                      <input
+                        type="number"
+                        value={pole.poleSpec?.nominalEffortDan ?? ""}
+                        onChange={(e) =>
+                          onUpdateSpec(pole.id, {
+                            ...pole.poleSpec,
+                            nominalEffortDan: Number(e.target.value),
+                          })
+                        }
+                        className="bg-transparent border-none p-0 w-9 text-center text-xs font-black text-slate-800 focus:ring-0"
+                        placeholder="—"
+                      />
+                      <span className="text-[8px] text-slate-400">daN</span>
+                    </div>
+                  </div>
+
+                  {/* Material */}
+                  <div className="flex flex-col items-center bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
+                    <span className="text-[8px] font-bold text-slate-400 leading-none mb-0.5">
+                      Material
+                    </span>
+                    <select
+                      value={pole.poleSpec?.material ?? "CC"}
+                      onChange={(e) =>
+                        onUpdateSpec(pole.id, {
+                          ...pole.poleSpec,
+                          material: e.target.value,
+                        })
+                      }
+                      className="bg-transparent border-none p-0 text-[10px] font-black text-slate-800 focus:ring-0 appearance-none cursor-pointer"
+                    >
+                      <option value="CC">CC</option>
+                      <option value="DT">DT</option>
+                      <option value="MAD">MAD</option>
+                      <option value="FIB">FIB</option>
+                      <option value="FER">FER</option>
+                    </select>
+                  </div>
+                </div>
+              </section>
+
+              {/* ── Estruturas MT ── */}
+              <section>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                  Estruturas MT
+                </p>
+                {mtStructures.length > 0 ? (
                   <div className="flex flex-wrap gap-1">
-                    {btStructures.length > 0 ? (
-                      btStructures.map((s, i) => (
-                        <span
-                          key={i}
-                          className="text-xs font-black text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md uppercase"
-                        >
-                          {s}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-[10px] font-bold italic opacity-40 uppercase">
-                        Sem BT (Passante)
+                    {mtStructures.map((struct, idx) => (
+                      <span
+                        key={idx}
+                        className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md"
+                      >
+                        {struct}
                       </span>
-                    )}
+                    ))}
                   </div>
-                </div>
-              </div>
+                ) : (
+                  <p className="text-[10px] text-slate-400 italic">
+                    Sem estruturas MT
+                  </p>
+                )}
+              </section>
 
-              {/* 5. RAMAIS (Clientes) */}
-              <div className="relative">
-                <div className="absolute -left-[23px] top-1 w-4 h-4 rounded-full bg-emerald-500 border-4 border-white shadow-sm z-10" />
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-xs font-black text-slate-400">
-                    {mtStructures.length + 3}. RAMAIS
-                  </span>
-                  <div className="space-y-1 ml-4">
-                    {ramais.length > 0 ? (
-                      ramais.map((r, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center gap-2 text-[10px] font-bold text-slate-600"
-                        >
-                          <span className="text-slate-300">5.{i + 1}</span>
-                          <span className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-100">
-                            {r.quantity}x {r.ramalType || "MONO"}
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <span className="text-[10px] italic opacity-40">
-                        Nenhum cliente
+              {/* ── Estruturas BT ── */}
+              <section>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                  Estruturas BT
+                </p>
+                {btStructures.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {btStructures.map((s, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md"
+                      >
+                        {s}
                       </span>
-                    )}
+                    ))}
                   </div>
+                ) : (
+                  <p className="text-[10px] text-slate-400 italic">
+                    Passante — sem estrutura BT
+                  </p>
+                )}
+              </section>
+
+              {/* ── Ramais ── */}
+              <section>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Users size={10} className="text-emerald-600" />
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                    Ramais
+                  </p>
                 </div>
-              </div>
+                {ramais.length > 0 ? (
+                  <div className="space-y-1">
+                    {ramais.map((r, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-2 text-[10px] font-semibold text-slate-700"
+                      >
+                        <span className="w-4 text-center text-slate-300 font-bold">
+                          {i + 1}
+                        </span>
+                        <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-100">
+                          {r.quantity}× {r.ramalType || "MONO"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-slate-400 italic">
+                    Nenhum cliente
+                  </p>
+                )}
+              </section>
+
             </div>
 
-            {/* Rodapé: Resultados de Engenharia */}
-            <div className="mt-8 grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
-              <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
-                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
-                  <Activity size={10} /> Stress Mecânico
+            {/* ── Rodapé: resultados de engenharia ── */}
+            <div className="grid grid-cols-2 border-t border-slate-100">
+              {/* Stress Mecânico */}
+              <div className="px-4 py-3 border-r border-slate-100">
+                <div className="flex items-center gap-1 mb-1">
+                  <Zap
+                    size={10}
+                    className={
+                      mechanicalResult?.overloaded
+                        ? "text-rose-500"
+                        : "text-slate-400"
+                    }
+                  />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                    Stress Mec.
+                  </span>
                 </div>
                 <div className="flex items-baseline gap-1">
                   <span
-                    className={`text-sm font-black ${mechanicalResult?.overloaded ? "text-rose-600" : "text-slate-800"}`}
+                    className={`text-base font-black leading-none ${
+                      mechanicalResult?.overloaded
+                        ? "text-rose-600"
+                        : "text-slate-800"
+                    }`}
                   >
                     {mechanicalResult?.resultantForceDaN ?? 0}
                   </span>
-                  <span className="text-[9px] font-bold opacity-40">daN</span>
+                  <span className="text-[9px] text-slate-400 font-semibold">
+                    daN
+                  </span>
                 </div>
               </div>
-              <div className="bg-slate-900 rounded-2xl p-3 text-white">
-                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
-                  <Truck size={10} className="text-blue-400" /> Acessibilidade
+
+              {/* Acessibilidade */}
+              <div className="px-4 py-3">
+                <div className="flex items-center gap-1 mb-1">
+                  <Truck size={10} className="text-slate-400" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                    Acesso
+                  </span>
                 </div>
-                <div className="text-[11px] font-bold truncate">
+                <span
+                  className={`text-[11px] font-bold leading-none ${
+                    pole.hasVehicleAccess === false
+                      ? "text-amber-600"
+                      : "text-emerald-600"
+                  }`}
+                >
                   {pole.hasVehicleAccess === false
-                    ? `Arraste: ${pole.manualDragDistanceMeters}m`
-                    : "Acesso Ok"}
-                </div>
+                    ? `Arraste ${pole.manualDragDistanceMeters}m`
+                    : "Veículo Ok"}
+                </span>
               </div>
             </div>
           </motion.div>

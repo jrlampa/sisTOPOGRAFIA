@@ -104,8 +104,13 @@ export async function runDgOptimization(
   if (input.poles.length === 0) {
     throw new Error("DG: ao menos um poste deve ser fornecido.");
   }
-  if (!input.transformer || input.transformer.kva <= 0) {
-    throw new Error("DG: transformador inválido (kva deve ser > 0).");
+
+  const isFullProject = params.projectMode === "full_project";
+
+  if (!isFullProject) {
+    if (!input.transformer || input.transformer.kva <= 0) {
+      throw new Error("DG: transformador inválido (kva deve ser > 0).");
+    }
   }
 
   // 1. Gerar candidatos

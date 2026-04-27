@@ -9,6 +9,7 @@
 
 import { useState, useCallback } from "react";
 import type { BtTopology, BtEdge } from "../types";
+import type { DgWizardParams } from "../components/DgWizardModal";
 
 // ─── Tipos espelhados do servidor (dgTypes.ts) ─────────────────────────────────
 
@@ -63,6 +64,8 @@ export interface DgScenario {
   scoreComponents: DgScoreComponents;
   violations: DgConstraintViolation[];
   feasible: boolean;
+  /** Metadados de dimensionamento (Full Project). */
+  metadata?: { selectedKva: number };
 }
 
 export interface DgRecommendation {
@@ -141,30 +144,37 @@ export function useDgOptimization() {
 
   /**
    * Executa otimização DG para a topologia BT atual.
-   * Requer ao menos 1 poste e 1 transformador.
+   * No Modo Full Project (wizardParams presente), o transformador é opcional.
    */
-  const runDgOptimization = useCallback(async (btTopology: BtTopology) => {
+  const runDgOptimization = useCallback(async (btTopology: BtTopology, wizardParams?: DgWizardParams) => {
     if (btTopology.poles.length === 0) return;
+    
     const transformer = btTopology.transformers[0];
-    if (!transformer) return;
+    const isFullProject = !!wizardParams || !transformer;
 
     setState({ isOptimizing: true, result: null, error: null });
 
-    const payload = {
+    const payload: any = {
       poles: btTopology.poles.map((p) => ({
         id: p.id,
         position: { lat: p.lat, lon: p.lng },
-        // Demanda padrão 1,5 kVA por ramal; valor real vem de accumulatedByPole
-        demandKva: Math.max(1, (p.ramais?.length ?? 1) * 1.5),
-        clients: p.ramais?.length ?? 1,
+        demandKva: Math.max(0, (p.ramais?.length ?? 0) * 1.5),
+        clients: p.ramais?.length ?? 0,
       })),
-      transformer: {
+      params: {
+        projectMode: isFullProject ? "full_project" : "optimization",
+        ...wizardParams
+      }
+    };
+
+    if (transformer) {
+      payload.transformer = {
         id: transformer.id,
         position: { lat: transformer.lat, lon: transformer.lng },
         kva: transformer.projectPowerKva ?? 75,
         currentDemandKva: transformer.demandKva ?? 0,
-      },
-    };
+      };
+    }
 
     try {
       const res = await fetch("/api/dg/optimize", {
@@ -202,17 +212,22 @@ export function useDgOptimization() {
    */
   const applyDgAll = useCallback(
     (btTopology: BtTopology, scenario: DgScenario): BtTopology => {
-      const transformer = btTopology.transformers[0];
-      if (!transformer) return btTopology;
+      const existingTrafo = btTopology.transformers[0];
+      const kva = scenario.metadata?.selectedKva ?? 75;
+
       const nextTransformer = {
-        ...transformer,
+        id: existingTrafo?.id ?? `new-trafo-${Date.now()}`,
         lat: scenario.trafoPositionLatLon.lat,
         lng: scenario.trafoPositionLatLon.lon,
-        transformerChangeFlag: "replace" as const,
+        projectPowerKva: kva,
+        transformerChangeFlag: existingTrafo ? ("replace" as const) : ("new" as const),
+        type: "M" as const,
+        phase: "3" as const,
       };
+
       return {
         ...btTopology,
-        transformers: [nextTransformer, ...btTopology.transformers.slice(1)],
+        transformers: [nextTransformer, ...btTopology.transformers.slice(existingTrafo ? 1 : 0)],
         edges: dgEdgesToBtEdges(scenario.edges, btTopology.edges),
       };
     },
@@ -225,17 +240,22 @@ export function useDgOptimization() {
    */
   const applyDgTrafoOnly = useCallback(
     (btTopology: BtTopology, scenario: DgScenario): BtTopology => {
-      const transformer = btTopology.transformers[0];
-      if (!transformer) return btTopology;
+      const existingTrafo = btTopology.transformers[0];
+      const kva = scenario.metadata?.selectedKva ?? 75;
+
       const nextTransformer = {
-        ...transformer,
+        id: existingTrafo?.id ?? `new-trafo-${Date.now()}`,
         lat: scenario.trafoPositionLatLon.lat,
         lng: scenario.trafoPositionLatLon.lon,
-        transformerChangeFlag: "replace" as const,
+        projectPowerKva: kva,
+        transformerChangeFlag: existingTrafo ? ("replace" as const) : ("new" as const),
+        type: "M" as const,
+        phase: "3" as const,
       };
+
       return {
         ...btTopology,
-        transformers: [nextTransformer, ...btTopology.transformers.slice(1)],
+        transformers: [nextTransformer, ...btTopology.transformers.slice(existingTrafo ? 1 : 0)],
       };
     },
     [],

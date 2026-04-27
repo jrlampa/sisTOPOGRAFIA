@@ -39,8 +39,55 @@ export interface TopologyValidationResult {
 
 export interface TopologyInput {
   poles: Array<{ id: string; [key: string]: unknown }>;
-  edges: Array<{ id?: string; fromId: string; toId: string; [key: string]: unknown }>;
-  transformers: Array<{ id: string; rootNodeId?: string; [key: string]: unknown }>;
+  edges: Array<{
+    id?: string;
+    fromId?: string;
+    toId?: string;
+    fromPoleId?: string;
+    toPoleId?: string;
+    removeOnExecution?: boolean;
+    edgeChangeFlag?: "existing" | "new" | "remove" | "replace";
+    [key: string]: unknown;
+  }>;
+  transformers: Array<{
+    id: string;
+    rootNodeId?: string;
+    poleId?: string;
+    transformerChangeFlag?: "existing" | "new" | "remove" | "replace";
+    [key: string]: unknown;
+  }>;
+}
+
+function isEdgeActive(edge: TopologyInput["edges"][number]): boolean {
+  const changeFlag =
+    typeof edge.edgeChangeFlag === "string"
+      ? edge.edgeChangeFlag
+      : edge.removeOnExecution
+        ? "remove"
+        : "existing";
+  return changeFlag !== "remove";
+}
+
+function isTransformerActive(
+  transformer: TopologyInput["transformers"][number],
+): boolean {
+  return transformer.transformerChangeFlag !== "remove";
+}
+
+function resolveEdgeFromId(edge: TopologyInput["edges"][number]): string {
+  return (
+    (typeof edge.fromId === "string" && edge.fromId) ||
+    (typeof edge.fromPoleId === "string" && edge.fromPoleId) ||
+    ""
+  );
+}
+
+function resolveEdgeToId(edge: TopologyInput["edges"][number]): string {
+  return (
+    (typeof edge.toId === "string" && edge.toId) ||
+    (typeof edge.toPoleId === "string" && edge.toPoleId) ||
+    ""
+  );
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -73,6 +120,9 @@ export function validateBtTopology(topology: TopologyInput): TopologyValidationR
   const warnings: TopologyWarning[] = [];
 
   const { poles, edges, transformers } = topology;
+  const activeEdges = edges.filter(isEdgeActive);
+  const activeTransformers = transformers.filter(isTransformerActive);
+  const hasActiveEdges = activeEdges.length > 0;
 
   // ── 1. Duplicate node IDs ─────────────────────────────────────────────────
   const nodeIds = new Set<string>();
@@ -85,9 +135,18 @@ export function validateBtTopology(topology: TopologyInput): TopologyValidationR
     }
   }
   for (const dup of duplicateIds) {
-    errors.push({
+    if (hasActiveEdges) {
+      errors.push({
+        code: 'DUPLICATE_NODE_ID',
+        message: `Duplicate node ID: "${dup}"`,
+        nodeId: dup,
+      });
+      continue;
+    }
+
+    warnings.push({
       code: 'DUPLICATE_NODE_ID',
-      message: `Duplicate node ID: "${dup}"`,
+      message: `Duplicate node ID tolerated for poles-only topology: "${dup}"`,
       nodeId: dup,
     });
   }
@@ -95,59 +154,78 @@ export function validateBtTopology(topology: TopologyInput): TopologyValidationR
   // Include transformer root nodes in the valid node set so edges can
   // reference the transformer's injection point.
   const allNodeIds = new Set<string>(nodeIds);
-  for (const tx of transformers) {
-    if (tx.rootNodeId) allNodeIds.add(tx.rootNodeId);
+  for (const tx of activeTransformers) {
+    const txNodeId = tx.rootNodeId ?? tx.poleId;
+    if (txNodeId) allNodeIds.add(txNodeId);
   }
 
   // ── 2. Edge-level checks ──────────────────────────────────────────────────
   const seenEdgeKeys = new Map<string, string>(); // key → first edgeId
   const referencedNodes = new Set<string>();
 
-  for (let i = 0; i < edges.length; i++) {
-    const edge = edges[i];
+  for (let i = 0; i < activeEdges.length; i++) {
+    const edge = activeEdges[i];
     const edgeId = edge.id ?? `edge[${i}]`;
+    const fromId = resolveEdgeFromId(edge);
+    const toId = resolveEdgeToId(edge);
+
+    if (!fromId) {
+      errors.push({
+        code: 'INVALID_EDGE_FROM',
+        message: `Edge "${edgeId}" is missing fromId/fromPoleId`,
+        edgeId,
+      });
+    }
+
+    if (!toId) {
+      errors.push({
+        code: 'INVALID_EDGE_TO',
+        message: `Edge "${edgeId}" is missing toId/toPoleId`,
+        edgeId,
+      });
+    }
 
     // Self-loop
-    if (edge.fromId === edge.toId) {
+    if (fromId && toId && fromId === toId) {
       errors.push({
         code: 'SELF_LOOP',
-        message: `Edge "${edgeId}" has fromId === toId ("${edge.fromId}")`,
+        message: `Edge "${edgeId}" has fromId === toId ("${fromId}")`,
         edgeId,
-        nodeId: edge.fromId,
+        nodeId: fromId,
       });
     }
 
     // Invalid fromId
-    if (!allNodeIds.has(edge.fromId)) {
+    if (fromId && !allNodeIds.has(fromId)) {
       errors.push({
         code: 'INVALID_EDGE_FROM',
-        message: `Edge "${edgeId}" references unknown fromId "${edge.fromId}"`,
+        message: `Edge "${edgeId}" references unknown fromId "${fromId}"`,
         edgeId,
-        nodeId: edge.fromId,
+        nodeId: fromId,
       });
-    } else {
-      referencedNodes.add(edge.fromId);
+    } else if (fromId) {
+      referencedNodes.add(fromId);
     }
 
     // Invalid toId
-    if (!allNodeIds.has(edge.toId)) {
+    if (toId && !allNodeIds.has(toId)) {
       errors.push({
         code: 'INVALID_EDGE_TO',
-        message: `Edge "${edgeId}" references unknown toId "${edge.toId}"`,
+        message: `Edge "${edgeId}" references unknown toId "${toId}"`,
         edgeId,
-        nodeId: edge.toId,
+        nodeId: toId,
       });
-    } else {
-      referencedNodes.add(edge.toId);
+    } else if (toId) {
+      referencedNodes.add(toId);
     }
 
     // Parallel edges (skip self-loops to avoid misleading key)
-    if (edge.fromId !== edge.toId) {
-      const key = edgeKey(edge.fromId, edge.toId);
+    if (fromId && toId && fromId !== toId) {
+      const key = edgeKey(fromId, toId);
       if (seenEdgeKeys.has(key)) {
         errors.push({
           code: 'PARALLEL_EDGE',
-          message: `Parallel edge between "${edge.fromId}" and "${edge.toId}" (also seen in "${seenEdgeKeys.get(key)}")`,
+          message: `Parallel edge between "${fromId}" and "${toId}" (also seen in "${seenEdgeKeys.get(key)}")`,
           edgeId,
         });
       } else {
@@ -170,32 +248,35 @@ export function validateBtTopology(topology: TopologyInput): TopologyValidationR
   }
 
   // ── 4. Transformer warnings ───────────────────────────────────────────────
-  if (transformers.length === 0) {
+  if (activeTransformers.length === 0) {
     warnings.push({
       code: 'NO_TRANSFORMER',
       message: 'No transformer found in topology',
     });
-  } else if (transformers.length > 1) {
+  } else if (activeTransformers.length > 1) {
     warnings.push({
       code: 'MULTIPLE_ROOTS',
-      message: `${transformers.length} transformers found; connectivity check uses the first one`,
+      message: `${activeTransformers.length} transformers found; connectivity check uses the first one`,
     });
   }
 
   // ── 5. Connectivity (BFS from root) ───────────────────────────────────────
-  if (nodeIds.size > 0 && transformers.length > 0 && errors.filter(e =>
+  // Skipped when there are no edges: poles-only export is valid ("somente postes").
+  if (nodeIds.size > 0 && hasActiveEdges && activeTransformers.length > 0 && errors.filter(e =>
     e.code === 'INVALID_EDGE_FROM' || e.code === 'INVALID_EDGE_TO'
   ).length === 0) {
-    const rootTx = transformers[0];
-    const rootId = rootTx.rootNodeId ?? rootTx.id;
+    const rootTx = activeTransformers[0];
+    const rootId = rootTx.rootNodeId ?? rootTx.poleId ?? rootTx.id;
 
     // Build adjacency list (undirected, using only valid node IDs)
     const adjacency = new Map<string, Set<string>>();
     for (const id of allNodeIds) adjacency.set(id, new Set());
-    for (const edge of edges) {
-      if (edge.fromId !== edge.toId) {
-        adjacency.get(edge.fromId)?.add(edge.toId);
-        adjacency.get(edge.toId)?.add(edge.fromId);
+    for (const edge of activeEdges) {
+      const fromId = resolveEdgeFromId(edge);
+      const toId = resolveEdgeToId(edge);
+      if (fromId && toId && fromId !== toId) {
+        adjacency.get(fromId)?.add(toId);
+        adjacency.get(toId)?.add(fromId);
       }
     }
 
@@ -229,8 +310,8 @@ export function validateBtTopology(topology: TopologyInput): TopologyValidationR
   // ── 6. Stats ──────────────────────────────────────────────────────────────
   const stats: TopologyStats = {
     nodeCount: nodeIds.size,
-    edgeCount: edges.length,
-    transformerCount: transformers.length,
+    edgeCount: activeEdges.length,
+    transformerCount: activeTransformers.length,
     isolatedNodes: isolatedCount,
   };
 

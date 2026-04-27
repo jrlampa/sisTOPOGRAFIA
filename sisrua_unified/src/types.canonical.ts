@@ -36,6 +36,7 @@ export interface CanonicalPoleSpec {
 /** Status de condição física do poste. */
 export type CanonicalPoleConditionStatus =
   | "bom_estado"
+  | "projetado"
   | "desaprumado"
   | "trincado"
   | "condenado";

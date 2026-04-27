@@ -205,6 +205,7 @@ export interface BtPoleBtStructures {
 
 export type BtPoleConditionStatus =
   | "bom_estado"
+  | "projetado"
   | "desaprumado"
   | "trincado"
   | "condenado";

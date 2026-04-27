@@ -27,6 +27,11 @@
 - **Granularidade**: Mensal (48 partições ativas).
 - **Benefício**: Partition pruning e VACUUM local por partição.
 
+### Camada 6: DG Result Cache (Run Isolation)
+- **Localização**: `dgRunRepository.ts` / Tabela `dg_runs`.
+- **Chave**: `input_hash` (Baseado em coordenadas de postes + params técnicos).
+- **Mecanismo**: Evita re-cálculo de projetos pesados se a topologia for idêntica, retornando o `scenario_id` recomendado imediatamente.
+
 ## 📊 Monitoramento de Saúde (Health Check)
 Monitorado via `private.db_health_report()` diariamente às 07:00 UTC.
 - **Target Cache Hit Ratio**: > 99%.

@@ -54,7 +54,8 @@ const InlineSuspenseFallback = ({ label }: { label: string }) => (
 export interface SidebarBtEditorSectionProps {
   locale: AppLocale;
   settings: AppSettings;
-  updateSettings: (s: AppSettings) => void;
+  setBtNetworkScenario: (scenario: BtNetworkScenario) => void;
+  setBtEditorMode: (mode: BtEditorMode) => void;
   btNetworkScenario: BtNetworkScenario;
   btEditorMode: BtEditorMode;
   btTopology: BtTopology;
@@ -95,7 +96,7 @@ export interface SidebarBtEditorSectionProps {
   dgResult?: DgOptimizationOutput | null;
   dgError?: string | null;
   dgActiveAltIndex?: number;
-  onRunDgOptimization?: () => void;
+  onRunDgOptimization?: (wizardParams?: any) => void;
   onAcceptDgAll?: (scenario: DgScenario) => void;
   onAcceptDgTrafoOnly?: (scenario: DgScenario) => void;
   onClearDgResult?: () => void;
@@ -113,7 +114,8 @@ export interface SidebarBtEditorSectionProps {
 export function SidebarBtEditorSection({
   locale,
   settings,
-  updateSettings,
+  setBtNetworkScenario,
+  setBtEditorMode,
   btNetworkScenario,
   btEditorMode,
   btTopology,
@@ -181,20 +183,17 @@ export function SidebarBtEditorSection({
 
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() =>
-              updateSettings({
-                ...settings,
-                btNetworkScenario: "asis",
-                btEditorMode: "none",
-              })
-            }
+            onClick={() => {
+              setBtNetworkScenario("asis");
+              setBtEditorMode("none");
+            }}
             className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btNetworkScenario === "asis" ? "border-cyan-600 bg-cyan-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnActualNetwork}
           </button>
           <button
             onClick={() => {
-              updateSettings({ ...settings, btNetworkScenario: "projeto" });
+              setBtNetworkScenario("projeto");
               onTriggerTelescopicAnalysis?.();
             }}
             className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btNetworkScenario === "projeto" ? "border-fuchsia-600 bg-fuchsia-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
@@ -205,25 +204,19 @@ export function SidebarBtEditorSection({
 
         <div className="grid grid-cols-3 gap-2">
           <button
-            onClick={() =>
-              updateSettings({ ...settings, btEditorMode: "none" })
-            }
+            onClick={() => setBtEditorMode("none")}
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "none" ? "border-slate-900 bg-slate-900 text-slate-100 dark:border-slate-700 dark:bg-zinc-800" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnNavigate}
           </button>
           <button
-            onClick={() =>
-              updateSettings({ ...settings, btEditorMode: "move-pole" })
-            }
+            onClick={() => setBtEditorMode("move-pole")}
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "move-pole" ? "border-amber-600 bg-amber-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnMove}
           </button>
           <button
-            onClick={() =>
-              updateSettings({ ...settings, btEditorMode: "add-pole" })
-            }
+            onClick={() => setBtEditorMode("add-pole")}
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-pole" ? "border-blue-600 bg-blue-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnAddPole}
@@ -231,16 +224,14 @@ export function SidebarBtEditorSection({
           <button
             onClick={() => {
               clearPendingBtEdge();
-              updateSettings({ ...settings, btEditorMode: "add-edge" });
+              setBtEditorMode("add-edge");
             }}
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-edge" ? "border-emerald-600 bg-emerald-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnAddEdge}
           </button>
           <button
-            onClick={() =>
-              updateSettings({ ...settings, btEditorMode: "add-transformer" })
-            }
+            onClick={() => setBtEditorMode("add-transformer")}
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-transformer" ? "border-violet-600 bg-violet-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnAddTransformer}
@@ -375,6 +366,7 @@ export function SidebarBtEditorSection({
           <DgOptimizationPanel
             hasPoles={btTopology.poles.length > 0}
             hasTransformer={btTopology.transformers.length > 0}
+            hasProjectedPoles={btTopology.poles.some(p => p.poleChangeFlag === 'new')}
             isOptimizing={isDgOptimizing}
             result={dgResult}
             error={dgError}

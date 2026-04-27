@@ -70,6 +70,17 @@ export interface DgParams {
     objectiveWeights: DgObjectiveWeights;
     /** Permite propor novos postes além dos existentes (Modo B). */
     allowNewPoles: boolean;
+
+    /** 
+     * Parâmetros do Wizard (Modo Full Project). 
+     * Definidos em docs/DG_IMPLEMENTATION_ADDENDUM_2026.md
+     */
+    projectMode?: 'optimization' | 'full_project';
+    clientesPorPoste?: number;
+    areaClandestinaM2?: number;
+    demandaMediaClienteKva?: number;
+    fatorSimultaneidade?: number;
+    faixaKvaTrafoPermitida?: number[];
 }
 
 export const DEFAULT_DG_PARAMS: DgParams = {
@@ -87,6 +98,10 @@ export const DEFAULT_DG_PARAMS: DgParams = {
         overloadPenalty: 0.15,
     },
     allowNewPoles: false,
+    projectMode: 'optimization',
+    faixaKvaTrafoPermitida: [15, 30, 45, 75, 112.5],
+    fatorSimultaneidade: 0.8,
+    demandaMediaClienteKva: 1.5,
 };
 
 /** Pesos da função objetivo. Devem somar 1.0. */
@@ -103,7 +118,8 @@ export interface DgOptimizationInput {
     runId?: string;
     tenantId?: string;
     poles: DgPoleInput[];
-    transformer: DgTransformerInput;
+    /** Opcional no Modo Full Project (Wizard). */
+    transformer?: DgTransformerInput;
     exclusionPolygons?: DgExclusionPolygon[];
     roadCorridors?: DgRoadCorridor[];
     params?: Partial<DgParams>;

@@ -59,6 +59,7 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
   return (
     <div className="space-y-4 pb-6">
       <PoleCockpitCard
+        key={pole.id}
         pole={pole}
         mtStructures={mtStructures}
         locale={props.locale}
@@ -94,6 +95,7 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
           >
             <option value="">{pt.selectState}</option>
             <option value="bom_estado">{pt.stateGood}</option>
+            <option value="projetado">{pt.stateProjected}</option>
             <option value="desaprumado">{pt.stateLeaning}</option>
             <option value="trincado">{pt.stateCracked}</option>
             <option value="condenado">{pt.stateCondemned}</option>

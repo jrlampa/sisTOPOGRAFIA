@@ -634,6 +634,32 @@ function App() {
     enabled: true,
   });
 
+  const setBtEditorMode = React.useCallback(
+    (mode: BtEditorMode) => {
+      setAppState(
+        (prev) => ({
+          ...prev,
+          settings: { ...prev.settings, btEditorMode: mode },
+        }),
+        true,
+      );
+    },
+    [setAppState],
+  );
+
+  const setBtNetworkScenario = React.useCallback(
+    (scenario: BtNetworkScenario) => {
+      setAppState(
+        (prev) => ({
+          ...prev,
+          settings: { ...prev.settings, btNetworkScenario: scenario },
+        }),
+        true,
+      );
+    },
+    [setAppState],
+  );
+
   const mapRenderSources = React.useMemo(
     () =>
       selectMapTopologyRenderSources({
@@ -752,7 +778,8 @@ function App() {
   > = {
     locale: settings.locale,
     settings,
-    updateSettings,
+    setBtNetworkScenario,
+    setBtEditorMode,
     btNetworkScenario,
     btEditorMode,
     btTopology,

@@ -28,7 +28,12 @@ export interface MapBtPole {
     heightM?: number;
     nominalEffortDan?: number;
   };
-  conditionStatus?: "bom_estado" | "desaprumado" | "trincado" | "condenado";
+  conditionStatus?:
+    | "bom_estado"
+    | "projetado"
+    | "desaprumado"
+    | "trincado"
+    | "condenado";
   equipmentNotes?: string;
   generalNotes?: string;
   verified?: boolean;

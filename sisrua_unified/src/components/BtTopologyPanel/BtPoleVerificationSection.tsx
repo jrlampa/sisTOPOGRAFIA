@@ -60,9 +60,15 @@ interface BtPoleVerificationSectionProps {
 
 const POLE_CONDITION_OPTIONS: Array<{
   value: BtPoleConditionStatus;
-  labelKey: "stateGood" | "stateLeaning" | "stateCracked" | "stateCondemned";
+  labelKey:
+    | "stateGood"
+    | "stateProjected"
+    | "stateLeaning"
+    | "stateCracked"
+    | "stateCondemned";
 }> = [
   { value: "bom_estado", labelKey: "stateGood" },
+  { value: "projetado", labelKey: "stateProjected" },
   { value: "desaprumado", labelKey: "stateLeaning" },
   { value: "trincado", labelKey: "stateCracked" },
   { value: "condenado", labelKey: "stateCondemned" },

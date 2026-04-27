@@ -1,0 +1,258 @@
+/**
+ * DgWizardModal – Modal de Projeto BT Guiado (Frente DG Wizard).
+ *
+ * Coleta parâmetros técnicos para dimensionamento automático de trafo
+ * e rede BT em modo Greenfield (sem trafo inicial ou com rede projetada).
+ *
+ * Referência: docs/DG_IMPLEMENTATION_ADDENDUM_2026.md
+ */
+
+import React, { useState } from "react";
+import { X, ChevronRight, ChevronLeft, Zap, Users, Shield, Ruler } from "lucide-react";
+
+interface DgWizardModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onExecute: (params: DgWizardParams) => void;
+}
+
+export interface DgWizardParams {
+  clientesPorPoste: number;
+  areaClandestinaM2: number;
+  demandaMediaClienteKva: number;
+  fatorSimultaneidade: number;
+  faixaKvaTrafoPermitida: number[];
+  maxSpanMeters: number;
+}
+
+const DEFAULT_WIZARD_PARAMS: DgWizardParams = {
+  clientesPorPoste: 1,
+  areaClandestinaM2: 0,
+  demandaMediaClienteKva: 1.5,
+  fatorSimultaneidade: 0.8,
+  faixaKvaTrafoPermitida: [15, 30, 45, 75, 112.5],
+  maxSpanMeters: 40,
+};
+
+type Step = "DEMANDA" | "EXPANSAO" | "TECNICO" | "REVISAO";
+
+export function DgWizardModal({ isOpen, onClose, onExecute }: DgWizardModalProps) {
+  const [step, setStep] = useState<Step>("DEMANDA");
+  const [params, setParams] = useState<DgWizardParams>(DEFAULT_WIZARD_PARAMS);
+
+  if (!isOpen) return null;
+
+  const handleNext = () => {
+    if (step === "DEMANDA") setStep("EXPANSAO");
+    else if (step === "EXPANSAO") setStep("TECNICO");
+    else if (step === "TECNICO") setStep("REVISAO");
+  };
+
+  const handleBack = () => {
+    if (step === "REVISAO") setStep("TECNICO");
+    else if (step === "TECNICO") setStep("EXPANSAO");
+    else if (step === "EXPANSAO") setStep("DEMANDA");
+  };
+
+  const updateParam = (key: keyof DgWizardParams, value: any) => {
+    setParams((prev) => ({ ...prev, [key]: value }));
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/50 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md rounded-2xl border-2 border-violet-700/30 bg-white shadow-2xl dark:bg-zinc-900 dark:border-violet-500/30 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between bg-violet-50 px-4 py-3 dark:bg-violet-950/20">
+          <div className="flex items-center gap-2">
+            <Zap size={16} className="text-violet-700 dark:text-violet-400" />
+            <h2 className="text-[11px] font-black uppercase tracking-widest text-violet-900 dark:text-violet-100">
+              Wizard Projeto BT
+            </h2>
+          </div>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-5 space-y-6">
+          {/* Progress Indicator */}
+          <div className="flex justify-between">
+            {["DEMANDA", "EXPANSAO", "TECNICO", "REVISAO"].map((s, i) => (
+              <div
+                key={s}
+                className={`h-1.5 flex-1 mx-0.5 rounded-full ${
+                  step === s ? "bg-violet-600" : i < ["DEMANDA", "EXPANSAO", "TECNICO", "REVISAO"].indexOf(step) ? "bg-violet-300" : "bg-zinc-200 dark:bg-zinc-800"
+                }`}
+              />
+            ))}
+          </div>
+
+          {step === "DEMANDA" && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+              <div className="flex items-center gap-3">
+                <Users className="text-violet-600" size={20} />
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Passo 1: Demanda Base</h3>
+                  <p className="text-[10px] text-zinc-500">Defina a carga inicial por ponto de entrega.</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-600 uppercase">Clientes por poste (médio)</label>
+                  <input
+                    type="number"
+                    value={params.clientesPorPoste}
+                    onChange={(e) => updateParam("clientesPorPoste", Number(e.target.value))}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500 outline-none dark:bg-zinc-800 dark:border-zinc-700"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-600 uppercase">Demanda média por cliente (kVA)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={params.demandaMediaClienteKva}
+                    onChange={(e) => updateParam("demandaMediaClienteKva", Number(e.target.value))}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500 outline-none dark:bg-zinc-800 dark:border-zinc-700"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === "EXPANSAO" && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+              <div className="flex items-center gap-3">
+                <Shield className="text-violet-600" size={20} />
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Passo 2: Expansão / Clandestino</h3>
+                  <p className="text-[10px] text-zinc-500">Parâmetros para áreas de ocupação informal.</p>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-600 uppercase">Área Clandestina Adicional (m²)</label>
+                <input
+                  type="number"
+                  value={params.areaClandestinaM2}
+                  onChange={(e) => updateParam("areaClandestinaM2", Number(e.target.value))}
+                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500 outline-none dark:bg-zinc-800 dark:border-zinc-700"
+                />
+                <p className="text-[9px] text-zinc-400 mt-1 italic">Carga de 20W/m² será aplicada nesta área e rateada nos postes.</p>
+              </div>
+            </div>
+          )}
+
+          {step === "TECNICO" && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+              <div className="flex items-center gap-3">
+                <Ruler className="text-violet-600" size={20} />
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Passo 3: Regras Técnicas</h3>
+                  <p className="text-[10px] text-zinc-500">Limites de projeto e dimensionamento.</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-600 uppercase">Vão Máximo (m)</label>
+                  <input
+                    type="number"
+                    value={params.maxSpanMeters}
+                    onChange={(e) => updateParam("maxSpanMeters", Number(e.target.value))}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500 outline-none dark:bg-zinc-800 dark:border-zinc-700"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-600 uppercase">Fator Simult.</label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    value={params.fatorSimultaneidade}
+                    onChange={(e) => updateParam("fatorSimultaneidade", Number(e.target.value))}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500 outline-none dark:bg-zinc-800 dark:border-zinc-700"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-600 uppercase">Faixas de kVA Permitidas</label>
+                <div className="flex flex-wrap gap-2">
+                  {[15, 30, 45, 75, 112.5].map(kva => (
+                    <button
+                      key={kva}
+                      onClick={() => {
+                        const current = params.faixaKvaTrafoPermitida;
+                        const next = current.includes(kva) 
+                          ? current.filter(k => k !== kva) 
+                          : [...current, kva].sort((a,b) => a-b);
+                        updateParam("faixaKvaTrafoPermitida", next);
+                      }}
+                      className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                        params.faixaKvaTrafoPermitida.includes(kva)
+                          ? "bg-violet-600 text-white"
+                          : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800"
+                      }`}
+                    >
+                      {kva}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === "REVISAO" && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+              <div className="flex items-center gap-3">
+                <Zap className="text-violet-600" size={20} />
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Revisão Final</h3>
+                  <p className="text-[10px] text-zinc-500">Confirme os parâmetros para simulação.</p>
+                </div>
+              </div>
+              <div className="rounded-xl bg-zinc-50 p-4 space-y-2 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700">
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-500">Demanda/Poste:</span>
+                  <span className="font-bold text-zinc-700 dark:text-zinc-300">{(params.clientesPorPoste * params.demandaMediaClienteKva * params.fatorSimultaneidade).toFixed(2)} kVA</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-500">Área Clandestina:</span>
+                  <span className="font-bold text-zinc-700 dark:text-zinc-300">{params.areaClandestinaM2} m²</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-500">Faixas kVA:</span>
+                  <span className="font-bold text-zinc-700 dark:text-zinc-300">{params.faixaKvaTrafoPermitida.join(", ")}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-zinc-100 p-4 dark:border-zinc-800">
+          <button
+            onClick={step === "DEMANDA" ? onClose : handleBack}
+            className="flex items-center gap-1 text-[10px] font-bold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+          >
+            {step === "DEMANDA" ? "CANCELAR" : (
+              <>
+                <ChevronLeft size={14} />
+                VOLTAR
+              </>
+            )}
+          </button>
+          <button
+            onClick={step === "REVISAO" ? () => onExecute(params) : handleNext}
+            className="flex items-center gap-1 rounded-xl bg-violet-700 px-6 py-2 text-[10px] font-black text-white hover:bg-violet-800"
+          >
+            {step === "REVISAO" ? "EXECUTAR PROJETO" : (
+              <>
+                PRÓXIMO
+                <ChevronRight size={14} />
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

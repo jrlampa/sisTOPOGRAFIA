@@ -93,7 +93,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   criticalPoleId: _criticalPoleId,
   projectType,
   onProjectTypeChange,
-  clandestinoAreaM2: _clandestinoAreaM2,
+  clandestinoAreaM2,
   onClandestinoAreaChange,
   pointDemandKva: _pointDemandKva,
   selectedPoleId = "",
@@ -249,6 +249,31 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
             <option value="ramais">{t.projectTypeRamais}</option>
             <option value="clandestino">{t.projectTypeClandestino}</option>
           </select>
+
+          {projectType === "clandestino" && (
+            <div className="mt-3">
+              <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                {t.clandestinoAreaTitle}
+              </label>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                value={Number.isFinite(clandestinoAreaM2) ? clandestinoAreaM2 : 0}
+                onChange={(e) => {
+                  const nextAreaM2 = Number(e.target.value);
+                  if (!Number.isFinite(nextAreaM2)) {
+                    return;
+                  }
+                  onClandestinoAreaChange(Math.max(0, nextAreaM2));
+                }}
+                placeholder={t.clandestinoAreaPlaceholder}
+                title={t.clandestinoAreaTitle}
+                className="w-full rounded border border-slate-300 p-1.5 text-xs font-semibold text-slate-700"
+              />
+            </div>
+          )}
 
           <button
             onClick={() => bulkImport.setIsBulkRamalModalOpen(true)}
