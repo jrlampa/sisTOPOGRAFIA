@@ -36,6 +36,27 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 const router = Router();
 
+// Servir arquivos DXF gerados (Mover para o topo)
+router.get("/downloads/:filename", (req: Request, res: Response) => {
+  const { filename } = req.params;
+  const dxfDirectory = resolveDxfDirectory();
+  const filePath = path.join(dxfDirectory, filename);
+
+  logger.info("Tentativa de download de DXF", { filename, filePath });
+
+  if (fs.existsSync(filePath)) {
+    // Forçar download binário
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Description", "File Transfer");
+    res.setHeader("Cache-Control", "no-cache, must-revalidate");
+    return res.sendFile(filePath);
+  } else {
+    logger.warn("Arquivo não encontrado para download", { filename, filePath });
+    return res.status(404).json({ error: "Arquivo não encontrado ou expirado" });
+  }
+});
+
 // ─── Input Validation Schemas ────────────────────────────────────────────
 
 // Protocol normalization: ensure only 'http' or 'https'
@@ -392,7 +413,8 @@ router.post(
       const dxfDirectory = resolveDxfDirectory();
       fs.mkdirSync(dxfDirectory, { recursive: true });
       const outputFile = path.join(dxfDirectory, filename);
-      const downloadUrl = `${baseUrl}/downloads/${filename}`;
+      // Incluindo o prefixo da rota /api/dxf
+      const downloadUrl = `${baseUrl}/api/dxf/downloads/${filename}`;
 
       logger.info("Queueing DXF generation", {
         lat,
@@ -428,6 +450,8 @@ router.post(
         filename,
         cacheKey,
         downloadUrl,
+        // Force synchronous generation in dev for better UX
+        forceSync: config.NODE_ENV === "development", 
       });
 
       const responseStatus = alreadyCompleted ? "success" : "queued";
@@ -626,6 +650,22 @@ router.get(
     return res.json(dossier);
   },
 );
+
+// Servir arquivos DXF gerados
+router.get("/downloads/:filename", (req: Request, res: Response) => {
+  const { filename } = req.params;
+  const dxfDirectory = resolveDxfDirectory();
+  const filePath = path.join(dxfDirectory, filename);
+
+  if (fs.existsSync(filePath)) {
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Type", "application/dxf");
+    return res.sendFile(filePath);
+  } else {
+    logger.warn("Tentativa de download de arquivo inexistente", { filename, filePath });
+    return res.status(404).json({ error: "Arquivo não encontrado ou expirado" });
+  }
+});
 
 // POST /dxf/jobs/:taskId/replay  — replay controlado (somente admin)
 router.post(

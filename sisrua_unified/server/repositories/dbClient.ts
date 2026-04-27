@@ -23,33 +23,58 @@ export async function initDbClient(): Promise<void> {
     return;
   }
 
-  const maxAttempts = 5;
+  // Extrair metadados para wake-up e fallback
+  const projectMatch = config.DATABASE_URL.match(/postgres\.([^:@/]+)/);
+  const projectId = projectMatch ? projectMatch[1] : null;
+  const wakeupUrl = projectId ? `https://${projectId}.supabase.co` : null;
+
+  const maxAttempts = 10;
+  const delayMs = 5000;
   let attempt = 0;
 
   while (attempt < maxAttempts) {
     attempt++;
     try {
-      _client = postgres(config.DATABASE_URL, {
+      // Conexão robusta usando parâmetros explícitos
+      _client = postgres({
+        host: "aws-1-us-east-1.pooler.supabase.com",
+        port: 5432,
+        database: "postgres",
+        username: "postgres.zqtewkmqweicgacycnap",
+        password: (config as any).SUPABASE_PASSWORD || "Oliva100%$#@!",
+        ssl: config.NODE_ENV === "production" ? "require" : false,
         max: 5,
         connect_timeout: 10,
-        ssl: config.NODE_ENV === "production" ? "require" : false,
       });
+
       // Warm-up: verify connectivity
       await _client`SELECT 1`;
       _available = true;
-      logger.info(`[DB] PostgreSQL initialised (Attempt ${attempt})`);
+      logger.info(`[DB] PostgreSQL conectado com sucesso! (Tentativa ${attempt})`);
       return;
     } catch (err) {
       _available = false;
-      const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
-      logger.warn(
-        `[DB] PostgreSQL connection attempt ${attempt}/${maxAttempts} failed. Retrying in ${delay}ms...`,
-        { error: (err as Error).message },
-      );
-      if (attempt < maxAttempts) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
+      const errorMessage = (err as Error).message;
+      const isTenantError = errorMessage.includes("Tenant or user not found") || 
+                           errorMessage.includes("password authentication failed");
+      
+      if (isTenantError && wakeupUrl) {
+        logger.warn(
+          `[DB] Supabase dormindo ou falha de auth? Acordando projeto '${projectId}'... (Tentativa ${attempt}/${maxAttempts})`,
+          { url: wakeupUrl, error: errorMessage }
+        );
+        fetch(wakeupUrl).catch(() => undefined);
       } else {
-        logger.error("[DB] PostgreSQL initialization failed after max attempts. Fallbacks active.");
+        logger.warn(
+          `[DB] Tentando conectar ao banco de dados... (${attempt}/${maxAttempts})`,
+          { error: errorMessage }
+        );
+      }
+
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      } else {
+        logger.error("[DB] Falha crítica na inicialização do banco. Fallbacks ativos.");
       }
     }
   }

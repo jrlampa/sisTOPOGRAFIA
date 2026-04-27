@@ -258,9 +258,9 @@ router.post("/", async (req: Request, res: Response) => {
               "User-Agent": "curl/8.4.0",
               "Accept": "application/json",
             },
-            signal: AbortSignal.timeout(60000),
+            signal: AbortSignal.timeout(15000), // Timeout reduzido de 60s para 15s
           },
-          { maxRetries: 1, initialDelay: 500, maxDelay: 2000 },
+          { maxRetries: 0, initialDelay: 200, maxDelay: 1000 }, // Retries reduzidos
         );
 
         // Attempt 2: Fallback to POST if GET failed with 405 (Method Not Allowed)
@@ -276,7 +276,7 @@ router.post("/", async (req: Request, res: Response) => {
                 "Content-Type": "application/x-www-form-urlencoded",
                 "User-Agent": "curl/8.4.0",
               },
-              signal: AbortSignal.timeout(60000),
+              signal: AbortSignal.timeout(15000), // Timeout reduzido
             },
             { maxRetries: 0 }
           );

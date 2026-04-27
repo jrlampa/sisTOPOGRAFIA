@@ -12,8 +12,8 @@ services:
       dockerfile: Dockerfile.dev
     container_name: sisrua-app
     ports:
-      - "8080:3000"  # Frontend (Vite) acessível via localhost:8080
-      - "3002:3001"  # Backend API direta (mapeado para 3002 para evitar conflito com host)
+      - "8080:3000" # Frontend (Vite) acessível via localhost:8080
+      - "3002:3001" # Backend API direta (mapeado para 3002 para evitar conflito com host)
     environment:
       - NODE_ENV=development
       - PORT=3001
@@ -58,7 +58,7 @@ services:
     image: ollama/ollama:latest
     container_name: sisrua-ollama
     ports:
-      - "11434:11434"
+      - "11435:11434"
     volumes:
       - ollama-data:/root/.ollama
     networks:
@@ -69,6 +69,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    profiles:
+      - with-ollama
 
 volumes:
   dxf-output:

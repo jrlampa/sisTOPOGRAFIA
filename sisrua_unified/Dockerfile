@@ -84,4 +84,4 @@ ENTRYPOINT ["/app/docker-entrypoint.sh"]
 EXPOSE 8080
 
 # Start application
-CMD ["node", "dist/server/server/index.js"]
+CMD ["node", "dist/server/index.js"]

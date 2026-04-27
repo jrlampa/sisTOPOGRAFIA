@@ -50,13 +50,9 @@ export function useDxfExport({
     useState<MemorialDownloadMetadata | null>(null);
 
   const triggerDownload = (url: string, center: GeoLocation) => {
-    const filename = `dxf_export_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}.dxf`;
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
+    console.log("[DXF Export] Triggering download from URL:", url);
+    // Usar location.assign para disparar o download direto do browser
+    window.location.assign(url);
   };
 
   const tryLoadBtContext = useCallback(

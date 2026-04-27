@@ -44,7 +44,9 @@ type OllamaGovernanceStatus = {
 };
 
 function normalizeModelName(value: string): string {
-  return value.trim().toLowerCase();
+  const normalized = value.trim().toLowerCase();
+  // Se o modelo terminar com :latest, removemos para facilitar a comparação
+  return normalized.endsWith(":latest") ? normalized.slice(0, -7) : normalized;
 }
 
 function normalizeHost(value: string): string {
@@ -56,7 +58,10 @@ function isLocalOllamaHost(host: string): boolean {
     const parsed = new URL(host);
     const hostname = parsed.hostname.toLowerCase();
     return (
-      hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1"
+      hostname === "localhost" || 
+      hostname === "127.0.0.1" || 
+      hostname === "::1" ||
+      hostname === "ollama" // Adicionado para suporte ao Docker
     );
   } catch {
     return false;
@@ -185,7 +190,7 @@ export class OllamaService {
 
       const response = await fetch(`${OLLAMA_BASE_URL}/api/version`, {
         method: "GET",
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(15000),
       });
 
       if (!response.ok) {
@@ -320,7 +325,12 @@ export class OllamaService {
    */
   static async analyzeArea(stats: any, locationName: string) {
     try {
-      const hasData = stats.buildings > 0 || stats.roads > 0 || stats.trees > 0;
+      // Robust check for stats existence with different naming conventions
+      const buildings = stats?.buildings ?? stats?.totalBuildings ?? 0;
+      const roads = stats?.roads ?? stats?.totalRoads ?? 0;
+      const trees = stats?.trees ?? stats?.totalNature ?? stats?.nature ?? 0;
+      
+      const hasData = buildings > 0 || roads > 0 || trees > 0;
       const runtimeStatus = await this.getRuntimeStatus();
 
       if (!runtimeStatus.zeroCostCompliant) {
@@ -403,7 +413,7 @@ export class OllamaService {
       }
       const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`, {
         method: "GET",
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(15000),
       });
       return response.ok;
     } catch {
@@ -421,7 +431,7 @@ export class OllamaService {
       }
       const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`, {
         method: "GET",
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(15000),
       });
 
       if (!response.ok) {

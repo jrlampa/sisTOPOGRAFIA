@@ -94,23 +94,25 @@ router.post("/", async (req: Request, res: Response) => {
 
     const runtime = await OllamaService.getRuntimeStatus();
     const ollamaAvailable = runtime.available;
+    const modelAvailable = runtime.compatibility.configuredModelAvailable || runtime.compatibility.fallbackModelUsed;
 
     logger.info("Ollama AI analysis requested", {
       locationName: location,
       ollamaAvailable,
+      modelAvailable,
       selectedModel: runtime.selectedModel,
       zeroCostCompliant: runtime.zeroCostCompliant,
       timestamp: new Date().toISOString(),
     });
 
-    if (!ollamaAvailable) {
-      logger.warn("Ollama service not available");
+    if (!ollamaAvailable || !modelAvailable) {
+      const reason = !ollamaAvailable ? "Serviço Ollama offline" : `Modelo ${runtime.configuredModel} ainda não está pronto`;
+      logger.warn(`Ollama not ready: ${reason}`);
       return res.status(503).json({
-        error: "Ollama not available",
-        message:
-          "O serviço Ollama não está disponível. Verifique a instalação.",
+        error: "Ollama not ready",
+        message: reason,
         runtime,
-        analysis: `**Análise AI Indisponível**\n\nO serviço Ollama não está disponível. Verifique se:\n1. O Ollama está instalado: https://ollama.com\n2. O serviço está rodando: \`ollama serve\`\n3. O modelo ${runtime.configuredModel} está disponível: \`ollama pull ${runtime.configuredModel}\``,
+        analysis: `**Análise AI em Preparação**\n\n${reason}. Verifique se:\n1. O container \`sisrua-ollama\` está rodando.\n2. O download do modelo ${runtime.configuredModel} terminou (pode levar alguns minutos).\n3. O servidor responde em ${runtime.host}.`,
       });
     }
 

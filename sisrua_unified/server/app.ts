@@ -118,7 +118,11 @@ import portalStakeholderRoutes from "./routes/portalStakeholderRoutes.js";
 import provenienciaForenseRoutes from "./routes/provenienciaForenseRoutes.js";
 import assinaturaNuvemRoutes from "./routes/assinaturaNuvemRoutes.js";
 import gisHardeningRoutes from "./routes/gisHardeningRoutes.js";
-import { pingDb } from "./repositories/index.js";
+import { 
+  pingDb, 
+  initDbClient, 
+  isDbAvailable 
+} from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
 const dirname = path.join(process.cwd(), "server");
@@ -199,6 +203,16 @@ app.use(
 
 app.use(express.json({ limit: config.BODY_LIMIT }));
 app.use(compression());
+
+// DB Wake-up Middleware - Garante que o banco comece a acordar no primeiro acesso
+app.use((_req, _res, next) => {
+  const dbConfigured = config.useSupabaseJobs || config.useDbConstantsConfig;
+  if (dbConfigured && !isDbAvailable()) {
+    // Tenta inicializar em background (não bloqueia a requisição)
+    initDbClient().catch((e) => logger.error("[DB] Wake-up background fail", e));
+  }
+  next();
+});
 
 // Request ID Middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -297,6 +311,7 @@ app.use("/api/osm", osmRoutes);
 app.use("/api/ibge", ibgeRoutes);
 app.use("/api/inde", indeRoutes);
 app.use("/api/analysis", analysisRoutes);
+app.use("/api/analyze", analysisRoutes); // Alias para compatibilidade com frontend que usa singular
 app.use("/api/constants", constantsRoutes);
 app.use("/api/bt-history", btHistoryRoutes);
 app.use("/api/bt-derived", btDerivedRoutes);

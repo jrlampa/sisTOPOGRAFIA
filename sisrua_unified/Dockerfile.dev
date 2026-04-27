@@ -30,8 +30,9 @@ COPY package*.json ./
 RUN npm install
 
 # Create necessary directories for volumes
+# Avoid chown -R /app (slow over node_modules); only fix writable dirs
 RUN mkdir -p /app/public/dxf /app/cache /app/logs && \
-    chown -R appuser:appuser /app
+    chown -R appuser:appuser /app/public /app/cache /app/logs
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
