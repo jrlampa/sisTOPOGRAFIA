@@ -63,17 +63,13 @@ const polygonSchema = z.object({
     .enum(["building", "restricted_zone", "road_buffer"])
     .optional()
     .default("building"),
-  points: z
-    .array(latLonSchema)
-    .min(3),
+  points: z.array(latLonSchema).min(3),
   label: z.string().optional(),
 });
 
 const corridorSchema = z.object({
   id: z.string().min(1),
-  centerPoints: z
-    .array(latLonSchema)
-    .min(2),
+  centerPoints: z.array(latLonSchema).min(2),
   bufferMeters: z.number().positive(),
   label: z.string().optional(),
 });
@@ -347,7 +343,10 @@ router.post(
       res.status(200).json({
         success: true,
         data: result,
-        metadata: { processedAt: new Date().toISOString(), userId: res.locals.userId },
+        metadata: {
+          processedAt: new Date().toISOString(),
+          userId: res.locals.userId,
+        },
       });
     } catch (error) {
       next(error);
@@ -385,7 +384,11 @@ router.get(
     try {
       const bufferConfigurations = {
         primary_curb: { type: "primary", minMeters: 0.3, maxMeters: 0.5 },
-        fallback_centerline: { type: "fallback", minMeters: 0.5, maxMeters: 2.0 },
+        fallback_centerline: {
+          type: "fallback",
+          minMeters: 0.5,
+          maxMeters: 2.0,
+        },
       };
       res.status(200).json({ success: true, data: bufferConfigurations });
     } catch (error) {

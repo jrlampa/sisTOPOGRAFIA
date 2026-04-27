@@ -35,13 +35,36 @@ const CONSTRAINT_LABELS: Record<DgConstraintCode, string> = {
 
 function ScoreBar({ score }: { score: number }) {
   const pct = Math.min(100, Math.max(0, score));
+  const widthStep = Math.round(pct / 5);
+  const widthClassByStep = [
+    "w-[0%]",
+    "w-[5%]",
+    "w-[10%]",
+    "w-[15%]",
+    "w-[20%]",
+    "w-[25%]",
+    "w-[30%]",
+    "w-[35%]",
+    "w-[40%]",
+    "w-[45%]",
+    "w-[50%]",
+    "w-[55%]",
+    "w-[60%]",
+    "w-[65%]",
+    "w-[70%]",
+    "w-[75%]",
+    "w-[80%]",
+    "w-[85%]",
+    "w-[90%]",
+    "w-[95%]",
+    "w-[100%]",
+  ] as const;
   const color =
     pct >= 70 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-red-500";
   return (
     <div className="w-full rounded-full bg-zinc-200 dark:bg-zinc-700 h-2 overflow-hidden">
       <div
-        className={`h-2 rounded-full transition-all ${color}`}
-        style={{ width: `${pct}%` }}
+        className={`h-2 rounded-full transition-all ${color} ${widthClassByStep[widthStep]}`}
       />
     </div>
   );
@@ -159,7 +182,10 @@ export function DgOptimizationPanel({
 
   const cableDeltaMeters = useMemo(() => {
     if (!active || currentTotalCableLengthMeters == null) return null;
-    return active.electricalResult.totalCableLengthMeters - currentTotalCableLengthMeters;
+    return (
+      active.electricalResult.totalCableLengthMeters -
+      currentTotalCableLengthMeters
+    );
   }, [active, currentTotalCableLengthMeters]);
 
   const trafoShiftMeters = useMemo(() => {
@@ -344,7 +370,11 @@ export function DgOptimizationPanel({
               {currentTransformer && (
                 <ElectricalResultRow
                   label="Realocação do trafo"
-                  value={trafoShiftMeters == null ? "-" : `${trafoShiftMeters.toFixed(1)} m`}
+                  value={
+                    trafoShiftMeters == null
+                      ? "-"
+                      : `${trafoShiftMeters.toFixed(1)} m`
+                  }
                 />
               )}
               {currentTotalCableLengthMeters != null && (

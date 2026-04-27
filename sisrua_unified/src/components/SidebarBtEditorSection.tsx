@@ -59,6 +59,7 @@ export interface SidebarBtEditorSectionProps {
   btNetworkScenario: BtNetworkScenario;
   btEditorMode: BtEditorMode;
   btTopology: BtTopology;
+  dgTopology?: BtTopology;
   btAccumulatedByPole: BtPoleAccumulatedDemand[];
   btSummary: BtDerivedSummary;
   btPointDemandKva: number;
@@ -119,6 +120,7 @@ export function SidebarBtEditorSection({
   btNetworkScenario,
   btEditorMode,
   btTopology,
+  dgTopology,
   btAccumulatedByPole,
   btSummary,
   btPointDemandKva,
@@ -162,6 +164,8 @@ export function SidebarBtEditorSection({
   onSetSelectedTransformerId,
   mtTopology,
 }: SidebarBtEditorSectionProps) {
+  const effectiveDgTopology = dgTopology ?? btTopology;
+
   const coordinateValidation = getCoordinateInputFeedback(
     btPoleCoordinateInput,
   );
@@ -366,15 +370,15 @@ export function SidebarBtEditorSection({
         <>
           <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
           <DgOptimizationPanel
-            hasPoles={btTopology.poles.length > 0}
-            poles={btTopology.poles}
-            currentTransformer={btTopology.transformers[0]}
-            currentTotalCableLengthMeters={btTopology.edges.reduce(
+            hasPoles={effectiveDgTopology.poles.length > 0}
+            poles={effectiveDgTopology.poles}
+            currentTransformer={effectiveDgTopology.transformers[0]}
+            currentTotalCableLengthMeters={effectiveDgTopology.edges.reduce(
               (sum, edge) => sum + (edge.lengthMeters ?? 0),
               0,
             )}
-            hasTransformer={btTopology.transformers.length > 0}
-            hasProjectedPoles={btTopology.poles.some(
+            hasTransformer={effectiveDgTopology.transformers.length > 0}
+            hasProjectedPoles={effectiveDgTopology.poles.some(
               (p) => p.nodeChangeFlag === "new",
             )}
             isOptimizing={isDgOptimizing}

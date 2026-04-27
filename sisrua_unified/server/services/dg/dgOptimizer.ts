@@ -32,6 +32,7 @@ import type {
   DgScenarioEdge,
   DgElectricalResult,
   DgConstraintCode,
+  DgConstraintViolation,
 } from "./dgTypes.js";
 import {
   euclideanDistanceM,

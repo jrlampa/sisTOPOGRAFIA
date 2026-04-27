@@ -159,22 +159,25 @@ export function useDgOptimization() {
 
       const payload: any = {
         poles: btTopology.poles.map((p) => {
-          const clients = wizardParams?.poleOverrides[p.id] ?? p.ramais?.length ?? 0;
+          const clients =
+            wizardParams?.poleOverrides[p.id] ?? p.ramais?.length ?? 0;
           return {
             id: p.id,
             position: { lat: p.lat, lon: p.lng },
             // Demanda base: se houver override, usa ele, senão usa o padrão do ramal
-            demandKva: Math.max(0, clients * (wizardParams?.demandaMediaClienteKva ?? 1.5)),
+            demandKva: Math.max(
+              0,
+              clients * (wizardParams?.demandaMediaClienteKva ?? 1.5),
+            ),
             clients,
           };
         }),
         params: {
           projectMode: isFullProject ? "full_project" : "optimization",
           wizardContractVersion: "DG Wizard v1",
-          ...wizardParams
-        }
+          ...wizardParams,
+        },
       };
-
 
       if (transformer) {
         payload.transformer = {
@@ -220,26 +223,26 @@ export function useDgOptimization() {
   }, []);
 
   /** Registra decisão DG no backend para trilha de auditoria. */
-  const logDgDecision = useCallback(async (
-    mode: DgDecisionMode,
-    scenario?: DgScenario,
-  ) => {
-    if (!state.result?.runId) return;
-    try {
-      await fetch("/api/dg/decision", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          runId: state.result.runId,
-          scenarioId: scenario?.scenarioId,
-          appliedMode: mode,
-          score: scenario?.objectiveScore,
-        }),
-      });
-    } catch (err) {
-      console.error("Failed to log DG audit", err);
-    }
-  }, [state.result?.runId]);
+  const logDgDecision = useCallback(
+    async (mode: DgDecisionMode, scenario?: DgScenario) => {
+      if (!state.result?.runId) return;
+      try {
+        await fetch("/api/dg/decision", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            runId: state.result.runId,
+            scenarioId: scenario?.scenarioId,
+            appliedMode: mode,
+            score: scenario?.objectiveScore,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to log DG audit", err);
+      }
+    },
+    [state.result?.runId],
+  );
 
   /**
    * Aplica cenário DG completo: realoca trafo + substitui condutores.

@@ -61,7 +61,9 @@ export function DgWizardModal({
   const [params, setParams] = useState<Omit<DgWizardParams, "poleOverrides">>(
     DEFAULT_WIZARD_PARAMS,
   );
-  const [poleOverrides, setPoleOverrides] = useState<Record<string, number>>({});
+  const [poleOverrides, setPoleOverrides] = useState<Record<string, number>>(
+    {},
+  );
   const [showIndividual, setShowIndividual] = useState(false);
 
   if (!isOpen) return null;
@@ -121,6 +123,8 @@ export function DgWizardModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Fechar wizard"
+            title="Fechar wizard"
             className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
           >
             <X size={18} />
@@ -163,7 +167,7 @@ export function DgWizardModal({
               </div>
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <label 
+                  <label
                     htmlFor="clientes-global"
                     className="text-[10px] font-bold text-zinc-600 uppercase"
                   >
@@ -215,13 +219,18 @@ export function DgWizardModal({
                               <td className="px-2 py-1">
                                 <input
                                   type="number"
+                                  title={`Clientes do poste ${p.title || p.id}`}
+                                  placeholder={String(params.clientesPorPoste)}
                                   value={
                                     poleOverrides[p.id] ??
                                     p.ramais?.length ??
                                     params.clientesPorPoste
                                   }
                                   onChange={(e) =>
-                                    updatePoleOverride(p.id, Number(e.target.value))
+                                    updatePoleOverride(
+                                      p.id,
+                                      Number(e.target.value),
+                                    )
                                   }
                                   className="w-16 rounded border border-zinc-200 px-2 py-1 bg-white dark:bg-zinc-900 dark:border-zinc-700 outline-none focus:ring-1 focus:ring-violet-500"
                                 />
@@ -240,6 +249,8 @@ export function DgWizardModal({
                   </label>
                   <input
                     type="number"
+                    title="Demanda média por cliente (kVA)"
+                    placeholder="1.5"
                     step="0.1"
                     value={params.demandaMediaClienteKva}
                     onChange={(e) =>
@@ -274,6 +285,8 @@ export function DgWizardModal({
                 </label>
                 <input
                   type="number"
+                  title="Área clandestina adicional (m²)"
+                  placeholder="0"
                   value={params.areaClandestinaM2}
                   onChange={(e) =>
                     updateParam("areaClandestinaM2", Number(e.target.value))
@@ -307,6 +320,8 @@ export function DgWizardModal({
                   </label>
                   <input
                     type="number"
+                    title="Vão máximo (m)"
+                    placeholder="40"
                     value={params.maxSpanMeters}
                     onChange={(e) =>
                       updateParam("maxSpanMeters", Number(e.target.value))
@@ -320,6 +335,8 @@ export function DgWizardModal({
                   </label>
                   <input
                     type="number"
+                    title="Fator de simultaneidade"
+                    placeholder="0.8"
                     step="0.05"
                     value={params.fatorSimultaneidade}
                     onChange={(e) =>
@@ -428,7 +445,11 @@ export function DgWizardModal({
             )}
           </button>
           <button
-            onClick={step === "REVISAO" ? () => onExecute({ ...params, poleOverrides }) : handleNext}
+            onClick={
+              step === "REVISAO"
+                ? () => onExecute({ ...params, poleOverrides })
+                : handleNext
+            }
             disabled={validationError !== null}
             className="flex items-center gap-1 rounded-xl bg-violet-700 px-6 py-2 text-[10px] font-black text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"
           >

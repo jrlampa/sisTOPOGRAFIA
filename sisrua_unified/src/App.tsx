@@ -5,6 +5,7 @@ import {
   BtNetworkScenario,
   GeoLocation,
   DgDecisionMode,
+  BtTopology,
 } from "./types";
 import { useUndoRedo } from "./hooks/useUndoRedo";
 import { useOsmEngine } from "./hooks/useOsmEngine";
@@ -81,6 +82,52 @@ function App() {
     () => mergeMtTopologyWithBtPoles(btTopology, appState.mtTopology),
     [btTopology, appState.mtTopology],
   );
+  const mapRenderSources = React.useMemo(
+    () =>
+      selectMapTopologyRenderSources({
+        canonicalTopology: appState.canonicalTopology,
+        btTopology,
+        mtTopology,
+        btTransformers: btTopology.transformers,
+      }),
+    [appState.canonicalTopology, btTopology, mtTopology],
+  );
+  const dgTopologySource = React.useMemo<BtTopology>(() => {
+    const markerTopology = mapRenderSources.btMarkerTopology;
+
+    return {
+      poles: markerTopology.poles.map((pole) => {
+        const existingPole = btTopology.poles.find(
+          (item) => item.id === pole.id,
+        );
+        return {
+          ...existingPole,
+          ...pole,
+          ramais: pole.ramais ?? existingPole?.ramais ?? [],
+        };
+      }),
+      transformers: markerTopology.transformers.map((transformer) => {
+        const existingTransformer = btTopology.transformers.find(
+          (item) => item.id === transformer.id,
+        );
+        return {
+          ...existingTransformer,
+          ...transformer,
+          readings: transformer.readings ?? existingTransformer?.readings ?? [],
+        };
+      }),
+      edges: markerTopology.edges.map((edge) => {
+        const existingEdge = btTopology.edges.find(
+          (item) => item.id === edge.id,
+        );
+        return {
+          ...existingEdge,
+          ...edge,
+          conductors: edge.conductors ?? existingEdge?.conductors ?? [],
+        };
+      }),
+    };
+  }, [mapRenderSources.btMarkerTopology, btTopology]);
   const hasBtPoles = btTopology.poles.length > 0;
 
   const {
@@ -443,9 +490,9 @@ function App() {
 
   const handleRunDgOptimization = React.useCallback(
     (wizardParams?: DgWizardParams) => {
-      void runDgOptimization(btTopology, wizardParams);
+      void runDgOptimization(dgTopologySource, wizardParams);
     },
-    [runDgOptimization, btTopology],
+    [runDgOptimization, dgTopologySource],
   );
 
   const handleAcceptDgAll = React.useCallback(
@@ -461,7 +508,7 @@ function App() {
           notes: "Aplicação completa: trafo + condutores.",
         });
       }
-      updateBtTopology(applyDgAll(btTopology, scenario));
+      updateBtTopology(applyDgAll(dgTopologySource, scenario));
       clearDgResult();
       showToast(
         "Solução DG aplicada: trafo + condutores atualizados.",
@@ -473,7 +520,7 @@ function App() {
       logDgDecision,
       appendDgDecisionHistory,
       applyDgAll,
-      btTopology,
+      dgTopologySource,
       updateBtTopology,
       clearDgResult,
       showToast,
@@ -493,7 +540,7 @@ function App() {
           notes: "Aplicação parcial: somente trafo.",
         });
       }
-      updateBtTopology(applyDgTrafoOnly(btTopology, scenario));
+      updateBtTopology(applyDgTrafoOnly(dgTopologySource, scenario));
       clearDgResult();
       showToast("Posição do trafo atualizada pelo DG.", "success");
     },
@@ -502,7 +549,7 @@ function App() {
       logDgDecision,
       appendDgDecisionHistory,
       applyDgTrafoOnly,
-      btTopology,
+      dgTopologySource,
       updateBtTopology,
       clearDgResult,
       showToast,
@@ -757,18 +804,6 @@ function App() {
     },
     [setAppState],
   );
-
-  const mapRenderSources = React.useMemo(
-    () =>
-      selectMapTopologyRenderSources({
-        canonicalTopology: appState.canonicalTopology,
-        btTopology,
-        mtTopology,
-        btTransformers: btTopology.transformers,
-      }),
-    [appState.canonicalTopology, btTopology, mtTopology],
-  );
-
   const mapSelectorProps = {
     center,
     flyToEdgeTarget: btEdgeFlyToTarget,
@@ -881,6 +916,7 @@ function App() {
     btNetworkScenario,
     btEditorMode,
     btTopology,
+    dgTopology: dgTopologySource,
     btAccumulatedByPole,
     btSummary,
     btPointDemandKva,
