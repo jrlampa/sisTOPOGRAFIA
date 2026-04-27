@@ -2,13 +2,8 @@ import { z } from 'zod';
 
 /**
  * Schemas for Design Generativo Buffer Validation
- * Validates candidate points against street buffer zones and building exclusions
  * 
- * Specification:
- * - Primary Buffer: 0.3-0.5m from street curb (preferred)
- * - Fallback Buffer: 0.5-2.0m from street centerline
- * - Exclusion: Points inside building footprints are rejected
- * - CRS: SIRGAS 2000 / UTM (projected, not lat/lon for precision)
+ * Correção: Adicionado highwayClass e min(1) em ruas para batch.
  */
 
 // Point in WGS-84 (input from user)
@@ -17,7 +12,7 @@ export const coordinateSchema = z.object({
   longitude: z.number().min(-180).max(180).describe('Longitude in WGS-84')
 });
 
-// Point in projected CRS (SIRGAS 2000 UTM) for internal processing
+// Point in projected CRS (SIRGAS 2000 UTM)
 export const projectedCoordinateSchema = z.object({
   easting: z.number().positive().describe('Easting in UTM'),
   northing: z.number().positive().describe('Northing in UTM'),
@@ -27,7 +22,7 @@ export const projectedCoordinateSchema = z.object({
 // Buffer zone configuration
 export const bufferConfigSchema = z.object({
   type: z.enum(['primary', 'fallback']).describe('Buffer type (curb or centerline)'),
-  minMeters: z.number().positive().describe('Minimum offset from reference'),
+  minMeters: z.number().nonnegative().describe('Minimum offset from reference'),
   maxMeters: z.number().positive().describe('Maximum offset from reference')
 }).refine(
   data => data.minMeters <= data.maxMeters,
@@ -46,24 +41,17 @@ export const osmLineStringSchema = z.object({
   osmTags: z.object({
     highway: z.string().optional(),
     name: z.string().optional()
-  }).optional()
+  }).optional(),
+  /** Classe OSM para restrição de calçada */
+  highwayClass: z.enum(["residential", "tertiary", "secondary", "primary", "trunk", "unknown"]).optional()
 });
 
 // Building footprint (polygon)
 export const buildingPolygonSchema = z.object({
   type: z.literal('Polygon'),
-  coordinates: z.array(
-    z.array(
-      z.tuple([
-        z.number().min(-180).max(180), // longitude
-        z.number().min(-90).max(90)     // latitude
-      ])
-    )
-  ),
+  coordinates: z.array(z.array(z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]))),
   indeId: z.string().optional(),
-  buildingType: z.enum([
-    'residential', 'commercial', 'industrial', 'public', 'other'
-  ]).optional()
+  buildingType: z.enum(['residential', 'commercial', 'industrial', 'public', 'other']).optional()
 });
 
 // Request for buffer zone validation
@@ -76,37 +64,27 @@ export const validateBufferZoneRequestSchema = z.object({
     minMeters: 0.3,
     maxMeters: 0.5
   }),
-  utm: z.object({
-    zone: z.number().min(1).max(60)
-  }).optional().describe('Optional pre-computed UTM zone for performance'),
-  networkIsNewGreenfield: z.boolean().default(false).describe('Full Design Generativo regeneration if true')
+  utm: z.object({ zone: z.number().min(1).max(60) }).optional(),
+  networkIsNewGreenfield: z.boolean().default(false)
 });
 
 // Validation result for a single point
 export const bufferValidationResultSchema = z.object({
-  pointId: z.string().describe('Unique identifier for this candidate'),
-  isValid: z.boolean().describe('Point passes all validations'),
-  passedValidations: z.array(
-    z.enum(['in_buffer_zone', 'outside_buildings', 'crs_conversion_success'])
-  ),
-  failedValidations: z.array(
-    z.enum(['outside_buffer', 'inside_building', 'crs_error', 'no_nearby_streets'])
-  ),
-  distanceToClosestStreetMeters: z.number().nonnegative().describe('Closest distance to any street (meters)'),
-  isInsideBuilding: z.boolean().describe('Point intersects building footprint'),
+  pointId: z.string(),
+  isValid: z.boolean(),
+  passedValidations: z.array(z.enum(['in_buffer_zone', 'outside_buildings', 'crs_conversion_success'])),
+  failedValidations: z.array(z.enum(['outside_buffer', 'inside_building', 'crs_error', 'no_nearby_streets'])),
+  distanceToClosestStreetMeters: z.number().nonnegative(),
+  isInsideBuilding: z.boolean(),
   bufferType: z.enum(['primary', 'fallback', 'none']),
-  score: z.number().min(0).max(100).describe('Validation score (0-100)'),
+  score: z.number().min(0).max(100),
   notes: z.string().optional()
 });
 
 // Batch validation request
 export const validateMultiplePointsRequestSchema = z.object({
-  candidatePoints: z.array(
-    coordinateSchema.extend({
-      id: z.string().optional()
-    })
-  ).min(1, 'At least one candidate point required'),
-  streetPolylines: z.array(osmLineStringSchema),
+  candidatePoints: z.array(coordinateSchema.extend({ id: z.string().optional() })).min(1, 'At least one candidate point required'),
+  streetPolylines: z.array(osmLineStringSchema).min(1, 'At least one street polyline required for batch'),
   buildingFootprints: z.array(buildingPolygonSchema).optional().default([]),
   bufferConfig: bufferConfigSchema.optional(),
   networkIsNewGreenfield: z.boolean().optional().default(false)
@@ -127,20 +105,15 @@ export const batchValidationResultSchema = z.object({
     no_nearby_streets: z.number().nonnegative(),
     other_errors: z.number().nonnegative()
   }),
-  recommendationForDg: z.enum([
-    'proceed_full_dg',
-    'manual_review_recommended',
-    'insufficient_valid_points'
-  ]).describe('DG recommendation based on validation results')
+  recommendationForDg: z.enum(['proceed_full_dg', 'manual_review_recommended', 'insufficient_valid_points'])
 });
 
-// Export types
 export type Coordinate = z.infer<typeof coordinateSchema>;
 export type ProjectedCoordinate = z.infer<typeof projectedCoordinateSchema>;
 export type BufferConfig = z.infer<typeof bufferConfigSchema>;
 export type OsmLineString = z.infer<typeof osmLineStringSchema>;
 export type BuildingPolygon = z.infer<typeof buildingPolygonSchema>;
-export type ValidateBufferZoneRequest = z.infer<typeof validateBufferZoneRequestSchema>;
 export type BufferValidationResult = z.infer<typeof bufferValidationResultSchema>;
+export type ValidateBufferZoneRequest = z.infer<typeof validateBufferZoneRequestSchema>;
 export type ValidateMultiplePointsRequest = z.infer<typeof validateMultiplePointsRequestSchema>;
 export type BatchValidationResult = z.infer<typeof batchValidationResultSchema>;

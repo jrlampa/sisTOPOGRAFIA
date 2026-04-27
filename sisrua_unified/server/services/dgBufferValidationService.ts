@@ -11,6 +11,7 @@ import {
   ValidateMultiplePointsRequest,
 } from '../schemas/dgBufferValidation.js';
 import { logger } from '../utils/logger.js';
+import { latLonToUtm } from './dg/dgCandidates.js';
 
 /**
  * Design Generativo Buffer Validation Service
@@ -24,42 +25,9 @@ import { logger } from '../utils/logger.js';
  */
 
 /**
- * Convert WGS-84 (lat/lon) to SIRGAS 2000 / UTM
- * 
- * Simple approximation: uses zone calculation from longitude
- * For production: integrate with proj4 or Turf.js advanced transforms
- * 
- * @param lat - Latitude in WGS-84
- * @param lon - Longitude in WGS-84
- * @returns Projected coordinate in UTM
- */
-function wgs84ToUtm(lat: number, lon: number): ProjectedCoordinate {
-  // Calculate UTM zone from longitude
-  const zone = Math.floor((lon + 180) / 6) + 1;
-
-  // Simplified conversion (for accuracy, use proj4js library)
-  // This is a rough approximation for demonstration
-  const falseEasting = 500000;
-  const falseNorthing = lat >= 0 ? 0 : 10000000;
-
-  // Mercator-like projection (simplified)
-  const easting = falseEasting + lon * 111320 * Math.cos((lat * Math.PI) / 180);
-  const northing = falseNorthing + lat * 110540;
-
-  return {
-    easting,
-    northing,
-    zone,
-  };
-}
-
-/**
  * Calculate distance between two points in projected coordinates (meters)
  */
 function distanceMeters(p1: ProjectedCoordinate, p2: ProjectedCoordinate): number {
-  if (p1.zone !== p2.zone) {
-    logger.warn('Points in different UTM zones for distance calculation', { p1Zone: p1.zone, p2Zone: p2.zone });
-  }
   const dx = p2.easting - p1.easting;
   const dy = p2.northing - p1.northing;
   return Math.sqrt(dx * dx + dy * dy);
@@ -84,26 +52,34 @@ function isPointInPolygon(point: [number, number], polygon: [number, number][]):
 }
 
 /**
- * Calculate closest distance from point to a line segment
- * Returns distance in meters (approximate, in WGS-84 degrees then converted)
+ * Calculate closest distance from point to a line segment with CLAMPING.
+ * Returns distance in meters.
  */
-function pointToLineDistance(
+function pointToSegmentDistance(
   point: ProjectedCoordinate,
   lineStart: ProjectedCoordinate,
   lineEnd: ProjectedCoordinate
 ): number {
-  const { easting: px, northing: py } = point;
-  const { easting: x1, northing: y1 } = lineStart;
-  const { easting: x2, northing: y2 } = lineEnd;
+  const px = point.easting;
+  const py = point.northing;
+  const x1 = lineStart.easting;
+  const y1 = lineStart.northing;
+  const x2 = lineEnd.easting;
+  const y2 = lineEnd.northing;
 
-  const numerator = Math.abs((y2 - y1) * px - (x2 - x1) * py + x2 * y1 - y2 * x1);
-  const denominator = Math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2);
+  const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+  if (l2 === 0) return distanceMeters(point, lineStart);
 
-  if (denominator === 0) {
-    return distanceMeters(point, lineStart);
-  }
+  // Projection parameter t clamped between 0 and 1
+  let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+  t = Math.max(0, Math.min(1, t));
 
-  return numerator / denominator;
+  const projX = x1 + t * (x2 - x1);
+  const projY = y1 + t * (y2 - y1);
+
+  const dx = px - projX;
+  const dy = py - projY;
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
 /**
@@ -117,11 +93,13 @@ export async function validateBufferZone(
   const failedValidations: ("outside_buffer" | "inside_building" | "crs_error" | "no_nearby_streets")[] = [];
 
   try {
-    // 1. Convert candidate point to UTM
-    const candidateUtm = wgs84ToUtm(
-      request.candidatePoint.latitude,
-      request.candidatePoint.longitude
-    );
+    // 1. Convert candidate point to UTM using robust DG candidate implementation
+    const utm = latLonToUtm(request.candidatePoint.latitude, request.candidatePoint.longitude);
+    const candidateUtm: ProjectedCoordinate = {
+        easting: utm.x,
+        northing: utm.y,
+        zone: 23 // Defaulting to 23 for consistency in DG module
+    };
     passedValidations.push('crs_conversion_success');
 
     // 2. Convert all street polylines to UTM
@@ -130,9 +108,13 @@ export async function validateBufferZone(
       for (let i = 0; i < polyline.coordinates.length - 1; i++) {
         const [lon1, lat1] = polyline.coordinates[i];
         const [lon2, lat2] = polyline.coordinates[i + 1];
+        
+        const utm1 = latLonToUtm(lat1, lon1);
+        const utm2 = latLonToUtm(lat2, lon2);
+
         streetSegmentsUtm.push({
-          start: wgs84ToUtm(lat1, lon1),
-          end: wgs84ToUtm(lat2, lon2),
+          start: { easting: utm1.x, northing: utm1.y, zone: 23 },
+          end: { easting: utm2.x, northing: utm2.y, zone: 23 },
         });
       }
     }
@@ -144,7 +126,7 @@ export async function validateBufferZone(
         isValid: false,
         passedValidations,
         failedValidations,
-        distanceToClosestStreetMeters: Infinity,
+        distanceToClosestStreetMeters: Infinity, 
         isInsideBuilding: false,
         bufferType: 'none',
         score: 0,
@@ -152,10 +134,10 @@ export async function validateBufferZone(
       };
     }
 
-    // 3. Find closest distance to any street
+    // 3. Find closest distance to any street segment (clamped)
     let minDistance = Infinity;
     for (const segment of streetSegmentsUtm) {
-      const dist = pointToLineDistance(candidateUtm, segment.start, segment.end);
+      const dist = pointToSegmentDistance(candidateUtm, segment.start, segment.end);
       minDistance = Math.min(minDistance, dist);
     }
 
@@ -172,7 +154,6 @@ export async function validateBufferZone(
     // 5. Check if point is inside any building (polygon test)
     let isInsideBuilding = false;
     for (const building of request.buildingFootprints || []) {
-      // Use first ring of polygon (exterior ring)
       const exteriorRing = building.coordinates[0];
       if (isPointInPolygon(
         [request.candidatePoint.longitude, request.candidatePoint.latitude],
@@ -189,19 +170,11 @@ export async function validateBufferZone(
       passedValidations.push('outside_buildings');
     }
 
-    // 6. Calculate score
+    // 6. Final validity and score
     const isValid = isInBuffer && !isInsideBuilding;
     let score = 0;
     if (isInBuffer) score += 50;
     if (!isInsideBuilding) score += 50;
-
-    logger.info('Buffer zone validation completed', {
-      pointId,
-      isValid,
-      distance: minDistance,
-      bufferConfig,
-      isInsideBuilding,
-    });
 
     return {
       pointId,
@@ -211,8 +184,8 @@ export async function validateBufferZone(
       distanceToClosestStreetMeters: minDistance,
       isInsideBuilding,
       bufferType: isInBuffer ? bufferConfig.type : 'none',
-      score: isValid ? 100 : Math.max(0, score - 50),
-      notes: `Distance to nearest street: ${minDistance.toFixed(2)}m. Buffer: [${bufferConfig.minMeters}-${bufferConfig.maxMeters}]m`,
+      score: isValid ? 100 : Math.max(0, score), // Fixing logic: if one passes, it gets 50.
+      notes: `Distance to nearest street: ${minDistance.toFixed(3)}m. Buffer: [${bufferConfig.minMeters}-${bufferConfig.maxMeters}]m`,
     };
   } catch (error) {
     logger.error('Error during buffer zone validation', { pointId, error });
@@ -222,7 +195,7 @@ export async function validateBufferZone(
       isValid: false,
       passedValidations,
       failedValidations,
-      distanceToClosestStreetMeters: -1,
+      distanceToClosestStreetMeters: 0, // Using 0 instead of -1 for schema non-negative constraint
       isInsideBuilding: false,
       bufferType: 'none',
       score: 0,
@@ -246,50 +219,37 @@ export async function validateMultiplePoints(
     other_errors: 0,
   };
 
-  logger.info('Starting batch buffer validation', {
-    batchId,
-    pointCount: request.candidatePoints.length,
-  });
-
-  // Validate each point
   for (const candidatePoint of request.candidatePoints) {
-    const pointWithId = {
-      ...candidatePoint,
-      id: candidatePoint.id || randomUUID(),
-    };
-
-    const validationRequest = {
+    const validationRequest: ValidateBufferZoneRequest = {
       candidatePoint,
       streetPolylines: request.streetPolylines,
       buildingFootprints: request.buildingFootprints,
-      ...(request.bufferConfig ? { bufferConfig: request.bufferConfig } : {}),
+      bufferConfig: request.bufferConfig,
       networkIsNewGreenfield: request.networkIsNewGreenfield,
-    } as ValidateBufferZoneRequest;
+    };
 
     const result = await validateBufferZone(validationRequest);
+    
+    // Inject the point ID if provided in the candidate point
+    if (candidatePoint.id) {
+        result.pointId = candidatePoint.id;
+    }
+    
     results.push(result);
 
-    // Track rejections
     if (!result.isValid) {
       if (result.failedValidations.includes('outside_buffer')) rejectionSummary.outside_buffer++;
-      if (result.failedValidations.includes('inside_building')) rejectionSummary.inside_building++;
-      if (result.failedValidations.includes('no_nearby_streets')) rejectionSummary.no_nearby_streets++;
-      if (
-        result.failedValidations.includes('crs_error') ||
-        result.failedValidations.some((v: string) => !['outside_buffer', 'inside_building', 'no_nearby_streets'].includes(v))
-      ) {
-        rejectionSummary.other_errors++;
-      }
+      else if (result.failedValidations.includes('inside_building')) rejectionSummary.inside_building++;
+      else if (result.failedValidations.includes('no_nearby_streets')) rejectionSummary.no_nearby_streets++;
+      else rejectionSummary.other_errors++;
     }
   }
 
   const pointsAccepted = results.filter(r => r.isValid).length;
-  const pointsRejected = results.filter(r => !r.isValid).length;
   const acceptanceRate = request.candidatePoints.length > 0
     ? pointsAccepted / request.candidatePoints.length
     : 0;
 
-  // Determine DG recommendation
   let recommendationForDg: 'proceed_full_dg' | 'manual_review_recommended' | 'insufficient_valid_points';
   if (acceptanceRate >= 0.8) {
     recommendationForDg = 'proceed_full_dg';
@@ -299,23 +259,15 @@ export async function validateMultiplePoints(
     recommendationForDg = 'insufficient_valid_points';
   }
 
-  const batchResult: BatchValidationResult = {
+  return {
     batchId,
     processedAt: new Date().toISOString(),
     pointsValidated: request.candidatePoints.length,
     pointsAccepted,
-    pointsRejected,
+    pointsRejected: request.candidatePoints.length - pointsAccepted,
     acceptanceRate,
     results,
     rejectionSummary,
     recommendationForDg,
   };
-
-  logger.info('Batch buffer validation completed', {
-    batchId,
-    acceptanceRate: `${(acceptanceRate * 100).toFixed(1)}%`,
-    recommendation: recommendationForDg,
-  });
-
-  return batchResult;
 }
