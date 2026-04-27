@@ -32,6 +32,17 @@ let cachedDbStatus = "disabled";
 let lastDbCheckTime = 0;
 const DB_CHECK_CACHE_TTL = 5000; // 5 seconds (more aggressive - DB checks are typically cheap)
 
+let lastOllamaStatus: any = { runtime: { available: false } };
+
+/** Clear health and DB check cache (exported for testability) */
+export function clearHealthCache(): void {
+  lastHealthResponse = null;
+  lastHealthTimestamp = 0;
+  cachedDbStatus = "disabled";
+  lastDbCheckTime = 0;
+  lastOllamaStatus = { runtime: { available: false } };
+}
+
 // ─────────────────────────────────────────────────────────────────────
 
 // Import Routes
@@ -333,14 +344,12 @@ app.get("/health", async (_req: Request, res: Response) => {
     const dbTime = Date.now() - dbStart;
 
     // ─── Use Ollama status from cache (non-blocking background update) ──
-    let ollamaStatus: any = lastHealthResponse?.body?.dependencies?.ollama || {
-      available: false,
-    };
+    const ollamaStatus = lastOllamaStatus;
 
     // Background update (fire and forget - don't block on Ollama)
     OllamaService.getGovernanceStatus()
       .then((status) => {
-        ollamaStatus = status;
+        lastOllamaStatus = status;
         logger.debug("Health check - Ollama status updated in background", {
           updateTime: Date.now() - startTime,
         });

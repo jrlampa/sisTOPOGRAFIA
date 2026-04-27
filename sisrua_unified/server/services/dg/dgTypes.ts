@@ -77,8 +77,8 @@ export interface DgParams {
   cqtLimitFraction: number;
   /** Fator de utilização máximo do trafo. Padrão 0.95. */
   trafoMaxUtilization: number;
-  /** Modo de busca: 'exhaustive' (≤50 postes) ou 'heuristic'. */
-  searchMode: "exhaustive" | "heuristic";
+  /** Modo de busca: 'exhaustive' (≤50 postes) ou 'heuristic'. Undefined para auto-seleção. */
+  searchMode?: "exhaustive" | "heuristic";
   /** Número máximo de candidatos avaliados no modo heurístico. */
   maxCandidatesHeuristic: number;
   /** Pesos da função objetivo multi-critério. */
@@ -104,7 +104,7 @@ export const DEFAULT_DG_PARAMS: DgParams = {
   minSpanMeters: 8,
   cqtLimitFraction: 0.08,
   trafoMaxUtilization: 0.95,
-  searchMode: "exhaustive",
+  searchMode: undefined, // Auto-seleção ativada por padrão
   maxCandidatesHeuristic: 200,
   objectiveWeights: {
     cableCost: 0.3,

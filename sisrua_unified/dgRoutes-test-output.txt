@@ -1,0 +1,41 @@
+
+> sisrua-unified@0.9.0 test:backend
+> jest --coverage server/tests/dgRoutes.test.ts --no-coverage
+
+  console.log
+    [Frontend] Serving from: C:\Users\jonat\OneDrive - IM3 Brasil\utils\sisTOPOGRAFIA\sisrua_unified\dist
+
+      at resolveFrontendDistDirectory (server/app.ts:178:11)
+
+(node:32944) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+FAIL server/tests/dgRoutes.test.ts
+  dgRoutes
+    ÔêÜ GET /discard-rates retorna agregados de descarte por restri├º├úo (53 ms)
+    ÔêÜ GET /runs retorna ranking recente (12 ms)
+    ÔêÜ POST /optimize executa otimiza├º├úo e persiste a run (11 ms)
+    ├ù POST /optimize aceita modo full_project (15 ms)
+    ÔêÜ POST /decision registra decis├úo para auditoria (4 ms)
+
+  ÔùÅ dgRoutes ÔÇ║ POST /optimize aceita modo full_project
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+       98 |       .send(fullProjectPayload);
+       99 |
+    > 100 |     expect(optimizeRes.status).toBe(200);
+          |                                ^
+      101 |     expect(optimizeRes.body.recommendation).not.toBeNull();
+      102 |   });
+      103 |
+
+      at Object.<anonymous> (server/tests/dgRoutes.test.ts:100:32)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 4 passed, 5 total
+Snapshots:   0 total
+Time:        2.399 s, estimated 9 s
+Ran all test suites matching /server\\tests\\dgRoutes.test.ts/i.

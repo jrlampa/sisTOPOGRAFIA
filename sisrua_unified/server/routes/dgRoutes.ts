@@ -1,5 +1,14 @@
 /**
  * Design Generativo – Rotas da API
+ *
+ * POST /api/dg/optimize             – executa otimização DG
+ * POST /api/dg/decision             – registra descarte/aceite para auditoria
+ * POST /api/dg/accept               – registra aceite de cenário (Auditoria)
+ * GET  /api/dg/runs                 – lista runs executadas
+ * GET  /api/dg/runs/:id             – detalhe de uma run
+ * GET  /api/dg/runs/:id/scenarios   – lista cenários de uma run
+ * GET  /api/dg/runs/:id/recommendation – retorna apenas a recomendação
+ * GET  /api/dg/discard-rates        – estatísticas de descarte
  */
 
 import { Router, Request, Response, NextFunction } from "express";
@@ -60,7 +69,6 @@ const corridorSchema = z.object({
   centerPoints: z.array(latLonSchema).min(2),
   bufferMeters: z.number().positive(),
   label: z.string().optional(),
-  /** Classe OSM para restrição de calçada (Correção) */
   highwayClass: z.enum(["residential", "tertiary", "secondary", "primary", "trunk", "unknown"]).optional(),
 });
 
@@ -78,6 +86,7 @@ const paramsSchema = z.object({
   trafoMaxUtilization: z.number().positive().max(1).optional(),
   searchMode: z.enum(["exhaustive", "heuristic"]).optional(),
   allowNewPoles: z.boolean().optional(),
+  maxCandidatesHeuristic: z.number().int().positive().optional(),
   gridSpacingMeters: z.number().positive().optional(),
   objectiveWeights: weightsSchema.optional(),
   projectMode: z.enum(["optimization", "full_project"]).optional(),
@@ -86,7 +95,6 @@ const paramsSchema = z.object({
   demandaMediaClienteKva: z.number().positive().optional(),
   fatorSimultaneidade: z.number().positive().max(1).optional(),
   faixaKvaTrafoPermitida: z.array(z.number().positive()).min(1).optional(),
-  wizardContractVersion: z.literal("DG Wizard v1").optional(),
 });
 
 const optimizeBodySchema = z.object({
@@ -103,7 +111,7 @@ const optimizeBodySchema = z.object({
   }
 });
 
-const acceptBodySchema = z.object({
+const decisionBodySchema = z.object({
   runId: z.string().uuid(),
   scenarioId: z.string().min(1).optional(),
   appliedMode: z.enum(["all", "trafo_only", "discard"]),
@@ -119,13 +127,13 @@ router.post("/optimize", permissionHandler("WRITE_DESIGN_GENERATIVO"), async (re
     const output = await runDgOptimization({ ...parsed.data, tenantId: res.locals.tenantId });
     return res.status(200).json(output);
   } catch (err) {
-    logger.error("DG optimize error", { message: (err as Error).message });
+    logger.error("DG optimize error", { message: (err as Error).message, stack: (err as Error).stack });
     return res.status(500).json({ error: (err as Error).message });
   }
 });
 
 router.post("/decision", permissionHandler("WRITE_DESIGN_GENERATIVO"), async (req: Request, res: Response) => {
-  const parsed = acceptBodySchema.safeParse(req.body);
+  const parsed = decisionBodySchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Parâmetros inválidos" });
   try {
     logAudit({ userId: res.locals.userId, action: "DG_DECISION", resource: "dg_run", resourceId: parsed.data.runId, result: "success", details: { ...parsed.data, tenantId: res.locals.tenantId } });
@@ -136,7 +144,7 @@ router.post("/decision", permissionHandler("WRITE_DESIGN_GENERATIVO"), async (re
 });
 
 router.post("/accept", permissionHandler("WRITE_DESIGN_GENERATIVO"), async (req: Request, res: Response) => {
-  const parsed = acceptBodySchema.safeParse(req.body);
+  const parsed = decisionBodySchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Parâmetros inválidos" });
   try {
     logAudit({ userId: res.locals.userId, action: "DG_APPLIED", resource: "dg_run", resourceId: parsed.data.runId, result: "success", details: { ...parsed.data, tenantId: res.locals.tenantId } });
@@ -156,15 +164,47 @@ router.get("/runs", permissionHandler("READ_DESIGN_GENERATIVO"), async (req: Req
   }
 });
 
+router.get("/discard-rates", permissionHandler("READ_DESIGN_GENERATIVO"), async (req: Request, res: Response) => {
+    try {
+      const limit = Math.min(Math.max(Number(req.query.limit ?? 100), 1), 200);
+      const rates = await listDgDiscardRates(limit, res.locals.tenantId);
+      return res.status(200).json({ total: rates.length, limit, rows: rates });
+    } catch (err) {
+      return res.status(500).json({ error: "Erro ao listar taxas de descarte DG." });
+    }
+  });
+
 router.get("/runs/:id", permissionHandler("READ_DESIGN_GENERATIVO"), async (req: Request, res: Response) => {
   try {
     const run = await getDgRun(req.params.id, res.locals.tenantId);
-    if (!run) return res.status(404).json({ error: "Run não encontrada." });
+    if (!run) return res.status(404).json({ error: "Run DG não encontrada." });
     return res.status(200).json(run);
   } catch (err) {
     return res.status(500).json({ error: "Erro ao consultar run." });
   }
 });
+
+router.get("/runs/:id/scenarios", permissionHandler("READ_DESIGN_GENERATIVO"), async (req: Request, res: Response) => {
+    try {
+      const scenarios = await getDgRunScenarios(req.params.id, res.locals.tenantId);
+      if (!scenarios) return res.status(404).json({ error: "Run DG não encontrada." });
+      const feasibleOnly = req.query.feasibleOnly === "true";
+      const filtered = feasibleOnly ? scenarios.filter(s => s.feasible) : scenarios;
+      return res.status(200).json({ runId: req.params.id, total: scenarios.length, returned: filtered.length, scenarios: filtered });
+    } catch (err) {
+      return res.status(500).json({ error: "Erro ao consultar cenários." });
+    }
+  });
+
+router.get("/runs/:id/recommendation", permissionHandler("READ_DESIGN_GENERATIVO"), async (req: Request, res: Response) => {
+    try {
+      const recommendation = await getDgRunRecommendation(req.params.id, res.locals.tenantId);
+      if (!recommendation) return res.status(404).json({ error: "Recomendação não encontrada." });
+      return res.status(200).json({ runId: req.params.id, recommendation });
+    } catch (err) {
+      return res.status(500).json({ error: "Erro ao consultar recomendação." });
+    }
+  });
 
 router.post("/validate-buffer-zone", permissionHandler("READ_DESIGN_GENERATIVO"), schemaValidator(validateBufferZoneRequestSchema), async (req: Request, res: Response) => {
   try {

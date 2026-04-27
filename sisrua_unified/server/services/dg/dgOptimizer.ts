@@ -1,7 +1,5 @@
 /**
  * Design Generativo – Motor de Otimização
- * 
- * Unificação: utiliza o motor oficial calculateBtRadial para consistência matemática.
  */
 
 import { randomUUID } from "crypto";
@@ -32,6 +30,7 @@ import {
 } from "./dgObjective.js";
 import { calculateBtRadial } from "../btRadialCalculationService.js";
 import type { BtRadialTopologyInput } from "../bt/btTypes.js";
+import { logger } from "../../utils/logger.js";
 
 const DEFAULT_CONDUCTOR_ID = "95 AL MM";
 
@@ -81,7 +80,7 @@ function buildMst(trafoId: string, poles: Array<{ id: string; positionUtm: { x: 
       allEdges.push({
         fromId: allNodes[i].id,
         toId: allNodes[j].id,
-        lengthMeters: Math.max(0.001, dist), // Epsilon para evitar erro de comprimento zero
+        lengthMeters: Math.max(0.001, dist),
       });
     }
   }
@@ -106,29 +105,34 @@ function mstHasSpanViolation(mst: MstEdge[], maxSpanMeters: number): string | nu
 
 // ─── Avaliação via Motor Oficial ──────────────────────────────────────────────
 
-function evaluateWithOfficialEngine(trafoId: string, trafoKva: number, poles: DgPoleInput[], mst: MstEdge[]): DgElectricalResult {
-  const input: BtRadialTopologyInput = {
-    transformer: { id: trafoId, rootNodeId: trafoId, kva: trafoKva, zPercent: 4.5, qtMt: 0 },
-    nodes: [
-      { id: trafoId, load: { localDemandKva: 0 } }, // Nó raiz (trafo)
-      ...poles.map(p => ({ id: p.id, load: { localDemandKva: p.demandKva } }))
-    ],
-    edges: mst.map(e => ({ fromNodeId: e.fromId, toNodeId: e.toId, conductorId: DEFAULT_CONDUCTOR_ID, lengthMeters: e.lengthMeters })),
-    phase: 'TRI',
-    temperatureC: 75,
-    nominalVoltageV: 127
-  };
+function evaluateWithOfficialEngine(trafoId: string, trafoKva: number, poles: DgPoleInput[], mst: MstEdge[]): DgElectricalResult | null {
+  try {
+    const input: BtRadialTopologyInput = {
+      transformer: { id: trafoId, rootNodeId: trafoId, kva: trafoKva, zPercent: 4.5, qtMt: 0 },
+      nodes: [
+        { id: trafoId, load: { localDemandKva: 0 } },
+        ...poles.map(p => ({ id: p.id, load: { localDemandKva: p.demandKva } }))
+      ],
+      edges: mst.map(e => ({ fromNodeId: e.fromId, toNodeId: e.toId, conductorId: DEFAULT_CONDUCTOR_ID, lengthMeters: e.lengthMeters })),
+      phase: 'TRI',
+      temperatureC: 75,
+      nominalVoltageV: 127
+    };
 
-  const output = calculateBtRadial(input);
-  const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
+    const output = calculateBtRadial(input);
+    const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
 
-  return {
-    cqtMaxFraction: output.worstCase.cqtGlobal,
-    worstTerminalNodeId: output.worstCase.worstTerminalNodeId,
-    trafoUtilizationFraction: totalDemandKva / trafoKva,
-    totalCableLengthMeters: mst.reduce((s, e) => s + e.lengthMeters, 0),
-    feasible: output.worstCase.cqtGlobal <= 0.08 && (totalDemandKva / trafoKva) <= 0.95
-  };
+    return {
+      cqtMaxFraction: output.worstCase.cqtGlobal,
+      worstTerminalNodeId: output.worstCase.worstTerminalNodeId,
+      trafoUtilizationFraction: totalDemandKva / trafoKva,
+      totalCableLengthMeters: mst.reduce((s, e) => s + e.lengthMeters, 0),
+      feasible: output.worstCase.cqtGlobal <= 0.08 && (totalDemandKva / trafoKva) <= 0.95
+    };
+  } catch (err) {
+    logger.debug("DG: falha na avaliação elétrica oficial", { error: (err as Error).message });
+    return null;
+  }
 }
 
 // ─── Avaliação de um candidato ───────────────────────────────────────────────
@@ -151,14 +155,14 @@ function evaluateCandidate(candidate: DgCandidate, poles: DgPoleInput[], transfo
   for (const kva of kvaFaixa) {
     if (checkTrafoOverload(totalDemandKva, kva, params.trafoMaxUtilization).length > 0) continue;
     const electrical = evaluateWithOfficialEngine(trafoId, kva, poles, mst);
-    if (electrical.feasible) {
+    if (electrical && electrical.feasible) {
       bestResult = electrical;
       selectedKva = kva;
       break;
     }
   }
 
-  if (!bestResult) return createFailedScenario(candidate, [{ code: "TRAFO_OVERLOAD", detail: "Nenhum kVA viável." }]);
+  if (!bestResult) return createFailedScenario(candidate, [{ code: "TRAFO_OVERLOAD", detail: "Nenhum kVA viável ou erro de topologia." }]);
 
   const edges: DgScenarioEdge[] = mst.map(e => ({ fromPoleId: e.fromId, toPoleId: e.toId, lengthMeters: e.lengthMeters, conductorId: DEFAULT_CONDUCTOR_ID }));
   const { objectiveScore, scoreComponents } = calculateObjectiveScore({ edges, electricalResult: bestResult, candidateSource: candidate.source, weights: params.objectiveWeights });
@@ -216,7 +220,7 @@ export interface OptimizerResult { allScenarios: DgScenario[]; totalCandidatesEv
 
 export function runDgOptimizer(candidates: DgCandidate[], poles: DgPoleInput[], transformer: DgTransformerInput | undefined, exclusionPolygons: DgExclusionPolygon[], roadCorridors: DgRoadCorridor[], params: DgParams): OptimizerResult {
   const derivedPoles = derivePolesDemand(poles, params);
-  const maxEval = params.maxCandidatesHeuristic ?? 50; // Honra configuração do usuário
+  const maxEval = params.maxCandidatesHeuristic ?? 50; 
   let candidatesToEvaluate = params.searchMode === "heuristic" 
     ? [...candidates].sort((a, b) => a.weightedDistanceSum - b.weightedDistanceSum).slice(0, maxEval)
     : candidates;
