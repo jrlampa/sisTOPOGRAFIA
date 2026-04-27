@@ -60,7 +60,7 @@ RUN useradd -m -u 10000 appuser
 
 # Copy production node_modules
 COPY package*.json ./
-RUN npm ci --only=production --prefer-offline --no-audit && \
+RUN npm ci --omit=dev --prefer-offline --no-audit && \
     npm cache clean --force
 
 # Copy pre-built Python venv and artifacts
@@ -82,6 +82,9 @@ RUN /opt/venv/bin/python3 -c "import osmnx, ezdxf, geopandas; print('✅ Python 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD curl -fsS "http://localhost:${PORT}/" || exit 1
 
 # Start application
 CMD ["node", "dist/server/index.js"]

@@ -24,6 +24,7 @@ cache/*
 !cache/.gitkeep
 tmp/*
 !tmp/.gitkeep
+*_memorial_descritivo_*.pdf
 docker-compose.yml
 Dockerfile*
 .dockerignore

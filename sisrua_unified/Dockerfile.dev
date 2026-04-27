@@ -27,7 +27,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # Copy package files
 COPY package*.json ./
-RUN npm install
+RUN npm ci --prefer-offline --no-audit
 
 # Create necessary directories for volumes
 # Avoid chown -R /app (slow over node_modules); only fix writable dirs
