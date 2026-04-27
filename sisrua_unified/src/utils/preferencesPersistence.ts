@@ -95,6 +95,10 @@ export const loadPersistedAppSettings = (
   const locale = normalizeAppLocale(
     typeof parsed.locale === "string" ? parsed.locale : fallback.locale,
   );
+  const exportMemorialPdfWithDxf =
+    typeof parsed.exportMemorialPdfWithDxf === "boolean"
+      ? parsed.exportMemorialPdfWithDxf
+      : fallback.exportMemorialPdfWithDxf;
   const mergedLayers = {
     ...fallback.layers,
     ...layers,
@@ -103,6 +107,7 @@ export const loadPersistedAppSettings = (
   return {
     ...fallback,
     ...parsed,
+    exportMemorialPdfWithDxf,
     locale,
     layers: mergedLayers,
     projectMetadata: {

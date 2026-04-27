@@ -46,6 +46,7 @@ export const DxfExportSchema = z.object({
 
 export const AppSettingsSchema = z.object({
   enableAI: z.boolean().default(true),
+  exportMemorialPdfWithDxf: z.boolean().default(false),
   simplificationLevel: z.enum(["low", "medium", "high"]).default("low"),
   orthogonalize: z.boolean().default(true),
   contourRenderMode: ContourRenderModeSchema.default("spline"),

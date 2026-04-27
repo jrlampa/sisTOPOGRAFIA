@@ -231,6 +231,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           locale={settings.locale}
           hasData={hasData}
           isDownloading={isDownloading}
+          exportMemorialPdfWithDxf={settings.exportMemorialPdfWithDxf}
+          onToggleExportMemorialPdfWithDxf={(enabled) =>
+            onUpdateSettings({
+              ...settings,
+              exportMemorialPdfWithDxf: enabled,
+            })
+          }
           onExportDxf={onExportDxf}
           onExportGeoJSON={onExportGeoJSON}
         />

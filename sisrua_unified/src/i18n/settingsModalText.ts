@@ -11,6 +11,8 @@ type SettingsModalText = {
   exportDisabledMessage: string;
   exportGeoJson: string;
   exportDxf: string;
+  exportMemorialPdfLabel: string;
+  exportMemorialPdfHint: string;
   saveProject: string;
   loadProject: string;
   loadProjectFile: string;
@@ -99,6 +101,9 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
       "Realize uma análise primeiro para habilitar a exportação.",
     exportGeoJson: "GeoJSON",
     exportDxf: "DXF (CAD)",
+    exportMemorialPdfLabel: "Gerar memorial descritivo em PDF junto com DXF",
+    exportMemorialPdfHint:
+      "Quando ativado, o sistema baixa também um memorial técnico em PDF após o DXF.",
     saveProject: "Salvar Projeto",
     loadProject: "Carregar Projeto",
     loadProjectFile: "Carregar arquivo de projeto",
@@ -188,10 +193,12 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     projectTabLabel: "Project & Metadata",
     projectTabTitle: "Open Project and Metadata tab",
     exportResultsTitle: "Export Results",
-    exportDisabledMessage:
-      "Run an analysis first to enable export.",
+    exportDisabledMessage: "Run an analysis first to enable export.",
     exportGeoJson: "GeoJSON",
     exportDxf: "DXF (CAD)",
+    exportMemorialPdfLabel: "Generate descriptive memorial PDF with DXF",
+    exportMemorialPdfHint:
+      "When enabled, the system also downloads a technical memorial PDF after the DXF.",
     saveProject: "Save Project",
     loadProject: "Load Project",
     loadProjectFile: "Load project file",
@@ -285,6 +292,9 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
       "Ejecute un análisis primero para habilitar la exportación.",
     exportGeoJson: "GeoJSON",
     exportDxf: "DXF (CAD)",
+    exportMemorialPdfLabel: "Generar memorial descriptivo en PDF junto con DXF",
+    exportMemorialPdfHint:
+      "Cuando está activo, el sistema también descarga un memorial técnico en PDF después del DXF.",
     saveProject: "Guardar Proyecto",
     loadProject: "Cargar Proyecto",
     loadProjectFile: "Cargar archivo de proyecto",

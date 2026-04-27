@@ -123,6 +123,7 @@ export function useBtDxfWorkflow({
       settings.layers,
       settings.projection,
       settings.contourRenderMode,
+      settings.exportMemorialPdfWithDxf,
       btContext,
       {
         projectName: settings.projectMetadata.projectName,

@@ -309,6 +309,7 @@ export type AppLocale = "pt-BR" | "en-US" | "es-ES";
 
 export interface AppSettings {
   enableAI: boolean;
+  exportMemorialPdfWithDxf: boolean;
   simplificationLevel: SimplificationLevel;
   orthogonalize: boolean;
   contourRenderMode: ContourRenderMode;

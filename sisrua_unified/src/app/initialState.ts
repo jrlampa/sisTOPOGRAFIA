@@ -31,6 +31,7 @@ const DEFAULT_APP_STATE: GlobalState = {
   measurePath: [],
   settings: {
     enableAI: true,
+    exportMemorialPdfWithDxf: false,
     simplificationLevel: "low",
     orthogonalize: true,
     contourRenderMode: "spline",
