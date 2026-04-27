@@ -45,11 +45,26 @@ export interface DgExclusionPolygon {
   reason: "building" | "restricted_zone" | "road_buffer";
 }
 
+/** Classe de via OSM para heurística de calçada. */
+export type OsmHighwayClass =
+  | "residential"
+  | "tertiary"
+  | "secondary"
+  | "primary"
+  | "trunk"
+  | "unknown";
+
 /** Corredor viário permitido (buffer ao redor das vias). */
 export interface DgRoadCorridor {
   id: string;
   centerPoints: DgLatLon[];
   bufferMeters: number;
+  /**
+   * Classe OSM da via. Quando informado, aplica heurística de calçada:
+   * candidato deve estar a pelo menos `sidewalkOffsetMeters(highwayClass)`
+   * da linha de centro para não ser colocado na pista.
+   */
+  highwayClass?: OsmHighwayClass;
 }
 
 /** Parâmetros configuráveis do DG. */
@@ -146,6 +161,7 @@ export type DgConstraintCode =
   | "MAX_SPAN_EXCEEDED"
   | "INSIDE_EXCLUSION_ZONE"
   | "OUTSIDE_ROAD_CORRIDOR"
+  | "INSIDE_ROAD_CARRIAGEWAY"
   | "CQT_LIMIT_EXCEEDED"
   | "TRAFO_OVERLOAD"
   | "NON_RADIAL_TOPOLOGY";

@@ -51,6 +51,7 @@ const readContextMetrics = (btContext: UnknownRecord) => {
   const topology = asRecord(btContext.topology);
   const cqtSnapshot = asRecord(btContext.cqtSnapshot);
   const cqtComputationInputs = asRecord(btContext.cqtComputationInputs);
+  const dgResults = asRecord(btContext.dgResults);
 
   const poles = Array.isArray(topology?.poles) ? topology?.poles.length : null;
   const transformers = Array.isArray(topology?.transformers)
@@ -95,9 +96,22 @@ const readContextMetrics = (btContext: UnknownRecord) => {
 
   const criticalPole = asRecord(btContext.criticalPole);
 
+  const dg = dgResults
+    ? {
+        selectedKva: asNumber(dgResults.selectedKva),
+        cqtMax: asNumber(dgResults.cqtMax),
+        trafoUtilization: asNumber(dgResults.trafoUtilization),
+        totalCableLength: asNumber(dgResults.totalCableLength),
+        score: asNumber(dgResults.score),
+        discardedCount: asNumber(dgResults.discardedCount),
+        scoreComponents: asRecord(dgResults.scoreComponents),
+      }
+    : null;
+
   return {
     totals,
     cqt,
+    dg,
     generatedAt: asString(cqtSnapshot?.generatedAt),
     projectType: asString(btContext.projectType) ?? "ramais",
     scenario: asString(btContext.btNetworkScenario) ?? "asis",
@@ -139,7 +153,7 @@ export function buildMemorialDescritivo(
     ? `${formatNumber(metadata.center.lat, 6)}, ${formatNumber(metadata.center.lng, 6)}`
     : "N/D";
 
-  return `# MEMORIAL DESCRITIVO TECNICO
+  let content = `# MEMORIAL DESCRITIVO TECNICO
 
 ## 1. Identificacao do Empreendimento
 
@@ -168,8 +182,35 @@ Este memorial descreve, de forma tecnica e profissional, os criterios adotados p
 - ABNT NBR 5410 - Instalacoes eletricas de baixa tensao.
 - Praticas de engenharia de distribuicao aplicadas ao planejamento de rede BT.
 - Base de criterios e paridade com planilha de referencia de CQT.
+`;
 
-## 5. Caracterizacao da Rede BT
+  if (metrics.dg) {
+    const sc = metrics.dg.scoreComponents;
+    content += `
+## 5. Dimensionamento Automatico (Design Generativo)
+
+Este projeto utilizou o motor de Design Generativo para otimizacao da topologia e dimensionamento do transformador.
+
+- Transformador selecionado: ${formatNumber(metrics.dg.selectedKva, 1)} kVA
+- Pior Queda de Tensao (CQT DG): ${formatNumber((metrics.dg.cqtMax || 0) * 100, 2)}%
+- Taxa de utilizacao do trafo: ${formatNumber((metrics.dg.trafoUtilization || 0) * 100, 1)}%
+- Comprimento total de cabos sugerido: ${formatNumber(metrics.dg.totalCableLength, 0)} m
+- Score global do cenario: ${formatNumber(metrics.dg.score, 1)} / 100
+- Cenarios alternativos invalidados: ${formatNumber(metrics.dg.discardedCount, 0)}
+
+### 5.1 Decomposicao do Score Tecnico
+- Custo de Condutores: ${formatNumber(asNumber(sc?.cableCostScore) ?? 0, 1)}
+- Custo de Postes: ${formatNumber(asNumber(sc?.poleCostScore) ?? 0, 1)}
+- Custo de Transformadores: ${formatNumber(asNumber(sc?.trafoCostScore) ?? 0, 1)}
+- Penalidade de CQT: ${formatNumber(asNumber(sc?.cqtPenaltyScore) ?? 0, 1)}
+- Penalidade de Sobrecarga: ${formatNumber(asNumber(sc?.overloadPenaltyScore) ?? 0, 1)}
+`;
+  }
+
+  const sectionOffset = metrics.dg ? 1 : 0;
+
+  content += `
+## ${5 + sectionOffset}. Caracterizacao da Rede BT
 
 - Quantidade total de postes: ${formatNumber(metrics.totals.poles, 0)}
 - Quantidade total de transformadores: ${formatNumber(metrics.totals.transformers, 0)}
@@ -180,7 +221,7 @@ Este memorial descreve, de forma tecnica e profissional, os criterios adotados p
 - Polo critico (ID): ${metrics.criticalPoleId ?? "N/D"}
 - Demanda acumulada no polo critico: ${formatNumber(metrics.criticalPoleDemand, 2)} kVA
 
-## 6. Metodologia de Calculo Eletrico (CQT)
+## ${6 + sectionOffset}. Metodologia de Calculo Eletrico (CQT)
 
 - Cenario CQT: ${metrics.cqt.scenario}
 - Metodo de QT-PONTO: ${qtMethodDescription(metrics.cqt.qtMethod, metrics.cqt.powerFactor)}
@@ -192,13 +233,13 @@ Este memorial descreve, de forma tecnica e profissional, os criterios adotados p
 - Trechos com verificacao recomendada: ${formatNumber(metrics.cqt.verificarCount, 0)}
 - Carimbo de geracao do snapshot CQT: ${formatDateTime(metrics.generatedAt)}
 
-## 7. Consideracoes Tecnicas
+## ${7 + sectionOffset}. Consideracoes Tecnicas
 
 1. Os resultados apresentados constituem base tecnica para analise de engenharia e devem ser validados em etapa executiva.
 2. Trechos sinalizados como "VERIFICAR" demandam revisao de criterio de protecao, condutor e/ou arranjo da rede.
 3. Alteracoes de topologia, carregamento e cenario modificam os indicadores e exigem reprocessamento do DXF e deste memorial.
 
-## 8. Conclusao
+## ${8 + sectionOffset}. Conclusao
 
 O presente memorial acompanha o artefato DXF para rastreabilidade tecnica da exportacao, registrando premissas, parametros e principais indicadores de rede BT e CQT.
 
@@ -206,6 +247,7 @@ O presente memorial acompanha o artefato DXF para rastreabilidade tecnica da exp
 
 Documento gerado automaticamente pelo sisrua_unified.
 `;
+  return content;
 }
 
 export function downloadMemorialDescritivo(

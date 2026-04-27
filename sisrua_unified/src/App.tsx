@@ -371,6 +371,7 @@ function App() {
     handleMtSetEdgeChangeFlag,
     updateMtTopology,
     insertMtPoleAtLocation: insertMtPoleAtLocationBase,
+    findNearestMtPole,
   } = useMtCrudHandlers({ appState, setAppState, showToast });
 
   const handleMtContextAction = React.useCallback(
@@ -459,6 +460,10 @@ function App() {
     applyDgTrafoOnly,
   } = useDgOptimization();
 
+  /** Resultados técnicos do último cenário DG aplicado (para o memorial). */
+  const [lastAppliedDgResults, setLastAppliedDgResults] =
+    React.useState<Record<string, unknown> | null>(null);
+
   const appendDgDecisionHistory = React.useCallback(
     (params: {
       mode: DgDecisionMode;
@@ -508,15 +513,38 @@ function App() {
           notes: "Aplicação completa: trafo + condutores.",
         });
       }
+
+      setLastAppliedDgResults({
+        selectedKva: scenario.metadata?.selectedKva,
+        cqtMax: scenario.electricalResult.cqtMaxFraction,
+        trafoUtilization: scenario.electricalResult.trafoUtilizationFraction,
+        totalCableLength: scenario.electricalResult.totalCableLengthMeters,
+        score: scenario.objectiveScore,
+        discardedCount: dgResult?.recommendation?.discardedCount,
+        scoreComponents: scenario.scoreComponents,
+      });
+
       updateBtTopology(applyDgAll(dgTopologySource, scenario));
       clearDgResult();
       showToast(
         "Solução DG aplicada: trafo + condutores atualizados.",
         "success",
       );
+
+      const trafoLoc = {
+        lat: scenario.trafoPositionLatLon.lat,
+        lng: scenario.trafoPositionLatLon.lon,
+      };
+      const nearMtPole = findNearestMtPole(trafoLoc, 50);
+      if (nearMtPole) {
+        showToast(
+          `Poste MT "${nearMtPole.title}" detectado a menos de 50 m do trafo DG — considere adicionar aresta MT para conexão.`,
+          "info",
+        );
+      }
     },
     [
-      dgResult?.runId,
+      dgResult,
       logDgDecision,
       appendDgDecisionHistory,
       applyDgAll,
@@ -524,6 +552,7 @@ function App() {
       updateBtTopology,
       clearDgResult,
       showToast,
+      findNearestMtPole,
     ],
   );
 
@@ -540,18 +569,42 @@ function App() {
           notes: "Aplicação parcial: somente trafo.",
         });
       }
+
+      setLastAppliedDgResults({
+        selectedKva: scenario.metadata?.selectedKva,
+        cqtMax: scenario.electricalResult.cqtMaxFraction,
+        trafoUtilization: scenario.electricalResult.trafoUtilizationFraction,
+        totalCableLength: scenario.electricalResult.totalCableLengthMeters,
+        score: scenario.objectiveScore,
+        discardedCount: dgResult?.recommendation?.discardedCount,
+        scoreComponents: scenario.scoreComponents,
+      });
+
       updateBtTopology(applyDgTrafoOnly(dgTopologySource, scenario));
       clearDgResult();
       showToast("Posição do trafo atualizada pelo DG.", "success");
+
+      const trafoLoc = {
+        lat: scenario.trafoPositionLatLon.lat,
+        lng: scenario.trafoPositionLatLon.lon,
+      };
+      const nearMtPole = findNearestMtPole(trafoLoc, 50);
+      if (nearMtPole) {
+        showToast(
+          `Poste MT "${nearMtPole.title}" detectado a menos de 50 m do trafo DG — considere adicionar aresta MT para conexão.`,
+          "info",
+        );
+      }
     },
     [
-      dgResult?.runId,
+      dgResult,
       logDgDecision,
       appendDgDecisionHistory,
       applyDgTrafoOnly,
       dgTopologySource,
       updateBtTopology,
       clearDgResult,
+      findNearestMtPole,
       showToast,
     ],
   );
@@ -730,6 +783,7 @@ function App() {
     validateBtBeforeExport,
     showToast,
     ingestBtContextHistory,
+    dgResults: lastAppliedDgResults || undefined,
   });
 
   const { handleKmlDrop, handleSaveProject, handleLoadProject } =

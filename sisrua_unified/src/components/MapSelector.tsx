@@ -289,6 +289,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           key={tileConfig.key}
           attribution={tileConfig.attribution}
           url={tileConfig.url}
+          referrerPolicy="strict-origin-when-cross-origin"
           maxZoom={24}
           maxNativeZoom={tileConfig.maxNativeZoom}
         />

@@ -31,6 +31,7 @@ type Params = {
     btContextUrl: string,
     btContext: Record<string, unknown>,
   ) => Promise<void>;
+  dgResults?: Record<string, unknown>;
 };
 
 export function useBtDxfWorkflow({
@@ -45,6 +46,7 @@ export function useBtDxfWorkflow({
   validateBtBeforeExport,
   showToast,
   ingestBtContextHistory,
+  dgResults,
 }: Params) {
   const handleDxfSuccess = useCallback(
     (message: string) => showToast(message, "success"),
@@ -113,6 +115,7 @@ export function useBtDxfWorkflow({
       includeTopology: settings.layers.btNetwork,
       accumulatedByPole:
         derivedState?.accumulatedByPole ?? fallbackAccumulatedByPole,
+      dgResults,
     });
 
     await downloadDxf(

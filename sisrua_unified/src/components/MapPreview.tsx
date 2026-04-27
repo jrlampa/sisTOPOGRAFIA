@@ -49,6 +49,7 @@ const MapPreview: React.FC<MapPreviewProps> = ({
           attribution:
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
           subdomains: "abcd",
+          referrerPolicy: "strict-origin-when-cross-origin",
           maxZoom: 24,
           maxNativeZoom: 19,
         },

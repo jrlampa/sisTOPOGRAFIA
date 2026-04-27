@@ -139,6 +139,9 @@ const app: Express = express();
 // Security Hardening with Helmet
 app.use(
   helmet({
+    referrerPolicy: {
+      policy: "strict-origin-when-cross-origin",
+    },
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),

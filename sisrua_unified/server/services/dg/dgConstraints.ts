@@ -26,6 +26,7 @@ import type {
   DgConstraintViolation,
   DgPoint,
   DgLatLon,
+  OsmHighwayClass,
 } from "./dgTypes.js";
 import { latLonToUtm } from "./dgCandidates.js";
 
@@ -101,7 +102,22 @@ function checkExclusionZones(
 }
 
 /**
+ * Offset mínimo de calçada por classe de via OSM.
+ * Candidatos abaixo deste limite estão na pista e devem ser descartados.
+ */
+const SIDEWALK_OFFSET_BY_CLASS: Record<OsmHighwayClass, number> = {
+  residential: 3,
+  tertiary: 5,
+  secondary: 7,
+  primary: 9,
+  trunk: 12,
+  unknown: 0, // sem restrição quando classe desconhecida
+};
+
+/**
  * R2: Candidato deve estar dentro do corredor viário (a ≤ bufferMeters de alguma via).
+ * R2b: Quando a via tem classe OSM, candidato não pode estar ABAIXO do offset mínimo de calçada
+ *      (evita colocar trafo na pista de rolamento).
  */
 function checkRoadCorridor(
   candidateUtm: DgPoint,
@@ -113,7 +129,23 @@ function checkRoadCorridor(
       latLonToUtm(p.lat, p.lon),
     );
     const dist = pointToPolylineDistance(candidateUtm, polylineUtm);
-    if (dist <= corridor.bufferMeters) return []; // dentro do corredor → ok
+    if (dist > corridor.bufferMeters) continue; // fora deste corredor → tenta próximo
+
+    // Candidato está dentro do corredor. Verifica heurística de calçada.
+    if (corridor.highwayClass) {
+      const minOffset = SIDEWALK_OFFSET_BY_CLASS[corridor.highwayClass];
+      if (minOffset > 0 && dist < minOffset) {
+        return [
+          {
+            code: "INSIDE_ROAD_CARRIAGEWAY",
+            detail: `Candidato a ${dist.toFixed(1)} m da linha de centro da via '${corridor.id}' (${corridor.highwayClass}) — mínimo de calçada: ${minOffset} m.`,
+            entityId: corridor.id,
+          },
+        ];
+      }
+    }
+
+    return []; // dentro do corredor e acima do offset mínimo → ok
   }
   return [
     {

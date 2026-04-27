@@ -53,7 +53,53 @@ vi.mock("../../src/utils/downloads", () => ({
   downloadText: downloadTextMock,
 }));
 
-import { downloadMemorialDescritivo } from "../../src/utils/memorialDescritivo";
+import {
+  buildMemorialDescritivo,
+  downloadMemorialDescritivo,
+} from "../../src/utils/memorialDescritivo";
+
+describe("buildMemorialDescritivo", () => {
+  it("inclui seção DG quando dgResults está presente no contexto", () => {
+    const content = buildMemorialDescritivo(
+      {
+        dgResults: {
+          selectedKva: 75,
+          cqtMax: 0.0312,
+          trafoUtilization: 0.82,
+          totalCableLength: 450,
+          score: 88.5,
+          discardedCount: 12,
+          scoreComponents: {
+            cableCostScore: 70,
+            poleCostScore: 85,
+            trafoCostScore: 90,
+            cqtPenaltyScore: 95,
+            overloadPenaltyScore: 100,
+          },
+        },
+      },
+      { projectName: "Teste DG" },
+    );
+
+    expect(content).toContain("Dimensionamento Automatico (Design Generativo)");
+    expect(content).toContain("75,0 kVA");
+    expect(content).toContain("3,12%");
+    expect(content).toContain("82,0%");
+    expect(content).toContain("450 m");
+    expect(content).toContain("88,5 / 100");
+    expect(content).toContain("12");
+    expect(content).toContain("Decomposicao do Score Tecnico");
+    // seção BT deve ser renumerada
+    expect(content).toContain("## 6. Caracterizacao da Rede BT");
+  });
+
+  it("não inclui seção DG quando dgResults ausente", () => {
+    const content = buildMemorialDescritivo({}, { projectName: "Sem DG" });
+
+    expect(content).not.toContain("Design Generativo");
+    expect(content).toContain("## 5. Caracterizacao da Rede BT");
+  });
+});
 
 describe("downloadMemorialDescritivo", () => {
   beforeEach(() => {

@@ -48,6 +48,7 @@ interface BuildBtDxfContextParams {
   btNetworkScenario: BtNetworkScenario;
   includeTopology: boolean;
   accumulatedByPole?: BtPoleAccumulatedDemand[];
+  dgResults?: Record<string, unknown>;
 }
 
 export function buildBtDxfContext({
@@ -56,6 +57,7 @@ export function buildBtDxfContext({
   btNetworkScenario,
   includeTopology,
   accumulatedByPole,
+  dgResults,
 }: BuildBtDxfContextParams) {
   const btAccumulated =
     accumulatedByPole ??
@@ -167,6 +169,7 @@ export function buildBtDxfContext({
     accumulatedByPole: btAccumulated,
     criticalPole: btAccumulated[0] ?? null,
     cqtComputationInputs,
+    dgResults,
     topology: includeTopology
       ? {
           poles: btTopology.poles.map((pole) => ({
