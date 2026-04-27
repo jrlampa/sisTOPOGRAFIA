@@ -69,3 +69,22 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
     - `npm run test:frontend -- tests/hooks/useDxfExport.test.ts tests/utils/memorialDescritivo.test.ts` (passou)
     - `npm run build` (passou)
     - `npm run test:all` executado; houve falhas não relacionadas ao delta deste pacote em suites backend de infra/ambiente.
+
+## Atualização Operacional (2026-04-27B)
+
+- Exportação DXF + memorial:
+    - ativado controle explícito em `Settings > Export` para decidir se o memorial PDF deve ser baixado junto com o DXF.
+    - preferência persistida em `AppSettings` (`exportMemorialPdfWithDxf`) com fallback seguro em carregamento de preferências e schema de validação.
+    - wiring do fluxo BT consolidado para propagar o toggle até `useDxfExport` (incluindo cenários de job assíncrono).
+- UX/I18n:
+    - novas strings de UI para PT-BR, EN-US e ES-ES no rodapé de exportação.
+    - cobertura de componente expandida em `tests/components/SettingsModalExportFooter.test.tsx` para render e toggle.
+- Docker/dev experience:
+    - `Dockerfile`: ajuste para `npm ci --omit=dev` e healthcheck HTTP adicionado.
+    - `Dockerfile.dev`: troca de `npm install` por `npm ci --prefer-offline --no-audit`.
+    - `docker-compose.yml`: imagem nomeada e flags de polling (`CHOKIDAR_USEPOLLING`, `WATCHPACK_POLLING`) para HMR mais estável em volume mount.
+    - `.dockerignore`: ignora artefatos `*_memorial_descritivo_*.pdf`.
+- Validações executadas:
+    - `npm run typecheck:frontend` (passou)
+    - `npx vitest run tests/components/SettingsModalExportFooter.test.tsx --config vitest.config.ts` (passou)
+    - `npm run build` (passou)
