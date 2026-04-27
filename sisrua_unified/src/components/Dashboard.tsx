@@ -8,15 +8,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { 
-  Building2, 
-  Map as MapIcon, 
-  TreePine, 
-  Ruler, 
-  ArrowUpRight, 
-  Activity,
-  Layers
-} from "lucide-react";
+import { Building2, Ruler, ArrowUpRight, Activity, Layers } from "lucide-react";
 import { AnalysisStats } from "../types";
 
 interface DashboardProps {
@@ -32,9 +24,11 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
   ];
 
   const densityColors = {
-    "Baixa": "from-emerald-500/20 to-emerald-600/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
-    "Média": "from-amber-500/20 to-amber-600/20 text-amber-700 dark:text-amber-400 border-amber-500/30",
-    "Alta": "from-rose-500/20 to-rose-600/20 text-rose-700 dark:text-rose-400 border-rose-500/30",
+    Baixa:
+      "from-emerald-500/20 to-emerald-600/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+    Média:
+      "from-amber-500/20 to-amber-600/20 text-amber-700 dark:text-amber-400 border-amber-500/30",
+    Alta: "from-rose-500/20 to-rose-600/20 text-rose-700 dark:text-rose-400 border-rose-500/30",
   };
 
   const currentDensity = stats.density || "Baixa";
@@ -106,7 +100,9 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
         </div>
 
         {/* Density Card */}
-        <div className={`group relative overflow-hidden rounded-3xl border-2 bg-gradient-to-br p-5 shadow-sm transition-all hover:shadow-md dark:bg-zinc-900 ${densityColors[currentDensity]}`}>
+        <div
+          className={`group relative overflow-hidden rounded-3xl border-2 bg-gradient-to-br p-5 shadow-sm transition-all hover:shadow-md dark:bg-zinc-900 ${densityColors[currentDensity]}`}
+        >
           <div className="flex items-center justify-between">
             <div className="rounded-2xl bg-current/10 p-3">
               <Activity size={20} />
@@ -129,13 +125,13 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
       {/* Narrative Panel */}
       <div className="relative overflow-hidden rounded-3xl border-2 border-fuchsia-500/20 bg-white p-6 dark:bg-zinc-950">
         <div className="absolute top-0 right-0 p-4 opacity-5">
-            <Activity size={80} className="text-fuchsia-500" />
+          <Activity size={80} className="text-fuchsia-500" />
         </div>
         <div className="flex items-center gap-2 mb-3">
-            <div className="h-2 w-2 rounded-full bg-fuchsia-500" />
-            <h3 className="text-[11px] font-black uppercase tracking-widest text-fuchsia-700 dark:text-fuchsia-300">
-              Relatório de Inteligência Técnica
-            </h3>
+          <div className="h-2 w-2 rounded-full bg-fuchsia-500" />
+          <h3 className="text-[11px] font-black uppercase tracking-widest text-fuchsia-700 dark:text-fuchsia-300">
+            Relatório de Inteligência Técnica
+          </h3>
         </div>
         <p className="relative z-10 text-lg leading-relaxed text-slate-900 dark:text-zinc-50 font-bold tracking-tight">
           {analysisText}
@@ -145,25 +141,37 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
       {/* Distribution Chart */}
       <div className="rounded-3xl border-2 border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex items-center justify-between mb-6">
-            <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Distribuição</span>
-                <span className="text-sm font-bold text-slate-900 dark:text-white">Tipologia da Área</span>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Distribuição
+            </span>
+            <span className="text-sm font-bold text-slate-900 dark:text-white">
+              Tipologia da Área
+            </span>
+          </div>
+          <div className="flex gap-4">
+            <div className="flex items-center gap-1.5">
+              <div className="h-2 w-2 rounded-full bg-amber-500" />
+              <span className="text-[9px] font-bold text-slate-500 uppercase">
+                Edificações
+              </span>
             </div>
-            <div className="flex gap-4">
-                <div className="flex items-center gap-1.5">
-                    <div className="h-2 w-2 rounded-full bg-amber-500" />
-                    <span className="text-[9px] font-bold text-slate-500 uppercase">Edificações</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                    <div className="h-2 w-2 rounded-full bg-red-500" />
-                    <span className="text-[9px] font-bold text-slate-500 uppercase">Vias</span>
-                </div>
+            <div className="flex items-center gap-1.5">
+              <div className="h-2 w-2 rounded-full bg-red-500" />
+              <span className="text-[9px] font-bold text-slate-500 uppercase">
+                Vias
+              </span>
             </div>
+          </div>
         </div>
-        
+
         <div className="h-32 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ left: -20, right: 20 }}>
+            <BarChart
+              data={data}
+              layout="vertical"
+              margin={{ left: -20, right: 20 }}
+            >
               <XAxis type="number" hide />
               <YAxis
                 dataKey="name"
@@ -187,21 +195,35 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
               />
               <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={16}>
                 {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.9} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.color}
+                    fillOpacity={0.9}
+                  />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
-        
+
         {/* Custom Legend/Summary */}
         <div className="mt-4 grid grid-cols-3 gap-2">
-            {data.map((item) => (
-                <div key={item.name} className="flex flex-col items-center justify-center rounded-2xl bg-slate-50 p-2 dark:bg-zinc-800/50">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">{item.name}</span>
-                    <span className="text-lg font-black" style={{ color: item.color }}>{item.value}</span>
-                </div>
-            ))}
+          {data.map((item) => (
+            <div
+              key={item.name}
+              className="flex flex-col items-center justify-center rounded-2xl bg-slate-50 p-2 dark:bg-zinc-800/50"
+            >
+              <span className="text-[9px] font-bold text-slate-400 uppercase">
+                {item.name}
+              </span>
+              <span
+                className="text-lg font-black"
+                style={{ color: item.color }}
+              >
+                {item.value}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

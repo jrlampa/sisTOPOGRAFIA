@@ -457,8 +457,6 @@ router.post(
         filename,
         cacheKey,
         downloadUrl,
-        // Force synchronous generation in dev for better UX
-        forceSync: config.NODE_ENV === "development",
       });
 
       const responseStatus = alreadyCompleted ? "success" : "queued";

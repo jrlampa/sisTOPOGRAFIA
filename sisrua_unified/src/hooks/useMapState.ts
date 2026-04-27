@@ -91,7 +91,12 @@ export function useMapState({
 
   const handleSelectionModeChange = (mode: SelectionMode) => {
     setAppState(
-      (prev) => ({ ...prev, selectionMode: mode, polygon: [], measurePath: [] }),
+      (prev) => ({
+        ...prev,
+        selectionMode: mode,
+        polygon: [],
+        measurePath: [],
+      }),
       true,
     );
   };
@@ -130,7 +135,6 @@ export function useMapState({
     if (isDefaultCenter && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const latest = latestAppStateRef.current;
           setAppState(
             (prev) => ({
               ...prev,

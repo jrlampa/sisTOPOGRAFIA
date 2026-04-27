@@ -31,6 +31,7 @@ import { SidebarSelectionControls } from "./components/SidebarSelectionControls"
 import { BtModalStack } from "./components/BtModalStack";
 import { BtTelescopicSuggestionModal } from "./components/BtTelescopicSuggestionModal";
 import { AppShellLayout } from "./components/AppShellLayout";
+import { HelpModal } from "./components/HelpModal";
 import { INITIAL_APP_STATE } from "./app/initialState";
 import { persistAppSettings } from "./utils/preferencesPersistence";
 import { mergeMtTopologyWithBtPoles } from "./utils/mtTopologyBridge";
@@ -39,6 +40,8 @@ import { selectMapTopologyRenderSources } from "./utils/selectMapTopologyRenderS
 import type { CriticalConfirmationConfig } from "./components/BtModals";
 
 function App() {
+  const [isHelpOpen, setIsHelpOpen] = React.useState(false);
+
   const {
     state: appState,
     setState: setAppStateBase,
@@ -301,9 +304,9 @@ function App() {
     handleClandestinoToNormalConvertNow,
     handleNormalToClandestinoKeepClients,
     handleNormalToClandestinoZeroNormalClients,
-  } = useBtCrudHandlers({ 
-    appState, 
-    setAppState, 
+  } = useBtCrudHandlers({
+    appState,
+    setAppState,
     showToast,
     onSelectedPoleChange: handleBtSelectedPoleChange,
   });
@@ -627,6 +630,7 @@ function App() {
     onSetSelectionMode: (mode) => handleSelectionModeChange(mode),
     onUndo: undo,
     onRedo: redo,
+    onToggleHelp: () => setIsHelpOpen((current) => !current),
     enabled: true,
   });
 
@@ -824,6 +828,7 @@ function App() {
         onSaveProject={handleSaveProject}
         onOpenProject={handleLoadProject}
         onOpenSettings={openSettings}
+        onOpenHelp={() => setIsHelpOpen(true)}
         appStatusStackProps={{
           toast,
           closeToast,
@@ -908,6 +913,12 @@ function App() {
         output={btTelescopicSuggestions}
         onApply={handleApplyTelescopicSuggestions}
         onCancel={clearBtTelescopicSuggestions}
+      />
+
+      <HelpModal
+        isOpen={isHelpOpen}
+        locale={settings.locale}
+        onClose={() => setIsHelpOpen(false)}
       />
     </>
   );

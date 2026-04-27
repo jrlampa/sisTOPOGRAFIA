@@ -16,19 +16,32 @@
 import React, { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { lazyWithRetry } from "./utils/lazyWithRetry";
 
 // ─── Lazy imports ─────────────────────────────────────────────────────────
 
-const LandingPage    = lazy(() => import("./pages/LandingPage"));
-const DashboardPage  = lazy(() => import("./pages/DashboardPage"));
-const SaaSAdminPage  = lazy(() => import("./pages/SaaSAdminPage"));
-const AjudaPage      = lazy(() => import("./pages/AjudaPage"));
-const StatusPage     = lazy(() => import("./pages/StatusPage"));
-const NotFoundPage   = lazy(() => import("./pages/NotFoundPage"));
+const LandingPage = lazy(() =>
+  lazyWithRetry(() => import("./pages/LandingPage")),
+);
+const DashboardPage = lazy(() =>
+  lazyWithRetry(() => import("./pages/DashboardPage")),
+);
+const SaaSAdminPage = lazy(() =>
+  lazyWithRetry(() => import("./pages/SaaSAdminPage")),
+);
+const AjudaPage = lazy(() => lazyWithRetry(() => import("./pages/AjudaPage")));
+const StatusPage = lazy(() =>
+  lazyWithRetry(() => import("./pages/StatusPage")),
+);
+const NotFoundPage = lazy(() =>
+  lazyWithRetry(() => import("./pages/NotFoundPage")),
+);
 // AdminPage e App (ProjetoPage) são importados diretamente pois têm estado pesado
 // e o lazy não traz ganho real nessas rotas críticas.
-const AdminPage      = lazy(() => import("./components/AdminPage"));
-const ProjetoPage    = lazy(() => import("./App"));
+const AdminPage = lazy(() =>
+  lazyWithRetry(() => import("./components/AdminPage")),
+);
+const ProjetoPage = lazy(() => lazyWithRetry(() => import("./App")));
 
 // ─── Fallback de carregamento ─────────────────────────────────────────────
 
@@ -51,16 +64,16 @@ export default function AppRouter() {
       <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route path="/"           element={<LandingPage />}   />
-            <Route path="/dashboard"  element={<DashboardPage />} />
-            <Route path="/app"        element={<ProjetoPage />}   />
-            <Route path="/admin"      element={<AdminPage />}     />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/app" element={<ProjetoPage />} />
+            <Route path="/admin" element={<AdminPage />} />
             <Route path="/saas-admin" element={<SaaSAdminPage />} />
-            <Route path="/ajuda"      element={<AjudaPage />}     />
-            <Route path="/status"     element={<StatusPage />}    />
+            <Route path="/ajuda" element={<AjudaPage />} />
+            <Route path="/status" element={<StatusPage />} />
             {/* Compatibilidade com rota legada /landing */}
-            <Route path="/landing"    element={<LandingPage />}   />
-            <Route path="*"           element={<NotFoundPage />}  />
+            <Route path="/landing" element={<LandingPage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
       </ErrorBoundary>

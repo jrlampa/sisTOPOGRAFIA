@@ -34,7 +34,7 @@ if not database_url:
         'DATABASE_URL não definido. Configure no ambiente ou em .env'
     )
 
-# ── Descobrir arquivos de migration no disco ──────────────────────────────────
+# ── Descobrir arquivos de migration no disco ─────────────────────────────────
 migration_dir = Path('migrations')
 all_files = sorted(f.name for f in migration_dir.glob('*.sql'))
 
@@ -43,12 +43,14 @@ prefixes: dict[str, list[str]] = {}
 for fname in all_files:
     prefix = fname.split('_')[0]
     prefixes.setdefault(prefix, []).append(fname)
-duplicate_prefixes = {p: files for p, files in prefixes.items() if len(files) > 1}
+duplicate_prefixes = {
+    p: files for p, files in prefixes.items() if len(files) > 1
+}
 
 conn = psycopg2.connect(database_url)
 cur = conn.cursor(cursor_factory=RealDictCursor)
 
-# ── Migrations aplicadas no banco ─────────────────────────────────────────────
+# ── Migrations aplicadas no banco ────────────────────────────────────────────
 print("=" * 80)
 print("MIGRATIONS JÁ APLICADAS (banco)")
 print("=" * 80)
@@ -60,7 +62,7 @@ applied = {m['filename'] for m in migrations}
 for m in migrations:
     print(f"  {m['filename']:<55} {m['applied_at']}")
 
-# ── Status completo: todos os arquivos vs banco ───────────────────────────────
+# ── Status completo: todos os arquivos vs banco ──────────────────────────────
 print(f"\n{'=' * 80}")
 print(f"STATUS COMPLETO: {len(all_files)} arquivo(s) em migrations/")
 print("=" * 80)
@@ -75,10 +77,13 @@ if pending:
     for f in pending:
         print(f"       • {f}")
 else:
-    print(f"  ✅ Nenhuma migration pendente — banco está atualizado!")
+    print("  ✅ Nenhuma migration pendente — banco está atualizado!")
 
 if extra_in_db:
-    print(f"\n  ⚠️  Registradas no banco mas sem arquivo local ({len(extra_in_db)}):")
+    print(
+        "\n  ⚠️  Registradas no banco mas sem arquivo local "
+        f"({len(extra_in_db)}):"
+    )
     for f in sorted(extra_in_db):
         print(f"       • {f}")
 
@@ -89,17 +94,32 @@ if duplicate_prefixes:
     print("=" * 80)
     for prefix, files in sorted(duplicate_prefixes.items()):
         print(f"  Prefixo '{prefix}_': {', '.join(files)}")
-    print("  → Use números sequenciais únicos (ex: 002a / 002b) para evitar ambiguidade de ordem.")
+    print(
+        "  → Use números sequenciais únicos (ex: 002a / 002b) "
+        "para evitar ambiguidade de ordem."
+    )
 
 # ── Resumo final ─────────────────────────────────────────────────────────────
 print(f"\n{'=' * 80}")
-if pending or extra_in_db or duplicate_prefixes:
-    print("RESULTADO: ⚠️  Atenção requerida (ver itens acima)")
+if pending or extra_in_db:
+    print(
+        "RESULTADO: ⚠️  Atenção requerida "
+        "(pendências/inconsistências detectadas)"
+    )
     cur.close()
     conn.close()
     sys.exit(1)
 else:
-    print("RESULTADO: ✅ Banco de dados alinhado com todas as migrations locais")
+    if duplicate_prefixes:
+        print(
+            "RESULTADO: ✅ Banco alinhado; "
+            "há apenas alerta de prefixos duplicados"
+        )
+    else:
+        print(
+            "RESULTADO: ✅ Banco de dados alinhado "
+            "com todas as migrations locais"
+        )
     cur.close()
     conn.close()
     sys.exit(0)

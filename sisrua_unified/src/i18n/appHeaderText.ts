@@ -15,6 +15,7 @@ type AppHeaderText = {
   openProject: string;
   selectProjectFile: string;
   openSettings: string;
+  openHelp: string;
 };
 
 const TEXTS: Record<AppLocale, AppHeaderText> = {
@@ -33,6 +34,7 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     openProject: "Abrir projeto",
     selectProjectFile: "Selecionar arquivo de projeto",
     openSettings: "Abrir configurações",
+    openHelp: "Abrir ajuda",
   },
   "en-US": {
     backendStatusOnline: "Backend online",
@@ -49,6 +51,7 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     openProject: "Open project",
     selectProjectFile: "Select project file",
     openSettings: "Open settings",
+    openHelp: "Open help",
   },
   "es-ES": {
     backendStatusOnline: "Backend en línea",
@@ -65,6 +68,7 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     openProject: "Abrir proyecto",
     selectProjectFile: "Seleccionar archivo de proyecto",
     openSettings: "Abrir configuraciones",
+    openHelp: "Abrir ayuda",
   },
 };
 

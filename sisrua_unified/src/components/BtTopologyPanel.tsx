@@ -1,6 +1,12 @@
 import React from "react";
 import { Copy } from "lucide-react";
-import type { BtNetworkScenario, BtTopology, BtProjectType, AppLocale, MtTopology } from "../types";
+import type {
+  BtNetworkScenario,
+  BtTopology,
+  BtProjectType,
+  AppLocale,
+  MtTopology,
+} from "../types";
 import { getBtTopologyPanelText } from "../i18n/btTopologyPanelText";
 import type {
   BtDerivedSummary,
@@ -78,7 +84,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   onBtTogglePoleCircuitBreak,
   onBtSetTransformerChangeFlag,
   onBtSetEdgeChangeFlag,
-  onRequestCriticalConfirmation,
+  onRequestCriticalConfirmation: _onRequestCriticalConfirmation,
   accumulatedByPole: _accumulatedByPole,
   summary,
   clandestinoDisplay: _clandestinoDisplay,
@@ -89,7 +95,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   onProjectTypeChange,
   clandestinoAreaM2: _clandestinoAreaM2,
   onClandestinoAreaChange,
-  pointDemandKva,
+  pointDemandKva: _pointDemandKva,
   selectedPoleId = "",
   selectedEdgeId = "",
   selectedTransformerId = "",
@@ -119,7 +125,12 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
       onSetSelectedPoleId?.(nextPoleId);
       onSelectedPoleChange?.(nextPoleId);
     }
-  }, [btTopology.poles, selectedPoleId, onSelectedPoleChange, onSetSelectedPoleId]);
+  }, [
+    btTopology.poles,
+    selectedPoleId,
+    onSelectedPoleChange,
+    onSetSelectedPoleId,
+  ]);
 
   React.useEffect(() => {
     if (btTopology.transformers.length === 0) {
@@ -150,12 +161,12 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
       onSetSelectedEdgeId?.(nextEdgeId);
       onSelectedEdgeChange?.(nextEdgeId);
     }
-  }, [btTopology.edges, selectedEdgeId, onSelectedEdgeChange, onSetSelectedEdgeId]);
-
-  const selectPole = (poleId: string) => {
-    onSetSelectedPoleId?.(poleId);
-    onSelectedPoleChange?.(poleId);
-  };
+  }, [
+    btTopology.edges,
+    selectedEdgeId,
+    onSelectedEdgeChange,
+    onSetSelectedEdgeId,
+  ]);
 
   const selectTransformer = (transformerId: string) => {
     onSetSelectedTransformerId?.(transformerId);

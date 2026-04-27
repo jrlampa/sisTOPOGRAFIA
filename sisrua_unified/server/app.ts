@@ -23,6 +23,17 @@ import { monitoringMiddleware } from "./middleware/monitoring.js";
 import { specs } from "./swagger.js";
 import { errorHandler } from "./errorHandler.js";
 
+// ─── Health Check Cache ────────────────────────────────────────────────
+let lastHealthResponse: any = null;
+let lastHealthTimestamp = 0;
+const HEALTH_CACHE_TTL = 10000; // 10 seconds
+
+let cachedDbStatus = "disabled";
+let lastDbCheckTime = 0;
+const DB_CHECK_CACHE_TTL = 5000; // 5 seconds (more aggressive - DB checks are typically cheap)
+
+// ─────────────────────────────────────────────────────────────────────
+
 // Import Routes
 import elevationRoutes from "./routes/elevationRoutes.js";
 import searchRoutes from "./routes/searchRoutes.js";
@@ -118,11 +129,7 @@ import portalStakeholderRoutes from "./routes/portalStakeholderRoutes.js";
 import provenienciaForenseRoutes from "./routes/provenienciaForenseRoutes.js";
 import assinaturaNuvemRoutes from "./routes/assinaturaNuvemRoutes.js";
 import gisHardeningRoutes from "./routes/gisHardeningRoutes.js";
-import { 
-  pingDb, 
-  initDbClient, 
-  isDbAvailable 
-} from "./repositories/index.js";
+import { pingDb, initDbClient, isDbAvailable } from "./repositories/index.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
 const dirname = path.join(process.cwd(), "server");
@@ -130,16 +137,29 @@ const dirname = path.join(process.cwd(), "server");
 const app: Express = express();
 
 // Security Hardening with Helmet
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "img-src": ["'self'", "data:", "blob:", "https://*.tile.openstreetmap.org", "https://server.arcgisonline.com"],
-      "connect-src": ["'self'", "https://*.posthog.com", "https://*.supabase.co", "https://overpass-api.de"],
-      "script-src": ["'self'", "'unsafe-inline'"],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "img-src": [
+          "'self'",
+          "data:",
+          "blob:",
+          "https://*.tile.openstreetmap.org",
+          "https://server.arcgisonline.com",
+        ],
+        "connect-src": [
+          "'self'",
+          "https://*.posthog.com",
+          "https://*.supabase.co",
+          "https://overpass-api.de",
+        ],
+        "script-src": ["'self'", "'unsafe-inline'"],
+      },
     },
-  },
-}));
+  }),
+);
 
 function resolveFrontendDistDirectory(): string {
   const candidates = [
@@ -163,16 +183,28 @@ const isProduction = config.NODE_ENV === "production";
 let allowedOrigins: string[] = [];
 
 if (isProduction) {
-  allowedOrigins = config.CORS_ORIGIN ? config.CORS_ORIGIN.split(",").map(o => o.trim()) : [];
+  allowedOrigins = config.CORS_ORIGIN
+    ? config.CORS_ORIGIN.split(",").map((o) => o.trim())
+    : [];
 } else {
   // Em desenvolvimento, permitimos qualquer porta do localhost para facilitar o uso com Docker/DevServer
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (origin && (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:"))) {
+    if (
+      origin &&
+      (origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:"))
+    ) {
       res.header("Access-Control-Allow-Origin", origin);
       res.header("Access-Control-Allow-Credentials", "true");
-      res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-      res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-request-id");
+      res.header(
+        "Access-Control-Allow-Methods",
+        "GET, POST, PUT, DELETE, OPTIONS",
+      );
+      res.header(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization, x-request-id",
+      );
     }
     next();
   });
@@ -181,7 +213,11 @@ if (isProduction) {
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || isProduction === false || allowedOrigins.includes(origin)) {
+      if (
+        !origin ||
+        isProduction === false ||
+        allowedOrigins.includes(origin)
+      ) {
         callback(null, true);
       } else {
         callback(new Error(`CORS policy: origin ${origin} not allowed`));
@@ -209,7 +245,9 @@ app.use((_req, _res, next) => {
   const dbConfigured = config.useSupabaseJobs || config.useDbConstantsConfig;
   if (dbConfigured && !isDbAvailable()) {
     // Tenta inicializar em background (não bloqueia a requisição)
-    initDbClient().catch((e) => logger.error("[DB] Wake-up background fail", e));
+    initDbClient().catch((e) =>
+      logger.error("[DB] Wake-up background fail", e),
+    );
   }
   next();
 });
@@ -234,7 +272,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   if (correlationIds.projeto_id)
     store.set("projeto_id", correlationIds.projeto_id);
   if (correlationIds.ponto_id) store.set("ponto_id", correlationIds.ponto_id);
-  
+
   if (!requestContext) {
     logger.error(
       "CRITICAL: requestContext AsyncLocalStorage is undefined - middleware bypass",
@@ -255,6 +293,20 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
 app.get("/health", async (_req: Request, res: Response) => {
   try {
+    const now = Date.now();
+    const startTime = Date.now();
+
+    // ─── Check cache validity ──────────────────────────────────────────
+    if (lastHealthResponse && now - lastHealthTimestamp < HEALTH_CACHE_TTL) {
+      logger.debug("Health check served from cache", {
+        age: now - lastHealthTimestamp,
+      });
+      return res
+        .status(lastHealthResponse.statusCode)
+        .json(lastHealthResponse.body);
+    }
+
+    // ─── Compute fresh health status ───────────────────────────────────
     const memoryUsage = process.memoryUsage();
     const externalCircuitBreakers = listCircuitBreakers();
     const hasOpenExternalCircuit = externalCircuitBreakers.some(
@@ -262,10 +314,37 @@ app.get("/health", async (_req: Request, res: Response) => {
     );
 
     let dbStatus = "disabled";
+    const dbStart = Date.now();
     if (config.useSupabaseJobs || config.useDbConstantsConfig) {
-      const isAlive = await pingDb();
-      dbStatus = isAlive ? "connected" : "disconnected";
+      // ─── Use cached DB status if fresh ──────────────────────────────
+      if (Date.now() - lastDbCheckTime < DB_CHECK_CACHE_TTL) {
+        dbStatus = cachedDbStatus;
+      } else {
+        // ─── Check DB status and cache result ────────────────────────
+        const isAlive = await pingDb();
+        dbStatus = isAlive ? "connected" : "disconnected";
+        cachedDbStatus = dbStatus;
+        lastDbCheckTime = Date.now();
+      }
     }
+    const dbTime = Date.now() - dbStart;
+
+    // ─── Use Ollama status from cache (non-blocking background update) ──
+    let ollamaStatus: any = lastHealthResponse?.body?.dependencies?.ollama || {
+      available: false,
+    };
+
+    // Background update (fire and forget - don't block on Ollama)
+    OllamaService.getGovernanceStatus()
+      .then((status) => {
+        ollamaStatus = status;
+        logger.debug("Health check - Ollama status updated in background", {
+          updateTime: Date.now() - startTime,
+        });
+      })
+      .catch((err) => {
+        logger.debug("Background Ollama status update failed", { err });
+      });
 
     const healthData = {
       status:
@@ -287,7 +366,7 @@ app.get("/health", async (_req: Request, res: Response) => {
       },
       dependencies: {
         database: dbStatus,
-        ollama: await OllamaService.getGovernanceStatus(),
+        ollama: ollamaStatus,
         externalApis: {
           openCircuits: externalCircuitBreakers.filter(
             (cb) => cb.state === "OPEN",
@@ -297,7 +376,17 @@ app.get("/health", async (_req: Request, res: Response) => {
       },
     };
 
-    res.status(healthData.status === "online" ? 200 : 503).json(healthData);
+    const statusCode = healthData.status === "online" ? 200 : 503;
+    lastHealthResponse = { body: healthData, statusCode };
+    lastHealthTimestamp = now;
+
+    const totalTime = Date.now() - startTime;
+    logger.debug("Health check completed", {
+      totalTime,
+      dbTime,
+      cacheHit: false,
+    });
+    res.status(statusCode).json(healthData);
   } catch (err) {
     logger.error("Health check failed critically", { err });
     res.status(500).json({ status: "error", message: "Health check failed" });

@@ -12,14 +12,35 @@ vi.mock("framer-motion", () => ({
   motion: {
     div: ({
       children,
+      initial: _initial,
+      animate: _animate,
+      exit: _exit,
+      layout: _layout,
       ...props
-    }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) =>
-      React.createElement("div", props, children),
+    }: React.HTMLAttributes<HTMLDivElement> & {
+      children?: React.ReactNode;
+      initial?: unknown;
+      animate?: unknown;
+      exit?: unknown;
+      layout?: unknown;
+    }) => React.createElement("div", props, children),
     button: ({
       children,
+      whileHover: _whileHover,
+      whileTap: _whileTap,
+      initial: _initial,
+      animate: _animate,
+      exit: _exit,
+      layout: _layout,
       ...props
     }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
       children?: React.ReactNode;
+      whileHover?: unknown;
+      whileTap?: unknown;
+      initial?: unknown;
+      animate?: unknown;
+      exit?: unknown;
+      layout?: unknown;
     }) => React.createElement("button", props, children),
   },
   AnimatePresence: ({ children }: { children?: React.ReactNode }) =>

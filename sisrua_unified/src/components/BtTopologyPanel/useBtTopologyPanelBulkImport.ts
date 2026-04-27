@@ -2,7 +2,6 @@ import React from "react";
 import type { BtTopology } from "../../types";
 import {
   buildTopologyWithBulkRamais,
-  normalizeHeaderKey,
   sanitizeWorkbookText,
 } from "./btBulkImportParser";
 
@@ -70,9 +69,8 @@ export const useBtTopologyPanelBulkImport = ({
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buffer);
 
-      const worksheet = 
-        workbook.getWorksheet("RAMAL") || 
-        workbook.getWorksheet(1);
+      const worksheet =
+        workbook.getWorksheet("RAMAL") || workbook.getWorksheet(1);
 
       if (!worksheet) return;
 

@@ -24,7 +24,10 @@ export interface IDgRunRepository {
     limit?: number,
     tenantId?: string,
   ): Promise<DgDiscardRateByConstraint[]>;
-  findById(runId: string, tenantId?: string): Promise<DgOptimizationOutput | null>;
+  findById(
+    runId: string,
+    tenantId?: string,
+  ): Promise<DgOptimizationOutput | null>;
   findScenarios(runId: string, tenantId?: string): Promise<DgScenario[] | null>;
   findRecommendation(
     runId: string,
@@ -86,18 +89,22 @@ function buildRecommendationEntries(
 }
 
 async function saveNormalizedDgData(
-  sql: ReturnType<typeof getDbClient>,
+  sql: NonNullable<ReturnType<typeof getDbClient>>,
   run: DgOptimizationOutput,
 ): Promise<void> {
-  if (!sql) return;
-
   await sql.unsafe(`BEGIN`);
   try {
     // Regrava as tabelas normalizadas de forma idempotente por run.
-    await sql.unsafe(`DELETE FROM dg_constraints WHERE run_id = $1`, [run.runId]);
-    await sql.unsafe(`DELETE FROM dg_recommendations WHERE run_id = $1`, [run.runId]);
+    await sql.unsafe(`DELETE FROM dg_constraints WHERE run_id = $1`, [
+      run.runId,
+    ]);
+    await sql.unsafe(`DELETE FROM dg_recommendations WHERE run_id = $1`, [
+      run.runId,
+    ]);
     await sql.unsafe(`DELETE FROM dg_scenarios WHERE run_id = $1`, [run.runId]);
-    await sql.unsafe(`DELETE FROM dg_candidates WHERE run_id = $1`, [run.runId]);
+    await sql.unsafe(`DELETE FROM dg_candidates WHERE run_id = $1`, [
+      run.runId,
+    ]);
 
     // ── Candidatos (batch insert) ──────────────────────────────────────────
     const candidateMap = new Map<
@@ -279,7 +286,7 @@ function matchesTenant(run: DgOptimizationOutput, tenantId?: string): boolean {
 }
 
 async function persistRunLegacy(
-  sql: ReturnType<typeof getDbClient>,
+  sql: NonNullable<ReturnType<typeof getDbClient>>,
   run: DgOptimizationOutput,
 ): Promise<void> {
   await sql.unsafe(
@@ -323,7 +330,7 @@ async function persistRunLegacy(
 }
 
 async function persistRunTenantAware(
-  sql: ReturnType<typeof getDbClient>,
+  sql: NonNullable<ReturnType<typeof getDbClient>>,
   run: DgOptimizationOutput,
 ): Promise<void> {
   await sql.unsafe(
@@ -356,7 +363,7 @@ async function persistRunTenantAware(
          updated_at = NOW()`,
     [
       run.runId,
-      run.tenantId,
+      run.tenantId ?? null,
       run.inputHash,
       run.computedAt,
       run.totalCandidatesEvaluated,
@@ -396,7 +403,9 @@ function buildDiscardRatesFromRun(
       discardedScenarios,
       totalScenarios,
       discardRatePercent:
-        totalScenarios === 0 ? 0 : round2((discardedScenarios / totalScenarios) * 100),
+        totalScenarios === 0
+          ? 0
+          : round2((discardedScenarios / totalScenarios) * 100),
     });
   }
 
@@ -591,12 +600,19 @@ export class PostgresDgRunRepository implements IDgRunRepository {
       }
       return null;
     } catch (err) {
-      logger.warn("[DgRunRepository] findById failed", { runId, tenantId, err });
+      logger.warn("[DgRunRepository] findById failed", {
+        runId,
+        tenantId,
+        err,
+      });
       return null;
     }
   }
 
-  async findScenarios(runId: string, tenantId?: string): Promise<DgScenario[] | null> {
+  async findScenarios(
+    runId: string,
+    tenantId?: string,
+  ): Promise<DgScenario[] | null> {
     const run = await this.findById(runId, tenantId);
     return run ? run.allScenarios : null;
   }

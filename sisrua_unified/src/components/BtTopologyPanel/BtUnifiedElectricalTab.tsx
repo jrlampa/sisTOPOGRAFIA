@@ -1,6 +1,20 @@
 import React from "react";
-import { Zap, Activity, Layers, ArrowUpRight, ArrowDownLeft, CheckCircle2, Circle } from "lucide-react";
-import type { BtTopology, BtPoleNode, BtTransformer, BtEdge, AppLocale, BtNetworkScenario } from "../../types";
+import {
+  Zap,
+  Layers,
+  ArrowUpRight,
+  ArrowDownLeft,
+  CheckCircle2,
+  Circle,
+} from "lucide-react";
+import type {
+  BtTopology,
+  BtPoleNode,
+  BtTransformer,
+  BtEdge,
+  AppLocale,
+  BtNetworkScenario,
+} from "../../types";
 import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
 import BtTopologyTransformerSubSection from "./BtTopologyTransformerSubSection";
 import BtTopologyEdgeSubSection from "./BtTopologyEdgeSubSection";
@@ -14,7 +28,10 @@ interface BtUnifiedElectricalTabProps {
   selectedTransformer: BtTransformer | null;
   selectedEdgeId: string;
   selectedEdge: BtEdge | null;
-  transformerDebugById: Record<string, { assignedClients: number; estimatedDemandKva: number }>;
+  transformerDebugById: Record<
+    string,
+    { assignedClients: number; estimatedDemandKva: number }
+  >;
   onBtRenameTransformer?: (id: string, title: string) => void;
   onBtSetTransformerChangeFlag?: (id: string, flag: any) => void;
   updateTransformerVerified: (id: string, v: boolean) => void;
@@ -29,18 +46,22 @@ interface BtUnifiedElectricalTabProps {
   onSelectedTransformerChange: (id: string) => void;
 }
 
-const BtUnifiedElectricalTab: React.FC<BtUnifiedElectricalTabProps> = (props) => {
+const BtUnifiedElectricalTab: React.FC<BtUnifiedElectricalTabProps> = (
+  props,
+) => {
   const { selectedPole: pole, btTopology } = props;
   const t = getBtTopologyPanelText(props.locale);
-  
+
   if (!pole) return null;
 
   // Find transformer on this pole
-  const poleTransformer = btTopology.transformers.find(t => t.poleId === pole.id);
-  
+  const poleTransformer = btTopology.transformers.find(
+    (t) => t.poleId === pole.id,
+  );
+
   // Find edges connected to this pole
   const connectedEdges = btTopology.edges.filter(
-    edge => edge.fromPoleId === pole.id || edge.toPoleId === pole.id
+    (edge) => edge.fromPoleId === pole.id || edge.toPoleId === pole.id,
   );
 
   return (
@@ -67,14 +88,16 @@ const BtUnifiedElectricalTab: React.FC<BtUnifiedElectricalTabProps> = (props) =>
                   {poleTransformer.projectPowerKva ?? 0} kVA
                 </span>
               </div>
-              <button 
-                onClick={() => props.onSelectedTransformerChange(poleTransformer.id)}
+              <button
+                onClick={() =>
+                  props.onSelectedTransformerChange(poleTransformer.id)
+                }
                 className="text-[9px] font-black uppercase tracking-tighter text-amber-600 hover:underline"
               >
                 Editar Detalhes
               </button>
             </div>
-            
+
             {/* If this specific transformer is selected, show the sub-section editor */}
             {props.selectedTransformerId === poleTransformer.id && (
               <div className="mt-2 pt-2 border-t border-amber-100 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -89,10 +112,14 @@ const BtUnifiedElectricalTab: React.FC<BtUnifiedElectricalTabProps> = (props) =>
                   transformerDebugById={props.transformerDebugById}
                   pointDemandKva={0} // Not needed for this view
                   onBtRenameTransformer={props.onBtRenameTransformer}
-                  onBtSetTransformerChangeFlag={props.onBtSetTransformerChangeFlag}
+                  onBtSetTransformerChangeFlag={
+                    props.onBtSetTransformerChangeFlag
+                  }
                   updateTransformerVerified={props.updateTransformerVerified}
                   updateTransformerReadings={props.updateTransformerReadings}
-                  updateTransformerProjectPower={props.updateTransformerProjectPower}
+                  updateTransformerProjectPower={
+                    props.updateTransformerProjectPower
+                  }
                 />
               </div>
             )}
@@ -116,40 +143,59 @@ const BtUnifiedElectricalTab: React.FC<BtUnifiedElectricalTabProps> = (props) =>
         </div>
 
         <div className="space-y-2">
-          {connectedEdges.map(edge => {
+          {connectedEdges.map((edge) => {
             const isSelected = props.selectedEdgeId === edge.id;
             const isOutgoing = edge.fromPoleId === pole.id;
             const otherPoleId = isOutgoing ? edge.toPoleId : edge.fromPoleId;
-            const otherPole = btTopology.poles.find(p => p.id === otherPoleId);
-            
+            const otherPole = btTopology.poles.find(
+              (p) => p.id === otherPoleId,
+            );
+
             return (
               <div key={edge.id} className="space-y-2">
                 <button
                   onClick={() => props.onSelectedEdgeChange(edge.id)}
                   className={`w-full flex items-center justify-between p-2 rounded-xl border transition-all ${
-                    isSelected 
-                      ? "bg-blue-50 border-blue-200 shadow-sm" 
+                    isSelected
+                      ? "bg-blue-50 border-blue-200 shadow-sm"
                       : "bg-white border-slate-100 hover:border-blue-100"
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <div className={`p-1.5 rounded-lg ${isOutgoing ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"}`}>
-                      {isOutgoing ? <ArrowUpRight size={12} /> : <ArrowDownLeft size={12} />}
+                    <div
+                      className={`p-1.5 rounded-lg ${isOutgoing ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"}`}
+                    >
+                      {isOutgoing ? (
+                        <ArrowUpRight size={12} />
+                      ) : (
+                        <ArrowDownLeft size={12} />
+                      )}
                     </div>
                     <div className="text-left">
                       <div className="text-[10px] font-bold text-slate-700">
-                        {isOutgoing ? "Para: " : "De: "} 
-                        <span className="font-mono text-blue-600">{otherPole?.title ?? otherPoleId}</span>
+                        {isOutgoing ? "Para: " : "De: "}
+                        <span className="font-mono text-blue-600">
+                          {otherPole?.title ?? otherPoleId}
+                        </span>
                       </div>
                       <div className="text-[9px] text-slate-400 font-medium">
-                        {edge.conductors.length} condutores • {edge.lengthMeters?.toFixed(1) ?? "0.0"}m
+                        {edge.conductors.length} condutores •{" "}
+                        {edge.lengthMeters?.toFixed(1) ?? "0.0"}m
                       </div>
                     </div>
                   </div>
-                  <div className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase ${
-                    edge.verified ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"
-                  }`}>
-                    {edge.verified ? <CheckCircle2 size={10} /> : <Circle size={10} />}
+                  <div
+                    className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase ${
+                      edge.verified
+                        ? "bg-emerald-50 text-emerald-600"
+                        : "bg-slate-100 text-slate-400"
+                    }`}
+                  >
+                    {edge.verified ? (
+                      <CheckCircle2 size={10} />
+                    ) : (
+                      <Circle size={10} />
+                    )}
                     {edge.verified ? "OK" : "PEND"}
                   </div>
                 </button>
@@ -167,7 +213,9 @@ const BtUnifiedElectricalTab: React.FC<BtUnifiedElectricalTabProps> = (props) =>
                       updateEdgeVerified={props.updateEdgeVerified}
                       updateEdgeConductors={props.updateEdgeConductors}
                       updateEdgeMtConductors={props.updateEdgeMtConductors}
-                      updateEdgeReplacementFromConductors={props.updateEdgeReplacementFromConductors}
+                      updateEdgeReplacementFromConductors={
+                        props.updateEdgeReplacementFromConductors
+                      }
                       onBtSetEdgeChangeFlag={props.onBtSetEdgeChangeFlag}
                     />
                   </div>
@@ -175,7 +223,7 @@ const BtUnifiedElectricalTab: React.FC<BtUnifiedElectricalTabProps> = (props) =>
               </div>
             );
           })}
-          
+
           {connectedEdges.length === 0 && (
             <div className="text-[10px] text-slate-400 italic p-2 bg-slate-50 rounded-xl border border-slate-100 text-center">
               Nenhum vão conectado

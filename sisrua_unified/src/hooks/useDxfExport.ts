@@ -52,7 +52,7 @@ export function useDxfExport({
   const [queuedShouldDownloadMemorial, setQueuedShouldDownloadMemorial] =
     useState(false);
 
-  const triggerDownload = (url: string, center: GeoLocation) => {
+  const triggerDownload = (url: string) => {
     console.log("[DXF Export] Triggering download from URL:", url);
     // Usar location.assign para disparar o download direto do browser
     window.location.assign(url);
@@ -156,7 +156,7 @@ export function useDxfExport({
 
         const loadedBtContext = await tryLoadBtContext(result.btContextUrl);
         const memorialContext = loadedBtContext ?? btContext ?? null;
-        triggerDownload(result.url, center);
+        triggerDownload(result.url);
         if (shouldDownloadMemorial) {
           tryDownloadMemorial(memorialContext, {
             ...memorialMetadata,
@@ -249,13 +249,12 @@ export function useDxfExport({
             onWarning?.(warningMessage);
           }
 
-          const center = downloadCenter || { lat: 0, lng: 0, label: "" };
           const loadedBtContext = await tryLoadBtContext(
             statusResponse.result?.btContextUrl,
           );
 
           if (!isActive) return;
-          triggerDownload(url, center);
+          triggerDownload(url);
           if (queuedShouldDownloadMemorial) {
             tryDownloadMemorial(
               loadedBtContext ?? queuedBtContext,

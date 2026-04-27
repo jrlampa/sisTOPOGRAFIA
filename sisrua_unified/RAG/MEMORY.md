@@ -91,6 +91,23 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 
 ## Atualização Operacional (2026-04-27C)
 
+- Onboarding/help in-app implementado:
+    - novo modal de ajuda com seção de atalhos e passo a passo operacional para novos usuários.
+    - acionamento por botão no header e atalhos globais `/`, `?` e `Ctrl+/`.
+    - integração com i18n (`pt-BR`, `en-US`, `es-ES`) para conteúdo completo de onboarding.
+- Arquivos novos:
+    - `src/components/HelpModal.tsx`
+    - `src/i18n/helpModalText.ts`
+    - `tests/components/HelpModal.test.tsx`
+- Ajustes em fluxos existentes:
+    - `src/hooks/useKeyboardShortcuts.ts` e `tests/hooks/useKeyboardShortcuts.test.ts`
+    - `src/components/AppHeader.tsx`, `src/components/AppShellLayout.tsx`, `src/i18n/appHeaderText.ts`, `src/App.tsx`
+- Validações executadas:
+    - `npx vitest run tests/hooks/useKeyboardShortcuts.test.ts tests/components/HelpModal.test.tsx --config vitest.config.ts` (passou)
+    - `npm run typecheck:frontend` (passou)
+
+## Atualização Operacional (2026-04-27C)
+
 - Governança de idioma redefinida:
     - a regra deixou de ser `pt-BR only` e passou para `multi-idioma com locale fechado`.
     - locales suportados: `pt-BR`, `en-US`, `es-ES`.

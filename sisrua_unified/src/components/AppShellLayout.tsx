@@ -22,6 +22,7 @@ type Props = {
   onSaveProject: () => void;
   onOpenProject: (file: File) => void;
   onOpenSettings: () => void;
+  onOpenHelp: () => void;
   appStatusStackProps: React.ComponentProps<typeof AppStatusStack>;
   appSettingsOverlayProps: React.ComponentProps<typeof AppSettingsOverlay>;
   sidebarWorkspaceProps: React.ComponentProps<typeof SidebarWorkspace>;
@@ -38,6 +39,7 @@ export function AppShellLayout({
   onSaveProject,
   onOpenProject,
   onOpenSettings,
+  onOpenHelp,
   appStatusStackProps,
   appSettingsOverlayProps,
   sidebarWorkspaceProps,
@@ -74,6 +76,7 @@ export function AppShellLayout({
         onSaveProject={onSaveProject}
         onOpenProject={onOpenProject}
         onOpenSettings={onOpenSettings}
+        onOpenHelp={onOpenHelp}
         isSidebarCollapsed={isSidebarCollapsed}
         onToggleSidebarCollapsed={() =>
           setIsSidebarCollapsed((current) => !current)

@@ -4,7 +4,6 @@ import { DEFAULT_LOCATION } from "../constants";
 import { EMPTY_BT_TOPOLOGY } from "../utils/btNormalization";
 import { EMPTY_MT_TOPOLOGY } from "../utils/mtNormalization";
 import { loadPersistedAppSettings } from "../utils/preferencesPersistence";
-import { normalizeAppLocale } from "../i18n/appLocale";
 
 /** Detecta o esquema de cores preferido do sistema operacional. */
 function detectSystemTheme(): AppTheme {

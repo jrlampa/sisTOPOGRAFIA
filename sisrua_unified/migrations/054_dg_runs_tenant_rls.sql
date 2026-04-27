@@ -7,7 +7,7 @@
 -- Estratégia:
 --   1. Adicionar coluna tenant_id (nullable inicialmente para compatibilidade).
 --   2. Criar índice por tenant para queries filtradas.
---   3. Habilitar RLS e criar policy de isolamento usando auth.uid() via tenant_users.
+--   3. Habilitar RLS e criar policy de isolamento usando current_tenant_id().
 --   4. Aplicar o mesmo padrão às tabelas filhas (ON DELETE CASCADE já garante consistência).
 --
 -- Idempotência: seguro executar N vezes.
@@ -52,11 +52,7 @@ CREATE POLICY dg_runs_tenant_isolation
   ON public.dg_runs
   USING (
     tenant_id IS NULL   -- dados legados sem tenant ainda visíveis para manutenção
-    OR tenant_id IN (
-      SELECT tenant_id
-      FROM public.tenant_users
-      WHERE user_id = auth.uid()
-    )
+    OR tenant_id = public.current_tenant_id()
   );
 
 -- ─── 4. RLS em dg_candidates ──────────────────────────────────────────────────
@@ -68,9 +64,7 @@ CREATE POLICY dg_candidates_tenant_isolation
   ON public.dg_candidates
   USING (
     tenant_id IS NULL
-    OR tenant_id IN (
-      SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()
-    )
+    OR tenant_id = public.current_tenant_id()
   );
 
 -- ─── 5. RLS em dg_scenarios ───────────────────────────────────────────────────
@@ -82,9 +76,7 @@ CREATE POLICY dg_scenarios_tenant_isolation
   ON public.dg_scenarios
   USING (
     tenant_id IS NULL
-    OR tenant_id IN (
-      SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()
-    )
+    OR tenant_id = public.current_tenant_id()
   );
 
 -- ─── 6. Views: recriar para incluir tenant_id ─────────────────────────────────
@@ -95,12 +87,12 @@ SELECT
   s.scenario_id,
   s.feasible,
   s.objective_score,
-  s.tenant_id,
   ROW_NUMBER() OVER (
     PARTITION BY s.run_id
     ORDER BY s.feasible DESC, s.objective_score DESC
   ) AS rank_in_run,
-  s.created_at
+  s.created_at,
+  s.tenant_id
 FROM dg_scenarios s;
 
 CREATE OR REPLACE VIEW dg_discard_rate_by_constraint_v AS
@@ -112,13 +104,13 @@ WITH totals AS (
 SELECT
   c.run_id,
   c.code,
-  t.tenant_id,
   COUNT(DISTINCT c.scenario_id) AS discarded_scenarios,
   t.total_scenarios,
   CASE
     WHEN t.total_scenarios = 0 THEN 0
     ELSE ROUND((COUNT(DISTINCT c.scenario_id)::NUMERIC / t.total_scenarios) * 100, 2)
-  END AS discard_rate_percent
+  END AS discard_rate_percent,
+  t.tenant_id
 FROM dg_constraints c
 JOIN totals t ON t.run_id = c.run_id
 GROUP BY c.run_id, c.code, t.total_scenarios, t.tenant_id;

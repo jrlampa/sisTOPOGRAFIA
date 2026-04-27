@@ -237,7 +237,7 @@ export function downloadMemorialDescritivo(
     const normalized = content
       .replace(/^#\s+/gm, "")
       .replace(/^##\s+/gm, "")
-      .replace(/^\-\s+/gm, "• ")
+      .replace(/^-\s+/gm, "• ")
       .replace(/\*\*(.*?)\*\*/g, "$1");
 
     doc.setFont("helvetica", "normal");

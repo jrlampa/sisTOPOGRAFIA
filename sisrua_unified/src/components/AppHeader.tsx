@@ -1,6 +1,7 @@
 import React from "react";
 import {
   FolderOpen,
+  HelpCircle,
   PanelLeftClose,
   PanelLeftOpen,
   Save,
@@ -21,6 +22,7 @@ interface AppHeaderProps {
   onSaveProject: () => void;
   onOpenProject: (file: File) => void;
   onOpenSettings: () => void;
+  onOpenHelp: () => void;
   isSidebarCollapsed: boolean;
   onToggleSidebarCollapsed: () => void;
   isDark: boolean;
@@ -37,6 +39,7 @@ export function AppHeader({
   onSaveProject,
   onOpenProject,
   onOpenSettings,
+  onOpenHelp,
   isDark,
   backendStatus,
   backendResponseTimeMs,
@@ -55,19 +58,6 @@ export function AppHeader({
       : backendStatus === "degraded"
         ? t.backendStatusDegraded
         : t.backendStatusOffline;
-
-  const backendStatusClasses =
-    backendStatus === "online"
-      ? isDark
-        ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
-        : "border-emerald-700/35 bg-emerald-100 text-emerald-800"
-      : backendStatus === "degraded"
-        ? isDark
-          ? "border-amber-400/50 bg-amber-500/15 text-amber-200"
-          : "border-amber-700/35 bg-amber-100 text-amber-800"
-        : isDark
-          ? "border-rose-400/50 bg-rose-500/15 text-rose-200"
-          : "border-rose-700/35 bg-rose-100 text-rose-800";
 
   const handleOpenProjectClick = () => {
     fileInputRef.current?.click();
@@ -216,9 +206,7 @@ export function AppHeader({
                 : "border-sky-100 bg-sky-50 text-sky-700 shadow-sky-500/5 hover:bg-sky-100 hover:shadow-sky-500/10"
             }`}
             title={
-              isSidebarCollapsed
-                ? t.toggleSidebarOpen
-                : t.toggleSidebarClose
+              isSidebarCollapsed ? t.toggleSidebarOpen : t.toggleSidebarClose
             }
           >
             {isSidebarCollapsed ? (
@@ -278,6 +266,20 @@ export function AppHeader({
           <motion.button
             whileHover={{ scale: 1.05, rotate: 15 }}
             whileTap={{ scale: 0.95 }}
+            onClick={onOpenHelp}
+            className={`${actionButtonClass} !h-12 !w-12 shadow-lg transition-all ${
+              isDark
+                ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20"
+                : "border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 shadow-cyan-200/50"
+            }`}
+            title={t.openHelp}
+          >
+            <HelpCircle size={22} strokeWidth={2} />
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.05, rotate: 15 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onOpenSettings}
             className={`${actionButtonClass} !h-12 !w-12 shadow-lg transition-all ${
               isDark
@@ -296,6 +298,7 @@ export function AppHeader({
         type="file"
         accept=".srua,.json"
         onChange={handleProjectFileChange}
+        aria-label={t.selectProjectFile}
         className="hidden"
       />
     </header>
