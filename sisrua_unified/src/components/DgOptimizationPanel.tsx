@@ -164,7 +164,6 @@ export function DgOptimizationPanel({
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [acceptanceConfirmed, setAcceptanceConfirmed] = useState(false);
 
-  const canRunLegacy = hasPoles && hasTransformer && !isOptimizing;
   const canRunFull = hasPoles && !isOptimizing;
 
   const rec = result?.recommendation ?? null;
