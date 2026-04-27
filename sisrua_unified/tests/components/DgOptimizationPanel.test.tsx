@@ -120,6 +120,33 @@ describe("DgOptimizationPanel", () => {
     expect(screen.getByText(/wizard projeto bt/i)).toBeInTheDocument();
   });
 
+  it("executa onRun com parâmetros do wizard", () => {
+    const onRun = vi.fn();
+    render(
+      React.createElement(
+        DgOptimizationPanel,
+        defaultProps({ hasTransformer: false, onRun }),
+      ),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /projetar rede/i }));
+    fireEvent.click(screen.getByRole("button", { name: /próximo/i }));
+    fireEvent.click(screen.getByRole("button", { name: /próximo/i }));
+    fireEvent.click(screen.getByRole("button", { name: /próximo/i }));
+    fireEvent.click(screen.getByRole("button", { name: /executar projeto/i }));
+
+    expect(onRun).toHaveBeenCalledOnce();
+    expect(onRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientesPorPoste: 1,
+        areaClandestinaM2: 0,
+        demandaMediaClienteKva: 1.5,
+        fatorSimultaneidade: 0.8,
+        maxSpanMeters: 40,
+      }),
+    );
+  });
+
   it("exibe indicador de carregamento durante otimização", () => {
     render(
       React.createElement(

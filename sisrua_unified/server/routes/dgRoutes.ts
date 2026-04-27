@@ -100,16 +100,44 @@ const paramsSchema = z.object({
   allowNewPoles: z.boolean().optional(),
   gridSpacingMeters: z.number().positive().optional(),
   objectiveWeights: weightsSchema.optional(),
+  projectMode: z.enum(["optimization", "full_project"]).optional(),
+  clientesPorPoste: z.number().int().positive().optional(),
+  areaClandestinaM2: z.number().nonnegative().optional(),
+  demandaMediaClienteKva: z.number().positive().optional(),
+  fatorSimultaneidade: z.number().positive().max(1).optional(),
+  faixaKvaTrafoPermitida: z.array(z.number().positive()).min(1).optional(),
+  wizardContractVersion: z.literal("DG Wizard v1").optional(),
 });
 
-const optimizeBodySchema = z.object({
-  runId: z.string().uuid().optional(),
-  poles: z.array(poleInputSchema).min(1).max(500),
-  transformer: transformerInputSchema,
-  exclusionPolygons: z.array(polygonSchema).optional(),
-  roadCorridors: z.array(corridorSchema).optional(),
-  params: paramsSchema.optional(),
-});
+const optimizeBodySchema = z
+  .object({
+    runId: z.string().uuid().optional(),
+    poles: z.array(poleInputSchema).min(1).max(500),
+    transformer: transformerInputSchema.optional(),
+    exclusionPolygons: z.array(polygonSchema).optional(),
+    roadCorridors: z.array(corridorSchema).optional(),
+    params: paramsSchema.optional(),
+  })
+  .superRefine((body, ctx) => {
+    const isFullProject = body.params?.projectMode === "full_project";
+    const wizardEnabled = process.env.DG_WIZARD_FULL_MODE !== "false";
+
+    if (isFullProject && !wizardEnabled) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "DG Wizard Full Project está desabilitado no servidor.",
+        path: ["params", "projectMode"],
+      });
+    }
+
+    if (!isFullProject && !body.transformer) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Transformador é obrigatório no modo de otimização legado.",
+        path: ["transformer"],
+      });
+    }
+  });
 
 // ─── POST /api/dg/optimize ────────────────────────────────────────────────────
 
@@ -123,12 +151,10 @@ router.post("/optimize", async (req: Request, res: Response) => {
   }
 
   try {
-    const output = await runDgOptimization(
-      {
-        ...parsed.data,
-        tenantId: res.locals.tenantId,
-      } as Parameters<typeof runDgOptimization>[0],
-    );
+    const output = await runDgOptimization({
+      ...parsed.data,
+      tenantId: res.locals.tenantId,
+    } as Parameters<typeof runDgOptimization>[0]);
     return res.status(200).json(output);
   } catch (err) {
     logger.error("DG optimize error", { message: (err as Error).message });
@@ -209,7 +235,10 @@ router.get("/runs/:id", async (req: Request, res: Response) => {
 
 router.get("/runs/:id/scenarios", async (req: Request, res: Response) => {
   try {
-    const scenarios = await getDgRunScenarios(req.params.id, res.locals.tenantId);
+    const scenarios = await getDgRunScenarios(
+      req.params.id,
+      res.locals.tenantId,
+    );
     if (!scenarios) {
       return res.status(404).json({ error: "Run DG não encontrada." });
     }

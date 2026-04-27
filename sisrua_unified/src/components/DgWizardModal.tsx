@@ -8,7 +8,15 @@
  */
 
 import React, { useState } from "react";
-import { X, ChevronRight, ChevronLeft, Zap, Users, Shield, Ruler } from "lucide-react";
+import {
+  X,
+  ChevronRight,
+  ChevronLeft,
+  Zap,
+  Users,
+  Shield,
+  Ruler,
+} from "lucide-react";
 
 interface DgWizardModalProps {
   isOpen: boolean;
@@ -36,7 +44,11 @@ const DEFAULT_WIZARD_PARAMS: DgWizardParams = {
 
 type Step = "DEMANDA" | "EXPANSAO" | "TECNICO" | "REVISAO";
 
-export function DgWizardModal({ isOpen, onClose, onExecute }: DgWizardModalProps) {
+export function DgWizardModal({
+  isOpen,
+  onClose,
+  onExecute,
+}: DgWizardModalProps) {
   const [step, setStep] = useState<Step>("DEMANDA");
   const [params, setParams] = useState<DgWizardParams>(DEFAULT_WIZARD_PARAMS);
 
@@ -58,6 +70,41 @@ export function DgWizardModal({ isOpen, onClose, onExecute }: DgWizardModalProps
     setParams((prev) => ({ ...prev, [key]: value }));
   };
 
+  const validationError = (() => {
+    if (
+      !Number.isFinite(params.clientesPorPoste) ||
+      params.clientesPorPoste <= 0
+    ) {
+      return "Informe ao menos 1 cliente por poste.";
+    }
+    if (
+      !Number.isFinite(params.demandaMediaClienteKva) ||
+      params.demandaMediaClienteKva <= 0
+    ) {
+      return "A demanda média por cliente deve ser maior que zero.";
+    }
+    if (
+      !Number.isFinite(params.areaClandestinaM2) ||
+      params.areaClandestinaM2 < 0
+    ) {
+      return "A área clandestina não pode ser negativa.";
+    }
+    if (!Number.isFinite(params.maxSpanMeters) || params.maxSpanMeters <= 0) {
+      return "O vão máximo deve ser maior que zero.";
+    }
+    if (
+      !Number.isFinite(params.fatorSimultaneidade) ||
+      params.fatorSimultaneidade <= 0 ||
+      params.fatorSimultaneidade > 1
+    ) {
+      return "O fator de simultaneidade deve ficar entre 0 e 1.";
+    }
+    if (params.faixaKvaTrafoPermitida.length === 0) {
+      return "Selecione ao menos uma faixa de kVA permitida.";
+    }
+    return null;
+  })();
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/50 backdrop-blur-sm p-4">
       <div className="w-full max-w-md rounded-2xl border-2 border-violet-700/30 bg-white shadow-2xl dark:bg-zinc-900 dark:border-violet-500/30 overflow-hidden">
@@ -69,7 +116,12 @@ export function DgWizardModal({ isOpen, onClose, onExecute }: DgWizardModalProps
               Wizard Projeto BT
             </h2>
           </div>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+          <button
+            onClick={onClose}
+            aria-label="Fechar wizard"
+            title="Fechar wizard"
+            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+          >
             <X size={18} />
           </button>
         </div>
@@ -82,7 +134,14 @@ export function DgWizardModal({ isOpen, onClose, onExecute }: DgWizardModalProps
               <div
                 key={s}
                 className={`h-1.5 flex-1 mx-0.5 rounded-full ${
-                  step === s ? "bg-violet-600" : i < ["DEMANDA", "EXPANSAO", "TECNICO", "REVISAO"].indexOf(step) ? "bg-violet-300" : "bg-zinc-200 dark:bg-zinc-800"
+                  step === s
+                    ? "bg-violet-600"
+                    : i <
+                        ["DEMANDA", "EXPANSAO", "TECNICO", "REVISAO"].indexOf(
+                          step,
+                        )
+                      ? "bg-violet-300"
+                      : "bg-zinc-200 dark:bg-zinc-800"
                 }`}
               />
             ))}
@@ -93,27 +152,46 @@ export function DgWizardModal({ isOpen, onClose, onExecute }: DgWizardModalProps
               <div className="flex items-center gap-3">
                 <Users className="text-violet-600" size={20} />
                 <div>
-                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Passo 1: Demanda Base</h3>
-                  <p className="text-[10px] text-zinc-500">Defina a carga inicial por ponto de entrega.</p>
+                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                    Passo 1: Demanda Base
+                  </h3>
+                  <p className="text-[10px] text-zinc-500">
+                    Defina a carga inicial por ponto de entrega.
+                  </p>
                 </div>
               </div>
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-600 uppercase">Clientes por poste (médio)</label>
+                  <label className="text-[10px] font-bold text-zinc-600 uppercase">
+                    Clientes por poste (médio)
+                  </label>
                   <input
                     type="number"
                     value={params.clientesPorPoste}
-                    onChange={(e) => updateParam("clientesPorPoste", Number(e.target.value))}
+                    title="Clientes por poste"
+                    placeholder="1"
+                    onChange={(e) =>
+                      updateParam("clientesPorPoste", Number(e.target.value))
+                    }
                     className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500 outline-none dark:bg-zinc-800 dark:border-zinc-700"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-600 uppercase">Demanda média por cliente (kVA)</label>
+                  <label className="text-[10px] font-bold text-zinc-600 uppercase">
+                    Demanda média por cliente (kVA)
+                  </label>
                   <input
                     type="number"
                     step="0.1"
                     value={params.demandaMediaClienteKva}
-                    onChange={(e) => updateParam("demandaMediaClienteKva", Number(e.target.value))}
+                    title="Demanda média por cliente em kVA"
+                    placeholder="1.5"
+                    onChange={(e) =>
+                      updateParam(
+                        "demandaMediaClienteKva",
+                        Number(e.target.value),
+                      )
+                    }
                     className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500 outline-none dark:bg-zinc-800 dark:border-zinc-700"
                   />
                 </div>
@@ -126,19 +204,31 @@ export function DgWizardModal({ isOpen, onClose, onExecute }: DgWizardModalProps
               <div className="flex items-center gap-3">
                 <Shield className="text-violet-600" size={20} />
                 <div>
-                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Passo 2: Expansão / Clandestino</h3>
-                  <p className="text-[10px] text-zinc-500">Parâmetros para áreas de ocupação informal.</p>
+                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                    Passo 2: Expansão / Clandestino
+                  </h3>
+                  <p className="text-[10px] text-zinc-500">
+                    Parâmetros para áreas de ocupação informal.
+                  </p>
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-zinc-600 uppercase">Área Clandestina Adicional (m²)</label>
+                <label className="text-[10px] font-bold text-zinc-600 uppercase">
+                  Área Clandestina Adicional (m²)
+                </label>
                 <input
                   type="number"
                   value={params.areaClandestinaM2}
-                  onChange={(e) => updateParam("areaClandestinaM2", Number(e.target.value))}
+                  title="Área clandestina adicional em metros quadrados"
+                  placeholder="0"
+                  onChange={(e) =>
+                    updateParam("areaClandestinaM2", Number(e.target.value))
+                  }
                   className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500 outline-none dark:bg-zinc-800 dark:border-zinc-700"
                 />
-                <p className="text-[9px] text-zinc-400 mt-1 italic">Carga de 20W/m² será aplicada nesta área e rateada nos postes.</p>
+                <p className="text-[9px] text-zinc-400 mt-1 italic">
+                  Carga de 20W/m² será aplicada nesta área e rateada nos postes.
+                </p>
               </div>
             </div>
           )}
@@ -148,42 +238,60 @@ export function DgWizardModal({ isOpen, onClose, onExecute }: DgWizardModalProps
               <div className="flex items-center gap-3">
                 <Ruler className="text-violet-600" size={20} />
                 <div>
-                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Passo 3: Regras Técnicas</h3>
-                  <p className="text-[10px] text-zinc-500">Limites de projeto e dimensionamento.</p>
+                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                    Passo 3: Regras Técnicas
+                  </h3>
+                  <p className="text-[10px] text-zinc-500">
+                    Limites de projeto e dimensionamento.
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-600 uppercase">Vão Máximo (m)</label>
+                  <label className="text-[10px] font-bold text-zinc-600 uppercase">
+                    Vão Máximo (m)
+                  </label>
                   <input
                     type="number"
                     value={params.maxSpanMeters}
-                    onChange={(e) => updateParam("maxSpanMeters", Number(e.target.value))}
+                    title="Vão máximo em metros"
+                    placeholder="40"
+                    onChange={(e) =>
+                      updateParam("maxSpanMeters", Number(e.target.value))
+                    }
                     className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500 outline-none dark:bg-zinc-800 dark:border-zinc-700"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-600 uppercase">Fator Simult.</label>
+                  <label className="text-[10px] font-bold text-zinc-600 uppercase">
+                    Fator Simult.
+                  </label>
                   <input
                     type="number"
                     step="0.05"
                     value={params.fatorSimultaneidade}
-                    onChange={(e) => updateParam("fatorSimultaneidade", Number(e.target.value))}
+                    title="Fator de simultaneidade"
+                    placeholder="0.8"
+                    onChange={(e) =>
+                      updateParam("fatorSimultaneidade", Number(e.target.value))
+                    }
                     className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500 outline-none dark:bg-zinc-800 dark:border-zinc-700"
                   />
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-zinc-600 uppercase">Faixas de kVA Permitidas</label>
+                <label className="text-[10px] font-bold text-zinc-600 uppercase">
+                  Faixas de kVA Permitidas
+                </label>
                 <div className="flex flex-wrap gap-2">
-                  {[15, 30, 45, 75, 112.5].map(kva => (
+                  {[15, 30, 45, 75, 112.5].map((kva) => (
                     <button
                       key={kva}
                       onClick={() => {
                         const current = params.faixaKvaTrafoPermitida;
-                        const next = current.includes(kva) 
-                          ? current.filter(k => k !== kva) 
-                          : [...current, kva].sort((a,b) => a-b);
+                        const next = current.includes(kva)
+                          ? current.filter((k) => k !== kva)
+                          : [...current, kva].sort((a, b) => a - b);
                         updateParam("faixaKvaTrafoPermitida", next);
                       }}
                       className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
@@ -205,24 +313,45 @@ export function DgWizardModal({ isOpen, onClose, onExecute }: DgWizardModalProps
               <div className="flex items-center gap-3">
                 <Zap className="text-violet-600" size={20} />
                 <div>
-                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Revisão Final</h3>
-                  <p className="text-[10px] text-zinc-500">Confirme os parâmetros para simulação.</p>
+                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                    Revisão Final
+                  </h3>
+                  <p className="text-[10px] text-zinc-500">
+                    Confirme os parâmetros para simulação.
+                  </p>
                 </div>
               </div>
               <div className="rounded-xl bg-zinc-50 p-4 space-y-2 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700">
                 <div className="flex justify-between text-xs">
                   <span className="text-zinc-500">Demanda/Poste:</span>
-                  <span className="font-bold text-zinc-700 dark:text-zinc-300">{(params.clientesPorPoste * params.demandaMediaClienteKva * params.fatorSimultaneidade).toFixed(2)} kVA</span>
+                  <span className="font-bold text-zinc-700 dark:text-zinc-300">
+                    {(
+                      params.clientesPorPoste *
+                      params.demandaMediaClienteKva *
+                      params.fatorSimultaneidade
+                    ).toFixed(2)}{" "}
+                    kVA
+                  </span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-zinc-500">Área Clandestina:</span>
-                  <span className="font-bold text-zinc-700 dark:text-zinc-300">{params.areaClandestinaM2} m²</span>
+                  <span className="font-bold text-zinc-700 dark:text-zinc-300">
+                    {params.areaClandestinaM2} m²
+                  </span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-zinc-500">Faixas kVA:</span>
-                  <span className="font-bold text-zinc-700 dark:text-zinc-300">{params.faixaKvaTrafoPermitida.join(", ")}</span>
+                  <span className="font-bold text-zinc-700 dark:text-zinc-300">
+                    {params.faixaKvaTrafoPermitida.join(", ")}
+                  </span>
                 </div>
               </div>
+            </div>
+          )}
+
+          {validationError && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] text-amber-800 dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-300">
+              {validationError}
             </div>
           )}
         </div>
@@ -233,7 +362,9 @@ export function DgWizardModal({ isOpen, onClose, onExecute }: DgWizardModalProps
             onClick={step === "DEMANDA" ? onClose : handleBack}
             className="flex items-center gap-1 text-[10px] font-bold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
           >
-            {step === "DEMANDA" ? "CANCELAR" : (
+            {step === "DEMANDA" ? (
+              "CANCELAR"
+            ) : (
               <>
                 <ChevronLeft size={14} />
                 VOLTAR
@@ -242,9 +373,12 @@ export function DgWizardModal({ isOpen, onClose, onExecute }: DgWizardModalProps
           </button>
           <button
             onClick={step === "REVISAO" ? () => onExecute(params) : handleNext}
-            className="flex items-center gap-1 rounded-xl bg-violet-700 px-6 py-2 text-[10px] font-black text-white hover:bg-violet-800"
+            disabled={validationError !== null}
+            className="flex items-center gap-1 rounded-xl bg-violet-700 px-6 py-2 text-[10px] font-black text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {step === "REVISAO" ? "EXECUTAR PROJETO" : (
+            {step === "REVISAO" ? (
+              "EXECUTAR PROJETO"
+            ) : (
               <>
                 PRÓXIMO
                 <ChevronRight size={14} />

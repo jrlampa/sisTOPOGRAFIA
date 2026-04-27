@@ -39,6 +39,25 @@ const optimizePayload = {
   },
 };
 
+const fullProjectPayload = {
+  runId: "44444444-4444-4444-8444-444444444444",
+  poles: optimizePayload.poles.map((pole) => ({
+    ...pole,
+    demandKva: 0,
+    clients: 0,
+  })),
+  params: {
+    projectMode: "full_project",
+    clientesPorPoste: 3,
+    areaClandestinaM2: 120,
+    demandaMediaClienteKva: 1.5,
+    fatorSimultaneidade: 0.8,
+    faixaKvaTrafoPermitida: [15, 30, 45, 75],
+    maxSpanMeters: 40,
+    wizardContractVersion: "DG Wizard v1",
+  },
+};
+
 describe("dgRoutes", () => {
   it("GET /discard-rates retorna agregados de descarte por restrição", async () => {
     await request(app)
@@ -70,10 +89,16 @@ describe("dgRoutes", () => {
   it("GET /runs retorna ranking recente limitado e ordenado por computedAt desc", async () => {
     await request(app)
       .post(`${BASE}/optimize`)
-      .send({ ...optimizePayload, runId: "11111111-1111-4111-8111-111111111111" });
+      .send({
+        ...optimizePayload,
+        runId: "11111111-1111-4111-8111-111111111111",
+      });
     await request(app)
       .post(`${BASE}/optimize`)
-      .send({ ...optimizePayload, runId: "22222222-2222-4222-8222-222222222222" });
+      .send({
+        ...optimizePayload,
+        runId: "22222222-2222-4222-8222-222222222222",
+      });
 
     const res = await request(app).get(`${BASE}/runs?limit=1`);
 
@@ -82,27 +107,50 @@ describe("dgRoutes", () => {
     expect(res.body.limit).toBe(1);
     expect(res.body.runs).toHaveLength(1);
     expect(res.body.runs[0].runId).toBe("22222222-2222-4222-8222-222222222222");
-    expect(typeof res.body.runs[0].bestObjectiveScore === "number" || res.body.runs[0].bestObjectiveScore === null).toBe(true);
+    expect(
+      typeof res.body.runs[0].bestObjectiveScore === "number" ||
+        res.body.runs[0].bestObjectiveScore === null,
+    ).toBe(true);
   });
 
   it("POST /optimize executa otimização e persiste a run para consulta posterior", async () => {
-    const optimizeRes = await request(app).post(`${BASE}/optimize`).send(optimizePayload);
+    const optimizeRes = await request(app)
+      .post(`${BASE}/optimize`)
+      .send(optimizePayload);
 
     expect(optimizeRes.status).toBe(200);
     expect(optimizeRes.body.runId).toBe(optimizePayload.runId);
     expect(optimizeRes.body.recommendation).not.toBeNull();
 
-    const runRes = await request(app).get(`${BASE}/runs/${optimizePayload.runId}`);
+    const runRes = await request(app).get(
+      `${BASE}/runs/${optimizePayload.runId}`,
+    );
 
     expect(runRes.status).toBe(200);
     expect(runRes.body.runId).toBe(optimizePayload.runId);
     expect(runRes.body.inputHash).toBe(optimizeRes.body.inputHash);
   });
 
+  it("POST /optimize aceita modo full_project sem transformador", async () => {
+    const optimizeRes = await request(app)
+      .post(`${BASE}/optimize`)
+      .send(fullProjectPayload);
+
+    expect(optimizeRes.status).toBe(200);
+    expect(optimizeRes.body.runId).toBe(fullProjectPayload.runId);
+    expect(optimizeRes.body.recommendation).not.toBeNull();
+    expect(
+      optimizeRes.body.recommendation.bestScenario.metadata.selectedKva,
+    ).toBeGreaterThan(0);
+  });
+
   it("GET /runs/:id/scenarios retorna cenários e respeita filtro feasibleOnly", async () => {
     await request(app)
       .post(`${BASE}/optimize`)
-      .send({ ...optimizePayload, runId: "0f5f64af-9a07-4ca4-81fd-667788990011" });
+      .send({
+        ...optimizePayload,
+        runId: "0f5f64af-9a07-4ca4-81fd-667788990011",
+      });
 
     const res = await request(app).get(
       `${BASE}/runs/0f5f64af-9a07-4ca4-81fd-667788990011/scenarios?feasibleOnly=true`,
@@ -112,13 +160,20 @@ describe("dgRoutes", () => {
     expect(res.body.runId).toBe("0f5f64af-9a07-4ca4-81fd-667788990011");
     expect(res.body.total).toBeGreaterThan(0);
     expect(res.body.returned).toBeGreaterThan(0);
-    expect(res.body.scenarios.every((scenario: { feasible: boolean }) => scenario.feasible)).toBe(true);
+    expect(
+      res.body.scenarios.every(
+        (scenario: { feasible: boolean }) => scenario.feasible,
+      ),
+    ).toBe(true);
   });
 
   it("GET /runs/:id/recommendation retorna a recomendação persistida", async () => {
     await request(app)
       .post(`${BASE}/optimize`)
-      .send({ ...optimizePayload, runId: "db93541b-4d8d-44b6-8d88-112233445566" });
+      .send({
+        ...optimizePayload,
+        runId: "db93541b-4d8d-44b6-8d88-112233445566",
+      });
 
     const res = await request(app).get(
       `${BASE}/runs/db93541b-4d8d-44b6-8d88-112233445566/recommendation`,

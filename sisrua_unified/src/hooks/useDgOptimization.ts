@@ -146,59 +146,64 @@ export function useDgOptimization() {
    * Executa otimização DG para a topologia BT atual.
    * No Modo Full Project (wizardParams presente), o transformador é opcional.
    */
-  const runDgOptimization = useCallback(async (btTopology: BtTopology, wizardParams?: DgWizardParams) => {
-    if (btTopology.poles.length === 0) return;
-    
-    const transformer = btTopology.transformers[0];
-    const isFullProject = !!wizardParams || !transformer;
+  const runDgOptimization = useCallback(
+    async (btTopology: BtTopology, wizardParams?: DgWizardParams) => {
+      if (btTopology.poles.length === 0) return;
 
-    setState({ isOptimizing: true, result: null, error: null });
+      const transformer = btTopology.transformers[0];
+      const isFullProject = !!wizardParams || !transformer;
 
-    const payload: any = {
-      poles: btTopology.poles.map((p) => ({
-        id: p.id,
-        position: { lat: p.lat, lon: p.lng },
-        demandKva: Math.max(0, (p.ramais?.length ?? 0) * 1.5),
-        clients: p.ramais?.length ?? 0,
-      })),
-      params: {
-        projectMode: isFullProject ? "full_project" : "optimization",
-        ...wizardParams
-      }
-    };
+      setState({ isOptimizing: true, result: null, error: null });
 
-    if (transformer) {
-      payload.transformer = {
-        id: transformer.id,
-        position: { lat: transformer.lat, lon: transformer.lng },
-        kva: transformer.projectPowerKva ?? 75,
-        currentDemandKva: transformer.demandKva ?? 0,
+      const payload: any = {
+        poles: btTopology.poles.map((p) => ({
+          id: p.id,
+          position: { lat: p.lat, lon: p.lng },
+          demandKva: Math.max(0, (p.ramais?.length ?? 0) * 1.5),
+          clients: p.ramais?.length ?? 0,
+        })),
+        params: {
+          projectMode: isFullProject ? "full_project" : "optimization",
+          ...wizardParams,
+        },
       };
-    }
 
-    try {
-      const res = await fetch("/api/dg/optimize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? `HTTP ${res.status}`);
+      if (transformer) {
+        payload.transformer = {
+          id: transformer.id,
+          position: { lat: transformer.lat, lon: transformer.lng },
+          kva: transformer.projectPowerKva ?? 75,
+          currentDemandKva: transformer.demandKva ?? 0,
+        };
       }
 
-      const result = (await res.json()) as DgOptimizationOutput;
-      setState({ isOptimizing: false, result, error: null });
-      setActiveAltIndex(-1); // Reinicia seleção ao melhor cenário
-    } catch (err) {
-      setState({
-        isOptimizing: false,
-        result: null,
-        error: (err as Error).message,
-      });
-    }
-  }, []);
+      try {
+        const res = await fetch("/api/dg/optimize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          throw new Error(body.error ?? `HTTP ${res.status}`);
+        }
+
+        const result = (await res.json()) as DgOptimizationOutput;
+        setState({ isOptimizing: false, result, error: null });
+        setActiveAltIndex(-1); // Reinicia seleção ao melhor cenário
+      } catch (err) {
+        setState({
+          isOptimizing: false,
+          result: null,
+          error: (err as Error).message,
+        });
+      }
+    },
+    [],
+  );
 
   /** Limpa o resultado da última execução DG. */
   const clearDgResult = useCallback(() => {
@@ -219,15 +224,22 @@ export function useDgOptimization() {
         id: existingTrafo?.id ?? `new-trafo-${Date.now()}`,
         lat: scenario.trafoPositionLatLon.lat,
         lng: scenario.trafoPositionLatLon.lon,
+        title: existingTrafo?.title ?? `Trafo DG ${kva} kVA`,
         projectPowerKva: kva,
-        transformerChangeFlag: existingTrafo ? ("replace" as const) : ("new" as const),
-        type: "M" as const,
-        phase: "3" as const,
+        monthlyBillBrl: existingTrafo?.monthlyBillBrl ?? 0,
+        readings: existingTrafo?.readings ?? [],
+        demandKva: existingTrafo?.demandKva,
+        transformerChangeFlag: existingTrafo
+          ? ("replace" as const)
+          : ("new" as const),
       };
 
       return {
         ...btTopology,
-        transformers: [nextTransformer, ...btTopology.transformers.slice(existingTrafo ? 1 : 0)],
+        transformers: [
+          nextTransformer,
+          ...btTopology.transformers.slice(existingTrafo ? 1 : 0),
+        ],
         edges: dgEdgesToBtEdges(scenario.edges, btTopology.edges),
       };
     },
@@ -247,15 +259,22 @@ export function useDgOptimization() {
         id: existingTrafo?.id ?? `new-trafo-${Date.now()}`,
         lat: scenario.trafoPositionLatLon.lat,
         lng: scenario.trafoPositionLatLon.lon,
+        title: existingTrafo?.title ?? `Trafo DG ${kva} kVA`,
         projectPowerKva: kva,
-        transformerChangeFlag: existingTrafo ? ("replace" as const) : ("new" as const),
-        type: "M" as const,
-        phase: "3" as const,
+        monthlyBillBrl: existingTrafo?.monthlyBillBrl ?? 0,
+        readings: existingTrafo?.readings ?? [],
+        demandKva: existingTrafo?.demandKva,
+        transformerChangeFlag: existingTrafo
+          ? ("replace" as const)
+          : ("new" as const),
       };
 
       return {
         ...btTopology,
-        transformers: [nextTransformer, ...btTopology.transformers.slice(existingTrafo ? 1 : 0)],
+        transformers: [
+          nextTransformer,
+          ...btTopology.transformers.slice(existingTrafo ? 1 : 0),
+        ],
       };
     },
     [],

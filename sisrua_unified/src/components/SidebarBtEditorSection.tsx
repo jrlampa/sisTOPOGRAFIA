@@ -177,7 +177,9 @@ export function SidebarBtEditorSection({
           </label>
           <span className="text-xs font-black uppercase text-amber-700 dark:text-amber-300">
             {(settings.projectType ?? "ramais").toUpperCase()} /{" "}
-            {btNetworkScenario === "asis" ? t.scenarioActual : t.scenarioProject}
+            {btNetworkScenario === "asis"
+              ? t.scenarioActual
+              : t.scenarioProject}
           </span>
         </div>
 
@@ -306,7 +308,9 @@ export function SidebarBtEditorSection({
         {settings.projectType !== "clandestino" &&
           pendingNormalClassificationPoles.length > 0 && (
             <div className="rounded-lg border border-rose-300 bg-rose-50 p-2 text-[10px] text-rose-800 dark:border-rose-700/50 dark:bg-rose-950/30 dark:text-rose-300">
-              {t.pendingClassificationMsg(pendingNormalClassificationPoles.length)}
+              {t.pendingClassificationMsg(
+                pendingNormalClassificationPoles.length,
+              )}
             </div>
           )}
 
@@ -321,9 +325,7 @@ export function SidebarBtEditorSection({
 
       <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
 
-      <Suspense
-        fallback={<InlineSuspenseFallback label={t.loadingBtPanel} />}
-      >
+      <Suspense fallback={<InlineSuspenseFallback label={t.loadingBtPanel} />}>
         <BtTopologyPanel
           locale={locale}
           btTopology={btTopology}
@@ -366,7 +368,9 @@ export function SidebarBtEditorSection({
           <DgOptimizationPanel
             hasPoles={btTopology.poles.length > 0}
             hasTransformer={btTopology.transformers.length > 0}
-            hasProjectedPoles={btTopology.poles.some(p => p.poleChangeFlag === 'new')}
+            hasProjectedPoles={btTopology.poles.some(
+              (p) => p.nodeChangeFlag === "new",
+            )}
             isOptimizing={isDgOptimizing}
             result={dgResult}
             error={dgError}

@@ -24,6 +24,7 @@ import { useBtTelescopicAnalysis } from "./hooks/useBtTelescopicAnalysis";
 import { useMapUrlState } from "./hooks/useMapUrlState";
 import { useDgOptimization } from "./hooks/useDgOptimization";
 import type { DgScenario } from "./hooks/useDgOptimization";
+import type { DgWizardParams } from "./components/DgWizardModal";
 import { EMPTY_BT_TOPOLOGY } from "./utils/btNormalization";
 import { SidebarBtEditorSection } from "./components/SidebarBtEditorSection";
 import { SidebarAnalysisResults } from "./components/SidebarAnalysisResults";
@@ -409,9 +410,12 @@ function App() {
     applyDgTrafoOnly,
   } = useDgOptimization();
 
-  const handleRunDgOptimization = React.useCallback(() => {
-    void runDgOptimization(btTopology);
-  }, [runDgOptimization, btTopology]);
+  const handleRunDgOptimization = React.useCallback(
+    (wizardParams?: DgWizardParams) => {
+      void runDgOptimization(btTopology, wizardParams);
+    },
+    [runDgOptimization, btTopology],
+  );
 
   const handleAcceptDgAll = React.useCallback(
     (scenario: DgScenario) => {

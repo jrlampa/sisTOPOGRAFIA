@@ -38,7 +38,10 @@ import {
   latLonToUtm,
   utmToLatLon,
 } from "./dgCandidates.js";
-import { evaluateHardConstraints, checkTrafoOverload } from "./dgConstraints.js";
+import {
+  evaluateHardConstraints,
+  checkTrafoOverload,
+} from "./dgConstraints.js";
 import {
   calculateObjectiveScore,
   totalCableLengthMeters,
@@ -65,7 +68,8 @@ function derivePolesDemand(
 
   // Carga clandestina rateada (assumindo 0.02 kVA/m² como padrão se não informado)
   const extraClandestinaTotal = (params.areaClandestinaM2 ?? 0) * 0.02;
-  const extraPerPole = poles.length > 0 ? extraClandestinaTotal / poles.length : 0;
+  const extraPerPole =
+    poles.length > 0 ? extraClandestinaTotal / poles.length : 0;
 
   return poles.map((p) => ({
     ...p,
@@ -302,10 +306,10 @@ function evaluateCandidate(
   }
 
   // 4. Dimensionamento de Trafo e Avaliação Elétrica
-  // Se houver trafo fixo, avalia apenas ele. 
+  // Se houver trafo fixo, avalia apenas ele.
   // Se não (Full Project), itera sobre faixas de kVA comerciais.
-  const kvaFaixa = transformer 
-    ? [transformer.kva] 
+  const kvaFaixa = transformer
+    ? [transformer.kva]
     : (params.faixaKvaTrafoPermitida ?? [15, 30, 45, 75, 112.5]);
 
   const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
@@ -314,7 +318,11 @@ function evaluateCandidate(
 
   for (const kva of kvaFaixa) {
     // Check overload for this KVA
-    const overload = checkTrafoOverload(totalDemandKva, kva, params.trafoMaxUtilization);
+    const overload = checkTrafoOverload(
+      totalDemandKva,
+      kva,
+      params.trafoMaxUtilization,
+    );
     if (overload.length > 0) continue;
 
     const electrical = evaluateElectrically(
@@ -334,7 +342,10 @@ function evaluateCandidate(
 
   if (!bestKvaResult) {
     return createFailedScenario(candidate, [
-      { code: "TRAFO_OVERLOAD", detail: "Nenhum kVA na faixa permitida é viável." },
+      {
+        code: "TRAFO_OVERLOAD",
+        detail: "Nenhum kVA na faixa permitida é viável.",
+      },
     ]);
   }
 
@@ -361,13 +372,17 @@ function evaluateCandidate(
     trafoPositionLatLon: candidate.position,
     edges,
     electricalResult: {
-        ...bestKvaResult,
-        trafoUtilizationFraction: totalDemandKva / selectedKva,
+      ...bestKvaResult,
+      trafoUtilizationFraction: totalDemandKva / selectedKva,
     },
     objectiveScore,
     scoreComponents,
     violations: [],
     feasible: true,
+    metadata: {
+      selectedKva,
+      projectMode: params.projectMode ?? "optimization",
+    },
   };
 }
 

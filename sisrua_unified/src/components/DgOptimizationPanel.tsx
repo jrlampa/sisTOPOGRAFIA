@@ -16,6 +16,9 @@ import type {
 } from "../hooks/useDgOptimization";
 import { DgWizardModal, DgWizardParams } from "./DgWizardModal";
 
+const DG_WIZARD_FULL_MODE_ENABLED =
+  String(import.meta.env.VITE_DG_WIZARD_FULL_MODE ?? "true") !== "false";
+
 // ─── Labels em pt-BR ───────────────────────────────────────────────────────────
 
 const CONSTRAINT_LABELS: Record<DgConstraintCode, string> = {
@@ -132,7 +135,7 @@ export function DgOptimizationPanel({
 
   const canRunLegacy = hasPoles && hasTransformer && !isOptimizing;
   const canRunFull = hasPoles && !isOptimizing;
-  
+
   const rec = result?.recommendation ?? null;
   // Cenário exibido: melhor ou alternativa selecionada
   const active: DgScenario | null =
@@ -144,7 +147,7 @@ export function DgOptimizationPanel({
 
   const handleMainAction = () => {
     // Se não tem trafo OU tem postes projetados, abre wizard
-    if (!hasTransformer || hasProjectedPoles) {
+    if (DG_WIZARD_FULL_MODE_ENABLED && (!hasTransformer || hasProjectedPoles)) {
       setIsWizardOpen(true);
     } else {
       onRun();
@@ -196,8 +199,11 @@ export function DgOptimizationPanel({
               <Loader2 size={11} className="animate-spin" />
               Otimizando…
             </span>
+          ) : DG_WIZARD_FULL_MODE_ENABLED &&
+            (hasProjectedPoles || !hasTransformer) ? (
+            "PROJETAR REDE (WIZARD)"
           ) : (
-            hasProjectedPoles || !hasTransformer ? "PROJETAR REDE (WIZARD)" : "OTIMIZAR REDE"
+            "OTIMIZAR REDE"
           )}
         </button>
       )}
@@ -269,10 +275,10 @@ export function DgOptimizationPanel({
           {/* Resultados elétricos */}
           <div className="space-y-1">
             {active.metadata?.selectedKva && (
-                <ElectricalResultRow
-                  label="Trafo Dimensionado"
-                  value={`${active.metadata.selectedKva} kVA`}
-                />
+              <ElectricalResultRow
+                label="Trafo Dimensionado"
+                value={`${active.metadata.selectedKva} kVA`}
+              />
             )}
             <ElectricalResultRow
               label="CQT máx."
@@ -319,10 +325,10 @@ export function DgOptimizationPanel({
         </div>
       )}
 
-      <DgWizardModal 
-        isOpen={isWizardOpen} 
-        onClose={() => setIsWizardOpen(false)} 
-        onExecute={handleExecuteWizard} 
+      <DgWizardModal
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        onExecute={handleExecuteWizard}
       />
     </div>
   );
