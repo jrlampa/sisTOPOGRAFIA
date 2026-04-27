@@ -53,3 +53,19 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 - **Supabase First**: Persistência de jobs e metadados via Postgres.
 - **Segurança First**: Sanitização de entradas e auditoria de dependências constante.
 - **BIM Evolution**: Manter estrutura compatível com metadados de engenharia.
+
+## Atualização Operacional (2026-04-27)
+
+- Hardening do fluxo DXF no frontend:
+    - validação de URL para garantir download apenas de arquivos `.dxf` em resposta imediata e em conclusão de job.
+- Evolução da exportação do memorial descritivo:
+    - saída principal em PDF com `jspdf` e fallback automático para `.txt`.
+- Dependência adicionada:
+    - `jspdf` (com atualização de `package-lock.json`).
+- Testes adicionados/ajustados:
+    - `tests/hooks/useDxfExport.test.ts` (cenários de URL não-DXF)
+    - `tests/utils/memorialDescritivo.test.ts` (export PDF + fallback)
+- Validações executadas:
+    - `npm run test:frontend -- tests/hooks/useDxfExport.test.ts tests/utils/memorialDescritivo.test.ts` (passou)
+    - `npm run build` (passou)
+    - `npm run test:all` executado; houve falhas não relacionadas ao delta deste pacote em suites backend de infra/ambiente.

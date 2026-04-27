@@ -1,4 +1,5 @@
 import { downloadText, sanitizeFilename } from "./downloads";
+import { jsPDF } from "jspdf";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -221,9 +222,54 @@ export function downloadMemorialDescritivo(
     .replace(/[-:]/g, "")
     .replace(/\.\d{3}Z$/, "");
   const filename = sanitizeFilename(
-    `${baseName}_memorial_descritivo_${timestamp}.md`,
+    `${baseName}_memorial_descritivo_${timestamp}.pdf`,
   );
 
-  downloadText(content, filename);
+  try {
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const margin = 48;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const maxTextWidth = pageWidth - margin * 2;
+    const lineHeight = 16;
+    let cursorY = margin;
+
+    const normalized = content
+      .replace(/^#\s+/gm, "")
+      .replace(/^##\s+/gm, "")
+      .replace(/^\-\s+/gm, "• ")
+      .replace(/\*\*(.*?)\*\*/g, "$1");
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+
+    const sections = normalized.split("\n");
+    for (const section of sections) {
+      const safeSection = section.trim().length > 0 ? section : " ";
+      const wrappedLines = doc.splitTextToSize(
+        safeSection,
+        maxTextWidth,
+      ) as string[];
+
+      for (const line of wrappedLines) {
+        if (cursorY > pageHeight - margin) {
+          doc.addPage();
+          cursorY = margin;
+        }
+        doc.text(line, margin, cursorY);
+        cursorY += lineHeight;
+      }
+    }
+
+    doc.save(filename);
+  } catch {
+    // Fallback de segurança: se o PDF falhar, ao menos entrega um texto técnico.
+    const fallbackFilename = sanitizeFilename(
+      `${baseName}_memorial_descritivo_${timestamp}.txt`,
+    );
+    downloadText(content, fallbackFilename);
+    return fallbackFilename;
+  }
+
   return filename;
 }

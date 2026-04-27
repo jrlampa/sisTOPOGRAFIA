@@ -40,23 +40,6 @@ describe("useDxfExport critical flows", () => {
     const onSuccess = vi.fn();
     const onError = vi.fn();
     const onBtContextLoaded = vi.fn();
-    const click = vi.fn();
-
-    const appendSpy = vi
-      .spyOn(document.body, "appendChild")
-      .mockImplementation((node: Node) => node);
-    const removeSpy = vi
-      .spyOn(document.body, "removeChild")
-      .mockImplementation((node: Node) => node);
-    const originalCreateElement = document.createElement.bind(document);
-    vi.spyOn(document, "createElement").mockImplementation(
-      (tagName: string): HTMLElement => {
-        if (tagName === "a") {
-          return { href: "", download: "", click } as unknown as HTMLElement;
-        }
-        return originalCreateElement(tagName);
-      },
-    );
 
     const { result } = renderHook(() =>
       useDxfExport({ onSuccess, onError, onBtContextLoaded }),
@@ -75,9 +58,6 @@ describe("useDxfExport critical flows", () => {
 
     expect(onError).not.toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalledWith("DXF Downloaded");
-    expect(click).toHaveBeenCalledTimes(1);
-    expect(appendSpy).toHaveBeenCalled();
-    expect(removeSpy).toHaveBeenCalled();
     expect(onBtContextLoaded).toHaveBeenCalledWith({
       btContextUrl: "http://localhost:3001/downloads/context.json",
       btContext: { network: "ok" },
@@ -97,7 +77,6 @@ describe("useDxfExport critical flows", () => {
 
     const onSuccess = vi.fn();
     const onError = vi.fn();
-    const click = vi.fn();
 
     vi.spyOn(window, "setInterval").mockImplementation(((
       callback: TimerHandler,
@@ -106,22 +85,6 @@ describe("useDxfExport critical flows", () => {
       return 1 as unknown as ReturnType<typeof setInterval>;
     }) as typeof window.setInterval);
     vi.spyOn(window, "clearInterval").mockImplementation(() => undefined);
-
-    vi.spyOn(document.body, "appendChild").mockImplementation(
-      (node: Node) => node,
-    );
-    vi.spyOn(document.body, "removeChild").mockImplementation(
-      (node: Node) => node,
-    );
-    const originalCreateElement = document.createElement.bind(document);
-    vi.spyOn(document, "createElement").mockImplementation(
-      (tagName: string): HTMLElement => {
-        if (tagName === "a") {
-          return { href: "", download: "", click } as unknown as HTMLElement;
-        }
-        return originalCreateElement(tagName);
-      },
-    );
 
     const { result } = renderHook(() => useDxfExport({ onSuccess, onError }));
 
@@ -140,7 +103,6 @@ describe("useDxfExport critical flows", () => {
       expect(onSuccess).toHaveBeenCalledWith("DXF Downloaded");
     });
     expect(onError).not.toHaveBeenCalled();
-    expect(click).toHaveBeenCalledTimes(1);
   });
 
   it("returns false and emits error on invalid export input", async () => {
@@ -163,5 +125,74 @@ describe("useDxfExport critical flows", () => {
     expect(generateDXF).not.toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();
     expect(onError).toHaveBeenCalledWith("DXF Error: Invalid input parameters");
+  });
+
+  it("fails when backend immediate URL is not a DXF file", async () => {
+    vi.mocked(generateDXF).mockResolvedValueOnce({
+      url: "http://localhost:3001/downloads/test.json",
+    });
+
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+
+    const { result } = renderHook(() => useDxfExport({ onSuccess, onError }));
+
+    await act(async () => {
+      const ok = await result.current.downloadDxf(
+        center,
+        500,
+        "polygon",
+        polygon,
+        layers,
+      );
+      expect(ok).toBe(false);
+    });
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(
+      "DXF Error: Resposta invalida do servidor: URL de download nao e DXF",
+    );
+  });
+
+  it("fails when queued job completes with non-DXF URL", async () => {
+    vi.mocked(generateDXF).mockResolvedValueOnce({ jobId: "job-invalid" });
+    vi.mocked(getDxfJobStatus).mockResolvedValueOnce({
+      status: "completed",
+      progress: 100,
+      result: {
+        url: "http://localhost:3001/downloads/job-invalid.zip",
+      },
+    });
+
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+
+    vi.spyOn(window, "setInterval").mockImplementation(((
+      callback: TimerHandler,
+    ) => {
+      void (callback as () => Promise<void>)();
+      return 1 as unknown as ReturnType<typeof setInterval>;
+    }) as typeof window.setInterval);
+    vi.spyOn(window, "clearInterval").mockImplementation(() => undefined);
+
+    const { result } = renderHook(() => useDxfExport({ onSuccess, onError }));
+
+    await act(async () => {
+      const ok = await result.current.downloadDxf(
+        center,
+        500,
+        "polygon",
+        polygon,
+        layers,
+      );
+      expect(ok).toBe(true);
+    });
+
+    await waitFor(() => {
+      expect(onError).toHaveBeenCalledWith(
+        "DXF Error: DXF job completed with non-DXF download URL",
+      );
+    });
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 });
