@@ -53,7 +53,9 @@ router.get("/downloads/:filename", (req: Request, res: Response) => {
     return res.sendFile(filePath);
   } else {
     logger.warn("Arquivo não encontrado para download", { filename, filePath });
-    return res.status(404).json({ error: "Arquivo não encontrado ou expirado" });
+    return res
+      .status(404)
+      .json({ error: "Arquivo não encontrado ou expirado" });
   }
 });
 
@@ -120,6 +122,10 @@ const safeParseUrl = (value: string): URL | null => {
 const getFallbackBaseUrl = (): string => {
   if (config.APP_PUBLIC_URL) {
     return config.APP_PUBLIC_URL.replace(/\/+$/, "");
+  }
+
+  if (config.isDocker && config.NODE_ENV === "development") {
+    return "http://localhost:3002";
   }
 
   if (config.CORS_ORIGIN) {
@@ -282,7 +288,8 @@ function buildDxfRequestSource(req: Request): {
     typeof req.headers["x-request-id"] === "string"
       ? req.headers["x-request-id"].trim()
       : undefined;
-  const endpoint = `${req.method.toUpperCase()} ${req.baseUrl || ""}${req.path || ""}`.trim();
+  const endpoint =
+    `${req.method.toUpperCase()} ${req.baseUrl || ""}${req.path || ""}`.trim();
   const sourceHeader =
     typeof req.headers["x-client-source"] === "string"
       ? req.headers["x-client-source"].trim()
@@ -384,7 +391,7 @@ router.post(
         const cachedFilePath = path.join(dxfDirectory, cachedFilename);
         if (fs.existsSync(cachedFilePath)) {
           const baseUrl = getBaseUrl(req);
-          const cachedUrl = `${baseUrl}/downloads/${cachedFilename}`;
+          const cachedUrl = `${baseUrl}/api/dxf/downloads/${cachedFilename}`;
           logger.info("DXF cache hit", {
             cacheKey,
             filename: cachedFilename,
@@ -451,7 +458,7 @@ router.post(
         cacheKey,
         downloadUrl,
         // Force synchronous generation in dev for better UX
-        forceSync: config.NODE_ENV === "development", 
+        forceSync: config.NODE_ENV === "development",
       });
 
       const responseStatus = alreadyCompleted ? "success" : "queued";
@@ -519,7 +526,7 @@ router.post(
         const dxfDirectory = resolveDxfDirectory();
         const outputFile = path.join(dxfDirectory, filename);
         const baseUrl = getBaseUrl(req);
-        const downloadUrl = `${baseUrl}/downloads/${filename}`;
+        const downloadUrl = `${baseUrl}/api/dxf/downloads/${filename}`;
 
         // Generate cache key for batch row (used for potential deduplication)
         const cacheKey = createCacheKey({
@@ -586,8 +593,12 @@ router.get(
       const preview = await previewFailedTaskSanitation(limit);
       return res.json(preview);
     } catch (err) {
-      logger.error("Erro na prévia de saneação de tarefas com falha", { error: err });
-      return res.status(500).json({ error: "Falha ao gerar prévia de saneação" });
+      logger.error("Erro na prévia de saneação de tarefas com falha", {
+        error: err,
+      });
+      return res
+        .status(500)
+        .json({ error: "Falha ao gerar prévia de saneação" });
     }
   },
 );
@@ -662,8 +673,13 @@ router.get("/downloads/:filename", (req: Request, res: Response) => {
     res.setHeader("Content-Type", "application/dxf");
     return res.sendFile(filePath);
   } else {
-    logger.warn("Tentativa de download de arquivo inexistente", { filename, filePath });
-    return res.status(404).json({ error: "Arquivo não encontrado ou expirado" });
+    logger.warn("Tentativa de download de arquivo inexistente", {
+      filename,
+      filePath,
+    });
+    return res
+      .status(404)
+      .json({ error: "Arquivo não encontrado ou expirado" });
   }
 });
 

@@ -1,6 +1,8 @@
 // Mock dependencies before importing app
 jest.mock("../repositories/index.js", () => ({
   pingDb: jest.fn(),
+  initDbClient: jest.fn().mockResolvedValue(undefined),
+  isDbAvailable: jest.fn().mockReturnValue(true),
 }));
 
 jest.mock("../services/ollamaService.js", () => ({
@@ -39,19 +41,35 @@ jest.mock("../config.js", () => ({
 import request from "supertest";
 import app from "../app.js";
 import { pingDb } from "../repositories/index.js";
+import { isDbAvailable } from "../repositories/index.js";
 import { OllamaService } from "../services/ollamaService.js";
 import { listCircuitBreakers } from "../utils/circuitBreaker.js";
 import { requestContext } from "../utils/requestContext.js";
 
 describe("Health Check Endpoint (/health)", () => {
+  const governanceRunning = {
+    runtime: {
+      available: true,
+      configuredModel: "llama3.2",
+      selectedModel: "llama3.2",
+      zeroCostCompliant: true,
+    },
+    version: {
+      current: "0.5.0",
+      minimum: "0.5.0",
+      compliant: true,
+    },
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("should return 200 and status online when all systems are healthy", async () => {
     (pingDb as jest.Mock).mockResolvedValue(true);
+    (isDbAvailable as jest.Mock).mockReturnValue(true);
     (OllamaService.isAvailable as jest.Mock).mockResolvedValue(true);
-    (OllamaService.getGovernanceStatus as jest.Mock).mockResolvedValue("running");
+    (OllamaService.getGovernanceStatus as jest.Mock).mockResolvedValue(governanceRunning);
     (listCircuitBreakers as jest.Mock).mockReturnValue([
       { name: "OSM", state: "CLOSED" },
     ]);
@@ -61,13 +79,14 @@ describe("Health Check Endpoint (/health)", () => {
     expect(response.status).toBe(200);
     expect(response.body.status).toBe("online");
     expect(response.body.dependencies.database).toBe("connected");
-    expect(response.body.dependencies.ollama).toBe("running");
+    expect(response.body.dependencies.ollama.runtime.available).toBe(true);
   });
 
   it("should return 503 and status degraded when database is down", async () => {
     (pingDb as jest.Mock).mockResolvedValue(false);
+    (isDbAvailable as jest.Mock).mockReturnValue(true);
     (OllamaService.isAvailable as jest.Mock).mockResolvedValue(true);
-    (OllamaService.getGovernanceStatus as jest.Mock).mockResolvedValue("running");
+    (OllamaService.getGovernanceStatus as jest.Mock).mockResolvedValue(governanceRunning);
     (listCircuitBreakers as jest.Mock).mockReturnValue([
       { name: "OSM", state: "CLOSED" },
     ]);
@@ -81,8 +100,9 @@ describe("Health Check Endpoint (/health)", () => {
 
   it("should return 503 and status degraded when a circuit breaker is OPEN", async () => {
     (pingDb as jest.Mock).mockResolvedValue(true);
+    (isDbAvailable as jest.Mock).mockReturnValue(true);
     (OllamaService.isAvailable as jest.Mock).mockResolvedValue(true);
-    (OllamaService.getGovernanceStatus as jest.Mock).mockResolvedValue("running");
+    (OllamaService.getGovernanceStatus as jest.Mock).mockResolvedValue(governanceRunning);
     (listCircuitBreakers as jest.Mock).mockReturnValue([
       { name: "OSM", state: "OPEN" },
     ]);
@@ -95,8 +115,15 @@ describe("Health Check Endpoint (/health)", () => {
 
   it("should show ollama as stopped but return 200 if DB is healthy and no open circuits", async () => {
     (pingDb as jest.Mock).mockResolvedValue(true);
+    (isDbAvailable as jest.Mock).mockReturnValue(true);
     (OllamaService.isAvailable as jest.Mock).mockResolvedValue(false);
-    (OllamaService.getGovernanceStatus as jest.Mock).mockResolvedValue("stopped");
+    (OllamaService.getGovernanceStatus as jest.Mock).mockResolvedValue({
+      ...governanceRunning,
+      runtime: {
+        ...governanceRunning.runtime,
+        available: false,
+      },
+    });
     (listCircuitBreakers as jest.Mock).mockReturnValue([
       { name: "OSM", state: "CLOSED" },
     ]);
@@ -109,6 +136,6 @@ describe("Health Check Endpoint (/health)", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.status).toBe("online");
-    expect(response.body.dependencies.ollama).toBe("stopped");
+    expect(response.body.dependencies.ollama.runtime.available).toBe(false);
   });
 });

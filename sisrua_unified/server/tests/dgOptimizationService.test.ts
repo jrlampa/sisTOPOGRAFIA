@@ -390,6 +390,14 @@ describe("runDgOptimization – pipeline completo", () => {
     expect(output.computedAt).toMatch(/^\d{4}-/);
   });
 
+  it("propaga tenantId quando fornecido", async () => {
+    const output = await runDgOptimization({
+      ...input,
+      tenantId: "tenant-dg-1",
+    });
+    expect(output.tenantId).toBe("tenant-dg-1");
+  });
+
   it("retorna recomendação com bestScenario viável", async () => {
     const output = await runDgOptimization(input);
     expect(output.recommendation).not.toBeNull();

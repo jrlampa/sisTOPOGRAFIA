@@ -101,6 +101,7 @@ export interface DgObjectiveWeights {
 /** Payload de entrada completo para uma execução DG. */
 export interface DgOptimizationInput {
     runId?: string;
+    tenantId?: string;
     poles: DgPoleInput[];
     transformer: DgTransformerInput;
     exclusionPolygons?: DgExclusionPolygon[];
@@ -190,6 +191,7 @@ export interface DgRecommendation {
 
 export interface DgOptimizationOutput {
     runId: string;
+    tenantId?: string;
     inputHash: string;
     computedAt: string;
     totalCandidatesEvaluated: number;
@@ -201,6 +203,7 @@ export interface DgOptimizationOutput {
 
 export interface DgRunSummary {
     runId: string;
+    tenantId?: string;
     inputHash: string;
     computedAt: string;
     totalCandidatesEvaluated: number;
@@ -211,6 +214,7 @@ export interface DgRunSummary {
 
 export interface DgDiscardRateByConstraint {
     runId: string;
+    tenantId?: string;
     code: DgConstraintCode;
     discardedScenarios: number;
     totalScenarios: number;

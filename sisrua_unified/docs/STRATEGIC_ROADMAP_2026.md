@@ -28,7 +28,7 @@ Este documento estabelece a visão técnica, os pontos de melhoria prioritários
 - **Supabase First**: Usar Supabase sempre que possível (auth, banco, storage, edge functions, realtime).
 - **Versionamento**: Versão única definida em `VERSION` e propagada para `package.json`, `metadata.json`, artefatos e headers de resposta — nenhum componente pode ter versão desalinhada.
 - **Custos**: "Zero custo a todo custo!". Uso primário de APIs públicas ou gratuitas; qualquer referência externa não pode gerar custos monetários.
-- **Padrões de Interface**: Interface UI/UX / GUI deve estar 100% em **pt-BR**.
+- **Padrões de Interface**: Interface UI/UX / GUI pode operar em `pt-BR`, `en-US` e `es-ES`, desde que o locale ativo permaneça linguisticamente consistente do início ao fim da experiência.
 - **Estilo Canônico de Interface**: O estilo visual aprovado e vigente é **canônico** (default global obrigatório). Qualquer mudança global de estilo só pode ocorrer com autorização **expressa** do solicitante. Variações de estilo só podem existir como opção configurável pelo usuário no menu **Configurações**.
 - **Limites de Código**: Sempre que um arquivo/código superar **500 linhas**, considere modularizar:
   - **IDEAL**: 500 linhas

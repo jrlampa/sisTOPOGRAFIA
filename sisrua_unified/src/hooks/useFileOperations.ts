@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { GlobalState } from "../types";
+import { normalizeAppLocale } from "../i18n/appLocale";
 
 interface UseFileOperationsProps {
   appState: GlobalState;
@@ -15,6 +16,33 @@ interface UseFileOperationsProps {
 // See VERSIONING.md for details about version management.
 const PROJECT_VERSION = "0.9.0";
 
+const FILE_OPERATION_TEXT = {
+  "pt-BR": {
+    projectSaved: "Projeto salvo",
+    saveFailed: "Falha ao salvar o projeto",
+    projectLoaded: "Projeto carregado",
+    loadFailed: "Falha ao carregar o projeto",
+    invalidProjectFile: "Formato de arquivo de projeto inválido",
+    readFailed: "Falha ao ler o arquivo",
+  },
+  "en-US": {
+    projectSaved: "Project saved",
+    saveFailed: "Failed to save project",
+    projectLoaded: "Project loaded",
+    loadFailed: "Failed to load project",
+    invalidProjectFile: "Invalid project file format",
+    readFailed: "Failed to read file",
+  },
+  "es-ES": {
+    projectSaved: "Proyecto guardado",
+    saveFailed: "Error al guardar el proyecto",
+    projectLoaded: "Proyecto cargado",
+    loadFailed: "Error al cargar el proyecto",
+    invalidProjectFile: "Formato de archivo de proyecto no válido",
+    readFailed: "Error al leer el archivo",
+  },
+} as const;
+
 export function useFileOperations({
   appState,
   setAppState,
@@ -22,6 +50,8 @@ export function useFileOperations({
   onError,
 }: UseFileOperationsProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const locale = normalizeAppLocale(appState.settings.locale);
+  const text = FILE_OPERATION_TEXT[locale];
 
   const saveProject = () => {
     try {
@@ -50,9 +80,9 @@ export function useFileOperations({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      onSuccess("Project Saved");
+      onSuccess(text.projectSaved);
     } catch {
-      onError("Failed to save project");
+      onError(text.saveFailed);
     } finally {
       setIsLoading(false);
     }
@@ -64,11 +94,11 @@ export function useFileOperations({
 
     reader.onload = (e) => {
       try {
-        const text = e.target?.result as string;
-        const data = JSON.parse(text);
+        const fileContent = e.target?.result as string;
+        const data = JSON.parse(fileContent);
 
         if (!data || !data.state) {
-          throw new Error("Invalid project file format");
+          throw new Error(text.invalidProjectFile);
         }
 
         const loadedState = data.state as GlobalState;
@@ -109,16 +139,16 @@ export function useFileOperations({
         }
 
         setAppState(loadedState, true);
-        onSuccess("Project Loaded");
+        onSuccess(text.projectLoaded);
       } catch {
-        onError("Failed to load project");
+        onError(text.loadFailed);
       } finally {
         setIsLoading(false);
       }
     };
 
     reader.onerror = () => {
-      onError("Failed to read file");
+      onError(text.readFailed);
       setIsLoading(false);
     };
 

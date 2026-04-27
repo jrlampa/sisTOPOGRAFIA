@@ -100,6 +100,11 @@ type BtTopologyPanelText = {
     transformerContext: string;
     edgeContext: string;
     noSelection: string;
+    mediumVoltageContext: string;
+    mediumVoltageStructures: string;
+    mediumVoltageConnections: string;
+    notAvailable: string;
+    spansCount: (count: number) => string;
   };
   popup: {
     flag: string;
@@ -213,6 +218,11 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       transformerContext: "Trafo",
       edgeContext: "Vão",
       noSelection: "Selecione um item no mapa",
+      mediumVoltageContext: "Contexto de Média Tensão (MT)",
+      mediumVoltageStructures: "Estruturas MT",
+      mediumVoltageConnections: "Conexões MT",
+      notAvailable: "N/D",
+      spansCount: (count: number) => `${count} trecho(s)`,
     },
     popup: {
       flag: "Flag",
@@ -324,6 +334,11 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       transformerContext: "Trafo",
       edgeContext: "Span",
       noSelection: "Select an item on the map",
+      mediumVoltageContext: "Medium Voltage Context (MV)",
+      mediumVoltageStructures: "MV Structures",
+      mediumVoltageConnections: "MV Connections",
+      notAvailable: "N/A",
+      spansCount: (count: number) => `${count} span(s)`,
     },
     popup: {
       flag: "Flag",
@@ -435,6 +450,11 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       transformerContext: "Trafo",
       edgeContext: "Tramo",
       noSelection: "Seleccione um item en el mapa",
+      mediumVoltageContext: "Contexto de Media Tensión (MT)",
+      mediumVoltageStructures: "Estructuras MT",
+      mediumVoltageConnections: "Conexiones MT",
+      notAvailable: "N/D",
+      spansCount: (count: number) => `${count} tramo(s)`,
     },
     popup: {
       flag: "Flag",

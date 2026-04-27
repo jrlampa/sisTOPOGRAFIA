@@ -150,6 +150,7 @@ export async function runDgOptimization(
 
   const output: DgOptimizationOutput = {
     runId,
+    tenantId: input.tenantId,
     inputHash,
     computedAt: new Date().toISOString(),
     totalCandidatesEvaluated,
@@ -165,28 +166,35 @@ export async function runDgOptimization(
 
 export async function getDgRun(
   runId: string,
+  tenantId?: string,
 ): Promise<DgOptimizationOutput | null> {
-  return dgRunRepository.findById(runId);
+  return dgRunRepository.findById(runId, tenantId);
 }
 
-export async function listDgRuns(limit = 20): Promise<DgRunSummary[]> {
-  return dgRunRepository.list(limit);
+export async function listDgRuns(
+  limit = 20,
+  tenantId?: string,
+): Promise<DgRunSummary[]> {
+  return dgRunRepository.list(limit, tenantId);
 }
 
 export async function listDgDiscardRates(
   limit = 100,
+  tenantId?: string,
 ): Promise<DgDiscardRateByConstraint[]> {
-  return dgRunRepository.listDiscardRates(limit);
+  return dgRunRepository.listDiscardRates(limit, tenantId);
 }
 
 export async function getDgRunScenarios(
   runId: string,
+  tenantId?: string,
 ): Promise<DgScenario[] | null> {
-  return dgRunRepository.findScenarios(runId);
+  return dgRunRepository.findScenarios(runId, tenantId);
 }
 
 export async function getDgRunRecommendation(
   runId: string,
+  tenantId?: string,
 ): Promise<DgRecommendation | null> {
-  return dgRunRepository.findRecommendation(runId);
+  return dgRunRepository.findRecommendation(runId, tenantId);
 }

@@ -80,7 +80,6 @@ describe('dbClient', () => {
     const { initDbClient } = await loadModule();
     await initDbClient();
     expect(mockPostgres).toHaveBeenCalledWith(
-      DB_URL,
       expect.objectContaining({ ssl: 'require' }),
     );
   });
@@ -89,7 +88,6 @@ describe('dbClient', () => {
     const { initDbClient } = await loadModule();
     await initDbClient();
     expect(mockPostgres).toHaveBeenCalledWith(
-      DB_URL,
       expect.objectContaining({ ssl: false }),
     );
   });

@@ -8,6 +8,6 @@
 
 ## Key Directives
 - Modularize logic into domain-specific services.
-- Ensure 100% PT-BR compliance in the interface.
+- Ensure the interface is 100% consistent with the active locale, with no mixed-language UI.
 - Maintain industrial-grade parity with Light S.A. standards.
 - Follow the established Zod validation patterns for all routes.

@@ -171,7 +171,7 @@ export function SettingsModalGeneralTab({
           >
             {SUPPORTED_APP_LOCALES.map((locale) => (
               <option key={locale} value={locale}>
-                {getAppLocaleLabel(locale)}
+                {getAppLocaleLabel(locale, settings.locale)}
               </option>
             ))}
           </select>

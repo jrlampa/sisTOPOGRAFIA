@@ -24,7 +24,7 @@ Antes de detalhar frontend, backend e banco, vale registrar a direção arquitet
 
 ## 1. Área: Frontend (Interface, UX/UI e Experiência do Operador)
 
-Foco em manter a aplicação leve, inteiramente em **pt-BR**, com forte orientação a fluxos reais de operação técnica e menor carga cognitiva para o usuário.
+Foco em manter a aplicação leve, com interface integralmente coerente com o **locale ativo**, forte orientação a fluxos reais de operação técnica e menor carga cognitiva para o usuário.
 
 1. **Consolidar o frontend como orquestrador de fluxo:** a interface deve evidenciar que análise topográfica, BT/CQT, DXF e camadas geoespaciais fazem parte do mesmo estudo técnico, com etapas claras e encadeadas.
 2. **Evoluir para uma experiência orientada a projetos:** introduzir fluxos de abertura, retomada e duplicação de estudos, com contexto persistente por projeto, ao invés de depender apenas do estado local da sessão.

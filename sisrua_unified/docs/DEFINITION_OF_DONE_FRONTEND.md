@@ -45,7 +45,7 @@
 
 | Critério |
 |---|
-| Toda UI/UX em pt-BR (sem termos em inglês expostos ao usuário) |
+| Toda UI/UX coerente com o locale ativo, sem mistura de idiomas na mesma sessão |
 | Estados visuais implementados: loading, erro, vazio, sucesso |
 | Responsivo para viewport ≥ 320 px |
 | Não introduz modo escuro inconsistente (usar tokens de `src/index.css`) |
@@ -141,7 +141,7 @@ Este documento define os critérios obrigatórios que **toda alteração de fron
 
 | Critério | Obrigatório | Verificação |
 |---|---|---|
-| Todo texto visível ao usuário em pt-BR | ✅ | Revisão manual no PR |
+| Todo texto visível ao usuário respeita integralmente o locale ativo | ✅ | Revisão manual no PR |
 | Estados de carregamento e erro sempre visíveis | ✅ | Revisão manual no PR |
 | Feedback visual para ações do usuário (toast, spinner, etc.) | ✅ | Revisão manual no PR |
 | Tema claro/escuro funcional sem inconsistências visuais | ✅ | Revisão manual no PR |

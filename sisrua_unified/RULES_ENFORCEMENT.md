@@ -202,16 +202,19 @@ npm run docker:down       # Stop services
 
 ---
 
-### 13. ✅ Interface PT-BR
+### 13. ✅ Interface Multi-idioma com Locale Fechado
 
-- 100% das labels em português
-- Mensagens de erro em PT-BR
-- Documentação em PT-BR
+- Interface pode operar em `pt-BR`, `en-US` e `es-ES`
+- Quando o locale ativo for `pt-BR`, toda a UI visível deve estar em pt-BR
+- Quando o locale ativo for `en-US`, toda a UI visível deve estar em en-US
+- Quando o locale ativo for `es-ES`, toda a UI visível deve estar em es-ES
+- Proibido misturar labels, toasts, mensagens de erro e hints de um idioma com outro na mesma sessão
+- Fallback técnico permitido apenas para `pt-BR` em conteúdo ausente durante desenvolvimento, nunca expondo mistura parcial ao usuário final
 
 **Verificação Recent**:
-- ✅ SettingsModal: Labels em português
-- ✅ FloatingLayerPanel: Todas as camadas em PT
-- ✅ Toast messages: `findTransformerConflictsWithoutSectioning` dispara alertas
+- ✅ SettingsModal: labels e seletor de idioma seguem o locale ativo
+- ✅ FloatingLayerPanel: todas as camadas respeitam o dicionário i18n
+- ✅ Toast messages devem respeitar o locale ativo sem mistura
 
 ---
 

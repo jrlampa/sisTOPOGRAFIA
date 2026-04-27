@@ -124,7 +124,10 @@ router.post("/optimize", async (req: Request, res: Response) => {
 
   try {
     const output = await runDgOptimization(
-      parsed.data as Parameters<typeof runDgOptimization>[0],
+      {
+        ...parsed.data,
+        tenantId: res.locals.tenantId,
+      } as Parameters<typeof runDgOptimization>[0],
     );
     return res.status(200).json(output);
   } catch (err) {
@@ -146,7 +149,7 @@ router.get("/runs", async (req: Request, res: Response) => {
     const limit = Number.isFinite(parsedLimit)
       ? Math.min(Math.max(Math.trunc(parsedLimit), 1), 100)
       : 20;
-    const runs = await listDgRuns(limit);
+    const runs = await listDgRuns(limit, res.locals.tenantId);
 
     return res.status(200).json({
       total: runs.length,
@@ -167,7 +170,7 @@ router.get("/discard-rates", async (req: Request, res: Response) => {
     const limit = Number.isFinite(parsedLimit)
       ? Math.min(Math.max(Math.trunc(parsedLimit), 1), 200)
       : 100;
-    const rates = await listDgDiscardRates(limit);
+    const rates = await listDgDiscardRates(limit, res.locals.tenantId);
 
     return res.status(200).json({
       total: rates.length,
@@ -188,7 +191,7 @@ router.get("/discard-rates", async (req: Request, res: Response) => {
 
 router.get("/runs/:id", async (req: Request, res: Response) => {
   try {
-    const run = await getDgRun(req.params.id);
+    const run = await getDgRun(req.params.id, res.locals.tenantId);
     if (!run) {
       return res.status(404).json({ error: "Run DG não encontrada." });
     }
@@ -206,7 +209,7 @@ router.get("/runs/:id", async (req: Request, res: Response) => {
 
 router.get("/runs/:id/scenarios", async (req: Request, res: Response) => {
   try {
-    const scenarios = await getDgRunScenarios(req.params.id);
+    const scenarios = await getDgRunScenarios(req.params.id, res.locals.tenantId);
     if (!scenarios) {
       return res.status(404).json({ error: "Run DG não encontrada." });
     }
@@ -237,9 +240,12 @@ router.get("/runs/:id/scenarios", async (req: Request, res: Response) => {
 
 router.get("/runs/:id/recommendation", async (req: Request, res: Response) => {
   try {
-    const recommendation = await getDgRunRecommendation(req.params.id);
+    const recommendation = await getDgRunRecommendation(
+      req.params.id,
+      res.locals.tenantId,
+    );
     if (!recommendation) {
-      const run = await getDgRun(req.params.id);
+      const run = await getDgRun(req.params.id, res.locals.tenantId);
       if (!run) {
         return res.status(404).json({ error: "Run DG não encontrada." });
       }

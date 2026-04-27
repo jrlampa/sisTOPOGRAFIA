@@ -19,11 +19,17 @@ import type {
 
 export interface IDgRunRepository {
   save(run: DgOptimizationOutput): Promise<void>;
-  list(limit?: number): Promise<DgRunSummary[]>;
-  listDiscardRates(limit?: number): Promise<DgDiscardRateByConstraint[]>;
-  findById(runId: string): Promise<DgOptimizationOutput | null>;
-  findScenarios(runId: string): Promise<DgScenario[] | null>;
-  findRecommendation(runId: string): Promise<DgRecommendation | null>;
+  list(limit?: number, tenantId?: string): Promise<DgRunSummary[]>;
+  listDiscardRates(
+    limit?: number,
+    tenantId?: string,
+  ): Promise<DgDiscardRateByConstraint[]>;
+  findById(runId: string, tenantId?: string): Promise<DgOptimizationOutput | null>;
+  findScenarios(runId: string, tenantId?: string): Promise<DgScenario[] | null>;
+  findRecommendation(
+    runId: string,
+    tenantId?: string,
+  ): Promise<DgRecommendation | null>;
 }
 
 const inMemoryRuns = new Map<string, DgOptimizationOutput>();
@@ -117,18 +123,19 @@ async function saveNormalizedDgData(
     if (candidates.length > 0) {
       const params: (string | null)[] = [];
       const rows = candidates.map((c, i) => {
-        const base = i * 5;
+        const base = i * 6;
         params.push(
           run.runId,
+          run.tenantId ?? null,
           c.candidateId,
           null,
           JSON.stringify(c.positionLatLon),
           JSON.stringify(c.positionUtm),
         );
-        return `($${base + 1},$${base + 2},$${base + 3},$${base + 4}::jsonb,$${base + 5}::jsonb,NOW())`;
+        return `($${base + 1},$${base + 2},$${base + 3},$${base + 4},$${base + 5}::jsonb,$${base + 6}::jsonb,NOW())`;
       });
       await sql.unsafe(
-        `INSERT INTO dg_candidates (run_id,candidate_id,source,position_latlon_json,position_utm_json,created_at) VALUES ${rows.join(",")}`,
+        `INSERT INTO dg_candidates (run_id,tenant_id,candidate_id,source,position_latlon_json,position_utm_json,created_at) VALUES ${rows.join(",")}`,
         params,
       );
     }
@@ -138,6 +145,7 @@ async function saveNormalizedDgData(
       await sql.unsafe(
         `INSERT INTO dg_scenarios (
            run_id,
+            tenant_id,
            scenario_id,
            candidate_id,
            feasible,
@@ -148,10 +156,11 @@ async function saveNormalizedDgData(
            scenario_json,
            created_at
          ) VALUES (
-           $1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8,$9::jsonb,NOW()
+           $1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10::jsonb,NOW()
          )`,
         [
           run.runId,
+          run.tenantId ?? null,
           scenario.scenarioId,
           scenario.candidateId,
           scenario.feasible,
@@ -168,6 +177,7 @@ async function saveNormalizedDgData(
         await sql.unsafe(
           `INSERT INTO dg_constraints (
              run_id,
+               tenant_id,
              scenario_id,
              ordinal,
              code,
@@ -175,10 +185,11 @@ async function saveNormalizedDgData(
              entity_id,
              created_at
            ) VALUES (
-             $1,$2,$3,$4,$5,$6,NOW()
+             $1,$2,$3,$4,$5,$6,$7,NOW()
            )`,
           [
             run.runId,
+            run.tenantId ?? null,
             scenario.scenarioId,
             index,
             violation.code,
@@ -194,6 +205,7 @@ async function saveNormalizedDgData(
       await sql.unsafe(
         `INSERT INTO dg_recommendations (
            run_id,
+            tenant_id,
            rank_order,
            scenario_id,
            kind,
@@ -201,10 +213,11 @@ async function saveNormalizedDgData(
            recommendation_json,
            created_at
          ) VALUES (
-           $1,$2,$3,$4,$5,$6::jsonb,NOW()
+           $1,$2,$3,$4,$5,$6,$7::jsonb,NOW()
          )`,
         [
           run.runId,
+          run.tenantId ?? null,
           entry.rankOrder,
           entry.scenarioId,
           entry.kind,
@@ -236,6 +249,7 @@ function parseOutput(row: any): DgOptimizationOutput | null {
 function toSummary(run: DgOptimizationOutput): DgRunSummary {
   return {
     runId: run.runId,
+    tenantId: run.tenantId,
     inputHash: run.inputHash,
     computedAt: run.computedAt,
     totalCandidatesEvaluated: run.totalCandidatesEvaluated,
@@ -257,6 +271,102 @@ function sortByComputedAtDesc<T extends { computedAt: string }>(
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function matchesTenant(run: DgOptimizationOutput, tenantId?: string): boolean {
+  if (!tenantId) return true;
+  return run.tenantId === tenantId;
+}
+
+async function persistRunLegacy(
+  sql: ReturnType<typeof getDbClient>,
+  run: DgOptimizationOutput,
+): Promise<void> {
+  await sql.unsafe(
+    `INSERT INTO dg_runs (
+       run_id,
+       input_hash,
+       computed_at,
+       total_candidates_evaluated,
+       total_feasible,
+       output_json,
+       recommendation_json,
+       scenarios_json,
+       params_json,
+       created_at,
+       updated_at
+     ) VALUES (
+       $1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8::jsonb,$9::jsonb,NOW(),NOW()
+     )
+     ON CONFLICT (run_id) DO UPDATE
+     SET input_hash = EXCLUDED.input_hash,
+         computed_at = EXCLUDED.computed_at,
+         total_candidates_evaluated = EXCLUDED.total_candidates_evaluated,
+         total_feasible = EXCLUDED.total_feasible,
+         output_json = EXCLUDED.output_json,
+         recommendation_json = EXCLUDED.recommendation_json,
+         scenarios_json = EXCLUDED.scenarios_json,
+         params_json = EXCLUDED.params_json,
+         updated_at = NOW()`,
+    [
+      run.runId,
+      run.inputHash,
+      run.computedAt,
+      run.totalCandidatesEvaluated,
+      run.totalFeasible,
+      JSON.stringify(run),
+      JSON.stringify(run.recommendation),
+      JSON.stringify(run.allScenarios),
+      JSON.stringify(run.params),
+    ],
+  );
+}
+
+async function persistRunTenantAware(
+  sql: ReturnType<typeof getDbClient>,
+  run: DgOptimizationOutput,
+): Promise<void> {
+  await sql.unsafe(
+    `INSERT INTO dg_runs (
+       run_id,
+       tenant_id,
+       input_hash,
+       computed_at,
+       total_candidates_evaluated,
+       total_feasible,
+       output_json,
+       recommendation_json,
+       scenarios_json,
+       params_json,
+       created_at,
+       updated_at
+     ) VALUES (
+       $1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9::jsonb,$10::jsonb,NOW(),NOW()
+     )
+     ON CONFLICT (run_id) DO UPDATE
+     SET tenant_id = EXCLUDED.tenant_id,
+         input_hash = EXCLUDED.input_hash,
+         computed_at = EXCLUDED.computed_at,
+         total_candidates_evaluated = EXCLUDED.total_candidates_evaluated,
+         total_feasible = EXCLUDED.total_feasible,
+         output_json = EXCLUDED.output_json,
+         recommendation_json = EXCLUDED.recommendation_json,
+         scenarios_json = EXCLUDED.scenarios_json,
+         params_json = EXCLUDED.params_json,
+         updated_at = NOW()`,
+    [
+      run.runId,
+      run.tenantId,
+      run.inputHash,
+      run.computedAt,
+      run.totalCandidatesEvaluated,
+      run.totalFeasible,
+      JSON.stringify(run),
+      JSON.stringify(run.recommendation),
+      JSON.stringify(run.allScenarios),
+      JSON.stringify(run.params),
+    ],
+  );
 }
 
 function buildDiscardRatesFromRun(
@@ -301,44 +411,23 @@ export class PostgresDgRunRepository implements IDgRunRepository {
     if (!sql) return;
 
     try {
-      await sql.unsafe(
-        `INSERT INTO dg_runs (
-           run_id,
-           input_hash,
-           computed_at,
-           total_candidates_evaluated,
-           total_feasible,
-           output_json,
-           recommendation_json,
-           scenarios_json,
-           params_json,
-           created_at,
-           updated_at
-         ) VALUES (
-           $1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8::jsonb,$9::jsonb,NOW(),NOW()
-         )
-         ON CONFLICT (run_id) DO UPDATE
-         SET input_hash = EXCLUDED.input_hash,
-             computed_at = EXCLUDED.computed_at,
-             total_candidates_evaluated = EXCLUDED.total_candidates_evaluated,
-             total_feasible = EXCLUDED.total_feasible,
-             output_json = EXCLUDED.output_json,
-             recommendation_json = EXCLUDED.recommendation_json,
-             scenarios_json = EXCLUDED.scenarios_json,
-             params_json = EXCLUDED.params_json,
-             updated_at = NOW()`,
-        [
-          run.runId,
-          run.inputHash,
-          run.computedAt,
-          run.totalCandidatesEvaluated,
-          run.totalFeasible,
-          JSON.stringify(run),
-          JSON.stringify(run.recommendation),
-          JSON.stringify(run.allScenarios),
-          JSON.stringify(run.params),
-        ],
-      );
+      if (run.tenantId) {
+        try {
+          await persistRunTenantAware(sql, run);
+        } catch (err) {
+          logger.warn(
+            "[DgRunRepository] tenant-aware save failed; retrying legacy dg_runs persistence",
+            {
+              runId: run.runId,
+              tenantId: run.tenantId,
+              err,
+            },
+          );
+          await persistRunLegacy(sql, run);
+        }
+      } else {
+        await persistRunLegacy(sql, run);
+      }
 
       try {
         await saveNormalizedDgData(sql, run);
@@ -359,23 +448,29 @@ export class PostgresDgRunRepository implements IDgRunRepository {
     }
   }
 
-  async list(limit = 20): Promise<DgRunSummary[]> {
+  async list(limit = 20, tenantId?: string): Promise<DgRunSummary[]> {
     const summaries = new Map<string, DgRunSummary>();
 
     for (const run of inMemoryRuns.values()) {
+      if (!matchesTenant(run, tenantId)) continue;
       summaries.set(run.runId, toSummary(run));
     }
 
     const sql = getDbClient();
     if (sql) {
       try {
-        const rows = await sql.unsafe(
-          `SELECT output_json FROM dg_runs ORDER BY computed_at DESC LIMIT $1`,
-          [limit],
-        );
+        const rows = tenantId
+          ? await sql.unsafe(
+              `SELECT output_json FROM dg_runs WHERE tenant_id = $1 ORDER BY computed_at DESC LIMIT $2`,
+              [tenantId, limit],
+            )
+          : await sql.unsafe(
+              `SELECT output_json FROM dg_runs ORDER BY computed_at DESC LIMIT $1`,
+              [limit],
+            );
         for (const row of rows as any[]) {
           const parsed = parseOutput(row);
-          if (parsed) {
+          if (parsed && matchesTenant(parsed, tenantId)) {
             summaries.set(parsed.runId, toSummary(parsed));
           }
         }
@@ -384,6 +479,7 @@ export class PostgresDgRunRepository implements IDgRunRepository {
           "[DgRunRepository] list failed; using available fallback data",
           {
             limit,
+            tenantId,
             err,
           },
         );
@@ -393,36 +489,61 @@ export class PostgresDgRunRepository implements IDgRunRepository {
     return sortByComputedAtDesc([...summaries.values()]).slice(0, limit);
   }
 
-  async listDiscardRates(limit = 100): Promise<DgDiscardRateByConstraint[]> {
+  async listDiscardRates(
+    limit = 100,
+    tenantId?: string,
+  ): Promise<DgDiscardRateByConstraint[]> {
     const rowsByRunAndCode = new Map<string, DgDiscardRateByConstraint>();
 
     const inMemoryRunsSorted = sortByComputedAtDesc([...inMemoryRuns.values()]);
     for (const run of inMemoryRunsSorted) {
+      if (!matchesTenant(run, tenantId)) continue;
       for (const rate of buildDiscardRatesFromRun(run)) {
-        rowsByRunAndCode.set(`${rate.runId}:${rate.code}`, rate);
+        rowsByRunAndCode.set(`${rate.runId}:${rate.code}`, {
+          ...rate,
+          tenantId: run.tenantId,
+        });
       }
     }
 
     const sql = getDbClient();
     if (sql) {
       try {
-        const rows = await sql.unsafe(
-          `SELECT
-             v.run_id,
-             v.code,
-             v.discarded_scenarios,
-             v.total_scenarios,
-             v.discard_rate_percent
-           FROM dg_discard_rate_by_constraint_v v
-           JOIN dg_runs r ON r.run_id = v.run_id
-           ORDER BY r.computed_at DESC, v.discard_rate_percent DESC
-           LIMIT $1`,
-          [limit],
-        );
+        const rows = tenantId
+          ? await sql.unsafe(
+              `SELECT
+                 v.run_id,
+                 v.tenant_id,
+                 v.code,
+                 v.discarded_scenarios,
+                 v.total_scenarios,
+                 v.discard_rate_percent
+               FROM dg_discard_rate_by_constraint_v v
+               JOIN dg_runs r ON r.run_id = v.run_id
+               WHERE v.tenant_id = $1
+               ORDER BY r.computed_at DESC, v.discard_rate_percent DESC
+               LIMIT $2`,
+              [tenantId, limit],
+            )
+          : await sql.unsafe(
+              `SELECT
+                 v.run_id,
+                 v.tenant_id,
+                 v.code,
+                 v.discarded_scenarios,
+                 v.total_scenarios,
+                 v.discard_rate_percent
+               FROM dg_discard_rate_by_constraint_v v
+               JOIN dg_runs r ON r.run_id = v.run_id
+               ORDER BY r.computed_at DESC, v.discard_rate_percent DESC
+               LIMIT $1`,
+              [limit],
+            );
 
         for (const row of rows as any[]) {
           const item: DgDiscardRateByConstraint = {
             runId: String(row.run_id),
+            tenantId: row.tenant_id ? String(row.tenant_id) : undefined,
             code: String(row.code) as DgConstraintCode,
             discardedScenarios: Number(row.discarded_scenarios ?? 0),
             totalScenarios: Number(row.total_scenarios ?? 0),
@@ -433,7 +554,7 @@ export class PostgresDgRunRepository implements IDgRunRepository {
       } catch (err) {
         logger.warn(
           "[DgRunRepository] listDiscardRates failed; using available fallback data",
-          { limit, err },
+          { limit, tenantId, err },
         );
       }
     }
@@ -443,36 +564,48 @@ export class PostgresDgRunRepository implements IDgRunRepository {
       .slice(0, limit);
   }
 
-  async findById(runId: string): Promise<DgOptimizationOutput | null> {
+  async findById(
+    runId: string,
+    tenantId?: string,
+  ): Promise<DgOptimizationOutput | null> {
     const memoryHit = inMemoryRuns.get(runId);
-    if (memoryHit) return memoryHit;
+    if (memoryHit && matchesTenant(memoryHit, tenantId)) return memoryHit;
 
     const sql = getDbClient();
     if (!sql) return null;
 
     try {
-      const rows = await sql.unsafe(
-        `SELECT output_json FROM dg_runs WHERE run_id = $1 LIMIT 1`,
-        [runId],
-      );
+      const rows = tenantId
+        ? await sql.unsafe(
+            `SELECT output_json FROM dg_runs WHERE run_id = $1 AND tenant_id = $2 LIMIT 1`,
+            [runId, tenantId],
+          )
+        : await sql.unsafe(
+            `SELECT output_json FROM dg_runs WHERE run_id = $1 LIMIT 1`,
+            [runId],
+          );
       const parsed = parseOutput((rows as any[])[0]);
-      if (parsed) {
+      if (parsed && matchesTenant(parsed, tenantId)) {
         inMemoryRuns.set(runId, parsed);
+        return parsed;
       }
-      return parsed;
+      return null;
     } catch (err) {
-      logger.warn("[DgRunRepository] findById failed", { runId, err });
+      logger.warn("[DgRunRepository] findById failed", { runId, tenantId, err });
       return null;
     }
   }
 
-  async findScenarios(runId: string): Promise<DgScenario[] | null> {
-    const run = await this.findById(runId);
+  async findScenarios(runId: string, tenantId?: string): Promise<DgScenario[] | null> {
+    const run = await this.findById(runId, tenantId);
     return run ? run.allScenarios : null;
   }
 
-  async findRecommendation(runId: string): Promise<DgRecommendation | null> {
-    const run = await this.findById(runId);
+  async findRecommendation(
+    runId: string,
+    tenantId?: string,
+  ): Promise<DgRecommendation | null> {
+    const run = await this.findById(runId, tenantId);
     return run?.recommendation ?? null;
   }
 }

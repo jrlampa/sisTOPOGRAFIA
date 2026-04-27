@@ -9,7 +9,7 @@ const loggerErrorMock = jest.fn();
 const loggerInfoMock = jest.fn();
 const loggerWarnMock = jest.fn();
 
-jest.mock("../services/ollamaService", () => ({
+jest.mock("../services/ollamaService.js", () => ({
   OllamaService: {
     isAvailable: (...args: unknown[]) => isAvailableMock(...args),
     getRuntimeStatus: (...args: unknown[]) => getRuntimeStatusMock(...args),
@@ -19,7 +19,7 @@ jest.mock("../services/ollamaService", () => ({
   },
 }));
 
-jest.mock("../utils/logger", () => ({
+jest.mock("../utils/logger.js", () => ({
   logger: {
     error: (...args: unknown[]) => loggerErrorMock(...args),
     info: (...args: unknown[]) => loggerInfoMock(...args),
@@ -30,7 +30,7 @@ jest.mock("../utils/logger", () => ({
 describe("analysisRoutes logging hardening", () => {
   afterEach(() => {
     jest.resetModules();
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   it("logs only request metadata with truncated preview on analysis errors", async () => {
@@ -44,7 +44,7 @@ describe("analysisRoutes logging hardening", () => {
     analyzeAreaMock.mockRejectedValueOnce(new Error("internal error"));
 
     const { default: analysisRoutes } =
-      await import("../routes/analysisRoutes");
+      await import("../routes/analysisRoutes.js");
     const app = express();
     app.use(express.json());
     app.use("/api/analysis", analysisRoutes);
@@ -107,7 +107,7 @@ describe("analysisRoutes logging hardening", () => {
       warnings: ["Host do Ollama fora da política zero-custo."],
     });
 
-    const { default: analysisRoutes } = await import("../routes/analysisRoutes");
+    const { default: analysisRoutes } = await import("../routes/analysisRoutes.js");
     const app = express();
     app.use("/api/analysis", analysisRoutes);
 
@@ -156,7 +156,7 @@ describe("analysisRoutes logging hardening", () => {
       },
     });
 
-    const { default: analysisRoutes } = await import("../routes/analysisRoutes");
+    const { default: analysisRoutes } = await import("../routes/analysisRoutes.js");
     const app = express();
     app.use("/api/analysis", analysisRoutes);
 
@@ -179,11 +179,11 @@ describe("analysisRoutes logging hardening", () => {
 describe("analysisRoutes — rotas adicionais", () => {
   afterEach(() => {
     jest.resetModules();
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   async function buildApp() {
-    const { default: analysisRoutes } = await import("../routes/analysisRoutes");
+    const { default: analysisRoutes } = await import("../routes/analysisRoutes.js");
     const app = express();
     app.use(express.json());
     app.use("/api/analysis", analysisRoutes);
@@ -216,26 +216,46 @@ describe("analysisRoutes — rotas adicionais", () => {
   });
 
   it("POST / retorna 503 quando Ollama nao disponivel", async () => {
+    isAvailableMock.mockResolvedValueOnce(false);
     getRuntimeStatusMock.mockResolvedValueOnce({
       available: false,
+      host: "http://localhost:11434",
       selectedModel: "llama3.2",
       configuredModel: "llama3.2",
+      availableModels: [],
+      fallbackModels: [],
+      warnings: [],
+      zeroCostEnforced: true,
       zeroCostCompliant: true,
+      compatibility: {
+        configuredModelAvailable: false,
+        fallbackModelUsed: false,
+      },
     });
     const app = await buildApp();
     const res = await request(app)
       .post("/api/analysis")
       .send({ locationName: "Area", stats: { buildings: 5 } });
     expect(res.status).toBe(503);
-    expect(res.body.error).toBe("Ollama not available");
+    expect(res.body.error).toBe("Ollama not ready");
   });
 
   it("POST / retorna 200 quando analyzeArea bem-sucedido", async () => {
+    isAvailableMock.mockResolvedValueOnce(true);
     getRuntimeStatusMock.mockResolvedValueOnce({
       available: true,
+      host: "http://localhost:11434",
       selectedModel: "llama3.2",
       configuredModel: "llama3.2",
+      availableModels: ["llama3.2"],
+      fallbackModels: [],
+      warnings: [],
+      zeroCostEnforced: true,
       zeroCostCompliant: true,
+      compatibility: {
+        configuredModelAvailable: true,
+        fallbackModelUsed: false,
+      },
     });
     analyzeAreaMock.mockResolvedValueOnce({ analysis: "tudo ok", model: "llama3.2" });
     const app = await buildApp();

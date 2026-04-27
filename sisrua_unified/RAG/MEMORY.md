@@ -88,3 +88,34 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
     - `npm run typecheck:frontend` (passou)
     - `npx vitest run tests/components/SettingsModalExportFooter.test.tsx --config vitest.config.ts` (passou)
     - `npm run build` (passou)
+
+## Atualização Operacional (2026-04-27C)
+
+- Governança de idioma redefinida:
+    - a regra deixou de ser `pt-BR only` e passou para `multi-idioma com locale fechado`.
+    - locales suportados: `pt-BR`, `en-US`, `es-ES`.
+    - requisito operacional: nenhuma tela, toast, hint ou mensagem de erro pode misturar idiomas dentro do locale ativo.
+- Ajustes implementados:
+    - seletor de idioma agora exibe nomes das línguas traduzidos conforme o locale atual.
+    - fluxos de salvar/carregar projeto e importar KML/KMZ respeitam o locale ativo nas mensagens ao usuário.
+    - seção de contexto MT no cockpit BT deixou de usar strings fixas em pt-BR.
+- Validações executadas:
+    - `npm run typecheck:frontend` (passou)
+    - `npm run build` (passou)
+
+## Atualização Operacional (2026-04-27D)
+
+- DG multi-tenant / RLS runtime:
+    - propagado `tenantId` pelos contratos DG (`DgOptimizationInput`, `DgOptimizationOutput`, `DgRunSummary`, `DgDiscardRateByConstraint`).
+    - `dgOptimizationService` e `dgRoutes` passaram a encaminhar `res.locals.tenantId` para leitura, listagem e persistência dos runs.
+    - `dgRunRepository` ficou tenant-aware tanto no caminho Postgres quanto no fallback em memória, evitando mistura entre tenants quando o banco não está disponível.
+    - inserts normalizados de DG agora incluem `tenant_id`, compatíveis com a migration `054_dg_runs_tenant_rls.sql`.
+- Testes DG e hardening de suíte backend:
+    - adicionados cenários de isolamento por tenant em `server/tests/dgRunRepository.test.ts`.
+    - `server/tests/dgOptimizationService.test.ts` passou a cobrir propagação de `tenantId`.
+    - alinhados `server/tests/dbClient.test.ts`, `server/tests/analysisRoutesLogging.test.ts` e `server/tests/healthStatus.test.ts` com os contratos atuais de `dbClient`, runtime Ollama e wake-up middleware do app.
+    - correção importante: usar reset completo de mocks em `analysisRoutesLogging.test.ts` para eliminar vazamento de estado entre casos.
+- Validações executadas:
+    - `npm run test:backend -- server/tests/dgRunRepository.test.ts server/tests/dgOptimizationService.test.ts server/tests/dgRoutes.test.ts` (passou)
+    - `npm run test:backend -- server/tests/dbClient.test.ts server/tests/analysisRoutesLogging.test.ts server/tests/healthStatus.test.ts` (passou)
+    - `npm run test:all` executado; backend e frontend unitários passaram, mas a etapa Playwright smoke permaneceu falhando em cenários de UI (`e2e/a11y-smoke.spec.ts`, `e2e/i18n-sidebar.spec.ts`), fora do slice DG/tenant-aware.

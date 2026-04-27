@@ -26,6 +26,7 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
   const { selectedPole: pole } = props;
   const t = getBtTopologyPanelText(props.locale);
   const pt = t.poleVerification;
+  const dashboardText = t.dashboard;
 
   if (!pole) return null;
 
@@ -119,19 +120,19 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
       {props.mtTopology.poles.some(p => p.id === pole.id) && (
         <div className="bg-gradient-to-br from-amber-50 to-orange-100/50 border border-orange-200 rounded-3xl p-4 shadow-sm">
           <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-orange-700/60 mb-3">
-            <Zap size={12} /> Contexto de Média Tensão (MT)
+            <Zap size={12} /> {dashboardText.mediumVoltageContext}
           </label>
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center bg-white/60 p-2.5 rounded-xl border border-orange-200/30">
               <span className="text-[10px] font-bold text-orange-900/70 uppercase">
-                Estruturas MT
+                {dashboardText.mediumVoltageStructures}
               </span>
               <span className="text-xs font-mono font-bold text-orange-800">
                 {(() => {
                   const mtPole = props.mtTopology.poles.find(
                     (p) => p.id === pole.id,
                   );
-                  if (!mtPole?.mtStructures) return "N/A";
+                  if (!mtPole?.mtStructures) return dashboardText.notAvailable;
                   return Object.values(mtPole.mtStructures)
                     .filter(Boolean)
                     .join(" / ");
@@ -139,9 +140,11 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
               </span>
             </div>
             <div className="flex justify-between items-center bg-white/60 p-2.5 rounded-xl border border-orange-200/30">
-              <span className="text-[10px] font-bold text-orange-900/70 uppercase">Conexões MT</span>
+              <span className="text-[10px] font-bold text-orange-900/70 uppercase">{dashboardText.mediumVoltageConnections}</span>
               <span className="text-xs font-mono font-bold text-orange-800">
-                {props.mtTopology.edges.filter(e => e.fromPoleId === pole.id || e.toPoleId === pole.id).length} trecho(s)
+                {dashboardText.spansCount(
+                  props.mtTopology.edges.filter(e => e.fromPoleId === pole.id || e.toPoleId === pole.id).length,
+                )}
               </span>
             </div>
           </div>

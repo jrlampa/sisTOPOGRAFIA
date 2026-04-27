@@ -24,6 +24,7 @@ export function useProjectDataWorkflow({
   const btTopology = appState.btTopology ?? { poles: [], transformers: [], edges: [] };
 
   const { importKml } = useKmlImport({
+    locale: appState.settings.locale,
     onImportSuccess: (result, filename) => {
       if (result.type === 'polygon') {
         setAppState({

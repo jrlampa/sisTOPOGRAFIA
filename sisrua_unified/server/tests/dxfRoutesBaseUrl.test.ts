@@ -85,4 +85,23 @@ describe('dxfRoutes getBaseUrl', () => {
 
     expect(getBaseUrl(req)).toBe('https://localhost:3001');
   });
+
+  it('falls back to localhost:3002 for Docker development when host is not trusted', async () => {
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: 'development',
+      DOCKER_ENV: 'true'
+    };
+
+    const { getBaseUrl } = await import('../routes/dxfRoutes');
+    const req = {
+      hostname: 'app',
+      protocol: 'http',
+      headers: {
+        host: 'app:3001'
+      }
+    } as any;
+
+    expect(getBaseUrl(req)).toBe('http://localhost:3002');
+  });
 });
