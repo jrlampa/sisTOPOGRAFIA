@@ -26,7 +26,7 @@ describe("appLocale", () => {
   it("expõe catálogo e rótulos de locales suportados", () => {
     expect(SUPPORTED_APP_LOCALES).toEqual(["pt-BR", "en-US", "es-ES"]);
     expect(getAppLocaleLabel("pt-BR")).toBe("Português (Brasil)");
-    expect(getAppLocaleLabel("en-US")).toBe("English (US)");
+    expect(getAppLocaleLabel("en-US")).toBe("English (United States)");
   });
 
   it("carrega locale persistido já normalizado", () => {
