@@ -115,6 +115,23 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
         return;
       }
 
+      // ─── Seleção de polígono e medição têm prioridade sobre o editor BT/MT ──
+      // Impede que cliques para adicionar vértices do polígono sejam interpretados
+      // como inserção de postes ou outros elementos do editor.
+      if (selectionMode === "polygon") {
+        onPolygonChange([...polygonPoints, [e.latlng.lat, e.latlng.lng]]);
+        return;
+      }
+
+      if (selectionMode === "measure" && onMeasurePathChange) {
+        if (measurePath.length >= 2) {
+          onMeasurePathChange([[e.latlng.lat, e.latlng.lng]]);
+        } else {
+          onMeasurePathChange([...measurePath, [e.latlng.lat, e.latlng.lng]]);
+        }
+        return;
+      }
+
       if (
         btEditorMode !== "none" &&
         btEditorMode !== "move-pole" &&
@@ -147,14 +164,6 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
           lng: e.latlng.lng,
           label: `${t.selectedLabel} (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
         });
-      } else if (selectionMode === "polygon") {
-        onPolygonChange([...polygonPoints, [e.latlng.lat, e.latlng.lng]]);
-      } else if (selectionMode === "measure" && onMeasurePathChange) {
-        if (measurePath.length >= 2) {
-          onMeasurePathChange([[e.latlng.lat, e.latlng.lng]]);
-        } else {
-          onMeasurePathChange([...measurePath, [e.latlng.lat, e.latlng.lng]]);
-        }
       }
     },
     contextmenu(e) {
