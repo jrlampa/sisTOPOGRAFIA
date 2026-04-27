@@ -306,6 +306,17 @@ export interface BtExportHistoryEntry extends BtExportSummary {
   projectType: BtProjectType;
 }
 
+export type DgDecisionMode = "all" | "trafo_only" | "discard";
+
+export interface DgDecisionHistoryEntry {
+  decidedAt: string;
+  runId: string;
+  scenarioId?: string;
+  mode: DgDecisionMode;
+  score?: number;
+  notes?: string;
+}
+
 export type AppLocale = "pt-BR" | "en-US" | "es-ES";
 
 export interface AppSettings {
@@ -385,6 +396,7 @@ export interface GlobalState {
   btTopology: BtTopology;
   btExportSummary?: BtExportSummary | null;
   btExportHistory: BtExportHistoryEntry[];
+  dgDecisionHistory?: DgDecisionHistoryEntry[];
   mtTopology: MtTopology;
   canonicalTopology?: CanonicalNetworkTopology;
   canonicalTopologyMeta?: CanonicalTopologyStateMeta;

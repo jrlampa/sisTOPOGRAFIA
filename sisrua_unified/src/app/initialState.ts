@@ -75,6 +75,7 @@ const DEFAULT_APP_STATE: GlobalState = {
   mtTopology: EMPTY_MT_TOPOLOGY,
   btExportSummary: null,
   btExportHistory: [],
+  dgDecisionHistory: [],
 };
 
 export const INITIAL_APP_STATE: GlobalState = {

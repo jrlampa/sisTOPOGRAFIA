@@ -2,7 +2,10 @@
  * Design Generativo – Rotas da API
  *
  * POST /api/dg/optimize             – executa otimização DG
- * GET  /api/dg/runs/:id             – placeholder para persistência futura
+ * POST /api/dg/decision             – registra decisão DG (Auditoria)
+ * POST /api/dg/accept               – compatibilidade com clientes legados
+ * GET  /api/dg/runs                 – lista runs executadas
+ * GET  /api/dg/runs/:id             – detalhe de uma run
  * GET  /api/dg/runs/:id/recommendation – retorna apenas a recomendação
  *
  * Feature flag: DG_ENABLED (env var, default true em dev).
@@ -19,6 +22,7 @@ import {
   getDgRunScenarios,
   getDgRunRecommendation,
 } from "../services/dgOptimizationService.js";
+import { logAudit } from "../services/auditLogService.js";
 import { permissionHandler } from "../middleware/permissionHandler.js";
 import { schemaValidator } from "../middleware/schemaValidator.js";
 import {
@@ -60,12 +64,7 @@ const polygonSchema = z.object({
     .optional()
     .default("building"),
   points: z
-    .array(
-      z.object({
-        lat: z.number().min(-90).max(90),
-        lon: z.number().min(-180).max(180),
-      }),
-    )
+    .array(latLonSchema)
     .min(3),
   label: z.string().optional(),
 });
@@ -73,12 +72,7 @@ const polygonSchema = z.object({
 const corridorSchema = z.object({
   id: z.string().min(1),
   centerPoints: z
-    .array(
-      z.object({
-        lat: z.number().min(-90).max(90),
-        lon: z.number().min(-180).max(180),
-      }),
-    )
+    .array(latLonSchema)
     .min(2),
   bufferMeters: z.number().positive(),
   label: z.string().optional(),
@@ -139,6 +133,13 @@ const optimizeBodySchema = z
     }
   });
 
+const acceptBodySchema = z.object({
+  runId: z.string().uuid(),
+  scenarioId: z.string().min(1).optional(),
+  appliedMode: z.enum(["all", "trafo_only", "discard"]),
+  score: z.number().optional(),
+});
+
 // ─── POST /api/dg/optimize ────────────────────────────────────────────────────
 
 router.post("/optimize", async (req: Request, res: Response) => {
@@ -167,7 +168,40 @@ router.post("/optimize", async (req: Request, res: Response) => {
   }
 });
 
-// ─── GET /api/dg/runs/:id ─────────────────────────────────────────────────────
+// ─── POST /api/dg/accept ──────────────────────────────────────────────────────
+
+const registerDecision = async (req: Request, res: Response) => {
+  const parsed = acceptBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Parâmetros de aceite inválidos." });
+  }
+
+  try {
+    logAudit({
+      userId: res.locals.userId,
+      action: "DG_DECISION",
+      resource: "dg_run",
+      resourceId: parsed.data.runId,
+      result: "success",
+      details: {
+        scenarioId: parsed.data.scenarioId,
+        appliedMode: parsed.data.appliedMode,
+        score: parsed.data.score,
+        tenantId: res.locals.tenantId,
+      },
+    });
+
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    logger.error("DG accept audit error", { message: (err as Error).message });
+    return res.status(500).json({ error: "Erro ao registrar auditoria DG." });
+  }
+};
+
+router.post("/decision", registerDecision);
+router.post("/accept", registerDecision);
+
+// ─── GET /api/dg/runs ─────────────────────────────────────────────────────────
 
 router.get("/runs", async (req: Request, res: Response) => {
   try {
@@ -302,10 +336,6 @@ router.get("/runs/:id/recommendation", async (req: Request, res: Response) => {
 
 // ─── BUFFER ZONE VALIDATION ROUTES ────────────────────────────────────────────
 
-/**
- * POST /api/dg/validate-buffer-zone
- * Validate a single candidate point against street buffer zones and buildings
- */
 router.post(
   "/validate-buffer-zone",
   permissionHandler(["READ_DESIGN_GENERATIVO"]),
@@ -313,37 +343,18 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const request = req.body;
-
-      logger.info("Buffer zone validation requested", {
-        userId: res.locals.userId,
-        tenantId: res.locals.tenantId,
-        pointLat: request.candidatePoint.latitude,
-        pointLon: request.candidatePoint.longitude,
-        streetPolylineCount: request.streetPolylines.length,
-        buildingCount: request.buildingFootprints?.length || 0,
-      });
-
       const result = await validateBufferZone(request);
-
       res.status(200).json({
         success: true,
         data: result,
-        metadata: {
-          processedAt: new Date().toISOString(),
-          userId: res.locals.userId,
-        },
+        metadata: { processedAt: new Date().toISOString(), userId: res.locals.userId },
       });
     } catch (error) {
-      logger.error("Error in buffer zone validation endpoint", { error });
       next(error);
     }
   },
 );
 
-/**
- * POST /api/dg/validate-batch
- * Validate multiple candidate points in batch
- */
 router.post(
   "/validate-batch",
   permissionHandler(["READ_DESIGN_GENERATIVO"]),
@@ -351,17 +362,7 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const request = req.body;
-
-      logger.info("Batch buffer validation requested", {
-        userId: res.locals.userId,
-        tenantId: res.locals.tenantId,
-        pointCount: request.candidatePoints.length,
-        streetPolylineCount: request.streetPolylines.length,
-        buildingCount: request.buildingFootprints?.length || 0,
-      });
-
       const result = await validateMultiplePoints(request);
-
       res.status(200).json({
         success: true,
         data: result,
@@ -372,56 +373,22 @@ router.post(
         },
       });
     } catch (error) {
-      logger.error("Error in batch buffer validation endpoint", { error });
       next(error);
     }
   },
 );
 
-/**
- * GET /api/dg/buffer-config
- * Get recommended buffer configurations by street type
- */
 router.get(
   "/buffer-config",
   permissionHandler(["READ_DESIGN_GENERATIVO"]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const bufferConfigurations = {
-        primary_curb: {
-          type: "primary",
-          minMeters: 0.3,
-          maxMeters: 0.5,
-          description: "Preferred: 0.3-0.5m from street curb edge",
-          applicability: "When precise curb data is available from INDE",
-        },
-        fallback_centerline: {
-          type: "fallback",
-          minMeters: 0.5,
-          maxMeters: 2.0,
-          description: "Fallback: 0.5-2.0m from street centerline",
-          applicability: "When only OSM centerline data is available",
-        },
-        strict_constraint: {
-          type: "primary",
-          minMeters: 0.2,
-          maxMeters: 0.3,
-          description: "Strict: 0.2-0.3m from curb (high precision)",
-          applicability: "Urban dense areas with precise requirements",
-        },
+        primary_curb: { type: "primary", minMeters: 0.3, maxMeters: 0.5 },
+        fallback_centerline: { type: "fallback", minMeters: 0.5, maxMeters: 2.0 },
       };
-
-      res.status(200).json({
-        success: true,
-        data: bufferConfigurations,
-        metadata: {
-          standardApproach: "primary_curb",
-          fallbackApproach: "fallback_centerline",
-          specification: "DG_IMPLEMENTATION_ADDENDUM_2026.md",
-        },
-      });
+      res.status(200).json({ success: true, data: bufferConfigurations });
     } catch (error) {
-      logger.error("Error in buffer config endpoint", { error });
       next(error);
     }
   },

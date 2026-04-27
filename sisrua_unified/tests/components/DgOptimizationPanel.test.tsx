@@ -53,6 +53,10 @@ function defaultProps(
 ): DgOptimizationPanelProps {
   return {
     hasPoles: true,
+    poles: [
+      { id: "p1", lat: -22.9, lng: -43.1, title: "P1", ramais: [] },
+      { id: "p2", lat: -22.91, lng: -43.11, title: "P2", ramais: [] },
+    ],
     hasTransformer: true,
     hasProjectedPoles: false,
     isOptimizing: false,
@@ -188,6 +192,13 @@ describe("DgOptimizationPanel", () => {
         defaultProps({ result: MOCK_OUTPUT, onAcceptAll }),
       ),
     );
+
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: /confirmo aplicação consciente do cenário/i,
+      }),
+    );
+
     fireEvent.click(screen.getByRole("button", { name: /aceitar tudo/i }));
     expect(onAcceptAll).toHaveBeenCalledWith(MOCK_SCENARIO);
   });

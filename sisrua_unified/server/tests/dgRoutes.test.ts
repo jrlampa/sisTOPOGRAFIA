@@ -144,6 +144,24 @@ describe("dgRoutes", () => {
     ).toBeGreaterThan(0);
   });
 
+  it("POST /decision registra descarte para trilha de auditoria", async () => {
+    await request(app)
+      .post(`${BASE}/optimize`)
+      .send({
+        ...optimizePayload,
+        runId: "6ad8084d-6b40-40ea-8339-bf0b0f822100",
+      });
+
+    const res = await request(app).post(`${BASE}/decision`).send({
+      runId: "6ad8084d-6b40-40ea-8339-bf0b0f822100",
+      appliedMode: "discard",
+      score: 72.3,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
   it("GET /runs/:id/scenarios retorna cenários e respeita filtro feasibleOnly", async () => {
     await request(app)
       .post(`${BASE}/optimize`)

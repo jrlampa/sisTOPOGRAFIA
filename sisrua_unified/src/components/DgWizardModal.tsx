@@ -4,6 +4,8 @@
  * Coleta parâmetros técnicos para dimensionamento automático de trafo
  * e rede BT em modo Greenfield (sem trafo inicial ou com rede projetada).
  *
+ * Permite edição individual de clientes por poste.
+ *
  * Referência: docs/DG_IMPLEMENTATION_ADDENDUM_2026.md
  */
 
@@ -16,10 +18,14 @@ import {
   Users,
   Shield,
   Ruler,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
+import type { BtPoleNode } from "../types";
 
 interface DgWizardModalProps {
   isOpen: boolean;
+  poles: BtPoleNode[];
   onClose: () => void;
   onExecute: (params: DgWizardParams) => void;
 }
@@ -31,9 +37,10 @@ export interface DgWizardParams {
   fatorSimultaneidade: number;
   faixaKvaTrafoPermitida: number[];
   maxSpanMeters: number;
+  poleOverrides: Record<string, number>;
 }
 
-const DEFAULT_WIZARD_PARAMS: DgWizardParams = {
+const DEFAULT_WIZARD_PARAMS: Omit<DgWizardParams, "poleOverrides"> = {
   clientesPorPoste: 1,
   areaClandestinaM2: 0,
   demandaMediaClienteKva: 1.5,
@@ -46,11 +53,16 @@ type Step = "DEMANDA" | "EXPANSAO" | "TECNICO" | "REVISAO";
 
 export function DgWizardModal({
   isOpen,
+  poles,
   onClose,
   onExecute,
 }: DgWizardModalProps) {
   const [step, setStep] = useState<Step>("DEMANDA");
-  const [params, setParams] = useState<DgWizardParams>(DEFAULT_WIZARD_PARAMS);
+  const [params, setParams] = useState<Omit<DgWizardParams, "poleOverrides">>(
+    DEFAULT_WIZARD_PARAMS,
+  );
+  const [poleOverrides, setPoleOverrides] = useState<Record<string, number>>({});
+  const [showIndividual, setShowIndividual] = useState(false);
 
   if (!isOpen) return null;
 
@@ -66,8 +78,15 @@ export function DgWizardModal({
     else if (step === "EXPANSAO") setStep("DEMANDA");
   };
 
-  const updateParam = (key: keyof DgWizardParams, value: any) => {
+  const updateParam = (
+    key: keyof Omit<DgWizardParams, "poleOverrides">,
+    value: any,
+  ) => {
     setParams((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const updatePoleOverride = (poleId: string, value: number) => {
+    setPoleOverrides((prev) => ({ ...prev, [poleId]: value }));
   };
 
   const validationError = (() => {
@@ -83,22 +102,6 @@ export function DgWizardModal({
     ) {
       return "A demanda média por cliente deve ser maior que zero.";
     }
-    if (
-      !Number.isFinite(params.areaClandestinaM2) ||
-      params.areaClandestinaM2 < 0
-    ) {
-      return "A área clandestina não pode ser negativa.";
-    }
-    if (!Number.isFinite(params.maxSpanMeters) || params.maxSpanMeters <= 0) {
-      return "O vão máximo deve ser maior que zero.";
-    }
-    if (
-      !Number.isFinite(params.fatorSimultaneidade) ||
-      params.fatorSimultaneidade <= 0 ||
-      params.fatorSimultaneidade > 1
-    ) {
-      return "O fator de simultaneidade deve ficar entre 0 e 1.";
-    }
     if (params.faixaKvaTrafoPermitida.length === 0) {
       return "Selecione ao menos uma faixa de kVA permitida.";
     }
@@ -107,9 +110,9 @@ export function DgWizardModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-2xl border-2 border-violet-700/30 bg-white shadow-2xl dark:bg-zinc-900 dark:border-violet-500/30 overflow-hidden">
+      <div className="w-full max-w-md rounded-2xl border-2 border-violet-700/30 bg-white shadow-2xl dark:bg-zinc-900 dark:border-violet-500/30 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between bg-violet-50 px-4 py-3 dark:bg-violet-950/20">
+        <div className="flex items-center justify-between bg-violet-50 px-4 py-3 dark:bg-violet-950/20 shrink-0">
           <div className="flex items-center gap-2">
             <Zap size={16} className="text-violet-700 dark:text-violet-400" />
             <h2 className="text-[11px] font-black uppercase tracking-widest text-violet-900 dark:text-violet-100">
@@ -118,8 +121,6 @@ export function DgWizardModal({
           </div>
           <button
             onClick={onClose}
-            aria-label="Fechar wizard"
-            title="Fechar wizard"
             className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
           >
             <X size={18} />
@@ -127,9 +128,9 @@ export function DgWizardModal({
         </div>
 
         {/* Content */}
-        <div className="p-5 space-y-6">
+        <div className="p-5 space-y-6 overflow-y-auto">
           {/* Progress Indicator */}
-          <div className="flex justify-between">
+          <div className="flex justify-between shrink-0">
             {["DEMANDA", "EXPANSAO", "TECNICO", "REVISAO"].map((s, i) => (
               <div
                 key={s}
@@ -162,20 +163,77 @@ export function DgWizardModal({
               </div>
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-600 uppercase">
+                  <label 
+                    htmlFor="clientes-global"
+                    className="text-[10px] font-bold text-zinc-600 uppercase"
+                  >
                     Clientes por poste (médio)
                   </label>
                   <input
+                    id="clientes-global"
                     type="number"
                     value={params.clientesPorPoste}
-                    title="Clientes por poste"
-                    placeholder="1"
                     onChange={(e) =>
                       updateParam("clientesPorPoste", Number(e.target.value))
                     }
                     className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs focus:ring-2 focus:ring-violet-500 outline-none dark:bg-zinc-800 dark:border-zinc-700"
                   />
                 </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={() => setShowIndividual(!showIndividual)}
+                    className="flex items-center justify-between w-full py-2 px-3 rounded-lg bg-zinc-50 border border-zinc-100 text-[10px] font-bold text-zinc-600 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-400"
+                  >
+                    AJUSTAR CLIENTES POR POSTE ({poles.length})
+                    {showIndividual ? (
+                      <ChevronUp size={14} />
+                    ) : (
+                      <ChevronDown size={14} />
+                    )}
+                  </button>
+
+                  {showIndividual && (
+                    <div className="mt-2 border border-zinc-100 rounded-lg overflow-hidden dark:border-zinc-700 max-h-48 overflow-y-auto shadow-inner bg-zinc-50/30 dark:bg-zinc-950/20">
+                      <table className="w-full text-left text-[10px]">
+                        <thead className="bg-zinc-100 dark:bg-zinc-800 sticky top-0">
+                          <tr>
+                            <th className="px-3 py-2 font-bold text-zinc-500">
+                              Poste
+                            </th>
+                            <th className="px-3 py-2 font-bold text-zinc-500">
+                              Clientes
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                          {poles.map((p) => (
+                            <tr key={p.id}>
+                              <td className="px-3 py-2 text-zinc-600 dark:text-zinc-300 font-medium">
+                                {p.title || p.id.slice(-4)}
+                              </td>
+                              <td className="px-2 py-1">
+                                <input
+                                  type="number"
+                                  value={
+                                    poleOverrides[p.id] ??
+                                    p.ramais?.length ??
+                                    params.clientesPorPoste
+                                  }
+                                  onChange={(e) =>
+                                    updatePoleOverride(p.id, Number(e.target.value))
+                                  }
+                                  className="w-16 rounded border border-zinc-200 px-2 py-1 bg-white dark:bg-zinc-900 dark:border-zinc-700 outline-none focus:ring-1 focus:ring-violet-500"
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-zinc-600 uppercase">
                     Demanda média por cliente (kVA)
@@ -184,8 +242,6 @@ export function DgWizardModal({
                     type="number"
                     step="0.1"
                     value={params.demandaMediaClienteKva}
-                    title="Demanda média por cliente em kVA"
-                    placeholder="1.5"
                     onChange={(e) =>
                       updateParam(
                         "demandaMediaClienteKva",
@@ -219,8 +275,6 @@ export function DgWizardModal({
                 <input
                   type="number"
                   value={params.areaClandestinaM2}
-                  title="Área clandestina adicional em metros quadrados"
-                  placeholder="0"
                   onChange={(e) =>
                     updateParam("areaClandestinaM2", Number(e.target.value))
                   }
@@ -254,8 +308,6 @@ export function DgWizardModal({
                   <input
                     type="number"
                     value={params.maxSpanMeters}
-                    title="Vão máximo em metros"
-                    placeholder="40"
                     onChange={(e) =>
                       updateParam("maxSpanMeters", Number(e.target.value))
                     }
@@ -270,8 +322,6 @@ export function DgWizardModal({
                     type="number"
                     step="0.05"
                     value={params.fatorSimultaneidade}
-                    title="Fator de simultaneidade"
-                    placeholder="0.8"
                     onChange={(e) =>
                       updateParam("fatorSimultaneidade", Number(e.target.value))
                     }
@@ -323,7 +373,7 @@ export function DgWizardModal({
               </div>
               <div className="rounded-xl bg-zinc-50 p-4 space-y-2 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700">
                 <div className="flex justify-between text-xs">
-                  <span className="text-zinc-500">Demanda/Poste:</span>
+                  <span className="text-zinc-500">Demanda/Poste (Média):</span>
                   <span className="font-bold text-zinc-700 dark:text-zinc-300">
                     {(
                       params.clientesPorPoste *
@@ -331,6 +381,12 @@ export function DgWizardModal({
                       params.fatorSimultaneidade
                     ).toFixed(2)}{" "}
                     kVA
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-500">Ajustes Manuais:</span>
+                  <span className="font-bold text-zinc-700 dark:text-zinc-300">
+                    {Object.keys(poleOverrides).length} postes
                   </span>
                 </div>
                 <div className="flex justify-between text-xs">
@@ -357,7 +413,7 @@ export function DgWizardModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-zinc-100 p-4 dark:border-zinc-800">
+        <div className="flex items-center justify-between border-t border-zinc-100 p-4 dark:border-zinc-800 shrink-0">
           <button
             onClick={step === "DEMANDA" ? onClose : handleBack}
             className="flex items-center gap-1 text-[10px] font-bold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
@@ -372,7 +428,7 @@ export function DgWizardModal({
             )}
           </button>
           <button
-            onClick={step === "REVISAO" ? () => onExecute(params) : handleNext}
+            onClick={step === "REVISAO" ? () => onExecute({ ...params, poleOverrides }) : handleNext}
             disabled={validationError !== null}
             className="flex items-center gap-1 rounded-xl bg-violet-700 px-6 py-2 text-[10px] font-black text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"
           >

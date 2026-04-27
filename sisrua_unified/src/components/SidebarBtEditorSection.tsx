@@ -367,6 +367,12 @@ export function SidebarBtEditorSection({
           <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
           <DgOptimizationPanel
             hasPoles={btTopology.poles.length > 0}
+            poles={btTopology.poles}
+            currentTransformer={btTopology.transformers[0]}
+            currentTotalCableLengthMeters={btTopology.edges.reduce(
+              (sum, edge) => sum + (edge.lengthMeters ?? 0),
+              0,
+            )}
             hasTransformer={btTopology.transformers.length > 0}
             hasProjectedPoles={btTopology.poles.some(
               (p) => p.nodeChangeFlag === "new",

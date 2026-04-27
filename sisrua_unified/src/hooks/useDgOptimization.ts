@@ -11,6 +11,8 @@ import { useState, useCallback } from "react";
 import type { BtTopology, BtEdge } from "../types";
 import type { DgWizardParams } from "../components/DgWizardModal";
 
+export type DgDecisionMode = "all" | "trafo_only" | "discard";
+
 // ─── Tipos espelhados do servidor (dgTypes.ts) ─────────────────────────────────
 
 export interface DgLatLon {
@@ -156,17 +158,23 @@ export function useDgOptimization() {
       setState({ isOptimizing: true, result: null, error: null });
 
       const payload: any = {
-        poles: btTopology.poles.map((p) => ({
-          id: p.id,
-          position: { lat: p.lat, lon: p.lng },
-          demandKva: Math.max(0, (p.ramais?.length ?? 0) * 1.5),
-          clients: p.ramais?.length ?? 0,
-        })),
+        poles: btTopology.poles.map((p) => {
+          const clients = wizardParams?.poleOverrides[p.id] ?? p.ramais?.length ?? 0;
+          return {
+            id: p.id,
+            position: { lat: p.lat, lon: p.lng },
+            // Demanda base: se houver override, usa ele, senão usa o padrão do ramal
+            demandKva: Math.max(0, clients * (wizardParams?.demandaMediaClienteKva ?? 1.5)),
+            clients,
+          };
+        }),
         params: {
           projectMode: isFullProject ? "full_project" : "optimization",
-          ...wizardParams,
-        },
+          wizardContractVersion: "DG Wizard v1",
+          ...wizardParams
+        }
       };
+
 
       if (transformer) {
         payload.transformer = {
@@ -210,6 +218,28 @@ export function useDgOptimization() {
     setState({ isOptimizing: false, result: null, error: null });
     setActiveAltIndex(-1);
   }, []);
+
+  /** Registra decisão DG no backend para trilha de auditoria. */
+  const logDgDecision = useCallback(async (
+    mode: DgDecisionMode,
+    scenario?: DgScenario,
+  ) => {
+    if (!state.result?.runId) return;
+    try {
+      await fetch("/api/dg/decision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          runId: state.result.runId,
+          scenarioId: scenario?.scenarioId,
+          appliedMode: mode,
+          score: scenario?.objectiveScore,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to log DG audit", err);
+    }
+  }, [state.result?.runId]);
 
   /**
    * Aplica cenário DG completo: realoca trafo + substitui condutores.
@@ -293,6 +323,7 @@ export function useDgOptimization() {
           : (state.result.recommendation.alternatives[activeAltIndex] ?? null),
     runDgOptimization,
     clearDgResult,
+    logDgDecision,
     applyDgAll,
     applyDgTrafoOnly,
   };

@@ -4,6 +4,7 @@ import {
   BtEditorMode,
   BtNetworkScenario,
   GeoLocation,
+  DgDecisionMode,
 } from "./types";
 import { useUndoRedo } from "./hooks/useUndoRedo";
 import { useOsmEngine } from "./hooks/useOsmEngine";
@@ -406,9 +407,39 @@ function App() {
     activeScenario: dgActiveScenario,
     runDgOptimization,
     clearDgResult,
+    logDgDecision,
     applyDgAll,
     applyDgTrafoOnly,
   } = useDgOptimization();
+
+  const appendDgDecisionHistory = React.useCallback(
+    (params: {
+      mode: DgDecisionMode;
+      runId: string;
+      scenarioId?: string;
+      score?: number;
+      notes?: string;
+    }) => {
+      setAppState(
+        (prev) => ({
+          ...prev,
+          dgDecisionHistory: [
+            {
+              decidedAt: new Date().toISOString(),
+              mode: params.mode,
+              runId: params.runId,
+              scenarioId: params.scenarioId,
+              score: params.score,
+              notes: params.notes,
+            },
+            ...(prev.dgDecisionHistory ?? []),
+          ].slice(0, 200),
+        }),
+        false,
+      );
+    },
+    [setAppState],
+  );
 
   const handleRunDgOptimization = React.useCallback(
     (wizardParams?: DgWizardParams) => {
@@ -419,6 +450,17 @@ function App() {
 
   const handleAcceptDgAll = React.useCallback(
     (scenario: DgScenario) => {
+      const runId = dgResult?.runId;
+      if (runId) {
+        void logDgDecision("all", scenario);
+        appendDgDecisionHistory({
+          mode: "all",
+          runId,
+          scenarioId: scenario.scenarioId,
+          score: scenario.objectiveScore,
+          notes: "Aplicação completa: trafo + condutores.",
+        });
+      }
       updateBtTopology(applyDgAll(btTopology, scenario));
       clearDgResult();
       showToast(
@@ -426,17 +468,69 @@ function App() {
         "success",
       );
     },
-    [applyDgAll, btTopology, updateBtTopology, clearDgResult, showToast],
+    [
+      dgResult?.runId,
+      logDgDecision,
+      appendDgDecisionHistory,
+      applyDgAll,
+      btTopology,
+      updateBtTopology,
+      clearDgResult,
+      showToast,
+    ],
   );
 
   const handleAcceptDgTrafoOnly = React.useCallback(
     (scenario: DgScenario) => {
+      const runId = dgResult?.runId;
+      if (runId) {
+        void logDgDecision("trafo_only", scenario);
+        appendDgDecisionHistory({
+          mode: "trafo_only",
+          runId,
+          scenarioId: scenario.scenarioId,
+          score: scenario.objectiveScore,
+          notes: "Aplicação parcial: somente trafo.",
+        });
+      }
       updateBtTopology(applyDgTrafoOnly(btTopology, scenario));
       clearDgResult();
       showToast("Posição do trafo atualizada pelo DG.", "success");
     },
-    [applyDgTrafoOnly, btTopology, updateBtTopology, clearDgResult, showToast],
+    [
+      dgResult?.runId,
+      logDgDecision,
+      appendDgDecisionHistory,
+      applyDgTrafoOnly,
+      btTopology,
+      updateBtTopology,
+      clearDgResult,
+      showToast,
+    ],
   );
+
+  const handleDiscardDgResult = React.useCallback(() => {
+    const runId = dgResult?.runId;
+    if (runId) {
+      void logDgDecision("discard", dgActiveScenario ?? undefined);
+      appendDgDecisionHistory({
+        mode: "discard",
+        runId,
+        scenarioId: dgActiveScenario?.scenarioId,
+        score: dgActiveScenario?.objectiveScore,
+        notes: "Usuário descartou recomendação DG.",
+      });
+    }
+    clearDgResult();
+    showToast("Recomendação DG descartada.", "info");
+  }, [
+    dgResult?.runId,
+    dgActiveScenario,
+    logDgDecision,
+    appendDgDecisionHistory,
+    clearDgResult,
+    showToast,
+  ]);
 
   const handleTriggerTelescopicAnalysis = React.useCallback(() => {
     if (isBtTelescopicAnalyzing) {
@@ -820,7 +914,7 @@ function App() {
     onRunDgOptimization: handleRunDgOptimization,
     onAcceptDgAll: handleAcceptDgAll,
     onAcceptDgTrafoOnly: handleAcceptDgTrafoOnly,
-    onClearDgResult: clearDgResult,
+    onClearDgResult: handleDiscardDgResult,
     onSetDgActiveAltIndex: setDgActiveAltIndex,
     // Hoisted selection state
     selectedPoleId,

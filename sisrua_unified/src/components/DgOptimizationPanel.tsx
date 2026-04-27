@@ -7,7 +7,7 @@
  * Referência: docs/DG_IMPLEMENTATION_ADDENDUM_2026.md – Frente 3
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Loader2, Zap, CheckCircle, XCircle, Info } from "lucide-react";
 import type {
   DgOptimizationOutput,
@@ -15,6 +15,7 @@ import type {
   DgConstraintCode,
 } from "../hooks/useDgOptimization";
 import { DgWizardModal, DgWizardParams } from "./DgWizardModal";
+import type { BtPoleNode, BtTransformer } from "../types";
 
 const DG_WIZARD_FULL_MODE_ENABLED =
   String(import.meta.env.VITE_DG_WIZARD_FULL_MODE ?? "true") !== "false";
@@ -101,6 +102,9 @@ function DiscardReasonList({
 
 export interface DgOptimizationPanelProps {
   hasPoles: boolean;
+  poles: BtPoleNode[];
+  currentTransformer?: BtTransformer;
+  currentTotalCableLengthMeters?: number;
   hasTransformer: boolean;
   hasProjectedPoles?: boolean;
   isOptimizing: boolean;
@@ -119,6 +123,9 @@ export interface DgOptimizationPanelProps {
 
 export function DgOptimizationPanel({
   hasPoles,
+  poles,
+  currentTransformer,
+  currentTotalCableLengthMeters,
   hasTransformer,
   hasProjectedPoles = false,
   isOptimizing,
@@ -132,6 +139,7 @@ export function DgOptimizationPanel({
   onDiscard,
 }: DgOptimizationPanelProps) {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [acceptanceConfirmed, setAcceptanceConfirmed] = useState(false);
 
   const canRunLegacy = hasPoles && hasTransformer && !isOptimizing;
   const canRunFull = hasPoles && !isOptimizing;
@@ -144,6 +152,30 @@ export function DgOptimizationPanel({
       : activeAltIndex === -1
         ? rec.bestScenario
         : (rec.alternatives[activeAltIndex] ?? null);
+
+  useEffect(() => {
+    setAcceptanceConfirmed(false);
+  }, [active?.scenarioId]);
+
+  const cableDeltaMeters = useMemo(() => {
+    if (!active || currentTotalCableLengthMeters == null) return null;
+    return active.electricalResult.totalCableLengthMeters - currentTotalCableLengthMeters;
+  }, [active, currentTotalCableLengthMeters]);
+
+  const trafoShiftMeters = useMemo(() => {
+    if (!active || !currentTransformer) return null;
+    const R = 6371000;
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const lat1 = toRad(currentTransformer.lat);
+    const lat2 = toRad(active.trafoPositionLatLon.lat);
+    const dLat = toRad(active.trafoPositionLatLon.lat - currentTransformer.lat);
+    const dLon = toRad(active.trafoPositionLatLon.lon - currentTransformer.lng);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }, [active, currentTransformer]);
 
   const handleMainAction = () => {
     // Se não tem trafo OU tem postes projetados, abre wizard
@@ -304,16 +336,53 @@ export function DgOptimizationPanel({
 
           {rec && <DiscardReasonList summary={rec.discardReasonSummary} />}
 
+          {(currentTransformer || currentTotalCableLengthMeters != null) && (
+            <div className="space-y-1 rounded-lg border border-violet-300/40 bg-white/70 p-2 dark:border-violet-600/40 dark:bg-zinc-900/30">
+              <div className="text-[9px] uppercase font-bold tracking-wider text-violet-700 dark:text-violet-300">
+                Comparativo Atual x Sugerido
+              </div>
+              {currentTransformer && (
+                <ElectricalResultRow
+                  label="Realocação do trafo"
+                  value={trafoShiftMeters == null ? "-" : `${trafoShiftMeters.toFixed(1)} m`}
+                />
+              )}
+              {currentTotalCableLengthMeters != null && (
+                <ElectricalResultRow
+                  label="Cabo total (delta)"
+                  value={
+                    cableDeltaMeters == null
+                      ? "-"
+                      : `${cableDeltaMeters > 0 ? "+" : ""}${cableDeltaMeters.toFixed(1)} m`
+                  }
+                  warn={cableDeltaMeters != null && cableDeltaMeters > 0}
+                />
+              )}
+            </div>
+          )}
+
+          <label className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white/80 px-2 py-1 text-[10px] text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300">
+            <input
+              type="checkbox"
+              checked={acceptanceConfirmed}
+              onChange={(e) => setAcceptanceConfirmed(e.target.checked)}
+              aria-label="Confirmo aplicação consciente do cenário"
+            />
+            Confirmo aplicação consciente após revisar o comparativo.
+          </label>
+
           {/* Botões de aceitação */}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button
               onClick={() => onAcceptTrafoOnly(active)}
+              disabled={!acceptanceConfirmed}
               className="rounded-xl border-2 border-violet-700/40 py-2 text-[10px] font-black text-violet-800 transition-all hover:bg-violet-100 dark:border-violet-500/40 dark:text-violet-200 dark:hover:bg-violet-900/30"
             >
               {hasTransformer ? "SÓ REALOCAR" : "SÓ NOVO TRAFO"}
             </button>
             <button
               onClick={() => onAcceptAll(active)}
+              disabled={!acceptanceConfirmed}
               className="rounded-xl border-2 border-violet-700/40 bg-violet-700 py-2 text-[10px] font-black text-white transition-all hover:bg-violet-800 dark:bg-violet-700 dark:hover:bg-violet-600"
             >
               <span className="flex items-center justify-center gap-1">
@@ -327,6 +396,7 @@ export function DgOptimizationPanel({
 
       <DgWizardModal
         isOpen={isWizardOpen}
+        poles={poles}
         onClose={() => setIsWizardOpen(false)}
         onExecute={handleExecuteWizard}
       />
