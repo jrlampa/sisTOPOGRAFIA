@@ -210,6 +210,8 @@ export type BtPoleConditionStatus =
   | "trincado"
   | "condenado";
 
+export type BtDataSource = "imported" | "manual" | "dg_calculated";
+
 export interface BtPoleNode {
   id: string;
   lat: number;
@@ -227,6 +229,7 @@ export interface BtPoleNode {
   hasVehicleAccess?: boolean;
   manualDragDistanceMeters?: number;
   equipmentType?: string;
+  dataSource?: BtDataSource;
 }
 
 export interface BtTransformerReading {
@@ -255,6 +258,7 @@ export interface BtTransformer {
   readings: BtTransformerReading[];
   verified?: boolean;
   transformerChangeFlag?: "existing" | "new" | "remove" | "replace";
+  dataSource?: BtDataSource;
 }
 
 export interface BtEdge {
@@ -340,6 +344,8 @@ export interface AppSettings {
   btCqtPowerFactor?: number;
   clandestinoAreaM2?: number;
   mtEditorMode?: MtEditorMode;
+  uiDensity?: "compact" | "comfortable";
+  enableFocusMode?: boolean;
 }
 
 export type SelectionMode = "circle" | "polygon" | "measure";
@@ -361,6 +367,7 @@ export interface MtPoleNode {
   mtStructures?: MtPoleStructures;
   verified?: boolean;
   nodeChangeFlag?: "existing" | "new" | "remove" | "replace";
+  dataSource?: BtDataSource;
 }
 
 export interface MtEdge {

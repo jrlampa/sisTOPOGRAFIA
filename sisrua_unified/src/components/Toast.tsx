@@ -5,8 +5,10 @@ import {
   Info,
   X,
   AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { trackErrorFriction } from "../utils/analytics";
 
 export type ToastType = "success" | "error" | "info" | "warning" | "alert";
 
@@ -15,6 +17,10 @@ interface ToastProps {
   type: ToastType;
   onClose: () => void;
   duration?: number;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 const Toast: React.FC<ToastProps> = ({
@@ -22,19 +28,28 @@ const Toast: React.FC<ToastProps> = ({
   type,
   onClose,
   duration = 4000,
+  action,
 }) => {
   useEffect(() => {
+    // UX-20: Track error friction
+    if (type === "error") {
+      trackErrorFriction(message, !!action);
+    }
+
+    // If there is an action (like Retry), we might want to keep the toast open longer
+    const adjustedDuration = action ? duration * 2 : duration;
+    
     const timer = setTimeout(() => {
       onClose();
-    }, duration);
+    }, adjustedDuration);
 
     return () => clearTimeout(timer);
-  }, [onClose, duration]);
+  }, [onClose, duration, action, type, message]);
 
   const icons = {
     success: (
       <CheckCircle2
-        className="text-emerald-600 dark:text-emerald-300"
+        className="text-enterprise-blue dark:text-emerald-300"
         size={20}
       />
     ),
@@ -54,7 +69,7 @@ const Toast: React.FC<ToastProps> = ({
   };
 
   const borderColors = {
-    success: "border-emerald-500/45",
+    success: "border-enterprise-blue/45",
     error: "border-rose-500/45",
     info: "border-sky-500/45",
     warning: "border-amber-500/45",
@@ -63,7 +78,7 @@ const Toast: React.FC<ToastProps> = ({
 
   const bgColors = {
     success:
-      "from-emerald-100/90 to-white/95 dark:from-emerald-900/35 dark:to-slate-900/95",
+      "from-blue-50/90 to-white/95 dark:from-emerald-900/35 dark:to-slate-900/95",
     error:
       "from-rose-100/90 to-white/95 dark:from-rose-900/35 dark:to-slate-900/95",
     info: "from-sky-100/90 to-white/95 dark:from-sky-900/35 dark:to-slate-900/95",
@@ -74,7 +89,7 @@ const Toast: React.FC<ToastProps> = ({
   };
 
   const iconContainers = {
-    success: "bg-emerald-100/80 dark:bg-emerald-900/45",
+    success: "bg-blue-100/80 dark:bg-emerald-900/45",
     error: "bg-rose-100/80 dark:bg-rose-900/45",
     info: "bg-sky-100/80 dark:bg-sky-900/45",
     warning: "bg-amber-100/80 dark:bg-amber-900/45",
@@ -93,9 +108,25 @@ const Toast: React.FC<ToastProps> = ({
       <div className={`shrink-0 p-2 rounded-xl ${iconContainers[type]}`}>
         {icons[type]}
       </div>
-      <p className="text-[13px] font-semibold text-slate-900 dark:text-slate-50 flex-1 leading-5">
-        {message}
-      </p>
+      <div className="flex-1 flex flex-col gap-1">
+        <p className="text-[13px] font-semibold text-slate-900 dark:text-slate-50 leading-5">
+          {message}
+        </p>
+        {action && (
+          <button
+            onClick={() => {
+              // UX-20: Track retry click
+              trackErrorFriction(message, true, true);
+              action.onClick();
+              onClose();
+            }}
+            className="mt-1 flex w-fit items-center gap-1.5 rounded-lg bg-slate-900/10 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900 hover:bg-slate-900/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 transition-all active:scale-95"
+          >
+            <RefreshCw size={10} />
+            {action.label}
+          </button>
+        )}
+      </div>
       <motion.button
         whileHover={{ scale: 1.1, rotate: 90 }}
         whileTap={{ scale: 0.95 }}

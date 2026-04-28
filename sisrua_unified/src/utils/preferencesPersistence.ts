@@ -99,6 +99,11 @@ export const loadPersistedAppSettings = (
     typeof parsed.exportMemorialPdfWithDxf === "boolean"
       ? parsed.exportMemorialPdfWithDxf
       : fallback.exportMemorialPdfWithDxf;
+  const uiDensity = 
+    parsed.uiDensity === "compact" || parsed.uiDensity === "comfortable"
+      ? parsed.uiDensity
+      : fallback.uiDensity;
+
   const mergedLayers = {
     ...fallback.layers,
     ...layers,
@@ -108,6 +113,7 @@ export const loadPersistedAppSettings = (
     ...fallback,
     ...parsed,
     exportMemorialPdfWithDxf,
+    uiDensity,
     locale,
     layers: mergedLayers,
     projectMetadata: {

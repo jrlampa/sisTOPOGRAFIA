@@ -48,6 +48,23 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 - **Fase 3 BIM**: Concluída exportação de metadados BIM enriquecidos no DXF. Blocos (Postes, Trafos, Condutores) agora incluem Atributos Invisíveis (ATTDEF) para uso com `DATAEXTRACTION` no AutoCAD/Civil3D.
 - **Correção de Build**: Resolvido erro de destructuring no `App.tsx` referente ao export de CSV.
 
+## Atualização Operacional (2026-04-28)
+
+- **UX Sprint 1 — Aceleração e Redução de Fricção (Board UX-2026)**:
+  - **UX-01 (First Useful Action)**: Implementado Splash Screen CSS inline no `index.html` para resposta visual imediata (< 3s) durante o carregamento do bundle.
+  - **UX-02 (Empty States Inteligentes)**: Refatoração do `EmptyStateMapOverlay.tsx` para exibir um CTA primário único ("INICIAR PROJETO") e microinstrução clara, reduzindo carga cognitiva.
+  - **UX-03 & UX-05 (Autosave & Microcopy)**: Atualizado indicador de autosave no `AppHeader.tsx` com microcopy humana ("salvo agora", "sincronizando", "erro ao sincronizar") em PT-BR/EN-US/ES-ES.
+  - **UX-04 (Feedback Instantâneo)**: Otimização de estados `active:scale` e transitions em componentes críticos para latência percebida < 100ms.
+- **Testes & Qualidade**:
+  - Criado `tests/components/EmptyStateMapOverlay.test.tsx` com 100% de cobertura para o novo fluxo.
+  - Validação de i18n para novas strings de autosave e empty state.
+- **Arquivos Modificados**:
+  - `index.html` (splash screen)
+  - `src/components/EmptyStateMapOverlay.tsx` (refactor UI)
+  - `src/components/AppHeader.tsx` (autosave UI)
+  - `src/i18n/appHeaderText.ts` (human microcopy)
+  - `tests/components/EmptyStateMapOverlay.test.tsx` (novo)
+
 ## Próximos Passos (Próxima Sessão)
 
 1. **Dashboard de Monitoramento**: Implementar visualização de KPIs de rede e saúde do sistema baseada em Supabase MVs.

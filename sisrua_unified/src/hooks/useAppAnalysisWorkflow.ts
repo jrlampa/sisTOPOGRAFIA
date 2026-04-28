@@ -10,14 +10,20 @@ interface UseAppAnalysisWorkflowParams {
     addToHistory: boolean,
   ) => void;
   clearData: () => void;
-  showToast: (message: string, type: ToastType) => void;
+  showToast: (message: string, type: ToastType, action?: { label: string; onClick: () => void }) => void;
   clearPendingBtEdge: () => void;
   handleBaseSelectionModeChange: (mode: SelectionMode) => void;
   runAnalysis: (
     center: GeoLocation,
     radius: number,
     enableAI: boolean,
-  ) => Promise<{ success: true } | { success: false; errorMessage: string }>;
+  ) => Promise<{ 
+    success: true 
+  } | { 
+    success: false; 
+    errorMessage: string; 
+    retryAction?: { label: string; onClick: () => void } 
+  }>;
   isDownloading: boolean;
   jobId: string | null;
   jobStatus: string | null;
@@ -76,7 +82,7 @@ export function useAppAnalysisWorkflow({
       return;
     }
 
-    showToast(result.errorMessage || "Falha na análise.", "error");
+    showToast(result.errorMessage || "Falha na análise.", "error", result.retryAction);
   }, [runAnalysis, center, radius, settings.enableAI, showToast]);
 
   const showDxfProgress = isDownloading || !!jobId;

@@ -9,9 +9,11 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import HistoryControls from "./HistoryControls";
+import { AutoSaveIndicator } from "./AutoSaveIndicator";
 import type { HealthStatus } from "../hooks/useBackendHealth";
 import type { AppLocale } from "../types";
 import { getAppHeaderText } from "../i18n/appHeaderText";
+import type { HistoryEntry } from "../hooks/useUndoRedo";
 
 interface AppHeaderProps {
   locale: AppLocale;
@@ -19,6 +21,8 @@ interface AppHeaderProps {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  past?: HistoryEntry<any>[];
+  future?: HistoryEntry<any>[];
   onSaveProject: () => void;
   onOpenProject: (file: File) => void;
   onOpenSettings: () => void;
@@ -28,6 +32,8 @@ interface AppHeaderProps {
   isDark: boolean;
   backendStatus: HealthStatus;
   backendResponseTimeMs: number | null;
+  autoSaveStatus?: 'idle' | 'saving' | 'error';
+  lastAutoSaved?: string;
 }
 
 export function AppHeader({
@@ -36,6 +42,8 @@ export function AppHeader({
   canRedo,
   onUndo,
   onRedo,
+  past = [],
+  future = [],
   onSaveProject,
   onOpenProject,
   onOpenSettings,
@@ -45,6 +53,8 @@ export function AppHeader({
   backendResponseTimeMs,
   isSidebarCollapsed,
   onToggleSidebarCollapsed,
+  autoSaveStatus = 'idle',
+  lastAutoSaved,
 }: AppHeaderProps) {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const actionButtonClass =
@@ -221,6 +231,8 @@ export function AppHeader({
             canRedo={canRedo}
             onUndo={onUndo}
             onRedo={onRedo}
+            past={past}
+            future={future}
           />
         </div>
 
@@ -234,19 +246,25 @@ export function AppHeader({
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-2xl bg-slate-100/50 p-1 dark:bg-slate-800/50">
-            <motion.button
-              whileHover={{ scale: 1.05, y: -1 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onSaveProject}
-              className={`${actionButtonClass} !h-10 !w-10 border-none shadow-sm ${
-                isDark
-                  ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
-                  : "bg-white text-amber-600 hover:bg-amber-50"
-              }`}
-              title={t.saveProject}
-            >
-              <Save size={18} strokeWidth={2.5} />
-            </motion.button>
+            <div className="relative group">
+              <motion.button
+                whileHover={{ scale: 1.05, y: -1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onSaveProject}
+                className={`${actionButtonClass} !h-10 !w-10 border-none shadow-sm ${
+                  isDark
+                    ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
+                    : "bg-white text-amber-600 hover:bg-amber-50"
+                }`}
+                title={t.saveProject}
+              >
+                <Save size={18} strokeWidth={2.5} />
+              </motion.button>
+              
+              <div className="absolute -top-1.5 -right-2 transition-all">
+                <AutoSaveIndicator status={autoSaveStatus} lastSaved={lastAutoSaved} />
+              </div>
+            </div>
 
             <motion.button
               whileHover={{ scale: 1.05, y: -1 }}

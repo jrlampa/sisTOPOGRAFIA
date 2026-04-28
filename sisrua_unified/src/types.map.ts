@@ -40,6 +40,7 @@ export interface MapBtPole {
   btStructures?: MapBtPoleStructures;
   nodeChangeFlag?: "existing" | "new" | "remove" | "replace";
   circuitBreakPoint?: boolean;
+  dataSource?: "imported" | "manual" | "dg_calculated";
 }
 
 export interface MapBtTransformer {
@@ -63,6 +64,7 @@ export interface MapBtTransformer {
   }>;
   verified?: boolean;
   transformerChangeFlag?: "existing" | "new" | "remove" | "replace";
+  dataSource?: "imported" | "manual" | "dg_calculated";
 }
 
 export interface MapBtEdge {
@@ -100,6 +102,7 @@ export interface MapMtPole {
   mtStructures?: MapMtPoleStructures;
   verified?: boolean;
   nodeChangeFlag?: "existing" | "new" | "remove" | "replace";
+  dataSource?: "imported" | "manual" | "dg_calculated";
 }
 
 export interface MapMtEdge {

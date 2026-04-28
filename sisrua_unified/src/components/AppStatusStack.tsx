@@ -8,7 +8,11 @@ import { DxfProgressBadge } from "./DxfProgressBadge";
 import { BtExportSummaryBanner } from "./BtExportSummaryBanner";
 
 type Props = {
-  toast: { message: string; type: ToastType } | null;
+  toast: { 
+    message: string; 
+    type: ToastType; 
+    action?: { label: string; onClick: () => void } 
+  } | null;
   closeToast: () => void;
   sessionDraft: GlobalState | null;
   handleRestoreSession: () => void;
@@ -60,6 +64,7 @@ export function AppStatusStack({
             type={toast.type}
             onClose={closeToast}
             duration={toast.type === "error" ? 8000 : 4000}
+            action={toast.action}
           />
         )}
       </AnimatePresence>

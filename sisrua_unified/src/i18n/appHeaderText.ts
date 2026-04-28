@@ -16,6 +16,9 @@ type AppHeaderText = {
   selectProjectFile: string;
   openSettings: string;
   openHelp: string;
+  autoSaveSaving: string;
+  autoSaveError: string;
+  autoSaveSuccess: string;
 };
 
 const TEXTS: Record<AppLocale, AppHeaderText> = {
@@ -35,6 +38,9 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     selectProjectFile: "Selecionar arquivo de projeto",
     openSettings: "Abrir configurações",
     openHelp: "Abrir ajuda",
+    autoSaveSaving: "sincronizando",
+    autoSaveError: "erro ao sincronizar",
+    autoSaveSuccess: "salvo agora",
   },
   "en-US": {
     backendStatusOnline: "Backend online",
@@ -52,6 +58,9 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     selectProjectFile: "Select project file",
     openSettings: "Open settings",
     openHelp: "Open help",
+    autoSaveSaving: "syncing",
+    autoSaveError: "sync error",
+    autoSaveSuccess: "saved now",
   },
   "es-ES": {
     backendStatusOnline: "Backend en línea",
@@ -65,10 +74,13 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     toggleSidebarClose: "Ocultar panel lateral",
     mapModeInfo: "Modo mapa: teclado+ratón",
     saveProject: "Guardar proyecto",
-    openProject: "Abrir proyecto",
-    selectProjectFile: "Seleccionar archivo de proyecto",
+    openProject: "Abrir projeto",
+    selectProjectFile: "Seleccionar archivo de projeto",
     openSettings: "Abrir configuraciones",
     openHelp: "Abrir ayuda",
+    autoSaveSaving: "sincronizando",
+    autoSaveError: "error al sincronizar",
+    autoSaveSuccess: "guardado ahora",
   },
 };
 

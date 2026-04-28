@@ -113,7 +113,7 @@ describe("DgOptimizationPanel", () => {
     expect(onRun).toHaveBeenCalledOnce();
   });
 
-  it("abre Wizard ao clicar em 'PROJETAR REDE (WIZARD)'", () => {
+  it("abre Assistente ao clicar em 'PROJETAR REDE (WIZARD)'", () => {
     render(
       React.createElement(
         DgOptimizationPanel,
@@ -121,7 +121,7 @@ describe("DgOptimizationPanel", () => {
       ),
     );
     fireEvent.click(screen.getByRole("button", { name: /projetar rede/i }));
-    expect(screen.getByText(/wizard projeto bt/i)).toBeInTheDocument();
+    expect(screen.getByText(/assistente de projeto bt/i)).toBeInTheDocument();
   });
 
   it("executa onRun com parâmetros do wizard", () => {
@@ -211,7 +211,7 @@ describe("DgOptimizationPanel", () => {
         defaultProps({ result: MOCK_OUTPUT, onDiscard }),
       ),
     );
-    fireEvent.click(screen.getByRole("button", { name: /descartar/i }));
+    fireEvent.click(screen.getByLabelText(/descartar resultado dg/i));
     expect(onDiscard).toHaveBeenCalledOnce();
   });
 });

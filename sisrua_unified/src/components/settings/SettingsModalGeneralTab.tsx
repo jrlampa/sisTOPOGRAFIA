@@ -9,7 +9,9 @@ import {
   Grid3X3,
   LampFloor,
   Layers,
+  Layout,
   Map as MapIcon,
+  Maximize2,
   Moon,
   Mountain,
   PencilRuler,
@@ -126,6 +128,47 @@ export function SettingsModalGeneralTab({
               className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${settings.theme === "dark" ? "translate-x-6" : ""}`}
             />
           </button>
+        </div>
+
+        <div className="glass-panel p-3 rounded-lg space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2">
+              <Layout size={16} className="text-blue-500" />
+              {text.uiDensityTitle}
+            </span>
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+               <button 
+                 onClick={() => onUpdateSettings({ ...settings, uiDensity: "compact" })}
+                 className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${settings.uiDensity === "compact" ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600" : "text-slate-400"}`}
+               >
+                 {text.uiDensityCompact}
+               </button>
+               <button 
+                 onClick={() => onUpdateSettings({ ...settings, uiDensity: "comfortable" })}
+                 className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${settings.uiDensity === "comfortable" || !settings.uiDensity ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600" : "text-slate-400"}`}
+               >
+                 {text.uiDensityComfortable}
+               </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                <Maximize2 size={16} className="text-violet-500" />
+                {text.focusModeLabel}
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium ml-6">{text.focusModeHint}</span>
+            </div>
+            <button
+              onClick={() => onUpdateSettings({ ...settings, enableFocusMode: !settings.enableFocusMode })}
+              className={`w-12 h-6 rounded-full relative transition-colors ${settings.enableFocusMode ? "bg-violet-600" : "bg-slate-300 dark:bg-slate-700"}`}
+            >
+              <span
+                className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${settings.enableFocusMode ? "translate-x-6" : ""}`}
+              />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">

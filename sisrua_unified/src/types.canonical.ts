@@ -95,6 +95,8 @@ export interface CanonicalPoleNode {
   circuitBreakPoint?: boolean;
   verified?: boolean;
   nodeChangeFlag?: CanonicalNodeChangeFlag;
+  /** Fonte do dado (UX-15). */
+  dataSource?: "imported" | "manual" | "dg_calculated";
 }
 
 // ─── Condutor de aresta ───────────────────────────────────────────────────────

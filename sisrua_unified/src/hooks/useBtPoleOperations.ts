@@ -149,6 +149,7 @@ export function useBtPoleOperations({
         ? appState.btTopology.poles[appState.btTopology.poles.length - 1]
             .poleSpec
         : undefined,
+      dataSource: "manual",
     };
 
     setAppState(

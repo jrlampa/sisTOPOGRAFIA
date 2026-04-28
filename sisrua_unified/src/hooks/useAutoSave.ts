@@ -9,7 +9,7 @@
  * Format versioned with DRAFT_VERSION so stale / incompatible drafts are
  * silently discarded instead of breaking the app.
  */
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { GlobalState } from '../types';
 
 const STORAGE_KEY = 'sisrua_session_draft';
@@ -22,17 +22,19 @@ export interface SessionDraft {
     version: number;
 }
 
+export type AutoSaveStatus = 'idle' | 'saving' | 'error';
+
 /**
  * Call this hook in a component that holds GlobalState. It will debounce-write
  * the current state to localStorage whenever `state` changes.
- *
- * @param state  The current GlobalState (from useUndoRedo<GlobalState>)
- * @param enabled  Set false to pause auto-saving (e.g. during initial load)
  */
-export function useAutoSave(state: GlobalState, enabled = true): void {
+export function useAutoSave(state: GlobalState, enabled = true) {
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [status, setStatus] = useState<AutoSaveStatus>('idle');
+    const [lastSaved, setLastSaved] = useState<string | undefined>(undefined);
 
     const persist = useCallback((s: GlobalState) => {
+        const timestamp = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         const draft: SessionDraft = {
             state: s,
             savedAt: new Date().toISOString(),
@@ -40,24 +42,19 @@ export function useAutoSave(state: GlobalState, enabled = true): void {
         };
         try {
             const serialized = JSON.stringify(draft);
-            // Verify serialization roundtrip to catch data corruption
-            const verified = JSON.parse(serialized) as SessionDraft;
-            if (verified.version !== DRAFT_VERSION) {
-                console.warn('[AutoSave] Serialization version mismatch, skipping save');
-                return;
-            }
             localStorage.setItem(STORAGE_KEY, serialized);
+            setLastSaved(timestamp);
+            setStatus('idle');
         } catch (error) {
-            // localStorage unavailable, quota exceeded, or serialization failed
-            const message = error instanceof Error ? error.message : 'Unknown error';
-            console.error(`[AutoSave] Failed to persist state: ${message}`);
-            // Silently fail — don't interrupt user workflow, but log for debugging
+            console.error('[AutoSave] Failed to persist state');
+            setStatus('error');
         }
     }, []);
 
     useEffect(() => {
         if (!enabled) return;
 
+        setStatus('saving');
         if (timerRef.current !== null) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => persist(state), DEBOUNCE_MS);
 
@@ -65,6 +62,8 @@ export function useAutoSave(state: GlobalState, enabled = true): void {
             if (timerRef.current !== null) clearTimeout(timerRef.current);
         };
     }, [state, enabled, persist]);
+
+    return { status, lastSaved };
 }
 
 /**

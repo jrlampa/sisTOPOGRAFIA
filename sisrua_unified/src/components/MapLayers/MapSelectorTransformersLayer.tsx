@@ -58,11 +58,19 @@ const MapSelectorTransformersLayer: React.FC<
   const makeTransformerIcon = (
     verified: boolean,
     transformerFlag: "existing" | "new" | "remove" | "replace",
+    dataSource?: "imported" | "manual" | "dg_calculated"
   ) => {
     const bg = getFlagColor(transformerFlag, verified ? "#15803d" : "#7c3aed");
+    
+    const sourceBadge = dataSource === "dg_calculated" 
+      ? `<div style="position:absolute;top:-4px;right:-4px;background:#7c3aed;color:white;border-radius:4px;padding:1px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);"><svg width="5" height="5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>`
+      : dataSource === "manual"
+      ? `<div style="position:absolute;top:-4px;right:-4px;background:#0ea5e9;color:white;border-radius:4px;padding:1px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);"><svg width="5" height="5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>`
+      : "";
+
     return L.divIcon({
       className: "bt-transformer-icon",
-      html: `<svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
+      html: `<div style="position:relative;width:14px;height:14px;"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>${sourceBadge}</div>`,
       iconSize: [14, 14],
       iconAnchor: [7, 7],
     });
@@ -77,6 +85,7 @@ const MapSelectorTransformersLayer: React.FC<
           icon={makeTransformerIcon(
             !!transformer.verified,
             getTransformerChangeFlag(transformer),
+            transformer.dataSource
           )}
           zIndexOffset={1400}
           draggable={true}

@@ -30,6 +30,7 @@ export function useMapState({
   const [toast, setToast] = useState<{
     message: string;
     type: ToastType;
+    action?: { label: string; onClick: () => void };
   } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [sessionDraft, setSessionDraft] = useState<GlobalState | null>(null);
@@ -48,8 +49,8 @@ export function useMapState({
     }
   }, []);
 
-  const showToast = (message: string, type: ToastType) => {
-    setToast({ message, type });
+  const showToast = (message: string, type: ToastType, action?: { label: string; onClick: () => void }) => {
+    setToast({ message, type, action });
   };
 
   const closeToast = () => {

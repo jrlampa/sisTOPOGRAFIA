@@ -35,6 +35,7 @@ import { BtModalStack } from "./components/BtModalStack";
 import { BtTelescopicSuggestionModal } from "./components/BtTelescopicSuggestionModal";
 import { AppShellLayout } from "./components/AppShellLayout";
 import { HelpModal } from "./components/HelpModal";
+import { CommandPalette } from "./components/CommandPalette";
 import { INITIAL_APP_STATE } from "./app/initialState";
 import { persistAppSettings } from "./utils/preferencesPersistence";
 import { mergeMtTopologyWithBtPoles } from "./utils/mtTopologyBridge";
@@ -44,9 +45,13 @@ import type { CriticalConfirmationConfig } from "./components/BtModals";
 
 function App() {
   const [isHelpOpen, setIsHelpOpen] = React.useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = React.useState(false);
+  const [isFocusModeManual, setIsFocusModeManual] = React.useState(false);
 
   const {
     state: appState,
+    past: appPast,
+    future: appFuture,
     setState: setAppStateBase,
     undo,
     redo,
@@ -61,12 +66,13 @@ function App() {
     (
       nextState: GlobalState | ((prev: GlobalState) => GlobalState),
       addToHistory = true,
+      actionLabel = 'Ação'
     ) => {
       setAppStateBase((prev) => {
         const resolvedNext =
           typeof nextState === "function" ? nextState(prev) : nextState;
         return synchronizeGlobalTopologyState(resolvedNext);
-      }, addToHistory);
+      }, addToHistory, actionLabel);
     },
     [setAppStateBase],
   );
@@ -130,6 +136,21 @@ function App() {
   }, [mapRenderSources.btMarkerTopology, btTopology]);
   const hasBtPoles = btTopology.poles.length > 0;
 
+  const isFocusMode =
+    isFocusModeManual || (settings.enableFocusMode && btEditorMode !== "none" && btEditorMode !== undefined);
+
+  // Ctrl+F for Focus Mode
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+        e.preventDefault();
+        setIsFocusModeManual((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const {
     btAccumulatedByPole,
     btTransformerDebugById,
@@ -156,7 +177,7 @@ function App() {
   } = useOsmEngine();
 
   // Auto-save: persist appState to localStorage with debounce
-  useAutoSave(appState);
+  const { status: autoSaveStatus, lastSaved: lastAutoSaved } = useAutoSave(appState);
 
   React.useEffect(() => {
     persistAppSettings(settings);
@@ -488,6 +509,7 @@ function App() {
           ].slice(0, 200),
         }),
         false,
+        "Decisão DG"
       );
     },
     [setAppState],
@@ -833,6 +855,18 @@ function App() {
     enabled: true,
   });
 
+  // Ctrl+K for Command Palette
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const setBtEditorMode = React.useCallback(
     (mode: BtEditorMode) => {
       setAppState(
@@ -841,6 +875,7 @@ function App() {
           settings: { ...prev.settings, btEditorMode: mode },
         }),
         true,
+        `Modo Editor: ${mode}`
       );
     },
     [setAppState],
@@ -854,6 +889,7 @@ function App() {
           settings: { ...prev.settings, btNetworkScenario: scenario },
         }),
         true,
+        `Cenário: ${scenario}`
       );
     },
     [setAppState],
@@ -1031,15 +1067,39 @@ function App() {
     showToast,
   };
 
+  const commandPaletteActions = [
+    { id: "save", label: "Salvar Projeto", section: "Arquivo", shortcut: "Ctrl+S", onSelect: handleSaveProject },
+    { id: "open", label: "Abrir Projeto", section: "Arquivo", shortcut: "Ctrl+O", onSelect: openSettings }, // Using settings as proxy for open
+    { id: "dxf", label: "Exportar DXF", section: "Exportação", shortcut: "Alt+D", onSelect: handleDownloadDxf },
+    { id: "geojson", label: "Exportar GeoJSON", section: "Exportação", onSelect: handleDownloadGeoJSON },
+    { id: "csv", label: "Exportar Coordenadas CSV", section: "Exportação", onSelect: handleDownloadCoordinatesCsv },
+    { id: "undo", label: "Desfazer", section: "Edição", shortcut: "Ctrl+Z", onSelect: undo },
+    { id: "redo", label: "Refazer", section: "Edição", shortcut: "Ctrl+Y", onSelect: redo },
+    { id: "help", label: "Abrir Ajuda", section: "Geral", shortcut: "/", onSelect: () => setIsHelpOpen(true) },
+    { id: "settings", label: "Configurações", section: "Geral", shortcut: "S", onSelect: openSettings },
+    { id: "focus-mode", label: isFocusModeManual ? "Desativar Modo Foco" : "Ativar Modo Foco", section: "Geral", shortcut: "Ctrl+F", onSelect: () => setIsFocusModeManual(!isFocusModeManual) },
+    { id: "dg", label: "Otimização DG", section: "Engenharia", onSelect: () => handleRunDgOptimization() },
+    { id: "telescopic", label: "Análise Telescópica", section: "Engenharia", onSelect: handleTriggerTelescopicAnalysis },
+    { id: "mode-asis", label: "Cenário: Rede Atual", section: "Visualização", onSelect: () => setBtNetworkScenario("asis") },
+    { id: "mode-proj", label: "Cenário: Rede Nova", section: "Visualização", onSelect: () => setBtNetworkScenario("projeto") },
+    { id: "editor-none", label: "Sair do Modo Edição", section: "Edição", onSelect: () => setBtEditorMode("none") },
+    { id: "editor-pole", label: "Modo: Adicionar Poste", section: "Edição", shortcut: "P", onSelect: () => setBtEditorMode("add-pole") },
+    { id: "editor-edge", label: "Modo: Adicionar Vão", section: "Edição", shortcut: "L", onSelect: () => setBtEditorMode("add-edge") },
+    { id: "editor-trafo", label: "Modo: Adicionar Trafo", section: "Edição", shortcut: "T", onSelect: () => setBtEditorMode("add-transformer") },
+  ];
+
   return (
     <>
       <AppShellLayout
         locale={settings.locale}
         isDark={isDark}
+        isFocusMode={isFocusMode}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={undo}
         onRedo={redo}
+        past={appPast}
+        future={appFuture}
         onSaveProject={handleSaveProject}
         onOpenProject={handleLoadProject}
         onOpenSettings={openSettings}
@@ -1121,7 +1181,20 @@ function App() {
           },
           isDark,
           btModalStackProps,
+          hasAreaSelection: !!osmData,
+          onStartSearch: () => setIsHelpOpen(false),
+          onMapClickAction: () => {},
         }}
+        hasAreaSelection={!!osmData}
+        onStartSearch={() => {
+          // Open Sidebar if collapsed and focus search
+          setIsHelpOpen(false); 
+        }}
+        onMapClickAction={() => {
+          // Focus map or just close any overlays
+        }}
+        autoSaveStatus={autoSaveStatus}
+        lastAutoSaved={lastAutoSaved}
       />
 
       <BtTelescopicSuggestionModal
@@ -1134,6 +1207,12 @@ function App() {
         isOpen={isHelpOpen}
         locale={settings.locale}
         onClose={() => setIsHelpOpen(false)}
+      />
+
+      <CommandPalette 
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        actions={commandPaletteActions}
       />
     </>
   );

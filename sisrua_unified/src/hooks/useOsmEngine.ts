@@ -97,7 +97,18 @@ export function useOsmEngine() {
       // Reset loading state immediately on error, don't wait
       setIsProcessing(false);
       setProgressValue(0);
-      return { success: false as const, errorMessage };
+      
+      // If error is related to Overpass/API, we could suggest a retry
+      const isRetryable = errorMessage.includes("OSM") || errorMessage.includes("HTTP") || errorMessage.includes("raio");
+      
+      return { 
+        success: false as const, 
+        errorMessage,
+        retryAction: isRetryable ? {
+          label: "Tentar Novamente",
+          onClick: () => runAnalysis(center, radius, enableAI)
+        } : undefined
+      };
     }
   };
 

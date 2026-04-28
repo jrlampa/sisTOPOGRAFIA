@@ -2,6 +2,7 @@ import React, { Suspense } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Keyboard, Loader2, PanelLeftOpen } from "lucide-react";
 import { BtModalStack } from "./BtModalStack";
+import { EmptyStateMapOverlay } from "./EmptyStateMapOverlay";
 import { lazyWithRetry } from "../utils/lazyWithRetry";
 import type { AppLocale } from "../types";
 import { getMainMapWorkspaceText } from "../i18n/mainMapWorkspaceText";
@@ -42,6 +43,9 @@ type Props = {
   isSidebarCollapsed?: boolean;
   onRestoreSidebar?: () => void;
   btModalStackProps: React.ComponentProps<typeof BtModalStack>;
+  hasAreaSelection: boolean;
+  onStartSearch: () => void;
+  onMapClickAction: () => void;
 };
 
 export function MainMapWorkspace({
@@ -54,6 +58,9 @@ export function MainMapWorkspace({
   isSidebarCollapsed = false,
   onRestoreSidebar = () => {},
   btModalStackProps,
+  hasAreaSelection,
+  onStartSearch,
+  onMapClickAction,
 }: Props) {
   const t = getMainMapWorkspaceText(locale);
 
@@ -66,6 +73,14 @@ export function MainMapWorkspace({
             locale={locale}
             keyboardPanEnabled={isSidebarCollapsed}
           />
+
+          {!hasAreaSelection && (
+            <EmptyStateMapOverlay
+              locale={locale}
+              onStartSearch={onStartSearch}
+              onMapClickAction={onMapClickAction}
+            />
+          )}
 
           {isSidebarCollapsed && (
             <div className="pointer-events-none absolute inset-x-2 bottom-2 z-[460] flex flex-col gap-2">

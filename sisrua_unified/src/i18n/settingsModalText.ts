@@ -86,6 +86,11 @@ type SettingsModalText = {
   projectionUtm: string;
   projectionHint: string;
   slopeAnalysisLabel: string;
+  uiDensityTitle: string;
+  uiDensityCompact: string;
+  uiDensityComfortable: string;
+  focusModeLabel: string;
+  focusModeHint: string;
 };
 
 const TEXTS: Record<AppLocale, SettingsModalText> = {
@@ -184,6 +189,11 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     projectionHint:
       "UTM Absoluto usa coordenadas reais compatíveis com Google Earth e GPS",
     slopeAnalysisLabel: "Hachura de Declividade Crítica",
+    uiDensityTitle: "Densidade da Interface",
+    uiDensityCompact: "Compacta",
+    uiDensityComfortable: "Confortável",
+    focusModeLabel: "Modo Foco (Auto-ocultar UI)",
+    focusModeHint: "Oculta painéis durante a edição para maximizar o mapa.",
   },
   "en-US": {
     panelTitle: "Control Panel",
@@ -239,7 +249,7 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     qtPowerFactorInputTitle:
       "Power factor used in QT-POINT when the power-factor method is active",
     qtPowerFactorHelp:
-      "Used only when the R·cosφ + X·sinφ method is active. Initial value: 0.92.",
+      "Used only when the R·cosφ + X·sinφ method is active. Initial value: 0,92.",
     interfaceMapTitle: "Interface & Map",
     canonicalStyleTitle: "Canonical visual style active",
     canonicalStyleDescription:
@@ -279,17 +289,22 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     projectionHint:
       "Absolute UTM uses real-world coordinates compatible with Google Earth and GPS",
     slopeAnalysisLabel: "Critical Slope Hatch",
+    uiDensityTitle: "UI Density",
+    uiDensityCompact: "Compact",
+    uiDensityComfortable: "Comfortable",
+    focusModeLabel: "Focus Mode (Auto-hide UI)",
+    focusModeHint: "Hides panels during editing to maximize the map.",
   },
   "es-ES": {
     panelTitle: "Panel de Control",
     closePanel: "Cerrar panel",
     generalTabLabel: "General y Exportación",
     generalTabTitle: "Abrir pestaña General y Exportación",
-    projectTabLabel: "Proyecto y Metadatos",
-    projectTabTitle: "Abrir pestaña Proyecto y Metadatos",
+    projectTabLabel: "Proyecto y Metadados",
+    projectTabTitle: "Abrir pestaña Proyecto y Metadados",
     exportResultsTitle: "Exportar Resultados",
     exportDisabledMessage:
-      "Ejecute un análisis primero para habilitar la exportación.",
+      "Ejecute un análise primero para habilitar la exportación.",
     exportGeoJson: "GeoJSON",
     exportDxf: "DXF (CAD)",
     exportMemorialPdfLabel: "Generar memorial descriptivo en PDF junto con DXF",
@@ -354,7 +369,7 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     layerRoads: "Vías (Ejes y Bordes)",
     layerCurbs: "Generar Guías y Cunetas (Offsets)",
     layerTerrain: "Terreno (Malla 2.5D)",
-    layerContours: "Curvas de Nivel",
+    layerContours: "Curvas de Nível",
     contourInterval: "Intervalo de Curva",
     contourType: "Tipo de Curva",
     contourSpline: "Curva Suave (Spline)",
@@ -373,8 +388,13 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
     projectionLocal: "Local (Relativa)",
     projectionUtm: "UTM (Absoluta)",
     projectionHint:
-      "UTM Absoluta usa coordenadas reales compatibles con Google Earth y GPS",
+      "UTM Absoluta usa coordenadas reales compatibles con Google Earth e GPS",
     slopeAnalysisLabel: "Tramado de Pendiente Crítica",
+    uiDensityTitle: "Densidad de la Interfaz",
+    uiDensityCompact: "Compacta",
+    uiDensityComfortable: "Cómoda",
+    focusModeLabel: "Modo Foco (Auto-ocultar UI)",
+    focusModeHint: "Oculta paneles durante la edición para maximizar el mapa.",
   },
 };
 

@@ -9,21 +9,16 @@ import {
 } from "lucide-react";
 import { SidebarAnalysisResults } from "./SidebarAnalysisResults";
 import { SidebarBtEditorSection } from "./SidebarBtEditorSection";
-import { SidebarSelectionControls } from "./SidebarSelectionControls";
-
 import { SidebarMtEditorSection } from "./SidebarMtEditorSection";
-import { hasMeaningfulMtTopology } from "../utils/mtTopologyBridge";
+import { SidebarSelectionControls } from "./SidebarSelectionControls";
 import type { AppLocale } from "../types";
 import { getSidebarWorkspaceText } from "../i18n/sidebarWorkspaceText";
+import { trackWorkflowStage } from "../utils/analytics";
 
-type WorkflowStage = "capture" | "network" | "mt" | "analysis";
-
-const STAGE_ORDER: WorkflowStage[] = ["capture", "network", "mt", "analysis"];
-
-type Props = {
+type SidebarWorkspaceProps = {
   locale: AppLocale;
+  isCollapsed: boolean;
   isSidebarDockedForRamalModal: boolean;
-  isCollapsed?: boolean;
   selectionControlsProps: React.ComponentProps<typeof SidebarSelectionControls>;
   btEditorSectionProps: React.ComponentProps<typeof SidebarBtEditorSection>;
   mtEditorSectionProps: React.ComponentProps<typeof SidebarMtEditorSection>;
@@ -32,349 +27,196 @@ type Props = {
 
 export function SidebarWorkspace({
   locale,
+  isCollapsed,
   isSidebarDockedForRamalModal,
-  isCollapsed = false,
   selectionControlsProps,
   btEditorSectionProps,
   mtEditorSectionProps,
   analysisResultsProps,
-}: Props) {
+}: SidebarWorkspaceProps) {
+  const [activeStage, setActiveStage] = React.useState<number>(1);
+  const [showCelebration, setShowCelebration] = React.useState(false);
+  const stageEntryTimeRef = React.useRef<number>(Date.now());
+
+  React.useEffect(() => {
+    // Only celebrate progression, not initial mount
+    if (activeStage > 1) {
+      setShowCelebration(true);
+      const timer = setTimeout(() => setShowCelebration(false), 1500);
+      
+      // Track UX-20: Stage transition
+      const now = Date.now();
+      const durationMs = now - stageEntryTimeRef.current;
+      trackWorkflowStage(activeStage - 1, activeStage, durationMs);
+      stageEntryTimeRef.current = now;
+
+      return () => clearTimeout(timer);
+    }
+  }, [activeStage]);
+
   const t = getSidebarWorkspaceText(locale);
 
-  const hasAreaSelection = Boolean(selectionControlsProps.center?.label);
-  const hasBtTopology =
-    (btEditorSectionProps.btTopology?.poles?.length ?? 0) > 0 ||
-    (btEditorSectionProps.btTopology?.edges?.length ?? 0) > 0 ||
-    (btEditorSectionProps.btTopology?.transformers?.length ?? 0) > 0;
-  const hasMtTopology = hasMeaningfulMtTopology(
-    mtEditorSectionProps.mtTopology,
-  );
-  const hasAnalysis = Boolean(analysisResultsProps.stats);
+  if (isCollapsed) return null;
 
-  const [activeStage, setActiveStage] = React.useState<WorkflowStage>(
-    hasAnalysis
-      ? "analysis"
-      : hasMtTopology
-        ? "mt"
-        : hasBtTopology
-          ? "network"
-          : "capture",
-  );
-
-  const prevHasBt = React.useRef(hasBtTopology);
-  const prevHasMt = React.useRef(hasMtTopology);
-  const prevHasAnalysis = React.useRef(hasAnalysis);
-
-  React.useEffect(() => {
-    // Auto-advance ONLY if a NEW milestone is reached for the first time
-    if (hasAnalysis && !prevHasAnalysis.current) {
-      setActiveStage("analysis");
-    } else if (hasMtTopology && !prevHasMt.current) {
-      setActiveStage("mt");
-    } else if (hasBtTopology && !prevHasBt.current) {
-      setActiveStage("network");
-    }
-
-    prevHasBt.current = hasBtTopology;
-    prevHasMt.current = hasMtTopology;
-    prevHasAnalysis.current = hasAnalysis;
-  }, [hasAnalysis, hasMtTopology, hasBtTopology]);
-
-  const sidebarRef = React.useRef<HTMLElement>(null);
-
-  // PageUp / PageDown: navigate between workflow stage cards
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "PageDown" && e.key !== "PageUp") return;
-      const sidebar = sidebarRef.current;
-      if (!sidebar || !sidebar.contains(document.activeElement)) return;
-      const target = e.target as HTMLElement;
-      // Let select/textarea handle page keys natively
-      if (target.tagName === "SELECT" || target.tagName === "TEXTAREA") return;
-      e.preventDefault();
-      setActiveStage((prev) => {
-        const currentIdx = STAGE_ORDER.indexOf(prev);
-        const nextIdx =
-          e.key === "PageDown"
-            ? Math.min(currentIdx + 1, STAGE_ORDER.length - 1)
-            : Math.max(currentIdx - 1, 0);
-        if (nextIdx === currentIdx) return prev;
-        requestAnimationFrame(() => {
-          sidebar
-            .querySelector(`[data-card-stage="${STAGE_ORDER[nextIdx]}"]`)
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-        return STAGE_ORDER[nextIdx];
-      });
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  // Auto-scroll sidebar so focused inputs never hide below the bottom edge
-  React.useEffect(() => {
-    const sidebar = sidebarRef.current;
-    if (!sidebar) return;
-    const handleFocusIn = (e: FocusEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target || target === sidebar) return;
-      requestAnimationFrame(() => {
-        target.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      });
-    };
-    sidebar.addEventListener("focusin", handleFocusIn);
-    return () => sidebar.removeEventListener("focusin", handleFocusIn);
-  }, []);
-
-  const workflowStages: Array<{
-    key: WorkflowStage;
-    label: string;
-    helper: string;
-    icon: React.ComponentType<{ size?: number; className?: string }>;
-    done: boolean;
-  }> = [
+  const STAGES = [
     {
-      key: "capture",
+      id: 1,
       label: t.stage1Label,
       helper: t.stage1Helper,
       icon: Compass,
-      done: hasAreaSelection,
+      component: <SidebarSelectionControls {...selectionControlsProps} />,
     },
     {
-      key: "network",
+      id: 2,
       label: t.stage2Label,
       helper: t.stage2Helper,
       icon: Network,
-      done: hasBtTopology,
+      component: <SidebarBtEditorSection {...btEditorSectionProps} />,
     },
     {
-      key: "mt",
+      id: 3,
       label: t.stage3Label,
       helper: t.stage3Helper,
-      icon: Network,
-      done: hasMtTopology,
+      icon: ZapIcon,
+      component: <SidebarMtEditorSection {...mtEditorSectionProps} />,
     },
     {
-      key: "analysis",
+      id: 4,
       label: t.stage4Label,
       helper: t.stage4Helper,
       icon: LineChart,
-      done: hasAnalysis,
+      component: <SidebarAnalysisResults {...analysisResultsProps} />,
     },
   ];
 
-  const nextStage =
-    activeStage === "capture"
-      ? "network"
-      : activeStage === "network"
-        ? "mt"
-        : activeStage === "mt"
-          ? "analysis"
-          : null;
+  const currentStage = STAGES.find((s) => s.id === activeStage);
+  const nextStage = STAGES.find((s) => s.id === activeStage + 1);
+
+  // Workflow logic
+  const hasArea = !!selectionControlsProps.center;
+  const hasBtPoles = btEditorSectionProps.btTopology.poles.length > 0;
+  const hasMtPoles = mtEditorSectionProps.mtTopology.poles.length > 0;
 
   const nextStageDisabled =
-    (activeStage === "capture" && !hasAreaSelection) ||
-    (activeStage === "network" && !hasBtTopology) ||
-    (activeStage === "mt" && !hasMtTopology);
+    (activeStage === 1 && !hasArea) ||
+    (activeStage === 2 && !hasBtPoles) ||
+    (activeStage === 3 && !hasMtPoles);
 
   const guidanceText =
-    activeStage === "capture"
+    activeStage === 1
       ? t.guidanceCapture
-      : activeStage === "network"
+      : activeStage === 2
         ? t.guidanceNetwork
-        : activeStage === "mt"
+        : activeStage === 3
           ? t.guidanceMt
           : t.guidanceAnalysis;
 
   return (
     <motion.aside
-      ref={sidebarRef}
-      initial={{ x: -20, opacity: 0 }}
+      initial={{ x: -320, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className={`app-sidebar z-20 flex flex-col gap-4 overflow-y-auto border-r transition-all duration-300 scrollbar-hide xl:shrink-0 ${
-        isSidebarDockedForRamalModal || isCollapsed
-          ? "w-0 p-0 opacity-0 pointer-events-none border-r-0"
-          : "w-full max-h-[56vh] p-4 pb-3 opacity-100 xl:max-h-none xl:max-w-[420px] xl:pb-4"
+      className={`sidebar-workspace relative flex h-full w-full flex-col border-r bg-slate-50/50 p-4 backdrop-blur-xl transition-all dark:border-white/5 dark:bg-slate-900/50 xl:w-[380px] ${
+        isSidebarDockedForRamalModal ? "opacity-50 pointer-events-none grayscale-[0.5]" : ""
       }`}
-      aria-hidden={isSidebarDockedForRamalModal || isCollapsed}
     >
-      <div className="glass-card px-4 pb-4 pt-3 md:px-5">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
-              {t.workflowTag}
-            </p>
-            <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-              {t.workflowTitle}
-            </p>
+      <div className="mb-6 flex items-center justify-between px-2">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">
+               {t.workflowTag}
+             </p>
+             <AnimatePresence>
+               {showCelebration && (
+                 <motion.div
+                   initial={{ scale: 0, opacity: 0, rotate: -20 }}
+                   animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                   exit={{ scale: 1.5, opacity: 0 }}
+                   className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/40"
+                 >
+                   <CheckCircle2 size={12} strokeWidth={3} />
+                 </motion.div>
+               )}
+             </AnimatePresence>
           </div>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-black text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-            {workflowStages.filter((stage) => stage.done).length}/4
-          </span>
-        </div>
-        <div className="grid grid-cols-4 gap-1.5">
-          {workflowStages.map((stage) => {
-            const Icon = stage.icon;
-            const isActive = stage.key === activeStage;
-            return (
-              <button
-                key={stage.key}
-                type="button"
-                onClick={() => setActiveStage(stage.key)}
-                className={`rounded-2xl border-2 px-2 py-2 text-left transition-all ${
-                  isActive
-                    ? "border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-400/25 dark:bg-cyan-950/25 dark:text-cyan-100"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
-                }`}
-                title={stage.helper}
-              >
-                <div className="mb-1 flex items-center justify-between">
-                  <Icon size={13} className="shrink-0" />
-                  {stage.done && (
-                    <CheckCircle2
-                      size={12}
-                      className="text-emerald-600 dark:text-emerald-300"
-                    />
-                  )}
-                </div>
-                <p className="text-[10px] font-black uppercase tracking-wide">
-                  {stage.label}
-                </p>
-              </button>
-            );
-          })}
+          <h2 className="text-sm font-black tracking-tight text-slate-900 dark:text-white">
+            {t.workflowTitle}
+          </h2>
         </div>
       </div>
 
-      <AnimatePresence mode="wait">
-        {activeStage === "capture" && (
-          <motion.div
-            key="capture"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="glass-card p-4 md:p-5"
-            data-card-stage="capture"
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                  {t.step1Tag}
-                </p>
-                <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                  {t.step1Title}
-                </p>
+      {/* Mini tabs */}
+      <div className="mb-6 grid grid-cols-4 gap-1 px-1">
+        {STAGES.map((s) => {
+          const isActive = activeStage === s.id;
+          const isDone = activeStage > s.id;
+          const Icon = s.icon;
+          return (
+            <button
+              key={s.id}
+              onClick={() => setActiveStage(s.id)}
+              title={s.helper}
+              className={`group relative flex flex-col items-center gap-2 rounded-xl py-3 transition-all ${
+                isActive
+                  ? "bg-white shadow-lg shadow-slate-200/50 dark:bg-white/10 dark:shadow-none"
+                  : "hover:bg-slate-100 dark:hover:bg-white/5"
+              }`}
+            >
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all ${
+                  isActive
+                    ? "bg-blue-600 text-white scale-110 shadow-md shadow-blue-600/20"
+                    : isDone
+                      ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+                      : "bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600"
+                }`}
+              >
+                {isDone ? <CheckCircle2 size={16} strokeWidth={3} /> : <Icon size={16} strokeWidth={2.5} />}
               </div>
-              {hasAreaSelection && (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
-                  OK
-                </span>
+              <span
+                className={`text-[9px] font-black uppercase tracking-widest ${
+                  isActive
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-slate-400 dark:text-slate-600"
+                }`}
+              >
+                Etapa {s.id}
+              </span>
+              {isActive && (
+                <motion.div
+                  layoutId="active-bar"
+                  className="absolute -bottom-1 h-0.5 w-4 rounded-full bg-blue-600"
+                />
               )}
-            </div>
-            <div aria-label={t.ariaContentStep1}>
-              <SidebarSelectionControls {...selectionControlsProps} />
-            </div>
-          </motion.div>
-        )}
+            </button>
+          );
+        })}
+      </div>
 
-        {activeStage === "network" && (
-          <motion.div
-            key="network"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="glass-card p-4 md:p-5"
-            data-card-stage="network"
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                  {t.step2Tag}
-                </p>
-                <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                  {t.step2Title}
-                </p>
-              </div>
-              {hasBtTopology && (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
-                  OK
-                </span>
-              )}
+      <div className="flex-1 overflow-y-auto px-1 custom-scrollbar">
+        <div key={activeStage} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="mb-4 flex items-center gap-3 px-2">
+            <div className="h-8 w-1 rounded-full bg-blue-600" />
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                {currentStage?.label}
+              </p>
+              <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                {currentStage?.helper}
+              </p>
             </div>
-            <div role="region" aria-label={t.ariaContentStep2}>
-              <SidebarBtEditorSection {...btEditorSectionProps} />
-            </div>
-          </motion.div>
-        )}
+          </div>
+          {currentStage?.component}
+        </div>
+      </div>
 
-        {activeStage === "mt" && (
-          <motion.div
-            key="mt"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="glass-card p-4 md:p-5"
-            data-card-stage="mt"
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                  {t.step3Tag}
-                </p>
-                <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                  {t.step3Title}
-                </p>
-              </div>
-              {hasMtTopology && (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
-                  OK
-                </span>
-              )}
-            </div>
-            <div role="region" aria-label={t.ariaContentStep3}>
-              <SidebarMtEditorSection {...mtEditorSectionProps} />
-            </div>
-          </motion.div>
-        )}
-
-        {activeStage === "analysis" && (
-          <motion.div
-            key="analysis"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="glass-card p-4 md:p-5"
-            data-card-stage="analysis"
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                  {t.step4Tag}
-                </p>
-                <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                  {t.step4Title}
-                </p>
-              </div>
-              {hasAnalysis && (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-950/25 dark:text-emerald-200">
-                  OK
-                </span>
-              )}
-            </div>
-            <div role="region" aria-label={t.ariaContentStep4}>
-              <SidebarAnalysisResults {...analysisResultsProps} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="glass-card mt-1 p-3 backdrop-blur-sm">
+      {/* Workflow CTA */}
+      <div className="glass-card mt-2 p-5 backdrop-blur-md border-blue-500/20 shadow-xl shadow-blue-500/5">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-500 dark:text-blue-400">
             {t.nextActionTag}
           </p>
           <span
-            className="text-[9px] font-semibold text-slate-400 dark:text-slate-600 select-none"
+            className="rounded-lg bg-slate-100 px-2 py-0.5 text-[9px] font-black text-slate-400 dark:bg-white/5 dark:text-slate-600 select-none"
             title={t.pageNavigationHint}
             aria-label={t.pageNavigationHint}
             role="note"
@@ -382,23 +224,50 @@ export function SidebarWorkspace({
             PgUp / PgDn
           </span>
         </div>
-        <p className="mt-1 mb-3 text-xs font-medium text-slate-700 dark:text-slate-200">
+        <p className="mt-2 mb-4 text-[13px] font-bold leading-relaxed text-slate-900 dark:text-slate-100">
           {guidanceText}
         </p>
-        <button
+        <motion.button
+          whileHover={{ scale: 1.02, translateY: -2 }}
+          whileTap={{ scale: 0.98 }}
           type="button"
           disabled={!nextStage || nextStageDisabled}
           onClick={() => {
             if (nextStage) {
-              setActiveStage(nextStage);
+              setActiveStage(nextStage.id);
             }
           }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-400/20 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
+          className="relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 px-4 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-[0_20px_40px_-10px_rgba(37,99,235,0.4)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none min-h-[56px]"
         >
-          {nextStage ? t.advanceStep : t.flowCompleted}
-          {nextStage && <ArrowRight size={13} />}
-        </button>
+          <span className="relative z-10">{nextStage ? t.advanceStep : t.flowCompleted}</span>
+          {nextStage && <ArrowRight size={16} className="relative z-10" />}
+          
+          {/* Animated shine effect */}
+          <div className="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+          <style>{`
+            @keyframes shimmer {
+              100% { transform: translateX(100%); }
+            }
+          `}</style>
+        </motion.button>
       </div>
     </motion.aside>
   );
 }
+
+// Helper to use Zap icon without importing it again (was missing in previous turn)
+const ZapIcon = ({ size, className, strokeWidth }: any) => (
+  <svg 
+    width={size} 
+    height={size} 
+    className={className} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth={strokeWidth} 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);

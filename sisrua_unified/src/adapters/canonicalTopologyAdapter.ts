@@ -45,6 +45,7 @@ export function buildCanonicalTopologyFromLegacy(
       circuitBreakPoint: pole.circuitBreakPoint,
       verified: pole.verified,
       nodeChangeFlag: pole.nodeChangeFlag,
+      dataSource: pole.dataSource,
     });
   }
 
@@ -74,6 +75,7 @@ export function buildCanonicalTopologyFromLegacy(
       mtStructures: pole.mtStructures,
       verified: pole.verified,
       nodeChangeFlag: pole.nodeChangeFlag,
+      dataSource: pole.dataSource,
     });
   }
 
@@ -120,6 +122,7 @@ function toBtPoleNode(pole: CanonicalPoleNode): BtPoleNode {
     btStructures: pole.btStructures,
     nodeChangeFlag: pole.nodeChangeFlag,
     circuitBreakPoint: pole.circuitBreakPoint,
+    dataSource: pole.dataSource,
   };
 }
 
@@ -132,6 +135,7 @@ function toMtPoleNode(pole: CanonicalPoleNode): MtPoleNode {
     mtStructures: pole.mtStructures,
     verified: pole.verified,
     nodeChangeFlag: pole.nodeChangeFlag,
+    dataSource: pole.dataSource,
   };
 }
 

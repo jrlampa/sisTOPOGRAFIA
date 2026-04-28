@@ -11,6 +11,7 @@ import {
 } from "../utils/preferencesPersistence";
 
 import type { AppLocale } from "../types";
+import type { HistoryEntry } from "../hooks/useUndoRedo";
 
 type Props = {
   locale: AppLocale;
@@ -19,14 +20,22 @@ type Props = {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  past?: HistoryEntry<any>[];
+  future?: HistoryEntry<any>[];
   onSaveProject: () => void;
   onOpenProject: (file: File) => void;
   onOpenSettings: () => void;
   onOpenHelp: () => void;
   appStatusStackProps: React.ComponentProps<typeof AppStatusStack>;
   appSettingsOverlayProps: React.ComponentProps<typeof AppSettingsOverlay>;
-  sidebarWorkspaceProps: React.ComponentProps<typeof SidebarWorkspace>;
+  sidebarWorkspaceProps: Omit<React.ComponentProps<typeof SidebarWorkspace>, "isCollapsed">;
   mainMapWorkspaceProps: React.ComponentProps<typeof MainMapWorkspace>;
+  hasAreaSelection: boolean;
+  onStartSearch: () => void;
+  onMapClickAction: () => void;
+  autoSaveStatus?: 'idle' | 'saving' | 'error';
+  lastAutoSaved?: string;
+  isFocusMode?: boolean;
 };
 
 export function AppShellLayout({
@@ -36,6 +45,8 @@ export function AppShellLayout({
   canRedo,
   onUndo,
   onRedo,
+  past = [],
+  future = [],
   onSaveProject,
   onOpenProject,
   onOpenSettings,
@@ -44,15 +55,25 @@ export function AppShellLayout({
   appSettingsOverlayProps,
   sidebarWorkspaceProps,
   mainMapWorkspaceProps,
+  hasAreaSelection,
+  onStartSearch,
+  onMapClickAction,
+  autoSaveStatus,
+  lastAutoSaved,
+  isFocusMode = false,
 }: Props) {
   const backendHealth = useBackendHealth();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(
+  const [isSidebarCollapsedManual, setIsSidebarCollapsed] = React.useState(
     () => loadSidebarUiState().isCollapsed,
   );
 
+  const isSidebarCollapsed = isFocusMode || isSidebarCollapsedManual;
+
   React.useEffect(() => {
-    persistSidebarUiState({ isCollapsed: isSidebarCollapsed });
-  }, [isSidebarCollapsed]);
+    if (!isFocusMode) {
+      persistSidebarUiState({ isCollapsed: isSidebarCollapsedManual });
+    }
+  }, [isSidebarCollapsedManual, isFocusMode]);
 
   return (
     <div
@@ -73,6 +94,8 @@ export function AppShellLayout({
         canRedo={canRedo}
         onUndo={onUndo}
         onRedo={onRedo}
+        past={past}
+        future={future}
         onSaveProject={onSaveProject}
         onOpenProject={onOpenProject}
         onOpenSettings={onOpenSettings}
@@ -84,6 +107,8 @@ export function AppShellLayout({
         isDark={isDark}
         backendStatus={backendHealth.status}
         backendResponseTimeMs={backendHealth.responseTimeMs}
+        autoSaveStatus={autoSaveStatus}
+        lastAutoSaved={lastAutoSaved}
       />
       <main className="relative z-10 flex flex-1 flex-col overflow-hidden border-t border-slate-200/80 dark:border-white/10 xl:flex-row">
         <SidebarWorkspace
@@ -95,6 +120,9 @@ export function AppShellLayout({
           locale={locale}
           isSidebarCollapsed={isSidebarCollapsed}
           onRestoreSidebar={() => setIsSidebarCollapsed(false)}
+          hasAreaSelection={hasAreaSelection}
+          onStartSearch={onStartSearch}
+          onMapClickAction={onMapClickAction}
         />
       </main>
     </div>

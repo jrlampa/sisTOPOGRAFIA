@@ -8,7 +8,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Loader2, Zap, CheckCircle, XCircle, Info } from "lucide-react";
+import { Loader2, Zap, CheckCircle, XCircle, Info, Eye, EyeOff } from "lucide-react";
 import type {
   DgOptimizationOutput,
   DgScenario,
@@ -16,6 +16,7 @@ import type {
 } from "../hooks/useDgOptimization";
 import { DgWizardModal, DgWizardParams } from "./DgWizardModal";
 import type { BtPoleNode, BtTransformer } from "../types";
+import { motion, AnimatePresence } from "framer-motion";
 
 const DG_WIZARD_FULL_MODE_ENABLED =
   String(import.meta.env.VITE_DG_WIZARD_FULL_MODE ?? "true") !== "false";
@@ -163,6 +164,7 @@ export function DgOptimizationPanel({
 }: DgOptimizationPanelProps) {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [acceptanceConfirmed, setAcceptanceConfirmed] = useState(false);
+  const [isPreviewActive, setIsPreviewActive] = useState(true); // Default to true for UX-07
 
   const canRunFull = hasPoles && !isOptimizing;
 
@@ -177,6 +179,7 @@ export function DgOptimizationPanel({
 
   useEffect(() => {
     setAcceptanceConfirmed(false);
+    if (active) setIsPreviewActive(true);
   }, [active?.scenarioId]);
 
   const cableDeltaMeters = useMemo(() => {
@@ -289,6 +292,19 @@ export function DgOptimizationPanel({
       {/* Resultado: cenário ativo */}
       {active && (
         <div className="space-y-3">
+          {/* Preview Toggle (UX-07) */}
+          <button
+            onClick={() => setIsPreviewActive(!isPreviewActive)}
+            className={`flex w-full items-center justify-center gap-2 rounded-lg border-2 py-2 text-[9px] font-black uppercase tracking-widest transition-all ${
+              isPreviewActive 
+                ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" 
+                : "border-slate-300 text-slate-500"
+            }`}
+          >
+            {isPreviewActive ? <Eye size={12} /> : <EyeOff size={12} />}
+            {isPreviewActive ? "Modo Preview Ativo" : "Ativar Preview no Mapa"}
+          </button>
+
           {/* Navegação entre cenários (melhor + alternativas) */}
           {rec && rec.alternatives.length > 0 && (
             <div className="flex flex-wrap gap-1">
@@ -390,29 +406,34 @@ export function DgOptimizationPanel({
             </div>
           )}
 
-          <label className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white/80 px-2 py-1 text-[10px] text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300">
+          <label className={`flex items-center gap-2 rounded-lg border px-2 py-2 text-[10px] transition-all cursor-pointer ${
+            acceptanceConfirmed 
+              ? "border-emerald-500 bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300" 
+              : "border-zinc-200 bg-white/80 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300"
+          }`}>
             <input
               type="checkbox"
               checked={acceptanceConfirmed}
               onChange={(e) => setAcceptanceConfirmed(e.target.checked)}
               aria-label="Confirmo aplicação consciente do cenário"
+              className="accent-emerald-600"
             />
-            Confirmo aplicação consciente após revisar o comparativo.
+            <span className="font-bold">Confirmo aplicação consciente após revisar o comparativo.</span>
           </label>
 
           {/* Botões de aceitação */}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button
               onClick={() => onAcceptTrafoOnly(active)}
-              disabled={!acceptanceConfirmed}
-              className="rounded-xl border-2 border-violet-700/40 py-2 text-[10px] font-black text-violet-800 transition-all hover:bg-violet-100 dark:border-violet-500/40 dark:text-violet-200 dark:hover:bg-violet-900/30"
+              disabled={!acceptanceConfirmed || !isPreviewActive}
+              className="rounded-xl border-2 border-violet-700/40 py-2 text-[10px] font-black text-violet-800 transition-all hover:bg-violet-100 disabled:opacity-40 dark:border-violet-500/40 dark:text-violet-200 dark:hover:bg-violet-900/30"
             >
               {hasTransformer ? "SÓ REALOCAR" : "SÓ NOVO TRAFO"}
             </button>
             <button
               onClick={() => onAcceptAll(active)}
-              disabled={!acceptanceConfirmed}
-              className="rounded-xl border-2 border-violet-700/40 bg-violet-700 py-2 text-[10px] font-black text-white transition-all hover:bg-violet-800 dark:bg-violet-700 dark:hover:bg-violet-600"
+              disabled={!acceptanceConfirmed || !isPreviewActive}
+              className="relative overflow-hidden rounded-xl border-2 border-violet-700/40 bg-violet-700 py-2 text-[10px] font-black text-white transition-all hover:bg-violet-800 disabled:opacity-40 dark:border-violet-400/40 dark:bg-violet-700 dark:hover:bg-violet-600"
             >
               <span className="flex items-center justify-center gap-1">
                 <CheckCircle size={10} />
@@ -420,6 +441,12 @@ export function DgOptimizationPanel({
               </span>
             </button>
           </div>
+          
+          {!isPreviewActive && (
+            <p className="text-center text-[9px] font-bold text-amber-600 animate-pulse">
+              Ative o Modo Preview para habilitar a aplicação.
+            </p>
+          )}
         </div>
       )}
 

@@ -265,6 +265,7 @@ export function useDgOptimization() {
         transformerChangeFlag: existingTrafo
           ? ("replace" as const)
           : ("new" as const),
+        dataSource: "dg_calculated" as const,
       };
 
       return {
@@ -300,6 +301,7 @@ export function useDgOptimization() {
         transformerChangeFlag: existingTrafo
           ? ("replace" as const)
           : ("new" as const),
+        dataSource: "dg_calculated" as const,
       };
 
       return {

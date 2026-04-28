@@ -41,3 +41,48 @@ export const trackDxfGeneration = (mode: string, success: boolean, durationMs?: 
         error_message: error
     });
 };
+
+/**
+ * UX-20: Tracks workflow stage transitions and time spent.
+ */
+export const trackWorkflowStage = (from: number, to: number, durationMs: number) => {
+    trackEvent('workflow_stage_change', {
+        from_stage: from,
+        to_stage: to,
+        duration_ms: durationMs,
+        path: `${from} -> ${to}`
+    });
+};
+
+/**
+ * UX-20: Tracks rework (undo/redo) to identify friction points.
+ */
+export const trackRework = (actionType: 'undo' | 'redo', label: string) => {
+    trackEvent('user_friction_rework', {
+        action_type: actionType,
+        action_label: label
+    });
+};
+
+/**
+ * UX-20: Tracks errors shown to the user and potential recovery actions.
+ */
+export const trackErrorFriction = (message: string, hasRetry: boolean, retryClicked: boolean = false) => {
+    trackEvent('user_friction_error', {
+        error_message: message,
+        has_retry: hasRetry,
+        retry_clicked: retryClicked
+    });
+};
+
+/**
+ * UX-20: Tracks modal abandonment to find drops in complex wizards.
+ */
+export const trackModalAbandonment = (modalName: string, durationMs: number, completed: boolean, lastStep?: string) => {
+    trackEvent('modal_journey', {
+        modal_name: modalName,
+        duration_ms: durationMs,
+        completed,
+        last_step: lastStep
+    });
+};
