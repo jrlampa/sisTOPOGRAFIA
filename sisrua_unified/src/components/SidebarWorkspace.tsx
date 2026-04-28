@@ -43,7 +43,7 @@ export function SidebarWorkspace({
     if (activeStage > 1) {
       setShowCelebration(true);
       const timer = setTimeout(() => setShowCelebration(false), 1500);
-      
+
       // Track UX-20: Stage transition
       const now = Date.now();
       const durationMs = now - stageEntryTimeRef.current;
@@ -102,6 +102,33 @@ export function SidebarWorkspace({
     (activeStage === 2 && !hasBtPoles) ||
     (activeStage === 3 && !hasMtPoles);
 
+  React.useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (event.key === "PageDown") {
+        event.preventDefault();
+        setActiveStage((prev) => Math.min(4, prev + 1));
+      }
+
+      if (event.key === "PageUp") {
+        event.preventDefault();
+        setActiveStage((prev) => Math.max(1, prev - 1));
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const guidanceText =
     activeStage === 1
       ? t.guidanceCapture
@@ -116,27 +143,29 @@ export function SidebarWorkspace({
       initial={{ x: -320, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       className={`sidebar-workspace relative flex h-full w-full flex-col border-r bg-slate-50/50 p-4 backdrop-blur-xl transition-all dark:border-white/5 dark:bg-slate-900/50 xl:w-[380px] ${
-        isSidebarDockedForRamalModal ? "opacity-50 pointer-events-none grayscale-[0.5]" : ""
+        isSidebarDockedForRamalModal
+          ? "opacity-50 pointer-events-none grayscale-[0.5]"
+          : ""
       }`}
     >
       <div className="mb-6 flex items-center justify-between px-2">
         <div>
           <div className="flex items-center gap-2 mb-1">
-             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">
-               {t.workflowTag}
-             </p>
-             <AnimatePresence>
-               {showCelebration && (
-                 <motion.div
-                   initial={{ scale: 0, opacity: 0, rotate: -20 }}
-                   animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                   exit={{ scale: 1.5, opacity: 0 }}
-                   className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/40"
-                 >
-                   <CheckCircle2 size={12} strokeWidth={3} />
-                 </motion.div>
-               )}
-             </AnimatePresence>
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">
+              {t.workflowTag}
+            </p>
+            <AnimatePresence>
+              {showCelebration && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0, rotate: -20 }}
+                  animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                  exit={{ scale: 1.5, opacity: 0 }}
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/40"
+                >
+                  <CheckCircle2 size={12} strokeWidth={3} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <h2 className="text-sm font-black tracking-tight text-slate-900 dark:text-white">
             {t.workflowTitle}
@@ -170,7 +199,11 @@ export function SidebarWorkspace({
                       : "bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600"
                 }`}
               >
-                {isDone ? <CheckCircle2 size={16} strokeWidth={3} /> : <Icon size={16} strokeWidth={2.5} />}
+                {isDone ? (
+                  <CheckCircle2 size={16} strokeWidth={3} />
+                ) : (
+                  <Icon size={16} strokeWidth={2.5} />
+                )}
               </div>
               <span
                 className={`text-[9px] font-black uppercase tracking-widest ${
@@ -193,7 +226,10 @@ export function SidebarWorkspace({
       </div>
 
       <div className="flex-1 overflow-y-auto px-1 custom-scrollbar">
-        <div key={activeStage} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div
+          key={activeStage}
+          className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+        >
           <div className="mb-4 flex items-center gap-3 px-2">
             <div className="h-8 w-1 rounded-full bg-blue-600" />
             <div>
@@ -239,9 +275,11 @@ export function SidebarWorkspace({
           }}
           className="relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 px-4 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-[0_20px_40px_-10px_rgba(37,99,235,0.4)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none min-h-[56px]"
         >
-          <span className="relative z-10">{nextStage ? t.advanceStep : t.flowCompleted}</span>
+          <span className="relative z-10">
+            {nextStage ? t.advanceStep : t.flowCompleted}
+          </span>
           {nextStage && <ArrowRight size={16} className="relative z-10" />}
-          
+
           {/* Animated shine effect */}
           <div className="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
           <style>{`
@@ -257,15 +295,15 @@ export function SidebarWorkspace({
 
 // Helper to use Zap icon without importing it again (was missing in previous turn)
 const ZapIcon = ({ size, className, strokeWidth }: any) => (
-  <svg 
-    width={size} 
-    height={size} 
-    className={className} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth={strokeWidth} 
-    strokeLinecap="round" 
+  <svg
+    width={size}
+    height={size}
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
     strokeLinejoin="round"
   >
     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />

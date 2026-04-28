@@ -18,6 +18,8 @@ import { logger } from "./utils/logger.js";
 import { refreshRateLimitersFromCatalog } from "./middleware/rateLimiter.js";
 import { initDbClient } from "./repositories/index.js";
 
+import { setupGracefulShutdown } from "./shutdown.js";
+
 const port = config.PORT;
 const dxfDirectory = config.DXF_DIRECTORY;
 
@@ -69,21 +71,7 @@ const server = app.listen(port, async () => {
   await OllamaService.startProcess();
 });
 
-// Graceful shutdown
-const gracefulShutdown = () => {
-  logger.info("Graceful shutdown initiated...");
-  stopTaskWorker();
-  stopDxfCleanup();
-  OllamaService.stopProcess();
-  stopFirestoreMonitoring();
-  maintenanceService.stop();
-  server.close(() => {
-    logger.info("HTTP server closed.");
-    process.exit(0);
-  });
-};
-
-process.on("SIGTERM", gracefulShutdown);
-process.on("SIGINT", gracefulShutdown);
+// Setup consolidated graceful shutdown
+setupGracefulShutdown(server);
 
 export default server;

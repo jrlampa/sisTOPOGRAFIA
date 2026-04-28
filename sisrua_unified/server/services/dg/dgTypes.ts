@@ -35,7 +35,7 @@ export interface DgTransformerInput {
   id: string;
   position: DgLatLon;
   kva: number;
-  currentDemandKva: number;
+  currentDemandKva?: number;
 }
 
 /** Polígono de exclusão (edificação, área restrita). */
@@ -81,6 +81,8 @@ export interface DgParams {
   searchMode?: "exhaustive" | "heuristic";
   /** Número máximo de candidatos avaliados no modo heurístico. */
   maxCandidatesHeuristic: number;
+  /** Espaçamento do grid para busca exaustiva/heurística (m). */
+  gridSpacingMeters?: number;
   /** Pesos da função objetivo multi-critério. */
   objectiveWeights: DgObjectiveWeights;
   /** Permite propor novos postes além dos existentes (Modo B). */

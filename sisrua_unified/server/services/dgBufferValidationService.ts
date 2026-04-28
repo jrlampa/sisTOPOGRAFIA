@@ -223,9 +223,13 @@ export async function validateMultiplePoints(
     const validationRequest: ValidateBufferZoneRequest = {
       candidatePoint,
       streetPolylines: request.streetPolylines,
-      buildingFootprints: request.buildingFootprints,
-      bufferConfig: request.bufferConfig,
-      networkIsNewGreenfield: request.networkIsNewGreenfield,
+      buildingFootprints: request.buildingFootprints || [],
+      bufferConfig: request.bufferConfig || {
+        type: 'primary',
+        minMeters: 0.3,
+        maxMeters: 0.5
+      },
+      networkIsNewGreenfield: request.networkIsNewGreenfield || false,
     };
 
     const result = await validateBufferZone(validationRequest);

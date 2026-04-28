@@ -11,7 +11,7 @@
  * GET  /api/dg/discard-rates        – estatísticas de descarte
  */
 
-import { Router, Request, Response, NextFunction } from "express";
+import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { logger } from "../utils/logger.js";
 import {
@@ -47,7 +47,7 @@ const poleInputSchema = z.object({
   id: z.string().min(1),
   position: latLonSchema,
   demandKva: z.number().nonnegative(),
-  clients: z.number().int().nonnegative().optional(),
+  clients: z.number().int().nonnegative().optional().default(1),
 });
 
 const transformerInputSchema = z.object({
@@ -73,11 +73,11 @@ const corridorSchema = z.object({
 });
 
 const weightsSchema = z.object({
-  cableCost: z.number().min(0).max(1).optional(),
-  poleCost: z.number().min(0).max(1).optional(),
-  trafoCost: z.number().min(0).max(1).optional(),
-  cqtPenalty: z.number().min(0).max(1).optional(),
-  overloadPenalty: z.number().min(0).max(1).optional(),
+  cableCost: z.number().min(0).max(1).optional().default(0.3),
+  poleCost: z.number().min(0).max(1).optional().default(0.1),
+  trafoCost: z.number().min(0).max(1).optional().default(0.15),
+  cqtPenalty: z.number().min(0).max(1).optional().default(0.3),
+  overloadPenalty: z.number().min(0).max(1).optional().default(0.15),
 });
 
 const paramsSchema = z.object({

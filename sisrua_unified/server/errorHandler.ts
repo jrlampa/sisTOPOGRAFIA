@@ -3,6 +3,7 @@
  * Categorizes errors for better debugging and client feedback
  */
 import { config } from "./config.js";
+import { logger } from "./utils/logger.js";
 
 export enum ErrorCategory {
   VALIDATION = "ValidationError",
@@ -107,7 +108,10 @@ export const createError = {
  * @param next Express next function
  */
 export function errorHandler(err: any, req: any, res: any, _next: any) {
-  const requestId = req.id || `req-${Date.now()}`;
+  const requestId = res.locals?.requestId || `req-${Date.now()}`;
+  const operation_id = res.locals?.operation_id;
+  const projeto_id = res.locals?.projeto_id;
+  const ponto_id = res.locals?.ponto_id;
 
   // Handle our custom ApiError
   if (err instanceof ApiError) {
@@ -119,26 +123,28 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
       timestamp: new Date().toISOString(),
     };
 
-    // Log error in development
-    if (config.NODE_ENV === "development") {
-      console.error(`[${err.code}] ${err.message}`, {
-        statusCode: err.statusCode,
-        details: err.details,
-        stack: err.stack,
-      });
+    // Log error
+    const logMetadata = {
+      statusCode: err.statusCode,
+      requestId,
+      operation_id,
+      projeto_id,
+      ponto_id,
+      details: config.NODE_ENV === "development" ? err.details : undefined,
+      stack: config.NODE_ENV === "development" ? err.stack : undefined,
+    };
+
+    if (err.statusCode >= 500) {
+      logger.error(`[${err.code}] ${err.message}`, logMetadata);
     } else {
-      // In production, log only important errors and never include stack
-      console.error(`[${err.code}] ${err.message}`, {
-        statusCode: err.statusCode,
-        requestId,
-      });
+      logger.warn(`[${err.code}] ${err.message}`, logMetadata);
     }
 
     return res.status(err.statusCode).json(response);
   }
 
   // Handle unknown errors
-  const unknownError: ApiErrorResponse = {
+  const response: ApiErrorResponse = {
     error:
       config.NODE_ENV === "development" ? err.message : "Internal server error",
     code: ErrorCategory.INTERNAL,
@@ -146,19 +152,16 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
     timestamp: new Date().toISOString(),
   };
 
-  if (config.NODE_ENV === "development") {
-    console.error("[InternalError] Unknown error", {
-      error: err,
-      stack: err.stack,
-    });
-  } else {
-    console.error("[InternalError]", {
-      requestId,
-      errorType: err.constructor.name,
-    });
-  }
+  logger.error(`[InternalError] ${err.message || "Unknown error"}`, {
+    requestId,
+    operation_id,
+    projeto_id,
+    ponto_id,
+    error: err,
+    stack: err.stack,
+  });
 
-  return res.status(500).json(unknownError);
+  return res.status(500).json(response);
 }
 
 /**

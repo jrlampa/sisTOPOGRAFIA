@@ -1,9 +1,22 @@
 import { ApiError, ErrorCategory, errorHandler } from '../errorHandler';
+import { jest } from '@jest/globals';
+
+jest.mock('../utils/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+import { logger } from '../utils/logger';
 
 function createResponseMock() {
   return {
     status: jest.fn().mockReturnThis(),
     json: jest.fn(),
+    locals: {},
   } as any;
 }
 
@@ -18,8 +31,9 @@ describe('errorHandler', () => {
   it('returns ApiError payload with status code', () => {
     process.env.NODE_ENV = 'production';
 
-    const req = { id: 'req-test-1' } as any;
+    const req = {} as any;
     const res = createResponseMock();
+    res.locals.requestId = 'req-test-1';
 
     const err = new ApiError('Invalid input', 400, ErrorCategory.VALIDATION, { field: 'lat' });
     errorHandler(err, req, res, jest.fn());
@@ -37,8 +51,9 @@ describe('errorHandler', () => {
   it('sanitizes unknown errors in production', () => {
     process.env.NODE_ENV = 'production';
 
-    const req = { id: 'req-test-2' } as any;
+    const req = {} as any;
     const res = createResponseMock();
+    res.locals.requestId = 'req-test-2';
 
     errorHandler(new Error('database connection refused 10.0.0.5'), req, res, jest.fn());
 

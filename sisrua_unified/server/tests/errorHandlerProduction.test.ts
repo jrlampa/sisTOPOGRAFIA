@@ -1,5 +1,5 @@
 import { errorHandler, ApiError, ErrorCategory } from "../errorHandler";
-import { config } from "../config";
+import { jest } from '@jest/globals';
 
 // Mock config for production environment
 jest.mock("../config", () => ({
@@ -8,24 +8,34 @@ jest.mock("../config", () => ({
   }
 }));
 
+jest.mock("../utils/logger", () => ({
+  logger: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+import { logger } from "../utils/logger";
+
 describe("errorHandler in Production mode", () => {
     let mockReq: any;
     let mockRes: any;
     let mockNext: any;
-    let consoleSpy: jest.SpyInstance;
 
     beforeEach(() => {
-        mockReq = { id: "test-req-id" };
+        mockReq = {};
         mockRes = {
             status: jest.fn().mockReturnThis(),
-            json: jest.fn().mockReturnThis()
+            json: jest.fn().mockReturnThis(),
+            locals: { requestId: "test-req-id" }
         };
         mockNext = jest.fn();
-        consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     });
 
     afterEach(() => {
-        consoleSpy.mockRestore();
+        jest.clearAllMocks();
     });
 
     it("should hide details in production for ApiError", () => {
@@ -54,7 +64,7 @@ describe("errorHandler in Production mode", () => {
         
         errorHandler(error, mockReq, mockRes, mockNext);
         
-        expect(consoleSpy).toHaveBeenCalledWith(
+        expect(logger.warn).toHaveBeenCalledWith(
             expect.stringContaining("[ValidationError] Bad input"),
             expect.objectContaining({
                 statusCode: 400,
@@ -62,7 +72,7 @@ describe("errorHandler in Production mode", () => {
             })
         );
         // Ensure stack trace was NOT logged
-        const logArg = consoleSpy.mock.calls[0][1];
-        expect(logArg).not.toHaveProperty("stack");
+        const logArg = (logger.warn as jest.Mock).mock.calls[0][1];
+        expect(logArg.stack).toBeUndefined();
     });
 });

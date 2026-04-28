@@ -66,13 +66,17 @@ function App() {
     (
       nextState: GlobalState | ((prev: GlobalState) => GlobalState),
       addToHistory = true,
-      actionLabel = 'Ação'
+      actionLabel = "Ação",
     ) => {
-      setAppStateBase((prev) => {
-        const resolvedNext =
-          typeof nextState === "function" ? nextState(prev) : nextState;
-        return synchronizeGlobalTopologyState(resolvedNext);
-      }, addToHistory, actionLabel);
+      setAppStateBase(
+        (prev) => {
+          const resolvedNext =
+            typeof nextState === "function" ? nextState(prev) : nextState;
+          return synchronizeGlobalTopologyState(resolvedNext);
+        },
+        addToHistory,
+        actionLabel,
+      );
     },
     [setAppStateBase],
   );
@@ -137,7 +141,10 @@ function App() {
   const hasBtPoles = btTopology.poles.length > 0;
 
   const isFocusMode =
-    isFocusModeManual || (settings.enableFocusMode && btEditorMode !== "none" && btEditorMode !== undefined);
+    isFocusModeManual ||
+    (settings.enableFocusMode &&
+      btEditorMode !== "none" &&
+      btEditorMode !== undefined);
 
   // Ctrl+F for Focus Mode
   React.useEffect(() => {
@@ -177,7 +184,8 @@ function App() {
   } = useOsmEngine();
 
   // Auto-save: persist appState to localStorage with debounce
-  const { status: autoSaveStatus, lastSaved: lastAutoSaved } = useAutoSave(appState);
+  const { status: autoSaveStatus, lastSaved: lastAutoSaved } =
+    useAutoSave(appState);
 
   React.useEffect(() => {
     persistAppSettings(settings);
@@ -482,8 +490,10 @@ function App() {
   } = useDgOptimization();
 
   /** Resultados técnicos do último cenário DG aplicado (para o memorial). */
-  const [lastAppliedDgResults, setLastAppliedDgResults] =
-    React.useState<Record<string, unknown> | null>(null);
+  const [lastAppliedDgResults, setLastAppliedDgResults] = React.useState<Record<
+    string,
+    unknown
+  > | null>(null);
 
   const appendDgDecisionHistory = React.useCallback(
     (params: {
@@ -509,7 +519,7 @@ function App() {
           ].slice(0, 200),
         }),
         false,
-        "Decisão DG"
+        "Decisão DG",
       );
     },
     [setAppState],
@@ -875,7 +885,7 @@ function App() {
           settings: { ...prev.settings, btEditorMode: mode },
         }),
         true,
-        `Modo Editor: ${mode}`
+        `Modo Editor: ${mode}`,
       );
     },
     [setAppState],
@@ -889,7 +899,7 @@ function App() {
           settings: { ...prev.settings, btNetworkScenario: scenario },
         }),
         true,
-        `Cenário: ${scenario}`
+        `Cenário: ${scenario}`,
       );
     },
     [setAppState],
@@ -1067,25 +1077,140 @@ function App() {
     showToast,
   };
 
+  const handleOpenProjectFromCommandPalette = React.useCallback(() => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".srua,.json";
+    fileInput.onchange = (event) => {
+      const target = event.target as HTMLInputElement;
+      const file = target.files?.[0];
+      if (file) {
+        handleLoadProject(file);
+      }
+    };
+    fileInput.click();
+  }, [handleLoadProject]);
+
   const commandPaletteActions = [
-    { id: "save", label: "Salvar Projeto", section: "Arquivo", shortcut: "Ctrl+S", onSelect: handleSaveProject },
-    { id: "open", label: "Abrir Projeto", section: "Arquivo", shortcut: "Ctrl+O", onSelect: openSettings }, // Using settings as proxy for open
-    { id: "dxf", label: "Exportar DXF", section: "Exportação", shortcut: "Alt+D", onSelect: handleDownloadDxf },
-    { id: "geojson", label: "Exportar GeoJSON", section: "Exportação", onSelect: handleDownloadGeoJSON },
-    { id: "csv", label: "Exportar Coordenadas CSV", section: "Exportação", onSelect: handleDownloadCoordinatesCsv },
-    { id: "undo", label: "Desfazer", section: "Edição", shortcut: "Ctrl+Z", onSelect: undo },
-    { id: "redo", label: "Refazer", section: "Edição", shortcut: "Ctrl+Y", onSelect: redo },
-    { id: "help", label: "Abrir Ajuda", section: "Geral", shortcut: "/", onSelect: () => setIsHelpOpen(true) },
-    { id: "settings", label: "Configurações", section: "Geral", shortcut: "S", onSelect: openSettings },
-    { id: "focus-mode", label: isFocusModeManual ? "Desativar Modo Foco" : "Ativar Modo Foco", section: "Geral", shortcut: "Ctrl+F", onSelect: () => setIsFocusModeManual(!isFocusModeManual) },
-    { id: "dg", label: "Otimização DG", section: "Engenharia", onSelect: () => handleRunDgOptimization() },
-    { id: "telescopic", label: "Análise Telescópica", section: "Engenharia", onSelect: handleTriggerTelescopicAnalysis },
-    { id: "mode-asis", label: "Cenário: Rede Atual", section: "Visualização", onSelect: () => setBtNetworkScenario("asis") },
-    { id: "mode-proj", label: "Cenário: Rede Nova", section: "Visualização", onSelect: () => setBtNetworkScenario("projeto") },
-    { id: "editor-none", label: "Sair do Modo Edição", section: "Edição", onSelect: () => setBtEditorMode("none") },
-    { id: "editor-pole", label: "Modo: Adicionar Poste", section: "Edição", shortcut: "P", onSelect: () => setBtEditorMode("add-pole") },
-    { id: "editor-edge", label: "Modo: Adicionar Vão", section: "Edição", shortcut: "L", onSelect: () => setBtEditorMode("add-edge") },
-    { id: "editor-trafo", label: "Modo: Adicionar Trafo", section: "Edição", shortcut: "T", onSelect: () => setBtEditorMode("add-transformer") },
+    {
+      id: "save",
+      label: "Salvar Projeto",
+      section: "Arquivo",
+      shortcut: "Ctrl+S",
+      onSelect: handleSaveProject,
+    },
+    {
+      id: "open",
+      label: "Abrir Projeto",
+      section: "Arquivo",
+      shortcut: "Ctrl+O",
+      onSelect: handleOpenProjectFromCommandPalette,
+    },
+    {
+      id: "dxf",
+      label: "Exportar DXF",
+      section: "Exportação",
+      shortcut: "Alt+D",
+      onSelect: handleDownloadDxf,
+    },
+    {
+      id: "geojson",
+      label: "Exportar GeoJSON",
+      section: "Exportação",
+      onSelect: handleDownloadGeoJSON,
+    },
+    {
+      id: "csv",
+      label: "Exportar Coordenadas CSV",
+      section: "Exportação",
+      onSelect: handleDownloadCoordinatesCsv,
+    },
+    {
+      id: "undo",
+      label: "Desfazer",
+      section: "Edição",
+      shortcut: "Ctrl+Z",
+      onSelect: undo,
+    },
+    {
+      id: "redo",
+      label: "Refazer",
+      section: "Edição",
+      shortcut: "Ctrl+Y",
+      onSelect: redo,
+    },
+    {
+      id: "help",
+      label: "Abrir Ajuda",
+      section: "Geral",
+      shortcut: "/",
+      onSelect: () => setIsHelpOpen(true),
+    },
+    {
+      id: "settings",
+      label: "Configurações",
+      section: "Geral",
+      shortcut: "S",
+      onSelect: openSettings,
+    },
+    {
+      id: "focus-mode",
+      label: isFocusModeManual ? "Desativar Modo Foco" : "Ativar Modo Foco",
+      section: "Geral",
+      shortcut: "Ctrl+F",
+      onSelect: () => setIsFocusModeManual(!isFocusModeManual),
+    },
+    {
+      id: "dg",
+      label: "Otimização DG",
+      section: "Engenharia",
+      onSelect: () => handleRunDgOptimization(),
+    },
+    {
+      id: "telescopic",
+      label: "Análise Telescópica",
+      section: "Engenharia",
+      onSelect: handleTriggerTelescopicAnalysis,
+    },
+    {
+      id: "mode-asis",
+      label: "Cenário: Rede Atual",
+      section: "Visualização",
+      onSelect: () => setBtNetworkScenario("asis"),
+    },
+    {
+      id: "mode-proj",
+      label: "Cenário: Rede Nova",
+      section: "Visualização",
+      onSelect: () => setBtNetworkScenario("projeto"),
+    },
+    {
+      id: "editor-none",
+      label: "Sair do Modo Edição",
+      section: "Edição",
+      onSelect: () => setBtEditorMode("none"),
+    },
+    {
+      id: "editor-pole",
+      label: "Modo: Adicionar Poste",
+      section: "Edição",
+      shortcut: "P",
+      onSelect: () => setBtEditorMode("add-pole"),
+    },
+    {
+      id: "editor-edge",
+      label: "Modo: Adicionar Vão",
+      section: "Edição",
+      shortcut: "L",
+      onSelect: () => setBtEditorMode("add-edge"),
+    },
+    {
+      id: "editor-trafo",
+      label: "Modo: Adicionar Trafo",
+      section: "Edição",
+      shortcut: "T",
+      onSelect: () => setBtEditorMode("add-transformer"),
+    },
   ];
 
   return (
@@ -1188,7 +1313,7 @@ function App() {
         hasAreaSelection={!!osmData}
         onStartSearch={() => {
           // Open Sidebar if collapsed and focus search
-          setIsHelpOpen(false); 
+          setIsHelpOpen(false);
         }}
         onMapClickAction={() => {
           // Focus map or just close any overlays
@@ -1209,7 +1334,7 @@ function App() {
         onClose={() => setIsHelpOpen(false)}
       />
 
-      <CommandPalette 
+      <CommandPalette
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
         actions={commandPaletteActions}

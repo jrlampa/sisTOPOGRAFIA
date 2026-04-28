@@ -92,6 +92,7 @@ cache/
 .cache/
 .agents/
 .gemini/
+secrets/
 
 # Editor directories and files
 .vscode/*

@@ -6,6 +6,23 @@
  * rather than a silent wrong-value bug discovered at runtime.
  */
 import { z } from "zod";
+import fs from "node:fs";
+
+/**
+ * Helper to read a secret from an environment variable or a file (Docker Secrets support).
+ * If NAME_FILE exists, it reads from that file. Otherwise, it uses NAME.
+ */
+function readSecret(name: string): string | undefined {
+  const filePath = process.env[`${name}_FILE`];
+  if (filePath && fs.existsSync(filePath)) {
+    try {
+      return fs.readFileSync(filePath, "utf8").trim();
+    } catch (err) {
+      console.error(`[sisrua] Failed to read secret from ${filePath}:`, err);
+    }
+  }
+  return process.env[name];
+}
 
 const EnvSchema = z.object({
   // ── Server ───────────────────────────────────────────────────────────────
@@ -18,6 +35,10 @@ const EnvSchema = z.object({
     .default("info"),
   BODY_LIMIT: z.string().default("1mb"),
   APP_VERSION: z.string().default("1.2.0"),
+
+  // ── AI & Engineering ──────────────────────────────────────────────────────
+  GROQ_API_KEY: z.string().optional(),
+  REDIS_PASSWORD: z.string().optional(),
 
   // ── Ollama ────────────────────────────────────────────────────────────────
   OLLAMA_MODEL: z.string().default("llama3.2"),
@@ -198,6 +219,11 @@ function loadConfig() {
   }
 
   const raw: RawConfig = result.data;
+
+  // Use readSecret for sensitive values
+  const groqApiKey = readSecret("GROQ_API_KEY");
+  const redisPassword = readSecret("REDIS_PASSWORD");
+
   const databaseUrl = normalizeDatabaseUrl(
     raw.DATABASE_URL,
     raw.SUPABASE_DB_URL,
@@ -253,6 +279,8 @@ function loadConfig() {
 
   return {
     ...raw,
+    GROQ_API_KEY: groqApiKey,
+    REDIS_PASSWORD: redisPassword,
     DATABASE_URL: databaseUrl,
     useFirestore,
     useCloudTasks,

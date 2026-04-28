@@ -24,24 +24,19 @@ export async function initDbClient(): Promise<void> {
   }
 
   // Extrair metadados para wake-up e fallback
-  const projectMatch = config.DATABASE_URL.match(/postgres\.([^:@/]+)/);
-  const projectId = projectMatch ? projectMatch[1] : null;
-  const wakeupUrl = projectId ? `https://${projectId}.supabase.co` : null;
+  const wakeupUrl = config.DATABASE_URL.includes("supabase.co") 
+    ? config.DATABASE_URL.split("@")[1]?.split(":")[0] 
+    : null;
 
-  const maxAttempts = 10;
-  const delayMs = 5000;
+  const maxAttempts = 5;
+  const delayMs = 3000;
   let attempt = 0;
 
   while (attempt < maxAttempts) {
     attempt++;
     try {
-      // Conexão robusta usando parâmetros explícitos
-      _client = postgres({
-        host: "aws-1-us-east-1.pooler.supabase.com",
-        port: 5432,
-        database: "postgres",
-        username: "postgres.zqtewkmqweicgacycnap",
-        password: (config as any).SUPABASE_PASSWORD || "Oliva100%$#@!",
+      // Conexão robusta usando a URL do config (que já foi sanitizada)
+      _client = postgres(config.DATABASE_URL, {
         ssl: config.NODE_ENV === "production" ? "require" : false,
         max: 5,
         connect_timeout: 10,
@@ -55,15 +50,13 @@ export async function initDbClient(): Promise<void> {
     } catch (err) {
       _available = false;
       const errorMessage = (err as Error).message;
-      const isTenantError = errorMessage.includes("Tenant or user not found") || 
-                           errorMessage.includes("password authentication failed");
       
-      if (isTenantError && wakeupUrl) {
+      if (wakeupUrl) {
         logger.warn(
-          `[DB] Supabase dormindo ou falha de auth? Acordando projeto '${projectId}'... (Tentativa ${attempt}/${maxAttempts})`,
-          { url: wakeupUrl, error: errorMessage }
+          `[DB] Supabase dormindo ou falha de auth? Acordando projeto... (Tentativa ${attempt}/${maxAttempts})`,
+          { error: errorMessage }
         );
-        fetch(wakeupUrl).catch(() => undefined);
+        fetch(`https://${wakeupUrl}`).catch(() => undefined);
       } else {
         logger.warn(
           `[DB] Tentando conectar ao banco de dados... (${attempt}/${maxAttempts})`,
