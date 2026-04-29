@@ -1,4 +1,18 @@
-## Atualização Operacional (2026-04-29) - Segurança & Performance (Audit P0/P1)
+## Atualização Operacional (2026-04-29B) - Frontend Hardening & Robust Debug
+1: 
+2: - **Frontend Hardening Audit (Frente 4 - Concluída)**:
+3:   - **Sanitização & Segurança (P0)**: Auditado todos os campos de entrada (`BtPoleCoordinateInput`, `Renomear`, `Demand Input`). Validado que injeções de XSS e SQL são neutralizadas via escaping de React e lógica de validação.
+4:   - **Compatibilidade Tecnológica**:
+5:     - **Tailwind CSS 4.x**: Resolvido erro de compilação PostCSS migrando para `@tailwindcss/postcss`.
+6:     - **Express 5.x**: Corrigido wildcard pathing de React Router fallback de `*` para `*all` em `server/app.ts`.
+7:     - **Jest ESM**: Corrigido `ReferenceError: jest is not defined` em suites backend ativando `experimental-vm-modules` e imports explícitos em `setup.ts`.
+8:   - **Usability Audit**:
+9:     - **Performance Percebida**: Identificado e documentado o delay assíncrono em `btSummary` como comportamento "Smart Backend" esperado, com feedback visual mantido.
+10:     - **Localization (pt-BR/EN/ES)**: Validado 100% de consistência nas traduções do Workflow Sidebar e DG Wizard.
+11:     - **UX Robustness**: Testado exaustivamente o fluxo "Walk-at-Will", teclado (PgUp/PgDn) e transições Framer Motion sob carga de rede simulada.
+12: - **Dependências Atualizadas**: Adicionado `@tailwindcss/postcss` ao `devDependencies`.
+13: 
+14: ## Atualização Operacional (2026-04-29) - Segurança & Performance (Audit P0/P1)
 
 - **Auditoria 2024 — Implementação P0/P1 Concluída**:
   - **AuthGuard (P0)**: Implementado middleware de autorização Bearer Token para rotas sensíveis em `server/app.ts`.
@@ -59,6 +73,7 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 - **Infraestrutura**: Estabilização concluída, Cache Advanced Configuration (CAC) formalizado em `RAG/CAC.md`.
 - **Fase 2 BIM**: Concluída integração de metadados de Engenharia (BIM) nos componentes de mapa (`MapSelector` e sub-layers).
 - **Fase 3 BIM**: Concluída exportação de metadados BIM enriquecidos no DXF. Blocos (Postes, Trafos, Condutores) agora incluem Atributos Invisíveis (ATTDEF) para uso com `DATAEXTRACTION` no AutoCAD/Civil3D.
+- **Frontend Hardening**: Auditado e estabilizado contra vulnerabilidades de input e quebras de build (Vite/Tailwind 4/Express 5).
 - **Correção de Build**: Resolvido erro de destructuring no `App.tsx` referente ao export de CSV.
 
 ## Atualização Operacional (2026-04-28)
@@ -205,7 +220,13 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 ## Atualização Operacional (2026-04-29)
 
 - **Motor DG — Passos 2-5 Implementados (Auditoria Gap Resolution)**:
-  - **BUG CRÍTICO CORRIGIDO**: `conductorId: "95 AL MM"` → seleção telescópica real. O `lookupConductorById` agora sempre encontra o condutor, eliminando cálculo silenciosamente incorreto.
+  - **DG ENGINE AUDIT & FIXES (April 2026)**:
+  - **BUG CRÍTICO CORRIGIDO**: `conductorId: "95 AL MM"` → `conductorId: "95 Al - Arm"` + seleção telescópica real em `dgOptimizer.ts` e `dgPartitioner.ts`.
+  - **Seleção Telescópica**: Implementado `assignTelescopicConductors` baseado na demanda acumulada das sub-árvores.
+  - **Particionamento de Rede**: Implementado `partitionNetwork` em `dgPartitioner.ts` com heurística de corte 50/50 e filtro anti-isolamento (mínimo 15% demanda / 3 postes).
+  - **Excentricidade 200m**: Implementado `applyEccentricityDrag` para garantir que nenhum poste exceda 200m de distância do transformador (Passo 5).
+  - **Refatoração**: MST e lógica de topologia movidas para `dgPartitioner.ts`, com suporte a zonas de exclusão e corredores viários.
+  - **Testes**: Suite completa em `server/tests/dgPartitioner.test.ts`.
   - **Passo 2 (Rede Telescópica)**: `assignTelescopicConductors()` calcula demanda downstream por DFS e atribui condutor diferente por trecho: 25/50/95/150/240 Al-Arm.
   - **Passo 3 (Particionamento por kVA)**: `buildPartition()` itera `faixaKvaTrafoPermitida` e aciona `partitionNetwork()` quando nenhum kVA único cobre a demanda.
   - **Novo Catálogo Comercial**: Suporte expandido de 15 kVA até **300 kVA** (15, 30, 45, 75, 112.5, 150, 225, 300).

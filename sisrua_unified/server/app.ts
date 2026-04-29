@@ -533,7 +533,7 @@ app.use("/api/gis-hardening", requireAdminToken, gisHardeningRoutes);
 app.use(express.static(frontendDistDirectory));
 
 // Fallback to index.html for React Router
-app.get("*", (_req: Request, res: Response) => {
+app.get("*all", (_req: Request, res: Response) => {
   res.sendFile(path.join(frontendDistDirectory, "index.html"));
 });
 
