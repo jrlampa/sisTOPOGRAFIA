@@ -31,8 +31,12 @@ import {
 import { calculateBtRadial } from "../btRadialCalculationService.js";
 import type { BtRadialTopologyInput } from "../bt/btTypes.js";
 import { logger } from "../../utils/logger.js";
-
-const DEFAULT_CONDUCTOR_ID = "95 AL MM";
+import {
+  buildMst,
+  mstHasSpanViolation,
+  assignTelescopicConductors,
+} from "./dgPartitioner.js";
+import type { MstEdge } from "./dgPartitioner.js";
 
 // ─── Derivação de Demanda (Wizard) ───────────────────────────────────────────
 
@@ -52,68 +56,30 @@ function derivePolesDemand(poles: DgPoleInput[], params: DgParams): DgPoleInput[
   }));
 }
 
-// ─── MST via Kruskal ─────────────────────────────────────────────────────────
-
-interface MstEdge { fromId: string; toId: string; lengthMeters: number; }
-
-class UnionFind {
-  private parent: Map<string, string>;
-  constructor(ids: string[]) { this.parent = new Map(ids.map((id) => [id, id])); }
-  find(x: string): string {
-    if (this.parent.get(x) !== x) this.parent.set(x, this.find(this.parent.get(x)!));
-    return this.parent.get(x)!;
-  }
-  union(a: string, b: string): boolean {
-    const ra = this.find(a), rb = this.find(b);
-    if (ra === rb) return false;
-    this.parent.set(ra, rb);
-    return true;
-  }
-}
-
-function buildMst(trafoId: string, poles: Array<{ id: string; positionUtm: { x: number; y: number } }>, trafoUtm: { x: number; y: number }): MstEdge[] {
-  const allNodes = [{ id: trafoId, positionUtm: trafoUtm }, ...poles];
-  const allEdges: MstEdge[] = [];
-  for (let i = 0; i < allNodes.length; i++) {
-    for (let j = i + 1; j < allNodes.length; j++) {
-      const dist = euclideanDistanceM(allNodes[i].positionUtm, allNodes[j].positionUtm);
-      allEdges.push({
-        fromId: allNodes[i].id,
-        toId: allNodes[j].id,
-        lengthMeters: Math.max(0.001, dist),
-      });
-    }
-  }
-  allEdges.sort((a, b) => a.lengthMeters - b.lengthMeters);
-  const uf = new UnionFind(allNodes.map((n) => n.id));
-  const mst: MstEdge[] = [];
-  for (const edge of allEdges) {
-    if (uf.union(edge.fromId, edge.toId)) {
-      mst.push(edge);
-      if (mst.length === allNodes.length - 1) break;
-    }
-  }
-  return mst;
-}
-
-function mstHasSpanViolation(mst: MstEdge[], maxSpanMeters: number): string | null {
-  for (const edge of mst) {
-    if (edge.lengthMeters > maxSpanMeters) return `Trecho ${edge.fromId}→${edge.toId} tem ${edge.lengthMeters.toFixed(1)} m > ${maxSpanMeters} m`;
-  }
-  return null;
-}
+// MST (Kruskal) e UnionFind movidos para dgPartitioner.ts
 
 // ─── Avaliação via Motor Oficial ──────────────────────────────────────────────
 
 function evaluateWithOfficialEngine(trafoId: string, trafoKva: number, poles: DgPoleInput[], mst: MstEdge[]): DgElectricalResult | null {
   try {
+    const demandByPole = new Map(poles.map(p => [p.id, p.demandKva]));
+    const conductorMap = assignTelescopicConductors(trafoId, mst, demandByPole);
+
     const input: BtRadialTopologyInput = {
       transformer: { id: trafoId, rootNodeId: trafoId, kva: trafoKva, zPercent: 4.5, qtMt: 0 },
       nodes: [
         { id: trafoId, load: { localDemandKva: 0 } },
         ...poles.map(p => ({ id: p.id, load: { localDemandKva: p.demandKva } }))
       ],
-      edges: mst.map(e => ({ fromNodeId: e.fromId, toNodeId: e.toId, conductorId: DEFAULT_CONDUCTOR_ID, lengthMeters: e.lengthMeters })),
+      edges: mst.map(e => ({
+        fromNodeId: e.fromId,
+        toNodeId: e.toId,
+        conductorId:
+          conductorMap.get(`${e.fromId}→${e.toId}`) ??
+          conductorMap.get(`${e.toId}→${e.fromId}`) ??
+          "95 Al - Arm",
+        lengthMeters: e.lengthMeters,
+      })),
       phase: 'TRI',
       temperatureC: 75,
       nominalVoltageV: 127
@@ -164,7 +130,16 @@ function evaluateCandidate(candidate: DgCandidate, poles: DgPoleInput[], transfo
 
   if (!bestResult) return createFailedScenario(candidate, [{ code: "TRAFO_OVERLOAD", detail: "Nenhum kVA viável ou erro de topologia." }]);
 
-  const edges: DgScenarioEdge[] = mst.map(e => ({ fromPoleId: e.fromId, toPoleId: e.toId, lengthMeters: e.lengthMeters, conductorId: DEFAULT_CONDUCTOR_ID }));
+  const conductorMap = assignTelescopicConductors(trafoId, mst, new Map(poles.map(p => [p.id, p.demandKva])));
+  const edges: DgScenarioEdge[] = mst.map(e => ({
+    fromPoleId: e.fromId,
+    toPoleId: e.toId,
+    lengthMeters: e.lengthMeters,
+    conductorId:
+      conductorMap.get(`${e.fromId}→${e.toId}`) ??
+      conductorMap.get(`${e.toId}→${e.fromId}`) ??
+      "95 Al - Arm",
+  }));
   const { objectiveScore, scoreComponents } = calculateObjectiveScore({ edges, electricalResult: bestResult, candidateSource: candidate.source, weights: params.objectiveWeights });
 
   return {

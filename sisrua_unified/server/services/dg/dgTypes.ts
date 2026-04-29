@@ -239,6 +239,8 @@ export interface DgOptimizationOutput {
   recommendation: DgRecommendation | null;
   allScenarios: DgScenario[];
   params: DgParams;
+  /** Resultado do particionamento, quando a rede não cabe num único trafo. */
+  partitionedResult?: DgPartitionedResult;
 }
 
 export interface DgRunSummary {
@@ -259,4 +261,38 @@ export interface DgDiscardRateByConstraint {
   discardedScenarios: number;
   totalScenarios: number;
   discardRatePercent: number;
+}
+
+// ─── Particionamento de rede (multi-trafo) ────────────────────────────────────
+
+/** Uma sub-rede resultante do particionamento — possui seu próprio transformador. */
+export interface DgPartition {
+  partitionId: string;
+  poles: DgPoleInput[];
+  trafoPositionLatLon: DgLatLon;
+  trafoPositionUtm: DgPoint;
+  selectedKva: number;
+  edges: DgScenarioEdge[];
+  electricalResult: DgElectricalResult;
+  totalDemandKva: number;
+  /** O trafo foi movido da posição Fermat-Weber para respeitar a excentricidade de 200m? */
+  eccentricityAdjusted: boolean;
+  /** Distância máxima de qualquer poste ao trafo após ajuste. */
+  maxNodeDistanceM: number;
+  /** Baricentro Fermat-Weber antes do ajuste de excentricidade (diagnóstico). */
+  centroid?: DgPoint;
+}
+
+/** Resultado completo do particionamento da rede. */
+export interface DgPartitionedResult {
+  partitions: DgPartition[];
+  totalPartitions: number;
+  /** Arestas MST removidas para criar as partições ("fromId→toId"). */
+  cutEdgeIds: string[];
+  /** Grau de equilíbrio médio dos cortes (0=desequilibrado, 1=50/50 perfeito). */
+  avgBalanceRatio: number;
+  /** Partições com resultado elétrico infeasible (CQT ou sobrecarga). */
+  infeasiblePartitions: number;
+  /** Demanda total de todos os postes (kVA). */
+  totalDemandKva: number;
 }

@@ -17,6 +17,7 @@ import type {
 import { DEFAULT_DG_PARAMS } from "./dg/dgTypes.js";
 import { generateCandidates, hashDgInput } from "./dg/dgCandidates.js";
 import { runDgOptimizer } from "./dg/dgOptimizer.js";
+import { partitionNetwork } from "./dg/dgPartitioner.js";
 import { dgRunRepository } from "../repositories/dgRunRepository.js";
 
 function mergeParams(partial?: Partial<DgParams>): DgParams {
@@ -111,6 +112,27 @@ export async function runDgOptimization(
   const totalFeasible = allScenarios.filter((s) => s.feasible).length;
   const recommendation = buildRecommendation(allScenarios);
 
+  // Aciona particionamento quando:
+  // 1. Não há nenhum cenário único-trafo viável, OU
+  // 2. Demanda total excede a capacidade máxima do trafo em full_project
+  const maxKva = Math.max(...(params.faixaKvaTrafoPermitida ?? [112.5]));
+  const totalDemandKva = input.poles.reduce((s, p) => s + (p.demandKva ?? 0), 0);
+  const shouldPartition =
+    recommendation === null ||
+    (isFullProject && totalDemandKva > maxKva * (params.trafoMaxUtilization ?? 0.95));
+
+  const partitionedResult =
+    shouldPartition && input.poles.length >= 3
+      ? (() => {
+          logger.info("DG: acionando particionamento de rede", {
+            runId,
+            totalDemandKva,
+            poles: input.poles.length,
+          });
+          return partitionNetwork(input.poles, params);
+        })()
+      : undefined;
+
   const output: DgOptimizationOutput = {
     runId,
     tenantId: input.tenantId,
@@ -121,6 +143,7 @@ export async function runDgOptimization(
     recommendation,
     allScenarios,
     params,
+    partitionedResult,
   };
 
   await dgRunRepository.save(output);
