@@ -48,6 +48,7 @@ import {
 } from "../services/tenantQuotaService.js";
 import { getTenantFlagOverrides } from "../services/tenantFeatureFlagService.js";
 import { relatorioKpiTenant } from "../services/businessKpiService.js";
+import { getSystemHealthMvsReport } from "../services/systemHealthDashboardService.js";
 import {
   listServiceProfiles,
   removeServiceProfile,
@@ -82,6 +83,25 @@ router.get("/saude", (req: Request, res: Response) => {
     banco: getDbClient() !== null ? "disponível" : "indisponível",
     timestamp: new Date().toISOString(),
   });
+});
+
+// ─── GET /dashboard-mvs ───────────────────────────────────────────────────────
+
+router.get("/dashboard-mvs", async (req: Request, res: Response) => {
+  if (!isAdminAuthorized(req)) return forbidden(res);
+
+  try {
+    const report = await getSystemHealthMvsReport();
+    if (!report) {
+      return res.status(503).json({ erro: "Serviço de métricas indisponível no momento" });
+    }
+    return res.json(report);
+  } catch (error) {
+    logger.error("[AdminRoutes] Falha ao gerar dashboard MVs", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return res.status(500).json({ erro: "Erro interno ao gerar dashboard de saúde" });
+  }
 });
 
 // ─── GET /usuarios ────────────────────────────────────────────────────────────

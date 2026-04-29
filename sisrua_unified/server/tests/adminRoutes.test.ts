@@ -58,6 +58,12 @@ jest.mock("../services/businessKpiService", () => ({
   relatorioKpiTenant: (...args: unknown[]) => mockRelatorioKpiTenant(...args),
 }));
 
+const mockGetSystemHealthMvsReport = jest.fn();
+
+jest.mock("../services/systemHealthDashboardService", () => ({
+  getSystemHealthMvsReport: () => mockGetSystemHealthMvsReport(),
+}));
+
 const mockGetDbClient = jest.fn().mockReturnValue(null);
 
 jest.mock("../repositories/dbClient", () => ({
@@ -526,5 +532,39 @@ describe("adminRoutes — rotas /servicos", () => {
       .delete(`/api/admin/servicos/${validTenantId}/${validServiceCode}`)
       .set("Authorization", AUTH2);
     expect(res.status).toBe(404);
+  });
+});
+
+describe("adminRoutes — GET /dashboard-mvs", () => {
+  it("retorna 401 sem token", async () => {
+    const app = await buildAppFull(TOKEN2);
+    const res = await request(app).get("/api/admin/dashboard-mvs");
+    expect(res.status).toBe(401);
+  });
+
+  it("retorna 200 com dados mockados quando serviço responde", async () => {
+    const mockReport = {
+      btHistory: [],
+      auditStats: [],
+      catalogSummary: [],
+      timestamp: new Date().toISOString(),
+    };
+    mockGetSystemHealthMvsReport.mockResolvedValueOnce(mockReport);
+    const app = await buildAppFull(TOKEN2);
+    const res = await request(app)
+      .get("/api/admin/dashboard-mvs")
+      .set("Authorization", AUTH2);
+    expect(res.status).toBe(200);
+    expect(res.body.timestamp).toBeDefined();
+  });
+
+  it("retorna 503 quando serviço retorna null (banco offline)", async () => {
+    mockGetSystemHealthMvsReport.mockResolvedValueOnce(null);
+    const app = await buildAppFull(TOKEN2);
+    const res = await request(app)
+      .get("/api/admin/dashboard-mvs")
+      .set("Authorization", AUTH2);
+    expect(res.status).toBe(503);
+    expect(res.body.erro).toContain("indisponível");
   });
 });

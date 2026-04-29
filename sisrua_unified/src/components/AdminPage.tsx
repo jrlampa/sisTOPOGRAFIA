@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { PainelCard } from "./AdminPagePrimitives";
 import {
-  renderSaude, renderUsuarios, renderPapeis, renderTenants, renderQuotas,
+  renderSaude, renderDashboardMvs, renderUsuarios, renderPapeis, renderTenants, renderQuotas,
   renderFlags, renderKpis, renderServicos, renderRetencao, renderCapacidade, renderVulns,
   renderClassificacao, renderHoldings, renderFinOps,
 } from "./AdminPageSectionRenderers";
@@ -22,7 +22,7 @@ import {
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 type Secao =
-  | "saude" | "usuarios" | "papeis" | "tenants" | "quotas" | "flags" | "kpis"
+  | "saude" | "dashboard" | "usuarios" | "papeis" | "tenants" | "quotas" | "flags" | "kpis"
   | "servicos" | "retencao" | "capacidade" | "vulns" | "classificacao" | "holdings" | "finops";
 
 interface SecaoConfig {
@@ -35,6 +35,7 @@ interface SecaoConfig {
 
 const SECOES: SecaoConfig[] = [
   { id: "saude",        titulo: "Saúde do Sistema",              descricao: "Status do painel e conectividade com banco",               icone: Activity,   cor: "emerald" },
+  { id: "dashboard",    titulo: "Dashboard MVs",                 descricao: "Performance de rede, auditoria e catálogo (via MVs)",      icone: BarChart3,  cor: "fuchsia" },
   { id: "usuarios",     titulo: "Usuários e Papéis",             descricao: "Gestão de usuários e atribuição de papéis (RBAC)",         icone: Users,      cor: "blue"    },
   { id: "papeis",       titulo: "Distribuição de Papéis",        descricao: "Estatísticas de distribuição de papéis no sistema",        icone: ShieldCheck, cor: "indigo" },
   { id: "tenants",      titulo: "Tenants",                       descricao: "Clientes corporativos ativos na plataforma",               icone: Building2,  cor: "violet"  },
@@ -106,6 +107,7 @@ export default function AdminPage() {
   function urlParaSecao(secao: Secao): string {
     switch (secao) {
       case "saude":        return `${apiBase}/saude`;
+      case "dashboard":    return `${apiBase}/dashboard-mvs`;
       case "usuarios":     return `${apiBase}/usuarios`;
       case "papeis":       return `${apiBase}/papeis/estatisticas`;
       case "tenants":      return `${apiBase}/tenants`;
@@ -205,6 +207,7 @@ export default function AdminPage() {
     const d = dados[secao];
     switch (secao) {
       case "saude":        return renderSaude(d);
+      case "dashboard":    return renderDashboardMvs(d);
       case "usuarios":     return renderUsuarios(d);
       case "papeis":       return renderPapeis(d);
       case "tenants":      return renderTenants(d);

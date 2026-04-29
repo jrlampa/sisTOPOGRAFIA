@@ -5,7 +5,10 @@
  * e retorna o conteúdo a exibir no accordion correspondente.
  */
 import React from "react";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, BarChart3, Shield, Database } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line
+} from "recharts";
 import { InfoCard, PapelBadge } from "./AdminPagePrimitives";
 
 // ─── Tipos de resposta da API ─────────────────────────────────────────────────
@@ -24,6 +27,34 @@ interface ServiceProfileAdmin {
   supportChannel: string;
   supportHours: string;
   isActive: boolean;
+}
+
+interface BtDailySummary {
+  day_local: string;
+  project_type: string;
+  export_count: number;
+  parity_pass_count: number;
+  parity_fail_count: number;
+}
+
+interface AuditStat {
+  table_name: string;
+  action: string;
+  event_count: number;
+}
+
+interface ConstantsNamespaceSummary {
+  namespace: string;
+  total_entries: number;
+  active_entries: number;
+  last_updated_at: string;
+}
+
+interface SystemHealthMvsReport {
+  btHistory: BtDailySummary[];
+  auditStats: AuditStat[];
+  catalogSummary: ConstantsNamespaceSummary[];
+  timestamp: string;
 }
 
 // ─── Saúde ────────────────────────────────────────────────────────────────────
@@ -376,3 +407,104 @@ export function renderFinOps(d: unknown): React.ReactNode {
     </div>
   );
 }
+
+// ─── Dashboard MVs ────────────────────────────────────────────────────────────
+
+export function renderDashboardMvs(d: unknown): React.ReactNode {
+  const rd = d as SystemHealthMvsReport | undefined;
+  if (!rd) return null;
+
+  const btData = rd.btHistory.map(h => ({
+    name: new Date(h.day_local).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+    sucesso: h.parity_pass_count,
+    falha: h.parity_fail_count,
+    total: h.export_count
+  })).reverse();
+
+  const auditData = rd.auditStats.slice(0, 10).map(a => ({
+    name: `${a.table_name}:${a.action}`,
+    valor: a.event_count
+  }));
+
+  return (
+    <div className="space-y-6">
+      {/* Resumo Rápido */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <InfoCard label="Última Atualização" valor={new Date(rd.timestamp).toLocaleTimeString("pt-BR")} />
+        <InfoCard label="Eventos Auditoria" valor={String(rd.auditStats.reduce((s, a) => s + a.event_count, 0))} />
+        <InfoCard label="Séries BT" valor={String(rd.btHistory.length)} />
+        <InfoCard label="Namespaces Catálogo" valor={String(rd.catalogSummary.length)} />
+      </div>
+
+      {/* Gráfico de Histórico BT */}
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900/50">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 size={16} className="text-fuchsia-600" />
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">Histórico de Exportação BT (30 dias)</h3>
+        </div>
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={btData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#88888822" />
+              <XAxis dataKey="name" fontSize={10} />
+              <YAxis fontSize={10} />
+              <Tooltip 
+                contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
+                itemStyle={{ fontSize: "12px", fontWeight: "bold" }}
+              />
+              <Legend fontSize={10} />
+              <Bar dataKey="sucesso" fill="#10B981" radius={[4, 4, 0, 0]} name="Sucesso" />
+              <Bar dataKey="falha" fill="#EF4444" radius={[4, 4, 0, 0]} name="Falha" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Auditoria Top 10 */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900/50">
+          <div className="flex items-center gap-2 mb-4">
+            <Shield size={16} className="text-indigo-600" />
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">Top 10 Eventos Auditoria</h3>
+          </div>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={auditData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#88888822" />
+                <XAxis type="number" fontSize={10} hide />
+                <YAxis dataKey="name" type="category" fontSize={9} width={120} />
+                <Tooltip />
+                <Bar dataKey="valor" fill="#6366F1" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Catálogo Summary */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900/50">
+          <div className="flex items-center gap-2 mb-4">
+            <Database size={16} className="text-amber-600" />
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">Status do Catálogo</h3>
+          </div>
+          <div className="space-y-2 overflow-y-auto max-h-64">
+            {rd.catalogSummary.map(c => (
+              <div key={c.namespace} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{c.namespace}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-slate-500 uppercase font-black">{c.active_entries}/{c.total_entries} ativos</span>
+                  <div className="h-1.5 w-24 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-amber-500" 
+                      style={{ width: `${(c.active_entries / c.total_entries) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
