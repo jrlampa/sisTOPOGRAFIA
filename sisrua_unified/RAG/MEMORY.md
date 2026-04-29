@@ -65,24 +65,21 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
   - `src/i18n/appHeaderText.ts` (human microcopy)
   - `tests/components/EmptyStateMapOverlay.test.tsx` (novo)
 
-## Próximos Passos (Prioridade: Produção Fase 2)
+## Próximos Passos (Prioridade: Produção Fase 3 - Qualidade)
 
-1.  **P2.1: Auditoria de Performance**: Executar `apply_perf_migrations.py` e validar ganhos de latência nas MVs.
-2.  **P2.2: Post-deploy Smoke Tests**: Implementar suite de testes de fumaça automatizados para Cloud Run.
-3.  **P2.3: Python Error Handling**: Padronizar as saídas do motor Python para o novo formato `ErrorCode`.
+1.  **P3.1: Acessibilidade WCAG 2.1**: Auditoria completa dos componentes críticos do frontend e correção de contrastes/labels.
+2.  **P3.2: Cobertura de Testes (95%)**: Expandir testes unitários para atingir a meta de 95% nos módulos vitais de engenharia.
+3.  **P3.3: Load Testing Baseline**: Estabelecer um baseline de carga para o motor Python e API Node.js.
 
 ---
 
-## Atualização Operacional (2026-04-28) - Fase 1 Concluída
+## Atualização Operacional (2026-04-28) - Fase 2 Concluída
 
-- **P1 Concluída (100%)**:
-  - **P1.1 Persistência**: Jobs agora via Supabase/Postgres (resiliente a restarts).
-  - **P1.2 Error Taxonomy**: Middleware centralizado com `ErrorCode` e captura de Zod/Express-validator.
-  - **P1.3 Validação**: `express-validator` implementado e pronto para uso em rotas de escrita.
-  - **P1.4 SIGTERM**: Graceful shutdown com drenagem de workers (25s timeout) implementado.
-  - **P1.5 Observabilidade**: Correlation IDs (`x-request-id`) integrados fim-a-fim no logger JSON.
-- **Governança**: Criado `GEMINI.md` local com regras rígidas de produção.
-- **Estado**: Prontidão para produção saltou de 36% para ~65% (baseline de estabilidade atingido).
+- **P2 Concluída (100%)**:
+  - **P2.1 Performance**: Índices BRIN e Materialized Views validados via `apply_perf_migrations.py`. Cron jobs agendados.
+  - **P2.2 Smoke Tests**: Suite `server/tests/smoke.test.ts` implementada e integrada ao workflow de CI.
+  - **P2.3 Python Handling**: Motor Python agora reporta erros via `ErrorCode` padronizado. Mapeamento de OOM e DXF_FAILED ok.
+- **Estado**: Prontidão para produção saltou para ~85%. Sistema performático e testável em ambiente de fumaça.
 
 ## Atualização Operacional (2026-04-27)
 

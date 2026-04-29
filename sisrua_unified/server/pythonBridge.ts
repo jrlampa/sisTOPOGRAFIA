@@ -31,12 +31,15 @@ import { metricsService } from "./services/metricsService.js";
 // Compatible way to get dirname for both ESM and CJS (transpiled by Jest)
 const dirname = path.join(process.cwd(), "server");
 
+import { createError, ErrorCode } from "./errorHandler.js";
+
 /** Exit code emitted by Python's OOM watchdog (main.py --memory-limit-mb). */
 export const PYTHON_OOM_EXIT_CODE = 137;
 
 /** Sinaliza que o processo Python foi encerrado por limite de memória (retriable). */
 export class PythonOomError extends Error {
   readonly isOom = true;
+  readonly code = ErrorCode.CAPACITY_EXCEEDED;
   constructor(memoryLimitMb: number) {
     super(
       `Python worker encerrado por OOM (limite: ${memoryLimitMb}MB). Job pode ser re-tentado.`,
@@ -351,8 +354,10 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
           if (!stdoutData || stdoutData.trim().length === 0) {
             handled = true;
             reject(
-              new Error(
+              createError.internal(
                 `Python script '${selectedCommand}' completed successfully but without output stdout. Stderr: ${stderrData}`,
+                undefined,
+                ErrorCode.DXF_GENERATION_FAILED
               ),
             );
             return;
@@ -382,8 +387,10 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
         const errorDetail =
           stderrData || stdoutData || "No error output captured";
         reject(
-          new Error(
-            `Python script '${selectedCommand}' failed with code ${code} | executable='${envProbe.executable}' version='${envProbe.version}' cwd='${path.join(dirname, "..", "py_engine")}'\nDetails: ${errorDetail}`,
+          createError.internal(
+            `Python script '${selectedCommand}' failed with code ${code}`,
+            new Error(errorDetail),
+            ErrorCode.DXF_GENERATION_FAILED
           ),
         );
       });
@@ -409,8 +416,10 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
 
         handled = true;
         reject(
-          new Error(
-            `Failed to spawn python process using '${selectedCommand}': ${err.message}`,
+          createError.internal(
+            `Failed to spawn python process using '${selectedCommand}'`,
+            err,
+            ErrorCode.DXF_GENERATION_FAILED
           ),
         );
       });
