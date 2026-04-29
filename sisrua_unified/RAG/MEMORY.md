@@ -188,3 +188,21 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
   - `server/tests/lgpdRetencaoAndResidenciaRoutes.test.ts`
 - Validação executada:
   - `npx jest server/tests/lgpdRetencao.test.ts server/tests/lgpdResidencia.test.ts server/tests/lgpdRetencaoAndResidenciaRoutes.test.ts --runInBand` (81 testes passando).
+
+## Atualização Operacional (2026-04-29)
+
+- **Motor DG — Passos 2-5 Implementados (Auditoria Gap Resolution)**:
+  - **BUG CRÍTICO CORRIGIDO**: `conductorId: "95 AL MM"` → seleção telescópica real. O `lookupConductorById` agora sempre encontra o condutor, eliminando cálculo silenciosamente incorreto.
+  - **Passo 2 (Rede Telescópica)**: `assignTelescopicConductors()` calcula demanda downstream por DFS e atribui condutor diferente por trecho: 25/50/95/150/240 Al-Arm.
+  - **Passo 3 (Particionamento por kVA)**: `buildPartition()` itera `faixaKvaTrafoPermitida` e aciona `partitionNetwork()` quando nenhum kVA único cobre a demanda.
+  - **Passo 4 (Heurística 50/50 + Anti-Isolamento)**: `findBestCutEdge()` com filtro mínimo de 15% de demanda e 3 postes por cluster.
+  - **Passo 5 (Excentricidade 200m)**: `applyEccentricityDrag()` arrasta o trafo do baricentro Fermat-Weber para o poste mais próximo que satisfaz a regra de excentricidade.
+- **Novos arquivos**:
+  - `server/services/dg/dgPartitioner.ts` (exporta MST, UnionFind, condutor telescópico, corte, excentricidade, `partitionNetwork`)
+  - `server/tests/dgPartitioner.test.ts` (20 casos, 36 testes passando)
+- **Arquivos modificados**:
+  - `server/services/dg/dgOptimizer.ts` (importa do partitioner, remove duplicação)
+  - `server/services/dg/dgTypes.ts` (DgPartition, DgPartitionedResult, campo partitionedResult?)
+  - `server/services/dgOptimizationService.ts` (aciona partitionNetwork automaticamente)
+- **Validação executada**:
+  - `npx jest server/tests/dgPartitioner.test.ts server/tests/dgOptimizationService.test.ts --runInBand` (36 testes passando, 1.3s)
