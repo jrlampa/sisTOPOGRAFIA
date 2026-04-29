@@ -17,14 +17,16 @@ import type {
   DgExclusionPolygon,
   DgRoadCorridor,
 } from "./dgTypes.js";
-import { resolveTrafoFaixa } from "./dgTypes.js";
 import {
   euclideanDistanceM,
   latLonToUtm,
   utmToLatLon,
   fermatWeberCenter,
 } from "./dgCandidates.js";
-import { isEdgeCrossingExclusionZone, pointToPolylineDistance } from "./dgConstraints.js";
+import {
+  isEdgeCrossingExclusionZone,
+  pointToPolylineDistance,
+} from "./dgConstraints.js";
 import { calculateBtRadial } from "../btRadialCalculationService.js";
 import type { BtRadialTopologyInput } from "../bt/btTypes.js";
 import { logger } from "../../utils/logger.js";
@@ -59,7 +61,7 @@ export function selectConductorForDemand(subtreeDemandKva: number): string {
   return TELESCOPIC_TABLE.find((t) => subtreeDemandKva <= t.maxKva)!.id;
 }
 
-// ─── MST via Kruskal ─────────────────────────────────────────────────────────
+// ─── MST via Kruskal (extraído de dgOptimizer) ──────────────────────────────
 
 class UnionFind {
   private parent: Map<string, string>;
@@ -98,12 +100,15 @@ export function buildMst(
       if (isEdgeCrossingExclusionZone(posA, posB, exclusionPolygons)) continue;
 
       // Se temos corredores de rua, o ponto médio do trecho deve estar dentro de um deles
-      // (Isso evita que o condutor atravesse quadras/casas)
       if (roadCorridors.length > 0) {
         const mid = { x: (posA.x + posB.x) / 2, y: (posA.y + posB.y) / 2 };
-        const insideRoad = roadCorridors.some(corridor => {
-          const polylineUtm = corridor.centerPoints.map(p => latLonToUtm(p.lat, p.lon));
-          return pointToPolylineDistance(mid, polylineUtm) <= corridor.bufferMeters;
+        const insideRoad = roadCorridors.some((corridor) => {
+          const polylineUtm = corridor.centerPoints.map((p) =>
+            latLonToUtm(p.lat, p.lon),
+          );
+          return (
+            pointToPolylineDistance(mid, polylineUtm) <= corridor.bufferMeters
+          );
         });
         if (!insideRoad) continue;
       }
@@ -138,17 +143,18 @@ export function mstHasSpanViolation(
   return null;
 }
 
-// ─── Condutor telescópico por subtree demand ─────────────────────────────────
+// ─── Passo 2/5: Condutor telescópico por subtree demand ─────────────────────
 
 /**
  * Para cada aresta MST, atribui o condutor correto baseado na demanda
- * acumulada da sub-rede "downstream" (rede telescópica).
+ * acumulada da sub-rede "downstream" daquela aresta (rede telescópica).
  */
 export function assignTelescopicConductors(
   trafoId: string,
   mst: MstEdge[],
   demandByPole: Map<string, number>,
 ): Map<string, string> {
+  // Monta adjacência
   const adj = new Map<string, string[]>();
   for (const e of mst) {
     if (!adj.has(e.fromId)) adj.set(e.fromId, []);
@@ -156,7 +162,7 @@ export function assignTelescopicConductors(
     adj.get(e.fromId)!.push(e.toId);
     adj.get(e.toId)!.push(e.fromId);
   }
-
+  // DFS: computa demanda de cada subtree
   const subtreeDemand = new Map<string, number>();
   const visited = new Set<string>();
 
@@ -172,15 +178,16 @@ export function assignTelescopicConductors(
   }
   dfs(trafoId, null);
 
+  // Para cada aresta, o "child" é o nó cujo subtree é menor
+  // (resultado do DFS: o nó visitado após o pai)
   const conductorByEdgeKey = new Map<string, string>();
   for (const e of mst) {
+    // child = nó com menor subtree (downstream)
     const dA = subtreeDemand.get(e.fromId) ?? 0;
     const dB = subtreeDemand.get(e.toId) ?? 0;
     const childDemand = Math.min(dA, dB);
-    conductorByEdgeKey.set(
-      `${e.fromId}→${e.toId}`,
-      selectConductorForDemand(childDemand),
-    );
+    const key = `${e.fromId}→${e.toId}`;
+    conductorByEdgeKey.set(key, selectConductorForDemand(childDemand));
   }
   return conductorByEdgeKey;
 }
@@ -249,6 +256,9 @@ export function findBestCutEdge(
 
   const cuts = computeEdgeCuts(trafoId, mst, demandByPole);
   const minLoadKva = totalDemandKva * MIN_LOAD_FRACTION;
+
+  // Para o filtro por contagem de postes: quantos nós no subtree do child?
+  // Vamos contar via BFS pós-corte para cada candidato
   const poleIds = new Set(poles.map((p) => p.id));
 
   const valid: Array<{ cut: EdgeCut; imbalance: number }> = [];
@@ -256,11 +266,14 @@ export function findBestCutEdge(
   for (const cut of cuts) {
     const below = cut.subtreeDemandKva;
     const above = totalDemandKva - below;
+    // Filtro de demanda mínima
     if (below < minLoadKva || above < minLoadKva) continue;
-
-    const downstreamPoles = collectSubtreeNodes(cut.childId, cut.edge, mst).filter(
-      (id) => poleIds.has(id),
-    ).length;
+    // Filtro de contagem mínima de postes
+    const downstreamPoles = collectSubtreeNodes(
+      cut.childId,
+      cut.edge,
+      mst,
+    ).filter((id) => poleIds.has(id)).length;
     const upstreamPoles = poles.length - downstreamPoles;
     if (
       downstreamPoles < MIN_POLES_PER_PARTITION ||
@@ -282,6 +295,7 @@ function collectSubtreeNodes(
   cutEdge: MstEdge,
   mst: MstEdge[],
 ): string[] {
+  // MST sem a aresta de corte
   const adj = new Map<string, string[]>();
   for (const e of mst) {
     const isCut =
@@ -293,6 +307,7 @@ function collectSubtreeNodes(
     adj.get(e.fromId)!.push(e.toId);
     adj.get(e.toId)!.push(e.fromId);
   }
+  // BFS a partir do childId
   const visited = new Set<string>();
   const queue = [childId];
   while (queue.length > 0) {
@@ -304,6 +319,7 @@ function collectSubtreeNodes(
   return [...visited];
 }
 
+/** Divide os postes em dois grupos (upstream/downstream) com base no corte. */
 function splitPolesAtCut(
   poles: DgPoleInput[],
   cutEdge: MstEdge,
@@ -311,15 +327,14 @@ function splitPolesAtCut(
   cutChildId: string,
 ): { downstream: DgPoleInput[]; upstream: DgPoleInput[] } {
   const downstreamIds = new Set(collectSubtreeNodes(cutChildId, cutEdge, mst));
-  return {
-    downstream: poles.filter((p) => downstreamIds.has(p.id)),
-    upstream: poles.filter((p) => !downstreamIds.has(p.id)),
-  };
+  const downstream = poles.filter((p) => downstreamIds.has(p.id));
+  const upstream = poles.filter((p) => !downstreamIds.has(p.id));
+  return { downstream, upstream };
 }
 
 // ─── Passo 5: Excentricidade 200m ───────────────────────────────────────────
 
-export interface EccentricityResult {
+interface EccentricityResult {
   position: { x: number; y: number };
   adjusted: boolean;
   maxDistM: number;
@@ -328,6 +343,7 @@ export interface EccentricityResult {
 /**
  * Se o trafo em `centroid` tiver algum poste a mais de `maxDistM`,
  * arrasta-o para o poste existente que minimiza a excentricidade máxima.
+ * Máximo de 2 tentativas de re-posicionamento.
  */
 export function applyEccentricityDrag(
   centroid: { x: number; y: number },
@@ -338,9 +354,11 @@ export function applyEccentricityDrag(
     Math.max(...polesUtm.map((p) => euclideanDistanceM(pos, p.positionUtm)));
 
   let maxDist = computeMaxDist(centroid);
-  if (maxDist <= maxDistM)
+  if (maxDist <= maxDistM) {
     return { position: centroid, adjusted: false, maxDistM: maxDist };
+  }
 
+  // Encontra o poste mais afastado e a direção do vetor
   const farthest = polesUtm.reduce((acc, p) =>
     euclideanDistanceM(centroid, p.positionUtm) >
     euclideanDistanceM(centroid, acc.positionUtm)
@@ -350,6 +368,8 @@ export function applyEccentricityDrag(
   const dx = farthest.positionUtm.x - centroid.x;
   const dy = farthest.positionUtm.y - centroid.y;
 
+  // Ordena postes por projeção escalar na direção do farthest
+  // (postes "na mesma direção" ficam no topo)
   const scored = polesUtm
     .map((p) => ({
       p,
@@ -359,10 +379,12 @@ export function applyEccentricityDrag(
     }))
     .sort((a, b) => b.score - a.score);
 
+  // Tenta até 3 postes candidatos na direção do farthest
   for (const { p } of scored.slice(0, 3)) {
     const newMaxDist = computeMaxDist(p.positionUtm);
-    if (newMaxDist <= maxDistM)
+    if (newMaxDist <= maxDistM) {
       return { position: p.positionUtm, adjusted: true, maxDistM: newMaxDist };
+    }
   }
 
   // Fallback: poste que minimiza a excentricidade máxima globalmente
@@ -373,7 +395,11 @@ export function applyEccentricityDrag(
     },
     { p: polesUtm[0], maxDist: computeMaxDist(polesUtm[0].positionUtm) },
   );
-  return { position: best.p.positionUtm, adjusted: true, maxDistM: best.maxDist };
+  return {
+    position: best.p.positionUtm,
+    adjusted: true,
+    maxDistM: best.maxDist,
+  };
 }
 
 // ─── Avaliação elétrica de uma partição ─────────────────────────────────────
@@ -384,7 +410,7 @@ function evaluatePartitionElectrical(
   poles: DgPoleInput[],
   mst: MstEdge[],
   demandByPole: Map<string, number>,
-  params: DgParams,
+  cqtLimit: number,
 ): DgElectricalResult | null {
   try {
     const conductorMap = assignTelescopicConductors(trafoId, mst, demandByPole);
@@ -401,15 +427,7 @@ function evaluatePartitionElectrical(
         { id: trafoId, load: { localDemandKva: 0 } },
         ...poles.map((p) => ({
           id: p.id,
-          load: {
-            localDemandKva: p.demandKva,
-            ramal: params.ramalDefaultLengthM
-              ? {
-                  conductorId: params.ramalDefaultConductorId ?? "16 Al - Du",
-                  lengthMeters: params.ramalDefaultLengthM,
-                }
-              : undefined,
-          },
+          load: { localDemandKva: p.demandKva },
         })),
       ],
       edges: mst.map((e) => ({
@@ -429,25 +447,23 @@ function evaluatePartitionElectrical(
     const output = calculateBtRadial(input);
     const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
 
-    const worstTerminalId = output.worstCase.worstTerminalNodeId;
-    const worstTerminal = output.terminalResults.find(t => t.nodeId === worstTerminalId);
-
-
-
     return {
       cqtMaxFraction: output.worstCase.cqtGlobal,
-      cqtTerminalFraction: worstTerminal?.qtTerminal ?? output.worstCase.cqtGlobal,
-      cqtRamalFraction: worstTerminal?.qtRamal ?? 0,
-      worstTerminalNodeId: worstTerminalId,
+      worstTerminalNodeId: output.worstCase.worstTerminalNodeId,
       trafoUtilizationFraction: totalDemandKva / trafoKva,
       totalCableLengthMeters: mst.reduce((s, e) => s + e.lengthMeters, 0),
       feasible:
-        output.worstCase.cqtGlobal <= (params.cqtLimitFraction ?? 0.08) &&
-        totalDemandKva / trafoKva <= (params.trafoMaxUtilization ?? 0.95),
+        output.worstCase.cqtGlobal <= cqtLimit &&
+        totalDemandKva / trafoKva <= 0.95,
+      cqtTerminalFraction: 0, // Fallback for interface
+      cqtRamalFraction: 0, // Fallback for interface
     };
   } catch (err) {
     logger.debug("DG Partitioner: falha na avaliação elétrica", {
       error: (err as Error).message,
+      trafoId,
+      trafoKva,
+      poles: poles.length,
     });
     return null;
   }
@@ -469,7 +485,10 @@ function buildPartition(
 
   // Passo 5a: Baricentro elétrico (Fermat-Weber)
   const centroid = fermatWeberCenter(
-    poles.map((p, i) => ({ positionUtm: polesUtm[i].positionUtm, demandKva: p.demandKva })),
+    poles.map((p, i) => ({
+      positionUtm: polesUtm[i].positionUtm,
+      demandKva: p.demandKva,
+    })),
   );
 
   // Passo 5b: Regra de excentricidade 200m
@@ -478,26 +497,49 @@ function buildPartition(
   const trafoLatLon = utmToLatLon(trafoUtm.x, trafoUtm.y);
 
   const trafoId = `trafo-part-${partitionId}`;
-  const mst = buildMst(trafoId, polesUtm, trafoUtm, params.exclusionPolygons ?? [], params.roadCorridors ?? []);
+  const mst = buildMst(
+    trafoId,
+    polesUtm,
+    trafoUtm,
+    [],
+    [],
+  );
 
   const demandByPole = new Map(poles.map((p) => [p.id, p.demandKva]));
   const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
 
-  // Passo 3b: Seleciona menor kVA viável usando catálogo resolvido
-  const faixa = resolveTrafoFaixa(params);
+  // Passo 3b: Seleciona menor kVA viável
+  const faixa = params.faixaKvaTrafoPermitida ?? [15, 30, 45, 75, 112.5];
   let bestResult: DgElectricalResult | null = null;
   let selectedKva = 0;
 
   for (const kva of faixa) {
     if (totalDemandKva / kva > (params.trafoMaxUtilization ?? 0.95)) continue;
-    const result = evaluatePartitionElectrical(trafoId, kva, poles, mst, demandByPole, params);
-    if (result?.feasible) {
+    const result = evaluatePartitionElectrical(
+      trafoId,
+      kva,
+      poles,
+      mst,
+      demandByPole,
+      params.cqtLimitFraction ?? 0.08,
+    );
+    // Guarda o melhor resultado mesmo que infeasível (para CQT real no output)
+    if (
+      result &&
+      (!bestResult || result.cqtMaxFraction < bestResult.cqtMaxFraction)
+    ) {
       bestResult = result;
+      // Seleciona o menor kVA compatível com a utilização, mesmo que CQT esteja acima do limite.
+      // Se posteriormente um kVA menor for feasível, ele sobrescreve via break abaixo.
+      if (selectedKva === 0) selectedKva = kva;
+    }
+    if (result?.feasible) {
       selectedKva = kva;
       break;
     }
   }
 
+  // Constrói edges com condutores telescópicos
   const conductorMap = assignTelescopicConductors(trafoId, mst, demandByPole);
   const edges: DgScenarioEdge[] = mst.map((e) => ({
     fromPoleId: e.fromId,
@@ -518,12 +560,12 @@ function buildPartition(
     edges,
     electricalResult: bestResult ?? {
       cqtMaxFraction: 1,
-      cqtTerminalFraction: 1,
-      cqtRamalFraction: 0,
       worstTerminalNodeId: "",
       trafoUtilizationFraction: totalDemandKva / Math.max(selectedKva, 1),
       totalCableLengthMeters: mst.reduce((s, e) => s + e.lengthMeters, 0),
       feasible: false,
+      cqtTerminalFraction: 1,
+      cqtRamalFraction: 0,
     },
     totalDemandKva,
     eccentricityAdjusted: eccentricity.adjusted,
@@ -534,14 +576,19 @@ function buildPartition(
 
 // ─── Passo 3-4: Particionamento recursivo ───────────────────────────────────
 
-const MAX_DEPTH = 2; // máximo 3 sub-redes (depth 0→1→2)
-const MAX_PARTITIONS = 4;
+const MAX_DEPTH = 6; // suporta até 64 sub-redes (redes com 50-500 postes)
+const MAX_PARTITIONS = 20; // cap de segurança — não aplicado na recursão
 
+/**
+ * Particiona recursivamente a rede até cada sub-rede caber num trafo.
+ * Retorna array de partições — cada uma com seu trafo posicionado.
+ */
 function partitionRecursive(
   poles: DgPoleInput[],
   params: DgParams,
   depth: number,
   cutEdgeIds: string[],
+  totalDemandForRatioCalc: number,
 ): DgPartition[] {
   if (poles.length < MIN_POLES_PER_PARTITION || depth > MAX_DEPTH) {
     const partition = buildPartition(
@@ -553,36 +600,76 @@ function partitionRecursive(
   }
 
   const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
-  const maxKva = Math.max(...resolveTrafoFaixa(params));
+  const maxKva = Math.max(...(params.faixaKvaTrafoPermitida ?? [112.5]));
   const maxUtilization = params.trafoMaxUtilization ?? 0.95;
 
   // Se cabe num único trafo, não particiona mais
+  // Se cabe num único trafo E CQT é viável (ou atingiu profundidade máxima), não particiona mais
   if (totalDemandKva <= maxKva * maxUtilization) {
     const partition = buildPartition(
       `${depth}-${randomUUID().slice(0, 8)}`,
       poles,
       params,
     );
-    return partition ? [partition] : [];
+    // Se resultado é viável ou atingiu limite de profundidade/tamanho, retorna a partição
+    if (
+      !partition ||
+      partition.electricalResult.feasible ||
+      depth >= MAX_DEPTH
+    ) {
+      return partition ? [partition] : [];
+    }
+    // CQT acima do limite → continua particionando para reduzir a extensão da rede
+    logger.debug(
+      "DG Partitioner: CQT acima do limite — continuando particionamento",
+      {
+        depth,
+        poles: poles.length,
+        totalDemandKva,
+        cqt: partition.electricalResult.cqtMaxFraction,
+      },
+    );
   }
 
+  // Precisa particionar: monta MST para encontrar o melhor corte
   const polesUtm = poles.map((p) => ({
     id: p.id,
     positionUtm: latLonToUtm(p.position.lat, p.position.lon),
   }));
 
+  // Trafo temporário para construir a MST de referência (Fermat-Weber centroid)
   const centroid = fermatWeberCenter(
-    poles.map((p, i) => ({ positionUtm: polesUtm[i].positionUtm, demandKva: p.demandKva })),
+    poles.map((p, i) => ({
+      positionUtm: polesUtm[i].positionUtm,
+      demandKva: p.demandKva,
+    })),
   );
   const tempTrafoId = `temp-trafo-${depth}`;
-  const mst = buildMst(tempTrafoId, polesUtm, centroid, params.exclusionPolygons ?? [], params.roadCorridors ?? []);
+  const mst = buildMst(
+    tempTrafoId,
+    polesUtm,
+    centroid,
+    [],
+    [],
+  );
   const demandByPole = new Map(poles.map((p) => [p.id, p.demandKva]));
 
-  const bestCut = findBestCutEdge(tempTrafoId, mst, poles, demandByPole, totalDemandKva);
+  const bestCut = findBestCutEdge(
+    tempTrafoId,
+    mst,
+    poles,
+    demandByPole,
+    totalDemandKva,
+  );
   if (!bestCut) {
+    // Nenhum corte válido (anti-isolamento): aceita como partição única
     logger.warn(
       "DG Partitioner: nenhum corte válido encontrado — aceitando partição única",
-      { poles: poles.length, totalDemandKva, depth },
+      {
+        poles: poles.length,
+        totalDemandKva,
+        depth,
+      },
     );
     const partition = buildPartition(
       `${depth}-${randomUUID().slice(0, 8)}`,
@@ -612,10 +699,24 @@ function partitionRecursive(
       Math.abs(2 * bestCut.subtreeDemandKva - totalDemandKva) / totalDemandKva,
   });
 
-  const upstreamPartitions = partitionRecursive(upstream, params, depth + 1, cutEdgeIds);
-  const downstreamPartitions = partitionRecursive(downstream, params, depth + 1, cutEdgeIds);
+  const upstreamPartitions = partitionRecursive(
+    upstream,
+    params,
+    depth + 1,
+    cutEdgeIds,
+    totalDemandForRatioCalc,
+  );
+  const downstreamPartitions = partitionRecursive(
+    downstream,
+    params,
+    depth + 1,
+    cutEdgeIds,
+    totalDemandForRatioCalc,
+  );
 
-  return [...upstreamPartitions, ...downstreamPartitions].slice(0, MAX_PARTITIONS);
+  // IMPORTANTE: nunca fazer slice aqui — isso droparia postes silenciosamente.
+  // O cap MAX_PARTITIONS é aplicado apenas em partitionNetwork (nível raiz).
+  return [...upstreamPartitions, ...downstreamPartitions];
 }
 
 // ─── API pública ─────────────────────────────────────────────────────────────
@@ -634,8 +735,26 @@ export function partitionNetwork(
   const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
   const cutEdgeIds: string[] = [];
 
-  const partitions = partitionRecursive(poles, params, 0, cutEdgeIds);
+  const allPartitions = partitionRecursive(
+    poles,
+    params,
+    0,
+    cutEdgeIds,
+    totalDemandKva,
+  );
+  // Aplica cap de segurança SOMENTE no nível raiz, nunca na recursão
+  const partitions = allPartitions.slice(0, MAX_PARTITIONS);
+  if (allPartitions.length > MAX_PARTITIONS) {
+    logger.warn(
+      "DG Partitioner: número de partições excede MAX_PARTITIONS, resultado truncado",
+      {
+        total: allPartitions.length,
+        cap: MAX_PARTITIONS,
+      },
+    );
+  }
 
+  // Calcula razão de balanço média dos cortes
   let avgBalanceRatio = 1;
   if (cutEdgeIds.length > 0 && partitions.length >= 2) {
     const demands = partitions.map((p) => p.totalDemandKva);

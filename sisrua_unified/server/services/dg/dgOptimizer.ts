@@ -35,6 +35,7 @@ import { logger } from "../../utils/logger.js";
 import {
   buildMst,
   mstHasSpanViolation,
+  selectConductorForDemand,
   assignTelescopicConductors,
 } from "./dgPartitioner.js";
 import type { MstEdge } from "./dgPartitioner.js";
@@ -56,8 +57,6 @@ function derivePolesDemand(poles: DgPoleInput[], params: DgParams): DgPoleInput[
     clients: p.clients > 0 ? p.clients : clientes,
   }));
 }
-
-// MST (Kruskal) e UnionFind movidos para dgPartitioner.ts
 
 // ─── Avaliação via Motor Oficial ──────────────────────────────────────────────
 
