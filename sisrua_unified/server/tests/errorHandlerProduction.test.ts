@@ -1,19 +1,19 @@
+import { vi } from "vitest";
 import { errorHandler, ApiError, ErrorCategory } from "../errorHandler";
-import { jest } from '@jest/globals';
 
 // Mock config for production environment
-jest.mock("../config", () => ({
+vi.mock("../config", () => ({
   config: {
     NODE_ENV: "production"
   }
 }));
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    error: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -27,15 +27,15 @@ describe("errorHandler in Production mode", () => {
     beforeEach(() => {
         mockReq = {};
         mockRes = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn().mockReturnThis(),
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn().mockReturnThis(),
             locals: { requestId: "test-req-id" }
         };
-        mockNext = jest.fn();
+        mockNext = vi.fn();
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it("should hide details in production for ApiError", () => {
@@ -72,7 +72,8 @@ describe("errorHandler in Production mode", () => {
             })
         );
         // Ensure stack trace was NOT logged
-        const logArg = (logger.warn as jest.Mock).mock.calls[0][1];
+        const logArg = (logger.warn as vi.Mock).mock.calls[0][1];
         expect(logArg.stack).toBeUndefined();
     });
 });
+

@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from "vitest";
 import { calculateManualDraggingCosts } from '../services/btAccessibilityService';
 import { BtAccessibilityNodeInfo } from '../services/bt/btAccessibilityTypes';
 
@@ -68,3 +68,4 @@ describe('btAccessibilityService', () => {
         expect(result.totalAccessibilityCost).toBe(0);
     });
 });
+

@@ -1,16 +1,16 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 // Mock dependencies
-jest.mock("../repositories/dbClient.js", () => ({
-  getDbClient: jest.fn(),
-  isDbAvailable: jest.fn().mockReturnValue(true),
+vi.mock("../repositories/dbClient.js", () => ({
+  getDbClient: vi.fn(),
+  isDbAvailable: vi.fn().mockReturnValue(true),
 }));
 
-jest.mock("../utils/logger.js", () => ({
+vi.mock("../utils/logger.js", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -22,11 +22,11 @@ import {
 import { getDbClient } from "../repositories/dbClient.js";
 
 describe("tenantServiceProfileService", () => {
-  const mockSql = jest.fn() as any;
+  const mockSql = vi.fn() as any;
   
   beforeEach(() => {
-    jest.clearAllMocks();
-    (getDbClient as jest.Mock).mockReturnValue(mockSql);
+    vi.clearAllMocks();
+    (getDbClient as vi.Mock).mockReturnValue(mockSql);
     mockSql.mockImplementation(() => Promise.resolve([]));
   });
 
@@ -118,3 +118,4 @@ describe("tenantServiceProfileService", () => {
     });
   });
 });
+

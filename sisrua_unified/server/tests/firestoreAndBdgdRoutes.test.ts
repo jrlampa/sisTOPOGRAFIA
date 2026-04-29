@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * firestoreAndBdgdRoutes.test.ts
  *
@@ -10,21 +11,21 @@ import request from "supertest";
 import express from "express";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 const mockConfig = { useFirestore: false, DATABASE_URL: "postgres://test" };
-jest.mock("../config", () => ({ config: mockConfig }));
+vi.mock("../config", () => ({ config: mockConfig }));
 
-const mockBuildReport = jest.fn();
-const mockIsConformant = jest.fn();
-jest.mock("../services/bdgdValidatorService", () => ({
+const mockBuildReport = vi.fn();
+const mockIsConformant = vi.fn();
+vi.mock("../services/bdgdValidatorService", () => ({
   buildBdgdValidationReport: mockBuildReport,
   isBdgdConformant: mockIsConformant,
 }));
@@ -179,3 +180,4 @@ describe("firestoreRoutes — catch blocks", () => {
     expect(res.body.enabled).toBe(false);
   });
 });
+

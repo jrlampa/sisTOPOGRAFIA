@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * dxfRoutesMain.test.ts
  *
@@ -14,82 +15,82 @@ import fs from "fs";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger.js", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
-jest.mock("../middleware/rateLimiter", () => ({
+vi.mock("../middleware/rateLimiter.js", () => ({
   dxfRateLimiter: (_req: unknown, _res: unknown, next: () => void) => next(),
 }));
 
-jest.mock("../middleware/permissionHandler", () => ({
+vi.mock("../middleware/permissionHandler.js", () => ({
   requirePermission: () => (_req: unknown, _res: unknown, next: () => void) =>
     next(),
 }));
 
-const createDxfTaskMock = jest.fn();
-jest.mock("../services/cloudTasksService", () => ({
+const createDxfTaskMock = vi.fn();
+vi.mock("../services/cloudTasksService.js", () => ({
   createDxfTask: (...args: unknown[]) => createDxfTaskMock(...args),
 }));
 
-const createCacheKeyMock = jest.fn().mockReturnValue("cache-key-123");
-const getCachedFilenameMock = jest.fn().mockReturnValue(null);
-const deleteCachedFilenameMock = jest.fn();
-jest.mock("../services/cacheService", () => ({
+const createCacheKeyMock = vi.fn().mockReturnValue("cache-key-123");
+const getCachedFilenameMock = vi.fn().mockReturnValue(null);
+const deleteCachedFilenameMock = vi.fn();
+vi.mock("../services/cacheService.js", () => ({
   createCacheKey: (...args: unknown[]) => createCacheKeyMock(...args),
   getCachedFilename: (...args: unknown[]) => getCachedFilenameMock(...args),
   deleteCachedFilename: (...args: unknown[]) =>
     deleteCachedFilenameMock(...args),
 }));
 
-const recordDxfRequestMock = jest.fn();
-jest.mock("../services/metricsService", () => ({
+const recordDxfRequestMock = vi.fn();
+vi.mock("../services/metricsService.js", () => ({
   metricsService: {
     recordDxfRequest: (...args: unknown[]) => recordDxfRequestMock(...args),
   },
 }));
 
-const attachCqtMock = jest.fn().mockImplementation((x: unknown) => x);
-jest.mock("../services/cqtContextService", () => ({
+const attachCqtMock = vi.fn().mockImplementation((x: unknown) => x);
+vi.mock("../services/cqtContextService.js", () => ({
   attachCqtSnapshotToBtContext: (...args: unknown[]) => attachCqtMock(...args),
 }));
 
-const parseBatchFileMock = jest.fn();
-jest.mock("../services/batchService", () => ({
+const parseBatchFileMock = vi.fn();
+vi.mock("../services/batchService.js", () => ({
   parseBatchFile: (...args: unknown[]) => parseBatchFileMock(...args),
 }));
 
-jest.mock("../utils/dxfDirectory", () => ({
+vi.mock("../utils/dxfDirectory.js", () => ({
   resolveDxfDirectory: () => "/tmp/dxf-test",
 }));
 
-const validateBtTopologyMock = jest
+const validateBtTopologyMock = vi
   .fn()
   .mockReturnValue({ valid: true, errors: [], warnings: [] });
-jest.mock("../services/topologicalValidator", () => ({
+vi.mock("../services/topologicalValidator.js", () => ({
   validateBtTopology: (...args: unknown[]) => validateBtTopologyMock(...args),
 }));
 
-const previewFailedTaskMock = jest.fn().mockResolvedValue([]);
-const sanitizeReprocessMock = jest
+const previewFailedTaskMock = vi.fn().mockResolvedValue([]);
+const sanitizeReprocessMock = vi
   .fn()
   .mockResolvedValue({ processed: 0, failed: 0 });
-jest.mock("../services/jobDossierService", () => ({
-  getJobDossier: jest.fn(),
-  listRecentJobs: jest.fn(),
+vi.mock("../services/jobDossierService.js", () => ({
+  getJobDossier: vi.fn(),
+  listRecentJobs: vi.fn(),
   previewFailedTaskSanitation: (...args: unknown[]) =>
     previewFailedTaskMock(...args),
-  replayFailedTask: jest.fn(),
+  replayFailedTask: vi.fn(),
   sanitizeAndReprocessFailedTasks: (...args: unknown[]) =>
     sanitizeReprocessMock(...args),
 }));
 
-jest.mock("../config", () => ({
+vi.mock("../config.js", () => ({
   config: {
     APP_PUBLIC_URL: undefined,
     CORS_ORIGIN: "http://localhost:3000,https://app.example.com",
@@ -98,11 +99,22 @@ jest.mock("../config", () => ({
   },
 }));
 
-jest.mock("fs", () => ({
-  ...jest.requireActual("fs"),
-  existsSync: jest.fn().mockReturnValue(false),
-  mkdirSync: jest.fn(),
-}));
+vi.mock("fs", async () => {
+  const actual = await vi.importActual<typeof import("fs")>("fs");
+  const existsSync = vi.fn().mockReturnValue(false);
+  const mkdirSync = vi.fn();
+  return {
+    __esModule: true,
+    ...actual,
+    existsSync,
+    mkdirSync,
+    default: {
+      ...actual,
+      existsSync,
+      mkdirSync,
+    },
+  };
+});
 
 // ─── App Setup ───────────────────────────────────────────────────────────────
 
@@ -116,7 +128,7 @@ beforeAll(async () => {
 });
 
 afterEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   createCacheKeyMock.mockReturnValue("cache-key-123");
   getCachedFilenameMock.mockReturnValue(null);
   validateBtTopologyMock.mockReturnValue({
@@ -313,8 +325,8 @@ describe("POST /api/dxf/jobs/failed/sanitize-reprocess", () => {
 
 describe("getBaseUrl — CORS_ORIGIN fallback e host invalido", () => {
   it("usa CORS_ORIGIN quando APP_PUBLIC_URL nao configurado", async () => {
-    jest.resetModules();
-    jest.doMock("../config", () => ({
+    vi.resetModules();
+    vi.doMock("../config", () => ({
       config: {
         APP_PUBLIC_URL: undefined,
         CORS_ORIGIN: "https://frontapp.example.com",
@@ -333,3 +345,4 @@ describe("getBaseUrl — CORS_ORIGIN fallback e host invalido", () => {
     expect(typeof url).toBe("string");
   });
 });
+

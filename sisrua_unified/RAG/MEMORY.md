@@ -47,6 +47,16 @@
   - **errorHandler.ts**: Restaurado para `server/errorHandler.ts` com imports corrigidos.
 - **Validação**: Build e testes backend validados com sucesso.
 
+## Atualização Operacional (2026-04-29E) - Suite Backend Desbloqueada (Vitest)
+
+- **Suite de Testes (P0)**:
+  - Padronizada execução do backend em **Vitest** (config `vitest.backend.config.ts`) e corrigidos diversos pontos de compatibilidade (mocks ESM/default export, hoisting de `vi.mock`, imports inválidos como `@vi/globals`, timeout de healthcheck).
+  - Correção de consistência elétrica: `computeQtSegment` em `server/services/bt/btVoltage.ts` agora aplica conversão correta \(m → km\) para impedâncias em \(Ω/km\).
+  - DG: `trafoMaxKva` passou a ser respeitado em `server/services/dg/dgPartitioner.ts` (filtro efetivo na seleção de kVA e na decisão de particionamento).
+- **Evidência**:
+  - `npm run test:backend` executa com **exit_code=0**.
+  - Cobertura (backend): **Statements 86.35%**, **Branches 72.27%**, **Functions 91.58%**, **Lines 88.27%**.
+
 # sisRUA Unified — Memória de Contexto Operacional
 
 ## Resumo Executivo

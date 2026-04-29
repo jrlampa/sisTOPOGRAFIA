@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * lgpdRetencaoAndResidenciaRoutes.test.ts
  *
@@ -12,12 +13,12 @@ import request from "supertest";
 import express from "express";
 
 // ─── Mock logger ─────────────────────────────────────────────────────────────
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -413,3 +414,4 @@ describe("lgpdRetencaoRoutes — transicoes de estado", () => {
     expect(res.status).toBe(404);
   });
 });
+

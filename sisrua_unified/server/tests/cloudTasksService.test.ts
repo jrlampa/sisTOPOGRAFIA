@@ -1,30 +1,30 @@
-import { jest } from '@jest/globals';
+import { vi } from "vitest";
 
-const unsafeMock = jest.fn();
-const endMock = jest.fn().mockResolvedValue(undefined);
+const unsafeMock = vi.fn();
+const endMock = vi.fn().mockResolvedValue(undefined);
 
-jest.mock('crypto', () => ({
+vi.mock('crypto', () => ({
   randomUUID: () => 'test-uuid'
 }));
 
-jest.mock('../pythonBridge', () => ({
-  generateDxf: jest.fn().mockResolvedValue(undefined)
+vi.mock('../pythonBridge', () => ({
+  generateDxf: vi.fn().mockResolvedValue(undefined)
 }));
 
-jest.mock('../services/jobStatusService', () => ({
-  createJob: jest.fn(),
-  completeJob: jest.fn().mockResolvedValue(undefined),
-  failJob: jest.fn().mockResolvedValue(undefined),
-  updateJobStatus: jest.fn().mockResolvedValue(undefined)
+vi.mock('../services/jobStatusService', () => ({
+  createJob: vi.fn(),
+  completeJob: vi.fn().mockResolvedValue(undefined),
+  failJob: vi.fn().mockResolvedValue(undefined),
+  updateJobStatus: vi.fn().mockResolvedValue(undefined)
 }));
 
-jest.mock('../services/dxfCleanupService', () => ({
-  scheduleDxfDeletion: jest.fn()
+vi.mock('../services/dxfCleanupService', () => ({
+  scheduleDxfDeletion: vi.fn()
 }));
 
-jest.mock('postgres', () => ({
+vi.mock('postgres', () => ({
   __esModule: true,
-  default: jest.fn(() => ({
+  default: vi.fn(() => ({
     unsafe: unsafeMock,
     end: endMock
   }))
@@ -51,14 +51,14 @@ describe('cloudTasksService (Postgres queue)', () => {
       // 2) insert queued row
       .mockResolvedValueOnce([]);
 
-    jest.resetModules();
+    vi.resetModules();
   });
 
   afterEach(async () => {
     process.env = originalEnv;
     const mod = await import('../services/cloudTasksService');
     mod.stopTaskWorker();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('queues DXF task into Postgres and returns task id', async () => {
@@ -92,7 +92,7 @@ describe('cloudTasksService (Postgres queue)', () => {
       USE_SUPABASE_JOBS: 'false'
     };
 
-    const fakeGenerate = jest.fn().mockResolvedValue('DXF_OK');
+    const fakeGenerate = vi.fn().mockResolvedValue('DXF_OK');
     const { createDxfTask, configureCloudTasksDependencies } = await import('../services/cloudTasksService');
     const jobStatusService = await import('../services/jobStatusService');
 
@@ -155,3 +155,4 @@ describe('cloudTasksService (Postgres queue)', () => {
     ).rejects.toThrow('Invalid DXF input fields');
   });
 });
+

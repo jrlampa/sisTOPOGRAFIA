@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from "vitest";
 import { calculateBtMechanical, calculateBearing } from '../services/btMechanicalCalculationService';
 import { BtMechanicalInput } from '../services/bt/btMechanicalTypes';
 
@@ -136,3 +136,4 @@ describe('btMechanicalCalculationService', () => {
         });
     });
 });
+

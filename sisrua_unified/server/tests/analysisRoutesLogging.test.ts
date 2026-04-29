@@ -1,15 +1,16 @@
+import { vi } from "vitest";
 import express from "express";
 import request from "supertest";
 
-const isAvailableMock = jest.fn();
-const analyzeAreaMock = jest.fn();
-const getRuntimeStatusMock = jest.fn();
-const getGovernanceStatusMock = jest.fn();
-const loggerErrorMock = jest.fn();
-const loggerInfoMock = jest.fn();
-const loggerWarnMock = jest.fn();
+const isAvailableMock = vi.fn();
+const analyzeAreaMock = vi.fn();
+const getRuntimeStatusMock = vi.fn();
+const getGovernanceStatusMock = vi.fn();
+const loggerErrorMock = vi.fn();
+const loggerInfoMock = vi.fn();
+const loggerWarnMock = vi.fn();
 
-jest.mock("../services/ollamaService.js", () => ({
+vi.mock("../services/ollamaService.js", () => ({
   OllamaService: {
     isAvailable: (...args: unknown[]) => isAvailableMock(...args),
     getRuntimeStatus: (...args: unknown[]) => getRuntimeStatusMock(...args),
@@ -19,7 +20,7 @@ jest.mock("../services/ollamaService.js", () => ({
   },
 }));
 
-jest.mock("../utils/logger.js", () => ({
+vi.mock("../utils/logger.js", () => ({
   logger: {
     error: (...args: unknown[]) => loggerErrorMock(...args),
     info: (...args: unknown[]) => loggerInfoMock(...args),
@@ -29,8 +30,8 @@ jest.mock("../utils/logger.js", () => ({
 
 describe("analysisRoutes logging hardening", () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.resetAllMocks();
+    vi.resetModules();
+    vi.resetAllMocks();
   });
 
   it("logs only request metadata with truncated preview on analysis errors", async () => {
@@ -178,8 +179,8 @@ describe("analysisRoutes logging hardening", () => {
 
 describe("analysisRoutes — rotas adicionais", () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.resetAllMocks();
+    vi.resetModules();
+    vi.resetAllMocks();
   });
 
   async function buildApp() {
@@ -266,3 +267,4 @@ describe("analysisRoutes — rotas adicionais", () => {
     expect(res.body.analysis).toBe("tudo ok");
   });
 });
+

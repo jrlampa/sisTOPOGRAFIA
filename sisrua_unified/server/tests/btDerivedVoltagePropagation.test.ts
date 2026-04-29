@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import { 
   enrichWithVoltagePropagation,
   calculateSectioningImpact
@@ -6,8 +6,8 @@ import {
 import { BtTopology, BtPoleAccumulatedDemand } from "../services/bt/btDerivedTypes.js";
 
 // Mock constant lookup
-jest.mock("../constants/cqtLookupTables.js", () => ({
-  getCabosByScenario: jest.fn().mockReturnValue([
+vi.mock("../constants/cqtLookupTables.js", () => ({
+  getCabosByScenario: vi.fn().mockReturnValue([
     { name: "MULTIPLEXADO_70", resistance: 0.443, reactance: 0.09, alpha: 0.004, divisorR: 1, ampacity: 216 },
     { name: "MULTIPLEXADO_35", resistance: 0.868, reactance: 0.1, alpha: 0.004, divisorR: 1, ampacity: 135 }
   ])
@@ -168,3 +168,4 @@ describe("btDerivedVoltagePropagation", () => {
     });
   });
 });
+

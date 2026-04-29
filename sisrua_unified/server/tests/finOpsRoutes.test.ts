@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * finOpsRoutes.test.ts — Testes de integração das rotas FinOps (Item 130 [T1]).
  */
@@ -5,12 +6,12 @@ import express from "express";
 import request from "supertest";
 import { _resetFinOps } from "../services/finOpsService.js";
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -18,8 +19,8 @@ const TOKEN = "finops-token-test";
 const AUTH = "Bearer " + TOKEN;
 
 async function buildApp(metricsToken: string | undefined) {
-  jest.resetModules();
-  jest.doMock("../config", () => ({
+  vi.resetModules();
+  vi.doMock("../config", () => ({
     config: { METRICS_TOKEN: metricsToken },
   }));
   const { default: finOpsRoutes } = await import("../routes/finOpsRoutes");
@@ -31,8 +32,8 @@ async function buildApp(metricsToken: string | undefined) {
 
 beforeEach(() => _resetFinOps());
 afterEach(() => {
-  jest.resetModules();
-  jest.clearAllMocks();
+  vi.resetModules();
+  vi.clearAllMocks();
 });
 
 const validCusto = {
@@ -209,3 +210,4 @@ describe("GET /api/finops/alertas", () => {
     expect(typeof prodAlerta.emAlerta).toBe("boolean");
   });
 });
+

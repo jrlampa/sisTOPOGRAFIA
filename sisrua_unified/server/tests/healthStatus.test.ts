@@ -1,29 +1,45 @@
 import request from "supertest";
-import app, { clearHealthCache } from "../app.js";
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import * as dbClient from "../repositories/dbClient.js";
 import { OllamaService } from "../services/ollamaService.js";
 import { listCircuitBreakers } from "../utils/circuitBreaker.js";
 
 // Mock dependencies
-jest.mock("../repositories/dbClient.js");
-jest.mock("../services/ollamaService.js");
-jest.mock("../utils/circuitBreaker.js");
+vi.mock("../repositories/dbClient.js");
+vi.mock("../services/ollamaService.js");
+vi.mock("../utils/circuitBreaker.js");
 
 const { pingDb, isDbAvailable } = dbClient as any;
 
-describe("Health Check Endpoint (/health)", () => {
+describe("Health Check Endpoint (/health)", { timeout: 20000 }, () => {
+  let app: any;
+  let clearHealthCache: any;
+
   beforeEach(() => {
-    jest.clearAllMocks();
-    clearHealthCache(); 
+    vi.clearAllMocks();
+    vi.resetModules();
   });
 
   it("should return 200 and valid structure when all systems are healthy", async () => {
-    (pingDb as jest.Mock).mockResolvedValue(true);
-    (isDbAvailable as jest.Mock).mockReturnValue(true);
-    (OllamaService.isAvailable as jest.Mock).mockResolvedValue(true);
-    (OllamaService.getGovernanceStatus as jest.Mock).mockResolvedValue({ runtime: { available: true } });
-    (listCircuitBreakers as jest.Mock).mockReturnValue([]);
+    vi.doMock("../config.js", () => ({
+      config: {
+        NODE_ENV: "test",
+        APP_VERSION: "0.9.0",
+        PORT: 3001,
+        CORS_ORIGIN: "http://localhost:3000",
+        // Força o healthcheck a avaliar DB
+        useSupabaseJobs: true,
+        useDbConstantsConfig: false,
+      },
+    }));
+    ({ default: app, clearHealthCache } = await import("../app.js"));
+    clearHealthCache();
+
+    (pingDb as vi.Mock).mockResolvedValue(true);
+    (isDbAvailable as vi.Mock).mockReturnValue(true);
+    (OllamaService.isAvailable as vi.Mock).mockResolvedValue(true);
+    (OllamaService.getGovernanceStatus as vi.Mock).mockResolvedValue({ runtime: { available: true } });
+    (listCircuitBreakers as vi.Mock).mockReturnValue([]);
 
     const response = await request(app).get("/health");
     
@@ -35,9 +51,22 @@ describe("Health Check Endpoint (/health)", () => {
   });
 
   it("should return 503 when database is down", async () => {
-    (pingDb as jest.Mock).mockResolvedValue(false);
-    (isDbAvailable as jest.Mock).mockReturnValue(true);
-    (listCircuitBreakers as jest.Mock).mockReturnValue([]);
+    vi.doMock("../config.js", () => ({
+      config: {
+        NODE_ENV: "test",
+        APP_VERSION: "0.9.0",
+        PORT: 3001,
+        CORS_ORIGIN: "http://localhost:3000",
+        useSupabaseJobs: true,
+        useDbConstantsConfig: false,
+      },
+    }));
+    ({ default: app, clearHealthCache } = await import("../app.js"));
+    clearHealthCache();
+
+    (pingDb as vi.Mock).mockResolvedValue(false);
+    (isDbAvailable as vi.Mock).mockReturnValue(true);
+    (listCircuitBreakers as vi.Mock).mockReturnValue([]);
 
     const response = await request(app).get("/health");
     expect(response.status).toBe(503);
@@ -45,9 +74,22 @@ describe("Health Check Endpoint (/health)", () => {
   });
 
   it("should return 503 when a circuit breaker is OPEN", async () => {
-    (pingDb as jest.Mock).mockResolvedValue(true);
-    (isDbAvailable as jest.Mock).mockReturnValue(true);
-    (listCircuitBreakers as jest.Mock).mockReturnValue([
+    vi.doMock("../config.js", () => ({
+      config: {
+        NODE_ENV: "test",
+        APP_VERSION: "0.9.0",
+        PORT: 3001,
+        CORS_ORIGIN: "http://localhost:3000",
+        useSupabaseJobs: true,
+        useDbConstantsConfig: false,
+      },
+    }));
+    ({ default: app, clearHealthCache } = await import("../app.js"));
+    clearHealthCache();
+
+    (pingDb as vi.Mock).mockResolvedValue(true);
+    (isDbAvailable as vi.Mock).mockReturnValue(true);
+    (listCircuitBreakers as vi.Mock).mockReturnValue([
       { name: "OSM", state: "OPEN" },
     ]);
 
@@ -55,3 +97,4 @@ describe("Health Check Endpoint (/health)", () => {
     expect(response.status).toBe(503);
   });
 });
+

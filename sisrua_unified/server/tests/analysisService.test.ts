@@ -5,35 +5,40 @@
  * Mock da lib groq-sdk para evitar chamadas reais de rede.
  */
 
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 // ─── Mock logger ─────────────────────────────────────────────────────────────
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 // ─── Mock groq-sdk ────────────────────────────────────────────────────────────
-// Factory stores mockCreate on the constructor so we can access it after import
-jest.mock("groq-sdk", () => {
-  const mockCreate = jest.fn();
-  const MockGroq = jest.fn().mockImplementation(() => ({
-    chat: { completions: { create: mockCreate } },
-  }));
-  (MockGroq as any).__mockCreate = mockCreate;
-  return { default: MockGroq, __esModule: true };
+const { mockCreate, lastGroqOpts } = vi.hoisted(() => ({
+  mockCreate: vi.fn(),
+  lastGroqOpts: { current: null as null | { apiKey: string } },
+}));
+
+vi.mock("groq-sdk", () => {
+  class MockGroq {
+    chat: { completions: { create: typeof mockCreate } };
+    constructor(_opts: { apiKey: string }) {
+      lastGroqOpts.current = _opts;
+      this.chat = { completions: { create: mockCreate } };
+    }
+  }
+  return { __esModule: true, default: MockGroq };
 });
 
 // ─── Import service (after mocks) ─────────────────────────────────────────────
 import { AnalysisService } from "../services/analysisService.js";
 import Groq from "groq-sdk";
 
-// Access the shared mockCreate exposed by the factory
-const mockCreate = (Groq as any).__mockCreate as jest.Mock;
+// mockCreate vem do vi.hoisted acima (compartilhado com o mock)
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const stats = { buildings: 12, roads: 5, trees: 3 };
@@ -121,7 +126,7 @@ describe("AnalysisService.analyzeArea — happy path", () => {
   it("instantiates Groq with provided apiKey", async () => {
     mockCreate.mockResolvedValue(makeCompletion('{ "analysis": "ok" }'));
     await AnalysisService.analyzeArea(stats, location, apiKey);
-    expect(Groq).toHaveBeenCalledWith({ apiKey });
+    expect(lastGroqOpts.current).toEqual({ apiKey });
   });
 
   it("sends correct model name to Groq", async () => {
@@ -145,3 +150,4 @@ describe("AnalysisService.analyzeArea — happy path", () => {
     expect(callArg.messages[0].content).toContain("mobilidade");
   });
 });
+

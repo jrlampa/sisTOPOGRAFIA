@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * capacityPlanningRoutes.test.ts — Testes de integração das rotas de capacidade (Item 126 [T1]).
  */
@@ -5,12 +6,12 @@ import express from "express";
 import request from "supertest";
 import { _resetCapacity } from "../services/capacityPlanningService.js";
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -18,8 +19,8 @@ const TOKEN = "capacity-token-test";
 const AUTH = "Bearer " + TOKEN;
 
 async function buildApp(metricsToken: string | undefined) {
-  jest.resetModules();
-  jest.doMock("../config", () => ({
+  vi.resetModules();
+  vi.doMock("../config", () => ({
     config: { METRICS_TOKEN: metricsToken },
   }));
   const { default: capacityPlanningRoutes } = await import("../routes/capacityPlanningRoutes");
@@ -31,8 +32,8 @@ async function buildApp(metricsToken: string | undefined) {
 
 beforeEach(() => _resetCapacity());
 afterEach(() => {
-  jest.resetModules();
-  jest.clearAllMocks();
+  vi.resetModules();
+  vi.clearAllMocks();
 });
 
 const validSnapshot = {
@@ -180,3 +181,4 @@ describe("PUT /api/capacidade/meta", () => {
     expect(res.body.meta?.maxJobsConcurrentes).toBe(200);
   });
 });
+

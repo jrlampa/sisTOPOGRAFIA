@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * holdingRoutes.test.ts — Testes de integração das rotas de holdings (Item 129 [T1]).
  */
@@ -5,12 +6,12 @@ import express from "express";
 import request from "supertest";
 import { _resetHoldings } from "../services/holdingService.js";
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -18,8 +19,8 @@ const TOKEN = "holding-token-test";
 const AUTH = "Bearer " + TOKEN;
 
 async function buildApp(metricsToken: string | undefined) {
-  jest.resetModules();
-  jest.doMock("../config", () => ({
+  vi.resetModules();
+  vi.doMock("../config", () => ({
     config: { METRICS_TOKEN: metricsToken },
   }));
   const { default: holdingRoutes } = await import("../routes/holdingRoutes");
@@ -31,8 +32,8 @@ async function buildApp(metricsToken: string | undefined) {
 
 beforeEach(() => _resetHoldings());
 afterEach(() => {
-  jest.resetModules();
-  jest.clearAllMocks();
+  vi.resetModules();
+  vi.clearAllMocks();
 });
 
 // ─── GET /api/holdings ─────────────────────────────────────────────────────
@@ -178,3 +179,4 @@ describe("GET /api/holdings/:holdingId/auditoria", () => {
     expect(res.body.tenants).toContain("t1");
   });
 });
+

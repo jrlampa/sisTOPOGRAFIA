@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { Request, Response } from "express";
 import { extractCorrelationIds, setCorrelationResponseHeaders, formatCorrelationSuffix } from "../utils/correlationIds";
 
@@ -104,7 +105,7 @@ describe("correlationIds utilities", () => {
 
     describe("setCorrelationResponseHeaders", () => {
         it("should set headers correctly on response", () => {
-            const res = { setHeader: jest.fn() } as unknown as Response;
+            const res = { setHeader: vi.fn() } as unknown as Response;
             const ids = { operation_id: "op-1", projeto_id: "proj-2", ponto_id: "pt-3" };
             
             setCorrelationResponseHeaders(res, ids);
@@ -126,3 +127,4 @@ describe("correlationIds utilities", () => {
         });
     });
 });
+

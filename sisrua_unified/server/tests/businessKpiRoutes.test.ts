@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * businessKpiRoutes.test.ts
  * Testes de integração das rotas de observabilidade de negócio (Item 125 [T1]).
@@ -8,12 +9,12 @@ import request from "supertest";
 import { clearAllKpiEvents } from "../services/businessKpiService.js";
 import { clearCriticalFlowState } from "../services/criticalFlowContractService.js";
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -21,8 +22,8 @@ const TOKEN = "kpi-admin-token-xyz";
 const AUTH = "Bearer " + TOKEN;
 
 async function buildApp(metricsToken: string | undefined) {
-  jest.resetModules();
-  jest.doMock("../config", () => ({
+  vi.resetModules();
+  vi.doMock("../config", () => ({
     config: { METRICS_TOKEN: metricsToken },
   }));
   const { default: businessKpiRoutes } =
@@ -35,8 +36,8 @@ async function buildApp(metricsToken: string | undefined) {
 
 beforeEach(() => clearAllKpiEvents());
 afterEach(() => {
-  jest.resetModules();
-  jest.clearAllMocks();
+  vi.resetModules();
+  vi.clearAllMocks();
   clearAllKpiEvents();
   clearCriticalFlowState();
 });
@@ -430,3 +431,4 @@ describe("POST /api/business-kpi/:tenantId/fluxo-critico/eventos", () => {
     expect(snapshot.body.code).toBe("OK");
   });
 });
+

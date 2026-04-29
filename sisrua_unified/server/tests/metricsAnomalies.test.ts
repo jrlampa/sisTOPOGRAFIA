@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * metricsAnomalies.test.ts
  * Tests for anomaly detection and SLO compliance tracking in metricsService.
@@ -5,7 +6,7 @@
 
 import { metricsService } from '../services/metricsService';
 
-jest.mock('../config', () => ({
+vi.mock('../config', () => ({
     config: { METRICS_PREFIX: 'sisrua_test' },
 }));
 
@@ -161,3 +162,4 @@ describe('metricsService – SLO compliance', () => {
         expect(metricsService.getSloCompliance('slo_b')).toBe(0);
     });
 });
+

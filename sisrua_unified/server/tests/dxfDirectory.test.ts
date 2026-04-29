@@ -1,23 +1,23 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-jest.mock("uuid", () => ({
+vi.mock("uuid", () => ({
   v4: () => "test-uuid",
   randomUUID: () => "test-uuid",
 }));
 
-jest.mock("../pythonBridge", () => ({
-  generateDxf: jest.fn().mockResolvedValue(undefined),
+vi.mock("../pythonBridge", () => ({
+  generateDxf: vi.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock("../services/cloudTasksService", () => ({
-  createDxfTask: jest.fn().mockResolvedValue({
+vi.mock("../services/cloudTasksService", () => ({
+  createDxfTask: vi.fn().mockResolvedValue({
     taskId: "test-task-id",
     alreadyCompleted: false,
   }),
 }));
 
 // Allow all RBAC checks to pass through so this test focuses on DXF directory path integration.
-jest.mock("../middleware/permissionHandler", () => ({
+vi.mock("../middleware/permissionHandler", () => ({
   requirePermission: () => (_req: unknown, _res: unknown, next: () => void) =>
     next(),
 }));
@@ -66,3 +66,4 @@ describe("DXF Directory Path Integration", () => {
     }
   });
 });
+

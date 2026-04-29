@@ -1,14 +1,14 @@
-import { jest } from '@jest/globals';
+import { vi } from "vitest";
 
-const sqlQueryMock = jest.fn();
-const postgresFactoryMock = jest.fn(() => {
+const sqlQueryMock = vi.fn();
+const postgresFactoryMock = vi.fn(() => {
   const sql = sqlQueryMock as typeof sqlQueryMock & { array: (value: string[]) => string[]; json: (value: unknown) => unknown };
   sql.array = (value: string[]) => value;
   sql.json = (value: unknown) => value;
   return sql;
 });
 
-jest.mock('postgres', () => ({
+vi.mock('postgres', () => ({
   __esModule: true,
   default: postgresFactoryMock
 }));
@@ -26,12 +26,12 @@ describe('constantsService', () => {
 
     sqlQueryMock.mockReset();
     postgresFactoryMock.mockClear();
-    jest.resetModules();
+    vi.resetModules();
   });
 
   afterEach(() => {
     process.env = originalEnv;
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('warms the cache from constants_catalog and serves sync reads', async () => {
@@ -99,7 +99,7 @@ describe('constantsService', () => {
 
   it('skips warmup when DATABASE_URL is not configured', async () => {
     delete process.env.DATABASE_URL;
-    jest.resetModules();
+    vi.resetModules();
 
     const { constantsService } = await import('../services/constantsService');
 
@@ -362,3 +362,4 @@ it('getRefreshEvents sorts by actor, httpStatus, durationMs, success', async () 
     expect(result.snapshots).toHaveLength(0);
   });
 });
+

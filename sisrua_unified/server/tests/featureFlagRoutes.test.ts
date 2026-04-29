@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * featureFlagRoutes.test.ts
  * Testes de integração das rotas de feature flags por tenant (Roadmap Item 21 [T2]).
@@ -14,12 +15,12 @@ import {
 
 // ─── Mock do logger ──────────────────────────────────────────────────────────
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -29,9 +30,9 @@ const TOKEN = "test-token-abc123";
 
 /** Monta app com config.METRICS_TOKEN controlado. */
 async function buildApp(metricsToken: string | undefined) {
-  jest.resetModules();
+  vi.resetModules();
 
-  jest.doMock("../config", () => ({
+  vi.doMock("../config", () => ({
     config: { METRICS_TOKEN: metricsToken },
   }));
 
@@ -51,8 +52,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.resetModules();
-  jest.clearAllMocks();
+  vi.resetModules();
+  vi.clearAllMocks();
   clearAllTenantFlagOverrides();
 });
 
@@ -379,3 +380,4 @@ describe("DELETE /api/feature-flags/:tenantId (admin)", () => {
     expect(getRes.body.flags).toEqual({ feat2: false });
   });
 });
+

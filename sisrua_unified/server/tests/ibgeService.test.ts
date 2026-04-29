@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * ibgeService.test.ts
  * Tests for IBGE API caching, state coordinate lookup, and error handling.
@@ -7,19 +8,19 @@
 import { IbgeService, LocationInfo } from '../services/ibgeService';
 import * as externalApi from '../utils/externalApi';
 
-jest.mock('../utils/logger', () => ({
-    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() }
+vi.mock('../utils/logger', () => ({
+    logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
 }));
 
-jest.mock('../utils/externalApi');
+vi.mock('../utils/externalApi');
 
-const mockFetch = externalApi.fetchWithCircuitBreaker as jest.Mock;
+const mockFetch = externalApi.fetchWithCircuitBreaker as vi.Mock;
 
 const mockOkJson = (data: any) =>
-    ({ ok: true, status: 200, json: jest.fn().mockResolvedValue(data) } as any);
+    ({ ok: true, status: 200, json: vi.fn().mockResolvedValue(data) } as any);
 
 const mockErrResponse = (status: number) =>
-    ({ ok: false, status, json: jest.fn().mockResolvedValue({}) } as any);
+    ({ ok: false, status, json: vi.fn().mockResolvedValue({}) } as any);
 
 describe('IbgeService', () => {
     beforeEach(() => {
@@ -68,11 +69,11 @@ describe('IbgeService', () => {
             );
             await IbgeService.getStates();
             const futureTime = Date.now() + 25 * 60 * 60 * 1000;
-            jest.spyOn(Date, 'now').mockReturnValue(futureTime);
+            vi.spyOn(Date, 'now').mockReturnValue(futureTime);
             mockFetch.mockRejectedValueOnce(new Error('Network error'));
             const result = await IbgeService.getStates();
             expect(result).toEqual([]); // stale was deleted on first expired check
-            jest.restoreAllMocks();
+            vi.restoreAllMocks();
         });
     });
 
@@ -103,11 +104,11 @@ describe('IbgeService', () => {
             );
             await IbgeService.getMunicipiosByState('SP');
             const futureTime2 = Date.now() + 25 * 60 * 60 * 1000;
-            jest.spyOn(Date, 'now').mockReturnValue(futureTime2);
+            vi.spyOn(Date, 'now').mockReturnValue(futureTime2);
             mockFetch.mockRejectedValueOnce(new Error('Network error'));
             const result = await IbgeService.getMunicipiosByState('SP');
             expect(result).toEqual([]); // stale deleted on expired check
-            jest.restoreAllMocks();
+            vi.restoreAllMocks();
         });
     });
 
@@ -136,11 +137,11 @@ describe('IbgeService', () => {
             mockFetch.mockResolvedValueOnce(mockOkJson({ type: 'FeatureCollection', id: 'test' }));
             await IbgeService.getMunicipalityBoundary('3304557');
             const futureTime3 = Date.now() + 25 * 60 * 60 * 1000;
-            jest.spyOn(Date, 'now').mockReturnValue(futureTime3);
+            vi.spyOn(Date, 'now').mockReturnValue(futureTime3);
             mockFetch.mockRejectedValueOnce(new Error('Network error'));
             const result = await IbgeService.getMunicipalityBoundary('3304557');
             expect(result).toBeNull(); // stale deleted on expired check
-            jest.restoreAllMocks();
+            vi.restoreAllMocks();
         });
     });
 
@@ -173,7 +174,7 @@ describe('IbgeService', () => {
 
         it('should handle API returning data.nome but findMunicipioByName returns null', async () => {
             mockFetch.mockResolvedValueOnce(mockOkJson({ nome: 'São Paulo', estado: 'SP' }));
-            // findMunicipioByName returns null in Jest (JEST_WORKER_ID guard)
+            // findMunicipioByName returns null in vi (JEST_WORKER_ID guard)
             const result = await IbgeService.findMunicipioByCoordinates(-23.55, -46.63);
             expect(result).toBeNull();
         });
@@ -208,11 +209,12 @@ describe('IbgeService', () => {
             mockFetch.mockResolvedValueOnce(mockOkJson({ type: 'FeatureCollection', id: 'state' }));
             await IbgeService.getStateBoundary('33');
             const futureTime4 = Date.now() + 25 * 60 * 60 * 1000;
-            jest.spyOn(Date, 'now').mockReturnValue(futureTime4);
+            vi.spyOn(Date, 'now').mockReturnValue(futureTime4);
             mockFetch.mockRejectedValueOnce(new Error('Network error'));
             const result = await IbgeService.getStateBoundary('33');
             expect(result).toBeNull(); // stale deleted on expired check
-            jest.restoreAllMocks();
+            vi.restoreAllMocks();
         });
     });
 });
+

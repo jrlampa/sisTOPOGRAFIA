@@ -1,15 +1,15 @@
+import { vi } from "vitest";
 import { ApiError, ErrorCategory, ErrorCode, errorHandler, createError, asyncHandler } from '../errorHandler.js';
-import { jest } from '@jest/globals';
 import express, { Request, Response, NextFunction } from 'express';
 import supertest from 'supertest';
 import { config } from '../config.js';
 
-jest.mock('../utils/logger.js', () => ({
+vi.mock('../utils/logger.js', () => ({
   logger: {
-    error: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -17,8 +17,8 @@ import { logger } from '../utils/logger.js';
 
 function createResponseMock() {
   return {
-    status: jest.fn().mockReturnThis(),
-    json: jest.fn().mockReturnThis(),
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
     locals: {},
   } as any;
 }
@@ -32,8 +32,8 @@ describe('errorHandler', () => {
     mockReq = { locals: {} };
     mockRes = createResponseMock();
     mockRes.locals.requestId = 'req-test-1';
-    mockNext = jest.fn();
-    jest.clearAllMocks();
+    mockNext = vi.fn();
+    vi.clearAllMocks();
   });
 
   it('retorna payload ApiError com status e ErrorCode correto', () => {
@@ -110,3 +110,4 @@ describe('asyncHandler integration', () => {
     expect(res.body.code).toBe(ErrorCode.INPUT_INVALID);
   });
 });
+

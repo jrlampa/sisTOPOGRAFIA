@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * ─────────────────────────────────────────────────────────────────────────────
  * FaultInjector — Primitivas de Caos para sisRUA Unified
@@ -105,8 +106,8 @@ export type FetchBehavior = 'ok' | 'fail' | 'timeout' | 'corrupt' | 'rate-limit'
  * Cria um mock de fetch que falha de forma aleatória (chaos fetch).
  * @param failureRate — 0.0 (nunca falha) a 1.0 (sempre falha)
  */
-export function createChaosFetch(failureRate = 0.3): jest.Mock {
-  return jest.fn().mockImplementation(async (url: string) => {
+export function createChaosFetch(failureRate = 0.3): vi.Mock {
+  return vi.fn().mockImplementation(async (url: string) => {
     const roll = Math.random();
 
     if (roll < failureRate * 0.3) {
@@ -142,8 +143,8 @@ export function createChaosFetch(failureRate = 0.3): jest.Mock {
 export function createSelectiveFetch(
   failOn: string[],
   fallbackData: any = {}
-): jest.Mock {
-  return jest.fn().mockImplementation(async (url: string) => {
+): vi.Mock {
+  return vi.fn().mockImplementation(async (url: string) => {
     const shouldFail = failOn.some((pattern) => url.includes(pattern));
     if (shouldFail) {
       throw new Error(`Injected failure for URL: ${url}`);
@@ -169,17 +170,17 @@ export function makeFsError(code: FsErrorCode, path = '/tmp/file.dxf'): NodeJS.E
 export function createFsWithFailAfter(
   successCount: number,
   failCode: FsErrorCode = 'ENOSPC'
-): { writeFileSync: jest.Mock; existsSync: jest.Mock; unlinkSync: jest.Mock } {
+): { writeFileSync: vi.Mock; existsSync: vi.Mock; unlinkSync: vi.Mock } {
   let writeCount = 0;
   return {
-    writeFileSync: jest.fn().mockImplementation((path: string) => {
+    writeFileSync: vi.fn().mockImplementation((path: string) => {
       writeCount++;
       if (writeCount > successCount) {
         throw makeFsError(failCode, path);
       }
     }),
-    existsSync: jest.fn().mockReturnValue(true),
-    unlinkSync: jest.fn(),
+    existsSync: vi.fn().mockReturnValue(true),
+    unlinkSync: vi.fn(),
   };
 }
 
@@ -226,3 +227,4 @@ export async function runWithChaos<T>(
     };
   }
 }
+

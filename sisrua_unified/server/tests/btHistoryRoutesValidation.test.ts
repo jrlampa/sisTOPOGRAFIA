@@ -1,12 +1,13 @@
+import { vi } from "vitest";
 import express from 'express';
 import request from 'supertest';
 
-const listMock = jest.fn();
-const createMock = jest.fn();
-const ingestMock = jest.fn();
-const clearMock = jest.fn();
+const listMock = vi.fn();
+const createMock = vi.fn();
+const ingestMock = vi.fn();
+const clearMock = vi.fn();
 
-jest.mock('../services/btExportHistoryService', () => ({
+vi.mock('../services/btExportHistoryService', () => ({
   btExportHistoryService: {
     list: (...args: unknown[]) => listMock(...args),
     create: (...args: unknown[]) => createMock(...args),
@@ -16,14 +17,14 @@ jest.mock('../services/btExportHistoryService', () => ({
 }));
 
 // Allow all permissions so these tests exercise payload validation, not auth.
-jest.mock('../middleware/permissionHandler', () => ({
+vi.mock('../middleware/permissionHandler', () => ({
   requirePermission: () => (_req: unknown, _res: unknown, next: () => void) => next(),
 }));
 
 describe('btHistoryRoutes btContextUrl validation', () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it('rejects invalid btContextUrl on POST /', async () => {
@@ -123,8 +124,8 @@ describe('btHistoryRoutes btContextUrl validation', () => {
 
 describe("btHistoryRoutes — ingest 422 e DELETE", () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   async function buildApp() {
@@ -168,3 +169,4 @@ describe("btHistoryRoutes — ingest 422 e DELETE", () => {
     expect(res.body.error).toBe("Parâmetros inválidos");
   });
 });
+

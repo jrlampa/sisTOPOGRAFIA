@@ -53,9 +53,12 @@ export function computeQtSegment(
     });
     const impedance = Math.sqrt(rCorr ** 2 + conductor.reactance ** 2); // Ω/km
     const phaseFactor = phase === 'MONO' ? 2 : 1;
-    // S_kva * 1000 (VA) * impedance * (lengthM / 1000) (km) / V²
-    // The 1000s cancel out.
-    return (phaseFactor * accumulatedDemandKva * impedance * lengthMeters) / (phaseVoltageV ** 2);
+    const lengthKm = lengthMeters / 1000;
+    // Ω/km × km → Ω
+    return (
+        (phaseFactor * accumulatedDemandKva * impedance * lengthKm) /
+        (phaseVoltageV ** 2)
+    );
 }
 
 // ─── Top-down propagation ─────────────────────────────────────────────────────

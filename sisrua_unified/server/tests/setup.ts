@@ -1,13 +1,17 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-// Mock logger for Jest tests
-jest.mock("../utils/logger", () => ({
+declare global {
+  // eslint-disable-next-line no-var
+  var jest: typeof vi;
+}
+
+globalThis.jest = vi;
+
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
-
-export {};

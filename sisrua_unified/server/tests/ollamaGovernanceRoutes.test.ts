@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * ollamaGovernanceRoutes.test.ts — Testes para rotas de Governança Ollama (14A + 14B [T1]).
  */
@@ -6,15 +7,15 @@ import express from "express";
 import ollamaGovernanceRoutes from "../routes/ollamaGovernanceRoutes";
 import * as governanceService from "../services/ollamaGovernanceService";
 
-jest.mock("../services/ollamaGovernanceService", () => ({
+vi.mock("../services/ollamaGovernanceService", () => ({
   OllamaGovernanceService: {
-    getGovernanceReport: jest.fn(),
-    getCompatibilityMatrix: jest.fn(),
-    getModelEntry: jest.fn(),
-    isModelHomologated: jest.fn(),
-    getDeprecationAlerts: jest.fn(),
-    runPromptRegression: jest.fn(),
-    checkAndAlertRollback: jest.fn(),
+    getGovernanceReport: vi.fn(),
+    getCompatibilityMatrix: vi.fn(),
+    getModelEntry: vi.fn(),
+    isModelHomologated: vi.fn(),
+    getDeprecationAlerts: vi.fn(),
+    runPromptRegression: vi.fn(),
+    checkAndAlertRollback: vi.fn(),
   },
 }));
 
@@ -50,7 +51,7 @@ const mockMatrix = [
 describe("GET /api/ollama/governance/report", () => {
   it("retorna relatório de governança completo", async () => {
     (
-      OllamaGovernanceService.getGovernanceReport as jest.Mock
+      OllamaGovernanceService.getGovernanceReport as vi.Mock
     ).mockResolvedValue(mockReport);
     const res = await request(app).get("/api/ollama/governance/report");
     expect(res.status).toBe(200);
@@ -60,7 +61,7 @@ describe("GET /api/ollama/governance/report", () => {
 
   it("retorna 500 em caso de erro interno", async () => {
     (
-      OllamaGovernanceService.getGovernanceReport as jest.Mock
+      OllamaGovernanceService.getGovernanceReport as vi.Mock
     ).mockRejectedValue(new Error("falha"));
     const res = await request(app).get("/api/ollama/governance/report");
     expect(res.status).toBe(500);
@@ -73,7 +74,7 @@ describe("GET /api/ollama/governance/report", () => {
 describe("GET /api/ollama/governance/compatibility", () => {
   it("retorna matriz de compatibilidade com total", async () => {
     (
-      OllamaGovernanceService.getCompatibilityMatrix as jest.Mock
+      OllamaGovernanceService.getCompatibilityMatrix as vi.Mock
     ).mockReturnValue(mockMatrix);
     const res = await request(app).get("/api/ollama/governance/compatibility");
     expect(res.status).toBe(200);
@@ -86,7 +87,7 @@ describe("GET /api/ollama/governance/compatibility", () => {
 
 describe("GET /api/ollama/governance/deprecation-alerts", () => {
   it("retorna lista de alertas com total", async () => {
-    (OllamaGovernanceService.getDeprecationAlerts as jest.Mock).mockReturnValue(
+    (OllamaGovernanceService.getDeprecationAlerts as vi.Mock).mockReturnValue(
       ["Modelo 'llama3.1' será depreciado em 10 dia(s)."],
     );
     const res = await request(app).get(
@@ -98,7 +99,7 @@ describe("GET /api/ollama/governance/deprecation-alerts", () => {
   });
 
   it("aceita parâmetro dias", async () => {
-    (OllamaGovernanceService.getDeprecationAlerts as jest.Mock).mockReturnValue(
+    (OllamaGovernanceService.getDeprecationAlerts as vi.Mock).mockReturnValue(
       [],
     );
     const res = await request(app).get(
@@ -122,11 +123,11 @@ describe("GET /api/ollama/governance/deprecation-alerts", () => {
 
 describe("POST /api/ollama/governance/validate-model", () => {
   it("valida modelo homologado", async () => {
-    (OllamaGovernanceService.isModelHomologated as jest.Mock).mockReturnValue({
+    (OllamaGovernanceService.isModelHomologated as vi.Mock).mockReturnValue({
       homologated: true,
       reason: "Modelo ativo.",
     });
-    (OllamaGovernanceService.getModelEntry as jest.Mock).mockReturnValue(
+    (OllamaGovernanceService.getModelEntry as vi.Mock).mockReturnValue(
       mockMatrix[0],
     );
 
@@ -140,11 +141,11 @@ describe("POST /api/ollama/governance/validate-model", () => {
   });
 
   it("retorna homologated:false para modelo desconhecido", async () => {
-    (OllamaGovernanceService.isModelHomologated as jest.Mock).mockReturnValue({
+    (OllamaGovernanceService.isModelHomologated as vi.Mock).mockReturnValue({
       homologated: false,
       reason: "Não consta na matriz.",
     });
-    (OllamaGovernanceService.getModelEntry as jest.Mock).mockReturnValue(null);
+    (OllamaGovernanceService.getModelEntry as vi.Mock).mockReturnValue(null);
 
     const res = await request(app)
       .post("/api/ollama/governance/validate-model")
@@ -167,7 +168,7 @@ describe("POST /api/ollama/governance/validate-model", () => {
 describe("POST /api/ollama/governance/regression", () => {
   it("retorna resultados de regressão com totais", async () => {
     (
-      OllamaGovernanceService.runPromptRegression as jest.Mock
+      OllamaGovernanceService.runPromptRegression as vi.Mock
     ).mockResolvedValue([
       {
         caseId: "ptbr-json-response",
@@ -197,7 +198,7 @@ describe("POST /api/ollama/governance/regression", () => {
 
   it("retorna 500 em caso de erro", async () => {
     (
-      OllamaGovernanceService.runPromptRegression as jest.Mock
+      OllamaGovernanceService.runPromptRegression as vi.Mock
     ).mockRejectedValue(new Error("falha"));
     const res = await request(app).post("/api/ollama/governance/regression");
     expect(res.status).toBe(500);
@@ -209,7 +210,7 @@ describe("POST /api/ollama/governance/regression", () => {
 describe("GET /api/ollama/governance/rollback-check", () => {
   it("retorna rollbackNeeded:false quando modelo homologado", async () => {
     (
-      OllamaGovernanceService.checkAndAlertRollback as jest.Mock
+      OllamaGovernanceService.checkAndAlertRollback as vi.Mock
     ).mockResolvedValue({
       rollbackNeeded: false,
       currentModel: "llama3.2",
@@ -223,7 +224,7 @@ describe("GET /api/ollama/governance/rollback-check", () => {
 
   it("retorna rollbackNeeded:true quando modelo não homologado", async () => {
     (
-      OllamaGovernanceService.checkAndAlertRollback as jest.Mock
+      OllamaGovernanceService.checkAndAlertRollback as vi.Mock
     ).mockResolvedValue({
       rollbackNeeded: true,
       currentModel: "gpt-4",
@@ -237,9 +238,10 @@ describe("GET /api/ollama/governance/rollback-check", () => {
 
   it("retorna 500 em caso de erro", async () => {
     (
-      OllamaGovernanceService.checkAndAlertRollback as jest.Mock
+      OllamaGovernanceService.checkAndAlertRollback as vi.Mock
     ).mockRejectedValue(new Error("falha"));
     const res = await request(app).get("/api/ollama/governance/rollback-check");
     expect(res.status).toBe(500);
   });
 });
+

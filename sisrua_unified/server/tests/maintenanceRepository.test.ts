@@ -1,29 +1,29 @@
+import { vi } from "vitest";
 /**
  * maintenanceRepository.test.ts
  * Testa as operações de manutenção (delete em lote) do repositório.
  */
-import { jest } from '@jest/globals';
 
-const unsafeMock = jest.fn();
+const unsafeMock = vi.fn();
 
-jest.mock('../repositories/dbClient', () => ({
-  getDbClient: jest.fn(() => ({ unsafe: unsafeMock })),
+vi.mock('../repositories/dbClient', () => ({
+  getDbClient: vi.fn(() => ({ unsafe: unsafeMock })),
 }));
 
-jest.mock('../utils/logger', () => ({
-  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
+vi.mock('../utils/logger', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
 import { PostgresMaintenanceRepository } from '../repositories/maintenanceRepository';
 import { getDbClient } from '../repositories/dbClient';
 
-const getDbClientMock = getDbClient as jest.Mock;
+const getDbClientMock = getDbClient as vi.Mock;
 
 describe('PostgresMaintenanceRepository', () => {
   let repo: PostgresMaintenanceRepository;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     getDbClientMock.mockReturnValue({ unsafe: unsafeMock });
     repo = new PostgresMaintenanceRepository();
   });
@@ -92,3 +92,4 @@ describe('PostgresMaintenanceRepository', () => {
     });
   });
 });
+

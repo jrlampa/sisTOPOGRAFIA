@@ -1,10 +1,10 @@
 import request from "supertest";
 import app from "../app.js";
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 // Mock do roleService para evitar erros 403 nos testes
-jest.mock("../services/roleService.js", () => ({
-  getUserRole: jest.fn().mockResolvedValue("admin"),
+vi.mock("../services/roleService.js", () => ({
+  getUserRole: vi.fn().mockResolvedValue("admin"),
 }));
 
 const BASE = "/api/dg";
@@ -115,3 +115,4 @@ describe("dgRoutes", () => {
     expect(res.body.success).toBe(true);
   });
 });
+

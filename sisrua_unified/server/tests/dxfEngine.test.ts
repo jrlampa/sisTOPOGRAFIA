@@ -1,15 +1,16 @@
+import { vi } from "vitest";
 /**
  * dxfEngine.test.ts
  *
  * Testes para getDxfEngine, setDxfEngine, resetDxfEngine e pythonBridgeDxfEngine.generate
  */
 
-jest.mock("../utils/logger", () => ({
-  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
+vi.mock("../utils/logger", () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const mockGenerateDxf = jest.fn();
-jest.mock("../pythonBridge.js", () => ({
+const mockGenerateDxf = vi.fn();
+vi.mock("../pythonBridge.js", () => ({
   generateDxf: (...args: unknown[]) => mockGenerateDxf(...args),
 }));
 
@@ -31,7 +32,7 @@ const baseOptions: DxfEngineOptions = {
 describe("dxfEngine", () => {
   afterEach(() => {
     resetDxfEngine();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("getDxfEngine retorna o engine padrão (pythonBridge)", () => {
@@ -49,7 +50,7 @@ describe("dxfEngine", () => {
 
   it("setDxfEngine substitui o engine ativo", async () => {
     const fakeEngine: DxfEngine = {
-      generate: jest.fn().mockResolvedValue("/tmp/fake.dxf"),
+      generate: vi.fn().mockResolvedValue("/tmp/fake.dxf"),
     };
     setDxfEngine(fakeEngine);
     const result = await getDxfEngine().generate(baseOptions);
@@ -59,7 +60,7 @@ describe("dxfEngine", () => {
 
   it("resetDxfEngine restaura o engine padrão após setDxfEngine", async () => {
     const fakeEngine: DxfEngine = {
-      generate: jest.fn().mockResolvedValue("/tmp/fake.dxf"),
+      generate: vi.fn().mockResolvedValue("/tmp/fake.dxf"),
     };
     setDxfEngine(fakeEngine);
     resetDxfEngine();
@@ -69,3 +70,4 @@ describe("dxfEngine", () => {
     expect(result).toBe("/tmp/restored.dxf");
   });
 });
+

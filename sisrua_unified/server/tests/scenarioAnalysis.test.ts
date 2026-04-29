@@ -4,7 +4,7 @@
  * Based on: C:\myworld\EXCEL\logica_cqt.md (SUGESTAO_CORTES heuristics)
  */
 
-// describe, it, expect are provided by Jest
+// describe, it, expect are provided by vi
 import {
   calculateScenarioScore,
   rankScenarios,
@@ -196,3 +196,4 @@ describe("Scenario Analysis – CQT Ranking", () => {
     expect(delta.recomendacao).toBeDefined();
   });
 });
+

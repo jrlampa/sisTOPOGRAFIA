@@ -21,11 +21,11 @@ describe("Predictive Observability Routes (18)", () => {
       const res = await request(app).post("/api/predictive-observability/metrics").send({
         metric: "api_latency_ms",
         value: 350,
-        source: "jest",
+        source: "vi",
       });
       expect(res.status).toBe(201);
       expect(res.body.value).toBe(350);
-      expect(res.body.source).toBe("jest");
+      expect(res.body.source).toBe("vi");
       expect(res.body).toHaveProperty("ts");
     });
 
@@ -147,3 +147,4 @@ describe("Predictive Observability Routes (18)", () => {
     });
   });
 });
+

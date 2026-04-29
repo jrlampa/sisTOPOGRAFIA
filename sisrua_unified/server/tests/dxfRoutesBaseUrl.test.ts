@@ -1,20 +1,21 @@
-jest.mock("../services/cloudTasksService", () => ({
-  createDxfTask: jest.fn(),
+import { vi } from "vitest";
+vi.mock("../services/cloudTasksService", () => ({
+  createDxfTask: vi.fn(),
 }));
 
-jest.mock("../services/cacheService", () => ({
-  createCacheKey: jest.fn(),
-  deleteCachedFilename: jest.fn(),
-  getCachedFilename: jest.fn(),
+vi.mock("../services/cacheService", () => ({
+  createCacheKey: vi.fn(),
+  deleteCachedFilename: vi.fn(),
+  getCachedFilename: vi.fn(),
 }));
 
-jest.mock("../services/cqtContextService", () => ({
-  attachCqtSnapshotToBtContext: jest.fn((value) => value),
+vi.mock("../services/cqtContextService", () => ({
+  attachCqtSnapshotToBtContext: vi.fn((value) => value),
 }));
 
-jest.mock("../services/metricsService", () => ({
+vi.mock("../services/metricsService", () => ({
   metricsService: {
-    recordDxfRequest: jest.fn(),
+    recordDxfRequest: vi.fn(),
   },
 }));
 
@@ -23,8 +24,8 @@ describe("dxfRoutes getBaseUrl", () => {
 
   afterEach(() => {
     process.env = originalEnv;
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it("uses APP_PUBLIC_URL when configured", async () => {
@@ -105,3 +106,4 @@ describe("dxfRoutes getBaseUrl", () => {
     expect(getBaseUrl(req)).toBe("http://localhost:3002");
   });
 });
+

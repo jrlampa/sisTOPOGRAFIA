@@ -1,9 +1,10 @@
+import { vi } from "vitest";
 import express from "express";
 import request from "supertest";
 
-const resolveLocationMock = jest.fn();
+const resolveLocationMock = vi.fn();
 
-jest.mock("../services/geocodingService", () => ({
+vi.mock("../services/geocodingService", () => ({
   GeocodingService: {
     resolveLocation: resolveLocationMock,
   },
@@ -11,8 +12,8 @@ jest.mock("../services/geocodingService", () => ({
 
 describe("searchRoutes error sanitization", () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it("returns generic 500 without leaking internal error details", async () => {
@@ -40,8 +41,8 @@ describe("searchRoutes error sanitization", () => {
 
 describe("searchRoutes — cobertura adicional", () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it("400 quando corpo inválido (sem query)", async () => {
@@ -84,3 +85,4 @@ describe("searchRoutes — cobertura adicional", () => {
     expect(res.body.error).toBe("Location not found");
   });
 });
+

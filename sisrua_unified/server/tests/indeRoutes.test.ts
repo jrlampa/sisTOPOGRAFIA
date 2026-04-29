@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * indeRoutes.test.ts
  *
@@ -10,20 +11,20 @@
 import express from "express";
 import request from "supertest";
 
-const getWfsCapabilitiesMock = jest.fn();
-const getFeaturesByBBoxMock = jest.fn();
-const getWmsMapUrlMock = jest.fn();
+const getWfsCapabilitiesMock = vi.fn();
+const getFeaturesByBBoxMock = vi.fn();
+const getWmsMapUrlMock = vi.fn();
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
-jest.mock("../services/indeService", () => ({
+vi.mock("../services/indeService", () => ({
   IndeService: {
     getWfsCapabilities: (...args: unknown[]) => getWfsCapabilitiesMock(...args),
     getFeaturesByBBox: (...args: unknown[]) => getFeaturesByBBoxMock(...args),
@@ -41,7 +42,7 @@ beforeAll(async () => {
 });
 
 afterEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 // ─── capabilities ─────────────────────────────────────────────────────────────
@@ -176,3 +177,4 @@ describe("GET /wms/:source", () => {
     expect(res.body.error).toBe("INDE service temporarily unavailable");
   });
 });
+

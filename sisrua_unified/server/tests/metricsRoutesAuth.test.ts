@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * metricsRoutesAuth.test.ts — Item 11 regression
  *
@@ -8,10 +9,10 @@ import express from 'express';
 import request from 'supertest';
 
 // ─── Shared mock wiring ──────────────────────────────────────────────────────
-const getMetricsMock = jest.fn().mockResolvedValue('# HELP sisrua_test\nsisrua_test 1\n');
+const getMetricsMock = vi.fn().mockResolvedValue('# HELP sisrua_test\nsisrua_test 1\n');
 const contentTypeMock = 'text/plain; version=0.0.4; charset=utf-8';
 
-jest.mock('../services/metricsService', () => ({
+vi.mock('../services/metricsService', () => ({
   metricsService: {
     getMetrics: () => getMetricsMock(),
     contentType: contentTypeMock,
@@ -21,9 +22,9 @@ jest.mock('../services/metricsService', () => ({
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 /** Build an isolated Express app backed by a fresh config mock for each test. */
 async function buildApp(metricsToken: string | undefined) {
-  jest.resetModules();
+  vi.resetModules();
 
-  jest.doMock('../config', () => ({
+  vi.doMock('../config', () => ({
     config: {
       METRICS_ENABLED: true,
       METRICS_TOKEN: metricsToken,
@@ -39,8 +40,8 @@ async function buildApp(metricsToken: string | undefined) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 describe('metricsRoutes — authentication (Item 11)', () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   describe('when METRICS_TOKEN is NOT configured', () => {
@@ -118,11 +119,11 @@ describe('metricsRoutes — authentication (Item 11)', () => {
 
   describe('when METRICS_ENABLED is false', () => {
     it('returns 404 regardless of token', async () => {
-      jest.resetModules();
-      jest.doMock('../config', () => ({
+      vi.resetModules();
+      vi.doMock('../config', () => ({
         config: { METRICS_ENABLED: false, METRICS_TOKEN: 'some-token' },
       }));
-      jest.doMock('../services/metricsService', () => ({
+      vi.doMock('../services/metricsService', () => ({
         metricsService: { getMetrics: getMetricsMock, contentType: contentTypeMock },
       }));
 
@@ -137,3 +138,4 @@ describe('metricsRoutes — authentication (Item 11)', () => {
     });
   });
 });
+

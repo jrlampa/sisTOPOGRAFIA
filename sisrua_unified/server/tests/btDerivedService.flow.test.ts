@@ -1,7 +1,7 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-const getSyncMock = jest.fn();
-jest.mock("../services/constantsService", () => ({
+const getSyncMock = vi.fn();
+vi.mock("../services/constantsService", () => ({
   constantsService: {
     getSync: getSyncMock,
   },
@@ -74,3 +74,4 @@ describe("computeBtDerivedState – Flow & Accumulation", () => {
     expect(p2Entry?.accumulatedClients).toBe(3);
   });
 });
+

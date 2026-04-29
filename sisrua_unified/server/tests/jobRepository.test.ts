@@ -1,23 +1,23 @@
+import { vi } from "vitest";
 /**
  * jobRepository.test.ts
  * Testa todas as operações SQL do repositório jobs.
  */
-import { jest } from '@jest/globals';
 
-const unsafeMock = jest.fn();
+const unsafeMock = vi.fn();
 
-jest.mock('../repositories/dbClient', () => ({
-  getDbClient: jest.fn(() => ({ unsafe: unsafeMock })),
+vi.mock('../repositories/dbClient', () => ({
+  getDbClient: vi.fn(() => ({ unsafe: unsafeMock })),
 }));
 
-jest.mock('../utils/logger', () => ({
-  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
+vi.mock('../utils/logger', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
 import { PostgresJobRepository } from '../repositories/jobRepository';
 import { getDbClient } from '../repositories/dbClient';
 
-const getDbClientMock = getDbClient as jest.Mock;
+const getDbClientMock = getDbClient as vi.Mock;
 
 const NOW = new Date('2025-06-01T10:00:00Z');
 
@@ -39,7 +39,7 @@ describe('PostgresJobRepository', () => {
   let repo: PostgresJobRepository;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     getDbClientMock.mockReturnValue({ unsafe: unsafeMock });
     repo = new PostgresJobRepository();
   });
@@ -206,3 +206,4 @@ describe('PostgresJobRepository', () => {
     });
   });
 });
+

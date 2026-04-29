@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * topodataService.test.ts
  * Tests for pure-logic methods of TopodataService (no real network/disk I/O)
@@ -9,30 +10,30 @@ import { spawn } from "child_process";
 import * as externalApi from "../utils/externalApi";
 import { TopodataService } from "../services/topodataService";
 
-jest.mock("../utils/externalApi");
-jest.mock("fs");
-jest.mock("child_process", () => ({
-  spawn: jest.fn(),
+vi.mock("../utils/externalApi");
+vi.mock("fs");
+vi.mock("child_process", () => ({
+  spawn: vi.fn(),
 }));
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 // Suppress cache-dir creation in module-level code
-(fs.existsSync as jest.Mock).mockReturnValue(true);
-(fs.mkdirSync as jest.Mock).mockImplementation(() => {});
+(fs.existsSync as vi.Mock).mockReturnValue(true);
+(fs.mkdirSync as vi.Mock).mockImplementation(() => {});
 
 const flushPromises = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 describe("TopodataService", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (fs.existsSync as jest.Mock).mockReturnValue(true);
+    vi.clearAllMocks();
+    (fs.existsSync as vi.Mock).mockReturnValue(true);
   });
 
   describe("isWithinBrazil", () => {
@@ -59,8 +60,8 @@ describe("TopodataService", () => {
 
   describe("clearCache", () => {
     it("should delete all cached tiles when dir exists", () => {
-      (fs.readdirSync as jest.Mock).mockReturnValue(["tile1.tif", "tile2.tif"]);
-      (fs.unlinkSync as jest.Mock).mockImplementation(() => {});
+      (fs.readdirSync as vi.Mock).mockReturnValue(["tile1.tif", "tile2.tif"]);
+      (fs.unlinkSync as vi.Mock).mockImplementation(() => {});
 
       TopodataService.clearCache();
 
@@ -68,14 +69,14 @@ describe("TopodataService", () => {
     });
 
     it("should not throw if cache dir does not exist", () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(false);
+      (fs.existsSync as vi.Mock).mockReturnValue(false);
       expect(() => TopodataService.clearCache()).not.toThrow();
     });
   });
 
   describe("getCacheStats", () => {
     it("should return zero stats when cache dir is missing", () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(false);
+      (fs.existsSync as vi.Mock).mockReturnValue(false);
       const stats = TopodataService.getCacheStats();
       expect(stats.files).toBe(0);
       expect(stats.totalSizeMB).toBe(0);
@@ -83,12 +84,12 @@ describe("TopodataService", () => {
     });
 
     it("should return file count and size when tiles exist", () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readdirSync as jest.Mock).mockReturnValue([
+      (fs.existsSync as vi.Mock).mockReturnValue(true);
+      (fs.readdirSync as vi.Mock).mockReturnValue([
         "tile1.tif",
         "readme.txt",
       ]);
-      (fs.statSync as jest.Mock).mockImplementation((p: string) => ({
+      (fs.statSync as vi.Mock).mockImplementation((p: string) => ({
         size: p.endsWith(".tif") ? 1024 * 1024 * 10 : 1024,
       }));
 
@@ -110,7 +111,7 @@ describe("TopodataService", () => {
       child.stdout = new EventEmitter();
       child.stderr = new EventEmitter();
 
-      (spawn as unknown as jest.Mock).mockReturnValue(child);
+      (spawn as unknown as vi.Mock).mockReturnValue(child);
 
       const promise = (TopodataService as any).readElevationFromTiff(
         "/tmp/tile.tif",
@@ -132,7 +133,7 @@ describe("TopodataService", () => {
       child.stdout = new EventEmitter();
       child.stderr = new EventEmitter();
 
-      (spawn as unknown as jest.Mock).mockReturnValue(child);
+      (spawn as unknown as vi.Mock).mockReturnValue(child);
 
       const promise = (TopodataService as any).readElevationFromTiff(
         "/tmp/tile.tif",
@@ -154,7 +155,7 @@ describe("TopodataService", () => {
       child.stdout = new EventEmitter();
       child.stderr = new EventEmitter();
 
-      (spawn as unknown as jest.Mock).mockReturnValue(child);
+      (spawn as unknown as vi.Mock).mockReturnValue(child);
 
       const promise = (TopodataService as any).readElevationFromTiff(
         "/tmp/tile.tif",
@@ -175,7 +176,7 @@ describe("TopodataService", () => {
       child.stdout = new EventEmitter();
       child.stderr = new EventEmitter();
 
-      (spawn as unknown as jest.Mock).mockReturnValue(child);
+      (spawn as unknown as vi.Mock).mockReturnValue(child);
 
       const promise = (TopodataService as any).readElevationFromTiff(
         "/tmp/tile.tif",
@@ -197,7 +198,7 @@ describe("TopodataService", () => {
       child.stdout = new EventEmitter();
       child.stderr = new EventEmitter();
 
-      (spawn as unknown as jest.Mock).mockReturnValue(child);
+      (spawn as unknown as vi.Mock).mockReturnValue(child);
 
       const promise = (TopodataService as any).readElevationFromTiff(
         "/tmp/tile.tif",
@@ -213,7 +214,7 @@ describe("TopodataService", () => {
   });
 
   describe("getElevation", () => {
-    const mockFetch = externalApi.fetchWithCircuitBreaker as jest.Mock;
+    const mockFetch = externalApi.fetchWithCircuitBreaker as vi.Mock;
 
     function makeSpawnChild() {
       const child = new EventEmitter() as EventEmitter & {
@@ -226,9 +227,9 @@ describe("TopodataService", () => {
     }
 
     it("should return elevation when tile is cached and python succeeds", async () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.existsSync as vi.Mock).mockReturnValue(true);
       const child = makeSpawnChild();
-      (spawn as unknown as jest.Mock).mockReturnValue(child);
+      (spawn as unknown as vi.Mock).mockReturnValue(child);
 
       const promise = TopodataService.getElevation(-23.55, -46.63);
       // Allow getElevation to reach readElevationFromTiff and register listeners
@@ -241,14 +242,14 @@ describe("TopodataService", () => {
     });
 
     it("should download tile when not cached and return elevation", async () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(false);
+      (fs.existsSync as vi.Mock).mockReturnValue(false);
       mockFetch.mockResolvedValueOnce({
-        arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(64)),
+        arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(64)),
       });
-      (fs.writeFileSync as jest.Mock).mockImplementation(() => {});
+      (fs.writeFileSync as vi.Mock).mockImplementation(() => {});
 
       const child = makeSpawnChild();
-      (spawn as unknown as jest.Mock).mockReturnValue(child);
+      (spawn as unknown as vi.Mock).mockReturnValue(child);
 
       const promise = TopodataService.getElevation(-23.55, -46.63);
 
@@ -264,7 +265,7 @@ describe("TopodataService", () => {
     });
 
     it("should return null when tile returns 404", async () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(false);
+      (fs.existsSync as vi.Mock).mockReturnValue(false);
       mockFetch.mockRejectedValueOnce(new Error("HTTP error status: 404"));
 
       const result = await TopodataService.getElevation(-23.55, -46.63);
@@ -272,7 +273,7 @@ describe("TopodataService", () => {
     });
 
     it("should return null when download fails with network error", async () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(false);
+      (fs.existsSync as vi.Mock).mockReturnValue(false);
       mockFetch.mockRejectedValueOnce(new Error("Network timeout"));
 
       const result = await TopodataService.getElevation(-23.55, -46.63);
@@ -280,9 +281,9 @@ describe("TopodataService", () => {
     });
 
     it("should return null when readElevationFromTiff throws", async () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.existsSync as vi.Mock).mockReturnValue(true);
       const child = makeSpawnChild();
-      (spawn as unknown as jest.Mock).mockReturnValue(child);
+      (spawn as unknown as vi.Mock).mockReturnValue(child);
 
       const promise = TopodataService.getElevation(-23.55, -46.63);
 
@@ -298,7 +299,7 @@ describe("TopodataService", () => {
 
   describe("getElevationProfile", () => {
     it("should return elevation points along a path", async () => {
-      jest.spyOn(TopodataService, "getElevation").mockResolvedValue(500);
+      vi.spyOn(TopodataService, "getElevation").mockResolvedValue(500);
 
       const profile = await TopodataService.getElevationProfile(
         -23.55, -46.63, -22.9, -43.2, 2,
@@ -311,7 +312,7 @@ describe("TopodataService", () => {
     });
 
     it("should use 0 for null elevation values", async () => {
-      jest.spyOn(TopodataService, "getElevation").mockResolvedValue(null);
+      vi.spyOn(TopodataService, "getElevation").mockResolvedValue(null);
 
       const profile = await TopodataService.getElevationProfile(
         -23.55, -46.63, -22.9, -43.2, 1,
@@ -323,7 +324,7 @@ describe("TopodataService", () => {
 
   describe("getElevationGrid", () => {
     it("should return a grid of elevation points", async () => {
-      jest.spyOn(TopodataService, "getElevation").mockResolvedValue(300);
+      vi.spyOn(TopodataService, "getElevation").mockResolvedValue(300);
 
       const result = await TopodataService.getElevationGrid(
         -22.9, -23.1, -43.1, -43.3, 10000,
@@ -336,4 +337,5 @@ describe("TopodataService", () => {
     });
   });
 });
+
 

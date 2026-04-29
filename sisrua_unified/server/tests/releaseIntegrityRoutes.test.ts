@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * releaseIntegrityRoutes.test.ts — Testes para rotas de Integridade de Release (16 [T1]).
  */
@@ -6,12 +7,12 @@ import express from "express";
 import releaseIntegrityRoutes from "../routes/releaseIntegrityRoutes";
 import * as integrityService from "../services/releaseIntegrityService";
 
-jest.mock("../services/releaseIntegrityService", () => ({
+vi.mock("../services/releaseIntegrityService", () => ({
   ReleaseIntegrityService: {
-    generateManifest: jest.fn(),
-    getBuildProvenance: jest.fn(),
-    verifyManifest: jest.fn(),
-    signManifest: jest.fn(),
+    generateManifest: vi.fn(),
+    getBuildProvenance: vi.fn(),
+    verifyManifest: vi.fn(),
+    signManifest: vi.fn(),
   },
 }));
 
@@ -59,7 +60,7 @@ const mockProvenance = {
 
 describe("GET /api/release/manifest", () => {
   it("retorna manifesto de release com artefatos e assinatura", async () => {
-    (ReleaseIntegrityService.generateManifest as jest.Mock).mockReturnValue(
+    (ReleaseIntegrityService.generateManifest as vi.Mock).mockReturnValue(
       mockManifest,
     );
     const res = await request(app).get("/api/release/manifest");
@@ -70,7 +71,7 @@ describe("GET /api/release/manifest", () => {
   });
 
   it("retorna 500 em caso de erro interno", async () => {
-    (ReleaseIntegrityService.generateManifest as jest.Mock).mockImplementation(
+    (ReleaseIntegrityService.generateManifest as vi.Mock).mockImplementation(
       () => {
         throw new Error("falha leitura");
       },
@@ -85,7 +86,7 @@ describe("GET /api/release/manifest", () => {
 
 describe("GET /api/release/provenance", () => {
   it("retorna informações de proveniência do build", async () => {
-    (ReleaseIntegrityService.getBuildProvenance as jest.Mock).mockReturnValue(
+    (ReleaseIntegrityService.getBuildProvenance as vi.Mock).mockReturnValue(
       mockProvenance,
     );
     const res = await request(app).get("/api/release/provenance");
@@ -97,7 +98,7 @@ describe("GET /api/release/provenance", () => {
 
   it("retorna 500 em caso de erro interno", async () => {
     (
-      ReleaseIntegrityService.getBuildProvenance as jest.Mock
+      ReleaseIntegrityService.getBuildProvenance as vi.Mock
     ).mockImplementation(() => {
       throw new Error("falha");
     });
@@ -110,7 +111,7 @@ describe("GET /api/release/provenance", () => {
 
 describe("POST /api/release/verify", () => {
   it("retorna valid:true para manifesto íntegro", async () => {
-    (ReleaseIntegrityService.verifyManifest as jest.Mock).mockReturnValue({
+    (ReleaseIntegrityService.verifyManifest as vi.Mock).mockReturnValue({
       valid: true,
       reason: "Assinatura verificada com sucesso.",
     });
@@ -122,7 +123,7 @@ describe("POST /api/release/verify", () => {
   });
 
   it("retorna 422 para manifesto adulterado", async () => {
-    (ReleaseIntegrityService.verifyManifest as jest.Mock).mockReturnValue({
+    (ReleaseIntegrityService.verifyManifest as vi.Mock).mockReturnValue({
       valid: false,
       reason: "Assinatura inválida — possível adulteração.",
     });
@@ -145,3 +146,4 @@ describe("POST /api/release/verify", () => {
     expect(res.status).toBe(400);
   });
 });
+

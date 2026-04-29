@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * supplyChainRoutes.test.ts — Supply Chain Security & Integridade (15 [T1])
  */
@@ -5,8 +6,7 @@
 import request from "supertest";
 import app from "../app.js";
 
-describe("Supply Chain Routes (15)", () => {
-  jest.setTimeout(30000);
+describe("Supply Chain Routes (15)", { timeout: 30000 }, () => {
 
   // ─── SBOM ──────────────────────────────────────────────────────────────────
 
@@ -266,3 +266,4 @@ describe("Supply Chain Routes (15)", () => {
     });
   });
 });
+

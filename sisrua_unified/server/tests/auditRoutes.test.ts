@@ -7,15 +7,15 @@
 
 import request from "supertest";
 import express from "express";
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 // ─── Mock logger ─────────────────────────────────────────────────────────────
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -25,25 +25,28 @@ const mockConfig = {
   METRICS_TOKEN: "secret-token",
   NODE_ENV: "test",
 };
-jest.mock("../config", () => ({
+vi.mock("../config", () => ({
   get config() {
     return mockConfig;
   },
 }));
 
 // ─── Mock bearerAuth ──────────────────────────────────────────────────────────
-const isBearerAuthorized = jest.fn<() => boolean>(() => true);
-jest.mock("../utils/bearerAuth", () => ({
+const isBearerAuthorized = vi.fn<() => boolean>(() => true);
+vi.mock("../utils/bearerAuth", () => ({
   isBearerRequestAuthorized: isBearerAuthorized,
-  setBearerChallenge: jest.fn((res: any, _realm: string) => {
+  setBearerChallenge: vi.fn((res: any, _realm: string) => {
     res.set("WWW-Authenticate", `Bearer realm="${_realm}"`);
   }),
 }));
 
 // ─── Mock postgres ────────────────────────────────────────────────────────────
-const mockUnsafe = jest.fn<(...args: any[]) => Promise<any[]>>();
+const mockUnsafe = vi.fn<(...args: any[]) => Promise<any[]>>();
 const mockPostgresInstance = { unsafe: mockUnsafe };
-jest.mock("postgres", () => jest.fn(() => mockPostgresInstance));
+vi.mock("postgres", () => ({
+  __esModule: true,
+  default: vi.fn(() => mockPostgresInstance),
+}));
 
 // ─── Import router ────────────────────────────────────────────────────────────
 let router: express.Router;
@@ -191,8 +194,8 @@ describe("GET /export — happy paths", () => {
     mockUnsafe.mockResolvedValue([]);
     const res = await request(app)
       .get(
-        "/export?since=2026-01-01T00:00:00Z&until=2026-12-31T23:59:59Z" +
-          "&tenant_id=00000000-0000-0000-0000-000000000001" +
+        "/export?since=2026-01-01T00:00:00.000%2B00:00&until=2026-12-31T23:59:59.000%2B00:00" +
+          "&tenant_id=11111111-1111-4111-8111-111111111111" +
           "&table_name=users&action=INSERT&limit=50",
       )
       .set("Authorization", "Bearer secret-token");
@@ -212,3 +215,4 @@ describe("GET /export — happy paths", () => {
     expect(res.body.error).toMatch(/auditoria/i);
   });
 });
+

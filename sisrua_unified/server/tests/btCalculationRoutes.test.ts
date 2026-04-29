@@ -5,28 +5,28 @@
 
 import request from "supertest";
 import express from "express";
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 // Mock logger
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 // Mock config to control feature flag
 const mockConfig = { btRadialEnabled: false };
-jest.mock("../config", () => ({
+vi.mock("../config", () => ({
   get config() {
     return mockConfig;
   },
 }));
 
 // Mock btRadialCalculationService
-const calculateMock = jest.fn();
+const calculateMock = vi.fn();
 const BtRadialValidationErrorMock = class extends Error {
   code: string;
   constructor(code: string, message: string) {
@@ -35,19 +35,19 @@ const BtRadialValidationErrorMock = class extends Error {
     this.name = "BtRadialValidationError";
   }
 };
-jest.mock("../services/btRadialCalculationService", () => ({
+vi.mock("../services/btRadialCalculationService", () => ({
   calculateBtRadial: calculateMock,
   BtRadialValidationError: BtRadialValidationErrorMock,
 }));
 
 // Mock btCatalogService
-jest.mock("../services/btCatalogService", () => ({
-  getBtCatalog: jest.fn(() => ({
+vi.mock("../services/btCatalogService", () => ({
+  getBtCatalog: vi.fn(() => ({
     conductors: [],
     transformers: [],
     version: { version: "1.0.0", checksum: "abc", definedAt: "2026-01-01" },
   })),
-  getCatalogVersion: jest.fn(() => ({
+  getCatalogVersion: vi.fn(() => ({
     version: "1.0.0",
     checksum: "abc",
     definedAt: "2026-01-01",
@@ -56,14 +56,14 @@ jest.mock("../services/btCatalogService", () => ({
 
 // Mock btParityService
 // Mock btTelescopicAnalysis
-const analyzeTelescopicPathsMock = jest.fn();
-jest.mock("../services/bt/btTelescopicAnalysis", () => ({
+const analyzeTelescopicPathsMock = vi.fn();
+vi.mock("../services/bt/btTelescopicAnalysis", () => ({
   analyzeTelescopicPaths: (...args: unknown[]) =>
     analyzeTelescopicPathsMock(...args),
 }));
 
-jest.mock("../services/btParityService", () => ({
-  runBtParitySuite: jest.fn(() => ({
+vi.mock("../services/btParityService", () => ({
+  runBtParitySuite: vi.fn(() => ({
     generatedAt: "2026-04-09T00:00:00.000Z",
     tolerance: 1e-4,
     scenarios: [],
@@ -81,7 +81,7 @@ jest.mock("../services/btParityService", () => ({
     },
     p0Gate: true,
   })),
-  listBtParityScenarios: jest.fn(() => [{ id: "A1" }, { id: "B2" }]),
+  listBtParityScenarios: vi.fn(() => [{ id: "A1" }, { id: "B2" }]),
 }));
 
 let btCalculationRoutes: typeof import("../routes/btCalculationRoutes.js").default;
@@ -172,7 +172,7 @@ describe("btCalculationRoutes – feature flag ON (E6-H1)", () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("POST /calculate returns 200 with valid body", async () => {
@@ -302,7 +302,7 @@ describe("btCalculationRoutes – parity 400/500 paths", () => {
 
   it("GET /parity returns 500 when runBtParitySuite throws", async () => {
     const { runBtParitySuite } = await import("../services/btParityService.js");
-    (runBtParitySuite as jest.Mock).mockImplementationOnce(() => {
+    (runBtParitySuite as vi.Mock).mockImplementationOnce(() => {
       throw new Error("parity suite internal error");
     });
     const app = buildApp();
@@ -386,3 +386,4 @@ describe("btCalculationRoutes – POST /telescopic-analysis", () => {
     expect(res.body.error).toBe("Erro interno de c\u00e1lculo");
   });
 });
+

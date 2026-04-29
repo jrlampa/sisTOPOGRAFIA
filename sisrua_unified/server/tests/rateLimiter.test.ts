@@ -1,19 +1,24 @@
-const mockConfig = {
-  NODE_ENV: "development",
-  RATE_LIMIT_GENERAL_WINDOW_MS: 900000,
-  RATE_LIMIT_GENERAL_MAX: 100,
-  RATE_LIMIT_DXF_WINDOW_MS: 3600000,
-  RATE_LIMIT_DXF_MAX: 10,
-  useDbConstantsConfig: false,
-};
+import { vi } from "vitest";
+const { mockConfig } = vi.hoisted(() => ({
+  mockConfig: {
+    NODE_ENV: "development",
+    RATE_LIMIT_GENERAL_WINDOW_MS: 900000,
+    RATE_LIMIT_GENERAL_MAX: 100,
+    RATE_LIMIT_DXF_WINDOW_MS: 3600000,
+    RATE_LIMIT_DXF_MAX: 10,
+    useDbConstantsConfig: false,
+  },
+}));
 
-const getSyncMock = jest.fn();
+const { getSyncMock } = vi.hoisted(() => ({
+  getSyncMock: vi.fn(),
+}));
 
-jest.mock("../config", () => ({
+vi.mock("../config.js", () => ({
   config: mockConfig,
 }));
 
-jest.mock("../services/constantsService", () => ({
+vi.mock("../services/constantsService.js", () => ({
   constantsService: {
     getSync: getSyncMock,
   },
@@ -25,15 +30,15 @@ import {
   generalRateLimiter,
   getRateLimitPolicySnapshot,
   shouldSkipGeneralRateLimit,
-} from "../middleware/rateLimiter";
+} from "../middleware/rateLimiter.js";
 
 // Mock logger
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger.js", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -195,3 +200,4 @@ describe("Rate Limiter Middleware", () => {
     });
   });
 });
+

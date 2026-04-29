@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * dataRetentionRoutes.test.ts — Testes de integração das rotas de retenção de dados (Item 37 [T1]).
  */
@@ -5,12 +6,12 @@ import express from "express";
 import request from "supertest";
 import { clearPolicies } from "../services/dataRetentionService.js";
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -18,8 +19,8 @@ const TOKEN = "retencao-token-test";
 const AUTH = "Bearer " + TOKEN;
 
 async function buildApp(metricsToken: string | undefined) {
-  jest.resetModules();
-  jest.doMock("../config", () => ({
+  vi.resetModules();
+  vi.doMock("../config", () => ({
     config: { METRICS_TOKEN: metricsToken },
   }));
   const { default: dataRetentionRoutes } = await import("../routes/dataRetentionRoutes");
@@ -31,8 +32,8 @@ async function buildApp(metricsToken: string | undefined) {
 
 beforeEach(() => clearPolicies());
 afterEach(() => {
-  jest.resetModules();
-  jest.clearAllMocks();
+  vi.resetModules();
+  vi.clearAllMocks();
 });
 
 const validPolicy = {
@@ -247,3 +248,4 @@ describe("POST /api/retencao/avaliar", () => {
     expect(res.body.toDelete).toHaveLength(0);
   });
 });
+

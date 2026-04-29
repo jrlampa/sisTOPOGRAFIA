@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import express from "express";
 import request from "supertest";
 import opsRoutes from "../routes/opsRoutes.js";
@@ -6,7 +7,7 @@ import { getCircuitBreaker, clearCircuitBreakerRegistry } from "../utils/circuit
 import { config } from "../config.js";
 
 // Mock config to allow dynamic token testing
-jest.mock("../config.js", () => ({
+vi.mock("../config.js", () => ({
   config: {
     METRICS_TOKEN: undefined,
     OLLAMA_MIN_VERSION: "0.5.0",
@@ -18,7 +19,7 @@ jest.mock("../config.js", () => ({
 
 describe("opsRoutes", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     clearCircuitBreakerRegistry();
     (config as any).METRICS_TOKEN = undefined;
   });
@@ -79,7 +80,7 @@ describe("opsRoutes", () => {
   it("returns AI runtime diagnostics as degraded when governance is not compliant", async () => {
     (config as any).METRICS_TOKEN = undefined;
 
-    jest.spyOn(OllamaService, "getGovernanceStatus").mockResolvedValue({
+    vi.spyOn(OllamaService, "getGovernanceStatus").mockResolvedValue({
       runtime: {
         available: true,
         host: "http://remote-ollama.example",
@@ -152,7 +153,7 @@ describe("opsRoutes", () => {
 
   it("returns 500 when governance service fails", async () => {
     (config as any).METRICS_TOKEN = undefined;
-    jest.spyOn(OllamaService, "getGovernanceStatus").mockRejectedValue(new Error("Service crash"));
+    vi.spyOn(OllamaService, "getGovernanceStatus").mockRejectedValue(new Error("Service crash"));
 
     const app = express();
     app.use(express.json());
@@ -164,3 +165,4 @@ describe("opsRoutes", () => {
     expect(response.body.error).toBe("Ops AI runtime status failed");
   });
 });
+

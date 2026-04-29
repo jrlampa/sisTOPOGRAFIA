@@ -233,7 +233,9 @@ describe('btRadialCalculationService – qt propagation (E3-H1)', () => {
         const impedance = Math.sqrt(
             correctedResistance ** 2 + conductor!.reactance ** 2,
         );
-        const expectedSegment = (1 * 15 * impedance * 50) / (1000 * 220 ** 2);
+        const lengthKm = 50 / 1000;
+        const expectedSegment =
+            (1 * 15 * impedance * lengthKm) / (220 ** 2);
 
         expect(aNode!.qtSegment).toBeCloseTo(expectedSegment, 12);
     });

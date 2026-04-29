@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { Request, Response } from "express";
 import { isBearerRequestAuthorized, setBearerChallenge } from "../utils/bearerAuth";
 
@@ -42,9 +43,10 @@ describe("bearerAuth utilities", () => {
 
     describe("setBearerChallenge", () => {
         it("should set the WWW-Authenticate header correctly", () => {
-            const res = { set: jest.fn() } as unknown as Response;
+            const res = { set: vi.fn() } as unknown as Response;
             setBearerChallenge(res, "test-realm");
             expect(res.set).toHaveBeenCalledWith("WWW-Authenticate", 'Bearer realm="test-realm"');
         });
     });
 });
+

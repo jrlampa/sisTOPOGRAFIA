@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import {
   createCacheKey,
   getCachedFilename,
@@ -144,7 +145,7 @@ describe('CacheService', () => {
     });
 
     it('should respect custom TTL', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
       const key = 'test-key-ttl-' + Date.now();
       const filename = 'dxf_ttl.dxf';
@@ -156,18 +157,18 @@ describe('CacheService', () => {
       expect(getCachedFilename(key)).toBe(filename);
 
       // Advance time by 500ms (within TTL)
-      jest.advanceTimersByTime(500);
+      vi.advanceTimersByTime(500);
       expect(getCachedFilename(key)).toBe(filename);
 
       // Advance time past TTL
-      jest.advanceTimersByTime(600);
+      vi.advanceTimersByTime(600);
       expect(getCachedFilename(key)).toBeNull();
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should use default TTL when not specified', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
       const key = 'test-key-default-ttl-' + Date.now();
       const filename = 'dxf_default.dxf';
@@ -178,14 +179,14 @@ describe('CacheService', () => {
       expect(getCachedFilename(key)).toBe(filename);
 
       // Advance time by less than default TTL (24 hours)
-      jest.advanceTimersByTime(DEFAULT_TTL_MS - 1000);
+      vi.advanceTimersByTime(DEFAULT_TTL_MS - 1000);
       expect(getCachedFilename(key)).toBe(filename);
 
       // Advance time past default TTL
-      jest.advanceTimersByTime(2000);
+      vi.advanceTimersByTime(2000);
       expect(getCachedFilename(key)).toBeNull();
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
   });
 
@@ -210,7 +211,7 @@ describe('CacheService', () => {
 
   describe('Cache expiration behavior', () => {
     it('should automatically clean expired entries on retrieval', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
       const key = 'test-key-expire-' + Date.now();
       const filename = 'dxf_expire.dxf';
@@ -221,7 +222,7 @@ describe('CacheService', () => {
       expect(getCachedFilename(key)).toBe(filename);
 
       // Advance time past expiration
-      jest.advanceTimersByTime(1500);
+      vi.advanceTimersByTime(1500);
 
       // Should return null and clean up
       expect(getCachedFilename(key)).toBeNull();
@@ -229,11 +230,11 @@ describe('CacheService', () => {
       // Subsequent calls should also return null
       expect(getCachedFilename(key)).toBeNull();
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should handle multiple cache entries with different TTLs', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
       const key1 = 'test-key-multi-1-' + Date.now();
       const key2 = 'test-key-multi-2-' + Date.now();
@@ -248,20 +249,21 @@ describe('CacheService', () => {
       expect(getCachedFilename(key2)).toBe(filename2);
 
       // Advance time past first TTL
-      jest.advanceTimersByTime(1500);
+      vi.advanceTimersByTime(1500);
 
       // First should be expired, second still valid
       expect(getCachedFilename(key1)).toBeNull();
       expect(getCachedFilename(key2)).toBe(filename2);
 
       // Advance time past second TTL
-      jest.advanceTimersByTime(600);
+      vi.advanceTimersByTime(600);
 
       // Both should be expired
       expect(getCachedFilename(key1)).toBeNull();
       expect(getCachedFilename(key2)).toBeNull();
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
   });
 });
+

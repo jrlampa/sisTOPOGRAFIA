@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * dossieRoutes.test.ts
  *
@@ -8,12 +9,12 @@
 import request from "supertest";
 import express from "express";
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -238,3 +239,4 @@ describe("dossieRoutes — exportação e integridade", () => {
     expect(typeof res.body.integro).toBe("boolean");
   });
 });
+

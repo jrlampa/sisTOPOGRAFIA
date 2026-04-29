@@ -1,33 +1,33 @@
+import { vi } from "vitest";
 /**
  * dbClient.test.ts
  * Testa todas as funções do cliente PostgreSQL singleton.
  */
-import { jest } from '@jest/globals';
 
-jest.mock('../utils/logger', () => ({
-  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
+vi.mock('../utils/logger', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
 describe('dbClient', () => {
   const DB_URL = 'postgresql://user:pass@localhost:5432/testdb';
 
   let mockClientInstance: any;
-  let mockPostgres: jest.Mock;
+  let mockPostgres: vi.Mock;
 
   beforeEach(() => {
-    jest.resetModules();
+    vi.resetModules();
 
     mockClientInstance = Object.assign(
-      jest.fn().mockResolvedValue([{ '?column?': 1 }]) as any,
+      vi.fn().mockResolvedValue([{ '?column?': 1 }]) as any,
       {
-        unsafe: jest.fn().mockResolvedValue([]),
-        end: jest.fn().mockResolvedValue(undefined),
+        unsafe: vi.fn().mockResolvedValue([]),
+        end: vi.fn().mockResolvedValue(undefined),
       },
     );
-    mockPostgres = jest.fn(() => mockClientInstance);
+    mockPostgres = vi.fn(() => mockClientInstance);
 
-    jest.doMock('postgres', () => ({ __esModule: true, default: mockPostgres }));
-    jest.doMock('../config', () => ({
+    vi.doMock('postgres', () => ({ __esModule: true, default: mockPostgres }));
+    vi.doMock("../config.js", () => ({
       config: { DATABASE_URL: DB_URL, NODE_ENV: 'test' },
     }));
   });
@@ -55,7 +55,7 @@ describe('dbClient', () => {
   });
 
   it('initDbClient: não inicializa sem DATABASE_URL', async () => {
-    jest.doMock('../config', () => ({
+    vi.doMock("../config.js", () => ({
       config: { DATABASE_URL: '', NODE_ENV: 'test' },
     }));
     const { initDbClient, isDbAvailable } = await loadModule();
@@ -74,7 +74,7 @@ describe('dbClient', () => {
   });
 
   it('initDbClient: NODE_ENV production usa ssl=require', async () => {
-    jest.doMock('../config', () => ({
+    vi.doMock("../config.js", () => ({
       config: { DATABASE_URL: DB_URL, NODE_ENV: 'production' },
     }));
     const { initDbClient } = await loadModule();
@@ -164,3 +164,4 @@ describe('dbClient', () => {
     expect(isDbAvailable()).toBe(false);
   });
 });
+

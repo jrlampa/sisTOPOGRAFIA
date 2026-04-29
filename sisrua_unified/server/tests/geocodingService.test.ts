@@ -1,9 +1,10 @@
+import { vi } from "vitest";
 import { GeocodingService } from "../services/geocodingService";
 import * as externalApi from "../utils/externalApi";
 import { IbgeService } from "../services/ibgeService";
 
-jest.mock("../utils/externalApi");
-jest.mock("../services/ibgeService");
+vi.mock("../utils/externalApi");
+vi.mock("../services/ibgeService");
 
 describe("GeocodingService", () => {
   describe("resolveLocation", () => {
@@ -111,13 +112,13 @@ describe("GeocodingService", () => {
 
 describe("GeocodingService - Nominatim/IBGE paths", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (externalApi.fetchWithCircuitBreaker as jest.Mock).mockClear();
-    (IbgeService.findMunicipioByName as jest.Mock).mockClear();
+    vi.clearAllMocks();
+    (externalApi.fetchWithCircuitBreaker as vi.Mock).mockClear();
+    (IbgeService.findMunicipioByName as vi.Mock).mockClear();
   });
 
   it("resolveLocation: falls back to Nominatim when input is address-like", async () => {
-    (externalApi.fetchWithCircuitBreaker as jest.Mock).mockResolvedValueOnce({
+    (externalApi.fetchWithCircuitBreaker as vi.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => [
         {
@@ -134,7 +135,7 @@ describe("GeocodingService - Nominatim/IBGE paths", () => {
   });
 
   it("resolveLocation: handles Nominatim network error gracefully", async () => {
-    (externalApi.fetchWithCircuitBreaker as jest.Mock).mockRejectedValueOnce(
+    (externalApi.fetchWithCircuitBreaker as vi.Mock).mockRejectedValueOnce(
       new Error("Network error"),
     );
 
@@ -144,10 +145,10 @@ describe("GeocodingService - Nominatim/IBGE paths", () => {
   });
 
   it("resolveLocation: falls back to IBGE when Nominatim fails", async () => {
-    (externalApi.fetchWithCircuitBreaker as jest.Mock).mockRejectedValueOnce(
+    (externalApi.fetchWithCircuitBreaker as vi.Mock).mockRejectedValueOnce(
       new Error("Network error"),
     );
-    (IbgeService.findMunicipioByName as jest.Mock).mockResolvedValueOnce({
+    (IbgeService.findMunicipioByName as vi.Mock).mockResolvedValueOnce({
       nome: "Taubaté",
       microrregiao: {
         mesorregiao: {
@@ -162,10 +163,10 @@ describe("GeocodingService - Nominatim/IBGE paths", () => {
   });
 
   it("resolveLocation: rejects IBGE result if municipality name does not match query tokens", async () => {
-    (externalApi.fetchWithCircuitBreaker as jest.Mock).mockRejectedValueOnce(
+    (externalApi.fetchWithCircuitBreaker as vi.Mock).mockRejectedValueOnce(
       new Error("Network error"),
     );
-    (IbgeService.findMunicipioByName as jest.Mock).mockResolvedValueOnce({
+    (IbgeService.findMunicipioByName as vi.Mock).mockResolvedValueOnce({
       nome: "Unrelated City",
       microrregiao: {
         mesorregiao: {
@@ -180,7 +181,7 @@ describe("GeocodingService - Nominatim/IBGE paths", () => {
   });
 
   it("resolveLocation: uses IBGE when query is too short for Nominatim", async () => {
-    (IbgeService.findMunicipioByName as jest.Mock).mockResolvedValueOnce({
+    (IbgeService.findMunicipioByName as vi.Mock).mockResolvedValueOnce({
       nome: "Rio de Janeiro",
       microrregiao: {
         mesorregiao: {
@@ -209,3 +210,4 @@ describe("GeocodingService - Nominatim/IBGE paths", () => {
     expect(result).toBeNull();
   });
 });
+

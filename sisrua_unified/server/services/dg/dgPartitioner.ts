@@ -509,7 +509,15 @@ function buildPartition(
   const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
 
   // Passo 3b: Seleciona menor kVA viável
-  const faixa = params.faixaKvaTrafoPermitida ?? [15, 30, 45, 75, 112.5];
+  const baseFaixa = params.faixaKvaTrafoPermitida ?? [15, 30, 45, 75, 112.5];
+  const trafoMaxKva =
+    typeof (params as any).trafoMaxKva === "number"
+      ? ((params as any).trafoMaxKva as number)
+      : null;
+  const faixa =
+    trafoMaxKva && Number.isFinite(trafoMaxKva) && trafoMaxKva > 0
+      ? baseFaixa.filter((kva) => kva <= trafoMaxKva)
+      : baseFaixa;
   let bestResult: DgElectricalResult | null = null;
   let selectedKva = 0;
 
@@ -600,7 +608,16 @@ function partitionRecursive(
   }
 
   const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
-  const maxKva = Math.max(...(params.faixaKvaTrafoPermitida ?? [112.5]));
+  const baseFaixa = params.faixaKvaTrafoPermitida ?? [15, 30, 45, 75, 112.5];
+  const trafoMaxKva =
+    typeof (params as any).trafoMaxKva === "number"
+      ? ((params as any).trafoMaxKva as number)
+      : null;
+  const faixa =
+    trafoMaxKva && Number.isFinite(trafoMaxKva) && trafoMaxKva > 0
+      ? baseFaixa.filter((kva) => kva <= trafoMaxKva)
+      : baseFaixa;
+  const maxKva = Math.max(...faixa);
   const maxUtilization = params.trafoMaxUtilization ?? 0.95;
 
   // Se cabe num único trafo, não particiona mais

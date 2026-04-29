@@ -7,25 +7,25 @@
 
 import request from "supertest";
 import express from "express";
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 // ─── Mock logger ─────────────────────────────────────────────────────────────
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 // ─── Mock posteCalc ───────────────────────────────────────────────────────────
-const calculatePosteLoadMock = jest.fn<(...args: any[]) => any>();
-const selecionarPosteMock = jest.fn<(...args: any[]) => any>();
-const calculateForceVentoMock = jest.fn<(...args: any[]) => any>();
-const calculateResultantForceMock = jest.fn<(...args: any[]) => any>();
+const calculatePosteLoadMock = vi.fn<(...args: any[]) => any>();
+const selecionarPosteMock = vi.fn<(...args: any[]) => any>();
+const calculateForceVentoMock = vi.fn<(...args: any[]) => any>();
+const calculateResultantForceMock = vi.fn<(...args: any[]) => any>();
 
-jest.mock("../core/mechanicalCalc/posteCalc", () => ({
+vi.mock("../core/mechanicalCalc/posteCalc", () => ({
   calculatePosteLoad: calculatePosteLoadMock,
   selecionarPosteDeCatalogo: selecionarPosteMock,
   calculateForceVento: calculateForceVentoMock,
@@ -33,20 +33,20 @@ jest.mock("../core/mechanicalCalc/posteCalc", () => ({
 }));
 
 // ─── Mock scenarioAnalysisService ─────────────────────────────────────────────
-const calculateScenarioScoreMock = jest.fn<(...args: any[]) => any>();
-const rankScenariosMock = jest.fn<(...args: any[]) => any>();
-const compararCenariosMock = jest.fn<(...args: any[]) => any>();
+const calculateScenarioScoreMock = vi.fn<(...args: any[]) => any>();
+const rankScenariosMock = vi.fn<(...args: any[]) => any>();
+const compararCenariosMock = vi.fn<(...args: any[]) => any>();
 
-jest.mock("../services/scenarioAnalysisService", () => ({
+vi.mock("../services/scenarioAnalysisService", () => ({
   calculateScenarioScore: calculateScenarioScoreMock,
   rankScenarios: rankScenariosMock,
   compararCenarios: compararCenariosMock,
 }));
 
 // ─── Mock listing utils ────────────────────────────────────────────────────────
-jest.mock("../utils/listing", () => ({
-  buildListMeta: jest.fn((...args: any[]) => ({})),
-  comparePrimitiveValues: jest.fn((a: any, b: any, _order: any) =>
+vi.mock("../utils/listing", () => ({
+  buildListMeta: vi.fn((...args: any[]) => ({})),
+  comparePrimitiveValues: vi.fn((a: any, b: any, _order: any) =>
     a < b ? -1 : a > b ? 1 : 0,
   ),
 }));
@@ -385,3 +385,4 @@ describe("GET /catalog/vento-coeficientes", () => {
     expect(res.status).toBe(400);
   });
 });
+

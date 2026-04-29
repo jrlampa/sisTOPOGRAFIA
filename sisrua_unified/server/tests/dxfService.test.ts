@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * dxfService.test.ts
  * Tests for the DXF generation service — layer assignment, height extraction,
@@ -6,12 +7,12 @@
 
 import { generateDXF } from "../services/dxfService";
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -294,3 +295,4 @@ describe("dxfService: generateDXF", () => {
     expect(result).toContain("LWPOLYLINE");
   });
 });
+

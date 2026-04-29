@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * quotaRoutes.test.ts
  * Testes de integração das rotas de quotas e throttling por tenant (Roadmap Item 33 [T2]).
@@ -9,12 +10,12 @@ import { clearAllTenantQuotas } from "../services/tenantQuotaService.js";
 
 // ─── Mock do logger ──────────────────────────────────────────────────────────
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -24,8 +25,8 @@ const TOKEN = "quota-admin-token-xyz";
 const AUTH = "Bearer " + TOKEN;
 
 async function buildApp(metricsToken: string | undefined) {
-  jest.resetModules();
-  jest.doMock("../config", () => ({
+  vi.resetModules();
+  vi.doMock("../config", () => ({
     config: { METRICS_TOKEN: metricsToken },
   }));
   const { default: quotaRoutes } = await import("../routes/quotaRoutes");
@@ -42,8 +43,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.resetModules();
-  jest.clearAllMocks();
+  vi.resetModules();
+  vi.clearAllMocks();
   clearAllTenantQuotas();
 });
 
@@ -417,3 +418,4 @@ describe("DELETE /api/tenant-quotas/:tenantId (admin)", () => {
     expect(getRes.body.quotas["dxf_por_hora"]?.limite).toBe(5);
   });
 });
+

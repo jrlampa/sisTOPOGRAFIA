@@ -1,14 +1,14 @@
+import { vi } from "vitest";
 import express from "express";
 import request from "supertest";
 
-describe("osmRoutes", () => {
-  jest.setTimeout(15000);
+describe("osmRoutes", { timeout: 15000 }, () => {
   const originalEnv = process.env.NODE_ENV;
   const originalFetch = global.fetch;
 
   afterEach(() => {
     process.env.NODE_ENV = originalEnv;
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     if (originalFetch) {
       global.fetch = originalFetch;
     }
@@ -16,9 +16,9 @@ describe("osmRoutes", () => {
 
   it("returns 503 when all Overpass endpoints fail outside test environment", async () => {
     process.env.NODE_ENV = "production";
-    jest.resetModules();
+    vi.resetModules();
 
-    global.fetch = jest
+    global.fetch = vi
       .fn()
       .mockRejectedValue(new Error("overpass-down")) as unknown as typeof fetch;
 
@@ -43,9 +43,9 @@ describe("osmRoutes", () => {
 
   it("keeps synthetic fallback enabled only in test environment", async () => {
     process.env.NODE_ENV = "test";
-    jest.resetModules();
+    vi.resetModules();
 
-    global.fetch = jest
+    global.fetch = vi
       .fn()
       .mockRejectedValue(new Error("overpass-down")) as unknown as typeof fetch;
 
@@ -69,7 +69,7 @@ describe("osmRoutes", () => {
 
   it("blocks /mock route outside test environment", async () => {
     process.env.NODE_ENV = "production";
-    jest.resetModules();
+    vi.resetModules();
 
     const { default: osmRoutes } = await import("../routes/osmRoutes");
     const app = express();
@@ -90,16 +90,16 @@ describe("osmRoutes — success path, cache, mock route, stats branches", () => 
 
   afterEach(() => {
     process.env.NODE_ENV = originalEnv;
-    jest.restoreAllMocks();
-    jest.resetModules();
+    vi.restoreAllMocks();
+    vi.resetModules();
     if (originalFetch) global.fetch = originalFetch;
   });
 
   it("POST / retorna 200 com dados reais quando fetch bem-sucedido", async () => {
     process.env.NODE_ENV = "test";
-    jest.resetModules();
+    vi.resetModules();
 
-    global.fetch = jest.fn().mockResolvedValueOnce({
+    global.fetch = vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         version: 0.6,
@@ -130,10 +130,10 @@ describe("osmRoutes — success path, cache, mock route, stats branches", () => 
 
   it("POST / retorna 200 com cache hit na segunda requisicao", async () => {
     process.env.NODE_ENV = "test";
-    jest.resetModules();
+    vi.resetModules();
 
     let callCount = 0;
-    global.fetch = jest.fn().mockImplementation(async () => {
+    global.fetch = vi.fn().mockImplementation(async () => {
       callCount++;
       return {
         ok: true,
@@ -161,7 +161,7 @@ describe("osmRoutes — success path, cache, mock route, stats branches", () => 
 
   it("POST /mock retorna 200 em ambiente de teste", async () => {
     process.env.NODE_ENV = "test";
-    jest.resetModules();
+    vi.resetModules();
 
     const { default: osmRoutes } = await import("../routes/osmRoutes");
     const app = express();
@@ -176,3 +176,4 @@ describe("osmRoutes — success path, cache, mock route, stats branches", () => 
     expect(Array.isArray(res.body.elements)).toBe(true);
   });
 });
+

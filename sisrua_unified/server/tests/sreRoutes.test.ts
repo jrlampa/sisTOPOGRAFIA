@@ -3,15 +3,16 @@
  */
 import request from "supertest";
 import express from "express";
+import { vi } from "vitest";
 import sreRoutes from "../routes/sreRoutes";
 import * as sloService from "../services/sloService";
 
-jest.mock("../services/sloService", () => ({
-  getSLOStatus: jest.fn(),
-  getAllSLOStatuses: jest.fn(),
-  getAlertingSLOs: jest.fn(),
-  recordObservation: jest.fn(),
-  registerSLO: jest.fn(),
+vi.mock("../services/sloService", () => ({
+  getSLOStatus: vi.fn(),
+  getAllSLOStatuses: vi.fn(),
+  getAlertingSLOs: vi.fn(),
+  recordObservation: vi.fn(),
+  registerSLO: vi.fn(),
 }));
 
 const app = express();
@@ -29,7 +30,7 @@ const mockStatus = {
 
 describe("GET /api/sre/slos", () => {
   it("retorna lista de SLOs com totais", async () => {
-    (sloService.getAllSLOStatuses as jest.Mock).mockReturnValue([mockStatus]);
+    vi.mocked(sloService.getAllSLOStatuses).mockReturnValue([mockStatus]);
     const res = await request(app).get("/api/sre/slos");
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("total", 1);
@@ -40,7 +41,7 @@ describe("GET /api/sre/slos", () => {
 
   it("conta corretamente SLOs alertando", async () => {
     const alerting = { ...mockStatus, alerting: true };
-    (sloService.getAllSLOStatuses as jest.Mock).mockReturnValue([
+    vi.mocked(sloService.getAllSLOStatuses).mockReturnValue([
       mockStatus,
       alerting,
     ]);
@@ -52,7 +53,7 @@ describe("GET /api/sre/slos", () => {
 
 describe("GET /api/sre/slos/:sloId", () => {
   it("retorna status de SLO existente", async () => {
-    (sloService.getSLOStatus as jest.Mock).mockReturnValue(mockStatus);
+    vi.mocked(sloService.getSLOStatus).mockReturnValue(mockStatus);
     const res = await request(app).get("/api/sre/slos/dxf_export_availability");
     expect(res.status).toBe(200);
     expect(res.body.sloId).toBe("dxf_export_availability");
@@ -60,7 +61,7 @@ describe("GET /api/sre/slos/:sloId", () => {
   });
 
   it("retorna 404 para SLO inexistente", async () => {
-    (sloService.getSLOStatus as jest.Mock).mockReturnValue(null);
+    vi.mocked(sloService.getSLOStatus).mockReturnValue(null);
     const res = await request(app).get("/api/sre/slos/inexistente");
     expect(res.status).toBe(404);
     expect(res.body).toHaveProperty("erro");
@@ -69,7 +70,7 @@ describe("GET /api/sre/slos/:sloId", () => {
 
 describe("POST /api/sre/slos/:sloId/observacoes", () => {
   it("registra observação met=true com sucesso", async () => {
-    (sloService.getSLOStatus as jest.Mock)
+    vi.mocked(sloService.getSLOStatus)
       .mockReturnValueOnce(mockStatus)
       .mockReturnValueOnce({ ...mockStatus, observationCount: 101 });
     const res = await request(app)
@@ -85,7 +86,7 @@ describe("POST /api/sre/slos/:sloId/observacoes", () => {
   });
 
   it("registra observação met=false", async () => {
-    (sloService.getSLOStatus as jest.Mock).mockReturnValue(mockStatus);
+    vi.mocked(sloService.getSLOStatus).mockReturnValue(mockStatus);
     const res = await request(app)
       .post("/api/sre/slos/dxf_export_availability/observacoes")
       .send({ met: false, timestamp: "2026-04-20T10:00:00.000Z" });
@@ -106,7 +107,7 @@ describe("POST /api/sre/slos/:sloId/observacoes", () => {
   });
 
   it("retorna 404 para SLO inexistente", async () => {
-    (sloService.getSLOStatus as jest.Mock).mockReturnValue(null);
+    vi.mocked(sloService.getSLOStatus).mockReturnValue(null);
     const res = await request(app)
       .post("/api/sre/slos/inexistente/observacoes")
       .send({ met: true });
@@ -161,7 +162,7 @@ describe("POST /api/sre/slos", () => {
 describe("GET /api/sre/alertas", () => {
   it("retorna lista de SLOs alertando", async () => {
     const alerting = { ...mockStatus, alerting: true };
-    (sloService.getAlertingSLOs as jest.Mock).mockReturnValue([alerting]);
+    vi.mocked(sloService.getAlertingSLOs).mockReturnValue([alerting]);
     const res = await request(app).get("/api/sre/alertas");
     expect(res.status).toBe(200);
     expect(res.body.total).toBe(1);
@@ -170,7 +171,7 @@ describe("GET /api/sre/alertas", () => {
   });
 
   it("retorna lista vazia quando nenhum SLO alerta", async () => {
-    (sloService.getAlertingSLOs as jest.Mock).mockReturnValue([]);
+    vi.mocked(sloService.getAlertingSLOs).mockReturnValue([]);
     const res = await request(app).get("/api/sre/alertas");
     expect(res.status).toBe(200);
     expect(res.body.total).toBe(0);
@@ -216,3 +217,4 @@ describe("GET /api/sre/runbooks/:id", () => {
     }
   });
 });
+

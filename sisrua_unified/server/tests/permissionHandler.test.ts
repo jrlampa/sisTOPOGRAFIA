@@ -1,20 +1,21 @@
+import { vi } from "vitest";
 import { requirePermission, Permission } from '../middleware/permissionHandler';
 import { Request, Response, NextFunction } from 'express';
 import type { UserRole } from '../services/roleService';
 
 // Mock logger
-jest.mock('../utils/logger', () => ({
+vi.mock('../utils/logger', () => ({
     logger: {
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        debug: jest.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
     }
 }));
 
 // Mock roleService to avoid real DB connections in tests
-const mockGetUserRole = jest.fn<(userId: string | undefined) => Promise<UserRole>>();
-jest.mock('../services/roleService', () => ({
+const mockGetUserRole = vi.fn<(userId: string | undefined) => Promise<UserRole>>();
+vi.mock('../services/roleService', () => ({
     getUserRole: (...args: [string | undefined]) => mockGetUserRole(...args),
 }));
 
@@ -24,16 +25,16 @@ describe('PermissionHandler Middleware', () => {
     let nextFunction: NextFunction;
 
     beforeEach(() => {
-        jest.clearAllMocks();
-        nextFunction = jest.fn();
+        vi.clearAllMocks();
+        nextFunction = vi.fn();
         mockReq = {
             headers: {},
             path: '/test'
         };
         mockRes = {
             locals: {},
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn().mockReturnThis()
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn().mockReturnThis()
         };
     });
 
@@ -213,3 +214,4 @@ describe('PermissionHandler Middleware', () => {
         });
     });
 });
+

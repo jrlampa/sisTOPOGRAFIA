@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * jobStatusService.test.ts
  * Tests the full in-memory job lifecycle used when Postgres is unavailable.
@@ -16,12 +17,12 @@ import {
   findOrCreateJob,
 } from "../services/jobStatusService";
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -156,32 +157,32 @@ describe("jobStatusService: Postgres persistence", () => {
     new Promise<void>((resolve) => setImmediate(resolve));
   const originalEnv = process.env;
 
-  let sqlUnsafeMock: jest.Mock;
-  let sqlEndMock: jest.Mock;
-  let postgresFactoryMock: jest.Mock;
+  let sqlUnsafeMock: vi.Mock;
+  let sqlEndMock: vi.Mock;
+  let postgresFactoryMock: vi.Mock;
 
   beforeEach(() => {
-    jest.resetModules();
+    vi.resetModules();
 
-    sqlUnsafeMock = jest.fn();
-    sqlEndMock = jest.fn().mockResolvedValue(undefined);
+    sqlUnsafeMock = vi.fn();
+    sqlEndMock = vi.fn().mockResolvedValue(undefined);
 
     const sqlClientMock = { unsafe: sqlUnsafeMock, end: sqlEndMock };
-    postgresFactoryMock = jest.fn().mockReturnValue(sqlClientMock);
+    postgresFactoryMock = vi.fn().mockReturnValue(sqlClientMock);
 
-    jest.doMock("postgres", () => ({
+    vi.doMock("postgres", () => ({
       __esModule: true,
       default: postgresFactoryMock,
     }));
-    jest.doMock("../utils/logger", () => ({
+    vi.doMock("../utils/logger", () => ({
       logger: {
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        debug: jest.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
       },
     }));
-    jest.doMock("../config", () => ({
+    vi.doMock("../config", () => ({
       config: {
         useSupabaseJobs: true,
         DATABASE_URL: "postgres://localhost/testdb",
@@ -195,7 +196,7 @@ describe("jobStatusService: Postgres persistence", () => {
 
   afterEach(() => {
     process.env = originalEnv;
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   // NOTE: Call order for sqlUnsafeMock:
@@ -371,3 +372,4 @@ describe("jobStatusService: Postgres persistence", () => {
     expect(sqlEndMock).toHaveBeenCalled();
   });
 });
+

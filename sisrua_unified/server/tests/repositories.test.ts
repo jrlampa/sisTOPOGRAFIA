@@ -6,29 +6,29 @@
  * fallback quando DB é null e tratamento de erro.
  */
 
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 // ─── Mock logger ─────────────────────────────────────────────────────────────
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 // ─── Mock dbClient ────────────────────────────────────────────────────────────
-const mockUnsafe = jest.fn<(...args: any[]) => Promise<any[]>>();
+const mockUnsafe = vi.fn<(...args: any[]) => Promise<any[]>>();
 
 const mockSql = { unsafe: mockUnsafe } as any;
 
-jest.mock("../repositories/dbClient", () => ({
-  getDbClient: jest.fn(() => mockSql),
-  isDbAvailable: jest.fn(() => true),
-  initDbClient: jest.fn(),
-  closeDbClient: jest.fn(),
-  pingDb: jest.fn(async () => true),
+vi.mock("../repositories/dbClient", () => ({
+  getDbClient: vi.fn(() => mockSql),
+  isDbAvailable: vi.fn(() => true),
+  initDbClient: vi.fn(),
+  closeDbClient: vi.fn(),
+  pingDb: vi.fn(async () => true),
 }));
 
 // ─── Imports (after mocks) ────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ import {
 } from "../repositories/dbClient.js";
 import * as repoIndex from "../repositories/index.js";
 
-const mockGetDbClient = getDbClient as jest.Mock;
+const mockGetDbClient = getDbClient as vi.Mock;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -732,3 +732,4 @@ describe("repositories/index barrel exports", () => {
     expect(repoIndex.maintenanceRepository).toBeDefined();
   });
 });
+

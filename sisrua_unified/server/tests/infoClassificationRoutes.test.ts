@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * infoClassificationRoutes.test.ts — Testes de integração das rotas de classificação (Item 128 [T1]).
  */
@@ -5,12 +6,12 @@ import express from "express";
 import request from "supertest";
 import { _resetClassificacoes } from "../services/infoClassificationService.js";
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -18,8 +19,8 @@ const TOKEN = "classificacao-token-test";
 const AUTH = "Bearer " + TOKEN;
 
 async function buildApp(metricsToken: string | undefined) {
-  jest.resetModules();
-  jest.doMock("../config", () => ({
+  vi.resetModules();
+  vi.doMock("../config", () => ({
     config: { METRICS_TOKEN: metricsToken },
   }));
   const { default: infoClassificationRoutes } = await import("../routes/infoClassificationRoutes");
@@ -31,8 +32,8 @@ async function buildApp(metricsToken: string | undefined) {
 
 beforeEach(() => _resetClassificacoes());
 afterEach(() => {
-  jest.resetModules();
-  jest.clearAllMocks();
+  vi.resetModules();
+  vi.clearAllMocks();
 });
 
 const validClassificar = {
@@ -173,3 +174,4 @@ describe("GET /api/classificacao/nivel/:nivel", () => {
     expect(res.body.recursos[0].recursoId).toBe("doc-001");
   });
 });
+

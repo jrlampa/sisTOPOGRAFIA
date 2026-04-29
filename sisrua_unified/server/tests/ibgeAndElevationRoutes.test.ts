@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * ibgeAndElevationRoutes.test.ts
  *
@@ -10,21 +11,21 @@ import request from "supertest";
 import express from "express";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 // IbgeService mock
-const mockFindMunicipioByCoordinates = jest.fn();
-const mockGetStates = jest.fn();
-const mockGetMunicipiosByState = jest.fn();
-const mockGetMunicipalityBoundary = jest.fn();
-jest.mock("../services/ibgeService", () => ({
+const mockFindMunicipioByCoordinates = vi.fn();
+const mockGetStates = vi.fn();
+const mockGetMunicipiosByState = vi.fn();
+const mockGetMunicipalityBoundary = vi.fn();
+vi.mock("../services/ibgeService", () => ({
   IbgeService: {
     findMunicipioByCoordinates: mockFindMunicipioByCoordinates,
     getStates: mockGetStates,
@@ -34,10 +35,10 @@ jest.mock("../services/ibgeService", () => ({
 }));
 
 // ElevationService mock
-const mockGetElevationProfile = jest.fn();
-const mockGetElevationAt = jest.fn();
-const mockGetBatchElevations = jest.fn();
-jest.mock("../services/elevationService", () => ({
+const mockGetElevationProfile = vi.fn();
+const mockGetElevationAt = vi.fn();
+const mockGetBatchElevations = vi.fn();
+vi.mock("../services/elevationService", () => ({
   ElevationService: {
     getElevationProfile: mockGetElevationProfile,
     getElevationAt: mockGetElevationAt,
@@ -46,13 +47,13 @@ jest.mock("../services/elevationService", () => ({
 }));
 
 // TopodataService mock
-const mockIsWithinBrazil = jest.fn().mockReturnValue(true);
-const mockGetCacheStats = jest
+const mockIsWithinBrazil = vi.fn().mockReturnValue(true);
+const mockGetCacheStats = vi
   .fn()
   .mockReturnValue({ size: 0, hits: 0, misses: 0 });
-const mockClearCache = jest.fn();
-const mockTopodataGetElevation = jest.fn().mockResolvedValue(760);
-jest.mock("../services/topodataService", () => ({
+const mockClearCache = vi.fn();
+const mockTopodataGetElevation = vi.fn().mockResolvedValue(760);
+vi.mock("../services/topodataService", () => ({
   TopodataService: {
     isWithinBrazil: mockIsWithinBrazil,
     getCacheStats: mockGetCacheStats,
@@ -357,7 +358,7 @@ describe("elevationRoutes — batch", () => {
 // ════════════════════════════════════════════════════════════════════════════
 
 describe("elevationRoutes — cache", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   it("GET /cache/status — 200 com stats do cache", async () => {
     mockGetCacheStats.mockReturnValue({
@@ -381,7 +382,7 @@ describe("elevationRoutes — cache", () => {
 
   it("POST /cache/clear — 200 limpa o cache", async () => {
     mockClearCache.mockReturnValue(undefined);
-    const res = await request(elevationApp).post("/cache/clear");
+    const res = await request(elevationApp).post("/cache/clear").send({});
     expect(res.status).toBe(200);
     expect(mockClearCache).toHaveBeenCalled();
   });
@@ -390,7 +391,7 @@ describe("elevationRoutes — cache", () => {
     mockClearCache.mockImplementationOnce(() => {
       throw new Error("fail");
     });
-    const res = await request(elevationApp).post("/cache/clear");
+    const res = await request(elevationApp).post("/cache/clear").send({});
     expect(res.status).toBe(500);
   });
 });
@@ -400,7 +401,7 @@ describe("elevationRoutes — cache", () => {
 // ════════════════════════════════════════════════════════════════════════════
 
 describe("elevationRoutes — compare", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   it("GET /compare — 400 sem parâmetros", async () => {
     const res = await request(elevationApp).get("/compare");
@@ -442,7 +443,7 @@ describe("elevationRoutes — stats sem dados", () => {
 // ════════════════════════════════════════════════════════════════════════════
 
 describe("elevationRoutes — slope", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   it("GET /slope — 400 sem parâmetros", async () => {
     const res = await request(elevationApp).get("/slope");
@@ -475,3 +476,4 @@ describe("elevationRoutes — slope", () => {
     expect(res.status).toBe(500);
   });
 });
+

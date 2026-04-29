@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * jobIdempotency.test.ts
  * Tests for Export Job Idempotency (Roadmap Items 3 and 71).
@@ -20,8 +21,8 @@ import {
     stopCleanupInterval,
 } from '../services/jobStatusService';
 
-jest.mock('../utils/logger', () => ({
-    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() }
+vi.mock('../utils/logger', () => ({
+    logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
 }));
 
 describe('computeIdempotencyKey', () => {
@@ -105,3 +106,4 @@ describe('findOrCreateJob', () => {
         expect(retrieved?.idempotencyKey).toBe(key);
     });
 });
+

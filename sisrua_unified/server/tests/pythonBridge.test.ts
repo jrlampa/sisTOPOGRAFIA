@@ -4,20 +4,20 @@
  * Testes para pythonBridge.ts: PythonOomError, constantes e validação de inputs.
  */
 
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 // ─── Mock logger ─────────────────────────────────────────────────────────────
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 // ─── Mock config ─────────────────────────────────────────────────────────────
-jest.mock("../config", () => ({
+vi.mock("../config.js", () => ({
   config: {
     PYTHON_COMMAND: "",
     NODE_ENV: "test",
@@ -27,18 +27,20 @@ jest.mock("../config", () => ({
 }));
 
 // ─── Mock metricsService ─────────────────────────────────────────────────────
-jest.mock("../services/metricsService", () => ({
+vi.mock("../services/metricsService.js", () => ({
   metricsService: {
-    recordMetricObservation: jest.fn(),
-    recordDxfGenerationDuration: jest.fn(),
+    recordMetricObservation: vi.fn(),
+    recordDxfGenerationDuration: vi.fn(),
   },
 }));
 
 // ─── Mock child_process ──────────────────────────────────────────────────────
-const spawnSyncMock = jest.fn<(...args: any[]) => any>();
-const spawnMock = jest.fn<(...args: any[]) => any>();
+const { spawnSyncMock, spawnMock } = vi.hoisted(() => ({
+  spawnSyncMock: vi.fn<(...args: any[]) => any>(),
+  spawnMock: vi.fn<(...args: any[]) => any>(),
+}));
 
-jest.mock("child_process", () => ({
+vi.mock("child_process", () => ({
   spawn: spawnMock,
   spawnSync: spawnSyncMock,
 }));
@@ -307,11 +309,11 @@ describe("generateDxf — OOM exit code", () => {
     spawnSyncMock.mockReset();
     spawnMock.mockReset();
     // Advance Date.now past the 5-minute probe TTL to invalidate any cached entries
-    jest.spyOn(Date, "now").mockReturnValue(Date.now() + 6 * 60 * 1000);
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 6 * 60 * 1000);
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("rejects with PythonOomError when process exits with code 137", async () => {
@@ -331,12 +333,12 @@ describe("generateDxf — OOM exit code", () => {
     // Setup spawn mock that immediately emits exit 137
     const eventHandlers: Record<string, (...args: any[]) => void> = {};
     const fakePythonProcess = {
-      stdout: { on: jest.fn() },
-      stderr: { on: jest.fn() },
-      on: jest.fn((event: string, handler: (...args: any[]) => void) => {
+      stdout: { on: vi.fn() },
+      stderr: { on: vi.fn() },
+      on: vi.fn((event: string, handler: (...args: any[]) => void) => {
         eventHandlers[event] = handler;
       }),
-      kill: jest.fn(),
+      kill: vi.fn(),
     };
 
     spawnMock.mockReturnValue(fakePythonProcess);
@@ -373,15 +375,15 @@ describe("generateDxf — OOM exit code", () => {
     const stdoutHandlers: Record<string, (...args: any[]) => void> = {};
     const fakePythonProcess = {
       stdout: {
-        on: jest.fn((event: string, handler: (...args: any[]) => void) => {
+        on: vi.fn((event: string, handler: (...args: any[]) => void) => {
           stdoutHandlers[event] = handler;
         }),
       },
-      stderr: { on: jest.fn() },
-      on: jest.fn((event: string, handler: (...args: any[]) => void) => {
+      stderr: { on: vi.fn() },
+      on: vi.fn((event: string, handler: (...args: any[]) => void) => {
         eventHandlers[event] = handler;
       }),
-      kill: jest.fn(),
+      kill: vi.fn(),
     };
 
     spawnMock.mockReturnValue(fakePythonProcess);
@@ -428,24 +430,24 @@ describe("generateDxf — OOM exit code", () => {
     ) {
       return {
         stdout: {
-          on: jest.fn((event: string, h: (...args: any[]) => void) => { stdoutHandlers[event] = h; }),
+          on: vi.fn((event: string, h: (...args: any[]) => void) => { stdoutHandlers[event] = h; }),
         },
         stderr: {
-          on: jest.fn((event: string, h: (...args: any[]) => void) => { stderrHandlers[event] = h; }),
+          on: vi.fn((event: string, h: (...args: any[]) => void) => { stderrHandlers[event] = h; }),
         },
-        on: jest.fn((event: string, h: (...args: any[]) => void) => { eventHandlers[event] = h; }),
-        kill: jest.fn(),
+        on: vi.fn((event: string, h: (...args: any[]) => void) => { eventHandlers[event] = h; }),
+        kill: vi.fn(),
       };
     }
 
     beforeEach(() => {
       spawnSyncMock.mockReset();
       spawnMock.mockReset();
-      jest.spyOn(Date, "now").mockReturnValue(Date.now() + 6 * 60 * 1000);
+      vi.spyOn(Date, "now").mockReturnValue(Date.now() + 6 * 60 * 1000);
     });
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
       delete process.env.PYTHON_MEMORY_LIMIT_MB;
     });
 
@@ -511,3 +513,4 @@ describe("requestContext module", () => {
     expect(result).toBe("abc-123");
   });
 });
+

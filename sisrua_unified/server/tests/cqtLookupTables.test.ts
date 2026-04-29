@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * cqtLookupTables.test.ts
  *
@@ -6,26 +7,28 @@
  * getDisjuntoresByScenario em ambos os modos: baseline e DB cache.
  */
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 // ── Mocks configuráveis ──────────────────────────────────────────────────────
-const mockGetSync = jest.fn();
+const { mockGetSync } = vi.hoisted(() => ({
+  mockGetSync: vi.fn(),
+}));
 
-jest.mock("../config", () => ({
+vi.mock("../config", () => ({
   config: {
     useDbConstantsCqt: false,
     useDbConstantsConfig: false,
   },
 }));
 
-jest.mock("../services/constantsService.js", () => ({
+vi.mock("../services/constantsService.js", () => ({
   constantsService: {
     getSync: mockGetSync,
   },
@@ -187,3 +190,4 @@ describe("cqtLookupTables — getDisjuntoresByScenario", () => {
     expect(getDisjuntoresByScenario("proj2")).toEqual(DISJUNTORES_BASELINE);
   });
 });
+

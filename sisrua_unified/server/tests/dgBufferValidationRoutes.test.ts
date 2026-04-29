@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from "vitest";
 import request from 'supertest';
 import express from 'express';
 import { dgBufferValidationRoutes } from '../routes/dgBufferValidationRoutes.js';
@@ -6,7 +6,7 @@ import * as bufferService from '../services/dgBufferValidationService.js';
 import { errorHandler } from '../errorHandler.js';
 
 // Mock permissions and validator to skip complex setups
-jest.mock('../middleware/permissionHandler.js', () => ({
+vi.mock('../middleware/permissionHandler.js', () => ({
   permissionHandler: () => (req: any, res: any, next: any) => {
     res.locals.userId = 'test-user';
     res.locals.tenantId = 'test-tenant';
@@ -14,8 +14,25 @@ jest.mock('../middleware/permissionHandler.js', () => ({
   },
 }));
 
+vi.mock("../middleware/schemaValidator.js", async () => {
+  const { z } = await import("zod");
+  return {
+    schemaValidator: (schema: z.ZodTypeAny) => (req: any, res: any, next: any) => {
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Parâmetros inválidos",
+          details: parsed.error.issues,
+        });
+      }
+      req.body = parsed.data;
+      next();
+    },
+  };
+});
+
 // Mock the service
-jest.mock('../services/dgBufferValidationService.js');
+vi.mock('../services/dgBufferValidationService.js');
 
 describe('dgBufferValidationRoutes', () => {
   let app: express.Application;
@@ -25,7 +42,7 @@ describe('dgBufferValidationRoutes', () => {
     app.use(express.json());
     app.use('/api/dg', dgBufferValidationRoutes);
     app.use(errorHandler);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('GET /api/dg/buffer-config', () => {
@@ -44,7 +61,7 @@ describe('dgBufferValidationRoutes', () => {
         metersToNearestStreet: 0.4,
         isInsideBuilding: false,
       };
-      (bufferService.validateBufferZone as jest.Mock).mockResolvedValue(mockResult);
+      (bufferService.validateBufferZone as vi.Mock).mockResolvedValue(mockResult);
 
       const payload = {
         candidatePoint: { latitude: -22.9, longitude: -43.2 },
@@ -76,7 +93,7 @@ describe('dgBufferValidationRoutes', () => {
         results: [],
         acceptanceRate: 0.8,
       };
-      (bufferService.validateMultiplePoints as jest.Mock).mockResolvedValue(mockResult);
+      (bufferService.validateMultiplePoints as vi.Mock).mockResolvedValue(mockResult);
 
       const payload = {
         candidatePoints: [{ latitude: -22.9, longitude: -43.2 }],
@@ -104,3 +121,4 @@ describe('dgBufferValidationRoutes', () => {
     });
   });
 });
+

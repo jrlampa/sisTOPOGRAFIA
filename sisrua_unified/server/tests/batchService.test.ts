@@ -1,4 +1,5 @@
-import * as XLSX from 'xlsx';
+import { vi } from "vitest";
+import ExcelJS from "exceljs";
 import { Transform } from 'stream';
 import { parseBatchCsv, parseBatchExcel, parseBatchFile } from '../services/batchService';
 
@@ -136,33 +137,47 @@ describe('BatchService', () => {
     });
 
     it('should reject on CSV parse error', async () => {
-      jest.resetModules();
-      jest.doMock('csv-parser', () => () => {
-        const t = new Transform({
-          transform(_chunk: Buffer, _encoding: string, callback: (err?: Error) => void) {
-            callback(new Error('CSV parse error'));
-          }
-        });
-        return t;
-      });
+      vi.resetModules();
+      vi.doMock("csv-parser", () => ({
+        default: () => {
+          const t = new Transform({
+            transform(
+              _chunk: Buffer,
+              _encoding: string,
+              callback: (err?: Error) => void,
+            ) {
+              callback(new Error("CSV parse error"));
+            },
+          });
+          return t;
+        },
+      }));
       const { parseBatchCsv: freshParse } = await import('../services/batchService');
       await expect(freshParse(Buffer.from('name,lat\n1,2'))).rejects.toThrow('CSV parse error');
-      jest.resetModules();
+      vi.resetModules();
     });
   });
 
   describe.skip('parseBatchExcel', () => {
-    function makeXlsxBuffer(rows: Array<Record<string, string>>): Buffer {
-      const wb = XLSX.utils.book_new();
-      const headers = rows.length > 0 ? Object.keys(rows[0]) : ['name', 'lat', 'lon', 'radius', 'mode'];
-      const wsData: string[][] = [headers, ...rows.map(r => headers.map(h => r[h] ?? ''))];
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
-      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-      return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+    async function makeXlsxBuffer(rows: Array<Record<string, string>>): Promise<Buffer> {
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Sheet1");
+      const headers =
+        rows.length > 0
+          ? Object.keys(rows[0] ?? {})
+          : ["name", "lat", "lon", "radius", "mode"];
+
+      ws.addRow(headers);
+      for (const row of rows) {
+        ws.addRow(headers.map((h) => row[h] ?? ""));
+      }
+
+      const buf = await wb.xlsx.writeBuffer();
+      return Buffer.from(buf);
     }
 
     it('should parse Excel buffer with data rows', async () => {
-      const buf = makeXlsxBuffer([
+      const buf = await makeXlsxBuffer([
         { name: 'Loc1', lat: '-23.5505', lon: '-46.6333', radius: '500', mode: 'circle' }
       ]);
       const results = await parseBatchExcel(buf);
@@ -171,17 +186,14 @@ describe('BatchService', () => {
       expect(results[0].row.name).toBe('Loc1');
     });
 
-    it('should return empty array for Excel with no data rows', () => {
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet([['name', 'lat', 'lon', 'radius', 'mode']]);
-      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-      const buf = Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+    it('should return empty array for Excel with no data rows', async () => {
+      const buf = await makeXlsxBuffer([]);
       const results = parseBatchExcel(buf);
       expect(results).toHaveLength(0);
     });
 
-    it('should assign correct line numbers (starting at 2)', () => {
-      const buf = makeXlsxBuffer([
+    it('should assign correct line numbers (starting at 2)', async () => {
+      const buf = await makeXlsxBuffer([
         { name: 'A', lat: '-23.1', lon: '-46.1', radius: '100', mode: 'circle' },
         { name: 'B', lat: '-23.2', lon: '-46.2', radius: '200', mode: 'polygon' },
       ]);
@@ -192,13 +204,21 @@ describe('BatchService', () => {
   });
 
   describe.skip('parseBatchFile', () => {
-    function makeXlsxBuffer(rows: Array<Record<string, string>>): Buffer {
-      const wb = XLSX.utils.book_new();
-      const headers = rows.length > 0 ? Object.keys(rows[0]) : ['name', 'lat', 'lon', 'radius', 'mode'];
-      const wsData: string[][] = [headers, ...rows.map(r => headers.map(h => r[h] ?? ''))];
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
-      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-      return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+    async function makeXlsxBuffer(rows: Array<Record<string, string>>): Promise<Buffer> {
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Sheet1");
+      const headers =
+        rows.length > 0
+          ? Object.keys(rows[0] ?? {})
+          : ["name", "lat", "lon", "radius", "mode"];
+
+      ws.addRow(headers);
+      for (const row of rows) {
+        ws.addRow(headers.map((h) => row[h] ?? ""));
+      }
+
+      const buf = await wb.xlsx.writeBuffer();
+      return Buffer.from(buf);
     }
 
     it('should route text/csv to parseBatchCsv', async () => {
@@ -209,13 +229,13 @@ describe('BatchService', () => {
     });
 
     it('should route xlsx mimetype to parseBatchExcel', async () => {
-      const buf = makeXlsxBuffer([{ name: 'Loc', lat: '-23.5505', lon: '-46.6333', radius: '500', mode: 'circle' }]);
+      const buf = await makeXlsxBuffer([{ name: 'Loc', lat: '-23.5505', lon: '-46.6333', radius: '500', mode: 'circle' }]);
       const results = await parseBatchFile(buf, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       expect(results).toHaveLength(1);
     });
 
     it('should route xlsm mimetype to parseBatchExcel', async () => {
-      const buf = makeXlsxBuffer([{ name: 'Loc', lat: '-23.5505', lon: '-46.6333', radius: '500', mode: 'circle' }]);
+      const buf = await makeXlsxBuffer([{ name: 'Loc', lat: '-23.5505', lon: '-46.6333', radius: '500', mode: 'circle' }]);
       const results = await parseBatchFile(buf, 'application/vnd.ms-excel.sheet.macroEnabled.12');
       expect(results).toHaveLength(1);
     });
@@ -241,3 +261,4 @@ describe('BatchService', () => {
     });
   });
 });
+

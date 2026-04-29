@@ -1,24 +1,25 @@
+import { vi } from "vitest";
 import type { UserRole } from '../services/roleService';
 
 // Mock logger first (before any other import)
-jest.mock('../utils/logger', () => ({
+vi.mock('../utils/logger', () => ({
     logger: {
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        debug: jest.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
     }
 }));
 
 // Mock dbClient compartilhado (roleService usa getDbClient() em vez de criar conexão própria)
-const mockSql = jest.fn();
-jest.mock('../repositories/dbClient', () => ({
+const mockSql = vi.fn();
+vi.mock('../repositories/dbClient', () => ({
     getDbClient: () => mockSql,
     isDbAvailable: () => true,
 }));
 
-const onRoleChangeMock = jest.fn();
-jest.mock('../services/cacheService', () => ({
+const onRoleChangeMock = vi.fn();
+vi.mock('../services/cacheService', () => ({
     onRoleChange: (userId: string) => onRoleChangeMock(userId),
 }));
 
@@ -33,7 +34,7 @@ import {
 
 describe('RoleService', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         onRoleChangeMock.mockClear();
         clearRoleCache();
     });
@@ -251,3 +252,4 @@ describe('RoleService', () => {
         });
     });
 });
+

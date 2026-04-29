@@ -1,18 +1,18 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import type { DgOptimizationOutput } from "../services/dg/dgTypes";
 
-const unsafeMock = jest.fn();
+const unsafeMock = vi.fn();
 
-jest.mock("../repositories/dbClient", () => ({
-  getDbClient: jest.fn(() => ({ unsafe: unsafeMock })),
+vi.mock("../repositories/dbClient", () => ({
+  getDbClient: vi.fn(),
 }));
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -20,8 +20,8 @@ import { getDbClient } from "../repositories/dbClient";
 import { logger } from "../utils/logger";
 import { PostgresDgRunRepository } from "../repositories/dgRunRepository";
 
-const getDbClientMock = getDbClient as jest.Mock;
-const loggerWarnMock = logger.warn as jest.Mock;
+const getDbClientMock = getDbClient as unknown as vi.Mock;
+const loggerWarnMock = logger.warn as unknown as vi.Mock;
 
 function makeRun(runId: string, tenantId?: string): DgOptimizationOutput {
   const baseScenario = {
@@ -119,7 +119,7 @@ describe("PostgresDgRunRepository", () => {
   let repo: PostgresDgRunRepository;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     getDbClientMock.mockReturnValue({ unsafe: unsafeMock });
     unsafeMock.mockReset();
     repo = new PostgresDgRunRepository();
@@ -225,3 +225,4 @@ describe("PostgresDgRunRepository", () => {
     expect(ratesB.every((row) => row.tenantId === "tenant-b")).toBe(true);
   });
 });
+

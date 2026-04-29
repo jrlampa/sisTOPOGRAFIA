@@ -1,12 +1,13 @@
+import { vi } from "vitest";
 import express from 'express';
 import request from 'supertest';
 
-const getFeaturesByBBoxMock = jest.fn();
-const getWmsMapUrlMock = jest.fn();
+const getFeaturesByBBoxMock = vi.fn();
+const getWmsMapUrlMock = vi.fn();
 
-jest.mock('../services/indeService', () => ({
+vi.mock('../services/indeService', () => ({
   IndeService: {
-    getWfsCapabilities: jest.fn(),
+    getWfsCapabilities: vi.fn(),
     getFeaturesByBBox: (...args: unknown[]) => getFeaturesByBBoxMock(...args),
     getWmsMapUrl: (...args: unknown[]) => getWmsMapUrlMock(...args),
   },
@@ -14,8 +15,8 @@ jest.mock('../services/indeService', () => ({
 
 describe('indeRoutes bbox validation', () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it('rejects invalid bbox on /features/:source', async () => {
@@ -44,7 +45,9 @@ describe('indeRoutes bbox validation', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error).toContain('Parâmetros inválidos');
-    expect(JSON.stringify(response.body.details)).toContain('Number must be less than or equal to 4096');
+    expect(JSON.stringify(response.body.details)).toContain(
+      "Too big: expected number to be <=4096",
+    );
     expect(getWmsMapUrlMock).not.toHaveBeenCalled();
   });
 
@@ -82,3 +85,4 @@ describe('indeRoutes bbox validation', () => {
     expect(response.body.meta.total).toBe(2);
   });
 });
+

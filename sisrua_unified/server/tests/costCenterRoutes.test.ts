@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * costCenterRoutes.test.ts
  * Testes de integração das rotas de centros de custo (Roadmap Item 36 [T2]).
@@ -7,12 +8,12 @@ import express from "express";
 import request from "supertest";
 import { clearAllCostCenters } from "../services/costCenterService.js";
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -20,8 +21,8 @@ const TOKEN = "cc-admin-token-xyz";
 const AUTH = "Bearer " + TOKEN;
 
 async function buildApp(metricsToken: string | undefined) {
-  jest.resetModules();
-  jest.doMock("../config", () => ({
+  vi.resetModules();
+  vi.doMock("../config", () => ({
     config: { METRICS_TOKEN: metricsToken },
   }));
   const { default: costCenterRoutes } = await import("../routes/costCenterRoutes");
@@ -36,8 +37,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.resetModules();
-  jest.clearAllMocks();
+  vi.resetModules();
+  vi.clearAllMocks();
   clearAllCostCenters();
 });
 
@@ -413,3 +414,4 @@ describe("DELETE /api/cost-centers/:tenantId/:ccId (admin)", () => {
     expect(res.status).toBe(404);
   });
 });
+

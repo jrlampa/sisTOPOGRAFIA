@@ -9,27 +9,27 @@
  *   - readTopology: leitura canônica quando há dados, fallback legado quando vazio,
  *                   forceLegacy ignora canônico, sem dados retorna topologia vazia
  */
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-const unsafeMock = jest.fn();
+const unsafeMock = vi.fn();
 
-jest.mock("../repositories/dbClient", () => ({
-  getDbClient: jest.fn(() => ({ unsafe: unsafeMock })),
+vi.mock("../repositories/dbClient", () => ({
+  getDbClient: vi.fn(() => ({ unsafe: unsafeMock })),
 }));
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 import { PostgresCanonicalTopologyRepository } from "../repositories/canonicalTopologyRepository";
 import { getDbClient } from "../repositories/dbClient";
 
-const getDbClientMock = getDbClient as jest.Mock;
+const getDbClientMock = getDbClient as vi.Mock;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -78,7 +78,7 @@ describe("PostgresCanonicalTopologyRepository", () => {
   let repo: PostgresCanonicalTopologyRepository;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     getDbClientMock.mockReturnValue({ unsafe: unsafeMock });
     repo = new PostgresCanonicalTopologyRepository();
   });
@@ -316,3 +316,4 @@ describe("PostgresCanonicalTopologyRepository", () => {
     });
   });
 });
+

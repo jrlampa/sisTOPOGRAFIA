@@ -1,16 +1,17 @@
+import { vi } from "vitest";
 import express from 'express';
 import request from 'supertest';
 
-const getJobMock = jest.fn();
+const getJobMock = vi.fn();
 
-jest.mock('../services/jobStatusService', () => ({
+vi.mock('../services/jobStatusService', () => ({
   getJob: getJobMock,
 }));
 
 describe('jobRoutes error sanitization', () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it('returns generic 500 without details leakage on job lookup failure', async () => {
@@ -30,3 +31,4 @@ describe('jobRoutes error sanitization', () => {
     expect(JSON.stringify(response.body)).not.toContain('refused');
   });
 });
+

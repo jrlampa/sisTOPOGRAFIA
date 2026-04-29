@@ -5,7 +5,7 @@
  * Valida a conectividade básica e os serviços vitais do backend.
  */
 import request from "supertest";
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import app from "../app.js";
 import { config } from "../config.js";
 
@@ -49,3 +49,4 @@ describe("Smoke Tests — Serviços Vitais", () => {
     expect([200, 503]).toContain(res.status);
   });
 });
+

@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * circuitBreaker.test.ts
  * Tests for CircuitBreaker utility – state transitions, fallback, recovery.
@@ -10,8 +11,8 @@ import {
     clearCircuitBreakerRegistry,
 } from '../utils/circuitBreaker';
 
-jest.mock('../utils/logger', () => ({
-    logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
+vi.mock('../utils/logger', () => ({
+    logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
 const ok = () => Promise.resolve('ok');
@@ -73,7 +74,7 @@ describe('CircuitBreaker – CLOSED → OPEN', () => {
     });
 
     it('invokes onStateChange callback on open', async () => {
-        const onChange = jest.fn();
+        const onChange = vi.fn();
         const cb = new CircuitBreaker({ name: 'x', failureThreshold: 2, onStateChange: onChange });
         for (let i = 0; i < 2; i++) {
             await expect(cb.execute(fail)).rejects.toThrow();
@@ -90,7 +91,7 @@ describe('CircuitBreaker – OPEN rejects immediately', () => {
         for (let i = 0; i < 2; i++) {
             await expect(cb.execute(fail)).rejects.toThrow();
         }
-        const spy = jest.fn(ok);
+        const spy = vi.fn(ok);
         await expect(cb.execute(spy)).rejects.toThrow(/OPEN/);
         expect(spy).not.toHaveBeenCalled();
     });
@@ -157,7 +158,7 @@ describe('CircuitBreaker – HALF_OPEN → CLOSED recovery', () => {
     });
 
     it('invokes onStateChange callback on close', async () => {
-        const onChange = jest.fn();
+        const onChange = vi.fn();
         const cb = new CircuitBreaker({
             name: 'y',
             failureThreshold: 2,
@@ -258,3 +259,4 @@ describe('getCircuitBreaker registry', () => {
         });
     });
 });
+

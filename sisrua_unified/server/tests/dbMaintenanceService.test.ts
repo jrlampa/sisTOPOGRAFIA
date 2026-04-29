@@ -1,30 +1,34 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-// Mock do config ANTES de importar o serviço
-jest.unstable_mockModule("../config.js", () => ({
-  config: {
-    DATABASE_URL: "postgres://user:pass@localhost:5432/db",
-  },
-}));
+// Vitest v4 não expõe `vi.unstable_mockModule` aqui.
+// Fazemos mocks via `vi.doMock` + import dinâmico por teste.
+const mockUnsafe = vi.fn();
+const mockSql = Object.assign(vi.fn(), { unsafe: mockUnsafe });
 
-// Mock do postgres
-const mockUnsafe = jest.fn();
-const mockSql = Object.assign(jest.fn(), { unsafe: mockUnsafe });
-jest.unstable_mockModule("postgres", () => ({
-  __esModule: true,
-  default: jest.fn(() => mockSql),
-}));
-
-// Importações dinâmicas após os mocks
-const { DbMaintenanceService } = await import("../services/dbMaintenanceService.js");
+async function loadService() {
+  vi.doMock("../config.js", () => ({
+    config: {
+      DATABASE_URL: "postgres://user:pass@localhost:5432/db",
+    },
+  }));
+  vi.doMock("postgres", () => ({
+    __esModule: true,
+    default: vi.fn(() => mockSql),
+  }));
+  return import("../services/dbMaintenanceService.js") as Promise<
+    typeof import("../services/dbMaintenanceService")
+  >;
+}
 
 describe("DbMaintenanceService", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
+    vi.resetModules();
   });
 
   describe("sanitizeFailedDxfTasks", () => {
     it("should classify and process tasks correctly", async () => {
+      const { DbMaintenanceService } = await loadService();
       const mockTasks = [
         { task_id: "1", error: "missing required parameters", payload: {} },
         { task_id: "2", error: "python script failed to spawn", payload: { lat: -23, lon: -46, radius: 100 } },
@@ -42,6 +46,7 @@ describe("DbMaintenanceService", () => {
     });
 
     it("should handle empty task list", async () => {
+      const { DbMaintenanceService } = await loadService();
       mockUnsafe.mockResolvedValueOnce([]);
       const result = await DbMaintenanceService.sanitizeFailedDxfTasks(10);
       expect(result.processed).toBe(0);
@@ -50,3 +55,4 @@ describe("DbMaintenanceService", () => {
     });
   });
 });
+

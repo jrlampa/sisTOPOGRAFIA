@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * adminRoutes.test.ts
  * Testes de integração das rotas de Autoatendimento Administrativo (Item 35 [T1]).
@@ -6,12 +7,12 @@
 import express from "express";
 import request from "supertest";
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -20,20 +21,20 @@ const AUTH = "Bearer " + TOKEN;
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-const mockGetUsersByRole = jest.fn();
-const mockSetUserRole = jest.fn();
-const mockGetRoleStatistics = jest.fn();
+const mockGetUsersByRole = vi.fn();
+const mockSetUserRole = vi.fn();
+const mockGetRoleStatistics = vi.fn();
 
-jest.mock("../services/roleService", () => ({
+vi.mock("../services/roleService", () => ({
   getUsersByRole: (...args: unknown[]) => mockGetUsersByRole(...args),
   setUserRole: (...args: unknown[]) => mockSetUserRole(...args),
   getRoleStatistics: (...args: unknown[]) => mockGetRoleStatistics(...args),
 }));
 
-const mockGetTenantQuotas = jest.fn().mockReturnValue({});
-const mockListarTenantComQuotas = jest.fn().mockReturnValue([]);
+const mockGetTenantQuotas = vi.fn().mockReturnValue({});
+const mockListarTenantComQuotas = vi.fn().mockReturnValue([]);
 
-jest.mock("../services/tenantQuotaService", () => ({
+vi.mock("../services/tenantQuotaService", () => ({
   getTenantQuotas: (...args: unknown[]) => mockGetTenantQuotas(...args),
   listarTenantComQuotas: () => mockListarTenantComQuotas(),
   JANELA_QUOTA_MS: {
@@ -45,35 +46,35 @@ jest.mock("../services/tenantQuotaService", () => ({
   },
 }));
 
-const mockGetTenantFlagOverrides = jest.fn().mockReturnValue({});
+const mockGetTenantFlagOverrides = vi.fn().mockReturnValue({});
 
-jest.mock("../services/tenantFeatureFlagService", () => ({
+vi.mock("../services/tenantFeatureFlagService", () => ({
   getTenantFlagOverrides: (...args: unknown[]) =>
     mockGetTenantFlagOverrides(...args),
 }));
 
-const mockRelatorioKpiTenant = jest.fn();
+const mockRelatorioKpiTenant = vi.fn();
 
-jest.mock("../services/businessKpiService", () => ({
+vi.mock("../services/businessKpiService", () => ({
   relatorioKpiTenant: (...args: unknown[]) => mockRelatorioKpiTenant(...args),
 }));
 
-const mockGetSystemHealthMvsReport = jest.fn();
+const mockGetSystemHealthMvsReport = vi.fn();
 
-jest.mock("../services/systemHealthDashboardService", () => ({
+vi.mock("../services/systemHealthDashboardService", () => ({
   getSystemHealthMvsReport: () => mockGetSystemHealthMvsReport(),
 }));
 
-const mockGetDbClient = jest.fn().mockReturnValue(null);
+const mockGetDbClient = vi.fn().mockReturnValue(null);
 
-jest.mock("../repositories/dbClient", () => ({
+vi.mock("../repositories/dbClient", () => ({
   getDbClient: () => mockGetDbClient(),
   isDbAvailable: () => false,
 }));
 
 async function buildApp(adminToken: string | undefined, nodeEnv = "test") {
-  jest.resetModules();
-  jest.doMock("../config", () => ({
+  vi.resetModules();
+  vi.doMock("../config", () => ({
     config: {
       ADMIN_TOKEN: adminToken,
       METRICS_TOKEN: undefined,
@@ -89,7 +90,7 @@ async function buildApp(adminToken: string | undefined, nodeEnv = "test") {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   mockGetUsersByRole.mockResolvedValue([]);
   mockSetUserRole.mockResolvedValue(true);
   mockGetRoleStatistics.mockResolvedValue({
@@ -105,8 +106,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.resetModules();
-  jest.clearAllMocks();
+  vi.resetModules();
+  vi.clearAllMocks();
 });
 
 // ─── GET /saude ───────────────────────────────────────────────────────────────
@@ -400,19 +401,19 @@ describe("sem token configurado (regra unificada)", () => {
 
 // ─── Additional coverage: tenants DB, userId with .., servicos routes ────────
 
-const mockListServiceProfiles = jest.fn().mockResolvedValue([]);
-const mockUpsertServiceProfile = jest.fn();
-const mockRemoveServiceProfile = jest.fn();
+const mockListServiceProfiles = vi.fn().mockResolvedValue([]);
+const mockUpsertServiceProfile = vi.fn();
+const mockRemoveServiceProfile = vi.fn();
 
-jest.mock("../services/tenantServiceProfileService", () => ({
+vi.mock("../services/tenantServiceProfileService", () => ({
   listServiceProfiles: (...args: unknown[]) => mockListServiceProfiles(...args),
   upsertServiceProfile: (...args: unknown[]) => mockUpsertServiceProfile(...args),
   removeServiceProfile: (...args: unknown[]) => mockRemoveServiceProfile(...args),
 }));
 
 async function buildAppFull(adminToken: string | undefined, dbClient: unknown = null, nodeEnv = "test") {
-  jest.resetModules();
-  jest.doMock("../config", () => ({
+  vi.resetModules();
+  vi.doMock("../config", () => ({
     config: {
       ADMIN_TOKEN: adminToken,
       METRICS_TOKEN: undefined,
@@ -420,7 +421,7 @@ async function buildAppFull(adminToken: string | undefined, dbClient: unknown = 
       APP_VERSION: "1.0.0-test",
     },
   }));
-  jest.doMock("../repositories/dbClient", () => ({
+  vi.doMock("../repositories/dbClient", () => ({
     getDbClient: () => dbClient,
     isDbAvailable: () => !!dbClient,
   }));
@@ -451,7 +452,7 @@ describe("adminRoutes — tenants com DB disponivel", () => {
     const mockRows = [
       { id: "1", slug: "tenant-a", name: "Tenant A", plan: "basic", is_active: true, created_at: "2024-01-01" },
     ];
-    const mockSql = jest.fn().mockResolvedValue(mockRows);
+    const mockSql = vi.fn().mockResolvedValue(mockRows);
     const app = await buildAppFull(TOKEN2, mockSql);
     const res = await request(app)
       .get("/api/admin/tenants")
@@ -462,7 +463,7 @@ describe("adminRoutes — tenants com DB disponivel", () => {
   });
 
   it("retorna 500 quando SQL lanca erro", async () => {
-    const mockSqlErr = jest.fn().mockRejectedValue(new Error("db crash"));
+    const mockSqlErr = vi.fn().mockRejectedValue(new Error("db crash"));
     const app = await buildAppFull(TOKEN2, mockSqlErr);
     const res = await request(app)
       .get("/api/admin/tenants")
@@ -568,3 +569,4 @@ describe("adminRoutes — GET /dashboard-mvs", () => {
     expect(res.body.erro).toContain("indisponível");
   });
 });
+

@@ -3,25 +3,27 @@
  * Testa todas as funções públicas do JobDossierService.
  * Utiliza mock do módulo 'postgres' para isolar de DB real.
  */
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import { config } from "../config";
 
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
-const unsafeMock = jest.fn();
-const endMock = jest.fn().mockResolvedValue(undefined);
-const mockPostgres = jest.fn(() => ({ unsafe: unsafeMock, end: endMock }));
+const unsafeMock = vi.fn();
+const endMock = vi.fn().mockResolvedValue(undefined);
+const { mockPostgres } = vi.hoisted(() => ({
+  mockPostgres: vi.fn(() => ({ unsafe: unsafeMock, end: endMock })),
+}));
 
-jest.mock("postgres", () => ({ __esModule: true, default: mockPostgres }));
+vi.mock("postgres", () => ({ __esModule: true, default: mockPostgres }));
 
-jest.mock("../config", () => ({
+vi.mock("../config", () => ({
   config: {
     DATABASE_URL: "postgresql://user:pass@localhost:5432/testdb",
     NODE_ENV: "test",
@@ -64,7 +66,7 @@ function makeTaskRow(overrides: Record<string, unknown> = {}) {
 
 describe("jobDossierService", () => {
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Reset module state between tests
     await closeJobDossierConnection();
   });
@@ -415,3 +417,4 @@ describe("jobDossierService", () => {
     });
   });
 });
+

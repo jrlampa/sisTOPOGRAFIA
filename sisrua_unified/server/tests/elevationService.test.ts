@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * elevationService.test.ts
  * Tests for ElevationService — haversine distance, profile generation, and fallbacks.
@@ -5,16 +6,16 @@
 
 import { ElevationService } from '../services/elevationService';
 
-jest.mock('../utils/logger', () => ({
-    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() }
+vi.mock('../utils/logger', () => ({
+    logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
 }));
 
 // Mock TopodataService so tests don't hit real network
-jest.mock('../services/topodataService', () => ({
+vi.mock('../services/topodataService', () => ({
     TopodataService: {
-        isWithinBrazil: jest.fn().mockReturnValue(false), // Default to non-Brazil
-        getElevation: jest.fn().mockResolvedValue(850),
-        getElevationProfile: jest.fn().mockResolvedValue([
+        isWithinBrazil: vi.fn().mockReturnValue(false), // Default to non-Brazil
+        getElevation: vi.fn().mockResolvedValue(850),
+        getElevationProfile: vi.fn().mockResolvedValue([
             { lat: -23.55, lng: -46.63, elevation: 780 },
             { lat: -22.9, lng: -43.17, elevation: 820 }
         ])
@@ -28,8 +29,8 @@ const RJ = { lat: -22.9, lng: -43.17 };
 
 describe('ElevationService', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
-        (TopodataService.isWithinBrazil as jest.Mock).mockReturnValue(false);
+        vi.clearAllMocks();
+        (TopodataService.isWithinBrazil as vi.Mock).mockReturnValue(false);
     });
 
     describe('calculateDistance (Haversine formula)', () => {
@@ -53,7 +54,7 @@ describe('ElevationService', () => {
 
     describe('getElevationProfile (open-elevation fallback)', () => {
         it('should return elevation points from API', async () => {
-            global.fetch = jest.fn().mockResolvedValue({
+            global.fetch = vi.fn().mockResolvedValue({
                 ok: true,
                 json: async () => ({
                     results: [
@@ -69,7 +70,7 @@ describe('ElevationService', () => {
         });
 
         it('should return flat terrain fallback when API fails', async () => {
-            global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as any;
+            global.fetch = vi.fn().mockRejectedValue(new Error('Network error')) as any;
 
             const profile = await ElevationService.getElevationProfile(SP, RJ, 4);
             // fallback: steps + 1 points
@@ -78,7 +79,7 @@ describe('ElevationService', () => {
         });
 
         it('should use TOPODATA when both points are within Brazil', async () => {
-            (TopodataService.isWithinBrazil as jest.Mock).mockReturnValue(true);
+            (TopodataService.isWithinBrazil as vi.Mock).mockReturnValue(true);
 
             const profile = await ElevationService.getElevationProfile(SP, RJ, 1);
             expect(profile).toHaveLength(2);
@@ -88,7 +89,7 @@ describe('ElevationService', () => {
 
     describe('getElevationAt', () => {
         it('should return elevation from open-elevation for non-Brazil coords', async () => {
-            global.fetch = jest.fn().mockResolvedValue({
+            global.fetch = vi.fn().mockResolvedValue({
                 ok: true,
                 json: async () => ({ results: [{ elevation: 500 }] })
             }) as any;
@@ -98,16 +99,17 @@ describe('ElevationService', () => {
         });
 
         it('should return null when open-elevation API fails', async () => {
-            global.fetch = jest.fn().mockRejectedValue(new Error('timeout')) as any;
+            global.fetch = vi.fn().mockRejectedValue(new Error('timeout')) as any;
             const result = await ElevationService.getElevationAt(40.71, -74.0);
             expect(result).toBeNull();
         });
 
         it('should call TopodataService.getElevation for Brazilian coords', async () => {
-            (TopodataService.isWithinBrazil as jest.Mock).mockReturnValue(true);
+            (TopodataService.isWithinBrazil as vi.Mock).mockReturnValue(true);
             const result = await ElevationService.getElevationAt(-23.55, -46.63);
             expect(TopodataService.getElevation).toHaveBeenCalledWith(-23.55, -46.63);
             expect(result).toBe(850);
         });
     });
 });
+
