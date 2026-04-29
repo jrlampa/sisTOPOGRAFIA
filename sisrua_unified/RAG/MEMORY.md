@@ -67,9 +67,9 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 
 ## Próximos Passos (Próxima Sessão)
 
-1. **Dashboard de Monitoramento**: Implementar visualização de KPIs de rede e saúde do sistema baseada em Supabase MVs.
-2. **Auditoria de Performance**: Executar `apply_perf_migrations.py` e validar ganhos de latência.
-3. **Multi-Tenancy**: Refinar RLS e governança de projetos por organização.
+1. **Auditoria de Performance**: Executar `apply_perf_migrations.py` e validar ganhos de latência.
+2. **Multi-Tenancy**: Refinar RLS e governança de projetos por organização.
+3. **Melhoria UX Dashboard**: Adicionar interatividade aos gráficos de MVs (drill-down por dia).
 
 ## Padrões Técnicos (Non-negotiables)
 
@@ -77,6 +77,16 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 - **Supabase First**: Persistência de jobs e metadados via Postgres.
 - **Segurança First**: Sanitização de entradas e auditoria de dependências constante.
 - **BIM Evolution**: Manter estrutura compatível com metadados de engenharia.
+
+## Atualização Operacional (2026-04-28) - Sessão de Continuidade
+
+- **Dashboard de Monitoramento (MVs)** [Roadmap #125]:
+  - Implementado backend `systemHealthDashboardService.ts` consumindo `mv_bt_history_daily_summary`, `mv_audit_stats` e `mv_constants_namespace_summary`.
+  - Adicionada seção "Dashboard MVs" no `AdminPage.tsx`.
+  - Implementada renderização gráfica com `recharts` em `AdminPageSectionRenderers.tsx`.
+  - Cobertura de testes 100% no serviço (`server/tests/systemHealthDashboardService.test.ts`) e integração na rota `/api/admin/dashboard-mvs`.
+- **Sprint UX 1**: Todos os itens (UX-01 a UX-05) validados e consolidados.
+- **Estado do Banco**: 59 migrações aplicadas; MVs de performance ativas e sendo consumidas pela UI.
 
 ## Atualização Operacional (2026-04-27)
 
