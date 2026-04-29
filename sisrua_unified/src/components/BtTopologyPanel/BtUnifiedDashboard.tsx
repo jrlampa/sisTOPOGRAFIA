@@ -85,7 +85,7 @@ export const BtUnifiedDashboard: React.FC<BtUnifiedDashboardProps> = (props) => 
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as TabType)}
-            className={`relative flex flex-1 items-center justify-center gap-2 py-2 text-[10px] font-black uppercase tracking-wider transition-all duration-300 rounded-lg ${
+            className={`relative flex flex-1 items-center justify-center gap-2 py-2 text-xs font-black uppercase tracking-wider transition-all duration-300 rounded-lg ${
               activeTab === tab.id 
                 ? "text-blue-700" 
                 : "text-slate-500 hover:text-slate-700"

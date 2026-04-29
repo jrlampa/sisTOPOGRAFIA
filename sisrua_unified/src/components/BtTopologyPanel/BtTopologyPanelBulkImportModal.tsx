@@ -99,7 +99,7 @@ const BtTopologyPanelBulkImportModal: React.FC<
             onChange={(e) => setBulkRamalText(e.target.value)}
             spellCheck={false}
             placeholder={t.placeholder}
-            className="h-48 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 p-3 text-[11px] font-mono text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-700/40 outline-none transition-all resize-none shadow-inner"
+            className="h-48 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 p-3 text-sm font-mono text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-700/40 outline-none transition-all resize-none shadow-inner"
           />
 
           {bulkRamalFeedback && (
@@ -111,10 +111,10 @@ const BtTopologyPanelBulkImportModal: React.FC<
           {bulkImportReview && (
             <div className="rounded-xl border border-amber-300 dark:border-amber-700/40 bg-amber-50/50 dark:bg-amber-950/30 p-4 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                   {t.reviewTitle}
                 </span>
-                <span className="text-[10px] font-bold text-amber-800 dark:text-amber-200">
+                <span className="text-xs font-bold text-amber-800 dark:text-amber-200">
                   {bulkImportReview.currentPoleIndex + 1} / {bulkImportReview.orderedPoleIds.length} {t.reviewSummary}
                 </span>
               </div>

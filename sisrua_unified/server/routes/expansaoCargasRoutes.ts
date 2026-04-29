@@ -42,7 +42,7 @@ const novaCargaSchema = z.object({
 router.post("/simulacoes", (req: Request, res: Response) => {
   const parse = criarSchema.safeParse(req.body);
   if (!parse.success) {
-    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.errors });
+    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.issues });
     return;
   }
   const resultado = ExpansaoCargasService.criarSimulacao(parse.data);
@@ -77,7 +77,7 @@ router.get("/simulacoes/:id", (req: Request, res: Response) => {
 router.post("/simulacoes/:id/cargas-existentes", (req: Request, res: Response) => {
   const parse = cargaExistenteSchema.safeParse(req.body);
   if (!parse.success) {
-    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.errors });
+    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.issues });
     return;
   }
   const sim = ExpansaoCargasService.adicionarCargaExistente(req.params["id"]!, parse.data);
@@ -92,7 +92,7 @@ router.post("/simulacoes/:id/cargas-existentes", (req: Request, res: Response) =
 router.post("/simulacoes/:id/novas-cargas", (req: Request, res: Response) => {
   const parse = novaCargaSchema.safeParse(req.body);
   if (!parse.success) {
-    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.errors });
+    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.issues });
     return;
   }
   const sim = ExpansaoCargasService.adicionarNovaCarga(req.params["id"]!, parse.data);

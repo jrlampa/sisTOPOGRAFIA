@@ -177,14 +177,14 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
       error: "Falha na validação dos dados (Zod)",
       code: ErrorCode.INPUT_INVALID,
       category: ErrorCategory.VALIDATION,
-      details: { errors: err.errors },
+      details: { errors: err.issues },
       requestId,
       timestamp: new Date().toISOString(),
     };
 
     logger.warn(`[${ErrorCode.INPUT_INVALID}] Zod Validation Error`, {
       requestId,
-      errors: err.errors,
+      errors: err.issues,
     });
 
     return res.status(400).json(response);

@@ -70,7 +70,7 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
             className="bg-transparent border-none p-0 text-sm font-bold text-slate-900 focus:ring-0 w-full leading-tight"
           />
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-[10px] font-mono text-slate-400">
+            <span className="text-xs font-mono text-slate-400">
               ID: {pole.id}
             </span>
             {mechanicalResult?.overloaded && (
@@ -103,7 +103,7 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
 
               {/* ── Especificação do poste ── */}
               <section>
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5">
                   Especificação
                 </p>
                 <div className="flex items-center gap-2">
@@ -164,7 +164,7 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
                           material: e.target.value,
                         })
                       }
-                      className="bg-transparent border-none p-0 text-[10px] font-black text-slate-800 focus:ring-0 appearance-none cursor-pointer"
+                      className="bg-transparent border-none p-0 text-xs font-black text-slate-800 focus:ring-0 appearance-none cursor-pointer"
                     >
                       <option value="CC">CC</option>
                       <option value="DT">DT</option>
@@ -178,7 +178,7 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
 
               {/* ── Estruturas MT ── */}
               <section>
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5">
                   Estruturas MT
                 </p>
                 {mtStructures.length > 0 ? (
@@ -186,14 +186,14 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
                     {mtStructures.map((struct, idx) => (
                       <span
                         key={idx}
-                        className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md"
+                        className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md"
                       >
                         {struct}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[10px] text-slate-400 italic">
+                  <p className="text-xs text-slate-400 italic">
                     Sem estruturas MT
                   </p>
                 )}
@@ -201,7 +201,7 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
 
               {/* ── Estruturas BT ── */}
               <section>
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5">
                   Estruturas BT
                 </p>
                 {btStructures.length > 0 ? (
@@ -209,14 +209,14 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
                     {btStructures.map((s, i) => (
                       <span
                         key={i}
-                        className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md"
+                        className="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md"
                       >
                         {s}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[10px] text-slate-400 italic">
+                  <p className="text-xs text-slate-400 italic">
                     Passante — sem estrutura BT
                   </p>
                 )}
@@ -226,7 +226,7 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
               <section>
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Users size={10} className="text-emerald-600" />
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-400">
                     Ramais
                   </p>
                 </div>
@@ -235,7 +235,7 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
                     {ramais.map((r, i) => (
                       <div
                         key={i}
-                        className="flex items-center gap-2 text-[10px] font-semibold text-slate-700"
+                        className="flex items-center gap-2 text-xs font-semibold text-slate-700"
                       >
                         <span className="w-4 text-center text-slate-300 font-bold">
                           {i + 1}
@@ -247,7 +247,7 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[10px] text-slate-400 italic">
+                  <p className="text-xs text-slate-400 italic">
                     Nenhum cliente
                   </p>
                 )}
@@ -268,7 +268,7 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
                         : "text-slate-400"
                     }
                   />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-400">
                     Stress Mec.
                   </span>
                 </div>
@@ -282,7 +282,7 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
                   >
                     {mechanicalResult?.resultantForceDaN ?? 0}
                   </span>
-                  <span className="text-[9px] text-slate-400 font-semibold">
+                  <span className="text-xs text-slate-400 font-semibold">
                     daN
                   </span>
                 </div>
@@ -292,12 +292,12 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
               <div className="px-4 py-3">
                 <div className="flex items-center gap-1 mb-1">
                   <Truck size={10} className="text-slate-400" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-400">
                     Acesso
                   </span>
                 </div>
                 <span
-                  className={`text-[11px] font-bold leading-none ${
+                  className={`text-sm font-bold leading-none ${
                     pole.hasVehicleAccess === false
                       ? "text-amber-600"
                       : "text-emerald-600"

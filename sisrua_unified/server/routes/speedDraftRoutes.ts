@@ -85,7 +85,7 @@ router.post("/templates", (req: Request, res: Response) => {
   }
   const parse = criarTemplateSchema.safeParse(req.body);
   if (!parse.success) {
-    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.errors });
+    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.issues });
     return;
   }
   const resultado = SpeedDraftService.criarTemplate(tenantId, parse.data as Parameters<typeof SpeedDraftService.criarTemplate>[1]);

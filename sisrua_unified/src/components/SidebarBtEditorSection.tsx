@@ -214,21 +214,21 @@ export function SidebarBtEditorSection({
           <button
             onClick={() => setBtEditorMode("none")}
             aria-pressed={btEditorMode === "none"}
-            className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "none" ? "border-slate-900 bg-slate-900 text-slate-100 dark:border-slate-700 dark:bg-zinc-800" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
+            className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btEditorMode === "none" ? "border-slate-900 bg-slate-900 text-slate-100 dark:border-slate-700 dark:bg-zinc-800" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnNavigate}
           </button>
           <button
             onClick={() => setBtEditorMode("move-pole")}
             aria-pressed={btEditorMode === "move-pole"}
-            className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "move-pole" ? "border-amber-600 bg-amber-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
+            className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btEditorMode === "move-pole" ? "border-amber-600 bg-amber-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnMove}
           </button>
           <button
             onClick={() => setBtEditorMode("add-pole")}
             aria-pressed={btEditorMode === "add-pole"}
-            className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-pole" ? "border-blue-600 bg-blue-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
+            className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btEditorMode === "add-pole" ? "border-blue-600 bg-blue-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnAddPole}
           </button>
@@ -238,14 +238,14 @@ export function SidebarBtEditorSection({
               setBtEditorMode("add-edge");
             }}
             aria-pressed={btEditorMode === "add-edge"}
-            className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-edge" ? "border-emerald-600 bg-emerald-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
+            className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btEditorMode === "add-edge" ? "border-emerald-600 bg-emerald-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnAddEdge}
           </button>
           <button
             onClick={() => setBtEditorMode("add-transformer")}
             aria-pressed={btEditorMode === "add-transformer"}
-            className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-transformer" ? "border-violet-600 bg-violet-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
+            className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btEditorMode === "add-transformer" ? "border-violet-600 bg-violet-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnAddTransformer}
           </button>
@@ -294,7 +294,7 @@ export function SidebarBtEditorSection({
             <button
               type="submit"
               disabled={!coordinateValidation.isValid}
-              className="w-full rounded-lg border border-blue-500 bg-blue-600 px-2 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-900/20 transition-all hover:bg-blue-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-lg border border-blue-500 bg-blue-600 px-2 py-2 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-blue-900/20 transition-all hover:bg-blue-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t.insertPoleCoordinatesBtn}
             </button>
@@ -309,18 +309,18 @@ export function SidebarBtEditorSection({
         )}
 
         {btNetworkScenario === "asis" && (
-          <div className="text-[10px] text-cyan-900 bg-cyan-50 border border-cyan-300 rounded-lg p-2">
+          <div className="text-xs text-cyan-900 bg-cyan-50 border border-cyan-300 rounded-lg p-2">
             {t.actualNetworkActiveMsg}
           </div>
         )}
         {settings.projectType === "clandestino" && (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-[10px] text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-300">
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-300">
             {t.clandestineAreaMsg(settings.clandestinoAreaM2 ?? 0)}
           </div>
         )}
         {settings.projectType !== "clandestino" &&
           pendingNormalClassificationPoles.length > 0 && (
-            <div className="rounded-lg border border-rose-300 bg-rose-50 p-2 text-[10px] text-rose-800 dark:border-rose-700/50 dark:bg-rose-950/30 dark:text-rose-300">
+            <div className="rounded-lg border border-rose-300 bg-rose-50 p-2 text-xs text-rose-800 dark:border-rose-700/50 dark:bg-rose-950/30 dark:text-rose-300">
               {t.pendingClassificationMsg(
                 pendingNormalClassificationPoles.length,
               )}
@@ -329,7 +329,7 @@ export function SidebarBtEditorSection({
 
         <button
           onClick={handleResetBtTopology}
-          className="w-full rounded-xl border border-rose-300 py-2 text-[10px] font-bold text-rose-700 transition-all hover:bg-rose-50 dark:border-rose-700/50 dark:text-rose-300 dark:hover:bg-rose-950/30"
+          className="w-full rounded-xl border border-rose-300 py-2 text-xs font-bold text-rose-700 transition-all hover:bg-rose-50 dark:border-rose-700/50 dark:text-rose-300 dark:hover:bg-rose-950/30"
           title={t.resetBtTopologyTitle}
         >
           {t.resetBtTopologyBtn}

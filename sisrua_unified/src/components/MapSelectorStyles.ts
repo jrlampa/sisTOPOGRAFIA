@@ -10,7 +10,7 @@ export const getFlagButtonClass = (
   variant: "existing" | "new" | "replace" | "remove",
 ) => {
   const baseClass =
-    "h-6 rounded border bg-white text-[10px] font-bold transition-colors";
+    "h-6 rounded border bg-white text-xs font-bold transition-colors";
 
   if (variant === "new") {
     return `${baseClass} border-green-500 text-green-700 ${isActive ? "bg-green-100" : "hover:bg-green-50"}`;

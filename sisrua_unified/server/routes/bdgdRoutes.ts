@@ -18,11 +18,11 @@ const router = Router();
 
 // ─── Schema de validação de entrada ──────────────────────────────────────────
 
-const bdgdRecordSchema = z.record(z.unknown());
+const bdgdRecordSchema = z.record(z.string(), z.unknown());
 
 const bdgdValidateInputSchema = z.object({
   layers: z
-    .record(z.array(bdgdRecordSchema))
+    .record(z.string(), z.array(bdgdRecordSchema))
     .refine((layers) => Object.keys(layers).length > 0, {
       message: "Ao menos uma camada deve ser informada.",
     }),
@@ -99,7 +99,7 @@ router.post("/validate", (req: Request, res: Response) => {
     });
   }
 
-  const report = buildBdgdValidationReport(parsed.data);
+  const report = buildBdgdValidationReport(parsed.data as any);
   const statusCode = isBdgdConformant(report) ? 200 : 422;
 
   logger.info("BDGD validation completed", {

@@ -37,13 +37,39 @@ import { selectMapTopologyRenderSources } from "./utils/selectMapTopologyRenderS
 import type { CriticalConfirmationConfig } from "./components/BtModals";
 
 // ─── Lazy components (Audit P1: Routing & Bundle Optimization) ──────────
-const SidebarBtEditorSection = React.lazy(() => import("./components/SidebarBtEditorSection").then(m => ({ default: m.SidebarBtEditorSection })));
-const SidebarAnalysisResults = React.lazy(() => import("./components/SidebarAnalysisResults").then(m => ({ default: m.SidebarAnalysisResults })));
-const SidebarSelectionControls = React.lazy(() => import("./components/SidebarSelectionControls").then(m => ({ default: m.SidebarSelectionControls })));
-const BtModalStack = React.lazy(() => import("./components/BtModalStack").then(m => ({ default: m.BtModalStack })));
-const BtTelescopicSuggestionModal = React.lazy(() => import("./components/BtTelescopicSuggestionModal").then(m => ({ default: m.BtTelescopicSuggestionModal })));
-const HelpModal = React.lazy(() => import("./components/HelpModal").then(m => ({ default: m.HelpModal })));
-const CommandPalette = React.lazy(() => import("./components/CommandPalette").then(m => ({ default: m.CommandPalette })));
+const SidebarBtEditorSection = React.lazy(() =>
+  import("./components/SidebarBtEditorSection").then((m) => ({
+    default: m.SidebarBtEditorSection,
+  })),
+);
+const SidebarAnalysisResults = React.lazy(() =>
+  import("./components/SidebarAnalysisResults").then((m) => ({
+    default: m.SidebarAnalysisResults,
+  })),
+);
+const SidebarSelectionControls = React.lazy(() =>
+  import("./components/SidebarSelectionControls").then((m) => ({
+    default: m.SidebarSelectionControls,
+  })),
+);
+const BtModalStack = React.lazy(() =>
+  import("./components/BtModalStack").then((m) => ({
+    default: m.BtModalStack,
+  })),
+);
+const BtTelescopicSuggestionModal = React.lazy(() =>
+  import("./components/BtTelescopicSuggestionModal").then((m) => ({
+    default: m.BtTelescopicSuggestionModal,
+  })),
+);
+const HelpModal = React.lazy(() =>
+  import("./components/HelpModal").then((m) => ({ default: m.HelpModal })),
+);
+const CommandPalette = React.lazy(() =>
+  import("./components/CommandPalette").then((m) => ({
+    default: m.CommandPalette,
+  })),
+);
 
 function App() {
   const [isHelpOpen, setIsHelpOpen] = React.useState(false);
@@ -1309,16 +1335,28 @@ function App() {
           isDark,
           btModalStackProps,
           hasAreaSelection: !!osmData,
-          onStartSearch: () => setIsHelpOpen(false),
-          onMapClickAction: () => {},
+          onStartSearch: () => {
+            setIsHelpOpen(false);
+            handleSelectionModeChange("circle");
+          },
+          onMapClickAction: () => {
+            setIsHelpOpen(false);
+            handleSelectionModeChange("circle");
+            showToast(
+              "Clique no mapa para definir o centro da analise.",
+              "info",
+            );
+          },
         }}
         hasAreaSelection={!!osmData}
         onStartSearch={() => {
-          // Open Sidebar if collapsed and focus search
           setIsHelpOpen(false);
+          handleSelectionModeChange("circle");
         }}
         onMapClickAction={() => {
-          // Focus map or just close any overlays
+          setIsHelpOpen(false);
+          handleSelectionModeChange("circle");
+          showToast("Clique no mapa para definir o centro da analise.", "info");
         }}
         autoSaveStatus={autoSaveStatus}
         lastAutoSaved={lastAutoSaved}

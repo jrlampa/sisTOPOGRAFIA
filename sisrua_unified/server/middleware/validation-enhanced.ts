@@ -7,6 +7,7 @@
 
 import { Request, Response, NextFunction } from "express";
 import { body, query, param } from "express-validator";
+import { createHash } from 'crypto';
 import { logger } from "../utils/logger.js";
 
 /**
@@ -268,9 +269,7 @@ export const validatePayloadRate = (
  * Middleware que calcula fingerprint de request para detecção de replay
  */
 export const attachRequestFingerprint = (req: Request, res: Response, next: NextFunction) => {
-  const crypto = require('crypto');
-  const fingerprint = crypto
-    .createHash('sha256')
+  const fingerprint = createHash('sha256')
     .update(`${req.ip}${req.headers['user-agent']}${req.method}${req.path}`)
     .digest('hex');
 

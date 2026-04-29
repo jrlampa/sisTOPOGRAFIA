@@ -120,7 +120,7 @@ const Toast: React.FC<ToastProps> = ({
               action.onClick();
               onClose();
             }}
-            className="mt-1 flex w-fit items-center gap-1.5 rounded-lg bg-slate-900/10 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-900 hover:bg-slate-900/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 transition-all active:scale-95"
+            className="mt-1 flex w-fit items-center gap-1.5 rounded-lg bg-slate-900/10 px-2.5 py-1.5 text-xs font-black uppercase tracking-widest text-slate-900 hover:bg-slate-900/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 transition-all active:scale-95"
           >
             <RefreshCw size={10} />
             {action.label}

@@ -20,7 +20,7 @@ export function schemaValidator(schema: ZodTypeAny) {
     const result = schema.safeParse(req.body);
 
     if (!result.success) {
-      const errors = (result.error as ZodError).errors.map((e) => ({
+      const errors = (result.error as any).errors.map((e: any) => ({
         path: e.path.join("."),
         message: e.message,
       }));

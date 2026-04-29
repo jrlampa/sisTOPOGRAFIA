@@ -118,7 +118,7 @@ export function AppHeader({
                 sis|
               </span>
               <span
-                className={`flex items-center justify-center rounded-lg border px-2.5 py-0.5 text-[10px] font-black tracking-[0.2em] shadow-sm ${
+                className={`flex items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-black tracking-[0.2em] shadow-sm ${
                   isDark
                     ? "border-cyan-400/30 bg-cyan-500/10 text-cyan-300"
                     : "border-cyan-500/20 bg-cyan-500/5 text-cyan-600"
@@ -131,7 +131,7 @@ export function AppHeader({
 
           <div className="flex items-center gap-3">
             <p
-              className={`text-[10px] font-bold uppercase tracking-[0.3em] opacity-80 ${
+              className={`text-xs font-bold uppercase tracking-[0.3em] opacity-80 ${
                 isDark ? "text-slate-400" : "text-slate-500"
               }`}
             >
@@ -158,7 +158,7 @@ export function AppHeader({
                 scale: backendStatus === "offline" ? [1, 1.02, 1] : 1,
               }}
               transition={{ repeat: Infinity, duration: 2 }}
-              className={`group relative flex items-center gap-2 overflow-hidden rounded-full border px-3 py-1 text-[10px] font-black tracking-wider transition-all duration-500 ${
+              className={`group relative flex items-center gap-2 overflow-hidden rounded-full border px-3 py-1 text-xs font-black tracking-wider transition-all duration-500 ${
                 backendStatus === "online"
                   ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
                   : backendStatus === "degraded"
@@ -238,7 +238,7 @@ export function AppHeader({
 
         {isSidebarCollapsed && (
           <div className="hidden flex-col items-center gap-1 xl:flex">
-            <span className="rounded-full border border-cyan-400/20 bg-cyan-400/5 px-4 py-1.5 text-[9px] font-black uppercase tracking-[0.25em] text-cyan-600 shadow-sm dark:text-cyan-300">
+            <span className="rounded-full border border-cyan-400/20 bg-cyan-400/5 px-4 py-1.5 text-xs font-black uppercase tracking-[0.25em] text-cyan-600 shadow-sm dark:text-cyan-300">
               {t.mapModeInfo}
             </span>
           </div>

@@ -94,7 +94,7 @@ export function FormFieldMessage({
   return (
     <p
       id={id}
-      className={`text-[11px] leading-4 ${messageToneClasses[palette][tone]} ${className}`.trim()}
+      className={`text-sm leading-4 ${messageToneClasses[palette][tone]} ${className}`.trim()}
     >
       {message}
     </p>

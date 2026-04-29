@@ -93,7 +93,7 @@ export function CommandPalette({ isOpen, onClose, actions }: CommandPaletteProps
                   setActiveIndex(0);
                 }}
               />
-              <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-black text-slate-400 dark:border-white/5 dark:bg-white/5">
+              <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs font-black text-slate-400 dark:border-white/5 dark:bg-white/5">
                 ESC
               </div>
             </div>
@@ -104,7 +104,7 @@ export function CommandPalette({ isOpen, onClose, actions }: CommandPaletteProps
                   {/* Grouped by section */}
                   {Array.from(new Set(filteredActions.map(a => a.section))).map(section => (
                     <div key={section}>
-                      <div className="px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                      <div className="px-3 py-1 text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                         {section}
                       </div>
                       <div className="mt-1 space-y-1">
@@ -130,7 +130,7 @@ export function CommandPalette({ isOpen, onClose, actions }: CommandPaletteProps
                               </div>
                               <div className="flex items-center gap-2">
                                 {action.shortcut && (
-                                  <span className={`text-[10px] font-black ${isSelected ? "text-blue-100 opacity-80" : "text-slate-400"}`}>
+                                  <span className={`text-xs font-black ${isSelected ? "text-blue-100 opacity-80" : "text-slate-400"}`}>
                                     {action.shortcut}
                                   </span>
                                 )}
@@ -155,7 +155,7 @@ export function CommandPalette({ isOpen, onClose, actions }: CommandPaletteProps
             </div>
 
             <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-4 py-3 dark:border-white/5 dark:bg-white/5">
-               <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+               <div className="flex items-center gap-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
                   <div className="flex items-center gap-1">
                     <span className="rounded border border-slate-200 bg-white px-1 dark:border-white/10 dark:bg-slate-800">↑↓</span> Navegar
                   </div>
@@ -163,7 +163,7 @@ export function CommandPalette({ isOpen, onClose, actions }: CommandPaletteProps
                     <span className="rounded border border-slate-200 bg-white px-1 dark:border-white/10 dark:bg-slate-800">ENTER</span> Executar
                   </div>
                </div>
-               <div className="flex items-center gap-2 text-[10px] font-black text-blue-500 uppercase">
+               <div className="flex items-center gap-2 text-xs font-black text-blue-500 uppercase">
                   <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
                   Power Mode v2.0
                </div>

@@ -21,7 +21,7 @@ const RegistrarJobSchema = z.object({
   tipoJob: z.string().min(3),
   prioridade: z.enum(["baixa", "media", "alta", "critica"]),
   estrategiaRoteamento: z.enum(["prefer_local", "prefer_cloud", "hibrido"]),
-  payload: z.record(z.unknown()),
+  payload: z.record(z.string(), z.unknown()),
 });
 
 const AtualizarStatusSchema = z.object({

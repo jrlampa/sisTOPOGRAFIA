@@ -1,16 +1,20 @@
 #!/bin/sh
 set -e
 
-# Ensure runtime permissions for volumes and app root
-echo "[Entrypoint] Verificando permissões de volumes e root..."
-chown appuser:appuser /app
-# Fix for Vite EACCES in dev mode when node_modules is a volume
-if [ -d "/app/node_modules" ]; then
-    chown -R appuser:appuser /app/node_modules
-fi
-chown -R appuser:appuser /app/public/dxf /app/cache /app/logs
-chmod -R 755 /app/public/dxf /app/cache /app/logs
+echo "[Entrypoint] Verificando permissões de volumes..."
 
-# Drop privileges and start app
-echo "[Entrypoint] Iniciando aplicação como appuser..."
-exec gosu appuser "$@"
+# Fix writable directories (não recursivo para performance)
+if [ -d "/app/public/dxf" ]; then
+    chown appuser:appuser /app/public/dxf
+fi
+
+if [ -d "/app/cache" ]; then
+    chown appuser:appuser /app/cache
+fi
+
+if [ -d "/app/logs" ]; then
+    chown appuser:appuser /app/logs
+fi
+
+echo "[Entrypoint] Iniciando aplicação..."
+exec "$@"

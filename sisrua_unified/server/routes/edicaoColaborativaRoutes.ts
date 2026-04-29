@@ -30,7 +30,7 @@ const EntrarSessaoSchema = z.object({
 const RegistrarOperacaoSchema = z.object({
   participanteId: z.string().min(2),
   tipoOperacao: TipoOperacaoEnum,
-  payload: z.record(z.unknown()),
+  payload: z.record(z.string(), z.unknown()),
   versaoBase: z.number().int().nonnegative(),
 });
 

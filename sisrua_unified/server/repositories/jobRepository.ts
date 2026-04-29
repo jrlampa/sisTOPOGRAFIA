@@ -6,6 +6,7 @@
  */
 import { getDbClient } from "./dbClient.js";
 import { logger } from "../utils/logger.js";
+import type { DbJobRow, DbJson } from "../../shared/dbTypes.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -106,7 +107,7 @@ export class PostgresJobRepository implements IJobRepository {
     );
     const r = (rows as any[])[0];
     if (!r) return null;
-    return _mapRow(r);
+    return _mapRow(r as RawJobRow);
   }
 
   async findRecent(limit: number): Promise<JobRow[]> {
@@ -117,7 +118,7 @@ export class PostgresJobRepository implements IJobRepository {
        FROM jobs ORDER BY created_at DESC LIMIT $1`,
       [limit],
     );
-    return (rows as any[]).map(_mapRow);
+    return (rows as any[]).map((r) => _mapRow(r as RawJobRow));
   }
 
   async deleteOld(
@@ -139,12 +140,14 @@ export class PostgresJobRepository implements IJobRepository {
   }
 }
 
-function _mapRow(r: any): JobRow {
+type RawJobRow = DbJobRow & { result: DbJson | null };
+
+function _mapRow(r: RawJobRow): JobRow {
   return {
     id: r.id,
     status: r.status as JobStatus,
     progress: Number(r.progress ?? 0),
-    result: r.result ?? null,
+    result: (r.result ?? null) as Record<string, unknown> | null,
     error: r.error ?? null,
     createdAt: new Date(r.created_at),
     updatedAt: new Date(r.updated_at),

@@ -98,7 +98,7 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
                 opacity={0.85}
               >
                 <div className="flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-orange-900 dark:text-orange-100">
+                  <span className="text-xs font-bold text-orange-900 dark:text-orange-100">
                     {pole.title}
                   </span>
                   {layerConfig?.labels && pole.mtStructures && (
@@ -120,12 +120,12 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
                   <div className="flex items-center justify-between gap-4">
                     <strong>Poste MT: {popupPole.title}</strong>
                     <span
-                      className={`text-[9px] font-bold ${popupPole.verified ? "text-green-600" : "text-orange-600"}`}
+                      className={`text-xs font-bold ${popupPole.verified ? "text-green-600" : "text-orange-600"}`}
                     >
                       {popupPole.verified ? "VERIFICADO" : "PENDENTE"}
                     </span>
                   </div>
-                  <div className="mt-1 text-slate-500 font-mono text-[9px]">
+                  <div className="mt-1 text-slate-500 font-mono text-xs">
                     {popupPole.id}
                   </div>
 
@@ -156,14 +156,14 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
 
                   <div className="mt-2 flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase text-slate-500">
+                      <span className="text-xs font-bold uppercase text-slate-500">
                         Estado
                       </span>
                       <button
                         onClick={() =>
                           onMtSetPoleVerified?.(pole.id, !popupPole.verified)
                         }
-                        className={`rounded px-2 py-0.5 text-[9px] font-bold transition-colors ${
+                        className={`rounded px-2 py-0.5 text-xs font-bold transition-colors ${
                           popupPole.verified
                             ? "bg-green-100 text-green-700 hover:bg-green-200"
                             : "bg-orange-100 text-orange-700 hover:bg-orange-200"
@@ -202,7 +202,7 @@ const MapSelectorMtPolesLayer: React.FC<MapSelectorMtPolesLayerProps> = ({
                           e.stopPropagation();
                           onMtDeletePole(pole.id);
                         }}
-                        className="flex h-7 items-center justify-center gap-1.5 rounded-lg border border-red-500 bg-red-50 text-[10px] font-black uppercase text-red-700 transition-colors hover:bg-red-100"
+                        className="flex h-7 items-center justify-center gap-1.5 rounded-lg border border-red-500 bg-red-50 text-xs font-black uppercase text-red-700 transition-colors hover:bg-red-100"
                       >
                         <Trash2 size={12} />
                         Excluir Poste MT

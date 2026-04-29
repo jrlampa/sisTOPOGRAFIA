@@ -129,7 +129,7 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -10 }}
-            className="ml-3 text-[11px] font-bold tracking-wide uppercase"
+            className="ml-3 text-sm font-bold tracking-wide uppercase"
           >
             {label}
           </motion.span>
@@ -175,7 +175,7 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filtrar..."
-                className="w-full rounded-lg border-2 border-amber-800/25 bg-amber-50 py-1.5 pl-8 pr-7 text-[10px] font-black uppercase tracking-widest text-amber-950 outline-none transition-all placeholder:text-amber-700/70 focus:border-cyan-500/40 focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:border-amber-500/45 dark:bg-zinc-900 dark:text-amber-100 dark:placeholder:text-amber-200/60"
+                className="w-full rounded-lg border-2 border-amber-800/25 bg-amber-50 py-1.5 pl-8 pr-7 text-xs font-black uppercase tracking-widest text-amber-950 outline-none transition-all placeholder:text-amber-700/70 focus:border-cyan-500/40 focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:border-amber-500/45 dark:bg-zinc-900 dark:text-amber-100 dark:placeholder:text-amber-200/60"
               />
               {searchQuery && (
                 <button
@@ -203,7 +203,7 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
                 ))
               ) : (
                 <div className="p-4 text-center">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase">
+                  <p className="text-xs font-bold text-slate-500 uppercase">
                     Nenhum resultado
                   </p>
                 </div>

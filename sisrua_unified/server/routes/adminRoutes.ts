@@ -286,8 +286,8 @@ const ServiceProfileBodySchema = z.object({
   sloLatencyP95Ms: z.number().int().min(10).max(60000),
   supportChannel: z.string().min(1).max(60),
   supportHours: z.string().min(1).max(120),
-  escalationPolicy: z.record(z.unknown()).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  escalationPolicy: z.record(z.string(), z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   isActive: z.boolean().optional(),
 });
 

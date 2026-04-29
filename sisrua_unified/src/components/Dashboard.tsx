@@ -43,7 +43,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
             <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
               <Layers size={20} />
             </div>
-            <div className="flex items-center gap-1 text-[10px] font-bold text-amber-600/60 uppercase">
+            <div className="flex items-center gap-1 text-xs font-bold text-amber-600/60 uppercase">
               Total <Activity size={10} />
             </div>
           </div>
@@ -107,7 +107,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
             <div className="rounded-2xl bg-current/10 p-3">
               <Activity size={20} />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-tighter opacity-60">
+            <span className="text-xs font-black uppercase tracking-tighter opacity-60">
               Urban Focus
             </span>
           </div>
@@ -129,7 +129,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
         </div>
         <div className="flex items-center gap-2 mb-3">
           <div className="h-2 w-2 rounded-full bg-fuchsia-500" />
-          <h3 className="text-[11px] font-black uppercase tracking-widest text-fuchsia-700 dark:text-fuchsia-300">
+          <h3 className="text-sm font-black uppercase tracking-widest text-fuchsia-700 dark:text-fuchsia-300">
             Relatório de Inteligência Técnica
           </h3>
         </div>
@@ -142,7 +142,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
       <div className="rounded-3xl border-2 border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex items-center justify-between mb-6">
           <div className="flex flex-col">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <span className="text-xs font-black uppercase tracking-widest text-slate-400">
               Distribuição
             </span>
             <span className="text-sm font-bold text-slate-900 dark:text-white">
@@ -152,13 +152,13 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
           <div className="flex gap-4">
             <div className="flex items-center gap-1.5">
               <div className="h-2 w-2 rounded-full bg-amber-500" />
-              <span className="text-[9px] font-bold text-slate-500 uppercase">
+              <span className="text-xs font-bold text-slate-500 uppercase">
                 Edificações
               </span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="h-2 w-2 rounded-full bg-red-500" />
-              <span className="text-[9px] font-bold text-slate-500 uppercase">
+              <span className="text-xs font-bold text-slate-500 uppercase">
                 Vias
               </span>
             </div>
@@ -185,7 +185,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="rounded-xl border-2 border-slate-900 bg-slate-900 p-2 text-[10px] font-bold text-white shadow-xl">
+                      <div className="rounded-xl border-2 border-slate-900 bg-slate-900 p-2 text-xs font-bold text-white shadow-xl">
                         {payload[0].value} {payload[0].name}
                       </div>
                     );
@@ -213,7 +213,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
               key={item.name}
               className="flex flex-col items-center justify-center rounded-2xl bg-slate-50 p-2 dark:bg-zinc-800/50"
             >
-              <span className="text-[9px] font-bold text-slate-400 uppercase">
+              <span className="text-xs font-bold text-slate-400 uppercase">
                 {item.name}
               </span>
               <span

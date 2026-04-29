@@ -301,7 +301,7 @@ const ConstantsCatalogOps: React.FC<ConstantsCatalogOpsProps> = ({
         </span>
       </div>
 
-      <div className="text-[11px] text-slate-400 space-y-1">
+      <div className="text-sm text-slate-400 space-y-1">
         <p>
           {text.activeNamespaces}{" "}
           <span className="text-slate-200">{namespaces}</span>
@@ -357,12 +357,12 @@ const ConstantsCatalogOps: React.FC<ConstantsCatalogOpsProps> = ({
       <div className="rounded border border-slate-700 p-2 space-y-1">
         <div className="flex items-center gap-1 mb-1">
           <BarChart2 size={11} className="text-slate-400" />
-          <p className="text-[11px] text-slate-400 uppercase">
+          <p className="text-sm text-slate-400 uppercase">
             {text.statsTitle}
           </p>
         </div>
         {stats ? (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
             <span className="text-slate-400">{text.totalRefreshes}</span>
             <span className="text-slate-200">{stats.totalRefreshes}</span>
             <span className="text-slate-400">{text.successRate}</span>
@@ -407,21 +407,21 @@ const ConstantsCatalogOps: React.FC<ConstantsCatalogOpsProps> = ({
             )}
           </div>
         ) : (
-          <p className="text-[11px] text-slate-500">{text.noStats}</p>
+          <p className="text-sm text-slate-500">{text.noStats}</p>
         )}
       </div>
 
       <div className="rounded border border-slate-700 p-2 space-y-1">
-        <p className="text-[11px] text-slate-400 uppercase">
+        <p className="text-sm text-slate-400 uppercase">
           {text.recentHistory}
         </p>
         {events.length === 0 ? (
-          <p className="text-[11px] text-slate-500">{text.noEvents}</p>
+          <p className="text-sm text-slate-500">{text.noEvents}</p>
         ) : (
           events.map((event, index) => (
             <div
               key={`${event.createdAt ?? "event"}-${index}`}
-              className="text-[11px] text-slate-300 flex items-center justify-between gap-2"
+              className="text-sm text-slate-300 flex items-center justify-between gap-2"
             >
               <span
                 className={event.success ? "text-emerald-300" : "text-rose-300"}
@@ -440,17 +440,17 @@ const ConstantsCatalogOps: React.FC<ConstantsCatalogOpsProps> = ({
       <div className="rounded border border-slate-700 p-2 space-y-1">
         <div className="flex items-center gap-1 mb-1">
           <History size={11} className="text-slate-400" />
-          <p className="text-[11px] text-slate-400 uppercase">
+          <p className="text-sm text-slate-400 uppercase">
             {text.snapshots}
           </p>
         </div>
         {snapshots.length === 0 ? (
-          <p className="text-[11px] text-slate-500">{text.noSnapshots}</p>
+          <p className="text-sm text-slate-500">{text.noSnapshots}</p>
         ) : (
           snapshots.map((snap) => (
             <div
               key={snap.id}
-              className="text-[11px] flex items-center justify-between gap-2"
+              className="text-sm flex items-center justify-between gap-2"
             >
               <span className="text-slate-400">#{snap.id}</span>
               <span className="text-cyan-300/80 flex-shrink-0">
@@ -465,7 +465,7 @@ const ConstantsCatalogOps: React.FC<ConstantsCatalogOpsProps> = ({
               <button
                 onClick={() => handleRestore(snap.id)}
                 disabled={restoringId !== null}
-                className="flex-shrink-0 px-2 py-0.5 text-[10px] rounded border border-amber-500/50 text-amber-300 hover:text-amber-200 disabled:opacity-40"
+                className="flex-shrink-0 px-2 py-0.5 text-xs rounded border border-amber-500/50 text-amber-300 hover:text-amber-200 disabled:opacity-40"
               >
                 {restoringId === snap.id ? "..." : text.restore}
               </button>
@@ -474,7 +474,7 @@ const ConstantsCatalogOps: React.FC<ConstantsCatalogOpsProps> = ({
         )}
       </div>
 
-      {message && <p className="text-[11px] text-slate-300">{message}</p>}
+      {message && <p className="text-sm text-slate-300">{message}</p>}
     </div>
   );
 };

@@ -54,7 +54,7 @@ const manifestacaoSchema = z.object({
 router.post("/consultas", (req: Request, res: Response) => {
   const parse = criarSchema.safeParse(req.body);
   if (!parse.success) {
-    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.errors });
+    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.issues });
     return;
   }
   const consulta = LicencaSocialService.criarConsulta(parse.data);
@@ -95,7 +95,7 @@ router.post("/consultas/:id/iniciar", (req: Request, res: Response) => {
 router.post("/consultas/:id/manifestacoes", (req: Request, res: Response) => {
   const parse = manifestacaoSchema.safeParse(req.body);
   if (!parse.success) {
-    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.errors });
+    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.issues });
     return;
   }
   const resultado = LicencaSocialService.registrarManifestacao(req.params["id"]!, parse.data);

@@ -14,7 +14,7 @@ const IngestAuditLogSchema = z.object({
   action: z.string().min(1),
   resource: z.string().min(1),
   ts: z.string().datetime(),
-  context: z.record(z.unknown()).default({}),
+  context: z.record(z.string(), z.unknown()).default({}),
 });
 
 const ArchiveSchema = z.object({

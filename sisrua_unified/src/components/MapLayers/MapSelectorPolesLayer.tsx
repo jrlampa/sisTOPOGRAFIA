@@ -201,7 +201,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                 opacity={0.85}
               >
                 <div className="flex flex-col items-center">
-                  <span className="text-[10px] font-bold">{pole.title}</span>
+                  <span className="text-xs font-bold">{pole.title}</span>
                   {layerConfig?.labels && pole.poleSpec && (
                     <span className="text-[8px] text-slate-700">
                       {pole.poleSpec.heightM}m / {pole.poleSpec.nominalEffortDan}
@@ -225,7 +225,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
               <Popup>
                 <div className="text-xs">
                   <strong>{popupPole.title}</strong>
-                  <div className="text-[10px] text-slate-500">{popupPole.id}</div>
+                  <div className="text-xs text-slate-500">{popupPole.id}</div>
 
                   {/* BIM Specs Section */}
                   {(popupPole.poleSpec || popupPole.btStructures) && (
@@ -331,7 +331,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                             !(popupPole.circuitBreakPoint ?? false),
                           );
                         }}
-                        className={`h-6 rounded border text-[10px] font-bold ${popupPole.circuitBreakPoint ? "border-sky-400 bg-sky-100 text-sky-700" : "border-slate-400 bg-white text-slate-600"}`}
+                        className={`h-6 rounded border text-xs font-bold ${popupPole.circuitBreakPoint ? "border-sky-400 bg-sky-100 text-sky-700" : "border-slate-400 bg-white text-slate-600"}`}
                       >
                         -| |-
                       </button>

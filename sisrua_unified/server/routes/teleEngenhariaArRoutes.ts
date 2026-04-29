@@ -24,7 +24,7 @@ const EntrarSessaoSchema = z.object({
 const RegistrarAnotacaoSchema = z.object({
   participanteId: z.string().min(2),
   tipoAnotacao: z.enum(["marcador", "linha", "poligono", "texto", "risco"]),
-  geometria: z.record(z.unknown()),
+  geometria: z.record(z.string(), z.unknown()),
   observacao: z.string().optional(),
 });
 

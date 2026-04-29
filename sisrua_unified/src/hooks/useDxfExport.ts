@@ -29,7 +29,7 @@ interface BtContextPayload {
 }
 
 const btContextResponseSchema = z.object({
-  btContext: z.record(z.unknown()),
+  btContext: z.record(z.string(), z.unknown()),
 });
 
 export function useDxfExport({

@@ -21,7 +21,7 @@ const IngestirSchema = z.object({
   ip: z.string().optional(),
   dispositivo: z.string().optional(),
   resultado: z.enum(["sucesso", "negado", "erro"]),
-  detalhes: z.record(z.unknown()).optional(),
+  detalhes: z.record(z.string(), z.unknown()).optional(),
 });
 
 const ExportarSchema = z.object({

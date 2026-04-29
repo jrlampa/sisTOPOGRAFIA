@@ -93,7 +93,7 @@ const HistoryControls: React.FC<HistoryControlsProps> = ({
             className="absolute top-full left-0 mt-2 z-50 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-white/10 dark:bg-slate-900"
           >
             <div className="mb-2 px-2 py-1 flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Histórico Recente</span>
+              <span className="text-xs font-black uppercase tracking-widest text-slate-400">Histórico Recente</span>
               <RotateCcw size={12} className="text-slate-300" />
             </div>
 
@@ -129,7 +129,7 @@ const HistoryControls: React.FC<HistoryControlsProps> = ({
               ))}
 
               {past.length === 0 && future.length === 0 && (
-                <div className="px-3 py-4 text-center text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                <div className="px-3 py-4 text-center text-xs font-bold uppercase tracking-widest text-slate-400">
                   Sem ações registradas
                 </div>
               )}

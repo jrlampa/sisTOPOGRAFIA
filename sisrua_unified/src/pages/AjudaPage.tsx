@@ -258,7 +258,7 @@ export default function AjudaPage() {
                     <doc.icone className={`h-4 w-4 shrink-0 ${isDark ? "text-slate-500" : "text-slate-400"}`} />
                     <span className={isDark ? "text-slate-300" : "text-slate-700"}>{doc.titulo}</span>
                   </span>
-                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${isDark ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500"}`}>
+                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold ${isDark ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500"}`}>
                     {doc.tag}
                   </span>
                 </a>

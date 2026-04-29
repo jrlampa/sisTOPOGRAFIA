@@ -81,7 +81,7 @@ function ElectricalResultRow({
   warn?: boolean;
 }) {
   return (
-    <div className="flex justify-between text-[10px]">
+    <div className="flex justify-between text-xs">
       <span className="text-zinc-500 dark:text-zinc-400">{label}</span>
       <span
         className={
@@ -105,11 +105,11 @@ function DiscardReasonList({
   if (entries.length === 0) return null;
   return (
     <div className="mt-2 space-y-0.5">
-      <div className="text-[9px] uppercase font-bold tracking-wider text-zinc-500 dark:text-zinc-400">
+      <div className="text-xs uppercase font-bold tracking-wider text-zinc-500 dark:text-zinc-400">
         Motivos de descarte
       </div>
       {entries.map(([code, count]) => (
-        <div key={code} className="flex justify-between text-[10px]">
+        <div key={code} className="flex justify-between text-xs">
           <span className="text-zinc-600 dark:text-zinc-400">
             {CONSTRAINT_LABELS[code]}
           </span>
@@ -225,7 +225,7 @@ export function DgOptimizationPanel({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <Zap size={12} className="text-violet-700 dark:text-violet-300" />
-          <span className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-800 dark:text-violet-200">
+          <span className="text-xs font-black uppercase tracking-[0.18em] text-violet-800 dark:text-violet-200">
             Design Generativo
           </span>
         </div>
@@ -242,7 +242,7 @@ export function DgOptimizationPanel({
 
       {/* Pré-requisito: sem poste */}
       {!hasPoles && (
-        <p className="text-[10px] text-violet-700 dark:text-violet-300">
+        <p className="text-xs text-violet-700 dark:text-violet-300">
           Adicione ao menos 1 poste para otimizar.
         </p>
       )}
@@ -252,7 +252,7 @@ export function DgOptimizationPanel({
         <button
           onClick={handleMainAction}
           disabled={!canRunFull}
-          className="w-full rounded-xl border-2 border-violet-700/40 bg-violet-700 py-2 text-[10px] font-black text-white transition-all hover:bg-violet-800 disabled:opacity-40 dark:border-violet-400/40 dark:bg-violet-700 dark:hover:bg-violet-600"
+          className="w-full rounded-xl border-2 border-violet-700/40 bg-violet-700 py-2 text-xs font-black text-white transition-all hover:bg-violet-800 disabled:opacity-40 dark:border-violet-400/40 dark:bg-violet-700 dark:hover:bg-violet-600"
         >
           {isOptimizing ? (
             <span className="flex items-center justify-center gap-1.5">
@@ -270,7 +270,7 @@ export function DgOptimizationPanel({
 
       {/* Erro */}
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-2 text-[10px] text-red-700 dark:bg-red-950/30 dark:border-red-700/30 dark:text-red-400">
+        <div className="rounded-lg bg-red-50 border border-red-200 p-2 text-xs text-red-700 dark:bg-red-950/30 dark:border-red-700/30 dark:text-red-400">
           {error}
         </div>
       )}
@@ -278,11 +278,11 @@ export function DgOptimizationPanel({
       {/* Resultado: sem solução viável */}
       {result && !rec && (
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-[10px] text-amber-700 dark:text-amber-400">
+          <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
             <Info size={11} />
             Nenhuma solução viável encontrada.
           </div>
-          <div className="text-[10px] text-zinc-500 dark:text-zinc-400">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">
             Candidatos avaliados: {result.totalCandidatesEvaluated} · Viáveis:{" "}
             {result.totalFeasible}
           </div>
@@ -295,7 +295,7 @@ export function DgOptimizationPanel({
           {/* Preview Toggle (UX-07) */}
           <button
             onClick={() => setIsPreviewActive(!isPreviewActive)}
-            className={`flex w-full items-center justify-center gap-2 rounded-lg border-2 py-2 text-[9px] font-black uppercase tracking-widest transition-all ${
+            className={`flex w-full items-center justify-center gap-2 rounded-lg border-2 py-2 text-xs font-black uppercase tracking-widest transition-all ${
               isPreviewActive 
                 ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" 
                 : "border-slate-300 text-slate-500"
@@ -310,7 +310,7 @@ export function DgOptimizationPanel({
             <div className="flex flex-wrap gap-1">
               <button
                 onClick={() => onSetActiveAltIndex(-1)}
-                className={`rounded-full px-2 py-0.5 text-[9px] font-bold transition-colors ${
+                className={`rounded-full px-2 py-0.5 text-xs font-bold transition-colors ${
                   activeAltIndex === -1
                     ? "bg-violet-700 text-white"
                     : "border border-violet-400/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30"
@@ -322,7 +322,7 @@ export function DgOptimizationPanel({
                 <button
                   key={i}
                   onClick={() => onSetActiveAltIndex(i)}
-                  className={`rounded-full px-2 py-0.5 text-[9px] font-bold transition-colors ${
+                  className={`rounded-full px-2 py-0.5 text-xs font-bold transition-colors ${
                     activeAltIndex === i
                       ? "bg-violet-700 text-white"
                       : "border border-violet-400/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30"
@@ -336,7 +336,7 @@ export function DgOptimizationPanel({
 
           {/* Score */}
           <div className="space-y-1">
-            <div className="flex justify-between text-[10px]">
+            <div className="flex justify-between text-xs">
               <span className="text-zinc-500 dark:text-zinc-400">Score DG</span>
               <span className="font-black text-violet-700 dark:text-violet-300">
                 {active.objectiveScore.toFixed(1)} / 100
@@ -370,7 +370,7 @@ export function DgOptimizationPanel({
           </div>
 
           {/* Meta: candidatos / descartados */}
-          <div className="text-[10px] text-zinc-500 dark:text-zinc-400">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">
             {result?.totalCandidatesEvaluated ?? 0} candidatos ·{" "}
             {rec?.discardedCount ?? 0} descartados
           </div>
@@ -379,7 +379,7 @@ export function DgOptimizationPanel({
 
           {(currentTransformer || currentTotalCableLengthMeters != null) && (
             <div className="space-y-1 rounded-lg border border-violet-300/40 bg-white/70 p-2 dark:border-violet-600/40 dark:bg-zinc-900/30">
-              <div className="text-[9px] uppercase font-bold tracking-wider text-violet-700 dark:text-violet-300">
+              <div className="text-xs uppercase font-bold tracking-wider text-violet-700 dark:text-violet-300">
                 Comparativo Atual x Sugerido
               </div>
               {currentTransformer && (
@@ -406,7 +406,7 @@ export function DgOptimizationPanel({
             </div>
           )}
 
-          <label className={`flex items-center gap-2 rounded-lg border px-2 py-2 text-[10px] transition-all cursor-pointer ${
+          <label className={`flex items-center gap-2 rounded-lg border px-2 py-2 text-xs transition-all cursor-pointer ${
             acceptanceConfirmed 
               ? "border-emerald-500 bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300" 
               : "border-zinc-200 bg-white/80 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300"
@@ -426,14 +426,14 @@ export function DgOptimizationPanel({
             <button
               onClick={() => onAcceptTrafoOnly(active)}
               disabled={!acceptanceConfirmed || !isPreviewActive}
-              className="rounded-xl border-2 border-violet-700/40 py-2 text-[10px] font-black text-violet-800 transition-all hover:bg-violet-100 disabled:opacity-40 dark:border-violet-500/40 dark:text-violet-200 dark:hover:bg-violet-900/30"
+              className="rounded-xl border-2 border-violet-700/40 py-2 text-xs font-black text-violet-800 transition-all hover:bg-violet-100 disabled:opacity-40 dark:border-violet-500/40 dark:text-violet-200 dark:hover:bg-violet-900/30"
             >
               {hasTransformer ? "SÓ REALOCAR" : "SÓ NOVO TRAFO"}
             </button>
             <button
               onClick={() => onAcceptAll(active)}
               disabled={!acceptanceConfirmed || !isPreviewActive}
-              className="relative overflow-hidden rounded-xl border-2 border-violet-700/40 bg-violet-700 py-2 text-[10px] font-black text-white transition-all hover:bg-violet-800 disabled:opacity-40 dark:border-violet-400/40 dark:bg-violet-700 dark:hover:bg-violet-600"
+              className="relative overflow-hidden rounded-xl border-2 border-violet-700/40 bg-violet-700 py-2 text-xs font-black text-white transition-all hover:bg-violet-800 disabled:opacity-40 dark:border-violet-400/40 dark:bg-violet-700 dark:hover:bg-violet-600"
             >
               <span className="flex items-center justify-center gap-1">
                 <CheckCircle size={10} />
@@ -443,7 +443,7 @@ export function DgOptimizationPanel({
           </div>
           
           {!isPreviewActive && (
-            <p className="text-center text-[9px] font-bold text-amber-600 animate-pulse">
+            <p className="text-center text-xs font-bold text-amber-600 animate-pulse">
               Ative o Modo Preview para habilitar a aplicação.
             </p>
           )}

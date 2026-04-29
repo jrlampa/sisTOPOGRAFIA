@@ -53,7 +53,7 @@ const ocorrenciaSchema = z.object({
 router.post("/monitoramentos", (req: Request, res: Response) => {
   const parse = criarSchema.safeParse(req.body);
   if (!parse.success) {
-    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.errors });
+    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.issues });
     return;
   }
   const monitoramento = PerdasNaoTecnicasService.criarMonitoramento(parse.data);
@@ -84,7 +84,7 @@ router.get("/monitoramentos/:id", (req: Request, res: Response) => {
 router.post("/monitoramentos/:id/pontos", (req: Request, res: Response) => {
   const parse = pontoMedicaoSchema.safeParse(req.body);
   if (!parse.success) {
-    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.errors });
+    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.issues });
     return;
   }
   const mon = PerdasNaoTecnicasService.adicionarPontoMedicao(req.params["id"]!, parse.data);
@@ -99,7 +99,7 @@ router.post("/monitoramentos/:id/pontos", (req: Request, res: Response) => {
 router.post("/monitoramentos/:id/ocorrencias", (req: Request, res: Response) => {
   const parse = ocorrenciaSchema.safeParse(req.body);
   if (!parse.success) {
-    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.errors });
+    res.status(400).json({ erro: "Dados inválidos", detalhes: parse.error.issues });
     return;
   }
   const mon = PerdasNaoTecnicasService.registrarOcorrencia(

@@ -47,7 +47,7 @@ function TerminalCard({ suggestion }: { suggestion: TelescopicSuggestion }) {
           Terminal: {terminalNodeId}
         </span>
         <div className="flex items-center gap-1.5">
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${sat.cls}`}>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-bold uppercase ${sat.cls}`}>
             {sat.label} {saturationPct.toFixed(0)}%
           </span>
           {approved ? (
@@ -74,7 +74,7 @@ function TerminalCard({ suggestion }: { suggestion: TelescopicSuggestion }) {
       {requiresTransformerUpgrade && (
         <div className="flex items-center gap-1.5 rounded-lg bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-700 px-2 py-1.5">
           <AlertTriangle size={13} className="shrink-0 text-rose-500" />
-          <span className="text-[10px] font-semibold text-rose-700 dark:text-rose-300">
+          <span className="text-xs font-semibold text-rose-700 dark:text-rose-300">
             Transformador em sobrecarga — substituição necessária
           </span>
         </div>
@@ -83,7 +83,7 @@ function TerminalCard({ suggestion }: { suggestion: TelescopicSuggestion }) {
       {/* Condutores sugeridos por trecho */}
       {pathEdges.length > 0 && (
         <div className="space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
             Trechos (Trafo → Ponta)
           </p>
           <div className="space-y-0.5 max-h-36 overflow-y-auto pr-1">
@@ -92,15 +92,15 @@ function TerminalCard({ suggestion }: { suggestion: TelescopicSuggestion }) {
                 key={`${edge.edgeId}-${idx}`}
                 className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 px-2 py-1"
               >
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate font-mono">
+                <span className="text-xs text-slate-500 dark:text-slate-400 truncate font-mono">
                   {edge.edgeId}
                 </span>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <Zap size={10} className="text-fuchsia-500" />
-                  <span className="text-[10px] font-bold text-fuchsia-700 dark:text-fuchsia-300">
+                  <span className="text-xs font-bold text-fuchsia-700 dark:text-fuchsia-300">
                     {edge.suggestedConductorId}
                   </span>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-xs text-slate-400">
                     {edge.lengthM.toFixed(0)} m
                   </span>
                 </div>
@@ -111,7 +111,7 @@ function TerminalCard({ suggestion }: { suggestion: TelescopicSuggestion }) {
       )}
 
       {pathEdges.length === 0 && (
-        <p className="text-[10px] text-rose-500 dark:text-rose-400">
+        <p className="text-xs text-rose-500 dark:text-rose-400">
           Orçamento de tensão esgotado — necessária troca de transformador.
         </p>
       )}

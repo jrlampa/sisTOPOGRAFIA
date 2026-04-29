@@ -98,7 +98,7 @@ export function AppNavigation({ isDark = false, onToggleTheme, role = "cliente" 
           >
             sis<span className="text-indigo-500">TOPOGRAFIA</span>
           </span>
-          <span className="hidden rounded bg-indigo-600/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-400 sm:block">
+          <span className="hidden rounded bg-indigo-600/20 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-indigo-400 sm:block">
             SaaS
           </span>
         </NavLink>

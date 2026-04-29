@@ -7,9 +7,9 @@ import {
   Cloud,
   Compass,
   Database,
-  Facebook,
+  MessageCircle,
   Gauge,
-  Github,
+  Globe,
   Lock,
   Mail,
   ShieldCheck,
@@ -21,8 +21,8 @@ type AuthMode = "login" | "cadastro";
 
 const SOCIAL_OPTIONS = [
   { id: "google", label: "Continuar com Google", icon: Mail },
-  { id: "github", label: "Continuar com GitHub", icon: Github },
-  { id: "facebook", label: "Continuar com Facebook", icon: Facebook },
+  { id: "github", label: "Continuar com GitHub", icon: Globe },
+  { id: "facebook", label: "Continuar com Facebook", icon: MessageCircle },
 ];
 
 const PLAN_ITEMS = [
@@ -106,7 +106,7 @@ export default function LandingDraftPage() {
               <p className="font-display text-lg font-black leading-none tracking-tight">
                 sisTOPOGRAFIA Cloud
               </p>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-amber-900/75">
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-amber-900/75">
                 SaaS para engenharia de rede BT
               </p>
             </div>
@@ -167,7 +167,7 @@ export default function LandingDraftPage() {
 
           <div className="rounded-3xl border border-slate-900/15 bg-white/90 p-5 shadow-[10px_10px_0_rgba(15,23,42,0.12)]">
             <div className="rounded-2xl border border-slate-900/10 bg-slate-950 p-4 text-slate-100">
-              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-cyan-200">
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-cyan-200">
                 Painel Executivo
               </p>
               <div className="mt-4 grid grid-cols-2 gap-3">
@@ -386,7 +386,7 @@ export default function LandingDraftPage() {
               </button>
             </form>
 
-            <p className="mt-3 text-center text-[11px] text-slate-400">
+            <p className="mt-3 text-center text-sm text-slate-400">
               Draft visual sem conexao com API de autenticacao.
             </p>
           </div>
@@ -449,7 +449,7 @@ function DashboardTile({
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-900 p-3">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
+        <p className="text-sm font-bold uppercase tracking-[0.12em] text-slate-400">
           {title}
         </p>
         <Icon size={14} />

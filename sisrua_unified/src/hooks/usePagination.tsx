@@ -127,14 +127,14 @@ export function PaginationControls({
       <button
         onClick={onPreviousPage}
         disabled={currentPage === 1}
-        className="px-2 py-1 text-[9px] uppercase font-bold border border-current rounded transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:enabled:bg-current/10"
+        className="px-2 py-1 text-xs uppercase font-bold border border-current rounded transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:enabled:bg-current/10"
         aria-label="Página anterior"
       >
         ← Anterior
       </button>
 
       {/* Indicador de página */}
-      <span className="text-[10px] font-mono px-2 whitespace-nowrap">
+      <span className="text-xs font-mono px-2 whitespace-nowrap">
         Página {currentPage}/{totalPages}
       </span>
 
@@ -142,14 +142,14 @@ export function PaginationControls({
       <button
         onClick={onNextPage}
         disabled={currentPage === totalPages}
-        className="px-2 py-1 text-[9px] uppercase font-bold border border-current rounded transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:enabled:bg-current/10"
+        className="px-2 py-1 text-xs uppercase font-bold border border-current rounded transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:enabled:bg-current/10"
         aria-label="Próxima página"
       >
         Próximo →
       </button>
 
       {/* Info de total */}
-      <span className="text-[9px] text-current/60 ml-1">
+      <span className="text-xs text-current/60 ml-1">
         ({totalItems} itens)
       </span>
     </div>

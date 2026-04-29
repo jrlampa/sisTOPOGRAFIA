@@ -1,0 +1,62 @@
+{
+  "common": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "next": "Próximo",
+    "back": "Voltar",
+    "execute": "Executar",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "warning": "Aviso",
+    "info": "Informação"
+  },
+  "dgWizard": {
+    "title": "Assistente de Projeto BT",
+    "steps": {
+      "DEMANDA": "Demanda",
+      "EXPANSAO": "Expansão",
+      "TECNICO": "Técnico",
+      "REVISAO": "Revisão"
+    },
+    "demanda": {
+      "title": "Carga do Cliente",
+      "description": "Defina a densidade de carga inicial.",
+      "labelClientesPorPoste": "Clientes por poste (médio)",
+      "labelDemandaMedia": "Demanda média por cliente (kVA)",
+      "adjustIndividual": "AJUSTAR POSTES INDIVIDUALMENTE ({{count}})",
+      "unitUnd": "UND",
+      "unitKva": "kVA"
+    },
+    "expansao": {
+      "title": "Ocupação e Expansão",
+      "description": "Parâmetros para áreas informais.",
+      "labelAreaClandestina": "Área Clandestina Adicional (m²)",
+      "unitM2": "m²",
+      "infoNote": "Será aplicada uma carga normativa de 20W/m² nesta área, distribuída proporcionalmente entre os postes da rede."
+    },
+    "tecnico": {
+      "title": "Limites de Engenharia",
+      "description": "Restrições técnicas do dimensionamento.",
+      "labelMaxSpan": "Vão Máximo (m)",
+      "labelFatorSimult": "Fator Simult.",
+      "labelTrafosPermitidos": "Trafos Permitidos (kVA)"
+    },
+    "revisao": {
+      "title": "Resumo do Projeto",
+      "description": "Revise antes de iniciar o processamento.",
+      "summaryCarga": "Carga Projetada",
+      "summaryArea": "Área Clandestina",
+      "summaryVan": "Vão Máximo",
+      "summaryAjustes": "Ajustes Manuais",
+      "unitPostes": "POSTES",
+      "btnExecute": "EXECUTAR PROJETO"
+    },
+    "validation": {
+      "minClientes": "Informe ao menos 1 cliente por poste.",
+      "minDemanda": "A demanda média por cliente deve ser maior que zero.",
+      "minTrafos": "Selecione ao menos uma faixa de kVA permitida."
+    }
+  }
+}

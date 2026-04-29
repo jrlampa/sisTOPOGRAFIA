@@ -210,7 +210,7 @@ export function SettingsModalProjectTab({
                 }
                 className="w-full glass-panel border border-white/30 rounded p-2 text-sm text-slate-800 dark:text-slate-100 focus:border-cyan-500 outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
               />
-              <p className="text-[10px] text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 {text.clandestineAreaHelp}
               </p>
             </div>
@@ -275,7 +275,7 @@ export function SettingsModalProjectTab({
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               {text.transformerCalculationHelp}
             </p>
           </div>
@@ -311,7 +311,7 @@ export function SettingsModalProjectTab({
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               {text.qtPontoMethodHelp}
             </p>
           </div>
@@ -334,7 +334,7 @@ export function SettingsModalProjectTab({
               }
               className="w-full glass-panel border border-white/30 rounded p-2 text-sm text-slate-800 dark:text-slate-100 focus:border-cyan-500 outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
             />
-            <p className="text-[10px] text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               {text.qtPowerFactorHelp}
             </p>
           </div>

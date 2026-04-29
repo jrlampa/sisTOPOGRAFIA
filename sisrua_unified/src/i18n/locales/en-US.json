@@ -1,0 +1,62 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "next": "Next",
+    "back": "Back",
+    "execute": "Execute",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Info"
+  },
+  "dgWizard": {
+    "title": "BT Project Wizard",
+    "steps": {
+      "DEMANDA": "Demand",
+      "EXPANSAO": "Expansion",
+      "TECNICO": "Technical",
+      "REVISAO": "Review"
+    },
+    "demanda": {
+      "title": "Customer Load",
+      "description": "Define initial load density.",
+      "labelClientesPorPoste": "Customers per pole (average)",
+      "labelDemandaMedia": "Average demand per customer (kVA)",
+      "adjustIndividual": "ADJUST INDIVIDUAL POLES ({{count}})",
+      "unitUnd": "UNIT",
+      "unitKva": "kVA"
+    },
+    "expansao": {
+      "title": "Occupation and Expansion",
+      "description": "Parameters for informal areas.",
+      "labelAreaClandestina": "Additional Clandestine Area (m²)",
+      "unitM2": "m²",
+      "infoNote": "A normative load of 20W/m² will be applied to this area, distributed proportionally among the network poles."
+    },
+    "tecnico": {
+      "title": "Engineering Limits",
+      "description": "Technical constraints for dimensioning.",
+      "labelMaxSpan": "Maximum Span (m)",
+      "labelFatorSimult": "Simultaneity Factor",
+      "labelTrafosPermitidos": "Allowed Transformers (kVA)"
+    },
+    "revisao": {
+      "title": "Project Summary",
+      "description": "Review before starting processing.",
+      "summaryCarga": "Projected Load",
+      "summaryArea": "Clandestine Area",
+      "summaryVan": "Maximum Span",
+      "summaryAjustes": "Manual Adjustments",
+      "unitPostes": "POLES",
+      "btnExecute": "EXECUTE PROJECT"
+    },
+    "validation": {
+      "minClientes": "Enter at least 1 customer per pole.",
+      "minDemanda": "Average demand per customer must be greater than zero.",
+      "minTrafos": "Select at least one allowed kVA range."
+    }
+  }
+}

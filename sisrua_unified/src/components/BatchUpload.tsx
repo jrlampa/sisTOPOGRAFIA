@@ -373,7 +373,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
             >
               <div className="flex flex-col">
                 <span className="font-semibold">{item.name}</span>
-                <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                <span className="text-xs uppercase tracking-wider text-slate-500">
                   {{
                     queued: "Na fila",
                     cached: "Em cache",
@@ -389,18 +389,18 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
                       onClick={() =>
                         triggerDownload(item.url as string, item.name)
                       }
-                      className="rounded-lg bg-emerald-500/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-200"
+                      className="rounded-lg bg-emerald-500/20 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-200"
                     >
                       Baixar
                     </button>
                   )}
                 {item.status === "queued" && (
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-xs text-slate-400">
                     {item.progress ?? 0}%
                   </span>
                 )}
                 {item.status === "failed" && (
-                  <span className="text-[10px] text-rose-300">
+                  <span className="text-xs text-rose-300">
                     {item.error || "Erro"}
                   </span>
                 )}

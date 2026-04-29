@@ -34,7 +34,7 @@ router.post("/simulacoes", (req: Request, res: Response): void => {
 
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ erro: "Dados inválidos", detalhes: parsed.error.errors });
+    res.status(400).json({ erro: "Dados inválidos", detalhes: parsed.error.issues });
     return;
   }
 
@@ -70,7 +70,7 @@ router.post("/simulacoes/:id/capex", (req: Request, res: Response): void => {
 
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ erro: "Dados inválidos", detalhes: parsed.error.errors });
+    res.status(400).json({ erro: "Dados inválidos", detalhes: parsed.error.issues });
     return;
   }
 
@@ -99,7 +99,7 @@ router.post("/simulacoes/:id/opex", (req: Request, res: Response): void => {
 
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ erro: "Dados inválidos", detalhes: parsed.error.errors });
+    res.status(400).json({ erro: "Dados inválidos", detalhes: parsed.error.issues });
     return;
   }
 
@@ -124,7 +124,7 @@ router.post("/simulacoes/:id/beneficios", (req: Request, res: Response): void =>
 
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ erro: "Dados inválidos", detalhes: parsed.error.errors });
+    res.status(400).json({ erro: "Dados inválidos", detalhes: parsed.error.issues });
     return;
   }
 

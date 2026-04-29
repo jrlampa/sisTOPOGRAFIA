@@ -81,10 +81,10 @@ const BtUnifiedElectricalTab: React.FC<BtUnifiedElectricalTabProps> = (
           <div className="space-y-3">
             <div className="flex items-center justify-between p-2 bg-amber-50/50 rounded-xl border border-amber-100">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                <span className="text-xs font-mono font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
                   {poleTransformer.title}
                 </span>
-                <span className="text-[10px] font-bold text-amber-700">
+                <span className="text-xs font-bold text-amber-700">
                   {poleTransformer.projectPowerKva ?? 0} kVA
                 </span>
               </div>
@@ -92,7 +92,7 @@ const BtUnifiedElectricalTab: React.FC<BtUnifiedElectricalTabProps> = (
                 onClick={() =>
                   props.onSelectedTransformerChange(poleTransformer.id)
                 }
-                className="text-[9px] font-black uppercase tracking-tighter text-amber-600 hover:underline"
+                className="text-xs font-black uppercase tracking-tighter text-amber-600 hover:underline"
               >
                 Editar Detalhes
               </button>
@@ -125,7 +125,7 @@ const BtUnifiedElectricalTab: React.FC<BtUnifiedElectricalTabProps> = (
             )}
           </div>
         ) : (
-          <div className="text-[10px] text-slate-400 italic p-2 bg-slate-50 rounded-xl border border-slate-100 text-center">
+          <div className="text-xs text-slate-400 italic p-2 bg-slate-50 rounded-xl border border-slate-100 text-center">
             Sem transformador neste poste
           </div>
         )}
@@ -172,13 +172,13 @@ const BtUnifiedElectricalTab: React.FC<BtUnifiedElectricalTabProps> = (
                       )}
                     </div>
                     <div className="text-left">
-                      <div className="text-[10px] font-bold text-slate-700">
+                      <div className="text-xs font-bold text-slate-700">
                         {isOutgoing ? "Para: " : "De: "}
                         <span className="font-mono text-blue-600">
                           {otherPole?.title ?? otherPoleId}
                         </span>
                       </div>
-                      <div className="text-[9px] text-slate-400 font-medium">
+                      <div className="text-xs text-slate-400 font-medium">
                         {edge.conductors.length} condutores •{" "}
                         {edge.lengthMeters?.toFixed(1) ?? "0.0"}m
                       </div>
@@ -225,7 +225,7 @@ const BtUnifiedElectricalTab: React.FC<BtUnifiedElectricalTabProps> = (
           })}
 
           {connectedEdges.length === 0 && (
-            <div className="text-[10px] text-slate-400 italic p-2 bg-slate-50 rounded-xl border border-slate-100 text-center">
+            <div className="text-xs text-slate-400 italic p-2 bg-slate-50 rounded-xl border border-slate-100 text-center">
               Nenhum vão conectado
             </div>
           )}

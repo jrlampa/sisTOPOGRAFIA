@@ -77,30 +77,36 @@ export function MainMapWorkspace({
           {!hasAreaSelection && (
             <EmptyStateMapOverlay
               locale={locale}
-              onStartSearch={onStartSearch}
-              onMapClickAction={onMapClickAction}
+              onStartSearch={() => {
+                onRestoreSidebar();
+                onStartSearch();
+              }}
+              onMapClickAction={() => {
+                onRestoreSidebar();
+                onMapClickAction();
+              }}
             />
           )}
 
           {isSidebarCollapsed && (
             <div className="pointer-events-none absolute inset-x-2 bottom-2 z-[460] flex flex-col gap-2">
               <div className="pointer-events-auto flex items-center justify-between rounded-2xl border border-cyan-200 bg-white/95 px-3 py-2 shadow-[0_12px_24px_rgba(14,116,144,0.14)] backdrop-blur-sm dark:border-cyan-300/20 dark:bg-slate-900/95 dark:shadow-none">
-                <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-900 dark:text-cyan-100">
+                <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-cyan-900 dark:text-cyan-100">
                   <Keyboard size={14} />
                   {t.keyboardMouseFirst}
                 </span>
                 <button
                   type="button"
                   onClick={onRestoreSidebar}
-                  className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-700 transition hover:bg-cyan-100 dark:border-cyan-300/20 dark:bg-cyan-950/30 dark:text-cyan-100 dark:hover:bg-cyan-900/50"
+                  className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-2 py-1 text-xs font-black uppercase tracking-wide text-cyan-700 transition hover:bg-cyan-100 dark:border-cyan-300/20 dark:bg-cyan-950/30 dark:text-cyan-100 dark:hover:bg-cyan-900/50"
                 >
                   <PanelLeftOpen size={12} />
                   {t.openSidebar}
                 </button>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-slate-700 shadow-[0_12px_24px_rgba(148,163,184,0.14)] backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/95 dark:text-slate-100 dark:shadow-none">
-                <div className="mb-1 text-[9px] tracking-[0.2em] text-slate-500 dark:text-slate-400">
+              <div className="rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-700 shadow-[0_12px_24px_rgba(148,163,184,0.14)] backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/95 dark:text-slate-100 dark:shadow-none">
+                <div className="mb-1 text-xs tracking-[0.2em] text-slate-500 dark:text-slate-400">
                   {t.navHintsTitle}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -137,4 +143,3 @@ export function MainMapWorkspace({
     </div>
   );
 }
-

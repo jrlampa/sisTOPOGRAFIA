@@ -138,7 +138,7 @@ const BtTopologyEdgeSubSection: React.FC<BtTopologyEdgeSubSectionProps> = ({
       {/* Unified Circuit List */}
       <div className="space-y-2">
         <div className="flex items-center justify-between px-1">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+          <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
             Circuitos no Vão
           </span>
           <div className="flex gap-1">
@@ -203,7 +203,7 @@ const BtTopologyEdgeSubSection: React.FC<BtTopologyEdgeSubSectionProps> = ({
                 </div>
 
                 <div className="flex-1 overflow-hidden">
-                  <div className="text-[10px] font-bold text-slate-700 truncate">
+                  <div className="text-xs font-bold text-slate-700 truncate">
                     {c.quantity}x {c.conductorName}
                   </div>
                   <div className="flex items-center gap-3 mt-0.5 opacity-60">
@@ -254,26 +254,26 @@ const BtTopologyEdgeSubSection: React.FC<BtTopologyEdgeSubSectionProps> = ({
           <Activity size={48} />
         </div>
         <div className="relative z-10">
-          <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">
+          <div className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
             Resumo de Esforço do Vão
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="text-[10px] font-bold opacity-60 uppercase">
+              <div className="text-xs font-bold opacity-60 uppercase">
                 Tração Total
               </div>
               <div className="text-sm font-black text-blue-400">
                 {totalTraction}{" "}
-                <small className="text-[10px] opacity-70">daN</small>
+                <small className="text-xs opacity-70">daN</small>
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-bold opacity-60 uppercase">
+              <div className="text-xs font-bold opacity-60 uppercase">
                 Peso Estimado
               </div>
               <div className="text-sm font-black text-emerald-400">
                 {totalWeight.toFixed(2)}{" "}
-                <small className="text-[10px] opacity-70">daN/m</small>
+                <small className="text-xs opacity-70">daN/m</small>
               </div>
             </div>
           </div>

@@ -491,7 +491,7 @@ export function renderDashboardMvs(d: unknown): React.ReactNode {
               <div key={c.namespace} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
                 <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{c.namespace}</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-slate-500 uppercase font-black">{c.active_entries}/{c.total_entries} ativos</span>
+                  <span className="text-xs text-slate-500 uppercase font-black">{c.active_entries}/{c.total_entries} ativos</span>
                   <div className="h-1.5 w-24 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-amber-500" 

@@ -6,6 +6,7 @@
  */
 import { getDbClient } from "./dbClient.js";
 import { logger } from "../utils/logger.js";
+import type { DbDxfTaskRow, DbJson } from "../../shared/dbTypes.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -98,7 +99,7 @@ export class PostgresDxfTaskRepository implements IDxfTaskRepository {
        RETURNING t.*`,
     );
     const r = (rows as any[])[0];
-    return r ? _mapRow(r) : null;
+    return r ? _mapRow(r as RawDxfTaskRow) : null;
   }
 
   async setProcessing(taskId: string): Promise<void> {
@@ -141,7 +142,7 @@ export class PostgresDxfTaskRepository implements IDxfTaskRepository {
       [key],
     );
     const r = (rows as any[])[0];
-    return r ? _mapRow(r) : null;
+    return r ? _mapRow(r as RawDxfTaskRow) : null;
   }
 
   async findById(taskId: string): Promise<DxfTaskRow | null> {
@@ -152,15 +153,19 @@ export class PostgresDxfTaskRepository implements IDxfTaskRepository {
       [taskId],
     );
     const r = (rows as any[])[0];
-    return r ? _mapRow(r) : null;
+    return r ? _mapRow(r as RawDxfTaskRow) : null;
   }
 }
 
-function _mapRow(r: any): DxfTaskRow {
+type RawDxfTaskRow = DbDxfTaskRow & { payload: DbJson | string };
+
+function _mapRow(r: RawDxfTaskRow): DxfTaskRow {
   return {
     taskId: r.task_id,
     status: r.status as DxfTaskStatus,
-    payload: typeof r.payload === "string" ? JSON.parse(r.payload) : r.payload,
+    payload:
+      (typeof r.payload === "string" ? JSON.parse(r.payload) : r.payload) as
+        DxfTaskPayload,
     attempts: Number(r.attempts ?? 0),
     idempotencyKey: r.idempotency_key ?? null,
     error: r.error ?? null,

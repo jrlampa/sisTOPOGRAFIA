@@ -236,7 +236,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         />
 
         <div className="rounded-lg border border-slate-300 bg-white p-3 shadow-sm">
-          <label htmlFor="bt-project-type-select" className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+          <label htmlFor="bt-project-type-select" className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
             {t.projectTypeTitle}
           </label>
           <select
@@ -253,7 +253,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
           {projectType === "clandestino" && (
             <div className="mt-3">
-              <label htmlFor="bt-clandestino-area-input" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+              <label htmlFor="bt-clandestino-area-input" className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 {t.clandestinoAreaTitle}
               </label>
               <input

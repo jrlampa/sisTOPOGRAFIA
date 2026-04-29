@@ -513,7 +513,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
             >
               {t.keepPoint}
             </button>
-            <p className="mt-1 px-1 text-[10px] font-semibold normal-case tracking-normal text-slate-600">
+            <p className="mt-1 px-1 text-xs font-semibold normal-case tracking-normal text-slate-600">
               {t.dragHint}
             </p>
           </div>

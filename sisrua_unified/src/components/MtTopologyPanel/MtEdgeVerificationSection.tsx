@@ -43,7 +43,7 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
 
   if (edges.length === 0) {
     return (
-      <div className="rounded border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-[10px] text-slate-500">
+      <div className="rounded border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-xs text-slate-500">
         {t.addSpanMode}
       </div>
     );
@@ -53,7 +53,7 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5 mb-1 px-1">
         <LinkIcon size={12} className="text-orange-600" />
-        <span className="text-[10px] font-bold uppercase tracking-wider text-orange-900">
+        <span className="text-xs font-bold uppercase tracking-wider text-orange-900">
           {t.edgesSectionTitle} ({edges.length})
         </span>
       </div>
@@ -75,7 +75,7 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
             >
               <div className="flex items-center justify-between">
                 <span
-                  className="text-[10px] font-bold text-slate-700 truncate min-w-0"
+                  className="text-xs font-bold text-slate-700 truncate min-w-0"
                   title={label}
                 >
                   {label}
@@ -90,13 +90,13 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
                 </button>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[9px] text-slate-400">
+                <span className="text-xs text-slate-400">
                   {edge.lengthMeters}m
                 </span>
                 <div className="flex gap-1 ml-auto">
                   <button
                     onClick={() => onSetEdgeChangeFlag(edge.id, "existing")}
-                    className={`h-5 border px-1.5 rounded text-[9px] font-black uppercase transition-all ${
+                    className={`h-5 border px-1.5 rounded text-xs font-black uppercase transition-all ${
                       flag === "existing"
                         ? "bg-slate-100 border-slate-400 text-slate-700"
                         : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"
@@ -106,7 +106,7 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
                   </button>
                   <button
                     onClick={() => onSetEdgeChangeFlag(edge.id, "new")}
-                    className={`h-5 border px-1.5 rounded text-[9px] font-black uppercase transition-all ${
+                    className={`h-5 border px-1.5 rounded text-xs font-black uppercase transition-all ${
                       flag === "new"
                         ? "bg-orange-50 border-orange-400 text-orange-700"
                         : "bg-white border-slate-200 text-slate-400 hover:border-orange-200"
@@ -117,7 +117,7 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
                 </div>
               </div>
               <div className="rounded border border-orange-100 bg-orange-50/40 p-1.5">
-                <div className="text-[9px] font-bold uppercase text-orange-800">
+                <div className="text-xs font-bold uppercase text-orange-800">
                   {t.conductorsLabel}
                 </div>
                 <div className="mt-1 flex items-center gap-1">
@@ -130,7 +130,7 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
                         [edge.id]: conductorName,
                       }));
                     }}
-                    className="h-6 min-w-0 flex-1 rounded border border-orange-200 bg-white px-1 text-[10px] text-slate-700"
+                    className="h-6 min-w-0 flex-1 rounded border border-orange-200 bg-white px-1 text-xs text-slate-700"
                     aria-label={`${t.conductorsLabel} ${edge.id}`}
                   >
                     {MT_CONDUCTOR_OPTIONS.map((name) => (
@@ -149,12 +149,12 @@ const MtEdgeVerificationSection: React.FC<MtEdgeVerificationSectionProps> = ({
                         },
                       ])
                     }
-                    className="h-6 rounded border border-orange-300 px-1.5 text-[9px] font-black uppercase text-orange-800 transition-colors hover:bg-orange-100"
+                    className="h-6 rounded border border-orange-300 px-1.5 text-xs font-black uppercase text-orange-800 transition-colors hover:bg-orange-100"
                   >
                     {t.apply}
                   </button>
                 </div>
-                <div className="mt-1 text-[9px] text-orange-900">
+                <div className="mt-1 text-xs text-orange-900">
                   {edge.conductors?.length
                     ? edge.conductors
                         .map(

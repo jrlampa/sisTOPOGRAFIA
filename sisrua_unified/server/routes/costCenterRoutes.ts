@@ -103,7 +103,7 @@ const RegistrarCustoSchema = z.object({
   tipo: z.enum(TIPOS_CUSTO as [TipoCusto, ...TipoCusto[]]),
   valor: z.number().finite().min(0),
   descricao: z.string().min(1).max(500),
-  metadados: z.record(z.unknown()).optional(),
+  metadados: z.record(z.string(), z.unknown()).optional(),
 });
 
 const FiltroRegistrosSchema = z.object({

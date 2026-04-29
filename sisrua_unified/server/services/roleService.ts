@@ -4,9 +4,15 @@ import { onRoleChange } from "./cacheService.js";
 
 export type UserRole = "admin" | "technician" | "viewer" | "guest";
 
+export interface UserContext {
+  role: UserRole;
+  tenantId: string | null;
+}
+
 interface UserRoleRecord {
   user_id: string;
   role: UserRole;
+  tenant_id: string | null;
   assigned_at: string;
   last_updated: string;
 }
@@ -25,18 +31,20 @@ interface UserRoleUpsertResult {
  */
 
 // Cache in-memory com TTL (5 minutos por padrão)
-const roleCache = new Map<string, { role: UserRole; expiresAt: number }>();
+const roleCache = new Map<string, { context: UserContext; expiresAt: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 /**
- * Recupera o papel de um usuário do banco de dados.
- * Retorna 'guest' para IDs inválidos e 'viewer' quando o DB não está disponível.
+ * Recupera o contexto de um usuário (papel e tenant) do banco de dados.
+ * Retorna 'guest' para IDs inválidos e 'viewer' com tenant nulo quando o DB não está disponível.
  */
 export async function getUserRole(
   userId: string | undefined,
-): Promise<UserRole> {
+): Promise<UserContext> {
+  const defaultContext: UserContext = { role: "viewer", tenantId: null };
+
   if (!userId || typeof userId !== "string" || userId.trim().length === 0) {
-    return "guest";
+    return { role: "guest", tenantId: null };
   }
 
   const normalizedUserId = userId.trim();
@@ -44,20 +52,20 @@ export async function getUserRole(
   // Verificar cache
   const cached = roleCache.get(normalizedUserId);
   if (cached && cached.expiresAt > Date.now()) {
-    logger.debug("User role cache hit", { userId: normalizedUserId });
-    return cached.role;
+    logger.debug("User context cache hit", { userId: normalizedUserId });
+    return cached.context;
   }
 
   try {
     const sql = getDbClient();
     if (!sql) {
-      logger.debug("DB não disponível, papel padrão: viewer", {
+      logger.debug("DB não disponível, contexto padrão: viewer", {
         userId: normalizedUserId,
       });
-      return "viewer";
+      return defaultContext;
     }
-    const rows = await sql<UserRoleRecord[]>`
-      SELECT user_id, role, assigned_at, last_updated
+    const rows = await sql<any[]>`
+      SELECT role, tenant_id
       FROM user_roles
       WHERE user_id = ${normalizedUserId}
         AND deleted_at IS NULL
@@ -65,33 +73,37 @@ export async function getUserRole(
     `;
 
     if (rows && rows.length > 0) {
-      const userRole = rows[0].role as UserRole;
+      const context: UserContext = {
+        role: rows[0].role as UserRole,
+        tenantId: rows[0].tenant_id ?? null,
+      };
 
       roleCache.set(normalizedUserId, {
-        role: userRole,
+        context,
         expiresAt: Date.now() + CACHE_TTL_MS,
       });
 
-      logger.debug("Papel de usuário recuperado do banco", {
+      logger.debug("Contexto de usuário recuperado do banco", {
         userId: normalizedUserId,
-        role: userRole,
+        role: context.role,
+        tenantId: context.tenantId,
       });
 
-      return userRole;
+      return context;
     }
 
-    logger.debug("Papel de usuário não encontrado, padrão: viewer", {
+    logger.debug("Contexto de usuário não encontrado, padrão: viewer", {
       userId: normalizedUserId,
     });
 
-    return "viewer";
+    return defaultContext;
   } catch (err: unknown) {
-    logger.error("Falha ao recuperar papel de usuário", {
+    logger.error("Falha ao recuperar contexto de usuário", {
       userId: normalizedUserId,
       error: err instanceof Error ? err.message : String(err),
     });
 
-    return "viewer";
+    return defaultContext;
   }
 }
 
@@ -189,7 +201,7 @@ export async function getUsersByRole(
     const sql = getDbClient();
     if (!sql) return [];
     const rows = await sql<UserRoleRecord[]>`
-      SELECT user_id, role, assigned_at, last_updated
+      SELECT user_id, role, tenant_id, assigned_at, last_updated
       FROM user_roles
       WHERE role = ${role}
         AND deleted_at IS NULL

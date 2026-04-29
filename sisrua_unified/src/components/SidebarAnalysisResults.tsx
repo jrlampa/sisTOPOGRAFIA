@@ -106,7 +106,7 @@ export function SidebarAnalysisResults({
                 <Mountain size={20} />
               </div>
               <div className="flex flex-col">
-                <span className="text-[11px] font-black uppercase tracking-widest text-sky-900/70 dark:text-sky-400">
+                <span className="text-sm font-black uppercase tracking-widest text-sky-900/70 dark:text-sky-400">
                   {t.terrainEngineTitle}
                 </span>
                 <span className="text-base font-black text-sky-950 dark:text-sky-100 leading-tight">

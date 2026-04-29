@@ -146,7 +146,7 @@ const MapSelectorMtEdgesLayer: React.FC<MapSelectorMtEdgesLayerProps> = ({
                       <div className={POPUP_TOOLBAR_CLASS}>
                         <button
                           onClick={() => onMtDeleteEdge(edge.id)}
-                          className="flex h-6 items-center justify-center gap-1.5 rounded border border-red-500 bg-red-50 px-3 text-[10px] font-bold text-red-700 transition-colors hover:bg-red-100"
+                          className="flex h-6 items-center justify-center gap-1.5 rounded border border-red-500 bg-red-50 px-3 text-xs font-bold text-red-700 transition-colors hover:bg-red-100"
                         >
                           <Trash2 size={12} />
                           Deletar Vão

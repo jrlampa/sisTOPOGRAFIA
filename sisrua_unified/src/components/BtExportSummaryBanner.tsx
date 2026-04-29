@@ -55,19 +55,19 @@ export function BtExportSummaryBanner({
         <div className="flex items-center gap-2">
           <button
             onClick={exportBtHistoryJson}
-            className="inline-flex items-center gap-1 rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-700 dark:text-cyan-200 hover:bg-cyan-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
+            className="inline-flex items-center gap-1 rounded border border-cyan-500/40 px-2 py-0.5 text-xs uppercase tracking-wide text-cyan-700 dark:text-cyan-200 hover:bg-cyan-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
           >
             <Download size={10} /> JSON
           </button>
           <button
             onClick={exportBtHistoryCsv}
-            className="inline-flex items-center gap-1 rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-700 dark:text-cyan-200 hover:bg-cyan-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
+            className="inline-flex items-center gap-1 rounded border border-cyan-500/40 px-2 py-0.5 text-xs uppercase tracking-wide text-cyan-700 dark:text-cyan-200 hover:bg-cyan-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
           >
             <Download size={10} /> CSV
           </button>
           <button
             onClick={clearBtExportHistory}
-            className="rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-700 dark:text-cyan-200 hover:bg-cyan-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
+            className="rounded border border-cyan-500/40 px-2 py-0.5 text-xs uppercase tracking-wide text-cyan-700 dark:text-cyan-200 hover:bg-cyan-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
           >
             Limpar
           </button>
@@ -137,7 +137,7 @@ export function BtExportSummaryBanner({
                 : historyPagination.totalItems}
               )
             </div>
-            <div className="flex items-center gap-2 text-[10px]">
+            <div className="flex items-center gap-2 text-xs">
               <select
                 value={historyProjectTypeFilter}
                 onChange={(event) =>
@@ -174,7 +174,7 @@ export function BtExportSummaryBanner({
           {historyPagination.items.map((entry, index) => (
             <div
               key={`${entry.exportedAt}-${entry.criticalPoleId}-${index}`}
-              className="text-[11px] text-slate-700 dark:text-cyan-100/90"
+              className="text-sm text-slate-700 dark:text-cyan-100/90"
             >
               {new Date(entry.exportedAt).toLocaleString("pt-BR")} |{" "}
               {entry.projectType.toUpperCase()} | {entry.criticalPoleId} |{" "}
@@ -199,7 +199,7 @@ export function BtExportSummaryBanner({
             <button
               onClick={onLoadMoreBtHistory}
               disabled={btHistoryLoading}
-              className="mt-2 w-full rounded border border-cyan-500/40 px-2 py-1 text-[10px] uppercase tracking-wide text-cyan-700 dark:text-cyan-200 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
+              className="mt-2 w-full rounded border border-cyan-500/40 px-2 py-1 text-xs uppercase tracking-wide text-cyan-700 dark:text-cyan-200 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
             >
               {btHistoryLoading ? "Carregando..." : "Carregar mais do servidor"}
             </button>

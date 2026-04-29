@@ -148,7 +148,7 @@ export function sanitizeError(error: any, level: SanitizeLevel = 'strict'): any 
 
   // Em development, incluir stack trace sanitizado
   if (process.env.NODE_ENV === 'development' && error.stack) {
-    sanitized.stack = sanitizeForLogging(error.stack, level);
+    (sanitized as any).stack = sanitizeForLogging(error.stack, level);
   }
 
   return sanitized;

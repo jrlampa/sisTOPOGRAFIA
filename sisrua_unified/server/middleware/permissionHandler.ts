@@ -33,7 +33,15 @@ export const requirePermission = (requiredPermission: Permission) => {
     const requestId = res.locals.requestId;
 
     try {
-      const userRole = await getUserRole(userId);
+      const userContext = await getUserRole(userId);
+      const userRole = userContext.role;
+      const tenantId = userContext.tenantId;
+      
+      // Propaga o tenantId para os repositórios através do res.locals
+      res.locals.userId = userId;
+      res.locals.userRole = userRole;
+      res.locals.tenantId = tenantId;
+
       const userPermissions = permissionsMatrix[userRole] || [];
 
       const hasPermission =

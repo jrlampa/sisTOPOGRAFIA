@@ -1,4 +1,16 @@
-## Atualização Operacional (2026-04-29D) - DXF Sanitation Implementation
+## Atualização Operacional (2026-04-29E) - Security Audit & DG Modularization
+- **Hardening de Segurança (Concluída)**:
+  - Aplicados middlewares `detectSuspiciousPatterns` e `validatePayloadRate` globalmente em `app.ts`.
+  - Implementada propagação de `tenantId` via `getUserRole` no `permissionHandler`.
+  - Corrigido vazamento de dados multi-tenant no `dgRunRepository` (agora restringe a `tenant_id IS NULL` quando contexto está ausente).
+- **Modularização do Motor DG (Concluída)**:
+  - `dgPartitioner.ts` fatiado de ~800 para 353 linhas.
+  - Novos módulos criados: `dgMst.ts`, `dgTelescopic.ts`, `dgEccentricity.ts`, `dgCuts.ts`.
+  - Alinhamento total com limite de 500 linhas do `GEMINI.md`.
+- **Auditoria Supabase**:
+  - Validado que a integração usa o padrão Repository com filtragem manual de `tenant_id`.
+  - Risco identificado: RLS do banco não é disparado automaticamente via Node.js sem `SET app.tenant_id`. Mitigado via hardening nos repositórios.
+
 1: 
 2: - **Saneamento de DXF Tasks (Concluída)**:
 3:   - **DbMaintenanceService**: Implementado método `sanitizeFailedDxfTasks` portado de Python para TypeScript. O serviço agora classifica tarefas falhas e executa ações corretivas automáticas (`cancel` para inputs inválidos, `requeue` para falhas de runtime).

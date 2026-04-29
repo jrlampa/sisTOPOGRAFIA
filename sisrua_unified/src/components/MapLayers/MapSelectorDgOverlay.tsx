@@ -73,7 +73,7 @@ const MapSelectorDgOverlay: React.FC<MapSelectorDgOverlayProps> = ({
           }}
         >
           <Tooltip sticky>
-            <span className="text-[11px]">DG: {edge.lengthM.toFixed(0)} m</span>
+            <span className="text-sm">DG: {edge.lengthM.toFixed(0)} m</span>
           </Tooltip>
         </Polyline>
       ))}
@@ -90,7 +90,7 @@ const MapSelectorDgOverlay: React.FC<MapSelectorDgOverlayProps> = ({
         }}
       >
         <Tooltip permanent={false} direction="top">
-          <span className="text-[11px] font-bold">
+          <span className="text-sm font-bold">
             Trafo DG — Score: {scenario.objectiveScore.toFixed(1)}
           </span>
         </Tooltip>

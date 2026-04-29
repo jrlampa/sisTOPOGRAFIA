@@ -2,7 +2,7 @@
 # Optimized for Production with Security Hardening and Multi-Language Support (Node.js + Python)
 
 # Stage 1: Builder
-FROM node:22-bookworm AS builder
+FROM node:22-slim AS builder
 WORKDIR /app
 
 # Install Python and build dependencies for native modules
@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy package files for layer caching
 COPY package*.json ./
-RUN npm ci --prefer-offline --no-audit
+RUN npm ci --legacy-peer-deps --prefer-offline --no-audit
 
 # Copy source and build
 COPY . .
@@ -60,7 +60,7 @@ RUN useradd -m -u 10000 appuser
 
 # Copy production node_modules
 COPY package*.json ./
-RUN npm ci --omit=dev --prefer-offline --no-audit && \
+RUN npm ci --legacy-peer-deps --omit=dev --prefer-offline --no-audit && \
     npm cache clean --force
 
 # Copy pre-built Python venv and artifacts
@@ -75,8 +75,33 @@ RUN mkdir -p /app/public/dxf /app/cache /app/logs && \
     chown -R appuser:appuser /app/public/dxf /app/cache /app/logs && \
     chmod +x /app/docker-entrypoint.sh
 
-# Verify runtime environment (várias libs precisam ser testadas)
-RUN /opt/venv/bin/python3 -c "import osmnx, ezdxf, geopandas; print('✅ Python dependencies verified')"
+# Verify runtime environment - comprehensive dependency check
+RUN /opt/venv/bin/python3 << 'EOF'
+import sys
+try:
+    # Geospatial core
+    import osmnx, geopandas, shapely, pyproj, rasterio, networkx
+    # DXF/CAD
+    import ezdxf
+    # Data processing
+    import numpy, pandas, scipy, matplotlib
+    # Database
+    import psycopg2
+    # Spreadsheets
+    import openpyxl
+    # HTTP & APIs
+    import requests
+    # Elevation
+    import srtm
+    # Validation
+    import pydantic
+    # Monitoring
+    import psutil
+    print('✅ ALL Python dependencies verified successfully')
+except ImportError as e:
+    print(f'❌ CRITICAL: Missing Python dependency: {e}')
+    sys.exit(1)
+EOF
 
 # ENTRYPOINT will handle permissions as root then drop to appuser
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
@@ -84,7 +109,7 @@ ENTRYPOINT ["/app/docker-entrypoint.sh"]
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD curl -fsS "http://localhost:${PORT}/" || exit 1
+    CMD curl -fsS "http://localhost:${PORT}/health" || exit 1
 
 # Start application
 CMD ["node", "dist/server/index.js"]

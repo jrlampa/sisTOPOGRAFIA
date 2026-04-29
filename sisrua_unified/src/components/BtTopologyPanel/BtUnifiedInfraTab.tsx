@@ -80,7 +80,7 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
       {/* Physical State & Structures */}
       <div className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm space-y-4">
         <div>
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+          <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
             {pt.poleStateTitle}
           </label>
           <select
@@ -103,7 +103,7 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
         </div>
 
         <div>
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+          <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
             {pt.structuresTitle}
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -119,7 +119,7 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
                     [slot]: e.target.value || undefined,
                   })
                 }
-                className="bg-slate-50 border-none rounded-xl p-2.5 text-[10px] font-mono font-bold text-slate-700 placeholder:opacity-30 focus:ring-2 focus:ring-blue-100"
+                className="bg-slate-50 border-none rounded-xl p-2.5 text-xs font-mono font-bold text-slate-700 placeholder:opacity-30 focus:ring-2 focus:ring-blue-100"
               />
             ))}
           </div>
@@ -128,7 +128,7 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
 
       {/* Notes */}
       <div className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm">
-        <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+        <label className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
           <FileText size={12} /> {pt.generalNotesTitle}
         </label>
         <textarea
@@ -137,7 +137,7 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
             props.updatePoleGeneralNotes(pole.id, e.target.value || undefined)
           }
           rows={3}
-          className="w-full bg-slate-50 border-none rounded-xl p-3 text-[11px] text-slate-800 focus:ring-2 focus:ring-blue-100 resize-none"
+          className="w-full bg-slate-50 border-none rounded-xl p-3 text-sm text-slate-800 focus:ring-2 focus:ring-blue-100 resize-none"
           placeholder={pt.generalNotesPlaceholder}
         />
       </div>
@@ -145,12 +145,12 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
       {/* MT Context (Unified Vision) */}
       {props.mtTopology.poles.some((p) => p.id === pole.id) && (
         <div className="bg-gradient-to-br from-amber-50 to-orange-100/50 border border-orange-200 rounded-3xl p-4 shadow-sm">
-          <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-orange-700/60 mb-3">
+          <label className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-orange-700/60 mb-3">
             <Zap size={12} /> {dashboardText.mediumVoltageContext}
           </label>
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center bg-white/60 p-2.5 rounded-xl border border-orange-200/30">
-              <span className="text-[10px] font-bold text-orange-900/70 uppercase">
+              <span className="text-xs font-bold text-orange-900/70 uppercase">
                 {dashboardText.mediumVoltageStructures}
               </span>
               <span className="text-xs font-mono font-bold text-orange-800">
@@ -166,7 +166,7 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
               </span>
             </div>
             <div className="flex justify-between items-center bg-white/60 p-2.5 rounded-xl border border-orange-200/30">
-              <span className="text-[10px] font-bold text-orange-900/70 uppercase">
+              <span className="text-xs font-bold text-orange-900/70 uppercase">
                 {dashboardText.mediumVoltageConnections}
               </span>
               <span className="text-xs font-mono font-bold text-orange-800">

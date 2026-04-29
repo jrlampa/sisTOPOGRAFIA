@@ -25,7 +25,7 @@ const DxfLegend: React.FC = () => {
                     <Palette size={18} />
                 </div>
                 <div className="flex flex-col">
-                    <h3 className="text-[10px] font-black text-purple-800/60 uppercase tracking-widest dark:text-purple-400/60">
+                    <h3 className="text-xs font-black text-purple-800/60 uppercase tracking-widest dark:text-purple-400/60">
                       Standardization
                     </h3>
                     <span className="text-sm font-black text-purple-950 dark:text-purple-100 uppercase tracking-tight">Padrão de Cores DXF</span>
@@ -49,7 +49,7 @@ const DxfLegend: React.FC = () => {
                             <span className="truncate text-xs font-bold text-slate-900 transition-colors group-hover:text-purple-600 dark:text-zinc-200 dark:group-hover:text-purple-400 uppercase">
                               {item.label}
                             </span>
-                            <span className="text-[9px] font-black uppercase tracking-tighter text-slate-400">
+                            <span className="text-xs font-black uppercase tracking-tighter text-slate-400">
                               L: {item.layer}
                             </span>
                         </div>

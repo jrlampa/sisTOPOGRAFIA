@@ -139,13 +139,13 @@ export function SettingsModalGeneralTab({
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
                <button 
                  onClick={() => onUpdateSettings({ ...settings, uiDensity: "compact" })}
-                 className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${settings.uiDensity === "compact" ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600" : "text-slate-400"}`}
+                 className={`px-3 py-1 text-xs font-black uppercase rounded-md transition-all ${settings.uiDensity === "compact" ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600" : "text-slate-400"}`}
                >
                  {text.uiDensityCompact}
                </button>
                <button 
                  onClick={() => onUpdateSettings({ ...settings, uiDensity: "comfortable" })}
-                 className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${settings.uiDensity === "comfortable" || !settings.uiDensity ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600" : "text-slate-400"}`}
+                 className={`px-3 py-1 text-xs font-black uppercase rounded-md transition-all ${settings.uiDensity === "comfortable" || !settings.uiDensity ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600" : "text-slate-400"}`}
                >
                  {text.uiDensityComfortable}
                </button>
@@ -158,7 +158,7 @@ export function SettingsModalGeneralTab({
                 <Maximize2 size={16} className="text-violet-500" />
                 {text.focusModeLabel}
               </span>
-              <span className="text-[10px] text-slate-400 font-medium ml-6">{text.focusModeHint}</span>
+              <span className="text-xs text-slate-400 font-medium ml-6">{text.focusModeHint}</span>
             </div>
             <button
               onClick={() => onUpdateSettings({ ...settings, enableFocusMode: !settings.enableFocusMode })}
@@ -218,7 +218,7 @@ export function SettingsModalGeneralTab({
               </option>
             ))}
           </select>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             {text.interfaceLanguageHint}
           </p>
         </div>
@@ -544,7 +544,7 @@ export function SettingsModalGeneralTab({
               {text.projectionUtm}
             </button>
           </div>
-          <p className="text-[10px] text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             {text.projectionHint}
           </p>
         </div>

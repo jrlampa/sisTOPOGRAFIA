@@ -35,7 +35,7 @@ export function SidebarMtEditorSection({
       <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-orange-200 bg-orange-50/50 p-1 dark:border-orange-900/30 dark:bg-orange-950/20">
         <button
           onClick={() => onMtEditorModeChange("none")}
-          className={`flex h-8 items-center justify-center gap-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
+          className={`flex h-8 items-center justify-center gap-1.5 rounded-lg text-xs font-bold uppercase transition-all ${
             mtEditorMode === "none"
               ? "bg-white text-orange-700 shadow-sm dark:bg-orange-900/40 dark:text-orange-200"
               : "text-orange-600/70 hover:bg-white/50 dark:text-orange-400/60"
@@ -46,7 +46,7 @@ export function SidebarMtEditorSection({
         </button>
         <button
           onClick={() => onMtEditorModeChange("mt-add-pole")}
-          className={`flex h-8 items-center justify-center gap-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
+          className={`flex h-8 items-center justify-center gap-1.5 rounded-lg text-xs font-bold uppercase transition-all ${
             mtEditorMode === "mt-add-pole"
               ? "bg-orange-600 text-white shadow-md dark:bg-orange-600"
               : "text-orange-600/70 hover:bg-white/50 dark:text-orange-400/60"
@@ -57,7 +57,7 @@ export function SidebarMtEditorSection({
         </button>
         <button
           onClick={() => onMtEditorModeChange("mt-add-edge")}
-          className={`flex h-8 items-center justify-center gap-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
+          className={`flex h-8 items-center justify-center gap-1.5 rounded-lg text-xs font-bold uppercase transition-all ${
             mtEditorMode === "mt-add-edge"
               ? "bg-orange-600 text-white shadow-md dark:bg-orange-600"
               : "text-orange-600/70 hover:bg-white/50 dark:text-orange-400/60"

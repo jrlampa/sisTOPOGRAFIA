@@ -154,7 +154,7 @@ export function SidebarWorkspace({
       <div className="mb-6 flex items-center justify-between px-2">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">
               {t.workflowTag}
             </p>
             <AnimatePresence>
@@ -209,7 +209,7 @@ export function SidebarWorkspace({
                 )}
               </div>
               <span
-                className={`text-[9px] font-black uppercase tracking-widest ${
+                className={`text-xs font-black uppercase tracking-widest ${
                   isActive
                     ? "text-blue-600 dark:text-blue-400"
                     : "text-slate-400 dark:text-slate-600"
@@ -236,10 +236,10 @@ export function SidebarWorkspace({
           <div className="mb-4 flex items-center gap-3 px-2">
             <div className="h-8 w-1 rounded-full bg-blue-600" />
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400">
                 {currentStage?.label}
               </p>
-              <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+              <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
                 {currentStage?.helper}
               </p>
             </div>
@@ -261,11 +261,11 @@ export function SidebarWorkspace({
       {/* Workflow CTA */}
       <div className="glass-card mt-2 p-5 backdrop-blur-md border-blue-500/20 shadow-xl shadow-blue-500/5">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-500 dark:text-blue-400">
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-blue-500 dark:text-blue-400">
             {t.nextActionTag}
           </p>
           <span
-            className="rounded-lg bg-slate-100 px-2 py-0.5 text-[9px] font-black text-slate-400 dark:bg-white/5 dark:text-slate-600 select-none"
+            className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-black text-slate-400 dark:bg-white/5 dark:text-slate-600 select-none"
             title={t.pageNavigationHint}
             aria-label={t.pageNavigationHint}
             role="note"
@@ -286,7 +286,7 @@ export function SidebarWorkspace({
               setActiveStage(nextStage.id);
             }
           }}
-          className="relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 px-4 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-[0_20px_40px_-10px_rgba(37,99,235,0.4)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none min-h-[56px]"
+          className="relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 px-4 py-4 text-sm font-black uppercase tracking-[0.2em] text-white shadow-[0_20px_40px_-10px_rgba(37,99,235,0.4)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none min-h-[56px]"
         >
           <span className="relative z-10">
             {nextStage ? t.advanceStep : t.flowCompleted}

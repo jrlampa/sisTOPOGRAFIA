@@ -85,7 +85,7 @@ export function EmptyStateMapOverlay({
             <div className="absolute inset-0 flex items-center" aria-hidden="true">
               <div className="w-full border-t border-slate-200 dark:border-white/10"></div>
             </div>
-            <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-widest">
+            <div className="relative flex justify-center text-xs font-bold uppercase tracking-widest">
               <span className="bg-white px-2 text-slate-400 dark:bg-slate-900">OU</span>
             </div>
           </div>
@@ -98,13 +98,13 @@ export function EmptyStateMapOverlay({
             <span className="text-xs font-bold uppercase tracking-wider">{t.searchLabel}</span>
           </button>
 
-          <p className="text-[11px] font-medium leading-relaxed text-slate-500 dark:text-slate-400">
+          <p className="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
             {t.microInstruction}
           </p>
         </div>
 
         <div className="border-t border-slate-100 bg-slate-50/50 p-4 dark:border-white/5 dark:bg-white/5">
-          <div className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+          <div className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
             sisrua unified engine v2.0
           </div>

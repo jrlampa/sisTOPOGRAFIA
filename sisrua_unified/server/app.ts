@@ -26,6 +26,10 @@ import {
   requireAdminToken,
   requireMetricsToken,
 } from "./middleware/authGuard.js";
+import {
+  detectSuspiciousPatterns,
+  validatePayloadRate,
+} from "./middleware/validation-enhanced.js";
 
 // ─── Health Check Cache ────────────────────────────────────────────────
 let lastHealthResponse: any = null;
@@ -316,6 +320,10 @@ app.use(monitoringMiddleware);
 app.use(requestMetrics);
 app.use(generalRateLimiter);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+
+// Security Hardening (Audit April 2026)
+app.use("/api", detectSuspiciousPatterns);
+app.use("/api", validatePayloadRate(10)); // 10MB limit for general API payloads
 
 app.get("/health", async (_req: Request, res: Response) => {
   const now = Date.now();

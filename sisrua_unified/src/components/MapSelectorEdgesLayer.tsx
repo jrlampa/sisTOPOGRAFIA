@@ -45,7 +45,7 @@ const CONDUCTOR_OPTIONS = [
 
 const EDGE_HIT_AREA_WEIGHT = 44;
 const POPUP_SELECT_CLASS =
-  "w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[11px] text-slate-700";
+  "w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-sm text-slate-700";
 const POPUP_TOOLBAR_CLASS = "mt-1.5 flex items-center gap-2";
 const POPUP_FLAG_GRID_CLASS = "mt-1.5 grid grid-cols-2 gap-1.5";
 
@@ -90,7 +90,7 @@ const getFlagButtonClass = (
   variant: "existing" | "new" | "replace" | "remove",
 ) => {
   const baseClass =
-    "h-6 rounded border bg-white text-[10px] font-bold transition-colors";
+    "h-6 rounded border bg-white text-xs font-bold transition-colors";
 
   if (variant === "new") {
     return `${baseClass} border-green-500 text-green-700 ${isActive ? "bg-green-100" : "hover:bg-green-50"}`;
@@ -338,7 +338,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                       }
                       onBtSetEdgeLengthMeters(edge.id, parsed);
                     }}
-                    className="w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[11px] text-slate-700"
+                    className="w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-sm text-slate-700"
                     title={`Metragem CQT do trecho ${edge.id}`}
                   />
                 </div>
@@ -380,7 +380,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                           },
                         ]);
                       }}
-                      className="mt-1.5 h-6 w-full rounded border border-amber-500 bg-amber-50 text-[11px] font-bold text-amber-800 transition-colors hover:bg-amber-100"
+                      className="mt-1.5 h-6 w-full rounded border border-amber-500 bg-amber-50 text-sm font-bold text-amber-800 transition-colors hover:bg-amber-100"
                     >
                       Definir condutor que sai
                     </button>
@@ -402,7 +402,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                 </div>
               )}
               {(popupEdge.mtConductors ?? []).length > 0 && (
-                <div className="mt-1 rounded border border-orange-200 bg-orange-50 px-1.5 py-1 text-[10px] text-orange-900">
+                <div className="mt-1 rounded border border-orange-200 bg-orange-50 px-1.5 py-1 text-xs text-orange-900">
                   <div className="font-bold uppercase tracking-wide">
                     {t.popup.linkedMtConductor}
                   </div>

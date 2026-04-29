@@ -122,9 +122,9 @@ const MapSelectorTransformersLayer: React.FC<
         >
           <Tooltip direction="top" offset={[0, -10]} opacity={0.9}>
             <div className="flex flex-col items-center">
-              <span className="text-[10px] font-bold text-violet-900">{transformer.title}</span>
+              <span className="text-xs font-bold text-violet-900">{transformer.title}</span>
               {layerConfig?.labels && typeof transformer.projectPowerKva === "number" && (
-                <span className="text-[9px] font-black text-violet-700">
+                <span className="text-xs font-black text-violet-700">
                   {transformer.projectPowerKva} kVA
                 </span>
               )}
@@ -133,7 +133,7 @@ const MapSelectorTransformersLayer: React.FC<
           <Popup>
             <div className="text-xs">
               <strong>{transformer.title}</strong>
-              <div className="text-[10px] text-slate-500">{transformer.id}</div>
+              <div className="text-xs text-slate-500">{transformer.id}</div>
 
               {/* Transformer BIM Specs Section */}
               {typeof transformer.projectPowerKva === "number" && (

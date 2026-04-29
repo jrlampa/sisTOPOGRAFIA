@@ -6,7 +6,7 @@
       "properties": {
         "name": "TRAFO-0",
         "type": "trafo",
-        "kva": 0
+        "kva": 225
       },
       "geometry": {
         "type": "Point",
@@ -681,7 +681,7 @@
       "properties": {
         "name": "TRAFO-1",
         "type": "trafo",
-        "kva": 0
+        "kva": 150
       },
       "geometry": {
         "type": "Point",

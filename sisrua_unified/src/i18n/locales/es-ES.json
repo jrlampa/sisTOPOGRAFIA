@@ -1,0 +1,62 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "next": "Siguiente",
+    "back": "Atrás",
+    "execute": "Ejecutar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Aviso",
+    "info": "Información"
+  },
+  "dgWizard": {
+    "title": "Asistente de Proyecto BT",
+    "steps": {
+      "DEMANDA": "Demanda",
+      "EXPANSAO": "Expansión",
+      "TECNICO": "Técnico",
+      "REVISAO": "Revisión"
+    },
+    "demanda": {
+      "title": "Carga del Cliente",
+      "description": "Defina la densidad de carga inicial.",
+      "labelClientesPorPoste": "Clientes por poste (medio)",
+      "labelDemandaMedia": "Demanda media por cliente (kVA)",
+      "adjustIndividual": "AJUSTAR POSTES INDIVIDUALMENTE ({{count}})",
+      "unitUnd": "UND",
+      "unitKva": "kVA"
+    },
+    "expansao": {
+      "title": "Ocupación y Expansión",
+      "description": "Parámetros para áreas informales.",
+      "labelAreaClandestina": "Área Clandestina Adicional (m²)",
+      "unitM2": "m²",
+      "infoNote": "Se aplicará una carga normativa de 20W/m² en esta área, distribuida proporcionalmente entre los postes de la red."
+    },
+    "tecnico": {
+      "title": "Límites de Ingeniería",
+      "description": "Restricciones técnicas del dimensionamiento.",
+      "labelMaxSpan": "Vano Máximo (m)",
+      "labelFatorSimult": "Factor de Simultaneidad",
+      "labelTrafosPermitidos": "Transformadores Permitidos (kVA)"
+    },
+    "revisao": {
+      "title": "Resumen del Proyecto",
+      "description": "Revise antes de iniciar el procesamiento.",
+      "summaryCarga": "Carga Proyectada",
+      "summaryArea": "Área Clandestina",
+      "summaryVan": "Vano Máximo",
+      "summaryAjustes": "Ajustes Manuales",
+      "unitPostes": "POSTES",
+      "btnExecute": "EJECUTAR PROYECTO"
+    },
+    "validation": {
+      "minClientes": "Ingrese al menos 1 cliente por poste.",
+      "minDemanda": "La demanda media por cliente debe ser mayor que cero.",
+      "minTrafos": "Seleccione al menos um rango de kVA permitido."
+    }
+  }
+}

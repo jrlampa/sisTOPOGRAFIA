@@ -55,11 +55,11 @@ const BtTopologyTransformerSubSection: React.FC<
 
   return (
     <div className="space-y-2 rounded-lg border border-slate-300 bg-slate-50 p-3">
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
         {btNetworkScenario === "asis" ? t.transformerTitleAsis : t.transformerTitleProject}
       </div>
       {btTopology.transformers.length === 0 ? (
-        <div className="text-[10px] text-slate-500 italic">
+        <div className="text-xs text-slate-500 italic">
           {t.noTransformer}
         </div>
       ) : (
@@ -111,7 +111,7 @@ const BtTopologyTransformerSubSection: React.FC<
                       !selectedTransformer.verified,
                     )
                   }
-                  className="rounded border border-cyan-400 px-3 py-1 text-[10px] text-cyan-700 hover:bg-cyan-50"
+                  className="rounded border border-cyan-400 px-3 py-1 text-xs text-cyan-700 hover:bg-cyan-50"
                 >
                   {selectedTransformer.verified
                     ? t.btnMarkUnverified
@@ -131,7 +131,7 @@ const BtTopologyTransformerSubSection: React.FC<
                             flag,
                           )
                         }
-                        className={`rounded px-2 py-1 text-[9px] border ${getTransformerChangeFlag(selectedTransformer) === flag ? "border-blue-500 bg-blue-50 text-blue-700" : "border-slate-300 bg-white"}`}
+                        className={`rounded px-2 py-1 text-xs border ${getTransformerChangeFlag(selectedTransformer) === flag ? "border-blue-500 bg-blue-50 text-blue-700" : "border-slate-300 bg-white"}`}
                       >
                         {flag.toUpperCase()}
                       </button>
@@ -141,7 +141,7 @@ const BtTopologyTransformerSubSection: React.FC<
               )}
 
               {/* Lógica de Leituras Simplificada para este componente */}
-              <div className="rounded border border-slate-200 bg-white p-2 text-[10px] space-y-1">
+              <div className="rounded border border-slate-200 bg-white p-2 text-xs space-y-1">
                 <div className="flex justify-between">
                   <span>{t.demandKva}</span>
                   <span className="font-bold">

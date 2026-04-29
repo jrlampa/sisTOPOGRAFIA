@@ -87,8 +87,8 @@ const cqtDmdiInputSchema = z.object({
 const cqtGeralInputSchema = z.object({
   pontoRamal: z.string().min(1),
   qtMttr: z.coerce.number(),
-  esqCqtByPonto: z.record(z.coerce.number()),
-  dirCqtByPonto: z.record(z.coerce.number()),
+  esqCqtByPonto: z.record(z.string(), z.coerce.number()),
+  dirCqtByPonto: z.record(z.string(), z.coerce.number()),
 });
 
 const cqtDbInputSchema = z.object({

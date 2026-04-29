@@ -208,7 +208,7 @@ export default function LandingPage() {
             <span className="text-sm font-bold">
               sis<span className="text-indigo-400">TOPOGRAFIA</span>
             </span>
-            <span className="rounded bg-indigo-600/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-400">
+            <span className="rounded bg-indigo-600/20 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-indigo-400">
               SaaS
             </span>
           </Link>

@@ -281,7 +281,9 @@ function round2(value: number): number {
 }
 
 function matchesTenant(run: DgOptimizationOutput, tenantId?: string): boolean {
-  if (!tenantId) return true;
+  // Hardening: se houver tenantId, deve bater exatamente.
+  // Se não houver tenantId na requisição, só permitimos se o run também for público/sistema (tenantId null)
+  if (!tenantId) return !run.tenantId;
   return run.tenantId === tenantId;
 }
 
@@ -474,7 +476,7 @@ export class PostgresDgRunRepository implements IDgRunRepository {
               [tenantId, limit],
             )
           : await sql.unsafe(
-              `SELECT output_json FROM dg_runs ORDER BY computed_at DESC LIMIT $1`,
+              `SELECT output_json FROM dg_runs WHERE tenant_id IS NULL ORDER BY computed_at DESC LIMIT $1`,
               [limit],
             );
         for (const row of rows as any[]) {
@@ -544,6 +546,7 @@ export class PostgresDgRunRepository implements IDgRunRepository {
                  v.discard_rate_percent
                FROM dg_discard_rate_by_constraint_v v
                JOIN dg_runs r ON r.run_id = v.run_id
+               WHERE v.tenant_id IS NULL
                ORDER BY r.computed_at DESC, v.discard_rate_percent DESC
                LIMIT $1`,
               [limit],
@@ -590,7 +593,7 @@ export class PostgresDgRunRepository implements IDgRunRepository {
             [runId, tenantId],
           )
         : await sql.unsafe(
-            `SELECT output_json FROM dg_runs WHERE run_id = $1 LIMIT 1`,
+            `SELECT output_json FROM dg_runs WHERE run_id = $1 AND tenant_id IS NULL LIMIT 1`,
             [runId],
           );
       const parsed = parseOutput((rows as any[])[0]);

@@ -91,7 +91,7 @@ const RegistrarEventoSchema = z.object({
   duracaoMs: z.number().finite().min(0),
   projetoId: z.string().max(128).optional(),
   regiao: z.string().max(128).optional(),
-  metadados: z.record(z.unknown()).optional(),
+  metadados: z.record(z.string(), z.unknown()).optional(),
 });
 
 const ETAPAS_FLUXO_CRITICO: EtapaFluxoCritico[] = [
@@ -108,7 +108,7 @@ const RegistrarFluxoCriticoSchema = z
     ),
     projetoId: z.string().trim().min(1).max(128),
     pontoId: z.string().trim().min(1).max(128).optional(),
-    metadados: z.record(z.unknown()).optional(),
+    metadados: z.record(z.string(), z.unknown()).optional(),
   })
   .superRefine((value, ctx) => {
     if (value.etapa !== "projeto" && !value.pontoId) {

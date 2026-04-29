@@ -13,6 +13,7 @@ export type UserRole = "admin" | "technician" | "viewer" | "guest";
 export interface UserRoleRow {
   userId: string;
   role: UserRole;
+  tenantId: string | null;
   assignedBy: string | null;
   reason: string | null;
   assignedAt: Date;
@@ -39,7 +40,7 @@ export class PostgresRoleRepository implements IRoleRepository {
     if (!sql) return null;
     try {
       const rows = await sql.unsafe(
-        `SELECT user_id, role, assigned_by, reason, assigned_at, last_updated
+        `SELECT user_id, role, tenant_id, assigned_by, reason, assigned_at, last_updated
          FROM user_roles WHERE user_id = $1 LIMIT 1`,
         [userId],
       );
@@ -56,7 +57,7 @@ export class PostgresRoleRepository implements IRoleRepository {
     if (!sql) return [];
     try {
       const rows = await sql.unsafe(
-        `SELECT user_id, role, assigned_by, reason, assigned_at, last_updated
+        `SELECT user_id, role, tenant_id, assigned_by, reason, assigned_at, last_updated
          FROM user_roles WHERE role = $1 ORDER BY assigned_at DESC`,
         [role],
       );
@@ -120,6 +121,7 @@ function _mapRow(r: any): UserRoleRow {
   return {
     userId: r.user_id,
     role: r.role as UserRole,
+    tenantId: r.tenant_id ?? null,
     assignedBy: r.assigned_by ?? null,
     reason: r.reason ?? null,
     assignedAt: new Date(r.assigned_at),

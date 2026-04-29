@@ -65,7 +65,7 @@ const parseBatchCsv = (buffer: Buffer): Promise<ParsedBatchRow[]> =>
 
 const parseBatchExcel = async (buffer: Buffer): Promise<ParsedBatchRow[]> => {
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer);
+    await workbook.xlsx.load(buffer as any);
     
     const worksheet = workbook.getWorksheet(1); // Get first sheet
     if (!worksheet) return [];

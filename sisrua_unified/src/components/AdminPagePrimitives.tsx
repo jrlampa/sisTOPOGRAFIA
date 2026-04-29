@@ -346,7 +346,7 @@ export function InfoCard({
         : "text-rose-700 dark:text-rose-300";
   return (
     <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/40 px-3 py-2">
-      <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+      <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
         {label}
       </p>
       <p className={`font-bold text-sm mt-0.5 ${corValor}`}>{valor}</p>

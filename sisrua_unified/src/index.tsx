@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
+import "./i18n"; // Import i18n configuration
 import AppRouter from "./router";
 import { initAnalytics } from "./utils/analytics";
 import { resetChunkReloadFlag } from "./utils/lazyWithRetry";

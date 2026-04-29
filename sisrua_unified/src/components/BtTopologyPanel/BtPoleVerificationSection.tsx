@@ -110,14 +110,14 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
 
   return (
     <div className="space-y-3 rounded-lg border border-cyan-200 bg-slate-50 p-3">
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-800">
+      <div className="text-xs font-semibold uppercase tracking-wide text-cyan-800">
         {t.title}
       </div>
 
       <div className="space-y-2">
-        <div className="text-[10px] text-slate-400">{t.selectedPole}</div>
+        <div className="text-xs text-slate-400">{t.selectedPole}</div>
         {btTopology.poles.length === 0 ? (
-          <div className="text-[10px] text-slate-500">
+          <div className="text-xs text-slate-500">
             {t.noPole}
           </div>
         ) : (
@@ -176,7 +176,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                   onClick={() =>
                     updatePoleVerified(selectedPole.id, !selectedPole.verified)
                   }
-                  className="rounded border border-cyan-400 px-3 py-1 text-[10px] text-cyan-900 hover:bg-cyan-100"
+                  className="rounded border border-cyan-400 px-3 py-1 text-xs text-cyan-900 hover:bg-cyan-100"
                 >
                   {selectedPole.verified
                     ? t.btnMarkUnverified
@@ -189,7 +189,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                       onClick={() =>
                         onBtSetPoleChangeFlag(selectedPole.id, "remove")
                       }
-                      className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === "remove" ? "border-rose-400 bg-rose-50 text-rose-700" : "border-slate-300 bg-white text-slate-700"}`}
+                      className={`rounded border px-2 py-1 text-xs ${getPoleChangeFlag(selectedPole) === "remove" ? "border-rose-400 bg-rose-50 text-rose-700" : "border-slate-300 bg-white text-slate-700"}`}
                     >
                       {t.flagRemove}
                     </button>
@@ -197,7 +197,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                       onClick={() =>
                         onBtSetPoleChangeFlag(selectedPole.id, "new")
                       }
-                      className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === "new" ? "border-emerald-400 bg-emerald-50 text-emerald-700" : "border-slate-300 bg-white text-slate-700"}`}
+                      className={`rounded border px-2 py-1 text-xs ${getPoleChangeFlag(selectedPole) === "new" ? "border-emerald-400 bg-emerald-50 text-emerald-700" : "border-slate-300 bg-white text-slate-700"}`}
                     >
                       {t.flagNew}
                     </button>
@@ -205,7 +205,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                       onClick={() =>
                         onBtSetPoleChangeFlag(selectedPole.id, "replace")
                       }
-                      className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === "replace" ? "border-yellow-400 bg-yellow-50 text-yellow-700" : "border-slate-300 bg-white text-slate-700"}`}
+                      className={`rounded border px-2 py-1 text-xs ${getPoleChangeFlag(selectedPole) === "replace" ? "border-yellow-400 bg-yellow-50 text-yellow-700" : "border-slate-300 bg-white text-slate-700"}`}
                     >
                       {t.flagReplace}
                     </button>
@@ -217,7 +217,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                         )
                       }
                       title="Separa fisicamente o circuito neste poste"
-                      className={`rounded border px-2 py-1 text-[10px] font-mono tracking-tight ${(selectedPole.circuitBreakPoint ?? false) ? "border-sky-400 bg-sky-50 text-sky-700" : "border-slate-300 bg-white text-slate-700"}`}
+                      className={`rounded border px-2 py-1 text-xs font-mono tracking-tight ${(selectedPole.circuitBreakPoint ?? false) ? "border-sky-400 bg-sky-50 text-sky-700" : "border-slate-300 bg-white text-slate-700"}`}
                     >
                       -| |-
                     </button>
@@ -225,7 +225,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                       onClick={() =>
                         onBtSetPoleChangeFlag(selectedPole.id, "existing")
                       }
-                      className={`rounded border px-2 py-1 text-[10px] ${getPoleChangeFlag(selectedPole) === "existing" ? "border-fuchsia-400 bg-fuchsia-50 text-fuchsia-700" : "border-slate-300 bg-white text-slate-700"}`}
+                      className={`rounded border px-2 py-1 text-xs ${getPoleChangeFlag(selectedPole) === "existing" ? "border-fuchsia-400 bg-fuchsia-50 text-fuchsia-700" : "border-slate-300 bg-white text-slate-700"}`}
                     >
                       {t.flagExisting}
                     </button>
@@ -233,18 +233,18 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                 )}
 
                 {(selectedPole.circuitBreakPoint ?? false) && (
-                  <div className="rounded border border-sky-300 bg-sky-50 px-2 py-1 text-[10px] text-sky-800">
+                  <div className="rounded border border-sky-300 bg-sky-50 px-2 py-1 text-xs text-sky-800">
                     {t.activeCircuitBreak}
                   </div>
                 )}
 
                 <div className="rounded border border-slate-300 bg-white p-2">
-                  <div className="mb-2 text-[10px] text-slate-600">
+                  <div className="mb-2 text-xs text-slate-600">
                     {t.sizeEffortTitle}
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col gap-0.5">
-                      <label className="text-[9px] text-slate-400">
+                      <label className="text-xs text-slate-400">
                         {t.heightM}
                       </label>
                       <input
@@ -270,12 +270,12 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                               : next,
                           );
                         }}
-                        className="w-20 rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
+                        className="w-20 rounded border border-slate-300 bg-white p-1.5 text-sm text-slate-800"
                       />
                     </div>
                     <span className="mt-4 text-slate-400 text-sm">/</span>
                     <div className="flex flex-col gap-0.5">
-                      <label className="text-[9px] text-slate-400">
+                      <label className="text-xs text-slate-400">
                         {t.effortDan}
                       </label>
                       <input
@@ -301,12 +301,12 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                               : next,
                           );
                         }}
-                        className="w-24 rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
+                        className="w-24 rounded border border-slate-300 bg-white p-1.5 text-sm text-slate-800"
                       />
                     </div>
                     {selectedPole.poleSpec?.heightM !== undefined &&
                       selectedPole.poleSpec?.nominalEffortDan !== undefined && (
-                        <span className="mt-4 rounded bg-cyan-50 px-2 py-0.5 text-[11px] font-semibold text-cyan-800 border border-cyan-200">
+                        <span className="mt-4 rounded bg-cyan-50 px-2 py-0.5 text-sm font-semibold text-cyan-800 border border-cyan-200">
                           {selectedPole.poleSpec.heightM}/
                           {selectedPole.poleSpec.nominalEffortDan}
                         </span>
@@ -315,13 +315,13 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                 </div>
 
                 <div className="rounded border border-slate-300 bg-white p-2">
-                  <div className="mb-2 text-[10px] text-slate-600">
+                  <div className="mb-2 text-xs text-slate-600">
                     {t.structuresTitle}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {(["si1", "si2", "si3", "si4"] as const).map((slot) => (
                       <div key={slot} className="flex flex-col gap-0.5">
-                        <label className="text-[9px] uppercase text-slate-400">
+                        <label className="text-xs uppercase text-slate-400">
                           {slot}
                         </label>
                         <input
@@ -351,7 +351,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                               hasAnyStructure ? nextStructures : undefined,
                             );
                           }}
-                          className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
+                          className="rounded border border-slate-300 bg-white p-1.5 text-sm text-slate-800"
                         />
                       </div>
                     ))}
@@ -359,7 +359,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                 </div>
 
                 <div className="rounded border border-slate-300 bg-white p-2">
-                  <div className="mb-2 text-[10px] text-slate-600">
+                  <div className="mb-2 text-xs text-slate-600">
                     {t.poleStateTitle}
                   </div>
                   <div className="flex items-center gap-2">
@@ -375,7 +375,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                             : (nextValue as BtPoleConditionStatus),
                         );
                       }}
-                      className="w-full rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
+                      className="w-full rounded border border-slate-300 bg-white p-1.5 text-sm text-slate-800"
                     >
                       <option value="">{t.selectState}</option>
                       {POLE_CONDITION_OPTIONS.map((option) => (
@@ -385,7 +385,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                       ))}
                     </select>
                     {selectedPole.conditionStatus && (
-                      <span className="rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800">
+                      <span className="rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
                         {POLE_CONDITION_OPTIONS.find(
                           (option) =>
                             option.value === selectedPole.conditionStatus,
@@ -396,7 +396,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                 </div>
 
                 <div className="rounded border border-slate-300 bg-white p-2">
-                  <div className="mb-2 text-[10px] text-slate-600">
+                  <div className="mb-2 text-xs text-slate-600">
                     {t.equipmentsTitle}
                   </div>
                   <textarea
@@ -413,15 +413,15 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                         trimmedValue.length > 0 ? nextValue : undefined,
                       );
                     }}
-                    className="w-full resize-y rounded border border-slate-300 bg-white p-2 text-[11px] text-slate-800"
+                    className="w-full resize-y rounded border border-slate-300 bg-white p-2 text-sm text-slate-800"
                   />
-                  <div className="mt-1 text-right text-[9px] text-slate-400">
+                  <div className="mt-1 text-right text-xs text-slate-400">
                     {(selectedPole.equipmentNotes ?? "").length}/500
                   </div>
                 </div>
 
                 <div className="rounded border border-slate-300 bg-white p-2">
-                  <div className="mb-2 text-[10px] text-slate-600">
+                  <div className="mb-2 text-xs text-slate-600">
                     {t.generalNotesTitle}
                   </div>
                   <textarea
@@ -438,15 +438,15 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                         trimmedValue.length > 0 ? nextValue : undefined,
                       );
                     }}
-                    className="w-full resize-y rounded border border-slate-300 bg-white p-2 text-[11px] text-slate-800"
+                    className="w-full resize-y rounded border border-slate-300 bg-white p-2 text-sm text-slate-800"
                   />
-                  <div className="mt-1 text-right text-[9px] text-slate-400">
+                  <div className="mt-1 text-right text-xs text-slate-400">
                     {(selectedPole.generalNotes ?? "").length}/500
                   </div>
                 </div>
 
                 <div className="rounded border border-slate-300 bg-white p-2">
-                  <div className="mb-2 flex items-center justify-between text-[10px] text-slate-600">
+                  <div className="mb-2 flex items-center justify-between text-xs text-slate-600">
                     <span>{t.ramaisTitle}</span>
                     <button
                       onClick={() => {
@@ -470,12 +470,12 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                   </div>
 
                   {(selectedPole.ramais ?? []).length === 0 ? (
-                    <div className="text-[10px] text-slate-500">
+                    <div className="text-xs text-slate-500">
                       {t.noRamais}
                     </div>
                   ) : (
                     <div className="space-y-1.5">
-                      <div className="rounded border border-slate-200 bg-slate-50 p-1.5 text-[10px] text-slate-600">
+                      <div className="rounded border border-slate-200 bg-slate-50 p-1.5 text-xs text-slate-600">
                         {(selectedPole.ramais ?? []).map((ramal) => {
                           const ramalType =
                             ramal.ramalType ??
@@ -518,7 +518,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                                   ),
                                 );
                               }}
-                              className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
+                              className="rounded border border-slate-300 bg-white p-1.5 text-sm text-slate-800"
                             />
                             <select
                               value={
@@ -539,7 +539,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                                   ),
                                 );
                               }}
-                              className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
+                              className="rounded border border-slate-300 bg-white p-1.5 text-sm text-slate-800"
                             >
                               {(projectType === "clandestino"
                                 ? [CLANDESTINO_RAMAL_TYPE]
@@ -591,7 +591,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                                       ),
                                     );
                                   }}
-                                  className={`rounded border px-1.5 py-0.5 text-[9px] ${
+                                  className={`rounded border px-1.5 py-0.5 text-xs ${
                                     ramal.notes === t.quickNotes[chip.labelKey]
                                       ? "border-amber-400 bg-amber-50 text-amber-800"
                                       : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
@@ -624,7 +624,7 @@ const BtPoleVerificationSection: React.FC<BtPoleVerificationSectionProps> = ({
                                   ),
                                 );
                               }}
-                              className="w-full rounded border border-slate-200 bg-white p-1.5 text-[10px] text-slate-700 placeholder:text-slate-400"
+                              className="w-full rounded border border-slate-200 bg-white p-1.5 text-xs text-slate-700 placeholder:text-slate-400"
                             />
                           </div>
                         </div>

@@ -222,7 +222,7 @@ export interface OptimizerResult { allScenarios: DgScenario[]; totalCandidatesEv
 export function runDgOptimizer(candidates: DgCandidate[], poles: DgPoleInput[], transformer: DgTransformerInput | undefined, exclusionPolygons: DgExclusionPolygon[], roadCorridors: DgRoadCorridor[], params: DgParams): OptimizerResult {
   const derivedPoles = derivePolesDemand(poles, params);
   const maxEval = params.maxCandidatesHeuristic ?? 50; 
-  let candidatesToEvaluate = params.searchMode === "heuristic" 
+  const candidatesToEvaluate = params.searchMode === "heuristic" 
     ? [...candidates].sort((a, b) => a.weightedDistanceSum - b.weightedDistanceSum).slice(0, maxEval)
     : candidates;
 

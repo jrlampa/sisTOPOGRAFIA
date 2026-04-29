@@ -137,11 +137,11 @@ const MtTopologyPanel: React.FC<MtTopologyPanelProps> = ({
       <div className="flex items-center justify-between border-b border-orange-200/50 pb-2 dark:border-orange-900/20">
         <div className="flex items-center gap-1.5">
           <Zap size={14} className="text-orange-600" />
-          <span className="text-[10px] font-black uppercase tracking-[0.15em] text-orange-900 dark:text-orange-100">
+          <span className="text-xs font-black uppercase tracking-[0.15em] text-orange-900 dark:text-orange-100">
             {t.title}
           </span>
         </div>
-        <div className="flex gap-2 text-[9px] font-bold text-slate-500">
+        <div className="flex gap-2 text-xs font-bold text-slate-500">
           <span>
             {totalPoles}
             {t.polesCount}
@@ -171,14 +171,14 @@ const MtTopologyPanel: React.FC<MtTopologyPanelProps> = ({
           />
 
           {hasBtPoles ? (
-            <div className="rounded border border-amber-200 bg-amber-50 px-2.5 py-2 text-[10px] text-amber-900">
+            <div className="rounded border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-900">
               {t.sharedBtMessage}
             </div>
           ) : (
             <button
               type="button"
               onClick={addPole}
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-orange-300 bg-orange-50/50 py-1.5 text-[10px] font-black uppercase tracking-wide text-orange-700 transition-all hover:bg-orange-100 dark:border-orange-900/30 dark:bg-orange-950/20 dark:text-orange-400"
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-orange-300 bg-orange-50/50 py-1.5 text-xs font-black uppercase tracking-wide text-orange-700 transition-all hover:bg-orange-100 dark:border-orange-900/30 dark:bg-orange-950/20 dark:text-orange-400"
             >
               {t.addStructure}
             </button>
@@ -197,7 +197,7 @@ const MtTopologyPanel: React.FC<MtTopologyPanelProps> = ({
       </div>
 
       {totalPoles > 0 && (
-        <p className="mt-2 text-center text-[9px] font-medium text-slate-400">
+        <p className="mt-2 text-center text-xs font-medium text-slate-400">
           {t.shortcutHint}
         </p>
       )}

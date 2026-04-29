@@ -110,7 +110,7 @@ const BtUnifiedCommercialTab: React.FC<BtUnifiedCommercialTabProps> = (props) =>
         </div>
 
         {ramais.length === 0 ? (
-          <div className="text-[10px] text-slate-400 italic p-4 bg-slate-50 rounded-xl border border-slate-100 text-center">
+          <div className="text-xs text-slate-400 italic p-4 bg-slate-50 rounded-xl border border-slate-100 text-center">
             {pt.noRamais}
           </div>
         ) : (
@@ -129,7 +129,7 @@ const BtUnifiedCommercialTab: React.FC<BtUnifiedCommercialTabProps> = (props) =>
                     <select
                       value={ramal.ramalType ?? (props.projectType === "clandestino" ? CLANDESTINO_RAMAL_TYPE : NORMAL_CLIENT_RAMAL_TYPES[0])}
                       onChange={(e) => handleUpdateRamal(ramal.id, { ramalType: e.target.value })}
-                      className="flex-1 bg-white border border-slate-200 rounded p-1 text-[10px] font-bold"
+                      className="flex-1 bg-white border border-slate-200 rounded p-1 text-xs font-bold"
                     >
                       {(props.projectType === "clandestino" ? [CLANDESTINO_RAMAL_TYPE] : NORMAL_CLIENT_RAMAL_TYPES).map(t => (
                         <option key={t} value={t}>{t}</option>
@@ -170,7 +170,7 @@ const BtUnifiedCommercialTab: React.FC<BtUnifiedCommercialTabProps> = (props) =>
                       type="text"
                       value={ramal.notes ?? ""}
                       onChange={(e) => handleUpdateRamal(ramal.id, { notes: e.target.value || undefined })}
-                      className="w-full bg-white border border-slate-200 rounded-lg py-1.5 pl-6 pr-2 text-[10px] placeholder:opacity-30"
+                      className="w-full bg-white border border-slate-200 rounded-lg py-1.5 pl-6 pr-2 text-xs placeholder:opacity-30"
                       placeholder={pt.freeObservation}
                     />
                   </div>

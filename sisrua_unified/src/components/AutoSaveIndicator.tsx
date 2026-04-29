@@ -17,7 +17,7 @@ export function AutoSaveIndicator({ status, lastSaved }: Props) {
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
-            className="flex items-center gap-1.5 text-[10px] font-bold text-cyan-600 dark:text-cyan-400"
+            className="flex items-center gap-1.5 text-xs font-bold text-cyan-600 dark:text-cyan-400"
           >
             <CloudUpload size={12} className="animate-pulse" />
             sincronizando
@@ -30,7 +30,7 @@ export function AutoSaveIndicator({ status, lastSaved }: Props) {
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
-            className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500"
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-400 dark:text-slate-500"
           >
             <CheckCircle2 size={12} className="text-emerald-500" />
             salvo agora
@@ -43,7 +43,7 @@ export function AutoSaveIndicator({ status, lastSaved }: Props) {
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
-            className="flex items-center gap-1.5 text-[10px] font-bold text-rose-500"
+            className="flex items-center gap-1.5 text-xs font-bold text-rose-500"
           >
             <AlertCircle size={12} />
             erro ao sincronizar

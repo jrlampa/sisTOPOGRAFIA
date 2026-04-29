@@ -78,7 +78,7 @@ export function SidebarSelectionControls({
                   exit={{ opacity: 0, scale: 0.8 }}
                   type="submit"
                   disabled={isSearching || searchValidation.state === "error"}
-                  className="absolute right-2 top-2 rounded-xl border border-cyan-200 bg-cyan-500 px-3 py-1.5 text-[10px] font-black text-white transition-all hover:bg-cyan-600 disabled:opacity-50 dark:border-cyan-300/20 dark:bg-cyan-600 dark:hover:bg-cyan-500"
+                  className="absolute right-2 top-2 rounded-xl border border-cyan-200 bg-cyan-500 px-3 py-1.5 text-xs font-black text-white transition-all hover:bg-cyan-600 disabled:opacity-50 dark:border-cyan-300/20 dark:bg-cyan-600 dark:hover:bg-cyan-500"
                 >
                   {isSearching ? (
                     <Loader2 className="animate-spin" size={12} />
@@ -106,7 +106,7 @@ export function SidebarSelectionControls({
             </div>
             <div className="flex flex-col min-w-0">
               <span className="font-bold truncate">{center.label}</span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono italic">
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono italic">
                 {center.lat.toPrecision(7)}, {center.lng.toPrecision(7)}
               </span>
             </div>
@@ -127,13 +127,13 @@ export function SidebarSelectionControls({
           <div className="flex rounded-2xl border border-sky-200 bg-sky-50/70 p-1 shadow-[0_12px_24px_rgba(148,163,184,0.14)] dark:border-white/10 dark:bg-white/5 dark:shadow-none">
             <button
               onClick={() => onSelectionModeChange("circle")}
-              className={`flex-1 rounded-xl py-2 text-[10px] font-black transition-all ${selectionMode === "circle" ? "bg-cyan-100 text-cyan-700 shadow-sm ring-1 ring-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-100 dark:ring-cyan-400/25" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"}`}
+              className={`flex-1 rounded-xl py-2 text-xs font-black transition-all ${selectionMode === "circle" ? "bg-cyan-100 text-cyan-700 shadow-sm ring-1 ring-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-100 dark:ring-cyan-400/25" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"}`}
             >
               {t.modeRadius}
             </button>
             <button
               onClick={() => onSelectionModeChange("polygon")}
-              className={`flex-1 rounded-xl py-2 text-[10px] font-black transition-all ${selectionMode === "polygon" ? "bg-cyan-100 text-cyan-700 shadow-sm ring-1 ring-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-100 dark:ring-cyan-400/25" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"}`}
+              className={`flex-1 rounded-xl py-2 text-xs font-black transition-all ${selectionMode === "polygon" ? "bg-cyan-100 text-cyan-700 shadow-sm ring-1 ring-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-100 dark:ring-cyan-400/25" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"}`}
             >
               {t.modePolygon}
             </button>
@@ -161,7 +161,7 @@ export function SidebarSelectionControls({
                 <span className="text-xs font-mono font-bold text-cyan-700 dark:text-cyan-300">
                   {radius}
                 </span>
-                <span className="ml-1 text-[10px] text-slate-500 dark:text-slate-400">
+                <span className="ml-1 text-xs text-slate-500 dark:text-slate-400">
                   {t.meters}
                 </span>
               </div>
@@ -179,7 +179,7 @@ export function SidebarSelectionControls({
                 onChange={(e) => onRadiusChange(parseInt(e.target.value, 10))}
                 className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-600 hover:accent-cyan-500 dark:hover:accent-cyan-400 shadow-inner"
               />
-              <div className="flex justify-between mt-2 text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+              <div className="flex justify-between mt-2 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
                 <span>{MIN_RADIUS}m</span>
                 <span>{MAX_RADIUS}m</span>
               </div>

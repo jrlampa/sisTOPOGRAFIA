@@ -50,7 +50,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
 
   if (poles.length === 0) {
     return (
-      <div className="rounded border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-[11px] text-slate-500">
+      <div className="rounded border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-sm text-slate-500">
         {t.noPoles}
       </div>
     );
@@ -63,7 +63,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
         {poles.map((pole) => (
           <div
             key={pole.id}
-            className={`flex cursor-pointer items-center gap-2 rounded border px-2 py-1.5 text-[11px] transition-colors ${
+            className={`flex cursor-pointer items-center gap-2 rounded border px-2 py-1.5 text-sm transition-colors ${
               pole.id === selectedPoleId
                 ? "border-amber-400 bg-amber-50 font-semibold text-amber-900"
                 : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
@@ -78,7 +78,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
             />
             {renamingPoleId === pole.id ? (
               <input
-                className="min-w-0 flex-1 rounded border border-amber-300 bg-white px-1 py-0 text-[11px] text-slate-800 focus:outline-none"
+                className="min-w-0 flex-1 rounded border border-amber-300 bg-white px-1 py-0 text-sm text-slate-800 focus:outline-none"
                 value={renameValue}
                 autoFocus
                 maxLength={60}
@@ -108,7 +108,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
               Object.values(pole.mtStructures).some(
                 (v) => typeof v === "string" && v.trim().length > 0,
               ) && (
-                <span className="rounded bg-orange-100 px-1 py-0 text-[9px] font-semibold uppercase tracking-wide text-orange-700">
+                <span className="rounded bg-orange-100 px-1 py-0 text-xs font-semibold uppercase tracking-wide text-orange-700">
                   {t.mtStructuresLabel}
                 </span>
               )}
@@ -131,10 +131,10 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
       {selectedPole && (
         <div className="flex flex-col gap-2 rounded border border-slate-200 bg-slate-50 p-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
               {selectedPole.title}
             </span>
-            <label className="flex cursor-pointer items-center gap-1.5 text-[10px] text-slate-600">
+            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-600">
               <input
                 type="checkbox"
                 checked={selectedPole.verified ?? false}
@@ -149,7 +149,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
 
           {/* Grid n1-n4 */}
           <div className="rounded border border-slate-300 bg-white p-2">
-            <div className="mb-2 text-[10px] text-slate-600">
+            <div className="mb-2 text-xs text-slate-600">
               {t.structuresTitle}
             </div>
 
@@ -165,7 +165,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
             <div className="grid grid-cols-2 gap-2">
               {(["n1", "n2", "n3", "n4"] as const).map((slot) => (
                 <div key={slot} className="flex flex-col gap-0.5">
-                  <label className="text-[9px] uppercase text-slate-400">
+                  <label className="text-xs uppercase text-slate-400">
                     {slot}
                   </label>
                   <input
@@ -190,7 +190,7 @@ const MtPoleVerificationSection: React.FC<MtPoleVerificationSectionProps> = ({
                         hasAny ? nextStructures : undefined,
                       );
                     }}
-                    className="rounded border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800"
+                    className="rounded border border-slate-300 bg-white p-1.5 text-sm text-slate-800"
                   />
                 </div>
               ))}
