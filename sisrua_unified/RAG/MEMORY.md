@@ -220,4 +220,5 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
   - `server/services/dg/dgOptimizer.ts` / `server/services/dg/dgTypes.ts` / `server/services/dgOptimizationService.ts` / `server/routes/dgRoutes.ts`
   - `src/components/DgWizardModal.tsx` (Adicionados botões de 150/225/300 kVA)
 - **Validação executada**:
-  - `npx jest server/tests/dgPartitioner.test.ts server/tests/dgRealKmz.integration.test.ts --runInBand` (43 testes passando, verified 300kVA catalog).
+  - `npx jest server/tests/dgPartitioner.test.ts server/tests/dgRealKmz.integration.test.ts server/tests/dgCqt.integration.test.ts --runInBand` (46 testes passando).
+  - **CQT (Voltage Drop)**: Validado que o motor radial oficial é chamado durante o particionamento. Em cenários reais (Av. Padre Decaminada), o CQT médio é de ~2.27%. Em linhas longas de 2km, o motor aciona o particionamento (4 sub-redes) para garantir CQT de ~2.84% (limite ANEEL 8%).
