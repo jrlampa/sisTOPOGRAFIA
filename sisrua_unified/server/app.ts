@@ -22,6 +22,10 @@ import { requestMetrics } from "./middleware/requestMetrics.js";
 import { monitoringMiddleware } from "./middleware/monitoring.js";
 import { specs } from "./swagger.js";
 import { errorHandler } from "./errorHandler.js";
+import {
+  requireAdminToken,
+  requireMetricsToken,
+} from "./middleware/authGuard.js";
 
 // ─── Health Check Cache ────────────────────────────────────────────────
 let lastHealthResponse: any = null;
@@ -201,24 +205,31 @@ if (isProduction) {
     ? config.CORS_ORIGIN.split(",").map((o) => o.trim())
     : [];
 } else {
-  // Em desenvolvimento, permitimos qualquer porta do localhost para facilitar o uso com Docker/DevServer
+  // Em desenvolvimento, permitimos portas específicas do localhost para segurança e flexibilidade (Audit P1)
+  const allowedDevPorts = ["3000", "3001", "3002", "5173"];
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (
-      origin &&
-      (origin.startsWith("http://localhost:") ||
-        origin.startsWith("http://127.0.0.1:"))
-    ) {
-      res.header("Access-Control-Allow-Origin", origin);
-      res.header("Access-Control-Allow-Credentials", "true");
-      res.header(
-        "Access-Control-Allow-Methods",
-        "GET, POST, PUT, DELETE, OPTIONS",
-      );
-      res.header(
-        "Access-Control-Allow-Headers",
-        "Content-Type, Authorization, x-request-id",
-      );
+    if (origin) {
+      try {
+        const url = new URL(origin);
+        if (
+          (url.hostname === "localhost" || url.hostname === "127.0.0.1") &&
+          allowedDevPorts.includes(url.port)
+        ) {
+          res.header("Access-Control-Allow-Origin", origin);
+          res.header("Access-Control-Allow-Credentials", "true");
+          res.header(
+            "Access-Control-Allow-Methods",
+            "GET, POST, PUT, DELETE, OPTIONS",
+          );
+          res.header(
+            "Access-Control-Allow-Headers",
+            "Content-Type, Authorization, x-request-id",
+          );
+        }
+      } catch (err) {
+        // Invalid origin URL
+      }
     }
     next();
   });
@@ -306,104 +317,120 @@ app.use(generalRateLimiter);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
 app.get("/health", async (_req: Request, res: Response) => {
-  try {
-    const now = Date.now();
-    const startTime = Date.now();
+  const now = Date.now();
+  const BACKGROUND_REFRESH_THRESHOLD = 10000; // 10s
+  const MAX_CACHE_AGE = 60000; // 60s
 
-    // ─── Check cache validity ──────────────────────────────────────────
-    if (lastHealthResponse && now - lastHealthTimestamp < HEALTH_CACHE_TTL) {
-      logger.debug("Health check served from cache", {
-        age: now - lastHealthTimestamp,
-      });
-      return res
-        .status(lastHealthResponse.statusCode)
-        .json(lastHealthResponse.body);
+  // 1. Serve from cache if fresh enough (Stale-While-Revalidate)
+  if (lastHealthResponse && now - lastHealthTimestamp < MAX_CACHE_AGE) {
+    const isStale = now - lastHealthTimestamp > BACKGROUND_REFRESH_THRESHOLD;
+
+    if (isStale) {
+      // Trigger background refresh (don't await)
+      performHealthCheck().catch((err) =>
+        logger.debug("Background health check failed", { err }),
+      );
     }
 
-    // ─── Compute fresh health status ───────────────────────────────────
-    const memoryUsage = process.memoryUsage();
-    const externalCircuitBreakers = listCircuitBreakers();
-    const hasOpenExternalCircuit = externalCircuitBreakers.some(
-      (cb) => cb.state === "OPEN",
-    );
-
-    let dbStatus = "disabled";
-    const dbStart = Date.now();
-    if (config.useSupabaseJobs || config.useDbConstantsConfig) {
-      // ─── Use cached DB status if fresh ──────────────────────────────
-      if (Date.now() - lastDbCheckTime < DB_CHECK_CACHE_TTL) {
-        dbStatus = cachedDbStatus;
-      } else {
-        // ─── Check DB status and cache result ────────────────────────
-        const isAlive = await pingDb();
-        dbStatus = isAlive ? "connected" : "disconnected";
-        cachedDbStatus = dbStatus;
-        lastDbCheckTime = Date.now();
-      }
-    }
-    const dbTime = Date.now() - dbStart;
-
-    // ─── Use Ollama status from cache (non-blocking background update) ──
-    const ollamaStatus = lastOllamaStatus;
-
-    // Background update (fire and forget - don't block on Ollama)
-    OllamaService.getGovernanceStatus()
-      .then((status) => {
-        lastOllamaStatus = status;
-        logger.debug("Health check - Ollama status updated in background", {
-          updateTime: Date.now() - startTime,
-        });
-      })
-      .catch((err) => {
-        logger.debug("Background Ollama status update failed", { err });
-      });
-
-    const healthData = {
-      status:
-        dbStatus === "disconnected" || hasOpenExternalCircuit
-          ? "degraded"
-          : "online",
-      service: "sisRUA Unified Backend",
-      version: config.APP_VERSION,
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      system: {
-        memory: {
-          rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
-          heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
-          heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
-        },
-        nodeVersion: process.version,
-        platform: process.platform,
-      },
-      dependencies: {
-        database: dbStatus,
-        ollama: ollamaStatus,
-        externalApis: {
-          openCircuits: externalCircuitBreakers.filter(
-            (cb) => cb.state === "OPEN",
-          ).length,
-          totalRegistered: externalCircuitBreakers.length,
-        },
-      },
-    };
-
-    const statusCode = healthData.status === "online" ? 200 : 503;
-    lastHealthResponse = { body: healthData, statusCode };
-    lastHealthTimestamp = now;
-
-    const totalTime = Date.now() - startTime;
-    logger.debug("Health check completed", {
-      totalTime,
-      dbTime,
-      cacheHit: false,
+    logger.debug("Health check served from cache", {
+      isStale,
+      age: now - lastHealthTimestamp,
     });
-    res.status(statusCode).json(healthData);
+    return res
+      .status(lastHealthResponse.statusCode)
+      .json(lastHealthResponse.body);
+  }
+
+  // 2. Perform full check if cache missing or too old
+  try {
+    const result = await performHealthCheck();
+    res.status(result.statusCode).json(result.body);
   } catch (err) {
     logger.error("Health check failed critically", { err });
     res.status(500).json({ status: "error", message: "Health check failed" });
   }
 });
+
+/**
+ * Isolated health check logic for both sync and background execution (Audit P1)
+ */
+async function performHealthCheck() {
+  const startTime = Date.now();
+  const memoryUsage = process.memoryUsage();
+  const externalCircuitBreakers = listCircuitBreakers();
+  const hasOpenExternalCircuit = externalCircuitBreakers.some(
+    (cb) => cb.state === "OPEN",
+  );
+
+  let dbStatus = "disabled";
+  const dbStart = Date.now();
+  if (config.useSupabaseJobs || config.useDbConstantsConfig) {
+    // ─── Use cached DB status if fresh ──────────────────────────────
+    if (Date.now() - lastDbCheckTime < DB_CHECK_CACHE_TTL) {
+      dbStatus = cachedDbStatus;
+    } else {
+      // ─── Check DB status and cache result ────────────────────────
+      const isAlive = await pingDb();
+      dbStatus = isAlive ? "connected" : "disconnected";
+      cachedDbStatus = dbStatus;
+      lastDbCheckTime = Date.now();
+    }
+  }
+  const dbTime = Date.now() - dbStart;
+
+  // ─── Use Ollama status from cache (non-blocking background update) ──
+  const ollamaStatus = lastOllamaStatus;
+
+  // Background update (fire and forget - don't block on Ollama)
+  OllamaService.getGovernanceStatus()
+    .then((status) => {
+      lastOllamaStatus = status;
+    })
+    .catch((err) => {
+      logger.debug("Background Ollama status update failed", { err });
+    });
+
+  const healthData = {
+    status:
+      dbStatus === "disconnected" || hasOpenExternalCircuit
+        ? "degraded"
+        : "online",
+    service: "sisRUA Unified Backend",
+    version: config.APP_VERSION,
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    system: {
+      memory: {
+        rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
+        heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
+        heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
+      },
+      nodeVersion: process.version,
+      platform: process.platform,
+    },
+    dependencies: {
+      database: dbStatus,
+      ollama: ollamaStatus,
+      externalApis: {
+        openCircuits: externalCircuitBreakers.filter(
+          (cb) => cb.state === "OPEN",
+        ).length,
+        totalRegistered: externalCircuitBreakers.length,
+      },
+    },
+  };
+
+  const statusCode = healthData.status === "online" ? 200 : 503;
+  lastHealthResponse = { body: healthData, statusCode };
+  lastHealthTimestamp = Date.now();
+
+  logger.debug("Health check completed", {
+    duration: Date.now() - startTime,
+    dbTime,
+  });
+
+  return lastHealthResponse;
+}
 
 // Routes
 app.use("/api/elevation", elevationRoutes);
@@ -421,16 +448,16 @@ app.use("/api/dg", dgRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/firestore", firestoreRoutes);
 app.use("/api/dxf", dxfRoutes);
-app.use("/api/metrics", metricsRoutes);
+app.use("/api/metrics", requireMetricsToken, metricsRoutes);
 app.use("/api/feature-flags", featureFlagRoutes);
 app.use("/api/quota", quotaRoutes);
 app.use("/api/cost-center", costCenterRoutes);
 app.use("/api/business-kpis", businessKpiRoutes);
-app.use("/api/admin", adminRoutes);
+app.use("/api/admin", requireAdminToken, adminRoutes);
 app.use("/api/data-retention", dataRetentionRoutes);
 app.use("/api/capacity-planning", capacityPlanningRoutes);
-app.use("/api/vuln-management", vulnManagementRoutes);
-app.use("/api/info-classification", infoClassificationRoutes);
+app.use("/api/vuln-management", requireAdminToken, vulnManagementRoutes);
+app.use("/api/info-classification", requireAdminToken, infoClassificationRoutes);
 app.use("/api/holding", holdingRoutes);
 app.use("/api/finops", finOpsRoutes);
 app.use("/api/ops", opsRoutes);
@@ -443,9 +470,9 @@ app.use("/api/lgpd-residencia", lgpdResidenciaRoutes);
 app.use("/api/sre", sreRoutes);
 app.use("/api/rastreabilidade", rastreabilidadeRoutes);
 app.use("/api/licitacoes", licitacoesRoutes);
-app.use("/api/ollama-governance", ollamaGovernanceRoutes);
-app.use("/api/release-integrity", releaseIntegrityRoutes);
-app.use("/api/release-cab", releaseCabRoutes);
+app.use("/api/ollama-governance", requireAdminToken, ollamaGovernanceRoutes);
+app.use("/api/release-integrity", requireAdminToken, releaseIntegrityRoutes);
+app.use("/api/release-cab", requireAdminToken, releaseCabRoutes);
 app.use("/api/service-desk", serviceDeskRoutes);
 app.use("/api/contractual-sla", contractualSlaRoutes);
 app.use("/api/rfp-readiness", rfpReadinessRoutes);
@@ -453,17 +480,17 @@ app.use("/api/knowledge-base", knowledgeBaseRoutes);
 app.use("/api/enterprise-readiness", enterpriseReadinessRoutes);
 app.use("/api/supply-chain", supplyChainRoutes);
 app.use("/api/predictive-observability", predictiveObservabilityRoutes);
-app.use("/api/encryption-at-rest", encryptionAtRestRoutes);
-app.use("/api/audit-cold-storage", auditColdStorageRoutes);
-app.use("/api/environment-promotion", environmentPromotionRoutes);
-app.use("/api/tenant-audit-export", tenantAuditExportRoutes);
-app.use("/api/zero-trust", zeroTrustRoutes);
+app.use("/api/encryption-at-rest", requireAdminToken, encryptionAtRestRoutes);
+app.use("/api/audit-cold-storage", requireAdminToken, auditColdStorageRoutes);
+app.use("/api/environment-promotion", requireAdminToken, environmentPromotionRoutes);
+app.use("/api/tenant-audit-export", requireAdminToken, tenantAuditExportRoutes);
+app.use("/api/zero-trust", requireAdminToken, zeroTrustRoutes);
 app.use("/api/blue-green", blueGreenRoutes);
-app.use("/api/pentest", pentestRoutes);
-app.use("/api/bcp-dr", bcpDrRoutes);
-app.use("/api/compliance", complianceRoutes);
-app.use("/api/identity-lifecycle", identityLifecycleRoutes);
-app.use("/api/multi-tenant-isolation", multiTenantIsolationRoutes);
+app.use("/api/pentest", requireAdminToken, pentestRoutes);
+app.use("/api/bcp-dr", requireAdminToken, bcpDrRoutes);
+app.use("/api/compliance", requireAdminToken, complianceRoutes);
+app.use("/api/identity-lifecycle", requireAdminToken, identityLifecycleRoutes);
+app.use("/api/multi-tenant-isolation", requireAdminToken, multiTenantIsolationRoutes);
 app.use("/api/job-idempotency", jobIdempotencyRoutes);
 app.use("/api/operational-runbook", operationalRunbookRoutes);
 app.use("/api/sinapi", sinapiRoutes);
@@ -473,7 +500,7 @@ app.use("/api/esg-ambiental", esgAmbientalRoutes);
 app.use("/api/vegetacao-inventario", vegetacaoInventarioRoutes);
 app.use("/api/creditos-carbono", creditosCarbonoRoutes);
 app.use("/api/servidoes-fundiarios", servidoesFundiariosRoutes);
-app.use("/api/investor-audit", investorAuditRoutes);
+app.use("/api/investor-audit", requireAdminToken, investorAuditRoutes);
 app.use("/api/perdas-nao-tecnicas", perdasNaoTecnicasRoutes);
 app.use("/api/expansao-cargas", expansaoCargasRoutes);
 app.use("/api/speed-draft", speedDraftRoutes);
@@ -498,9 +525,9 @@ app.use("/api/tele-engenharia-ar", teleEngenhariaArRoutes);
 app.use("/api/acervo-ged", acervoGedRoutes);
 app.use("/api/hybrid-cloud", hybridCloudRoutes);
 app.use("/api/portal-stakeholder", portalStakeholderRoutes);
-app.use("/api/proveniencia-forense", provenienciaForenseRoutes);
+app.use("/api/proveniencia-forense", requireAdminToken, provenienciaForenseRoutes);
 app.use("/api/assinatura-nuvem", assinaturaNuvemRoutes);
-app.use("/api/gis-hardening", gisHardeningRoutes);
+app.use("/api/gis-hardening", requireAdminToken, gisHardeningRoutes);
 
 // Static files
 app.use(express.static(frontendDistDirectory));

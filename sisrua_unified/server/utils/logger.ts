@@ -3,6 +3,7 @@ import "winston-daily-rotate-file";
 import { config } from "../config.js";
 import path from "path";
 import fs from "fs";
+import { sanitizeForLogging } from "./sanitizer.js";
 
 const logDir = "logs";
 if (!fs.existsSync(logDir)) {
@@ -39,7 +40,9 @@ const logger = winston.createLogger({
           info.ponto_id = pontoId;
         }
       }
-      return info;
+
+      // Sanitização de dados sensíveis em logs (P0 - Auditoria 2024)
+      return sanitizeForLogging(info, "strict");
     })(),
     winston.format.json(),
   ),

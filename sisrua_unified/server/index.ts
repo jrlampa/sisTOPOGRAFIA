@@ -17,6 +17,7 @@ import { maintenanceService } from "./services/maintenanceService.js";
 import { logger } from "./utils/logger.js";
 import { refreshRateLimitersFromCatalog } from "./middleware/rateLimiter.js";
 import { initDbClient } from "./repositories/index.js";
+import { initializePersistence as initializeJobPersistence } from "./services/jobStatusService.js";
 
 import { setupGracefulShutdown } from "./shutdown.js";
 
@@ -41,6 +42,9 @@ const server = app.listen(port, async () => {
 
   if (config.useSupabaseJobs) {
     logger.info("Supabase/Postgres jobs persistence is enabled");
+    await initializeJobPersistence().catch((e) =>
+      logger.error("Job persistence initialization failed", e),
+    );
   }
 
   const dbConstantsNamespaces: string[] = [

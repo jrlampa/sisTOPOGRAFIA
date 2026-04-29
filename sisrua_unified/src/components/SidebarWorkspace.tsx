@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
@@ -7,22 +7,25 @@ import {
   LineChart,
   Network,
 } from "lucide-react";
-import { SidebarAnalysisResults } from "./SidebarAnalysisResults";
-import { SidebarBtEditorSection } from "./SidebarBtEditorSection";
-import { SidebarMtEditorSection } from "./SidebarMtEditorSection";
-import { SidebarSelectionControls } from "./SidebarSelectionControls";
 import type { AppLocale } from "../types";
 import { getSidebarWorkspaceText } from "../i18n/sidebarWorkspaceText";
 import { trackWorkflowStage } from "../utils/analytics";
+
+// ─── Lazy imports (Audit P1: Internal Routing Optimization) ──────────────
+
+const SidebarAnalysisResults = lazy(() => import("./SidebarAnalysisResults").then(m => ({ default: m.SidebarAnalysisResults })));
+const SidebarBtEditorSection = lazy(() => import("./SidebarBtEditorSection").then(m => ({ default: m.SidebarBtEditorSection })));
+const SidebarMtEditorSection = lazy(() => import("./SidebarMtEditorSection").then(m => ({ default: m.SidebarMtEditorSection })));
+const SidebarSelectionControls = lazy(() => import("./SidebarSelectionControls").then(m => ({ default: m.SidebarSelectionControls })));
 
 type SidebarWorkspaceProps = {
   locale: AppLocale;
   isCollapsed: boolean;
   isSidebarDockedForRamalModal: boolean;
-  selectionControlsProps: React.ComponentProps<typeof SidebarSelectionControls>;
-  btEditorSectionProps: React.ComponentProps<typeof SidebarBtEditorSection>;
-  mtEditorSectionProps: React.ComponentProps<typeof SidebarMtEditorSection>;
-  analysisResultsProps: React.ComponentProps<typeof SidebarAnalysisResults>;
+  selectionControlsProps: any;
+  btEditorSectionProps: any;
+  mtEditorSectionProps: any;
+  analysisResultsProps: any;
 };
 
 export function SidebarWorkspace({
@@ -241,7 +244,17 @@ export function SidebarWorkspace({
               </p>
             </div>
           </div>
-          {currentStage?.component}
+          <Suspense
+            fallback={
+              <div className="flex flex-col gap-4 p-4 animate-pulse">
+                <div className="h-4 w-3/4 rounded bg-slate-200 dark:bg-slate-800" />
+                <div className="h-32 w-full rounded bg-slate-200 dark:bg-slate-800" />
+                <div className="h-4 w-1/2 rounded bg-slate-200 dark:bg-slate-800" />
+              </div>
+            }
+          >
+            {currentStage?.component}
+          </Suspense>
         </div>
       </div>
 

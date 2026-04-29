@@ -20,6 +20,12 @@ import fs from "fs";
 import crypto from "crypto";
 import { resolveDxfDirectory } from "../utils/dxfDirectory.js";
 import { requirePermission } from "../middleware/permissionHandler.js";
+import { validate } from "../middleware/validation.js";
+import {
+  detectSuspiciousPatterns,
+  validateGeometryComplexity,
+  validatorsExpanded,
+} from "../middleware/validation-enhanced.js";
 import {
   validateBtTopology,
   type TopologyInput,
@@ -312,6 +318,9 @@ router.post(
   "/",
   dxfRateLimiter,
   requirePermission("export_dxf"),
+  detectSuspiciousPatterns,
+  validateGeometryComplexity,
+  validate(validatorsExpanded.dxfRequest),
   async (req: Request, res: Response) => {
     try {
       const requestSource = buildDxfRequestSource(req);

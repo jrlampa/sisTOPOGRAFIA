@@ -49,7 +49,7 @@ const MAX_JOB_AGE = config.JOB_MAX_AGE_MS;
 let cleanupIntervalId: NodeJS.Timeout | null = null;
 let initializationStarted = false;
 
-async function initializePersistence(): Promise<void> {
+export async function initializePersistence(): Promise<void> {
   if (!USE_SUPABASE_JOBS || !DATABASE_URL || postgresAvailable) {
     return;
   }
@@ -69,6 +69,9 @@ async function initializePersistence(): Promise<void> {
 
     // Load existing jobs from Postgres on startup
     await loadJobsFromPostgres();
+    
+    // Start cleanup interval after successful initialization
+    startCleanupInterval();
   } catch (error) {
     logger.warn(
       "JobStatusService: Supabase/Postgres unavailable, using in-memory fallback",
@@ -79,6 +82,8 @@ async function initializePersistence(): Promise<void> {
       await sqlClient.end({ timeout: 3 }).catch(() => undefined);
       sqlClient = null;
     }
+    // Still start cleanup for in-memory fallback
+    startCleanupInterval();
   }
 }
 

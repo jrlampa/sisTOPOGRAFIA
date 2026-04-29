@@ -63,7 +63,7 @@ const EnvSchema = z.object({
   // ── Python engine ─────────────────────────────────────────────────────────
   PYTHON_COMMAND: z.string().optional(),
   /** Maximum runtime for python DXF generation process before force-failing (ms). */
-  PYTHON_PROCESS_TIMEOUT_MS: z.coerce.number().positive().default(300_000),
+  PYTHON_PROCESS_TIMEOUT_MS: z.coerce.number().positive().default(600_000),
   /** Number of DXF queue workers running in parallel. */
   DXF_WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(8).default(2),
   DOCKER_ENV: z.string().optional(),

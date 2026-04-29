@@ -28,20 +28,22 @@ import { useDgOptimization } from "./hooks/useDgOptimization";
 import type { DgScenario } from "./hooks/useDgOptimization";
 import type { DgWizardParams } from "./components/DgWizardModal";
 import { EMPTY_BT_TOPOLOGY } from "./utils/btNormalization";
-import { SidebarBtEditorSection } from "./components/SidebarBtEditorSection";
-import { SidebarAnalysisResults } from "./components/SidebarAnalysisResults";
-import { SidebarSelectionControls } from "./components/SidebarSelectionControls";
-import { BtModalStack } from "./components/BtModalStack";
-import { BtTelescopicSuggestionModal } from "./components/BtTelescopicSuggestionModal";
 import { AppShellLayout } from "./components/AppShellLayout";
-import { HelpModal } from "./components/HelpModal";
-import { CommandPalette } from "./components/CommandPalette";
 import { INITIAL_APP_STATE } from "./app/initialState";
 import { persistAppSettings } from "./utils/preferencesPersistence";
 import { mergeMtTopologyWithBtPoles } from "./utils/mtTopologyBridge";
 import { synchronizeGlobalTopologyState } from "./utils/synchronizeGlobalTopologyState";
 import { selectMapTopologyRenderSources } from "./utils/selectMapTopologyRenderSources";
 import type { CriticalConfirmationConfig } from "./components/BtModals";
+
+// ─── Lazy components (Audit P1: Routing & Bundle Optimization) ──────────
+const SidebarBtEditorSection = React.lazy(() => import("./components/SidebarBtEditorSection").then(m => ({ default: m.SidebarBtEditorSection })));
+const SidebarAnalysisResults = React.lazy(() => import("./components/SidebarAnalysisResults").then(m => ({ default: m.SidebarAnalysisResults })));
+const SidebarSelectionControls = React.lazy(() => import("./components/SidebarSelectionControls").then(m => ({ default: m.SidebarSelectionControls })));
+const BtModalStack = React.lazy(() => import("./components/BtModalStack").then(m => ({ default: m.BtModalStack })));
+const BtTelescopicSuggestionModal = React.lazy(() => import("./components/BtTelescopicSuggestionModal").then(m => ({ default: m.BtTelescopicSuggestionModal })));
+const HelpModal = React.lazy(() => import("./components/HelpModal").then(m => ({ default: m.HelpModal })));
+const CommandPalette = React.lazy(() => import("./components/CommandPalette").then(m => ({ default: m.CommandPalette })));
 
 function App() {
   const [isHelpOpen, setIsHelpOpen] = React.useState(false);
@@ -1322,23 +1324,25 @@ function App() {
         lastAutoSaved={lastAutoSaved}
       />
 
-      <BtTelescopicSuggestionModal
-        output={btTelescopicSuggestions}
-        onApply={handleApplyTelescopicSuggestions}
-        onCancel={clearBtTelescopicSuggestions}
-      />
+      <React.Suspense fallback={null}>
+        <BtTelescopicSuggestionModal
+          output={btTelescopicSuggestions}
+          onApply={handleApplyTelescopicSuggestions}
+          onCancel={clearBtTelescopicSuggestions}
+        />
 
-      <HelpModal
-        isOpen={isHelpOpen}
-        locale={settings.locale}
-        onClose={() => setIsHelpOpen(false)}
-      />
+        <HelpModal
+          isOpen={isHelpOpen}
+          locale={settings.locale}
+          onClose={() => setIsHelpOpen(false)}
+        />
 
-      <CommandPalette
-        isOpen={isCommandPaletteOpen}
-        onClose={() => setIsCommandPaletteOpen(false)}
-        actions={commandPaletteActions}
-      />
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          actions={commandPaletteActions}
+        />
+      </React.Suspense>
     </>
   );
 }

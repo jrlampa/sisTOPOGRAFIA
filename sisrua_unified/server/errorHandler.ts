@@ -163,9 +163,9 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
     };
 
     if (err.statusCode >= 500) {
-      logger.error(`[${err.code}] ${err.message}`, logMetadata);
+      logger.error(`[${err.category}] ${err.message}`, logMetadata);
     } else {
-      logger.warn(`[${err.code}] ${err.message}`, logMetadata);
+      logger.warn(`[${err.category}] ${err.message}`, logMetadata);
     }
 
     return res.status(err.statusCode).json(response);

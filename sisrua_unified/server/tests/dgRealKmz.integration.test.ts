@@ -180,6 +180,32 @@ describe("DG Step 3 — Particionamento (nuvem real)", () => {
         expect(VALID_KVA.has(partition.selectedKva as any)).toBe(true);
       }
     }
+
+    // Export visual GeoJSON for verification
+    const features: any[] = [];
+    result.partitions.forEach((p, pIdx) => {
+      // Trafo point
+      features.push({
+        type: "Feature",
+        properties: { name: `TRAFO-${pIdx}`, type: "trafo", kva: p.selectedKva },
+        geometry: { type: "Point", coordinates: [p.trafoPositionLatLon.lon, p.trafoPositionLatLon.lat] }
+      });
+      // Edges
+      p.edges.forEach(e => {
+        const from = [...p.poles, { id: `trafo-part-${p.partitionId}`, position: p.trafoPositionLatLon }].find(node => node.id === e.fromPoleId);
+        const to = [...p.poles, { id: `trafo-part-${p.partitionId}`, position: p.trafoPositionLatLon }].find(node => node.id === e.toPoleId);
+        if (from && to) {
+          features.push({
+            type: "Feature",
+            properties: { partition: pIdx, conductor: e.conductorId },
+            geometry: { type: "LineString", coordinates: [[from.position.lon, from.position.lat], [to.position.lon, to.position.lat]] }
+          });
+        }
+      });
+    });
+    const geojson = { type: "FeatureCollection", features };
+    fs.writeFileSync(path.resolve(__dirname, "../../dg-result-visual.geojson"), JSON.stringify(geojson, null, 2));
+    console.log(`[VISUAL] GeoJSON exportado para sisrua_unified/dg-result-visual.geojson`);
   });
 
   it("respeita o limite trafoMaxKva quando informado", () => {
