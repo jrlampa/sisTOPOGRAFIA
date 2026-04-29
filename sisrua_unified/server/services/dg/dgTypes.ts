@@ -67,6 +67,14 @@ export interface DgRoadCorridor {
   highwayClass?: OsmHighwayClass;
 }
 
+/**
+ * Catálogo completo de transformadores comerciais BT (Light / ABNT NBR 5356).
+ * Faixa: 15 kVA até 300 kVA.
+ * Fonte: TRAFOS_Z_BASELINE em cqtLookupTables.ts + prática de mercado.
+ */
+export const COMMERCIAL_TRAFO_KVA = [15, 30, 45, 75, 112.5, 150, 225, 300] as const;
+export type CommercialTrafoKva = (typeof COMMERCIAL_TRAFO_KVA)[number];
+
 /** Parâmetros configuráveis do DG. */
 export interface DgParams {
   /** Vão máximo por trecho (m). Padrão 40 m. */
@@ -97,7 +105,28 @@ export interface DgParams {
   areaClandestinaM2?: number;
   demandaMediaClienteKva?: number;
   fatorSimultaneidade?: number;
+
+  /**
+   * Faixa de kVAs de trafo permitidos para o dimensionamento.
+   * Se omitido, usa COMMERCIAL_TRAFO_KVA completo (15→300 kVA).
+   *
+   * Exemplos de uso:
+   *   - Apenas 75 kVA:          [75]
+   *   - Até 75 kVA:             [15, 30, 45, 75]
+   *   - Apenas trafos grandes:  [150, 225, 300]
+   *   - Catálogo completo:      [...COMMERCIAL_TRAFO_KVA]
+   */
   faixaKvaTrafoPermitida?: number[];
+
+  /**
+   * Atalho para filtrar o catálogo até um kVA máximo.
+   * Quando informado, `faixaKvaTrafoPermitida` é ignorado e usa-se
+   * todos os trafos de COMMERCIAL_TRAFO_KVA com kVA ≤ trafoMaxKva.
+   *
+   * Exemplo: trafoMaxKva = 75  →  faixa efetiva = [15, 30, 45, 75]
+   */
+  trafoMaxKva?: number;
+
   wizardContractVersion?: "DG Wizard v1";
 }
 
@@ -117,11 +146,25 @@ export const DEFAULT_DG_PARAMS: DgParams = {
   },
   allowNewPoles: false,
   projectMode: "optimization",
-  faixaKvaTrafoPermitida: [15, 30, 45, 75, 112.5],
+  // Catálogo padrão: faixa completa 15→300 kVA
+  faixaKvaTrafoPermitida: [...COMMERCIAL_TRAFO_KVA],
   fatorSimultaneidade: 0.8,
   demandaMediaClienteKva: 1.5,
   wizardContractVersion: "DG Wizard v1",
 };
+
+/**
+ * Resolve a faixa de kVAs efetiva a partir dos parâmetros DG.
+ * Respeita `trafoMaxKva` (atalho) antes de `faixaKvaTrafoPermitida`.
+ * Garante que a lista esteja ordenada e contenha apenas kVAs positivos.
+ */
+export function resolveTrafoFaixa(params: Pick<DgParams, "faixaKvaTrafoPermitida" | "trafoMaxKva">): number[] {
+  if (params.trafoMaxKva != null && params.trafoMaxKva > 0) {
+    return [...COMMERCIAL_TRAFO_KVA].filter((k) => k <= params.trafoMaxKva!);
+  }
+  const faixa = params.faixaKvaTrafoPermitida ?? [...COMMERCIAL_TRAFO_KVA];
+  return [...faixa].filter((k) => k > 0).sort((a, b) => a - b);
+}
 
 /** Pesos da função objetivo. Devem somar 1.0. */
 export interface DgObjectiveWeights {

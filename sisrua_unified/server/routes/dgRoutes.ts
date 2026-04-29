@@ -95,6 +95,7 @@ const paramsSchema = z.object({
   demandaMediaClienteKva: z.number().positive().optional(),
   fatorSimultaneidade: z.number().positive().max(1).optional(),
   faixaKvaTrafoPermitida: z.array(z.number().positive()).min(1).optional(),
+  trafoMaxKva: z.number().positive().optional(),
 });
 
 const optimizeBodySchema = z.object({

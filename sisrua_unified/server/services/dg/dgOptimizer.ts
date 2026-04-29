@@ -16,6 +16,7 @@ import type {
   DgConstraintCode,
   DgConstraintViolation,
 } from "./dgTypes.js";
+import { resolveTrafoFaixa } from "./dgTypes.js";
 import {
   euclideanDistanceM,
   latLonToUtm,
@@ -113,7 +114,7 @@ function evaluateCandidate(candidate: DgCandidate, poles: DgPoleInput[], transfo
   const spanViolation = mstHasSpanViolation(mst, params.maxSpanMeters);
   if (spanViolation) return createFailedScenario(candidate, [{ code: "MAX_SPAN_EXCEEDED", detail: spanViolation }]);
 
-  const kvaFaixa = transformer ? [transformer.kva] : (params.faixaKvaTrafoPermitida ?? [15, 30, 45, 75, 112.5]);
+  const kvaFaixa = transformer ? [transformer.kva] : resolveTrafoFaixa(params);
   const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
   let bestResult: DgElectricalResult | null = null;
   let selectedKva = 0;

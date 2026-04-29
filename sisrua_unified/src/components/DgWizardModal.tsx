@@ -48,7 +48,7 @@ const DEFAULT_WIZARD_PARAMS: Omit<DgWizardParams, "poleOverrides"> = {
   areaClandestinaM2: 0,
   demandaMediaClienteKva: 1.5,
   fatorSimultaneidade: 0.8,
-  faixaKvaTrafoPermitida: [15, 30, 45, 75, 112.5],
+  faixaKvaTrafoPermitida: [15, 30, 45, 75, 112.5, 150, 225, 300],
   maxSpanMeters: 40,
 };
 
@@ -405,7 +405,7 @@ export function DgWizardModal({
                   Trafos Permitidos (kVA)
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {[15, 30, 45, 75, 112.5].map((kva) => {
+                  {[15, 30, 45, 75, 112.5, 150, 225, 300].map((kva) => {
                     const isSelected = params.faixaKvaTrafoPermitida.includes(kva);
                     return (
                       <button

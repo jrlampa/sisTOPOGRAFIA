@@ -20,6 +20,8 @@ import { runDgOptimizer } from "../services/dg/dgOptimizer";
 import { generateCandidates } from "../services/dg/dgCandidates";
 import {
   DEFAULT_DG_PARAMS,
+  COMMERCIAL_TRAFO_KVA,
+  resolveTrafoFaixa,
   type DgPoleInput,
   type DgParams,
 } from "../services/dg/dgTypes";
@@ -169,13 +171,26 @@ describe("DG Step 3 — Particionamento (nuvem real)", () => {
   });
 
   it("cada partição seleciona um kVA de trafo real da faixa permitida", () => {
-    const VALID_KVA = new Set([15, 30, 45, 75, 112.5]);
+    const VALID_KVA = new Set(COMMERCIAL_TRAFO_KVA);
     const params: DgParams = { ...DEFAULT_DG_PARAMS };
     const result = partitionNetwork(realPoles, params);
 
     for (const partition of result.partitions) {
       if (partition.selectedKva > 0) {
-        expect(VALID_KVA.has(partition.selectedKva)).toBe(true);
+        expect(VALID_KVA.has(partition.selectedKva as any)).toBe(true);
+      }
+    }
+  });
+
+  it("respeita o limite trafoMaxKva quando informado", () => {
+    const params: DgParams = { ...DEFAULT_DG_PARAMS, trafoMaxKva: 75 };
+    const faixa = resolveTrafoFaixa(params);
+    expect(faixa).toEqual([15, 30, 45, 75]);
+    
+    const result = partitionNetwork(realPoles, params);
+    for (const partition of result.partitions) {
+      if (partition.selectedKva > 0) {
+        expect(partition.selectedKva).toBeLessThanOrEqual(75);
       }
     }
   });

@@ -15,6 +15,7 @@ import type {
   DgRunSummary,
 } from "./dg/dgTypes.js";
 import { DEFAULT_DG_PARAMS } from "./dg/dgTypes.js";
+import { resolveTrafoFaixa } from "./dg/dgTypes.js";
 import { generateCandidates, hashDgInput } from "./dg/dgCandidates.js";
 import { runDgOptimizer } from "./dg/dgOptimizer.js";
 import { partitionNetwork } from "./dg/dgPartitioner.js";
@@ -115,7 +116,7 @@ export async function runDgOptimization(
   // Aciona particionamento quando:
   // 1. Não há nenhum cenário único-trafo viável, OU
   // 2. Demanda total excede a capacidade máxima do trafo em full_project
-  const maxKva = Math.max(...(params.faixaKvaTrafoPermitida ?? [112.5]));
+  const maxKva = Math.max(...resolveTrafoFaixa(params));
   const totalDemandKva = input.poles.reduce((s, p) => s + (p.demandKva ?? 0), 0);
   const shouldPartition =
     recommendation === null ||

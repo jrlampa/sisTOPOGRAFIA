@@ -15,6 +15,7 @@ import type {
   DgPartition,
   DgPartitionedResult,
 } from "./dgTypes.js";
+import { resolveTrafoFaixa } from "./dgTypes.js";
 import {
   euclideanDistanceM,
   latLonToUtm,
@@ -444,8 +445,8 @@ function buildPartition(
   const demandByPole = new Map(poles.map((p) => [p.id, p.demandKva]));
   const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
 
-  // Passo 3b: Seleciona menor kVA viável
-  const faixa = params.faixaKvaTrafoPermitida ?? [15, 30, 45, 75, 112.5];
+  // Passo 3b: Seleciona menor kVA viável usando catálogo resolvido
+  const faixa = resolveTrafoFaixa(params);
   let bestResult: DgElectricalResult | null = null;
   let selectedKva = 0;
 
@@ -512,7 +513,7 @@ function partitionRecursive(
   }
 
   const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
-  const maxKva = Math.max(...(params.faixaKvaTrafoPermitida ?? [112.5]));
+  const maxKva = Math.max(...resolveTrafoFaixa(params));
   const maxUtilization = params.trafoMaxUtilization ?? 0.95;
 
   // Se cabe num único trafo, não particiona mais
