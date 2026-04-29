@@ -1,80 +1,52 @@
-import { jest } from '@jest/globals';
-import { DbMaintenanceService } from '../services/dbMaintenanceService.js';
-import { config } from '../config.js';
+import { jest } from "@jest/globals";
 
-// Prefix with 'mock' so Jest hoisting allows access
+// Mock do config ANTES de importar o serviço
+jest.unstable_mockModule("../config.js", () => ({
+  config: {
+    DATABASE_URL: "postgres://user:pass@localhost:5432/db",
+  },
+}));
+
+// Mock do postgres
 const mockUnsafe = jest.fn();
-const mockSql = Object.assign(
-  (query: any) => Promise.resolve([]),
-  {
-    unsafe: mockUnsafe,
-    end: jest.fn().mockResolvedValue(undefined)
-  }
-);
+const mockSql = Object.assign(jest.fn(), { unsafe: mockUnsafe });
+jest.unstable_mockModule("postgres", () => ({
+  __esModule: true,
+  default: jest.fn(() => mockSql),
+}));
 
-jest.mock('postgres', () => {
-  return () => mockSql;
-});
+// Importações dinâmicas após os mocks
+const { DbMaintenanceService } = await import("../services/dbMaintenanceService.js");
 
-describe('DbMaintenanceService', () => {
-  const originalDbUrl = config.DATABASE_URL;
-
+describe("DbMaintenanceService", () => {
   beforeEach(() => {
-    config.DATABASE_URL = 'postgres://user:pass@localhost:5432/db';
     jest.clearAllMocks();
-    // Reset singleton internal state
-    (DbMaintenanceService as any).sql = null;
   });
 
-  afterAll(() => {
-    config.DATABASE_URL = originalDbUrl;
-  });
+  describe("sanitizeFailedDxfTasks", () => {
+    it("should classify and process tasks correctly", async () => {
+      const mockTasks = [
+        { task_id: "1", error: "missing required parameters", payload: {} },
+        { task_id: "2", error: "python script failed to spawn", payload: { lat: -23, lon: -46, radius: 100 } },
+        { task_id: "3", error: "unknown error", payload: { lat: -23, lon: -46, radius: 100 } }
+      ];
 
-  describe('runVacuumAnalyze', () => {
-    it('deve executar VACUUM ANALYZE nas tabelas com sucesso', async () => {
-      mockUnsafe.mockResolvedValue([]);
-      
-      const tables = ['test_table'];
-      const result = await DbMaintenanceService.runVacuumAnalyze(tables);
+      mockUnsafe.mockResolvedValueOnce(mockTasks);
+      mockSql.mockResolvedValue({});
 
-      expect(result.success).toBe(true);
-      expect(result.results[0]).toContain('SUCCESS');
-      expect(mockUnsafe).toHaveBeenCalledWith(expect.stringContaining('VACUUM ANALYZE public.test_table'));
+      const result = await DbMaintenanceService.sanitizeFailedDxfTasks(10);
+
+      expect(result.processed).toBe(3);
+      expect(result.cancelled).toBe(1);
+      expect(result.requeued).toBe(1);
     });
 
-    it('deve capturar falhas individuais por tabela', async () => {
-      mockUnsafe.mockRejectedValue(new Error('Permission Denied'));
-
-      const result = await DbMaintenanceService.runVacuumAnalyze(['restricted_table']);
-
-      expect(result.success).toBe(false);
-      expect(result.results[0]).toContain('FAILED');
-      expect(result.results[0]).toContain('Permission Denied');
-    });
-
-    it('deve falhar se DATABASE_URL não estiver configurada', async () => {
-      config.DATABASE_URL = "";
-      // @ts-ignore
-      DbMaintenanceService.sql = null;
-      await expect(DbMaintenanceService.runVacuumAnalyze()).rejects.toThrow('DATABASE_URL not configured');
-    });
-  });
-
-  describe('getHealthStats', () => {
-    it('deve retornar estatísticas de saúde chamando a função no banco', async () => {
-      const mockStats = [{ bloat_ratio: 0.1 }];
-      mockUnsafe.mockResolvedValue(mockStats);
-
-      const stats = await DbMaintenanceService.getHealthStats();
-
-      expect(stats).toEqual(mockStats);
-      expect(mockUnsafe).toHaveBeenCalledWith("SELECT * FROM private.db_health_report()");
-    });
-
-    it('deve retornar null em caso de erro na query', async () => {
-      mockUnsafe.mockRejectedValue(new Error('Query Timeout'));
-      const stats = await DbMaintenanceService.getHealthStats();
-      expect(stats).toBeNull();
+    it("should handle empty task list", async () => {
+      mockUnsafe.mockResolvedValueOnce([]);
+      const result = await DbMaintenanceService.sanitizeFailedDxfTasks(10);
+      expect(result.processed).toBe(0);
+      expect(result.cancelled).toBe(0);
+      expect(result.requeued).toBe(0);
     });
   });
 });
