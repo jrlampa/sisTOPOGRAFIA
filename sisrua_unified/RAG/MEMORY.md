@@ -65,28 +65,24 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
   - `src/i18n/appHeaderText.ts` (human microcopy)
   - `tests/components/EmptyStateMapOverlay.test.tsx` (novo)
 
-## Próximos Passos (Próxima Sessão)
+## Próximos Passos (Prioridade Máxima — Produção Fase 1)
 
-1. **Auditoria de Performance**: Executar `apply_perf_migrations.py` e validar ganhos de latência.
-2. **Multi-Tenancy**: Refinar RLS e governança de projetos por organização.
-3. **Melhoria UX Dashboard**: Adicionar interatividade aos gráficos de MVs (drill-down por dia).
+1.  **P1.1: Persistência de Jobs (Supabase)**: Migrar o processamento assíncrono de `in-memory` para `DATABASE_URL` (Postgres). Garantir que jobs sobrevivam a restarts do container. (Est. 5h)
+2.  **P1.2: Global Error Handler & Taxonomy**: Implementar middleware de erro centralizado com `ErrorCode` padronizado. Eliminar respostas inconsistentes (200 com erro no body). (Est. 10h)
+3.  **P1.3: Validação de Request (express-validator)**: Implementar validação rigorosa de schemas em todos os endpoints POST/PUT, protegendo o backend e o motor Python. (Est. 8h)
+4.  **P1.4: Graceful Shutdown (SIGTERM)**: Implementar handlers para fechamento limpo do servidor, garantindo drenagem da fila de processamento em até 25s (Cloud Run ready). (Est. 4h)
+5.  **P1.5: Correlation IDs (Observabilidade)**: Middleware para injetar `x-request-id` em todos os logs de Node.js e Python subprocesses. (Est. 3h)
 
-## Padrões Técnicos (Non-negotiables)
+---
 
-- **Thin Frontend / Smart Backend**: Lógica pesada no servidor (Node.js/Python).
-- **Supabase First**: Persistência de jobs e metadados via Postgres.
-- **Segurança First**: Sanitização de entradas e auditoria de dependências constante.
-- **BIM Evolution**: Manter estrutura compatível com metadados de engenharia.
+## Atualização Operacional (2026-04-28) - Pivô Estratégico para Produção
 
-## Atualização Operacional (2026-04-28) - Sessão de Continuidade
-
-- **Dashboard de Monitoramento (MVs)** [Roadmap #125]:
-  - Implementado backend `systemHealthDashboardService.ts` consumindo `mv_bt_history_daily_summary`, `mv_audit_stats` e `mv_constants_namespace_summary`.
-  - Adicionada seção "Dashboard MVs" no `AdminPage.tsx`.
-  - Implementada renderização gráfica com `recharts` em `AdminPageSectionRenderers.tsx`.
-  - Cobertura de testes 100% no serviço (`server/tests/systemHealthDashboardService.test.ts`) e integração na rota `/api/admin/dashboard-mvs`.
-- **Sprint UX 1**: Todos os itens (UX-01 a UX-05) validados e consolidados.
-- **Estado do Banco**: 59 migrações aplicadas; MVs de performance ativas e sendo consumidas pela UI.
+- **Tech Lead Evaluation Concluída**: Recebidos 5 novos documentos de governança (`TECH_LEAD_INDEX.md`, `QUICK_REFERENCE.md`, etc.).
+- **Diagnóstico**: Prontidão para produção em 36%. Necessário ~30h de correções críticas (Fase 1) para atingir baseline de lançamento.
+- **Ações Imediatas**:
+  - `GEMINI.md` atualizado com as novas regras não negociáveis (SIGTERM, Logging Estruturado, Persistência).
+  - Roadmap pivotado para priorizar robustez e observabilidade sobre novas features de engenharia.
+- **Dashboard MVs**: Concluído anteriormente nesta sessão, provendo visibilidade inicial de saúde antes dos upgrades de observabilidade.
 
 ## Atualização Operacional (2026-04-27)
 
