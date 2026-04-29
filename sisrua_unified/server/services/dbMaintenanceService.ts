@@ -50,18 +50,81 @@ export class DbMaintenanceService {
   }
 
   /**
-   * Retorna um relatório de saúde detalhado do DB (Bloat, Índices, Saúde).
+   * Saneamento operacional para dxf_tasks com falha.
+   * Classifica erros e decide se cancela (input inválido) ou reencaminha (falha de runtime).
    */
-  static async getHealthStats(): Promise<any> {
+  static async sanitizeFailedDxfTasks(limit: number = 200): Promise<{ processed: number; cancelled: number; requeued: number }> {
     await this.init();
-    if (!this.sql) return null;
+    if (!this.sql) return { processed: 0, cancelled: 0, requeued: 0 };
 
-    try {
-      const stats = await this.sql.unsafe("SELECT * FROM private.db_health_report()");
-      return stats;
-    } catch (err: any) {
-      logger.error("Failed to fetch DB health stats", { error: err.message });
-      return null;
+    logger.info("Starting DXF task sanitation", { limit });
+
+    const failedTasks = await this.sql.unsafe(`
+      SELECT task_id, error, payload
+      FROM public.dxf_tasks
+      WHERE status = 'failed'
+      ORDER BY updated_at DESC
+      LIMIT ${limit}
+    `);
+
+    let cancelled = 0;
+    let requeued = 0;
+
+    for (const task of failedTasks) {
+      const classification = this.classifyFailedTask(task.error, task.payload);
+      
+      if (classification === "cancel") {
+        await this.sql`
+          UPDATE public.dxf_tasks
+          SET status = 'cancelled',
+              error = COALESCE(error, '') || ' | sanitized=missing_input',
+              finished_at = NOW(),
+              updated_at = NOW()
+          WHERE task_id = ${task.task_id}
+        `;
+        cancelled++;
+      } else if (classification === "requeue") {
+        await this.sql`
+          UPDATE public.dxf_tasks
+          SET status = 'queued',
+              attempts = 0,
+              error = NULL,
+              started_at = NULL,
+              finished_at = NULL,
+              updated_at = NOW()
+          WHERE task_id = ${task.task_id}
+        `;
+        requeued++;
+      }
     }
+
+    logger.info("DXF task sanitation completed", { processed: failedTasks.length, cancelled, requeued });
+    return { processed: failedTasks.length, cancelled, requeued };
+  }
+
+  private static classifyFailedTask(error: string | null, payload: any): "cancel" | "requeue" | "skip" {
+    const e = (error || "").toLowerCase();
+    
+    // Validação básica do payload
+    const hasValidInput = payload && 
+                         typeof payload.lat === 'number' && 
+                         typeof payload.lon === 'number' && 
+                         typeof payload.radius === 'number';
+
+    if (!hasValidInput || 
+        e.includes("missing required parameters") || 
+        e.includes("invalid dxf input fields") ||
+        e.includes("undefined")) {
+      return "cancel";
+    }
+
+    if (e.includes("python script") || 
+        e.includes("failed to spawn python") || 
+        e.includes("worker") || 
+        e.includes("module not found")) {
+      return "requeue";
+    }
+
+    return "skip";
   }
 }

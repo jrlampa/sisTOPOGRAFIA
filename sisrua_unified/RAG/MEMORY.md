@@ -1,4 +1,15 @@
-## Atualização Operacional (2026-04-29C) - Docker Infrastructure Upgrade
+## Atualização Operacional (2026-04-29D) - DXF Sanitation Implementation
+1: 
+2: - **Saneamento de DXF Tasks (Concluída)**:
+3:   - **DbMaintenanceService**: Implementado método `sanitizeFailedDxfTasks` portado de Python para TypeScript. O serviço agora classifica tarefas falhas e executa ações corretivas automáticas (`cancel` para inputs inválidos, `requeue` para falhas de runtime).
+4:   - **Maintenance API**: Criado endpoint `POST /api/maintenance/sanitize-dxf` (protegido por AdminToken) para execução manual de limpeza e reprocessamento.
+5:   - **Modularidade**: Lógica centralizada no backend ("Smart Backend"), reduzindo a dependência de scripts externos.
+6: - **Arquivos Criados/Modificados**:
+7:   - `server/services/dbMaintenanceService.ts` (lógica de saneamento)
+8:   - `server/routes/maintenanceRoutes.ts` (novos endpoints)
+9:   - `server/app.ts` (registro de rotas)
+10: 
+11: ## Atualização Operacional (2026-04-29C) - Docker Infrastructure Upgrade
 1: 
 2: - **Docker Hub Refresh (Concluída)**:
 3:   - **Ollama Upgrade**: Versão elevada de `0.3.0` para **`0.22.0`** (última estável) para suporte a novos modelos e correções de segurança.

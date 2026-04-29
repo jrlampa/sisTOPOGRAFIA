@@ -99,6 +99,7 @@ import predictiveObservabilityRoutes from "./routes/predictiveObservabilityRoute
 import encryptionAtRestRoutes from "./routes/encryptionAtRestRoutes.js";
 import auditColdStorageRoutes from "./routes/auditColdStorageRoutes.js";
 import environmentPromotionRoutes from "./routes/environmentPromotionRoutes.js";
+import maintenanceRoutes from "./routes/maintenanceRoutes.js";
 import tenantAuditExportRoutes from "./routes/tenantAuditExportRoutes.js";
 import zeroTrustRoutes from "./routes/zeroTrustRoutes.js";
 import blueGreenRoutes from "./routes/blueGreenRoutes.js";
@@ -484,6 +485,7 @@ app.use("/api/encryption-at-rest", requireAdminToken, encryptionAtRestRoutes);
 app.use("/api/audit-cold-storage", requireAdminToken, auditColdStorageRoutes);
 app.use("/api/environment-promotion", requireAdminToken, environmentPromotionRoutes);
 app.use("/api/tenant-audit-export", requireAdminToken, tenantAuditExportRoutes);
+app.use("/api/maintenance", requireAdminToken, maintenanceRoutes);
 app.use("/api/zero-trust", requireAdminToken, zeroTrustRoutes);
 app.use("/api/blue-green", requireAdminToken, blueGreenRoutes);
 app.use("/api/pentest", requireAdminToken, pentestRoutes);
