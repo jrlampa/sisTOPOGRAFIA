@@ -1,3 +1,16 @@
+## Atualização Operacional (2026-04-29) - Segurança & Performance (Audit P0/P1)
+
+- **Auditoria 2024 — Implementação P0/P1 Concluída**:
+  - **AuthGuard (P0)**: Implementado middleware de autorização Bearer Token para rotas sensíveis em `server/app.ts`.
+  - **Sanitização de Logs (P0)**: Integrado `sanitizer.ts` no Winston logger para redação automática de PII e segredos.
+  - **Validação de Entrada (P0)**: Adicionado `validation-enhanced.ts` à rota de DXF com detecção de injeção e limites anti-DoS.
+  - **Python Timeout (P1)**: Aumentado timeout default de 5 para 10 minutos em `server/config.ts`.
+  - **Health Check (P1)**: Otimizado com estratégia *Stale-While-Revalidate* (background refresh) para reduzir latência.
+  - **Dev CORS (P1)**: Whitelist explícita de portas locais (3000, 3001, 3002, 5173) no ambiente de desenvolvimento.
+- **Correções de Arquitetura**:
+  - **errorHandler.ts**: Restaurado para `server/errorHandler.ts` com imports corrigidos.
+- **Validação**: Build e testes backend validados com sucesso.
+
 # sisRUA Unified — Memória de Contexto Operacional
 
 ## Resumo Executivo
@@ -195,14 +208,16 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
   - **BUG CRÍTICO CORRIGIDO**: `conductorId: "95 AL MM"` → seleção telescópica real. O `lookupConductorById` agora sempre encontra o condutor, eliminando cálculo silenciosamente incorreto.
   - **Passo 2 (Rede Telescópica)**: `assignTelescopicConductors()` calcula demanda downstream por DFS e atribui condutor diferente por trecho: 25/50/95/150/240 Al-Arm.
   - **Passo 3 (Particionamento por kVA)**: `buildPartition()` itera `faixaKvaTrafoPermitida` e aciona `partitionNetwork()` quando nenhum kVA único cobre a demanda.
+  - **Novo Catálogo Comercial**: Suporte expandido de 15 kVA até **300 kVA** (15, 30, 45, 75, 112.5, 150, 225, 300).
+  - **Controle Trafo Máximo**: Implementado parâmetro `trafoMaxKva` que filtra o catálogo automaticamente (ex: "até 75kVA").
   - **Passo 4 (Heurística 50/50 + Anti-Isolamento)**: `findBestCutEdge()` com filtro mínimo de 15% de demanda e 3 postes por cluster.
   - **Passo 5 (Excentricidade 200m)**: `applyEccentricityDrag()` arrasta o trafo do baricentro Fermat-Weber para o poste mais próximo que satisfaz a regra de excentricidade.
 - **Novos arquivos**:
   - `server/services/dg/dgPartitioner.ts` (exporta MST, UnionFind, condutor telescópico, corte, excentricidade, `partitionNetwork`)
-  - `server/tests/dgPartitioner.test.ts` (20 casos, 36 testes passando)
+  - `server/tests/dgPartitioner.test.ts` (21 casos, 43 testes passando)
+  - `server/tests/dgRealKmz.integration.test.ts` (Integração com nuvem real de 60 postes da Av. Padre Decaminada)
 - **Arquivos modificados**:
-  - `server/services/dg/dgOptimizer.ts` (importa do partitioner, remove duplicação)
-  - `server/services/dg/dgTypes.ts` (DgPartition, DgPartitionedResult, campo partitionedResult?)
-  - `server/services/dgOptimizationService.ts` (aciona partitionNetwork automaticamente)
+  - `server/services/dg/dgOptimizer.ts` / `server/services/dg/dgTypes.ts` / `server/services/dgOptimizationService.ts` / `server/routes/dgRoutes.ts`
+  - `src/components/DgWizardModal.tsx` (Adicionados botões de 150/225/300 kVA)
 - **Validação executada**:
-  - `npx jest server/tests/dgPartitioner.test.ts server/tests/dgOptimizationService.test.ts --runInBand` (36 testes passando, 1.3s)
+  - `npx jest server/tests/dgPartitioner.test.ts server/tests/dgRealKmz.integration.test.ts --runInBand` (43 testes passando, verified 300kVA catalog).
