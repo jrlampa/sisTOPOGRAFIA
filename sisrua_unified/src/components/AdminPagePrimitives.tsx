@@ -263,48 +263,60 @@ export function PainelCard({
   children,
 }: PainelCardProps) {
   const cc = COR_CLASSES[cor] ?? COR_CLASSES.emerald;
+  const idTitulo = `card-title-${titulo.replace(/\s+/g, "-").toLowerCase()}`;
+  const idPainel = `card-panel-${titulo.replace(/\s+/g, "-").toLowerCase()}`;
+
   return (
     <div
       className={`glass-panel rounded-2xl border-2 ${cc.border} ${cc.darkBorder} overflow-hidden`}
     >
       <button
         onClick={onToggle}
-        className={`w-full flex items-center justify-between p-4 ${cc.bg} ${cc.darkBg} ${cc.hoverBg} ${cc.darkHoverBg} transition-colors`}
+        aria-expanded={aberto}
+        aria-controls={idPainel}
+        className={`w-full flex items-center justify-between p-4 ${cc.bg} ${cc.darkBg} ${cc.hoverBg} ${cc.darkHoverBg} transition-colors focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none`}
       >
         <div className="flex items-center gap-3">
           <div
             className={`flex h-9 w-9 items-center justify-center rounded-xl ${cc.iconBg} ${cc.darkIconBg} border ${cc.iconBorder} ${cc.darkIconBorder}`}
+            aria-hidden="true"
           >
             <Icone size={18} className={`${cc.iconText} ${cc.darkIconText}`} />
           </div>
           <div className="text-left">
             <p
+              id={idTitulo}
               className={`font-bold ${cc.titleText} ${cc.darkTitleText} text-sm`}
             >
               {titulo}
             </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               {descricao}
             </p>
           </div>
         </div>
         {aberto ? (
-          <ChevronUp size={16} className="text-slate-400 shrink-0" />
+          <ChevronUp size={16} className="text-slate-500 shrink-0" />
         ) : (
-          <ChevronDown size={16} className="text-slate-400 shrink-0" />
+          <ChevronDown size={16} className="text-slate-500 shrink-0" />
         )}
       </button>
       {aberto && (
-        <div className="p-4 border-t border-slate-200/70 dark:border-slate-700/50">
+        <div 
+          id={idPainel}
+          role="region"
+          aria-labelledby={idTitulo}
+          className="p-4 border-t border-slate-200/70 dark:border-slate-700/50"
+        >
           {carregando && (
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm py-2">
-              <RefreshCw size={14} className="animate-spin" />
+            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-sm py-2" aria-live="polite">
+              <RefreshCw size={14} className="animate-spin" aria-hidden="true" />
               <span>Carregando...</span>
             </div>
           )}
           {erro && !carregando && (
-            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 text-sm py-2">
-              <AlertCircle size={14} />
+            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 text-sm py-2" role="alert">
+              <AlertCircle size={14} aria-hidden="true" />
               <span>{erro}</span>
             </div>
           )}
@@ -334,7 +346,7 @@ export function InfoCard({
         : "text-rose-700 dark:text-rose-300";
   return (
     <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/40 px-3 py-2">
-      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
+      <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
         {label}
       </p>
       <p className={`font-bold text-sm mt-0.5 ${corValor}`}>{valor}</p>

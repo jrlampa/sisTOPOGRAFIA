@@ -236,11 +236,12 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
         />
 
         <div className="rounded-lg border border-slate-300 bg-white p-3 shadow-sm">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <label htmlFor="bt-project-type-select" className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
             {t.projectTypeTitle}
-          </div>
+          </label>
           <select
-            className="mt-2 w-full rounded border border-slate-300 p-1.5 text-xs font-semibold text-slate-700"
+            id="bt-project-type-select"
+            className="mt-2 w-full rounded border border-slate-300 p-1.5 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
             value={projectType}
             onChange={(e) =>
               onProjectTypeChange(e.target.value as BtProjectType)
@@ -252,10 +253,11 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
 
           {projectType === "clandestino" && (
             <div className="mt-3">
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <label htmlFor="bt-clandestino-area-input" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 {t.clandestinoAreaTitle}
               </label>
               <input
+                id="bt-clandestino-area-input"
                 type="number"
                 min={0}
                 step={1}
@@ -269,17 +271,16 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
                   onClandestinoAreaChange(Math.max(0, nextAreaM2));
                 }}
                 placeholder={t.clandestinoAreaPlaceholder}
-                title={t.clandestinoAreaTitle}
-                className="w-full rounded border border-slate-300 p-1.5 text-xs font-semibold text-slate-700"
+                className="w-full rounded border border-slate-300 p-1.5 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
           )}
 
           <button
             onClick={() => bulkImport.setIsBulkRamalModalOpen(true)}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-md transition-all"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700 shadow-md transition-all focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            <Copy size={14} /> {t.btnBulkImport}
+            <Copy size={14} aria-hidden="true" /> {t.btnBulkImport}
           </button>
         </div>
 

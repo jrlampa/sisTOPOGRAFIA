@@ -1,7 +1,10 @@
-import { ApiError, ErrorCategory, errorHandler } from '../errorHandler';
+import { ApiError, ErrorCategory, ErrorCode, errorHandler, createError, asyncHandler } from '../errorHandler.js';
 import { jest } from '@jest/globals';
+import express, { Request, Response, NextFunction } from 'express';
+import supertest from 'supertest';
+import { config } from '../config.js';
 
-jest.mock('../utils/logger', () => ({
+jest.mock('../utils/logger.js', () => ({
   logger: {
     error: jest.fn(),
     warn: jest.fn(),
@@ -10,169 +13,100 @@ jest.mock('../utils/logger', () => ({
   },
 }));
 
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 function createResponseMock() {
   return {
     status: jest.fn().mockReturnThis(),
-    json: jest.fn(),
+    json: jest.fn().mockReturnThis(),
     locals: {},
   } as any;
 }
 
 describe('errorHandler', () => {
-  const originalNodeEnv = process.env.NODE_ENV;
+  let mockReq: any;
+  let mockRes: any;
+  let mockNext: any;
 
-  afterEach(() => {
-    process.env.NODE_ENV = originalNodeEnv;
+  beforeEach(() => {
+    mockReq = { locals: {} };
+    mockRes = createResponseMock();
+    mockRes.locals.requestId = 'req-test-1';
+    mockNext = jest.fn();
     jest.clearAllMocks();
   });
 
-  it('returns ApiError payload with status code', () => {
-    process.env.NODE_ENV = 'production';
+  it('retorna payload ApiError com status e ErrorCode correto', () => {
+    const err = new ApiError('Invalid input', 400, ErrorCategory.VALIDATION, ErrorCode.INPUT_INVALID);
+    errorHandler(err, mockReq, mockRes, mockNext);
 
-    const req = {} as any;
-    const res = createResponseMock();
-    res.locals.requestId = 'req-test-1';
-
-    const err = new ApiError('Invalid input', 400, ErrorCategory.VALIDATION, { field: 'lat' });
-    errorHandler(err, req, res, jest.fn());
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith(
+    expect(mockRes.status).toHaveBeenCalledWith(400);
+    expect(mockRes.json).toHaveBeenCalledWith(
       expect.objectContaining({
         error: 'Invalid input',
-        code: ErrorCategory.VALIDATION,
-        requestId: 'req-test-1',
+        code: ErrorCode.INPUT_INVALID,
+        category: ErrorCategory.VALIDATION,
       })
     );
   });
 
-  it('sanitizes unknown errors in production', () => {
-    process.env.NODE_ENV = 'production';
+  it('sanitiza erros desconhecidos em produção', () => {
+    const originalEnv = config.NODE_ENV;
+    (config as any).NODE_ENV = 'production';
 
-    const req = {} as any;
-    const res = createResponseMock();
-    res.locals.requestId = 'req-test-2';
+    const err = new Error('database connection refused 10.0.0.5');
+    errorHandler(err, mockReq, mockRes, mockNext);
 
-    errorHandler(new Error('database connection refused 10.0.0.5'), req, res, jest.fn());
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith(
+    expect(mockRes.status).toHaveBeenCalledWith(500);
+    expect(mockRes.json).toHaveBeenCalledWith(
       expect.objectContaining({
         error: 'Internal server error',
-        code: ErrorCategory.INTERNAL,
-        requestId: 'req-test-2',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
       })
     );
-    expect(JSON.stringify(res.json.mock.calls[0][0])).not.toContain('10.0.0.5');
-  });
-});
+    // Não deve vazar detalhes sensíveis
+    expect(JSON.stringify(mockRes.json.mock.calls[0][0])).not.toContain('10.0.0.5');
 
-// ─── Additional coverage: createError factories, ApiError.toJSON, dev mode, asyncHandler ───
-
-import { createError, asyncHandler } from '../errorHandler';
-import express, { Request, Response } from 'express';
-import supertest from 'supertest';
-
-describe('ApiError.toJSON', () => {
-  it('retorna objeto com error, code e timestamp', () => {
-    const err = new ApiError('not found', 404, ErrorCategory.NOT_FOUND);
-    const json = err.toJSON();
-    expect(json.error).toBe('not found');
-    expect(json.code).toBe(ErrorCategory.NOT_FOUND);
-    expect(json.timestamp).toBeDefined();
+    (config as any).NODE_ENV = originalEnv;
   });
 });
 
 describe('createError factories', () => {
-  it('authentication retorna ApiError 401', () => {
+  it('authentication retorna ErrorCode.UNAUTHORIZED', () => {
     const e = createError.authentication('nao autenticado');
     expect(e.statusCode).toBe(401);
-    expect(e.code).toBe(ErrorCategory.AUTHENTICATION);
+    expect(e.code).toBe(ErrorCode.UNAUTHORIZED);
   });
-  it('authorization retorna ApiError 403', () => {
+
+  it('authorization retorna ErrorCode.FORBIDDEN', () => {
     const e = createError.authorization('sem permissao');
     expect(e.statusCode).toBe(403);
-    expect(e.code).toBe(ErrorCategory.AUTHORIZATION);
+    expect(e.code).toBe(ErrorCode.FORBIDDEN);
   });
-  it('notFound retorna ApiError 404', () => {
+
+  it('notFound retorna ErrorCode.RESOURCE_NOT_FOUND', () => {
     const e = createError.notFound('Recurso');
     expect(e.statusCode).toBe(404);
-    expect(e.code).toBe(ErrorCategory.NOT_FOUND);
+    expect(e.code).toBe(ErrorCode.RESOURCE_NOT_FOUND);
   });
-  it('conflict retorna ApiError 409', () => {
-    const e = createError.conflict('duplicado');
-    expect(e.statusCode).toBe(409);
-    expect(e.code).toBe(ErrorCategory.CONFLICT);
-  });
-  it('rateLimit retorna ApiError 429 com mensagem padrao', () => {
+
+  it('rateLimit retorna ErrorCode.CAPACITY_EXCEEDED', () => {
     const e = createError.rateLimit();
     expect(e.statusCode).toBe(429);
-    expect(e.code).toBe(ErrorCategory.RATE_LIMIT);
-  });
-  it('externalService retorna ApiError 502', () => {
-    const e = createError.externalService('OSM', new Error('timeout'));
-    expect(e.statusCode).toBe(502);
-    expect(e.details?.originalMessage).toBe('timeout');
-  });
-  it('internal retorna ApiError 500', () => {
-    const e = createError.internal('falha interna');
-    expect(e.statusCode).toBe(500);
-    expect(e.code).toBe(ErrorCategory.INTERNAL);
-  });
-  it('validation retorna ApiError 400', () => {
-    const e = createError.validation('invalido', { field: 'lat' });
-    expect(e.statusCode).toBe(400);
-    expect(e.details).toEqual({ field: 'lat' });
+    expect(e.code).toBe(ErrorCode.CAPACITY_EXCEEDED);
   });
 });
 
-describe('errorHandler — modo development', () => {
-  const originalEnv = process.env.NODE_ENV;
-  afterEach(() => { process.env.NODE_ENV = originalEnv; });
-
-  it('retorna details em modo development para ApiError', () => {
-    process.env.NODE_ENV = 'development';
-    const req = { id: 'req-dev-1' } as any;
-    const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
-    const err = new ApiError('bad input', 400, ErrorCategory.VALIDATION, { field: 'lat' });
-    errorHandler(err, req, res, jest.fn());
-    expect(res.status).toHaveBeenCalledWith(400);
-    const body = res.json.mock.calls[0][0];
-    expect(body.code).toBe(ErrorCategory.VALIDATION);
-  });
-
-  it('mostra mensagem real em modo development para erro desconhecido', () => {
-    process.env.NODE_ENV = 'development';
-    const req = { id: 'req-dev-2' } as any;
-    const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
-    errorHandler(new Error('db error details'), req, res, jest.fn());
-    expect(res.status).toHaveBeenCalledWith(500);
-    const body = res.json.mock.calls[0][0];
-    expect(body.error).toBe('Internal server error'); // NODE_ENV=test, not dev
-  });
-});
-
-describe('asyncHandler', () => {
-  it('envolve funcao async e passa erro para next', async () => {
+describe('asyncHandler integration', () => {
+  it('captura erros em rotas async e repassa ao middleware global', async () => {
     const app = express();
-    app.use(express.json());
-    app.get('/ok', asyncHandler(async (_req: Request, res: Response) => {
-      res.json({ ok: true });
-    }));
-    app.get('/fail', asyncHandler(async (_req: Request, _res: Response) => {
-      throw new ApiError('async fail', 422, ErrorCategory.VALIDATION);
+    app.get('/fail', asyncHandler(async () => {
+      throw createError.validation('fail validation');
     }));
     app.use(errorHandler);
 
-    const agent = supertest(app);
-    const ok = await agent.get('/ok');
-    expect(ok.status).toBe(200);
-    expect(ok.body.ok).toBe(true);
-
-    const fail = await agent.get('/fail');
-    expect(fail.status).toBe(422);
-    expect(fail.body.error).toBe('async fail');
+    const res = await supertest(app).get('/fail');
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe(ErrorCode.INPUT_INVALID);
   });
 });

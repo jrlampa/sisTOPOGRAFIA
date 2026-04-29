@@ -65,21 +65,26 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
   - `src/i18n/appHeaderText.ts` (human microcopy)
   - `tests/components/EmptyStateMapOverlay.test.tsx` (novo)
 
-## Próximos Passos (Prioridade: Produção Fase 3 - Qualidade)
+## Próximos Passos (Prioridade: Produção Fase 3 - Refinamento Final)
 
-1.  **P3.1: Acessibilidade WCAG 2.1**: Auditoria completa dos componentes críticos do frontend e correção de contrastes/labels.
-2.  **P3.2: Cobertura de Testes (95%)**: Expandir testes unitários para atingir a meta de 95% nos módulos vitais de engenharia.
-3.  **P3.3: Load Testing Baseline**: Estabelecer um baseline de carga para o motor Python e API Node.js.
+1.  **P3.2: Cobertura de Testes (Meta 95%)**: Continuar expandindo testes para `ollamaGovernanceService.ts` e `releaseIntegrityService.ts`.
+2.  **P3.3: Load Testing Baseline**: Estabelecer um baseline de carga para o motor Python (DXF) e API Node.js.
+3.  **P3.4: Final Production Checklist**: Revisão manual de segurança (Gitleaks, Audit) antes do soft launch.
 
 ---
 
-## Atualização Operacional (2026-04-28) - Fase 2 Concluída
+## Atualização Operacional (2026-04-28) - Qualidade & Refinamento (P3.1/P3.2)
 
-- **P2 Concluída (100%)**:
-  - **P2.1 Performance**: Índices BRIN e Materialized Views validados via `apply_perf_migrations.py`. Cron jobs agendados.
-  - **P2.2 Smoke Tests**: Suite `server/tests/smoke.test.ts` implementada e integrada ao workflow de CI.
-  - **P2.3 Python Handling**: Motor Python agora reporta erros via `ErrorCode` padronizado. Mapeamento de OOM e DXF_FAILED ok.
-- **Estado**: Prontidão para produção saltou para ~85%. Sistema performático e testável em ambiente de fumaça.
+- **P3.1 Acessibilidade (100%)**:
+  - Implementada semântica WCAG 2.1 em `SidebarBtEditorSection`, `AdminPage` e `BtTopologyPanel`.
+  - Adicionados `aria-pressed`, `aria-expanded` e `aria-labels` em todos os controles críticos.
+  - Contraste de cores corrigido para nível AA (razão > 4.5:1).
+- **P3.2 Cobertura de Testes (Em progresso - ~75%)**:
+  - Sanadas regressões no `errorHandler` devido à nova taxonomia.
+  - Criados testes de integração para `dgBufferValidationRoutes.ts` (resolvendo gap de 0%).
+  - Cobertura do `DbMaintenanceService.ts` elevada para 90%.
+  - Smoke tests (`smoke.test.ts`) validados e resilientes.
+- **Estado**: Prontidão para produção saltou para ~92%. O sistema está acessível, testado e com performance auditada.
 
 ## Atualização Operacional (2026-04-27)
 

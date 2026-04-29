@@ -321,45 +321,50 @@ export default function AdminPage() {
               <Lock size={16} className="text-indigo-600 dark:text-indigo-400" />
               <h2 className="font-bold text-sm text-indigo-900 dark:text-indigo-200">Autenticação Requerida</h2>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+            <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
               Informe o token de administração para acessar os recursos protegidos.
             </p>
-            <form onSubmit={handleLogin} className="flex gap-2">
-              <input
-                type="password"
-                value={tokenInput}
-                onChange={(e) => setTokenInput(e.target.value)}
-                placeholder="Token de acesso..."
-                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
-              />
-              <button type="submit" className="rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-sm font-semibold transition-colors">
-                Entrar
-              </button>
+            <form onSubmit={handleLogin} className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <input
+                  id="admin-token-input"
+                  type="password"
+                  value={tokenInput}
+                  onChange={(e) => setTokenInput(e.target.value)}
+                  placeholder="Token de acesso..."
+                  aria-label="Token de administração"
+                  className="flex-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+                <button type="submit" className="rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-sm font-semibold transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                  Entrar
+                </button>
+              </div>
             </form>
-            {erroAuth && <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">{erroAuth}</p>}
+            {erroAuth && <p className="mt-2 text-xs text-rose-600 dark:text-rose-400" role="alert">{erroAuth}</p>}
           </div>
         )}
 
         {/* Tenant seletor */}
         {autenticado && (
           <div className="glass-panel rounded-2xl border-2 border-amber-700/30 dark:border-amber-500/40 p-4">
-            <p className="text-xs font-semibold text-amber-900 dark:text-amber-200 mb-2">
+            <label htmlFor="tenant-id-input" className="block text-xs font-semibold text-amber-900 dark:text-amber-200 mb-2">
               Tenant Ativo (para Feature Flags e KPIs)
-            </p>
+            </label>
             <form onSubmit={handleDefinirTenant} className="flex gap-2">
               <input
+                id="tenant-id-input"
                 type="text"
                 value={tenantIdInput}
                 onChange={(e) => setTenantIdInput(e.target.value)}
                 placeholder="Ex: empresa-abc"
-                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
+                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-amber-500 outline-none"
               />
-              <button type="submit" className="rounded-lg bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 text-sm font-semibold transition-colors">
+              <button type="submit" className="rounded-lg bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 text-sm font-semibold transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
                 Definir
               </button>
             </form>
             {tenantIdAtivo && (
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-400" aria-live="polite">
                 Tenant ativo: <strong className="text-amber-700 dark:text-amber-300">{tenantIdAtivo}</strong>
               </p>
             )}

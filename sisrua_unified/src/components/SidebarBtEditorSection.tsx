@@ -187,12 +187,13 @@ export function SidebarBtEditorSection({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label="Seleção de cenário de rede">
           <button
             onClick={() => {
               setBtNetworkScenario("asis");
               setBtEditorMode("none");
             }}
+            aria-pressed={btNetworkScenario === "asis"}
             className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btNetworkScenario === "asis" ? "border-cyan-600 bg-cyan-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnActualNetwork}
@@ -202,27 +203,31 @@ export function SidebarBtEditorSection({
               setBtNetworkScenario("projeto");
               onTriggerTelescopicAnalysis?.();
             }}
+            aria-pressed={btNetworkScenario === "projeto"}
             className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btNetworkScenario === "projeto" ? "border-fuchsia-600 bg-fuchsia-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnNewNetwork}
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2" role="group" aria-label="Modos de edição de topologia">
           <button
             onClick={() => setBtEditorMode("none")}
+            aria-pressed={btEditorMode === "none"}
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "none" ? "border-slate-900 bg-slate-900 text-slate-100 dark:border-slate-700 dark:bg-zinc-800" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnNavigate}
           </button>
           <button
             onClick={() => setBtEditorMode("move-pole")}
+            aria-pressed={btEditorMode === "move-pole"}
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "move-pole" ? "border-amber-600 bg-amber-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnMove}
           </button>
           <button
             onClick={() => setBtEditorMode("add-pole")}
+            aria-pressed={btEditorMode === "add-pole"}
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-pole" ? "border-blue-600 bg-blue-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnAddPole}
@@ -232,12 +237,14 @@ export function SidebarBtEditorSection({
               clearPendingBtEdge();
               setBtEditorMode("add-edge");
             }}
+            aria-pressed={btEditorMode === "add-edge"}
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-edge" ? "border-emerald-600 bg-emerald-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnAddEdge}
           </button>
           <button
             onClick={() => setBtEditorMode("add-transformer")}
+            aria-pressed={btEditorMode === "add-transformer"}
             className={`rounded-xl border-2 py-2 text-[10px] font-black transition-all ${btEditorMode === "add-transformer" ? "border-violet-600 bg-violet-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
           >
             {t.btnAddTransformer}
@@ -250,13 +257,15 @@ export function SidebarBtEditorSection({
               e.preventDefault();
               handleBtInsertPoleByCoordinates();
             }}
+            aria-labelledby="bt-add-pole-title"
             className="rounded-xl border-2 border-blue-700/35 bg-blue-50 p-2.5 space-y-2 transition-all dark:border-blue-500/40 dark:bg-blue-950/25"
           >
-            <div className="text-xs font-bold text-blue-800 dark:text-blue-200 uppercase tracking-widest">
+            <div id="bt-add-pole-title" className="text-xs font-bold text-blue-800 dark:text-blue-200 uppercase tracking-widest">
               {t.insertPoleCoordinatesTitle}
             </div>
             <div className="relative group">
               <input
+                id="bt-coordinate-input"
                 type="text"
                 value={btPoleCoordinateInput}
                 onChange={(e) => {
@@ -267,7 +276,7 @@ export function SidebarBtEditorSection({
                 aria-describedby="bt-coordinate-feedback"
                 className={`w-full rounded-xl border-2 border-blue-700/25 bg-white p-2.5 text-xs font-semibold text-blue-950 shadow-inner transition-all outline-none placeholder-blue-600 dark:border-blue-500/45 dark:bg-zinc-950 dark:text-blue-100 dark:placeholder-blue-300/60 ${getValidationInputClassName(coordinateValidation.state, settings.theme === "dark" ? "dark" : "light")}`}
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1 items-center">
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1 items-center" aria-hidden="true">
                 {btPoleCoordinateInput &&
                   (coordinateValidation.state === "success" ? (
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />

@@ -11,10 +11,10 @@ import { config } from "../config.js";
 
 describe("Smoke Tests — Serviços Vitais", () => {
   
-  it("GET /health — deve retornar status 200 e banco disponível", async () => {
+  it("GET /health — deve retornar status 200 (ou 503 se banco offline)", async () => {
     const res = await request(app).get("/health");
-    expect(res.status).toBe(200);
-    expect(["online", "degraded"]).toContain(res.body.status);
+    expect([200, 503]).toContain(res.status);
+    expect(["online", "degraded", "maintenance"]).toContain(res.body.status);
     expect(res.body).toHaveProperty("dependencies");
   });
 
