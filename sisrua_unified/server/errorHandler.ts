@@ -16,9 +16,27 @@ export enum ErrorCategory {
   INTERNAL = "InternalError",
 }
 
+/**
+ * Standardized Error Codes for programmatic client handling.
+ * Roadmap Item P1.2 [T1]: Error Taxonomy.
+ */
+export enum ErrorCode {
+  INPUT_INVALID = "INPUT_INVALID",
+  FILE_TOO_LARGE = "FILE_EXCEEDS_LIMIT",
+  UNAUTHORIZED = "UNAUTHORIZED",
+  FORBIDDEN = "FORBIDDEN",
+  RESOURCE_NOT_FOUND = "NOT_FOUND",
+  DATABASE_ERROR = "DB_ERROR",
+  EXTERNAL_TIMEOUT = "EXTERNAL_TIMEOUT",
+  CAPACITY_EXCEEDED = "CAPACITY_ERROR",
+  INTERNAL_SERVER_ERROR = "INTERNAL_ERROR",
+  DXF_GENERATION_FAILED = "DXF_FAILED",
+}
+
 export interface ApiErrorResponse {
   error: string;
-  code: ErrorCategory;
+  code: ErrorCode;
+  category: ErrorCategory;
   details?: Record<string, any>;
   requestId?: string;
   timestamp?: string;
@@ -26,18 +44,21 @@ export interface ApiErrorResponse {
 
 export class ApiError extends Error {
   public readonly statusCode: number;
-  public readonly code: ErrorCategory;
+  public readonly category: ErrorCategory;
+  public readonly code: ErrorCode;
   public readonly details?: Record<string, any>;
 
   constructor(
     message: string,
     statusCode: number,
-    code: ErrorCategory,
+    category: ErrorCategory,
+    code: ErrorCode = ErrorCode.INTERNAL_SERVER_ERROR,
     details?: Record<string, any>,
   ) {
     super(message);
     this.name = "ApiError";
     this.statusCode = statusCode;
+    this.category = category;
     this.code = code;
     this.details = details;
 
@@ -49,6 +70,7 @@ export class ApiError extends Error {
     return {
       error: this.message,
       code: this.code,
+      category: this.category,
       details: this.details,
       timestamp: new Date().toISOString(),
     };
@@ -60,44 +82,49 @@ export class ApiError extends Error {
  */
 export const createError = {
   validation: (message: string, details?: Record<string, any>) =>
-    new ApiError(message, 400, ErrorCategory.VALIDATION, details),
+    new ApiError(message, 400, ErrorCategory.VALIDATION, ErrorCode.INPUT_INVALID, details),
 
   authentication: (message: string, details?: Record<string, any>) =>
-    new ApiError(message, 401, ErrorCategory.AUTHENTICATION, details),
+    new ApiError(message, 401, ErrorCategory.AUTHENTICATION, ErrorCode.UNAUTHORIZED, details),
 
   authorization: (message: string, details?: Record<string, any>) =>
-    new ApiError(message, 403, ErrorCategory.AUTHORIZATION, details),
+    new ApiError(message, 403, ErrorCategory.AUTHORIZATION, ErrorCode.FORBIDDEN, details),
 
   notFound: (resource: string, details?: Record<string, any>) =>
     new ApiError(
       `${resource} not found`,
       404,
       ErrorCategory.NOT_FOUND,
+      ErrorCode.RESOURCE_NOT_FOUND,
       details,
     ),
 
   conflict: (message: string, details?: Record<string, any>) =>
-    new ApiError(message, 409, ErrorCategory.CONFLICT, details),
+    new ApiError(message, 409, ErrorCategory.CONFLICT, ErrorCode.DATABASE_ERROR, details),
 
   rateLimit: (message = "Too many requests", details?: Record<string, any>) =>
-    new ApiError(message, 429, ErrorCategory.RATE_LIMIT, details),
+    new ApiError(message, 429, ErrorCategory.RATE_LIMIT, ErrorCode.CAPACITY_EXCEEDED, details),
 
-  externalService: (service: string, originalError?: Error) =>
+  externalService: (service: string, originalError?: Error, code: ErrorCode = ErrorCode.EXTERNAL_TIMEOUT) =>
     new ApiError(
       `Failed to reach external service: ${service}`,
       502,
       ErrorCategory.EXTERNAL_SERVICE,
+      code,
       { originalMessage: originalError?.message },
     ),
 
-  internal: (message: string, originalError?: Error) =>
+  internal: (message: string, originalError?: Error, code: ErrorCode = ErrorCode.INTERNAL_SERVER_ERROR) =>
     new ApiError(
       message || "Internal server error",
       500,
       ErrorCategory.INTERNAL,
+      code,
       { originalMessage: originalError?.message },
     ),
 };
+
+import { z } from "zod";
 
 /**
  * Express error handler middleware
@@ -113,11 +140,12 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
   const projeto_id = res.locals?.projeto_id;
   const ponto_id = res.locals?.ponto_id;
 
-  // Handle our custom ApiError
+  // 1. Handle our custom ApiError
   if (err instanceof ApiError) {
     const response: ApiErrorResponse = {
       error: err.message,
       code: err.code,
+      category: err.category,
       details: config.NODE_ENV === "development" ? err.details : undefined,
       requestId,
       timestamp: new Date().toISOString(),
@@ -130,7 +158,7 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
       operation_id,
       projeto_id,
       ponto_id,
-      details: config.NODE_ENV === "development" ? err.details : undefined,
+      details: err.details,
       stack: config.NODE_ENV === "development" ? err.stack : undefined,
     };
 
@@ -143,16 +171,36 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
     return res.status(err.statusCode).json(response);
   }
 
-  // Handle unknown errors
+  // 2. Handle Zod validation errors
+  if (err instanceof z.ZodError) {
+    const response: ApiErrorResponse = {
+      error: "Falha na validação dos dados (Zod)",
+      code: ErrorCode.INPUT_INVALID,
+      category: ErrorCategory.VALIDATION,
+      details: { errors: err.errors },
+      requestId,
+      timestamp: new Date().toISOString(),
+    };
+
+    logger.warn(`[${ErrorCode.INPUT_INVALID}] Zod Validation Error`, {
+      requestId,
+      errors: err.errors,
+    });
+
+    return res.status(400).json(response);
+  }
+
+  // 3. Handle unknown errors
   const response: ApiErrorResponse = {
     error:
       config.NODE_ENV === "development" ? err.message : "Internal server error",
-    code: ErrorCategory.INTERNAL,
+    code: ErrorCode.INTERNAL_SERVER_ERROR,
+    category: ErrorCategory.INTERNAL,
     requestId,
     timestamp: new Date().toISOString(),
   };
 
-  logger.error(`[InternalError] ${err.message || "Unknown error"}`, {
+  logger.error(`[${ErrorCode.INTERNAL_SERVER_ERROR}] ${err.message || "Unknown error"}`, {
     requestId,
     operation_id,
     projeto_id,

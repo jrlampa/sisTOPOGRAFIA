@@ -10,19 +10,26 @@ import { maintenanceService } from "./services/maintenanceService.js";
 /**
  * Gracefully shuts down the server and its dependencies.
  * Handles SIGTERM and SIGINT signals.
+ * Roadmap Item P1.4 [T1]: Graceful Shutdown (SIGTERM Handler).
  */
 export function setupGracefulShutdown(server: Server) {
   const shutdown = async (signal: string) => {
     logger.info(`[Shutdown] Received ${signal}. Starting graceful shutdown...`);
 
-    // 1. Stop background services
+    // Give active requests and workers time to finish (max 25s for Cloud Run)
+    const timeout = setTimeout(() => {
+      logger.error("[Shutdown] Could not close connections in time, forceful shutdown.");
+      process.exit(1);
+    }, 25000);
+
+    // 1. Stop background services with drainage
     try {
-      stopTaskWorker();
+      await stopTaskWorker();
       stopDxfCleanup();
       OllamaService.stopProcess();
       stopFirestoreMonitoring();
       maintenanceService.stop();
-      logger.info("[Shutdown] Background services stopped.");
+      logger.info("[Shutdown] All background services stopped and drained.");
     } catch (err) {
       logger.warn("[Shutdown] Error stopping background services:", err);
     }
@@ -32,14 +39,8 @@ export function setupGracefulShutdown(server: Server) {
       logger.info("[Shutdown] HTTP server closed.");
     });
 
-    // 3. Give active requests time to finish (max 10s)
-    const timeout = setTimeout(() => {
-      logger.error("[Shutdown] Could not close connections in time, forceful shutdown.");
-      process.exit(1);
-    }, 10000);
-
     try {
-      // 4. Close DB connections
+      // 3. Close DB connections
       await closeDbClient();
       logger.info("[Shutdown] Database connections closed.");
 
@@ -47,7 +48,7 @@ export function setupGracefulShutdown(server: Server) {
       logger.info("[Shutdown] Graceful shutdown complete.");
       process.exit(0);
     } catch (err) {
-      logger.error("[Shutdown] Error during shutdown:", err);
+      logger.error("[Shutdown] Error during final stage of shutdown:", err);
       process.exit(1);
     }
   };

@@ -428,15 +428,26 @@ function startWorkerIfNeeded(): void {
   });
 }
 
-export function stopTaskWorker(): void {
+export async function stopTaskWorker(): Promise<void> {
   if (workerInterval) {
     clearInterval(workerInterval);
     workerInterval = null;
   }
   workerStarted = false;
 
+  // Roadmap Item P1.4 [T1]: Drain job queue before exit.
+  if (activeWorkers > 0) {
+    logger.info(`[Shutdown] Waiting for ${activeWorkers} active workers to finish...`);
+    // Simple polling for workers to finish (max 20 seconds of the 25s shutdown window)
+    let waitAttempts = 0;
+    while (activeWorkers > 0 && waitAttempts < 20) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      waitAttempts++;
+    }
+  }
+
   if (sqlClient) {
-    sqlClient.end({ timeout: 3 }).catch(() => undefined);
+    await sqlClient.end({ timeout: 3 }).catch(() => undefined);
     sqlClient = null;
   }
 
@@ -444,6 +455,7 @@ export function stopTaskWorker(): void {
   postgresAvailable = false;
   queueInitialized = false;
   activeDxfEngine = getDxfEngine();
+  logger.info("[Shutdown] DXF task worker stopped.");
 }
 
 /**

@@ -85,6 +85,7 @@
     "exceljs": "^4.4.0",
     "express": "^4.19.2",
     "express-rate-limit": "^8.2.1",
+    "express-validator": "^7.3.2",
     "framer-motion": "^12.34.0",
     "groq-sdk": "^0.37.0",
     "helmet": "^8.1.0",

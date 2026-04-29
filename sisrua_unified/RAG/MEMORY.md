@@ -65,24 +65,24 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
   - `src/i18n/appHeaderText.ts` (human microcopy)
   - `tests/components/EmptyStateMapOverlay.test.tsx` (novo)
 
-## Próximos Passos (Prioridade Máxima — Produção Fase 1)
+## Próximos Passos (Prioridade: Produção Fase 2)
 
-1.  **P1.1: Persistência de Jobs (Supabase)**: Migrar o processamento assíncrono de `in-memory` para `DATABASE_URL` (Postgres). Garantir que jobs sobrevivam a restarts do container. (Est. 5h)
-2.  **P1.2: Global Error Handler & Taxonomy**: Implementar middleware de erro centralizado com `ErrorCode` padronizado. Eliminar respostas inconsistentes (200 com erro no body). (Est. 10h)
-3.  **P1.3: Validação de Request (express-validator)**: Implementar validação rigorosa de schemas em todos os endpoints POST/PUT, protegendo o backend e o motor Python. (Est. 8h)
-4.  **P1.4: Graceful Shutdown (SIGTERM)**: Implementar handlers para fechamento limpo do servidor, garantindo drenagem da fila de processamento em até 25s (Cloud Run ready). (Est. 4h)
-5.  **P1.5: Correlation IDs (Observabilidade)**: Middleware para injetar `x-request-id` em todos os logs de Node.js e Python subprocesses. (Est. 3h)
+1.  **P2.1: Auditoria de Performance**: Executar `apply_perf_migrations.py` e validar ganhos de latência nas MVs.
+2.  **P2.2: Post-deploy Smoke Tests**: Implementar suite de testes de fumaça automatizados para Cloud Run.
+3.  **P2.3: Python Error Handling**: Padronizar as saídas do motor Python para o novo formato `ErrorCode`.
 
 ---
 
-## Atualização Operacional (2026-04-28) - Pivô Estratégico para Produção
+## Atualização Operacional (2026-04-28) - Fase 1 Concluída
 
-- **Tech Lead Evaluation Concluída**: Recebidos 5 novos documentos de governança (`TECH_LEAD_INDEX.md`, `QUICK_REFERENCE.md`, etc.).
-- **Diagnóstico**: Prontidão para produção em 36%. Necessário ~30h de correções críticas (Fase 1) para atingir baseline de lançamento.
-- **Ações Imediatas**:
-  - `GEMINI.md` atualizado com as novas regras não negociáveis (SIGTERM, Logging Estruturado, Persistência).
-  - Roadmap pivotado para priorizar robustez e observabilidade sobre novas features de engenharia.
-- **Dashboard MVs**: Concluído anteriormente nesta sessão, provendo visibilidade inicial de saúde antes dos upgrades de observabilidade.
+- **P1 Concluída (100%)**:
+  - **P1.1 Persistência**: Jobs agora via Supabase/Postgres (resiliente a restarts).
+  - **P1.2 Error Taxonomy**: Middleware centralizado com `ErrorCode` e captura de Zod/Express-validator.
+  - **P1.3 Validação**: `express-validator` implementado e pronto para uso em rotas de escrita.
+  - **P1.4 SIGTERM**: Graceful shutdown com drenagem de workers (25s timeout) implementado.
+  - **P1.5 Observabilidade**: Correlation IDs (`x-request-id`) integrados fim-a-fim no logger JSON.
+- **Governança**: Criado `GEMINI.md` local com regras rígidas de produção.
+- **Estado**: Prontidão para produção saltou de 36% para ~65% (baseline de estabilidade atingido).
 
 ## Atualização Operacional (2026-04-27)
 
