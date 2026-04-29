@@ -1,0 +1,1235 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "TRAFO-0",
+        "type": "trafo",
+        "kva": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.67497251996267,
+          -22.885814887532177
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67497251996267,
+            -22.885814887532177
+          ],
+          [
+            -43.67497030645609,
+            -22.886040355922955
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67172919213772,
+            -22.887607002736466
+          ],
+          [
+            -43.67178685963154,
+            -22.887392640064512
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.6748107150197,
+            -22.885493322580956
+          ],
+          [
+            -43.67478456348181,
+            -22.88572282356827
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.671098202466965,
+            -22.886779511532808
+          ],
+          [
+            -43.67132652550936,
+            -22.886635881526725
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "50 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67271959781647,
+            -22.886837890137006
+          ],
+          [
+            -43.6730719730258,
+            -22.88680576646373
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "50 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.676131032407284,
+            -22.886005143227635
+          ],
+          [
+            -43.67626950144768,
+            -22.886315879504266
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "150 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67497251996267,
+            -22.885814887532177
+          ],
+          [
+            -43.67478456348181,
+            -22.88572282356827
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.6730719730258,
+            -22.88680576646373
+          ],
+          [
+            -43.67317892611027,
+            -22.887154802121586
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "50 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67532134056091,
+            -22.8864656874948
+          ],
+          [
+            -43.67555871605873,
+            -22.88676097863734
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67605995386839,
+            -22.884933931604074
+          ],
+          [
+            -43.67625642567873,
+            -22.885265674515708
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67192767560482,
+            -22.88795418306044
+          ],
+          [
+            -43.67172919213772,
+            -22.887607002736466
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.676374442875385,
+            -22.88442890243054
+          ],
+          [
+            -43.67626044899225,
+            -22.8840431021201
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67455657571554,
+            -22.885137796059208
+          ],
+          [
+            -43.67435172200203,
+            -22.88477639976994
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67609314620495,
+            -22.88365699182448
+          ],
+          [
+            -43.67626044899225,
+            -22.8840431021201
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.673580922186375,
+            -22.886251940785797
+          ],
+          [
+            -43.67329627275467,
+            -22.885920818051705
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.6748107150197,
+            -22.885493322580956
+          ],
+          [
+            -43.67455657571554,
+            -22.885137796059208
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67156993597746,
+            -22.88699974391359
+          ],
+          [
+            -43.67132652550936,
+            -22.886635881526725
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67178685963154,
+            -22.887392640064512
+          ],
+          [
+            -43.67156993597746,
+            -22.88699974391359
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "50 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67271959781647,
+            -22.886837890137006
+          ],
+          [
+            -43.67246814072132,
+            -22.886448390085786
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67354705929756,
+            -22.887541829106905
+          ],
+          [
+            -43.67317892611027,
+            -22.887154802121586
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "95 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67497251996267,
+            -22.885814887532177
+          ],
+          [
+            -43.67532134056091,
+            -22.8864656874948
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67137681692839,
+            -22.888307848936353
+          ],
+          [
+            -43.67108512669802,
+            -22.887818894036236
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.676374442875385,
+            -22.88442890243054
+          ],
+          [
+            -43.67698900401592,
+            -22.884361256178355
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67250636219978,
+            -22.885872323329746
+          ],
+          [
+            -43.67246814072132,
+            -22.886448390085786
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.676374442875385,
+            -22.88442890243054
+          ],
+          [
+            -43.67605995386839,
+            -22.884933931604074
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67137681692839,
+            -22.888307848936353
+          ],
+          [
+            -43.67192767560482,
+            -22.88795418306044
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67555871605873,
+            -22.88676097863734
+          ],
+          [
+            -43.67493811994791,
+            -22.887093952606897
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "95 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.673580922186375,
+            -22.886251940785797
+          ],
+          [
+            -43.6730719730258,
+            -22.88680576646373
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67625642567873,
+            -22.885265674515708
+          ],
+          [
+            -43.676131032407284,
+            -22.886005143227635
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67609314620495,
+            -22.88365699182448
+          ],
+          [
+            -43.67679085582495,
+            -22.883213426961373
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "50 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67626950144768,
+            -22.886315879504266
+          ],
+          [
+            -43.67555871605873,
+            -22.88676097863734
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "50 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67156993597746,
+            -22.88699974391359
+          ],
+          [
+            -43.67246814072132,
+            -22.886448390085786
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 0,
+        "conductor": "95 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.673580922186375,
+            -22.886251940785797
+          ],
+          [
+            -43.67478456348181,
+            -22.88572282356827
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "TRAFO-1",
+        "type": "trafo",
+        "kva": 0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -43.67866692100828,
+          -22.884401430274572
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67866692100828,
+            -22.884401430274572
+          ],
+          [
+            -43.67866471409798,
+            -22.884626898801393
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.679901883006096,
+            -22.882889401294975
+          ],
+          [
+            -43.67977984249592,
+            -22.88273866268516
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67752745747566,
+            -22.885964679505072
+          ],
+          [
+            -43.6772421374917,
+            -22.885757109685134
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.6772421374917,
+            -22.885757109685134
+          ],
+          [
+            -43.67721665650606,
+            -22.885386757387636
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "50 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.6785651370883,
+            -22.885303667367257
+          ],
+          [
+            -43.67884710431099,
+            -22.88503462832776
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67968495935202,
+            -22.883791049443584
+          ],
+          [
+            -43.679331578314304,
+            -22.884030128832002
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67924205958843,
+            -22.885216561789417
+          ],
+          [
+            -43.67884710431099,
+            -22.88503462832776
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67752745747566,
+            -22.885964679505072
+          ],
+          [
+            -43.67796801030636,
+            -22.886030162775246
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67925614118576,
+            -22.883127555601746
+          ],
+          [
+            -43.67892488837242,
+            -22.883411425105116
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.6785651370883,
+            -22.885303667367257
+          ],
+          [
+            -43.678491711616516,
+            -22.885720352496445
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "50 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67866692100828,
+            -22.884401430274572
+          ],
+          [
+            -43.67884710431099,
+            -22.88503462832776
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67752745747566,
+            -22.885964679505072
+          ],
+          [
+            -43.677272982895374,
+            -22.886449316732758
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67968495935202,
+            -22.883791049443584
+          ],
+          [
+            -43.680008836090565,
+            -22.88424820346248
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "95 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.679327219724655,
+            -22.88460249676817
+          ],
+          [
+            -43.679331578314304,
+            -22.884030128832002
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67796801030636,
+            -22.886030162775246
+          ],
+          [
+            -43.678491711616516,
+            -22.885720352496445
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.678639233112335,
+            -22.88285727668724
+          ],
+          [
+            -43.67892488837242,
+            -22.883411425105116
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "95 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67866692100828,
+            -22.884401430274572
+          ],
+          [
+            -43.679327219724655,
+            -22.88460249676817
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67977984249592,
+            -22.88273866268516
+          ],
+          [
+            -43.67925614118576,
+            -22.883127555601746
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.6785651370883,
+            -22.885303667367257
+          ],
+          [
+            -43.67791369557381,
+            -22.885074474556685
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.676564544439316,
+            -22.886593873582246
+          ],
+          [
+            -43.677272982895374,
+            -22.886449316732758
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67818895727396,
+            -22.8823127016514
+          ],
+          [
+            -43.678639233112335,
+            -22.88285727668724
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.680089972913265,
+            -22.88209833061832
+          ],
+          [
+            -43.67977984249592,
+            -22.88273866268516
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.67866692100828,
+            -22.884401430274572
+          ],
+          [
+            -43.678207732737064,
+            -22.884045573222455
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.679331578314304,
+            -22.884030128832002
+          ],
+          [
+            -43.67892488837242,
+            -22.883411425105116
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.680750131607056,
+            -22.883635369615465
+          ],
+          [
+            -43.68141934275627,
+            -22.883181611320076
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.677663914859295,
+            -22.883460847373662
+          ],
+          [
+            -43.678207732737064,
+            -22.884045573222455
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "partition": 1,
+        "conductor": "25 Al - Arm"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -43.680008836090565,
+            -22.88424820346248
+          ],
+          [
+            -43.680750131607056,
+            -22.883635369615465
+          ]
+        ]
+      }
+    }
+  ]
+}

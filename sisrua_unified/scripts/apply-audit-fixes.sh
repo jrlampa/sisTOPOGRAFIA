@@ -10,7 +10,8 @@
 # 3. Executa testes de validação
 # 4. Genera relatório de aplicação
 
-set -e
+set -euo pipefail
+umask 077
 
 # Cores para output
 RED='\033[0;31m'
@@ -24,6 +25,18 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 REPORT_FILE="$PROJECT_ROOT/artifacts/audit-fixes-report-$TIMESTAMP.md"
 
 mkdir -p "$PROJECT_ROOT/artifacts" "$PROJECT_ROOT/secrets"
+
+cat > "$REPORT_FILE" << EOF
+# Audit Fixes Execution Report
+
+Generated: $(date)
+Environment: $(uname -s)
+Node: $(node --version 2>/dev/null || echo "not-found")
+NPM: $(npm --version 2>/dev/null || echo "not-found")
+
+## Security checks output
+
+EOF
 
 echo -e "${BLUE}═════════════════════════════════════════${NC}"
 echo -e "${BLUE}🔐 SIS RUA - Applying Audit Security Fixes${NC}"
@@ -77,6 +90,18 @@ if [ ! -f "$PROJECT_ROOT/secrets/redis_password.txt" ]; then
     echo "test-redis-password" > "$PROJECT_ROOT/secrets/redis_password.txt"
     chmod 600 "$PROJECT_ROOT/secrets/redis_password.txt"
     echo -e "${GREEN}✓${NC} Created redis_password.txt (PLACEHOLDER)"
+fi
+
+if [ ! -f "$PROJECT_ROOT/secrets/admin_token.txt" ]; then
+    echo "" > "$PROJECT_ROOT/secrets/admin_token.txt"
+    chmod 600 "$PROJECT_ROOT/secrets/admin_token.txt"
+    echo -e "${GREEN}✓${NC} Created admin_token.txt (empty placeholder)"
+fi
+
+if [ ! -f "$PROJECT_ROOT/secrets/metrics_token.txt" ]; then
+    echo "" > "$PROJECT_ROOT/secrets/metrics_token.txt"
+    chmod 600 "$PROJECT_ROOT/secrets/metrics_token.txt"
+    echo -e "${GREEN}✓${NC} Created metrics_token.txt (empty placeholder)"
 fi
 
 # ─────────────────────────────────────────────────────────────
@@ -154,7 +179,10 @@ fi
 
 echo -e "\n${YELLOW}[5/5] Generating summary report...${NC}"
 
-cat > "$REPORT_FILE" << EOF
+cat >> "$REPORT_FILE" << EOF
+
+## Summary
+
 # 🔐 Audit Fixes Application Report
 
 **Generated:** $(date)

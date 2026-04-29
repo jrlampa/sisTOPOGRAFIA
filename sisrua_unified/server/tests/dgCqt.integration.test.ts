@@ -21,14 +21,16 @@ describe("DG Integration — Queda de Tensão (CQT)", () => {
     const poles: DgPoleInput[] = Array.from({ length: 10 }, (_, i) => ({
       id: `P${i + 1}`,
       position: { lat: -22.9 + i * 0.0004, lon: -43.7 }, // ~40m entre eles
-      demandKva: 10,
+      demandKva: 1,
       clients: 5
     }));
 
     const params: DgParams = { 
       ...DEFAULT_DG_PARAMS, 
       faixaKvaTrafoPermitida: [112.5, 150], // Força trafo grande para não ser o limitador
-      cqtLimitFraction: 0.08 
+      cqtLimitFraction: 0.08,
+      ramalDefaultLengthM: 30,
+      ramalDefaultConductorId: "16 Al_CONC_Tri" 
     };
 
     const result = partitionNetwork(poles, params);

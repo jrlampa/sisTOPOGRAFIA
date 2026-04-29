@@ -53,6 +53,29 @@ function pointToPolylineDistance(point: DgPoint, polyline: DgPoint[]): number {
   return minDist;
 }
 
+/** Verifica se o segmento AB intersecta o segmento CD. */
+function segmentsIntersect(a: DgPoint, b: DgPoint, c: DgPoint, d: DgPoint): boolean {
+  const det = (b.x - a.x) * (d.y - c.y) - (b.y - a.y) * (d.x - c.x);
+  if (det === 0) return false;
+  const lambda = ((d.y - c.y) * (d.x - a.x) + (c.x - d.x) * (d.y - a.y)) / det;
+  const gamma = ((a.y - b.y) * (d.x - a.x) + (b.x - a.x) * (d.y - a.y)) / det;
+  return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+}
+
+/** Verifica se um trecho (edge) cruza qualquer aresta de um polígono de exclusão. */
+export function isEdgeCrossingExclusionZone(a: DgPoint, b: DgPoint, exclusionPolygons: DgExclusionPolygon[]): boolean {
+  for (const poly of exclusionPolygons) {
+    const polyUtm = poly.points.map(p => latLonToUtm(p.lat, p.lon));
+    // Verifica se cruza qualquer aresta do polígono
+    for (let i = 0, j = polyUtm.length - 1; i < polyUtm.length; j = i++) {
+      if (segmentsIntersect(a, b, polyUtm[i], polyUtm[j])) return true;
+    }
+    // Opcional: Verifica se ambos os pontos estão dentro (totalmente imerso)
+    if (isPointInsidePolygon(a, polyUtm) && isPointInsidePolygon(b, polyUtm)) return true;
+  }
+  return false;
+}
+
 // ─── Verificadores de restrição individual ────────────────────────────────────
 
 function checkExclusionZones(candidateUtm: DgPoint, exclusionPolygons: DgExclusionPolygon[]): DgConstraintViolation[] {

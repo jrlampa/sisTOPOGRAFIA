@@ -61,7 +61,7 @@ function derivePolesDemand(poles: DgPoleInput[], params: DgParams): DgPoleInput[
 
 // ─── Avaliação via Motor Oficial ──────────────────────────────────────────────
 
-function evaluateWithOfficialEngine(trafoId: string, trafoKva: number, poles: DgPoleInput[], mst: MstEdge[]): DgElectricalResult | null {
+function evaluateWithOfficialEngine(trafoId: string, trafoKva: number, poles: DgPoleInput[], mst: MstEdge[], params: DgParams): DgElectricalResult | null {
   try {
     const demandByPole = new Map(poles.map(p => [p.id, p.demandKva]));
     const conductorMap = assignTelescopicConductors(trafoId, mst, demandByPole);
@@ -70,7 +70,18 @@ function evaluateWithOfficialEngine(trafoId: string, trafoKva: number, poles: Dg
       transformer: { id: trafoId, rootNodeId: trafoId, kva: trafoKva, zPercent: 4.5, qtMt: 0 },
       nodes: [
         { id: trafoId, load: { localDemandKva: 0 } },
-        ...poles.map(p => ({ id: p.id, load: { localDemandKva: p.demandKva } }))
+        ...poles.map((p) => ({
+          id: p.id,
+          load: {
+            localDemandKva: p.demandKva,
+            ramal: params.ramalDefaultLengthM
+              ? {
+                  conductorId: params.ramalDefaultConductorId ?? "16 Al - Du",
+                  lengthMeters: params.ramalDefaultLengthM,
+                }
+              : undefined,
+          },
+        })),
       ],
       edges: mst.map(e => ({
         fromNodeId: e.fromId,
@@ -89,12 +100,19 @@ function evaluateWithOfficialEngine(trafoId: string, trafoKva: number, poles: Dg
     const output = calculateBtRadial(input);
     const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
 
+    const worstTerminalId = output.worstCase.worstTerminalNodeId;
+    const worstTerminal = output.terminalResults.find(t => t.nodeId === worstTerminalId);
+
     return {
       cqtMaxFraction: output.worstCase.cqtGlobal,
-      worstTerminalNodeId: output.worstCase.worstTerminalNodeId,
+      cqtTerminalFraction: worstTerminal?.qtTerminal ?? output.worstCase.cqtGlobal,
+      cqtRamalFraction: worstTerminal?.qtRamal ?? 0,
+      worstTerminalNodeId: worstTerminalId,
       trafoUtilizationFraction: totalDemandKva / trafoKva,
       totalCableLengthMeters: mst.reduce((s, e) => s + e.lengthMeters, 0),
-      feasible: output.worstCase.cqtGlobal <= 0.08 && (totalDemandKva / trafoKva) <= 0.95
+      feasible:
+        output.worstCase.cqtGlobal <= (params.cqtLimitFraction ?? 0.08) &&
+        totalDemandKva / trafoKva <= (params.trafoMaxUtilization ?? 0.95),
     };
   } catch (err) {
     logger.debug("DG: falha na avaliação elétrica oficial", { error: (err as Error).message });
@@ -110,7 +128,7 @@ function evaluateCandidate(candidate: DgCandidate, poles: DgPoleInput[], transfo
   if (!constraintResult.feasible) return createFailedScenario(candidate, constraintResult.violations);
 
   const polesUtm = poles.map(p => ({ id: p.id, positionUtm: latLonToUtm(p.position.lat, p.position.lon) }));
-  const mst = buildMst(trafoId, polesUtm, candidate.positionUtm);
+  const mst = buildMst(trafoId, polesUtm, candidate.positionUtm, exclusionPolygons, roadCorridors);
   const spanViolation = mstHasSpanViolation(mst, params.maxSpanMeters);
   if (spanViolation) return createFailedScenario(candidate, [{ code: "MAX_SPAN_EXCEEDED", detail: spanViolation }]);
 
@@ -121,7 +139,7 @@ function evaluateCandidate(candidate: DgCandidate, poles: DgPoleInput[], transfo
 
   for (const kva of kvaFaixa) {
     if (checkTrafoOverload(totalDemandKva, kva, params.trafoMaxUtilization).length > 0) continue;
-    const electrical = evaluateWithOfficialEngine(trafoId, kva, poles, mst);
+    const electrical = evaluateWithOfficialEngine(trafoId, kva, poles, mst, params);
     if (electrical && electrical.feasible) {
       bestResult = electrical;
       selectedKva = kva;
@@ -165,7 +183,15 @@ function createFailedScenario(candidate: DgCandidate, violations: DgConstraintVi
     trafoPositionUtm: candidate.positionUtm,
     trafoPositionLatLon: candidate.position,
     edges: [],
-    electricalResult: { cqtMaxFraction: 1, worstTerminalNodeId: "", trafoUtilizationFraction: 1, totalCableLengthMeters: 0, feasible: false },
+    electricalResult: {
+      cqtMaxFraction: 1,
+      cqtTerminalFraction: 1,
+      cqtRamalFraction: 0,
+      worstTerminalNodeId: "",
+      trafoUtilizationFraction: 1,
+      totalCableLengthMeters: 0,
+      feasible: false,
+    },
     objectiveScore: 0,
     scoreComponents: { cableCostScore: 0, poleCostScore: 0, trafoCostScore: 0, cqtPenaltyScore: 0, overloadPenaltyScore: 0 },
     violations,

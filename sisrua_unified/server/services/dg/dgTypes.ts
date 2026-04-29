@@ -95,6 +95,10 @@ export interface DgParams {
   objectiveWeights: DgObjectiveWeights;
   /** Permite propor novos postes além dos existentes (Modo B). */
   allowNewPoles: boolean;
+  /** Comprimento padrão do ramal de ligação para cálculo de CQT total (m). Padrão 30m. */
+  ramalDefaultLengthM?: number;
+  /** Condutor padrão do ramal (ex: "16 Al - Du"). */
+  ramalDefaultConductorId?: string;
 
   /**
    * Parâmetros do Wizard (Modo Full Project).
@@ -145,6 +149,8 @@ export const DEFAULT_DG_PARAMS: DgParams = {
     overloadPenalty: 0.15,
   },
   allowNewPoles: false,
+  ramalDefaultLengthM: 30,
+  ramalDefaultConductorId: "16 Al_CONC_Tri",
   projectMode: "optimization",
   // Catálogo padrão: faixa completa 15→300 kVA
   faixaKvaTrafoPermitida: [...COMMERCIAL_TRAFO_KVA],
@@ -230,7 +236,12 @@ export interface DgScenarioEdge {
 
 /** Resultado elétrico de um cenário. */
 export interface DgElectricalResult {
+  /** CQT total acumulado (Trafo + Rede + Ramal) no pior terminal. */
   cqtMaxFraction: number;
+  /** CQT apenas na rede (até o poste terminal). */
+  cqtTerminalFraction: number;
+  /** CQT apenas no ramal do pior terminal. */
+  cqtRamalFraction: number;
   worstTerminalNodeId: string;
   trafoUtilizationFraction: number;
   totalCableLengthMeters: number;

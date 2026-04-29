@@ -20,6 +20,7 @@
     "esModuleInterop": true,
     /* Paths */
     "forceConsistentCasingInFileNames": true,
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@/*": ["./src/*"],
       "@shared/*": ["./shared/*"]

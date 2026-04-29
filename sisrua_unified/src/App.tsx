@@ -1288,7 +1288,7 @@ function App() {
             onMtTopologyChange: updateMtTopology,
             mtEditorMode: settings.mtEditorMode ?? "none",
             hasBtPoles,
-            onMtEditorModeChange: (mode) =>
+            onMtEditorModeChange: (mode: any) =>
               updateSettings({ ...settings, mtEditorMode: mode }),
           },
           analysisResultsProps: sidebarAnalysisResultsProps,

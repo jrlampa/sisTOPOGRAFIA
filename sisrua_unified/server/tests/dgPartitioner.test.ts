@@ -198,7 +198,7 @@ describe("applyEccentricityDrag", () => {
 describe("partitionNetwork", () => {
   it("retorna 1 partição quando rede cabe num único trafo de 112.5 kVA (limite forçado)", () => {
     const poles = makePoles(8, 10); // total 80 kVA < 112.5
-    const result = partitionNetwork(poles, { ...DEFAULT_DG_PARAMS, trafoMaxKva: 112.5 });
+    const result = partitionNetwork(poles, { ...DEFAULT_DG_PARAMS, trafoMaxKva: 112.5, cqtLimitFraction: 1.0 });
     expect(result.totalPartitions).toBe(1);
     expect(result.partitions[0].poles).toHaveLength(8);
     expect(result.cutEdgeIds).toHaveLength(0);
@@ -207,7 +207,7 @@ describe("partitionNetwork", () => {
   it("particiona em 2+ quando demanda excede 112.5 kVA (limite forçado)", () => {
     // 20 postes × 8 kVA = 160 kVA > 112.5 kVA
     const poles = makePoles(20, 8);
-    const result = partitionNetwork(poles, { ...DEFAULT_DG_PARAMS, trafoMaxKva: 112.5 });
+    const result = partitionNetwork(poles, { ...DEFAULT_DG_PARAMS, trafoMaxKva: 112.5, cqtLimitFraction: 1.0 });
     expect(result.totalPartitions).toBeGreaterThanOrEqual(2);
     expect(result.cutEdgeIds.length).toBeGreaterThanOrEqual(1);
     for (const p of result.partitions) {
@@ -217,7 +217,7 @@ describe("partitionNetwork", () => {
 
   it("retorna 1 partição para 160 kVA quando o catálogo permite até 300 kVA", () => {
     const poles = makePoles(20, 8); // 160 kVA
-    const result = partitionNetwork(poles, DEFAULT_DG_PARAMS); // Catalogo vai até 300
+    const result = partitionNetwork(poles, { ...DEFAULT_DG_PARAMS, cqtLimitFraction: 1.0 }); // Catalogo vai até 300
     expect(result.totalPartitions).toBe(1);
     expect(result.partitions[0].selectedKva).toBe(225); // Próximo acima de 160/0.95=168
   });

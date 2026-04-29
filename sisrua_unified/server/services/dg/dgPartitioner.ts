@@ -14,6 +14,8 @@ import type {
   DgElectricalResult,
   DgPartition,
   DgPartitionedResult,
+  DgExclusionPolygon,
+  DgRoadCorridor,
 } from "./dgTypes.js";
 import { resolveTrafoFaixa } from "./dgTypes.js";
 import {
@@ -22,6 +24,7 @@ import {
   utmToLatLon,
   fermatWeberCenter,
 } from "./dgCandidates.js";
+import { isEdgeCrossingExclusionZone, pointToPolylineDistance } from "./dgConstraints.js";
 import { calculateBtRadial } from "../btRadialCalculationService.js";
 import type { BtRadialTopologyInput } from "../bt/btTypes.js";
 import { logger } from "../../utils/logger.js";
@@ -81,18 +84,34 @@ export function buildMst(
   trafoId: string,
   poles: Array<{ id: string; positionUtm: { x: number; y: number } }>,
   trafoUtm: { x: number; y: number },
+  exclusionPolygons: DgExclusionPolygon[] = [],
+  roadCorridors: DgRoadCorridor[] = [],
 ): MstEdge[] {
   const allNodes = [{ id: trafoId, positionUtm: trafoUtm }, ...poles];
   const allEdges: MstEdge[] = [];
   for (let i = 0; i < allNodes.length; i++) {
     for (let j = i + 1; j < allNodes.length; j++) {
+      const posA = allNodes[i].positionUtm;
+      const posB = allNodes[j].positionUtm;
+
+      // Se o trecho cruza uma zona de exclusão, ignoramos
+      if (isEdgeCrossingExclusionZone(posA, posB, exclusionPolygons)) continue;
+
+      // Se temos corredores de rua, o ponto médio do trecho deve estar dentro de um deles
+      // (Isso evita que o condutor atravesse quadras/casas)
+      if (roadCorridors.length > 0) {
+        const mid = { x: (posA.x + posB.x) / 2, y: (posA.y + posB.y) / 2 };
+        const insideRoad = roadCorridors.some(corridor => {
+          const polylineUtm = corridor.centerPoints.map(p => latLonToUtm(p.lat, p.lon));
+          return pointToPolylineDistance(mid, polylineUtm) <= corridor.bufferMeters;
+        });
+        if (!insideRoad) continue;
+      }
+
       allEdges.push({
         fromId: allNodes[i].id,
         toId: allNodes[j].id,
-        lengthMeters: Math.max(
-          0.001,
-          euclideanDistanceM(allNodes[i].positionUtm, allNodes[j].positionUtm),
-        ),
+        lengthMeters: Math.max(0.001, euclideanDistanceM(posA, posB)),
       });
     }
   }
@@ -365,6 +384,7 @@ function evaluatePartitionElectrical(
   poles: DgPoleInput[],
   mst: MstEdge[],
   demandByPole: Map<string, number>,
+  params: DgParams,
 ): DgElectricalResult | null {
   try {
     const conductorMap = assignTelescopicConductors(trafoId, mst, demandByPole);
@@ -379,7 +399,18 @@ function evaluatePartitionElectrical(
       },
       nodes: [
         { id: trafoId, load: { localDemandKva: 0 } },
-        ...poles.map((p) => ({ id: p.id, load: { localDemandKva: p.demandKva } })),
+        ...poles.map((p) => ({
+          id: p.id,
+          load: {
+            localDemandKva: p.demandKva,
+            ramal: params.ramalDefaultLengthM
+              ? {
+                  conductorId: params.ramalDefaultConductorId ?? "16 Al - Du",
+                  lengthMeters: params.ramalDefaultLengthM,
+                }
+              : undefined,
+          },
+        })),
       ],
       edges: mst.map((e) => ({
         fromNodeId: e.fromId,
@@ -398,14 +429,21 @@ function evaluatePartitionElectrical(
     const output = calculateBtRadial(input);
     const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
 
+    const worstTerminalId = output.worstCase.worstTerminalNodeId;
+    const worstTerminal = output.terminalResults.find(t => t.nodeId === worstTerminalId);
+
+
+
     return {
       cqtMaxFraction: output.worstCase.cqtGlobal,
-      worstTerminalNodeId: output.worstCase.worstTerminalNodeId,
+      cqtTerminalFraction: worstTerminal?.qtTerminal ?? output.worstCase.cqtGlobal,
+      cqtRamalFraction: worstTerminal?.qtRamal ?? 0,
+      worstTerminalNodeId: worstTerminalId,
       trafoUtilizationFraction: totalDemandKva / trafoKva,
       totalCableLengthMeters: mst.reduce((s, e) => s + e.lengthMeters, 0),
       feasible:
-        output.worstCase.cqtGlobal <= 0.08 &&
-        totalDemandKva / trafoKva <= 0.95,
+        output.worstCase.cqtGlobal <= (params.cqtLimitFraction ?? 0.08) &&
+        totalDemandKva / trafoKva <= (params.trafoMaxUtilization ?? 0.95),
     };
   } catch (err) {
     logger.debug("DG Partitioner: falha na avaliação elétrica", {
@@ -440,7 +478,7 @@ function buildPartition(
   const trafoLatLon = utmToLatLon(trafoUtm.x, trafoUtm.y);
 
   const trafoId = `trafo-part-${partitionId}`;
-  const mst = buildMst(trafoId, polesUtm, trafoUtm);
+  const mst = buildMst(trafoId, polesUtm, trafoUtm, params.exclusionPolygons ?? [], params.roadCorridors ?? []);
 
   const demandByPole = new Map(poles.map((p) => [p.id, p.demandKva]));
   const totalDemandKva = poles.reduce((s, p) => s + p.demandKva, 0);
@@ -452,7 +490,7 @@ function buildPartition(
 
   for (const kva of faixa) {
     if (totalDemandKva / kva > (params.trafoMaxUtilization ?? 0.95)) continue;
-    const result = evaluatePartitionElectrical(trafoId, kva, poles, mst, demandByPole);
+    const result = evaluatePartitionElectrical(trafoId, kva, poles, mst, demandByPole, params);
     if (result?.feasible) {
       bestResult = result;
       selectedKva = kva;
@@ -480,6 +518,8 @@ function buildPartition(
     edges,
     electricalResult: bestResult ?? {
       cqtMaxFraction: 1,
+      cqtTerminalFraction: 1,
+      cqtRamalFraction: 0,
       worstTerminalNodeId: "",
       trafoUtilizationFraction: totalDemandKva / Math.max(selectedKva, 1),
       totalCableLengthMeters: mst.reduce((s, e) => s + e.lengthMeters, 0),
@@ -535,7 +575,7 @@ function partitionRecursive(
     poles.map((p, i) => ({ positionUtm: polesUtm[i].positionUtm, demandKva: p.demandKva })),
   );
   const tempTrafoId = `temp-trafo-${depth}`;
-  const mst = buildMst(tempTrafoId, polesUtm, centroid);
+  const mst = buildMst(tempTrafoId, polesUtm, centroid, params.exclusionPolygons ?? [], params.roadCorridors ?? []);
   const demandByPole = new Map(poles.map((p) => [p.id, p.demandKva]));
 
   const bestCut = findBestCutEdge(tempTrafoId, mst, poles, demandByPole, totalDemandKva);
