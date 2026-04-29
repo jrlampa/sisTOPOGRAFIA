@@ -1,4 +1,15 @@
-## Atualização Operacional (2026-04-29B) - Frontend Hardening & Robust Debug
+## Atualização Operacional (2026-04-29C) - Docker Infrastructure Upgrade
+1: 
+2: - **Docker Hub Refresh (Concluída)**:
+3:   - **Ollama Upgrade**: Versão elevada de `0.3.0` para **`0.22.0`** (última estável) para suporte a novos modelos e correções de segurança.
+4:   - **Redis Upgrade**: Versão elevada de `7.2.4-alpine` para **`8.6-alpine`** (GA estável) para melhor performance e novos tipos de dados.
+5:   - **HMR Stabilization**: Refinado `docker-compose.yml` com flags de polling para garantir estabilidade do HMR no Vite sob Windows/WSL2.
+6:   - **Security Hardening**: Mantida arquitetura de `appuser` (non-root) e `gosu` para drop de privilégios.
+7: - **Arquivos Modificados**:
+8:   - `docker-compose.yml` (version bumps)
+9:   - `RAG/IMPLEMENTATION_PLAN_DOCKER_UPDATE.md` (formalização)
+10: 
+11: ## Atualização Operacional (2026-04-29B) - Frontend Hardening & Robust Debug
 1: 
 2: - **Frontend Hardening Audit (Frente 4 - Concluída)**:
 3:   - **Sanitização & Segurança (P0)**: Auditado todos os campos de entrada (`BtPoleCoordinateInput`, `Renomear`, `Demand Input`). Validado que injeções de XSS e SQL são neutralizadas via escaping de React e lógica de validação.
