@@ -406,8 +406,6 @@ function App() {
     exportBtHistoryJson,
     exportBtHistoryCsv,
     validateBtBeforeExport,
-    handleClandestinoToNormalClassifyLater,
-    handleClandestinoToNormalConvertNow,
     handleNormalToClandestinoKeepClients,
     handleNormalToClandestinoZeroNormalClients,
   } = useBtCrudHandlers({
@@ -415,6 +413,7 @@ function App() {
     setAppState,
     showToast,
     onSelectedPoleChange: handleBtSelectedPoleChange,
+    undo,
   });
 
   const {
@@ -429,7 +428,7 @@ function App() {
     updateMtTopology,
     insertMtPoleAtLocation: insertMtPoleAtLocationBase,
     findNearestMtPole,
-  } = useMtCrudHandlers({ appState, setAppState, showToast });
+  } = useMtCrudHandlers({ appState, setAppState, showToast, undo });
 
   const handleMtContextAction = React.useCallback(
     (action: "add-pole" | "add-edge", location: GeoLocation) => {

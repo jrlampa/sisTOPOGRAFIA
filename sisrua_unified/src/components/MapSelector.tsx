@@ -272,12 +272,20 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     };
   }, [mapStyle]);
 
+  const isEditing = btEditorMode !== "none" || mtEditorMode !== "none";
+  const cursorClass = isEditing ? "map-cursor-active" : "";
+
   return (
     <div
-      className="relative z-0 h-full min-h-[400px] w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-100 shadow-2xl"
+      className={`relative z-0 h-full min-h-[400px] w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-100 shadow-2xl ${cursorClass}`}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
+      <style>{`
+        .map-cursor-active .leaflet-container {
+          cursor: crosshair !important;
+        }
+      `}</style>
       <MapContainer
         center={[center.lat, center.lng]}
         zoom={15}

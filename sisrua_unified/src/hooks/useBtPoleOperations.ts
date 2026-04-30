@@ -52,8 +52,13 @@ type Params = {
     state: GlobalState | ((prev: GlobalState) => GlobalState),
     addToHistory: boolean,
   ) => void;
-  showToast: (message: string, type: ToastType) => void;
+  showToast: (
+    message: string, 
+    type: ToastType,
+    action?: { label: string; onClick: () => void }
+  ) => void;
   onSelectedPoleChange?: (poleId: string) => void;
+  undo: () => void;
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -63,6 +68,7 @@ export function useBtPoleOperations({
   setAppState,
   showToast,
   onSelectedPoleChange,
+  undo,
 }: Params) {
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
   const settings: AppSettings = appState.settings;
@@ -176,7 +182,10 @@ export function useBtPoleOperations({
       onSelectedPoleChange?.(nextId);
     }, 50);
 
-    showToast(`${nextPole.title} inserido e selecionado`, "success");
+    showToast(`${nextPole.title} inserido e selecionado`, "success", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const resolveLocationFromBackend = async (
@@ -270,7 +279,10 @@ export function useBtPoleOperations({
         mtTopology: nextMtTopology,
       };
     }, true);
-    showToast(`Poste ${poleId} removido globalmente (BT/MT)`, "info");
+    showToast(`Poste ${poleId} removido globalmente (BT/MT)`, "info", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleBtSetPoleChangeFlag = (
@@ -343,6 +355,7 @@ export function useBtPoleOperations({
         showToast(
           `Poste ${poleId} e elementos dependentes (BT/MT) marcados para remoção.`,
           "info",
+          { label: "Desfazer", onClick: undo }
         );
       }
 
@@ -371,7 +384,10 @@ export function useBtPoleOperations({
     setAppState((prev) => ({ ...prev, btTopology: nextTopology }), true);
 
     if (!circuitBreakPoint) {
-      showToast(`Separação física removida do poste ${poleId}.`, "info");
+      showToast(`Separação física removida do poste ${poleId}.`, "info", {
+        label: "Desfazer",
+        onClick: undo,
+      });
       return;
     }
 
@@ -427,6 +443,7 @@ export function useBtPoleOperations({
     showToast(
       `Poste ${poleId} marcado com separação física do circuito.`,
       "info",
+      { label: "Desfazer", onClick: undo }
     );
   };
 
@@ -538,7 +555,10 @@ export function useBtPoleOperations({
       }),
       true,
     );
-    showToast(`+1 ramal em ${pole.title}.`, "success");
+    showToast(`+1 ramal em ${pole.title}.`, "success", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleBtQuickRemovePoleRamal = (poleId: string) => {
@@ -598,7 +618,10 @@ export function useBtPoleOperations({
       }),
       true,
     );
-    showToast(`-1 ramal em ${pole.title}.`, "success");
+    showToast(`-1 ramal em ${pole.title}.`, "success", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleConfirmNormalRamalModal = () => {
@@ -640,6 +663,7 @@ export function useBtPoleOperations({
     showToast(
       `${quantity} ramal(is) ${normalRamalModal.ramalType} em ${normalRamalModal.poleTitle}.`,
       "success",
+      { label: "Desfazer", onClick: undo }
     );
     setNormalRamalModal(null);
   };
@@ -690,6 +714,7 @@ export function useBtPoleOperations({
     showToast(
       "Projeto mudou para Normal. Classificação de ramais pendente (DXF bloqueado).",
       "info",
+      { label: "Desfazer", onClick: undo }
     );
   };
 
@@ -705,7 +730,10 @@ export function useBtPoleOperations({
     setPendingNormalClassificationPoles([]);
     applyProjectTypeSwitch("ramais", migratedTopology);
     setClandestinoToNormalModal(null);
-    showToast("Ramais clandestinos migrados para Ramal Monofasico.", "success");
+    showToast("Ramais clandestinos migrados para Ramal Monofasico.", "success", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleNormalToClandestinoKeepClients = () => {
@@ -715,6 +743,7 @@ export function useBtPoleOperations({
     showToast(
       "Mudança para Clandestino mantendo clientes normais para possível retorno.",
       "info",
+      { label: "Desfazer", onClick: undo }
     );
   };
 
@@ -737,6 +766,7 @@ export function useBtPoleOperations({
     showToast(
       "Clientes normais zerados. Apenas ramais clandestinos foram mantidos.",
       "success",
+      { label: "Desfazer", onClick: undo }
     );
   };
 

@@ -165,6 +165,26 @@ export function DgOptimizationPanel({
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [acceptanceConfirmed, setAcceptanceConfirmed] = useState(false);
   const [isPreviewActive, setIsPreviewActive] = useState(true); // Default to true for UX-07
+  const [progressStage, setProgressStage] = useState(0);
+
+  const PROGRESS_STAGES = [
+    "Gerando topologia...",
+    "Calculando fluxos...",
+    "Avaliando CQT...",
+    "Otimizando cenários...",
+    "Finalizando...",
+  ];
+
+  useEffect(() => {
+    if (isOptimizing) {
+      const interval = setInterval(() => {
+        setProgressStage((prev) => (prev + 1) % PROGRESS_STAGES.length);
+      }, 1500);
+      return () => clearInterval(interval);
+    } else {
+      setProgressStage(0);
+    }
+  }, [isOptimizing]);
 
   const canRunFull = hasPoles && !isOptimizing;
 
@@ -252,12 +272,20 @@ export function DgOptimizationPanel({
         <button
           onClick={handleMainAction}
           disabled={!canRunFull}
-          className="w-full rounded-xl border-2 border-violet-700/40 bg-violet-700 py-2 text-xs font-black text-white transition-all hover:bg-violet-800 disabled:opacity-40 dark:border-violet-400/40 dark:bg-violet-700 dark:hover:bg-violet-600"
+          className="w-full rounded-xl border-2 border-violet-700/40 bg-violet-700 py-2 text-xs font-black text-white transition-all hover:bg-violet-800 disabled:opacity-40 dark:border-violet-400/40 dark:bg-violet-700 dark:hover:bg-violet-600 min-h-[44px]"
         >
           {isOptimizing ? (
-            <span className="flex items-center justify-center gap-1.5">
-              <Loader2 size={11} className="animate-spin" />
-              Otimizando…
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 size={14} className="animate-spin" />
+              <motion.span
+                key={progressStage}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="inline-block"
+              >
+                {PROGRESS_STAGES[progressStage]}
+              </motion.span>
             </span>
           ) : DG_WIZARD_FULL_MODE_ENABLED &&
             (hasProjectedPoles || !hasTransformer) ? (

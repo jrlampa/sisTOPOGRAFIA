@@ -6,6 +6,8 @@ import {
   Compass,
   LineChart,
   Network,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import type { AppLocale } from "../types";
 import { getSidebarWorkspaceText } from "../i18n/sidebarWorkspaceText";
@@ -21,6 +23,7 @@ const SidebarSelectionControls = lazy(() => import("./SidebarSelectionControls")
 type SidebarWorkspaceProps = {
   locale: AppLocale;
   isCollapsed: boolean;
+  onToggleCollapse: (collapsed: boolean) => void;
   isSidebarDockedForRamalModal: boolean;
   selectionControlsProps: any;
   btEditorSectionProps: any;
@@ -31,6 +34,7 @@ type SidebarWorkspaceProps = {
 export function SidebarWorkspace({
   locale,
   isCollapsed,
+  onToggleCollapse,
   isSidebarDockedForRamalModal,
   selectionControlsProps,
   btEditorSectionProps,
@@ -42,12 +46,10 @@ export function SidebarWorkspace({
   const stageEntryTimeRef = React.useRef<number>(Date.now());
 
   React.useEffect(() => {
-    // Only celebrate progression, not initial mount
     if (activeStage > 1) {
       setShowCelebration(true);
       const timer = setTimeout(() => setShowCelebration(false), 1500);
 
-      // Track UX-20: Stage transition
       const now = Date.now();
       const durationMs = now - stageEntryTimeRef.current;
       trackWorkflowStage(activeStage - 1, activeStage, durationMs);
@@ -58,8 +60,6 @@ export function SidebarWorkspace({
   }, [activeStage]);
 
   const t = getSidebarWorkspaceText(locale);
-
-  if (isCollapsed) return null;
 
   const STAGES = [
     {
@@ -141,6 +141,68 @@ export function SidebarWorkspace({
           ? t.guidanceMt
           : t.guidanceAnalysis;
 
+  if (isCollapsed) {
+    return (
+      <motion.aside
+        initial={{ width: 0, opacity: 0 }}
+        animate={{ width: 72, opacity: 1 }}
+        className="relative z-20 flex h-full flex-col items-center border-r bg-slate-50/80 p-2 backdrop-blur-xl dark:border-white/5 dark:bg-slate-900/80 shadow-2xl"
+      >
+        <button
+          onClick={() => onToggleCollapse(false)}
+          className="mb-6 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/20 hover:scale-105 transition-transform"
+          title="Expandir Painel"
+        >
+          <ChevronRight size={20} />
+        </button>
+
+        <div className="flex flex-1 flex-col gap-4">
+          {STAGES.map((s) => {
+            const isActive = activeStage === s.id;
+            const isDone = activeStage > s.id;
+            const Icon = s.icon;
+            return (
+              <button
+                key={s.id}
+                onClick={() => {
+                    setActiveStage(s.id);
+                    onToggleCollapse(false);
+                }}
+                title={s.label}
+                className={`group relative flex h-12 w-12 items-center justify-center rounded-2xl transition-all ${
+                  isActive
+                    ? "bg-white shadow-md dark:bg-white/10"
+                    : "hover:bg-slate-100 dark:hover:bg-white/5"
+                }`}
+              >
+                <div
+                  className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all ${
+                    isActive
+                      ? "bg-blue-600 text-white scale-110 shadow-lg shadow-blue-600/30"
+                      : isDone
+                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+                        : "bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600"
+                  }`}
+                >
+                  {isDone ? (
+                    <CheckCircle2 size={18} strokeWidth={3} />
+                  ) : (
+                    <Icon size={18} strokeWidth={2.5} />
+                  )}
+                </div>
+                
+                {/* Tooltip on hover */}
+                <div className="absolute left-14 hidden group-hover:block z-50 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl">
+                  {s.label}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </motion.aside>
+    );
+  }
+
   return (
     <motion.aside
       initial={{ x: -320, opacity: 0 }}
@@ -174,6 +236,14 @@ export function SidebarWorkspace({
             {t.workflowTitle}
           </h2>
         </div>
+        
+        <button
+          onClick={() => onToggleCollapse(true)}
+          className="flex h-10 w-10 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+          title="Recolher Painel"
+        >
+          <ChevronLeft size={20} />
+        </button>
       </div>
 
       {/* Mini tabs */}
@@ -194,7 +264,7 @@ export function SidebarWorkspace({
               }`}
             >
               <div
-                className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all ${
+                className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all ${
                   isActive
                     ? "bg-blue-600 text-white scale-110 shadow-md shadow-blue-600/20"
                     : isDone
@@ -203,13 +273,13 @@ export function SidebarWorkspace({
                 }`}
               >
                 {isDone ? (
-                  <CheckCircle2 size={16} strokeWidth={3} />
+                  <CheckCircle2 size={20} strokeWidth={3} />
                 ) : (
-                  <Icon size={16} strokeWidth={2.5} />
+                  <Icon size={20} strokeWidth={2.5} />
                 )}
               </div>
               <span
-                className={`text-xs font-black uppercase tracking-widest ${
+                className={`text-[9px] font-black uppercase tracking-widest ${
                   isActive
                     ? "text-blue-600 dark:text-blue-400"
                     : "text-slate-400 dark:text-slate-600"
@@ -306,7 +376,7 @@ export function SidebarWorkspace({
   );
 }
 
-// Helper to use Zap icon without importing it again (was missing in previous turn)
+// Helper to use Zap icon without importing it again
 const ZapIcon = ({ size, className, strokeWidth }: any) => (
   <svg
     width={size}

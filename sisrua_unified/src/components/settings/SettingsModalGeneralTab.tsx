@@ -108,26 +108,42 @@ export function SettingsModalGeneralTab({
         </div>
 
         <div className="flex items-center justify-between glass-panel p-3 rounded-lg">
-          <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200 flex items-center gap-2">
             {settings.theme === "dark" ? (
               <Moon size={16} className="text-purple-500" />
+            ) : settings.theme === "sunlight" ? (
+              <Zap size={16} className="text-yellow-600" />
             ) : (
               <Sun size={16} className="text-yellow-500" />
             )}
             {settings.theme === "dark"
               ? text.themeLabelDark
-              : text.themeLabelLight}
+              : settings.theme === "sunlight"
+                ? text.themeLabelSunlight
+                : text.themeLabelLight}
           </span>
-          <button
-            onClick={toggleTheme}
-            title={text.toggleTheme}
-            aria-label={text.toggleTheme}
-            className={`w-12 h-6 rounded-full relative transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 ${settings.theme === "dark" ? "bg-slate-400" : "bg-yellow-400"}`}
-          >
-            <span
-              className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${settings.theme === "dark" ? "translate-x-6" : ""}`}
-            />
-          </button>
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+            {(["light", "dark", "sunlight"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => onUpdateSettings({ ...settings, theme: t })}
+                title={
+                  t === "light"
+                    ? text.themeLabelLight
+                    : t === "dark"
+                      ? text.themeLabelDark
+                      : text.themeLabelSunlight
+                }
+                className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${
+                  settings.theme === t
+                    ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-300"
+                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                }`}
+              >
+                {t === "sunlight" ? "Field" : t === "dark" ? "Dark" : "Light"}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="glass-panel p-3 rounded-lg space-y-3">

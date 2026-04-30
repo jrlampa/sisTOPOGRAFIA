@@ -109,7 +109,7 @@ export interface LayerConfig {
 }
 
 export type ProjectionType = "local" | "utm";
-export type AppTheme = "light" | "dark";
+export type AppTheme = "light" | "dark" | "sunlight";
 export type MapProvider = "vector" | "satellite";
 export type SimplificationLevel = "off" | "low" | "medium" | "high";
 export type ContourRenderMode = "spline" | "polyline";

@@ -28,8 +28,13 @@ type Params = {
     state: GlobalState | ((prev: GlobalState) => GlobalState),
     addToHistory: boolean,
   ) => void;
-  showToast: (message: string, type: ToastType) => void;
+  showToast: (
+    message: string, 
+    type: ToastType,
+    action?: { label: string; onClick: () => void }
+  ) => void;
   findNearestPole: (location: GeoLocation, maxDistanceMeters?: number) => any;
+  undo: () => void;
 };
 
 export function useBtTransformerOperations({
@@ -37,6 +42,7 @@ export function useBtTransformerOperations({
   setAppState,
   showToast,
   findNearestPole,
+  undo,
 }: Params) {
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
 
@@ -100,6 +106,7 @@ export function useBtTransformerOperations({
     showToast(
       `${nextTransformer.title} inserido em ${nearestPole.title}`,
       "success",
+      { label: "Desfazer", onClick: undo }
     );
   };
 
@@ -116,7 +123,10 @@ export function useBtTransformerOperations({
       }),
       true,
     );
-    showToast(`Transformador ${transformerId} removido`, "info");
+    showToast(`Transformador ${transformerId} removido`, "info", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleBtToggleTransformerOnPole = (poleId: string) => {
@@ -170,7 +180,10 @@ export function useBtTransformerOperations({
       },
       true,
     );
-    showToast(`Transformador adicionado em ${pole.title}`, "success");
+    showToast(`Transformador adicionado em ${pole.title}`, "success", {
+      label: "Desfazer",
+      onClick: undo,
+    });
     return;
   }
 
@@ -192,7 +205,10 @@ export function useBtTransformerOperations({
       },
       true,
     );
-    showToast(`Transformador removido de ${pole.title}`, "success");
+    showToast(`Transformador removido de ${pole.title}`, "success", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleBtDragTransformer = (
@@ -272,6 +288,11 @@ export function useBtTransformerOperations({
       },
       true,
     );
+    
+    showToast(`Transformador ${transformerId} marcado para alteração.`, "info", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   return {

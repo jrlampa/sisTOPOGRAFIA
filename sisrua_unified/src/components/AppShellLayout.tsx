@@ -114,6 +114,7 @@ export function AppShellLayout({
         <SidebarWorkspace
           {...sidebarWorkspaceProps}
           isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={(collapsed) => setIsSidebarCollapsed(collapsed)}
         />
         <MainMapWorkspace
           {...mainMapWorkspaceProps}

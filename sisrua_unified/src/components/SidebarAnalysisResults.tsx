@@ -6,6 +6,7 @@ import type { ToastType } from "./Toast";
 import { lazyWithRetry } from "../utils/lazyWithRetry";
 import type { AppLocale } from "../types";
 import { getSidebarAnalysisText } from "../i18n/sidebarAnalysisText";
+import { DashboardSkeleton, TableSkeleton } from "./Skeleton";
 
 const Dashboard = React.lazy(() => lazyWithRetry(() => import("./Dashboard")));
 const DxfLegend = React.lazy(() => lazyWithRetry(() => import("./DxfLegend")));
@@ -13,11 +14,8 @@ const BatchUpload = React.lazy(() =>
   lazyWithRetry(() => import("./BatchUpload")),
 );
 
-const InlineSuspenseFallback = ({ label }: { label: string }) => (
-  <div className="flex items-center justify-center gap-2 rounded-xl border-2 border-amber-800/25 bg-amber-50 p-4 text-xs font-semibold uppercase tracking-wide text-amber-900 shadow-[4px_4px_0_rgba(124,45,18,0.16)] dark:border-amber-500/45 dark:bg-zinc-900 dark:text-amber-100 dark:shadow-[4px_4px_0_rgba(251,146,60,0.22)]">
-    <Loader2 size={14} className="animate-spin" />
-    {label}
-  </div>
+const InlineSuspenseFallback = ({ type = "dashboard" }: { label?: string; type?: "dashboard" | "table" }) => (
+  type === "dashboard" ? <DashboardSkeleton /> : <TableSkeleton />
 );
 
 interface SidebarAnalysisResultsProps {
@@ -75,14 +73,14 @@ export function SidebarAnalysisResults({
             <div className="mx-1 h-px bg-amber-800/20 dark:bg-amber-500/30" />
 
             <Suspense
-              fallback={<InlineSuspenseFallback label={t.loadingAnalysis} />}
+              fallback={<InlineSuspenseFallback type="dashboard" />}
             >
               <Dashboard stats={stats} analysisText={analysisText} />
             </Suspense>
 
             <Suspense
               fallback={
-                <InlineSuspenseFallback label={t.loadingDxfLegend} />
+                <div className="h-20 w-full animate-pulse bg-slate-100 dark:bg-white/5 rounded-2xl" />
               }
             >
               <DxfLegend />
@@ -90,7 +88,7 @@ export function SidebarAnalysisResults({
 
             <Suspense
               fallback={
-                <InlineSuspenseFallback label={t.loadingBatchUpload} />
+                <TableSkeleton rows={2} />
               }
             >
               <BatchUpload

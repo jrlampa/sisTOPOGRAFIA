@@ -81,6 +81,43 @@ const DARK_TOKENS: ThemeTokenMap = {
   "--app-grid-line": "rgba(78, 199, 240, 0.12)",
 };
 
+const SUNLIGHT_TOKENS: ThemeTokenMap = {
+  "--app-shell-bg": "#ffffff",
+  "--app-shell-fg": "#000000",
+  "--app-header-bg": "#ffffff",
+  "--app-header-border": "#000000",
+  "--app-sidebar-bg": "#ffffff",
+  "--app-sidebar-border": "#000000",
+  "--text-app-title": "#000000",
+  "--text-app-subtle": "#000000",
+  "--glass-bg": "#ffffff",
+  "--glass-border": "#000000",
+  "--glass-border-hover": "#000000",
+  "--glass-shadow": "none",
+  "--glass-hover-bg": "#ffff00",
+  "--glass-hover-shadow": "none",
+  "--glass-blur-strong": "0px",
+  "--glass-blur-medium": "0px",
+  "--glass-blur-soft": "0px",
+  "--enterprise-blue": "#000000",
+  "--enterprise-blue-light": "#000000",
+  "--enterprise-accent": "#ffff00",
+  "--bg-gradient-start": "#ffffff",
+  "--bg-gradient-mid": "#ffffff",
+  "--bg-gradient-end": "#ffffff",
+  "--bg-orb-1": "transparent",
+  "--bg-orb-2": "transparent",
+  "--bg-orb-3": "transparent",
+  "--surface-soft": "#ffffff",
+  "--surface-strong": "#ffffff",
+  "--app-panel-bg": "#ffffff",
+  "--app-panel-muted": "#f0f0f0",
+  "--app-panel-elevated": "#ffffff",
+  "--app-panel-border": "#000000",
+  "--app-panel-shadow": "none",
+  "--app-grid-line": "#000000",
+};
+
 const createThemeTokens = (tokens: ThemeTokenMap): ThemeTokenMap => ({
   ...COMMON_TOKENS,
   ...tokens,
@@ -89,4 +126,5 @@ const createThemeTokens = (tokens: ThemeTokenMap): ThemeTokenMap => ({
 export const THEME_TOKENS: Record<AppTheme, ThemeTokenMap> = {
   light: createThemeTokens(LIGHT_TOKENS),
   dark: createThemeTokens(DARK_TOKENS),
+  sunlight: createThemeTokens(SUNLIGHT_TOKENS),
 };

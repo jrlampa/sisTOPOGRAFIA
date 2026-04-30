@@ -55,8 +55,13 @@ type Params = {
     state: GlobalState | ((prev: GlobalState) => GlobalState),
     addToHistory: boolean,
   ) => void;
-  showToast: (message: string, type: ToastType) => void;
+  showToast: (
+    message: string, 
+    type: ToastType, 
+    action?: { label: string; onClick: () => void }
+  ) => void;
   onSelectedPoleChange?: (poleId: string) => void;
+  undo: () => void;
 };
 
 export function useBtCrudHandlers({
@@ -64,6 +69,7 @@ export function useBtCrudHandlers({
   setAppState,
   showToast,
   onSelectedPoleChange,
+  undo,
 }: Params) {
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
   const settings: AppSettings = appState.settings;
@@ -76,18 +82,21 @@ export function useBtCrudHandlers({
     setAppState, 
     showToast,
     onSelectedPoleChange,
+    undo,
   });
   const edges = useBtEdgeOperations({
     appState,
     setAppState,
     showToast,
     findNearestPole: poles.findNearestPole,
+    undo,
   });
   const transformers = useBtTransformerOperations({
     appState,
     setAppState,
     showToast,
     findNearestPole: poles.findNearestPole,
+    undo,
   });
 
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);

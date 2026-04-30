@@ -55,6 +55,7 @@ type SettingsModalText = {
   canonicalStyleDescription: string;
   themeLabelLight: string;
   themeLabelDark: string;
+  themeLabelSunlight: string;
   toggleTheme: string;
   mapVector: string;
   mapSatellite: string;
@@ -156,6 +157,7 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
       "Mudanças globais de estilo são bloqueadas por padrão. Variações futuras devem existir apenas como opção do usuário neste menu.",
     themeLabelLight: "Tema Claro",
     themeLabelDark: "Tema Escuro",
+    themeLabelSunlight: "Alto Contraste (Campo)",
     toggleTheme: "Alternar tema",
     mapVector: "Mapa Vetorial",
     mapSatellite: "Satélite",
@@ -256,6 +258,7 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
       "Global style changes are blocked by default. Future variations must exist only as a user option in this menu.",
     themeLabelLight: "Light Theme",
     themeLabelDark: "Dark Theme",
+    themeLabelSunlight: "High Contrast (Sunlight)",
     toggleTheme: "Toggle theme",
     mapVector: "Vector Map",
     mapSatellite: "Satellite",
@@ -357,6 +360,7 @@ const TEXTS: Record<AppLocale, SettingsModalText> = {
       "Los cambios globales de estilo están bloqueados por defecto. Las variaciones futuras solo deben existir como opción del usuario en este menú.",
     themeLabelLight: "Tema Claro",
     themeLabelDark: "Tema Oscuro",
+    themeLabelSunlight: "Alto Contraste (Campo)",
     toggleTheme: "Cambiar tema",
     mapVector: "Mapa Vectorial",
     mapSatellite: "Satélite",

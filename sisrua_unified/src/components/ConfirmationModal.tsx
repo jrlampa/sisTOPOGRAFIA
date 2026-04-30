@@ -82,7 +82,8 @@ export function ConfirmationModal({
                             </div>
                             <button
                                 onClick={onCancel}
-                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                className="flex h-11 w-11 items-center justify-center -mr-2 -mt-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                                title={cancelLabel}
                             >
                                 <X size={20} />
                             </button>

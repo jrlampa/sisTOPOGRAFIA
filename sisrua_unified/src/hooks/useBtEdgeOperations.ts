@@ -33,8 +33,13 @@ type Params = {
     state: GlobalState | ((prev: GlobalState) => GlobalState),
     addToHistory: boolean,
   ) => void;
-  showToast: (message: string, type: ToastType) => void;
+  showToast: (
+    message: string, 
+    type: ToastType,
+    action?: { label: string; onClick: () => void }
+  ) => void;
   findNearestPole: (location: GeoLocation, maxDistanceMeters?: number) => any;
+  undo: () => void;
 };
 
 export function useBtEdgeOperations({
@@ -42,6 +47,7 @@ export function useBtEdgeOperations({
   setAppState,
   showToast,
   findNearestPole,
+  undo,
 }: Params) {
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
 
@@ -134,6 +140,7 @@ export function useBtEdgeOperations({
     showToast(
       `Condutor ${edgeId} criado (${lengthMeters}m). Nova origem: ${nearestPole.id}`,
       "success",
+      { label: "Desfazer", onClick: undo }
     );
   };
 
@@ -148,7 +155,10 @@ export function useBtEdgeOperations({
       }),
       true,
     );
-    showToast(`Condutor ${edgeId} removido`, "info");
+    showToast(`Condutor ${edgeId} removido`, "info", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleBtSetEdgeChangeFlag = (
@@ -184,7 +194,10 @@ export function useBtEdgeOperations({
             ? "SUBSTITUIÇÃO"
             : "EXISTENTE";
 
-    showToast(`Trecho ${edgeId} marcado como ${statusLabel}.`, "info");
+    showToast(`Trecho ${edgeId} marcado como ${statusLabel}.`, "info", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleBtToggleEdgeRemoval = (
@@ -258,7 +271,10 @@ export function useBtEdgeOperations({
       },
       true,
     );
-    showToast(`+1 ${selectedConductor} no trecho ${edgeId}.`, "success");
+    showToast(`+1 ${selectedConductor} no trecho ${edgeId}.`, "success", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleBtQuickRemoveEdgeConductor = (
@@ -310,7 +326,10 @@ export function useBtEdgeOperations({
       },
       true,
     );
-    showToast(`-1 ${selectedConductor} no trecho ${edgeId}.`, "success");
+    showToast(`-1 ${selectedConductor} no trecho ${edgeId}.`, "success", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleBtSetEdgeLengthMeters = (
@@ -341,6 +360,7 @@ export function useBtEdgeOperations({
     showToast(
       `Metragem CQT do trecho ${edgeId} atualizada para ${sanitized.toFixed(2)} m.`,
       "success",
+      { label: "Desfazer", onClick: undo }
     );
   };
 

@@ -11,20 +11,27 @@ type Params = {
     state: GlobalState | ((prev: GlobalState) => GlobalState),
     addToHistory: boolean,
   ) => void;
-  showToast: (message: string, type: ToastType) => void;
+  showToast: (
+    message: string, 
+    type: ToastType,
+    action?: { label: string; onClick: () => void }
+  ) => void;
+  undo: () => void;
 };
 
 export function useMtCrudHandlers({
   appState,
   setAppState,
   showToast,
+  undo,
 }: Params) {
-  const poles = useMtPoleOperations({ appState, setAppState, showToast });
+  const poles = useMtPoleOperations({ appState, setAppState, showToast, undo });
   const edges = useMtEdgeOperations({
     appState,
     setAppState,
     showToast,
     findNearestMtPole: poles.findNearestMtPole,
+    undo,
   });
 
   const updateMtTopology = (nextTopology: MtTopology) => {

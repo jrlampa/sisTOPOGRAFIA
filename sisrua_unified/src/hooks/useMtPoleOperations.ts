@@ -12,13 +12,19 @@ type Params = {
     state: GlobalState | ((prev: GlobalState) => GlobalState),
     addToHistory: boolean,
   ) => void;
-  showToast: (message: string, type: ToastType) => void;
+  showToast: (
+    message: string, 
+    type: ToastType,
+    action?: { label: string; onClick: () => void }
+  ) => void;
+  undo: () => void;
 };
 
 export function useMtPoleOperations({
   appState,
   setAppState,
   showToast,
+  undo,
 }: Params) {
   const mtTopology = mergeMtTopologyWithBtPoles(
     appState.btTopology,
@@ -80,6 +86,12 @@ export function useMtPoleOperations({
       },
       true,
     );
+    
+    showToast(`Poste MT inserido`, "success", {
+      label: "Desfazer",
+      onClick: undo,
+    });
+    
     return newId;
   };
 
@@ -128,7 +140,10 @@ export function useMtPoleOperations({
       },
       true,
     );
-    showToast(`Poste ${poleId} removido globalmente (BT/MT)`, "info");
+    showToast(`Poste ${poleId} removido globalmente (BT/MT)`, "info", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleMtRenamePole = (poleId: string, title: string) => {

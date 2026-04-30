@@ -13,8 +13,13 @@ type Params = {
     state: GlobalState | ((prev: GlobalState) => GlobalState),
     addToHistory: boolean,
   ) => void;
-  showToast: (message: string, type: ToastType) => void;
+  showToast: (
+    message: string, 
+    type: ToastType,
+    action?: { label: string; onClick: () => void }
+  ) => void;
   findNearestMtPole: (location: GeoLocation, maxDistanceMeters?: number) => any;
+  undo: () => void;
 };
 
 export function useMtEdgeOperations({
@@ -22,6 +27,7 @@ export function useMtEdgeOperations({
   setAppState,
   showToast,
   findNearestMtPole,
+  undo,
 }: Params) {
   const mtTopology = mergeMtTopologyWithBtPoles(
     appState.btTopology,
@@ -112,6 +118,7 @@ export function useMtEdgeOperations({
     showToast(
       `Vão MT ${edgeId} criado (${lengthMeters}m). Nova origem: ${nearestPole.id}`,
       "success",
+      { label: "Desfazer", onClick: undo }
     );
   };
 
@@ -129,7 +136,10 @@ export function useMtEdgeOperations({
       },
       true,
     );
-    showToast(`Vão MT ${edgeId} removido`, "info");
+    showToast(`Vão MT ${edgeId} removido`, "info", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleMtSetEdgeChangeFlag = (

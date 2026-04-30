@@ -1,4 +1,20 @@
-## Atualização Operacional (2026-04-29E) - Security Audit & DG Modularization
+## Atualização Operacional (2026-04-29F) - UI/UX Roadmap Implementation
+- **Ergonomia e Acessibilidade (Concluída)**:
+  - Touch Targets: Botões críticos expandidos para 44x44px (padrão WCAG).
+  - Sunlight Mode: Implementado tema de Alto Contraste para uso em campo sob sol forte.
+- **Map UX & Context (Concluída)**:
+  - Stateful Cursors: Cursor muda para `crosshair` automaticamente em modos de edição.
+  - Hover Tooltips: Tooltips de postes agora mostram CQT (%) e Demanda (kVA) sem necessidade de clique.
+- **Recuperação de Erros (Concluída)**:
+  - Undo in Toasts: Integração de `useUndoRedo` com o sistema de notificações (Botão "Desfazer" nos toasts).
+  - Validation: Implementada validação `touched` no DgWizardModal para reduzir estresse visual.
+- **Arquitetura de Informação (Concluída)**:
+  - Settings Modal: Refatorado para Sidebar Vertical (mais escalável).
+  - Sidebar Workspace: Novo modo "Mini" (recolhido) que mostra apenas ícones verticais.
+- **Percepção de Performance (Concluída)**:
+  - Rich Skeletons: Novos esqueletos para Dashboards e Tabelas.
+  - Micro-progresso: Botões de longa duração mostram estágios técnicos (ex: "Calculando fluxos...").
+
 - **Hardening de Segurança (Concluída)**:
   - Aplicados middlewares `detectSuspiciousPatterns` e `validatePayloadRate` globalmente em `app.ts`.
   - Implementada propagação de `tenantId` via `getUserRole` no `permissionHandler`.

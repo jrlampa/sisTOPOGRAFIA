@@ -195,29 +195,34 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
               }}
             >
               <Tooltip
-                permanent
                 direction="top"
-                offset={[0, -8]}
-                opacity={0.85}
+                offset={[0, -12]}
+                opacity={0.95}
+                className="custom-map-tooltip"
               >
-                <div className="flex flex-col items-center">
-                  <span className="text-xs font-bold">{pole.title}</span>
-                  {layerConfig?.labels && pole.poleSpec && (
-                    <span className="text-[8px] text-slate-700">
-                      {pole.poleSpec.heightM}m / {pole.poleSpec.nominalEffortDan}
-                      daN
-                    </span>
+                <div className="flex flex-col items-center min-w-[80px] p-1">
+                  <span className="text-xs font-black text-slate-900 border-b border-slate-200 mb-1 w-full text-center pb-0.5">
+                    {pole.title || pole.id.slice(-4)}
+                  </span>
+                  
+                  {poleAccumulated && (
+                    <div className="flex flex-col items-center gap-0.5 w-full">
+                      <div className="flex justify-between w-full gap-2 px-1">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">Dmd:</span>
+                        <span className="text-[9px] font-black text-slate-800">{poleAccumulated.accumulatedDemandKva.toFixed(1)}kVA</span>
+                      </div>
+                      <div className="flex justify-between w-full gap-2 px-1">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">dV:</span>
+                        <span className={`text-[9px] font-black ${cqtClass}`}>
+                          {poleAccumulated.dvAccumPercent?.toFixed(2) ?? "-"}%
+                        </span>
+                      </div>
+                    </div>
                   )}
-                  {layerConfig?.labels && pole.btStructures && (
-                    <span className="text-[8px] text-sky-700">
-                      {[
-                        pole.btStructures.si1,
-                        pole.btStructures.si2,
-                        pole.btStructures.si3,
-                        pole.btStructures.si4,
-                      ]
-                        .filter(Boolean)
-                        .join(", ")}
+
+                  {pole.poleSpec && (
+                    <span className="text-[8px] font-bold text-sky-700 mt-1">
+                      {pole.poleSpec.heightM}m / {pole.poleSpec.nominalEffortDan}daN
                     </span>
                   )}
                 </div>

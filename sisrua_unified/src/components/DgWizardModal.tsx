@@ -69,6 +69,7 @@ export function DgWizardModal({
   const [params, setParams] = useState<Omit<DgWizardParams, "poleOverrides">>(
     DEFAULT_WIZARD_PARAMS,
   );
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [poleOverrides, setPoleOverrides] = useState<Record<string, number>>(
     {},
   );
@@ -126,17 +127,24 @@ export function DgWizardModal({
     setParams((prev) => ({ ...prev, [key]: value }));
   };
 
+  const markTouched = (key: string) => {
+    setTouched((prev) => ({ ...prev, [key]: true }));
+  };
+
   const updatePoleOverride = (poleId: string, value: number) => {
     setPoleOverrides((prev) => ({ ...prev, [poleId]: value }));
   };
 
   const fieldErrors = {
     clientesPorPoste:
-      !Number.isFinite(params.clientesPorPoste) || params.clientesPorPoste <= 0,
+      touched.clientesPorPoste &&
+      (!Number.isFinite(params.clientesPorPoste) || params.clientesPorPoste <= 0),
     demandaMediaClienteKva:
-      !Number.isFinite(params.demandaMediaClienteKva) ||
-      params.demandaMediaClienteKva <= 0,
-    faixaKvaTrafoPermitida: params.faixaKvaTrafoPermitida.length === 0,
+      touched.demandaMediaClienteKva &&
+      (!Number.isFinite(params.demandaMediaClienteKva) ||
+        params.demandaMediaClienteKva <= 0),
+    faixaKvaTrafoPermitida:
+      touched.faixaKvaTrafoPermitida && params.faixaKvaTrafoPermitida.length === 0,
   };
 
   const validationError = (() => {
@@ -149,12 +157,27 @@ export function DgWizardModal({
     if (fieldErrors.faixaKvaTrafoPermitida) {
       return t("dgWizard.validation.minTrafos");
     }
-    return null;
+
+    const isInvalid =
+      !Number.isFinite(params.clientesPorPoste) ||
+      params.clientesPorPoste <= 0 ||
+      !Number.isFinite(params.demandaMediaClienteKva) ||
+      params.demandaMediaClienteKva <= 0 ||
+      params.faixaKvaTrafoPermitida.length === 0;
+
+    return isInvalid ? "INVALID" : null;
   })();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validationError) return;
+    if (validationError === "INVALID") {
+      setTouched({
+        clientesPorPoste: true,
+        demandaMediaClienteKva: true,
+        faixaKvaTrafoPermitida: true,
+      });
+      return;
+    }
 
     if (step === "REVISAO") {
       isExecutedRef.current = true;
@@ -194,9 +217,9 @@ export function DgWizardModal({
             onClick={handleClose}
             aria-label={t("common.close")}
             title={t("common.close")}
-            className="rounded-full bg-white/10 p-1 hover:bg-white/20 transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
@@ -278,6 +301,7 @@ export function DgWizardModal({
                             Number(e.target.value),
                           )
                         }
+                        onBlur={() => markTouched("clientesPorPoste")}
                         className={`w-full rounded-xl border bg-zinc-50 pl-4 pr-12 py-3 text-sm font-bold focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none dark:bg-zinc-800 dark:text-white transition-all ${
                           fieldErrors.clientesPorPoste
                             ? "border-rose-500 dark:border-rose-500/50"
@@ -372,6 +396,7 @@ export function DgWizardModal({
                             Number(e.target.value),
                           )
                         }
+                        onBlur={() => markTouched("demandaMediaClienteKva")}
                         className={`w-full rounded-xl border bg-zinc-50 pl-4 pr-12 py-3 text-sm font-bold focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none dark:bg-zinc-800 dark:text-white transition-all ${
                           fieldErrors.demandaMediaClienteKva
                             ? "border-rose-500 dark:border-rose-500/50"
@@ -515,6 +540,7 @@ export function DgWizardModal({
                               ? current.filter((k) => k !== kva)
                               : [...current, kva].sort((a, b) => a - b);
                             updateParam("faixaKvaTrafoPermitida", next);
+                            markTouched("faixaKvaTrafoPermitida");
                           }}
                           className={`px-4 py-2 rounded-xl text-xs font-black transition-all border-2 ${
                             isSelected
@@ -614,7 +640,7 @@ export function DgWizardModal({
               </div>
             )}
 
-            {validationError && (
+            {validationError && validationError !== "INVALID" && (
               <div
                 role="alert"
                 className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 dark:border-rose-700/40 dark:bg-rose-950/30 dark:text-rose-300 animate-pulse"
@@ -642,7 +668,7 @@ export function DgWizardModal({
             </button>
             <button
               type="submit"
-              disabled={validationError !== null}
+              disabled={validationError === "INVALID"}
               className="group flex items-center gap-2 rounded-2xl bg-violet-600 px-8 py-4 text-sm font-black uppercase tracking-[0.2em] text-white shadow-xl shadow-violet-500/20 hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40 transition-all hover:-translate-y-0.5 active:translate-y-0"
             >
               {step === "REVISAO" ? (
