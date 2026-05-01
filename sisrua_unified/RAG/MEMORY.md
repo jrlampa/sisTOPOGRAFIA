@@ -1,4 +1,33 @@
-## Atualização Operacional (2026-04-29F) - UI/UX Roadmap Implementation
+## Atualização Operacional (2026-05-01A) - Premium Visual Evolution & UX Hardening
+- **Evolução Visual "Premium" (Concluída)**:
+  - **Glassmorphism Premium**: Implementado novo sistema de tokens em `src/theme/tokens.ts` e classes utilitárias em `src/index.css` (`.glass-premium`, `.glass-shine`, `.glass-edge-light`).
+  - **High-Fidelity 2.5D Viewport**: O `MapSelector.tsx` agora conta com efeitos de auto-dimming em modo edição, glow ativo e sombras dinâmicas para postes, melhorando a percepção de profundidade.
+  - **Premium Header & Sidebar**: `AppHeader` e `SidebarWorkspace` atualizados com camadas de vidro refinadas e micro-interações de brilho (shine).
+  - **Atmosphere Enhancement**: O `AppShellLayout` foi reforçado com orbes de fundo mais sofisticados e animações de pulso para profundidade visual.
+- **Correções e Estabilização Frontend**:
+  - Corrigido erro de shorthand properties em `App.tsx` (missing destructuring de crud handlers).
+  - Resolvido erro de redeclaração de `ZapIcon` em `SidebarWorkspace.tsx`.
+  - Corrigido atributo `className` duplicado em `SettingsModal.tsx`.
+  - Adicionado import ausente de `ShieldCheck` em `FloatingLayerPanel.tsx`.
+  - Ajustado contrato de props em `AppShellLayout` para omitir `onToggleCollapse` (gerenciado internamente), resolvendo inconsistência de tipos com `App.tsx`.
+- **Status de Qualidade**: Typecheck frontend aprovado 100%.
+
+## Atualização Operacional (2026-04-30A) - Docker Hardening & Infrastructure
+- **Segurança e Infraestrutura (Concluída)**:
+  - **Secrets Management**: Implementado sistema de segredos via arquivos em `./secrets/` (ignorados pelo Git) e montados como volumes, eliminando variáveis em texto puro.
+  - **Hardening Docker**:
+    - Migração para Alpine Linux (`node:20-alpine`) com multi-stage build, reduzindo tamanho da imagem de ~1.2GB para ~400MB.
+    - Implementação de `gosu` e usuário não-root (`appuser` UID 10001) em todas as camadas.
+    - Resource limits configurados no `docker-compose.prod.yml`.
+    - Redis com autenticação obrigatória e Ollama com bind restrito.
+  - **Otimização de HMR/Polling**:
+    - Corrigido duplo polling (Chokidar + Watchpack) no ambiente de desenvolvimento.
+    - Configurado HMR via WebSocket explícito no `vite.config.ts` para estabilidade em containers.
+  - **Correções de Código**:
+    - Resolvido `SyntaxError` de importações no `dgOptimizer.ts` devido à refatoração dos módulos `dgMst`, `dgTelescopic` e `dgPartitioner`.
+  - **Saúde do Ambiente**: Todos os containers (`sisrua-app`, `sisrua-redis`, `sisrua-ollama`) operando em estado `healthy`.
+
+## Próximos Passos (Pipeline)
 - **Ergonomia e Acessibilidade (Concluída)**:
   - Touch Targets: Botões críticos expandidos para 44x44px (padrão WCAG).
   - Sunlight Mode: Implementado tema de Alto Contraste para uso em campo sob sol forte.

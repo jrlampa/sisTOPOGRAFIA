@@ -28,7 +28,10 @@ type Props = {
   onOpenHelp: () => void;
   appStatusStackProps: React.ComponentProps<typeof AppStatusStack>;
   appSettingsOverlayProps: React.ComponentProps<typeof AppSettingsOverlay>;
-  sidebarWorkspaceProps: Omit<React.ComponentProps<typeof SidebarWorkspace>, "isCollapsed">;
+  sidebarWorkspaceProps: Omit<
+    React.ComponentProps<typeof SidebarWorkspace>,
+    "isCollapsed" | "onToggleCollapse"
+  >;
   mainMapWorkspaceProps: React.ComponentProps<typeof MainMapWorkspace>;
   hasAreaSelection: boolean;
   onStartSearch: () => void;
@@ -82,9 +85,10 @@ export function AppShellLayout({
       }`}
     >
       <div className="app-shell-atmosphere" aria-hidden="true">
-        <span className="app-shell-orb app-shell-orb-1" />
-        <span className="app-shell-orb app-shell-orb-2" />
-        <span className="app-shell-orb app-shell-orb-3" />
+        <span className="app-shell-orb app-shell-orb-1 blur-[80px] opacity-40" />
+        <span className="app-shell-orb app-shell-orb-2 blur-[100px] opacity-30" />
+        <span className="app-shell-orb app-shell-orb-3 blur-[60px] opacity-25" />
+        <span className="absolute top-1/4 left-1/3 h-96 w-96 rounded-full bg-cyan-500/10 blur-[120px] animate-pulse" />
       </div>
       <AppStatusStack {...appStatusStackProps} />
       <AppSettingsOverlay {...appSettingsOverlayProps} />
@@ -110,7 +114,7 @@ export function AppShellLayout({
         autoSaveStatus={autoSaveStatus}
         lastAutoSaved={lastAutoSaved}
       />
-      <main className="relative z-10 flex flex-1 flex-col overflow-hidden border-t border-slate-200/80 dark:border-white/10 xl:flex-row">
+      <main className="relative z-10 flex flex-1 flex-col overflow-hidden border-t border-white/10 dark:border-white/5 xl:flex-row">
         <SidebarWorkspace
           {...sidebarWorkspaceProps}
           isCollapsed={isSidebarCollapsed}

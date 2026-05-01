@@ -273,17 +273,63 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   }, [mapStyle]);
 
   const isEditing = btEditorMode !== "none" || mtEditorMode !== "none";
+  const isBtEditing = btEditorMode !== "none";
   const cursorClass = isEditing ? "map-cursor-active" : "";
+  const dimClass = isBtEditing ? "map-bt-editing" : "";
 
   return (
     <div
-      className={`relative z-0 h-full min-h-[400px] w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-100 shadow-2xl ${cursorClass}`}
+      className={`relative z-0 h-full min-h-[400px] w-full overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-100/5 shadow-2xl glass-premium ${cursorClass} ${dimClass}`}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
       <style>{`
         .map-cursor-active .leaflet-container {
           cursor: crosshair !important;
+        }
+        /* Auto-dimming: quando em modo edição BT, camadas base perdem saturação
+           para que a rede BT (postes/vãos) seja o foco visual dominante. */
+        .map-bt-editing .leaflet-tile-pane {
+          filter: saturate(0.25) brightness(1.1) contrast(0.9);
+          transition: filter 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .map-bt-editing .leaflet-overlay-pane svg path:not([data-layer="bt"]) {
+          opacity: 0.2;
+          transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Indicador visual de modo ativo */
+        .map-bt-editing::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 1rem;
+          border: 3px solid rgba(56, 189, 248, 0.4);
+          pointer-events: none;
+          z-index: 500;
+          box-shadow: 
+            inset 0 0 30px rgba(56, 189, 248, 0.1),
+            0 0 15px rgba(56, 189, 248, 0.2);
+          transition: all 0.6s ease;
+          animation: map-active-glow 3s infinite alternate;
+        }
+
+        @keyframes map-active-glow {
+          from { border-color: rgba(56, 189, 248, 0.3); box-shadow: inset 0 0 20px rgba(56, 189, 248, 0.05); }
+          to { border-color: rgba(56, 189, 248, 0.6); box-shadow: inset 0 0 40px rgba(56, 189, 248, 0.2); }
+        }
+
+        .leaflet-container {
+          background: transparent !important;
+          transition: filter 0.5s ease;
+        }
+        
+        /* High-fidelity 2.5D Elevation shadow simulation */
+        .leaflet-marker-pane .bt-pole-icon {
+          filter: drop-shadow(2px 4px 3px rgba(0,0,0,0.3));
+          transition: filter 0.3s ease;
+        }
+        .leaflet-marker-pane .bt-pole-icon:hover {
+          filter: drop-shadow(3px 6px 5px rgba(0,0,0,0.4)) brightness(1.1);
         }
       `}</style>
       <MapContainer

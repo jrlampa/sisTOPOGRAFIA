@@ -2,12 +2,14 @@ import React from "react";
 import {
   FolderOpen,
   HelpCircle,
+  Menu,
   PanelLeftClose,
   PanelLeftOpen,
   Save,
   Settings,
+  X,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import HistoryControls from "./HistoryControls";
 import { AutoSaveIndicator } from "./AutoSaveIndicator";
 import type { HealthStatus } from "../hooks/useBackendHealth";
@@ -32,7 +34,7 @@ interface AppHeaderProps {
   isDark: boolean;
   backendStatus: HealthStatus;
   backendResponseTimeMs: number | null;
-  autoSaveStatus?: 'idle' | 'saving' | 'error';
+  autoSaveStatus?: "idle" | "saving" | "error";
   lastAutoSaved?: string;
 }
 
@@ -53,10 +55,12 @@ export function AppHeader({
   backendResponseTimeMs,
   isSidebarCollapsed,
   onToggleSidebarCollapsed,
-  autoSaveStatus = 'idle',
+  autoSaveStatus = "idle",
   lastAutoSaved,
 }: AppHeaderProps) {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
   const actionButtonClass =
     "flex h-11 w-11 items-center justify-center rounded-2xl border-2 transition-all";
 
@@ -77,22 +81,104 @@ export function AppHeader({
     event,
   ) => {
     const file = event.target.files?.[0];
-    if (file) {
-      onOpenProject(file);
-    }
-
-    // Allow selecting the same file repeatedly.
+    if (file) onOpenProject(file);
     event.currentTarget.value = "";
   };
 
   return (
     <header
-      className={`app-header sticky top-0 z-40 flex h-20 shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl md:px-8 transition-all duration-500 ${
+      className={`app-header relative sticky top-0 z-40 flex h-20 shrink-0 items-center justify-between border-b px-4 backdrop-blur-2xl md:px-8 transition-all duration-500 glass-premium ${
         isDark
-          ? "border-white/10 bg-slate-950/80 shadow-[0_4px_30px_rgba(0,0,0,0.3)]"
-          : "border-sky-200/50 bg-white/75 shadow-[0_10px_40px_rgba(148,163,184,0.12)]"
+          ? "border-white/10 bg-slate-950/60 shadow-[0_4px_30px_rgba(0,0,0,0.3)]"
+          : "border-sky-200/40 bg-white/70 shadow-[0_10px_40px_rgba(148,163,184,0.12)]"
       }`}
     >
+      {/* ─── Mobile dropdown menu ─────────────────────────────────── */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            key="mobile-menu"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
+            className={`absolute top-full left-0 right-0 z-50 flex items-center justify-between gap-3 border-b p-4 md:hidden ${
+              isDark
+                ? "border-white/10 bg-slate-950/95 backdrop-blur-xl"
+                : "border-sky-200/50 bg-white/95 backdrop-blur-xl shadow-lg"
+            }`}
+          >
+            <HistoryControls
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={onUndo}
+              onRedo={onRedo}
+              past={past}
+              future={future}
+            />
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={onSaveProject}
+                  className={`${actionButtonClass} !h-10 !w-10 border-none shadow-sm ${
+                    isDark
+                      ? "bg-amber-500/10 text-amber-400"
+                      : "bg-amber-50 text-amber-600"
+                  }`}
+                  title={t.saveProject}
+                >
+                  <Save size={18} strokeWidth={2.5} />
+                </motion.button>
+                <div className="absolute -top-1.5 -right-2">
+                  <AutoSaveIndicator
+                    status={autoSaveStatus}
+                    lastSaved={lastAutoSaved}
+                  />
+                </div>
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleOpenProjectClick}
+                className={`${actionButtonClass} !h-10 !w-10 border-none shadow-sm ${
+                  isDark
+                    ? "bg-amber-500/10 text-amber-400"
+                    : "bg-amber-50 text-amber-600"
+                }`}
+                title={t.openProject}
+              >
+                <FolderOpen size={18} strokeWidth={2.5} />
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={onOpenHelp}
+                className={`${actionButtonClass} !h-10 !w-10 shadow-sm ${
+                  isDark
+                    ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-200"
+                    : "border-cyan-200 bg-cyan-50 text-cyan-700"
+                }`}
+                title={t.openHelp}
+              >
+                <HelpCircle size={18} strokeWidth={2} />
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={onOpenSettings}
+                className={`${actionButtonClass} !h-10 !w-10 shadow-sm ${
+                  isDark
+                    ? "border-white/10 bg-slate-900 text-slate-300"
+                    : "border-slate-200 bg-white text-slate-600"
+                }`}
+                title={t.openSettings}
+              >
+                <Settings size={18} strokeWidth={2} />
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Left section: Logo + branding ───────────────────────── */}
       <div className="flex items-center gap-4 md:gap-6">
         <motion.div
           whileHover={{ scale: 1.05, rotate: -2 }}
@@ -144,7 +230,7 @@ export function AppHeader({
                 alt="IM3"
                 className="h-3 w-auto opacity-80 grayscale transition-all hover:grayscale-0 hover:opacity-100"
               />
-              <span className="text-[8px] font-black text-slate-400">×</span>
+              <span className="text-[8px] font-black text-slate-400">x</span>
               <img
                 src="/branding/logo_light_sa.gif"
                 alt="Light S.A."
@@ -152,7 +238,9 @@ export function AppHeader({
               />
             </div>
 
+            {/* Backend status badge */}
             <motion.div
+              aria-live="polite"
               initial={false}
               animate={{
                 scale: backendStatus === "offline" ? [1, 1.02, 1] : 1,
@@ -204,8 +292,24 @@ export function AppHeader({
         </div>
       </div>
 
-      <div className="flex items-center gap-4 lg:gap-8">
-        <div className="flex items-center gap-3">
+      {/* ─── Right section: actions ───────────────────────────────── */}
+      <div className="flex items-center gap-3 lg:gap-6">
+        {/* Mobile hamburger — only visible on small screens */}
+        <button
+          className={`flex h-10 w-10 items-center justify-center rounded-xl border-2 transition-colors md:hidden ${
+            isDark
+              ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
+              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+          }`}
+          onClick={() => setIsMobileMenuOpen((v) => !v)}
+          aria-label={isMobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+          aria-expanded={isMobileMenuOpen}
+        >
+          {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+        </button>
+
+        {/* Desktop: sidebar toggle + history */}
+        <div className="hidden md:flex items-center gap-3">
           <motion.button
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
@@ -244,7 +348,8 @@ export function AppHeader({
           </div>
         )}
 
-        <div className="flex items-center gap-3">
+        {/* Desktop: save/open/help/settings — hidden on mobile */}
+        <div className="hidden md:flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-2xl bg-slate-100/50 p-1 dark:bg-slate-800/50">
             <div className="relative group">
               <motion.button
@@ -260,9 +365,11 @@ export function AppHeader({
               >
                 <Save size={18} strokeWidth={2.5} />
               </motion.button>
-              
               <div className="absolute -top-1.5 -right-2 transition-all">
-                <AutoSaveIndicator status={autoSaveStatus} lastSaved={lastAutoSaved} />
+                <AutoSaveIndicator
+                  status={autoSaveStatus}
+                  lastSaved={lastAutoSaved}
+                />
               </div>
             </div>
 

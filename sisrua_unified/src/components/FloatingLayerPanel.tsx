@@ -3,12 +3,16 @@ import {
   Layers,
   Building2,
   Car,
+  Map,
+  Ruler,
   TreeDeciduous,
   Mountain,
   LampFloor,
   Type,
   Search,
   X,
+  Zap,
+  ShieldCheck,
 } from "lucide-react";
 import { AppSettings, LayerConfig } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,6 +26,15 @@ interface FloatingLayerPanelProps {
   onUpdateSettings: (s: AppSettings) => void;
   isDark: boolean;
 }
+
+type LayerKey = keyof LayerConfig;
+
+type LayerPreset = {
+  id: string;
+  label: string;
+  description: string;
+  enabledKeys: LayerKey[];
+};
 
 const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
   settings,
@@ -55,6 +68,56 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
     });
   };
 
+  const allLayerKeys = Object.keys(settings.layers) as LayerKey[];
+  const activeLayerCount = allLayerKeys.filter(
+    (key) => settings.layers[key],
+  ).length;
+
+  const applyPreset = (enabledKeys: LayerKey[]) => {
+    const enabledSet = new Set(enabledKeys);
+    onUpdateSettings({
+      ...settings,
+      layers: allLayerKeys.reduce(
+        (acc, key) => ({ ...acc, [key]: enabledSet.has(key) }),
+        {} as LayerConfig,
+      ),
+    });
+  };
+
+  const quickPresets: LayerPreset[] = [
+    {
+      id: "clean",
+      label: "Mapa limpo",
+      description: "Só a rede elétrica principal",
+      enabledKeys: ["btNetwork", "mtNetwork"],
+    },
+    {
+      id: "electric",
+      label: "Rede elétrica",
+      description: "BT, MT e rótulos técnicos",
+      enabledKeys: ["btNetwork", "mtNetwork", "labels", "dimensions"],
+    },
+    {
+      id: "topography",
+      label: "Topografia base",
+      description: "Terreno, vias e contexto urbano",
+      enabledKeys: [
+        "buildings",
+        "roads",
+        "curbs",
+        "nature",
+        "terrain",
+        "contours",
+      ],
+    },
+    {
+      id: "bim",
+      label: "Metadados BIM",
+      description: "Rótulos, cotas e mobiliário",
+      enabledKeys: ["labels", "dimensions", "furniture", "grid"],
+    },
+  ];
+
   const layers = [
     {
       key: "buildings",
@@ -69,6 +132,12 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
       colorClass: "text-rose-500",
     },
     {
+      key: "curbs",
+      label: "Meio-fio",
+      icon: Map,
+      colorClass: "text-orange-500",
+    },
+    {
       key: "nature",
       label: "Vegetação",
       icon: TreeDeciduous,
@@ -81,12 +150,53 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
       colorClass: "text-violet-500",
     },
     {
+      key: "contours",
+      label: "Curvas de nível",
+      icon: Map,
+      colorClass: "text-fuchsia-500",
+    },
+    {
       key: "furniture",
       label: "Mobiliário",
       icon: LampFloor,
       colorClass: "text-amber-500",
     },
-    { key: "labels", label: "Rótulos", icon: Type, colorClass: "text-sky-500" },
+    {
+      key: "labels",
+      label: "Rótulos",
+      icon: Type,
+      colorClass: "text-sky-500",
+    },
+    {
+      key: "dimensions",
+      label: "Cotas",
+      icon: Ruler,
+      colorClass: "text-cyan-500",
+    },
+    {
+      key: "grid",
+      label: "Grade",
+      icon: Map,
+      colorClass: "text-slate-500",
+    },
+    {
+      key: "btNetwork",
+      label: "Rede BT",
+      icon: Zap,
+      colorClass: "text-blue-600",
+    },
+    {
+      key: "mtNetwork",
+      label: "Rede MT",
+      icon: Zap,
+      colorClass: "text-amber-600",
+    },
+    {
+      key: "electricalAudit",
+      label: "Auditoria Elétrica",
+      icon: ShieldCheck,
+      colorClass: "text-emerald-600",
+    },
   ];
 
   const filteredLayers = layers.filter((layer) =>
@@ -164,6 +274,21 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
             exit={{ opacity: 0, scale: 0.9 }}
             className="glass-card origin-top-right flex w-52 flex-col gap-1 border-2 p-2"
           >
+            <div className="mb-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 dark:bg-white/5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  HUD de camadas
+                </span>
+                <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-cyan-700 dark:text-cyan-200">
+                  {activeLayerCount} ativas
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] leading-snug text-slate-600 dark:text-slate-300">
+                Alterne rapidamente entre leitura elétrica, base topográfica e
+                metadados.
+              </p>
+            </div>
+
             {/* Search Bar */}
             <div className="relative mb-2">
               <Search
@@ -187,6 +312,33 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
                   <X size={10} />
                 </button>
               )}
+            </div>
+
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {quickPresets.map((preset) => {
+                const isActive =
+                  preset.enabledKeys.every((key) => settings.layers[key]) &&
+                  allLayerKeys.every(
+                    (key) =>
+                      preset.enabledKeys.includes(key) || !settings.layers[key],
+                  );
+
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => applyPreset(preset.enabledKeys)}
+                    title={preset.description}
+                    className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wide transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 ${
+                      isActive
+                        ? "border-cyan-500/40 bg-cyan-500 text-white shadow-sm"
+                        : "border-white/20 bg-white/30 text-slate-700 hover:bg-white/50 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="flex flex-col gap-0.5 max-h-60 overflow-y-auto pr-1 custom-scrollbar">

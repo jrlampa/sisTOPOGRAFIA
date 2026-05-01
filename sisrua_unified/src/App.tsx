@@ -29,6 +29,7 @@ import type { DgScenario } from "./hooks/useDgOptimization";
 import type { DgWizardParams } from "./components/DgWizardModal";
 import { EMPTY_BT_TOPOLOGY } from "./utils/btNormalization";
 import { AppShellLayout } from "./components/AppShellLayout";
+import { GuidedTaskChecklist } from "./components/GuidedTaskChecklist";
 import { INITIAL_APP_STATE } from "./app/initialState";
 import { persistAppSettings } from "./utils/preferencesPersistence";
 import { mergeMtTopologyWithBtPoles } from "./utils/mtTopologyBridge";
@@ -68,6 +69,11 @@ const HelpModal = React.lazy(() =>
 const CommandPalette = React.lazy(() =>
   import("./components/CommandPalette").then((m) => ({
     default: m.CommandPalette,
+  })),
+);
+const ElectricalAuditDrawer = React.lazy(() =>
+  import("./components/ElectricalAuditDrawer").then((m) => ({
+    default: m.ElectricalAuditDrawer,
   })),
 );
 
@@ -229,6 +235,7 @@ function App() {
     toast,
     closeToast,
     showToast,
+    toasts,
     showSettings,
     openSettings,
     closeSettings,
@@ -399,6 +406,8 @@ function App() {
     handleBtQuickRemoveEdgeConductor,
     handleBtSetEdgeLengthMeters,
     handleConfirmNormalRamalModal,
+    handleClandestinoToNormalClassifyLater,
+    handleClandestinoToNormalConvertNow,
     handleResetBtTopology,
     resetConfirmOpen,
     setResetConfirmOpen,
@@ -862,6 +871,8 @@ function App() {
     handleSelectionModeChange,
     handleFetchAndAnalyze,
     showDxfProgress,
+    dxfProgressValue,
+    dxfProgressStatus,
     dxfProgressLabel,
   } = useAppAnalysisWorkflow({
     appState,
@@ -1240,6 +1251,57 @@ function App() {
     },
   ];
 
+  // open audit drawer if electricalAudit layer is enabled and an element is selected
+  const [isAuditOpen, setIsAuditOpen] = React.useState(false);
+
+  const selectedAuditElement = React.useMemo(() => {
+    if (selectedPoleId) {
+      const pole = btTopology.poles.find((p) => p.id === selectedPoleId);
+      return { type: "pole" as const, id: selectedPoleId, data: pole };
+    }
+    if (selectedTransformerId) {
+      const transformer = btTopology.transformers.find(
+        (t) => t.id === selectedTransformerId,
+      );
+      return {
+        type: "transformer" as const,
+        id: selectedTransformerId,
+        data: transformer,
+      };
+    }
+    if (selectedEdgeId) {
+      const edge = btTopology.edges.find((e) => e.id === selectedEdgeId);
+      return { type: "edge" as const, id: selectedEdgeId, data: edge };
+    }
+    return null;
+  }, [
+    selectedPoleId,
+    selectedTransformerId,
+    selectedEdgeId,
+    btTopology.poles,
+    btTopology.transformers,
+    btTopology.edges,
+  ]);
+
+  React.useEffect(() => {
+    if (settings.layers.electricalAudit && selectedAuditElement) {
+      setIsAuditOpen(true);
+    } else {
+      setIsAuditOpen(false);
+    }
+  }, [settings.layers.electricalAudit, selectedAuditElement]);
+
+  const handleAuditAction = React.useCallback(
+    (action: "approve" | "reject", notes: string) => {
+      showToast(
+        `Auditoria ${action === "approve" ? "aprovada" : "rejeitada"}: ${notes}`,
+        action === "approve" ? "success" : "info",
+      );
+      setIsAuditOpen(false);
+    },
+    [showToast],
+  );
+
   return (
     <>
       <AppShellLayout
@@ -1257,7 +1319,7 @@ function App() {
         onOpenSettings={openSettings}
         onOpenHelp={() => setIsHelpOpen(true)}
         appStatusStackProps={{
-          toast,
+          toasts,
           closeToast,
           sessionDraft,
           handleRestoreSession,
@@ -1267,6 +1329,8 @@ function App() {
           progressValue,
           statusMessage,
           showDxfProgress,
+          dxfProgressValue,
+          dxfProgressStatus,
           dxfProgressLabel,
           btExportSummaryProps: {
             latestBtExport,
@@ -1362,6 +1426,14 @@ function App() {
       />
 
       <React.Suspense fallback={null}>
+        <ElectricalAuditDrawer
+          locale={settings.locale}
+          isOpen={isAuditOpen}
+          onClose={() => setIsAuditOpen(false)}
+          selectedElement={selectedAuditElement}
+          onAuditAction={handleAuditAction}
+        />
+
         <BtTelescopicSuggestionModal
           output={btTelescopicSuggestions}
           onApply={handleApplyTelescopicSuggestions}
@@ -1380,6 +1452,20 @@ function App() {
           actions={commandPaletteActions}
         />
       </React.Suspense>
+
+      {/* Guided onboarding checklist — shown only on first meaningful session */}
+      <GuidedTaskChecklist
+        tasks={[
+          { id: "area", label: "Selecionar área no mapa", done: !!osmData },
+          { id: "bt", label: "Lançar rede BT (postes)", done: hasBtPoles },
+          {
+            id: "terrain",
+            label: "Carregar terreno 2.5D",
+            done: !!terrainData,
+          },
+          { id: "export", label: "Exportar DXF", done: false },
+        ]}
+      />
     </>
   );
 }

@@ -180,7 +180,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-black transition-all ${
+                  className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 ${
                     isActive
                       ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
                       : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5"
@@ -196,7 +196,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="p-4">
             <button
               onClick={onClose}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 py-3 text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5 transition-all"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 py-3 text-xs font-black uppercase tracking-widest text-slate-500 transition-all hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5"
             >
               {text.closePanel}
             </button>
@@ -223,8 +223,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     onLoadProject={onLoadProject}
                     setBtProjectType={setBtProjectType}
                     setBtEditorMode={setBtEditorMode}
-                    setBtTransformerCalculationMode={setBtTransformerCalculationMode}
-                    setBtQtPontoCalculationMethod={setBtQtPontoCalculationMethod}
+                    setBtTransformerCalculationMode={
+                      setBtTransformerCalculationMode
+                    }
+                    setBtQtPontoCalculationMethod={
+                      setBtQtPontoCalculationMethod
+                    }
                     setBtCqtPowerFactor={setBtCqtPowerFactor}
                     setClandestinoAreaM2={setClandestinoAreaM2}
                     updateMetadata={updateMetadata}

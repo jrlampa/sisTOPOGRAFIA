@@ -15,10 +15,26 @@ import { trackWorkflowStage } from "../utils/analytics";
 
 // ─── Lazy imports (Audit P1: Internal Routing Optimization) ──────────────
 
-const SidebarAnalysisResults = lazy(() => import("./SidebarAnalysisResults").then(m => ({ default: m.SidebarAnalysisResults })));
-const SidebarBtEditorSection = lazy(() => import("./SidebarBtEditorSection").then(m => ({ default: m.SidebarBtEditorSection })));
-const SidebarMtEditorSection = lazy(() => import("./SidebarMtEditorSection").then(m => ({ default: m.SidebarMtEditorSection })));
-const SidebarSelectionControls = lazy(() => import("./SidebarSelectionControls").then(m => ({ default: m.SidebarSelectionControls })));
+const SidebarAnalysisResults = lazy(() =>
+  import("./SidebarAnalysisResults").then((m) => ({
+    default: m.SidebarAnalysisResults,
+  })),
+);
+const SidebarBtEditorSection = lazy(() =>
+  import("./SidebarBtEditorSection").then((m) => ({
+    default: m.SidebarBtEditorSection,
+  })),
+);
+const SidebarMtEditorSection = lazy(() =>
+  import("./SidebarMtEditorSection").then((m) => ({
+    default: m.SidebarMtEditorSection,
+  })),
+);
+const SidebarSelectionControls = lazy(() =>
+  import("./SidebarSelectionControls").then((m) => ({
+    default: m.SidebarSelectionControls,
+  })),
+);
 
 type SidebarWorkspaceProps = {
   locale: AppLocale;
@@ -146,11 +162,11 @@ export function SidebarWorkspace({
       <motion.aside
         initial={{ width: 0, opacity: 0 }}
         animate={{ width: 72, opacity: 1 }}
-        className="relative z-20 flex h-full flex-col items-center border-r bg-slate-50/80 p-2 backdrop-blur-xl dark:border-white/5 dark:bg-slate-900/80 shadow-2xl"
+        className="relative z-20 flex h-full flex-col items-center border-r bg-slate-50/40 p-2 backdrop-blur-2xl glass-premium dark:border-white/5 dark:bg-slate-900/40 shadow-2xl"
       >
         <button
           onClick={() => onToggleCollapse(false)}
-          className="mb-6 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/20 hover:scale-105 transition-transform"
+          className="mb-6 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/20 hover:scale-110 transition-transform glass-shine"
           title="Expandir Painel"
         >
           <ChevronRight size={20} />
@@ -165,13 +181,13 @@ export function SidebarWorkspace({
               <button
                 key={s.id}
                 onClick={() => {
-                    setActiveStage(s.id);
-                    onToggleCollapse(false);
+                  setActiveStage(s.id);
+                  onToggleCollapse(false);
                 }}
                 title={s.label}
                 className={`group relative flex h-12 w-12 items-center justify-center rounded-2xl transition-all ${
                   isActive
-                    ? "bg-white shadow-md dark:bg-white/10"
+                    ? "bg-white/80 shadow-md dark:bg-white/10 glass-shine"
                     : "hover:bg-slate-100 dark:hover:bg-white/5"
                 }`}
               >
@@ -190,9 +206,9 @@ export function SidebarWorkspace({
                     <Icon size={18} strokeWidth={2.5} />
                   )}
                 </div>
-                
+
                 {/* Tooltip on hover */}
-                <div className="absolute left-14 hidden group-hover:block z-50 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl">
+                <div className="absolute left-14 hidden group-hover:block z-50 whitespace-nowrap rounded-lg bg-slate-900/90 backdrop-blur-md px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl border border-white/10">
                   {s.label}
                 </div>
               </button>
@@ -207,7 +223,7 @@ export function SidebarWorkspace({
     <motion.aside
       initial={{ x: -320, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className={`sidebar-workspace relative flex h-full w-full flex-col border-r bg-slate-50/50 p-4 backdrop-blur-xl transition-all dark:border-white/5 dark:bg-slate-900/50 xl:w-[380px] ${
+      className={`sidebar-workspace relative flex h-full w-full flex-col border-r bg-slate-50/30 p-4 backdrop-blur-2xl glass-premium transition-all dark:border-white/5 dark:bg-slate-900/30 xl:w-[380px] ${
         isSidebarDockedForRamalModal
           ? "opacity-50 pointer-events-none grayscale-[0.5]"
           : ""
@@ -236,7 +252,7 @@ export function SidebarWorkspace({
             {t.workflowTitle}
           </h2>
         </div>
-        
+
         <button
           onClick={() => onToggleCollapse(true)}
           className="flex h-10 w-10 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
@@ -259,7 +275,7 @@ export function SidebarWorkspace({
               title={s.helper}
               className={`group relative flex flex-col items-center gap-2 rounded-xl py-3 transition-all ${
                 isActive
-                  ? "bg-white shadow-lg shadow-slate-200/50 dark:bg-white/10 dark:shadow-none"
+                  ? "bg-white/70 shadow-lg shadow-slate-200/50 dark:bg-white/10 dark:shadow-none glass-shine"
                   : "hover:bg-slate-100 dark:hover:bg-white/5"
               }`}
             >
@@ -304,7 +320,7 @@ export function SidebarWorkspace({
           className="animate-in fade-in slide-in-from-bottom-2 duration-300"
         >
           <div className="mb-4 flex items-center gap-3 px-2">
-            <div className="h-8 w-1 rounded-full bg-blue-600" />
+            <div className="h-8 w-1 rounded-full bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.6)]" />
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-slate-400">
                 {currentStage?.label}
@@ -329,13 +345,13 @@ export function SidebarWorkspace({
       </div>
 
       {/* Workflow CTA */}
-      <div className="glass-card mt-2 p-5 backdrop-blur-md border-blue-500/20 shadow-xl shadow-blue-500/5">
+      <div className="glass-card mt-2 p-5 backdrop-blur-md border-blue-500/20 shadow-xl shadow-blue-500/5 glass-premium">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-xs font-black uppercase tracking-[0.25em] text-blue-500 dark:text-blue-400">
             {t.nextActionTag}
           </p>
           <span
-            className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-black text-slate-400 dark:bg-white/5 dark:text-slate-600 select-none"
+            className="rounded-lg bg-slate-100/50 px-2 py-0.5 text-xs font-black text-slate-400 dark:bg-white/5 dark:text-slate-600 select-none"
             title={t.pageNavigationHint}
             aria-label={t.pageNavigationHint}
             role="note"
@@ -356,7 +372,7 @@ export function SidebarWorkspace({
               setActiveStage(nextStage.id);
             }
           }}
-          className="relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 px-4 py-4 text-sm font-black uppercase tracking-[0.2em] text-white shadow-[0_20px_40px_-10px_rgba(37,99,235,0.4)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none min-h-[56px]"
+          className="relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 px-4 py-4 text-sm font-black uppercase tracking-[0.2em] text-white shadow-[0_20px_40px_-10px_rgba(37,99,235,0.4)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none min-h-[56px] glass-shine"
         >
           <span className="relative z-10">
             {nextStage ? t.advanceStep : t.flowCompleted}
@@ -371,6 +387,26 @@ export function SidebarWorkspace({
             }
           `}</style>
         </motion.button>
+
+        {/* Blocker hint — explains why the next stage button is disabled */}
+        <AnimatePresence>
+          {nextStageDisabled && nextStage && (
+            <motion.p
+              key={`blocker-${activeStage}`}
+              initial={{ opacity: 0, height: 0, marginTop: 0 }}
+              animate={{ opacity: 1, height: "auto", marginTop: 8 }}
+              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+              className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 text-center leading-snug px-1"
+              aria-live="polite"
+            >
+              {activeStage === 1 && "⚠ Defina uma área no mapa para avançar"}
+              {activeStage === 2 &&
+                "⚠ Adicione ao menos um poste BT para avançar"}
+              {activeStage === 3 &&
+                "⚠ Adicione ao menos um poste MT para avançar"}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
     </motion.aside>
   );
