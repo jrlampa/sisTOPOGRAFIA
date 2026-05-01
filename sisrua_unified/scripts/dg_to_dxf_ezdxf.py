@@ -46,24 +46,24 @@ def ensure_layer(doc, name: str, color: int) -> None:
 # OSM highway types mapped to DXF layer suffix, color, and half-width (meters)
 # half-width = half the road width drawn as offset from centerline
 HIGHWAY_LAYERS = {
-    "motorway":      ("OSM_VIAS_PRINCIPAIS",  1,  7.5),
-    "trunk":         ("OSM_VIAS_PRINCIPAIS",  1,  7.0),
-    "primary":       ("OSM_VIAS_PRINCIPAIS",  1,  6.0),
-    "secondary":     ("OSM_VIAS_SECUNDARIAS", 253, 5.5),
-    "tertiary":      ("OSM_VIAS_SECUNDARIAS", 253, 5.0),
-    "unclassified":  ("OSM_RUAS",             8,   3.5),
-    "residential":   ("OSM_RUAS",             8,   4.0),
-    "service":       ("OSM_RUAS",             9,   3.0),
-    "living_street": ("OSM_RUAS",             9,   3.0),
-    "pedestrian":    ("OSM_CALCADAS",         9,   0.0),
-    "footway":       ("OSM_CALCADAS",         9,   0.0),
-    "path":          ("OSM_CALCADAS",         9,   0.0),
-    "cycleway":      ("OSM_CALCADAS",         9,   0.0),
+    "motorway":      ("sisRUA_VIAS_PRINCIPAIS",  1,  7.5),
+    "trunk":         ("sisRUA_VIAS_PRINCIPAIS",  1,  7.0),
+    "primary":       ("sisRUA_VIAS_PRINCIPAIS",  1,  6.0),
+    "secondary":     ("sisRUA_VIAS_SECUNDARIAS", 253, 5.5),
+    "tertiary":      ("sisRUA_VIAS_SECUNDARIAS", 253, 5.0),
+    "unclassified":  ("sisRUA_RUAS",             8,   3.5),
+    "residential":   ("sisRUA_RUAS",             8,   4.0),
+    "service":       ("sisRUA_RUAS",             9,   3.0),
+    "living_street": ("sisRUA_RUAS",             9,   3.0),
+    "pedestrian":    ("sisRUA_CALCADAS",         9,   0.0),
+    "footway":       ("sisRUA_CALCADAS",         9,   0.0),
+    "path":          ("sisRUA_CALCADAS",         9,   0.0),
+    "cycleway":      ("sisRUA_CALCADAS",         9,   0.0),
 }
 
-DEFAULT_HIGHWAY_LAYER = ("OSM_RUAS", 8, 3.0)
+DEFAULT_HIGHWAY_LAYER = ("sisRUA_RUAS", 8, 3.0)
 
-OSM_MEIO_FIO_LAYER = "OSM_MEIO_FIO"  # Curb/edge lines, color 253 (light gray)
+OSM_MEIO_FIO_LAYER = "sisRUA_MEIO_FIO"  # Curb/edge lines, color 253 (light gray)
 OSM_MEIO_FIO_COLOR = 253
 
 

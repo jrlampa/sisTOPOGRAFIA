@@ -2,6 +2,26 @@ import { Download, X } from "lucide-react";
 import { usePagination, PaginationControls } from "../hooks/usePagination";
 import type { BtExportSummary, BtExportHistoryEntry } from "../types";
 
+// CQT severity thresholds (PRODIST / ANEEL reference values, %)
+const CQT_WARN_THRESHOLD = 5;
+const CQT_CRITICAL_THRESHOLD = 8;
+
+function cqtSeverityClass(value: number | null | undefined): string {
+  if (value == null) return "text-slate-500";
+  if (value >= CQT_CRITICAL_THRESHOLD)
+    return "font-bold text-red-600 dark:text-red-400";
+  if (value >= CQT_WARN_THRESHOLD)
+    return "font-bold text-amber-600 dark:text-amber-400";
+  return "font-bold text-emerald-600 dark:text-emerald-400";
+}
+
+function cqtSeverityBadge(value: number | null | undefined): string {
+  if (value == null) return "";
+  if (value >= CQT_CRITICAL_THRESHOLD) return "🔴";
+  if (value >= CQT_WARN_THRESHOLD) return "🟡";
+  return "🟢";
+}
+
 interface BtExportSummaryBannerProps {
   latestBtExport: BtExportSummary | BtExportHistoryEntry | null;
   btExportHistory: BtExportHistoryEntry[];
@@ -104,16 +124,56 @@ export function BtExportSummaryBanner({
             </div>
           )}
           {latestBtExport.cqt && (
-            <div className="mt-1 text-slate-700 dark:text-cyan-100/90">
-              CQT {latestBtExport.cqt.scenario?.toUpperCase() ?? "-"}: DMDI{" "}
-              {latestBtExport.cqt.dmdi?.toFixed(3) ?? "-"} | P31{" "}
-              {latestBtExport.cqt.p31?.toFixed(3) ?? "-"} | P32{" "}
-              {latestBtExport.cqt.p32?.toFixed(3) ?? "-"} | K10{" "}
-              {latestBtExport.cqt.k10QtMttr?.toFixed(6) ?? "-"}
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-700 dark:text-cyan-100/90">
+              <span className="font-semibold uppercase tracking-wide">
+                CQT {latestBtExport.cqt.scenario?.toUpperCase() ?? "-"}
+              </span>
+              <span>
+                DMDI{" "}
+                <span className={cqtSeverityClass(latestBtExport.cqt.dmdi)}>
+                  {cqtSeverityBadge(latestBtExport.cqt.dmdi)}{" "}
+                  {latestBtExport.cqt.dmdi?.toFixed(3) ?? "-"}
+                </span>
+              </span>
+              <span>
+                P31{" "}
+                <span className={cqtSeverityClass(latestBtExport.cqt.p31)}>
+                  {cqtSeverityBadge(latestBtExport.cqt.p31)}{" "}
+                  {latestBtExport.cqt.p31?.toFixed(3) ?? "-"}
+                </span>
+              </span>
+              <span>
+                P32{" "}
+                <span className={cqtSeverityClass(latestBtExport.cqt.p32)}>
+                  {cqtSeverityBadge(latestBtExport.cqt.p32)}{" "}
+                  {latestBtExport.cqt.p32?.toFixed(3) ?? "-"}
+                </span>
+              </span>
+              <span>
+                K10{" "}
+                <span className="font-medium">
+                  {latestBtExport.cqt.k10QtMttr?.toFixed(6) ?? "-"}
+                </span>
+              </span>
               {typeof latestBtExport.cqt.parityPassed === "number" &&
-              typeof latestBtExport.cqt.parityFailed === "number"
-                ? ` | Paridade ${latestBtExport.cqt.parityPassed} OK / ${latestBtExport.cqt.parityFailed} falhas`
-                : ""}
+                typeof latestBtExport.cqt.parityFailed === "number" && (
+                  <span>
+                    Paridade{" "}
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                      {latestBtExport.cqt.parityPassed} OK
+                    </span>
+                    {" / "}
+                    <span
+                      className={
+                        latestBtExport.cqt.parityFailed > 0
+                          ? "text-red-600 dark:text-red-400 font-bold"
+                          : ""
+                      }
+                    >
+                      {latestBtExport.cqt.parityFailed} falhas
+                    </span>
+                  </span>
+                )}
             </div>
           )}
           <a

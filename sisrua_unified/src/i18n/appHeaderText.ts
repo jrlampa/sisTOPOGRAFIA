@@ -19,6 +19,12 @@ type AppHeaderText = {
   autoSaveSaving: string;
   autoSaveError: string;
   autoSaveSuccess: string;
+  recentHistory: string;
+  present: string;
+  noActions: string;
+  undoAction: string;
+  redoAction: string;
+  historyTooltip: string;
 };
 
 const TEXTS: Record<AppLocale, AppHeaderText> = {
@@ -41,8 +47,14 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     autoSaveSaving: "sincronizando",
     autoSaveError: "erro ao sincronizar",
     autoSaveSuccess: "salvo agora",
-  },
-  "en-US": {
+    recentHistory: "Histórico Recente",
+    present: "Presente",
+    noActions: "Sem ações registradas",
+    undoAction: "Desfazer",
+    redoAction: "Refazer",
+    historyTooltip: "Ver histórico de ações",
+    },
+    "en-US": {
     backendStatusOnline: "Backend online",
     backendStatusDegraded: "Backend degraded",
     backendStatusOffline: "Backend offline",
@@ -61,8 +73,14 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     autoSaveSaving: "syncing",
     autoSaveError: "sync error",
     autoSaveSuccess: "saved now",
-  },
-  "es-ES": {
+    recentHistory: "Recent History",
+    present: "Present",
+    noActions: "No actions recorded",
+    undoAction: "Undo",
+    redoAction: "Redo",
+    historyTooltip: "View action history",
+    },
+    "es-ES": {
     backendStatusOnline: "Backend en línea",
     backendStatusDegraded: "Backend degradado",
     backendStatusOffline: "Backend fuera de línea",
@@ -73,7 +91,7 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     toggleSidebarOpen: "Mostrar panel lateral",
     toggleSidebarClose: "Ocultar panel lateral",
     mapModeInfo: "Modo mapa: teclado+ratón",
-    saveProject: "Guardar proyecto",
+    saveProject: "Guardar projeto",
     openProject: "Abrir projeto",
     selectProjectFile: "Seleccionar archivo de projeto",
     openSettings: "Abrir configuraciones",
@@ -81,8 +99,15 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     autoSaveSaving: "sincronizando",
     autoSaveError: "error al sincronizar",
     autoSaveSuccess: "guardado ahora",
-  },
-};
+    recentHistory: "Historial Reciente",
+    present: "Presente",
+    noActions: "No hay acciones registradas",
+    undoAction: "Deshacer",
+    redoAction: "Rehacer",
+    historyTooltip: "Ver historial de acciones",
+    },
+    };
+
 
 export function getAppHeaderText(locale: AppLocale): AppHeaderText {
   return TEXTS[locale] ?? TEXTS["pt-BR"];

@@ -14,7 +14,8 @@ const TEXTS = {
     title: "Pronto para começar?",
     subtitle: "Inicie seu projeto de engenharia agora.",
     primaryCta: "INICIAR PROJETO",
-    microInstruction: "Clique em qualquer lugar do mapa ou pesquise um endereço.",
+    microInstruction:
+      "Clique em qualquer lugar do mapa ou pesquise um endereço.",
     searchLabel: "Pesquisar endereço",
     clickLabel: "Clicar no mapa",
   },
@@ -30,7 +31,8 @@ const TEXTS = {
     title: "¿Listo para empezar?",
     subtitle: "Inicie su proyecto de ingeniería ahora.",
     primaryCta: "INICIAR PROYECTO",
-    microInstruction: "Haga clic en cualquier lugar del mapa o busque una dirección.",
+    microInstruction:
+      "Haga clic en cualquier lugar del mapa o busque una dirección.",
     searchLabel: "Buscar dirección",
     clickLabel: "Clic en el mapa",
   },
@@ -47,7 +49,7 @@ export function EmptyStateMapOverlay({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="absolute inset-0 z-[450] flex items-center justify-center p-6 backdrop-blur-[2px] bg-slate-900/10 pointer-events-none"
+      className="absolute inset-0 z-[450] flex items-center justify-center p-6 bg-slate-900/10 pointer-events-none"
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -57,7 +59,7 @@ export function EmptyStateMapOverlay({
         <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-white relative overflow-hidden">
           {/* Decorative background element */}
           <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
-          
+
           <motion.div
             initial={{ rotate: -10, scale: 0.8 }}
             animate={{ rotate: 0, scale: 1 }}
@@ -66,7 +68,9 @@ export function EmptyStateMapOverlay({
           >
             <Zap size={32} className="text-yellow-300 fill-yellow-300/20" />
           </motion.div>
-          <h2 className="text-2xl font-black tracking-tight leading-tight">{t.title}</h2>
+          <h2 className="text-2xl font-black tracking-tight leading-tight">
+            {t.title}
+          </h2>
           <p className="mt-2 text-sm font-medium text-blue-100 opacity-90">
             {t.subtitle}
           </p>
@@ -77,16 +81,26 @@ export function EmptyStateMapOverlay({
             onClick={onMapClickAction}
             className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-blue-600 px-6 py-4 text-white shadow-[0_10px_20px_-5px_rgba(37,99,235,0.4)] transition-all hover:bg-blue-700 hover:shadow-[0_15px_30px_-10px_rgba(37,99,235,0.6)] active:scale-[0.97] active:duration-75"
           >
-            <span className="text-sm font-black uppercase tracking-[0.15em]">{t.primaryCta}</span>
-            <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+            <span className="text-sm font-black uppercase tracking-[0.15em]">
+              {t.primaryCta}
+            </span>
+            <ArrowRight
+              size={18}
+              className="transition-transform group-hover:translate-x-1"
+            />
           </button>
 
           <div className="relative">
-            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+            <div
+              className="absolute inset-0 flex items-center"
+              aria-hidden="true"
+            >
               <div className="w-full border-t border-slate-200 dark:border-white/10"></div>
             </div>
             <div className="relative flex justify-center text-xs font-bold uppercase tracking-widest">
-              <span className="bg-white px-2 text-slate-400 dark:bg-slate-900">OU</span>
+              <span className="bg-white px-2 text-slate-400 dark:bg-slate-900">
+                OU
+              </span>
             </div>
           </div>
 
@@ -95,7 +109,9 @@ export function EmptyStateMapOverlay({
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-slate-600 transition-all hover:border-blue-400 hover:text-blue-600 active:scale-[0.98] dark:border-white/5 dark:bg-white/5 dark:text-slate-400 dark:hover:border-blue-500/50 dark:hover:text-blue-400"
           >
             <Search size={16} />
-            <span className="text-xs font-bold uppercase tracking-wider">{t.searchLabel}</span>
+            <span className="text-xs font-bold uppercase tracking-wider">
+              {t.searchLabel}
+            </span>
           </button>
 
           <p className="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">

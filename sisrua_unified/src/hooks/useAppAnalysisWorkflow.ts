@@ -10,20 +10,27 @@ interface UseAppAnalysisWorkflowParams {
     addToHistory: boolean,
   ) => void;
   clearData: () => void;
-  showToast: (message: string, type: ToastType, action?: { label: string; onClick: () => void }) => void;
+  showToast: (
+    message: string,
+    type: ToastType,
+    action?: { label: string; onClick: () => void },
+  ) => void;
   clearPendingBtEdge: () => void;
   handleBaseSelectionModeChange: (mode: SelectionMode) => void;
   runAnalysis: (
     center: GeoLocation,
     radius: number,
     enableAI: boolean,
-  ) => Promise<{ 
-    success: true 
-  } | { 
-    success: false; 
-    errorMessage: string; 
-    retryAction?: { label: string; onClick: () => void } 
-  }>;
+  ) => Promise<
+    | {
+        success: true;
+      }
+    | {
+        success: false;
+        errorMessage: string;
+        retryAction?: { label: string; onClick: () => void };
+      }
+  >;
   isDownloading: boolean;
   jobId: string | null;
   jobStatus: string | null;
@@ -82,11 +89,16 @@ export function useAppAnalysisWorkflow({
       return;
     }
 
-    showToast(result.errorMessage || "Falha na análise.", "error", result.retryAction);
+    showToast(
+      result.errorMessage || "Falha na análise.",
+      "error",
+      result.retryAction,
+    );
   }, [runAnalysis, center, radius, settings.enableAI, showToast]);
 
   const showDxfProgress = isDownloading || !!jobId;
   const dxfProgressValue = Math.max(0, Math.min(100, Math.round(jobProgress)));
+  const dxfProgressStatus = jobStatus;
   const dxfProgressLabel =
     jobStatus === "queued" || jobStatus === "waiting"
       ? "A gerar DXF: na fila..."
@@ -100,6 +112,8 @@ export function useAppAnalysisWorkflow({
     handleSelectionModeChange,
     handleFetchAndAnalyze,
     showDxfProgress,
+    dxfProgressValue,
+    dxfProgressStatus,
     dxfProgressLabel,
   };
 }

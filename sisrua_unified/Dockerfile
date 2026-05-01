@@ -2,7 +2,7 @@
 # Optimized for Production with Security Hardening and Multi-Language Support (Node.js + Python)
 
 # Stage 1: Builder
-FROM node:22-slim AS builder
+FROM node:22-bookworm-slim AS builder
 WORKDIR /app
 
 # Install Python and build dependencies for native modules

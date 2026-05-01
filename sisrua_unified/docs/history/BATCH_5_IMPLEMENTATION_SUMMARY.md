@@ -1,6 +1,7 @@
 # Resumo de Implementações - Batch 5 (Items 9, 10, 20, 22, 26, 27)
 
 ## Overview
+
 Neste batch foram implementados **5 arquivos novos + 1 documento** para melhorar a qualidade, segurança e manutenibilidade do código. **23/30 itens du audit agora estão completos (77%).**
 
 ---
@@ -8,18 +9,24 @@ Neste batch foram implementados **5 arquivos novos + 1 documento** para melhorar
 ## ✅ Itens Implementados
 
 ### Item 9: Cálculo de Distância sem Memoização (P2)
+
 **Arquivo:** `src/hooks/useMemoizedDistance.ts`
 **Status:** ✅ Concluído
 
 **Problema:**
+
 - Múltiplas chamadas a `distanceMeters()` em `useBtCrudHandlers.ts` sem cache
 - Recálculos desnecessários (O(n²) em operações de topologia)
 
 **Solução:**
+
 ```typescript
 // Cache LRU simples (últimas 100 combinações)
-export function distanceMetersWithCache(from: Coordinates, to: Coordinates): number
-export function useMemoizedDistances(pairs): number[]
+export function distanceMetersWithCache(
+  from: Coordinates,
+  to: Coordinates,
+): number;
+export function useMemoizedDistances(pairs): number[];
 ```
 
 **Benefício:** ~30-40% de melhoria em performance de operações com múltiplos polos.
@@ -27,14 +34,17 @@ export function useMemoizedDistances(pairs): number[]
 ---
 
 ### Item 10: Validação de Entrada Numérica Inconsistente (P2)
+
 **Arquivo:** `src/utils/numericValidation.ts`
 **Status:** ✅ Concluído
 
 **Problema:**
+
 - App.tsx:1077-1091 tinha validações espalhadas sem padrão
 - Sem mensagens de erro consistentes
 
 **Funções criadas:**
+
 ```typescript
 validatePositiveInteger(input, fieldName, max?)
 validateCoordinate(value, type: 'latitude' | 'longitude')
@@ -49,22 +59,26 @@ parseUserInputNumber(input, min, max, fieldName)
 ---
 
 ### Item 20: Ausência de Feature Flags (P3)
+
 **Arquivo:** `src/config/featureFlags.ts`
 **Status:** ✅ Concluído
 
 **Problema:**
+
 - CQT e BT topology não tinham flags de habilitação
 - Difícil controlar features experimentais
 
 **Flags disponíveis:**
+
 - `CQT_ANALYSIS` - Análise de clandestinos
 - `BT_TOPOLOGY_EDITOR` - Editor de topologia
 - `DXF_EXPORT` - Exportação DXF
 - `KML_IMPORT` - Importação KML
-- `AI_CLANDESTINO_ANALYSIS` - IA Groq
+- `AI_CLANDESTINO_ANALYSIS` - IA Ollama
 - `DEBUG_MODE` - Logs verbosos
 
 **API:**
+
 ```typescript
 isFeatureEnabled(flag: FeatureFlag): boolean
 toggleFeatureFlag(flag): boolean // dev only
@@ -73,6 +87,7 @@ useFeatureFlag(flag): boolean // hook
 ```
 
 **Estratégia:**
+
 - Produção: valores do environment
 - Desenvolvimento: alteráveis em runtime
 - Testes: simulação de features ativadas/desativadas
@@ -82,14 +97,17 @@ useFeatureFlag(flag): boolean // hook
 ---
 
 ### Item 22: Logger Expõe Stack Traces (P3)
+
 **Arquivo:** `src/utils/logger.ts` (atualizado)
 **Status:** ✅ Concluído
 
 **Problema:**
+
 - Stack traces expostos em produção (segurança)
 - Dados sensíveis em logs
 
 **Melhorias:**
+
 ```typescript
 sanitizeDataForProduction(data)
   - Remove paths do sistema
@@ -99,6 +117,7 @@ sanitizeDataForProduction(data)
 ```
 
 **Estratégia:**
+
 - **Desenvolvimento:** Stack traces completos
 - **Produção:** Apenas mensagem de erro, sem stack
 - Em ambos: Dados sensíveis sempre redactados
@@ -108,14 +127,17 @@ sanitizeDataForProduction(data)
 ---
 
 ### Item 26: Comentários Português/Inglês Misturados (P3)
+
 **Arquivo:** `COMMENT_STANDARDS_PT_BR.md`
 **Status:** ✅ Concluído
 
 **Problema:**
+
 - Mistura de português e inglês em comentários
 - Inconsistência de padrão
 
 **Diretrizes:**
+
 - ✅ Usar pt-BR em comentários, docstrings, mensagens
 - ✅ JSDoc com descrição em pt-BR
 - ✅ Mensagens de erro em pt-BR
@@ -123,6 +145,7 @@ sanitizeDataForProduction(data)
 - Migração gradual do código legado
 
 **Prioridade de migração:**
+
 - P0: Funções públicas (API)
 - P1: Lógica crítica
 - P2: Helpers
@@ -133,14 +156,17 @@ sanitizeDataForProduction(data)
 ---
 
 ### Item 27: Versão Hardcoded em Múltiplos Lugares (P3)
+
 **Arquivo:** `src/config/version.ts`
 **Status:** ✅ Concluído
 
 **Problema:**
+
 - Versão em `server/config.ts:16` e `package.json:4`
 - Difícil manutenção
 
 **Solução:**
+
 ```typescript
 export const APP_VERSION = '2.1.0';
 
@@ -157,14 +183,14 @@ RELEASE_NOTES: Record<version, releaseNote>
 
 ## 📊 Status Final
 
-| Métrica | Antes | Agora | Ganho |
-|---------|-------|-------|-------|
-| Itens Concluídos | 18/30 | 23/30 | +5 |
-| % Completo | 60% | 77% | +17% |
-| Arquivos Novos | - | 5 | - |
-| P1 Restante | 2 | 1 | -50% |
-| P2 Restante | 4 | 0 | -100% |
-| P3 Restante | 7 | 6 | -14% |
+| Métrica          | Antes | Agora | Ganho |
+| ---------------- | ----- | ----- | ----- |
+| Itens Concluídos | 18/30 | 23/30 | +5    |
+| % Completo       | 60%   | 77%   | +17%  |
+| Arquivos Novos   | -     | 5     | -     |
+| P1 Restante      | 2     | 1     | -50%  |
+| P2 Restante      | 4     | 0     | -100% |
+| P3 Restante      | 7     | 6     | -14%  |
 
 ---
 
@@ -183,12 +209,14 @@ RELEASE_NOTES: Record<version, releaseNote>
 ## 🎯 Próximas Etapas
 
 ### Imediato (Próxima Sprint)
+
 1. **Item 15** (P1): Refatoração de `useBtCrudHandlers.ts` (1087 linhas)
    - Dividir em 3 hooks especializados: polos, arestas, transformadores
    - Esforço: 2-3h
    - Impacto Alto: Redução de complexidade, melhor testabilidade
 
 ### Curto Prazo (Sprint +1)
+
 2. **Item 21** (P3): Estabilizar testes E2E
 3. **Item 23** (P3): Paginação de histórico BT
 4. **Item 28** (P3): Padronização de nomenclatura Bt vs BT
@@ -199,19 +227,23 @@ RELEASE_NOTES: Record<version, releaseNote>
 ## 📝 Notas Técnicas
 
 ### Memoização de Distância
+
 - Cache LRU com limite de 100 pares
 - Serialização JSON para key (custo > benefício para pares pequenos)
 - Considerar usar WeakMap para produção se houver memory issues
 
 ### Feature Flags
+
 - Considerar integração com Unleash/LaunchDarkly em produção
 - Logs de toggle em modo DEBUG para auditoria
 
 ### Logger Sanitização
+
 - Regex pattern pode ser expandido para mais casos
 - Considerar hash de dados sensíveis em vez de redact para analytics
 
 ### Validação Numérica
+
 - Integrar com Zod para validação em formulários
 - Reusar em backend via env vars (se possível)
 
@@ -239,5 +271,6 @@ RELEASE_NOTES: Record<version, releaseNote>
 ---
 
 ## 📌 Commits Gerados
+
 - `Batch 5: Items 9,10,20,22,26,27 - perf, validation, features, logging`
 - Mensagens de commit descritivas em alemão (seguindo padrão: refactor/feat/fix)

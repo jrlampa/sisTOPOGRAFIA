@@ -1,0 +1,47 @@
+# Development Dockerfile - OPTIMIZED (no polling duplication)
+FROM node:20-alpine
+WORKDIR /app
+
+# Non-root user
+RUN addgroup -g 10001 appuser && adduser -D -u 10001 -G appuser appuser
+# Runtime + build essentials
+RUN apk add --no-cache \
+    python3 \
+    python3-dev \
+    py3-pip \
+    build-base \
+    curl \
+    gdal-dev \
+    geos-dev \
+    proj-dev \
+    && rm -rf /var/cache/apk/*
+
+# Development environment (single polling source)
+ENV NODE_ENV=development \
+    PORT=3001 \
+    DOCKER_ENV=true \
+    WATCHPACK_POLLING=true \
+    SKIP_ENV_VALIDATION=true
+
+# Python dependencies with venv
+RUN python3 -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    /opt/venv/bin/pip install --no-cache-dir -r /dev/null
+
+COPY py_engine/requirements.txt ./py_engine/
+RUN /opt/venv/bin/pip install --no-cache-dir -r py_engine/requirements.txt
+
+# npm install (dev)
+COPY package*.json ./
+RUN npm ci --prefer-offline --legacy-peer-deps
+
+# Create app directories
+RUN mkdir -p /app/public/dxf /app/cache /app/logs && \
+    chown -R appuser:appuser /app
+
+# Expose ports
+EXPOSE 3000 3001
+
+USER appuser
+
+CMD ["npm", "run", "dev"]

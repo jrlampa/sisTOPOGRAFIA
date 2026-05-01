@@ -16,5 +16,5 @@ if [ -d "/app/logs" ]; then
     chown appuser:appuser /app/logs
 fi
 
-echo "[Entrypoint] Iniciando aplicação..."
-exec "$@"
+echo "[Entrypoint] Iniciando aplicação com gosu..."
+exec gosu appuser "$@"

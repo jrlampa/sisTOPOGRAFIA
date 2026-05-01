@@ -1,12 +1,13 @@
 import React, { Suspense } from "react";
 import { AlertCircle, Download, Loader2, Mountain, Table } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import type { AnalysisStats, TerrainGrid } from "../types";
+import type { AnalysisStats, TerrainGrid, Violation } from "../types";
 import type { ToastType } from "./Toast";
 import { lazyWithRetry } from "../utils/lazyWithRetry";
 import type { AppLocale } from "../types";
 import { getSidebarAnalysisText } from "../i18n/sidebarAnalysisText";
 import { DashboardSkeleton, TableSkeleton } from "./Skeleton";
+import { BtViolationJumpList } from "./BtViolationJumpList";
 
 const Dashboard = React.lazy(() => lazyWithRetry(() => import("./Dashboard")));
 const DxfLegend = React.lazy(() => lazyWithRetry(() => import("./DxfLegend")));
@@ -14,9 +15,12 @@ const BatchUpload = React.lazy(() =>
   lazyWithRetry(() => import("./BatchUpload")),
 );
 
-const InlineSuspenseFallback = ({ type = "dashboard" }: { label?: string; type?: "dashboard" | "table" }) => (
-  type === "dashboard" ? <DashboardSkeleton /> : <TableSkeleton />
-);
+const InlineSuspenseFallback = ({
+  type = "dashboard",
+}: {
+  label?: string;
+  type?: "dashboard" | "table";
+}) => (type === "dashboard" ? <DashboardSkeleton /> : <TableSkeleton />);
 
 interface SidebarAnalysisResultsProps {
   locale: AppLocale;
@@ -29,6 +33,12 @@ interface SidebarAnalysisResultsProps {
   handleDownloadCoordinatesCsv: () => void;
   isDownloading: boolean;
   showToast: (message: string, type: ToastType) => void;
+  /** Number of topology validation errors blocking a clean DXF export */
+  pendingValidationErrors?: number;
+  /** Violations to display with jump-to-map capability */
+  violations?: Violation[];
+  /** Called when the user clicks "Ir" on a violation — jump map to location */
+  onJumpToViolation?: (lat: number, lng: number) => void;
 }
 
 export function SidebarAnalysisResults({
@@ -42,6 +52,9 @@ export function SidebarAnalysisResults({
   handleDownloadCoordinatesCsv,
   isDownloading,
   showToast,
+  pendingValidationErrors = 0,
+  violations = [],
+  onJumpToViolation,
 }: SidebarAnalysisResultsProps) {
   const t = getSidebarAnalysisText(locale);
 
@@ -72,11 +85,17 @@ export function SidebarAnalysisResults({
           >
             <div className="mx-1 h-px bg-amber-800/20 dark:bg-amber-500/30" />
 
-            <Suspense
-              fallback={<InlineSuspenseFallback type="dashboard" />}
-            >
+            <Suspense fallback={<InlineSuspenseFallback type="dashboard" />}>
               <Dashboard stats={stats} analysisText={analysisText} />
             </Suspense>
+
+            {/* Violation jump list — only shown when violations are provided */}
+            {violations.length > 0 && (
+              <BtViolationJumpList
+                violations={violations}
+                onJumpToLocation={(lat, lng) => onJumpToViolation?.(lat, lng)}
+              />
+            )}
 
             <Suspense
               fallback={
@@ -86,18 +105,17 @@ export function SidebarAnalysisResults({
               <DxfLegend />
             </Suspense>
 
-            <Suspense
-              fallback={
-                <TableSkeleton rows={2} />
-              }
-            >
+            <Suspense fallback={<TableSkeleton rows={2} />}>
               <BatchUpload
                 onError={(message) => showToast(message, "error")}
                 onInfo={(message) => showToast(message, "info")}
               />
             </Suspense>
 
-            <div className="flex items-center gap-4 rounded-3xl border-2 border-sky-500/10 bg-gradient-to-br from-sky-50 to-white p-5 dark:border-sky-500/20 dark:bg-zinc-950">
+            <div
+              aria-live="polite"
+              className="flex items-center gap-4 rounded-3xl border-2 border-sky-500/10 bg-gradient-to-br from-sky-50 to-white p-5 dark:border-sky-500/20 dark:bg-zinc-950"
+            >
               <div
                 className={`rounded-2xl p-3 shadow-inner ${terrainData ? "bg-sky-500 text-white dark:bg-sky-500/20 dark:text-sky-400" : "bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-500"}`}
               >
@@ -108,9 +126,7 @@ export function SidebarAnalysisResults({
                   {t.terrainEngineTitle}
                 </span>
                 <span className="text-base font-black text-sky-950 dark:text-sky-100 leading-tight">
-                  {terrainData
-                    ? t.terrainLoaded
-                    : t.terrainPending}
+                  {terrainData ? t.terrainLoaded : t.terrainPending}
                 </span>
               </div>
             </div>
@@ -126,6 +142,25 @@ export function SidebarAnalysisResults({
               </div>
               {t.btnDownloadCoordinatesCsv}
             </motion.button>
+
+            {/* Pre-flight check indicator */}
+            <div
+              aria-live="polite"
+              className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
+                pendingValidationErrors > 0
+                  ? "border-amber-400/50 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-500/30"
+                  : "border-emerald-400/50 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-500/30"
+              }`}
+            >
+              <span className="text-base leading-none" aria-hidden="true">
+                {pendingValidationErrors > 0 ? "⚠" : "✓"}
+              </span>
+              <span>
+                {pendingValidationErrors > 0
+                  ? `${pendingValidationErrors} erro${pendingValidationErrors > 1 ? "s" : ""} de topologia pendente${pendingValidationErrors > 1 ? "s" : ""}`
+                  : "Pronto para exportar"}
+              </span>
+            </div>
 
             <motion.button
               whileHover={{ scale: 1.02, x: 5 }}

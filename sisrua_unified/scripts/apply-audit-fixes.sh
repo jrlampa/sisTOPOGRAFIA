@@ -63,7 +63,6 @@ if [ ! -f "$PROJECT_ROOT/.env.secrets" ]; then
 # Add to .gitignore and rotate regularly.
 
 # API Keys
-GROQ_API_KEY=sk-test-PLACEHOLDER-REPLACE-WITH-REAL-KEY
 REDIS_PASSWORD=test-redis-password-CHANGE-IN-PROD
 
 # Admin/Metrics Tokens (generate with: openssl rand -hex 32)
@@ -80,12 +79,6 @@ else
 fi
 
 # Create secrets files for Docker
-if [ ! -f "$PROJECT_ROOT/secrets/groq_api_key.txt" ]; then
-    echo "sk-test-PLACEHOLDER" > "$PROJECT_ROOT/secrets/groq_api_key.txt"
-    chmod 600 "$PROJECT_ROOT/secrets/groq_api_key.txt"
-    echo -e "${GREEN}✓${NC} Created groq_api_key.txt (PLACEHOLDER)"
-fi
-
 if [ ! -f "$PROJECT_ROOT/secrets/redis_password.txt" ]; then
     echo "test-redis-password" > "$PROJECT_ROOT/secrets/redis_password.txt"
     chmod 600 "$PROJECT_ROOT/secrets/redis_password.txt"

@@ -1,0 +1,85 @@
+# Production Dockerfile - HARDENED & OPTIMIZED
+# Multi-stage: builder → runtime (ultra-slim)
+
+# Stage 1: Builder (Node.js + Python build)
+FROM node:20-bookworm-slim AS builder
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-dev \
+    python3-pip \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Cache npm dependencies
+COPY package*.json ./
+RUN npm ci --prefer-offline --no-audit --legacy-peer-deps
+
+# Build frontend + backend
+COPY . .
+RUN npm run build && npx tsc -p tsconfig.server.json
+
+# Python venv with pre-compiled wheels
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r py_engine/requirements.txt
+
+# Stage 2: Runtime (ultra-slim Node.js Alpine)
+FROM node:20-alpine
+WORKDIR /app
+
+# Labels for security scanning
+LABEL security.scan="true"
+LABEL version="prod"
+
+# Non-root user (UID 10001 instead of 1000 for better compatibility)
+RUN addgroup -g 10001 appuser && adduser -D -u 10001 -G appuser appuser
+
+# Runtime dependencies only
+RUN apk add --no-cache \
+    python3 \
+    ca-certificates \
+    curl \
+    tini \
+    gdal-dev \
+    geos-dev \
+    proj-dev \
+    && rm -rf /var/cache/apk/*
+
+# Production environment
+ENV NODE_ENV=production \
+    PORT=8080 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    NODE_OPTIONS="--max-old-space-size=2048"
+
+# Copy only production artifacts
+COPY --from=builder --chown=appuser:appuser /app/package*.json ./
+RUN npm ci --omit=dev --prefer-offline --no-audit --legacy-peer-deps && \
+    npm cache clean --force
+
+COPY --from=builder --chown=appuser:appuser /opt/venv /opt/venv
+COPY --from=builder --chown=appuser:appuser /app/dist ./dist
+COPY --from=builder --chown=appuser:appuser /app/py_engine ./py_engine
+COPY --from=builder --chown=appuser:appuser /app/public ./public
+
+# Create app directories with correct permissions
+RUN mkdir -p /app/logs && chown -R appuser:appuser /app/logs
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+# Use tini as PID 1 (proper signal handling)
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Drop to non-root
+USER appuser
+
+EXPOSE 8080
+
+CMD ["node", "dist/server/index.js"]

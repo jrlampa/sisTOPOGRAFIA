@@ -65,7 +65,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Instalar dependências
@@ -212,7 +212,7 @@ jobs:
             --set-env-vars "CLOUD_RUN_BASE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
             --set-env-vars "CLOUD_RUN_SERVICE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
             --set-env-vars "GCP_PROJECT=${{ secrets.GCP_PROJECT }}" \
-            --set-secrets "GROQ_API_KEY=groq-api-key:latest"
+
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: "Blue/Green: health check na nova revisão (sem tráfego real)"
@@ -329,7 +329,7 @@ jobs:
             --set-env-vars "CLOUD_RUN_BASE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
             --set-env-vars "CLOUD_RUN_SERVICE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
             --set-env-vars "GCP_PROJECT=${{ secrets.GCP_PROJECT }}" \
-            --set-secrets "GROQ_API_KEY=groq-api-key:latest"
+
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: "Blue/Green: health check na nova revisão (sem tráfego real)"
@@ -444,7 +444,7 @@ jobs:
             --set-env-vars "CLOUD_RUN_BASE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
             --set-env-vars "CLOUD_RUN_SERVICE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
             --set-env-vars "GCP_PROJECT=${{ secrets.GCP_PROJECT }}" \
-            --set-secrets "GROQ_API_KEY=groq-api-key:latest"
+
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: "Blue/Green: health check na nova revisão (sem tráfego real)"
@@ -559,7 +559,7 @@ jobs:
             --set-env-vars "CLOUD_RUN_BASE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
             --set-env-vars "CLOUD_RUN_SERVICE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
             --set-env-vars "GCP_PROJECT=${{ secrets.GCP_PROJECT }}" \
-            --set-secrets "GROQ_API_KEY=groq-api-key:latest"
+
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: "Blue/Green: health check na nova revisão (sem tráfego real)"
@@ -636,7 +636,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Instalar dependências

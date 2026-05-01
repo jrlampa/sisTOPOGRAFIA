@@ -37,7 +37,6 @@ const EnvSchema = z.object({
   APP_VERSION: z.string().default("1.2.0"),
 
   // ── AI & Engineering ──────────────────────────────────────────────────────
-  GROQ_API_KEY: z.string().optional(),
   REDIS_PASSWORD: z.string().optional(),
 
   // ── Ollama ────────────────────────────────────────────────────────────────
@@ -221,7 +220,6 @@ function loadConfig() {
   const raw: RawConfig = result.data;
 
   // Use readSecret for sensitive values
-  const groqApiKey = readSecret("GROQ_API_KEY");
   const redisPassword = readSecret("REDIS_PASSWORD");
 
   const databaseUrl = normalizeDatabaseUrl(
@@ -279,7 +277,6 @@ function loadConfig() {
 
   return {
     ...raw,
-    GROQ_API_KEY: groqApiKey,
     REDIS_PASSWORD: redisPassword,
     DATABASE_URL: databaseUrl,
     useFirestore,

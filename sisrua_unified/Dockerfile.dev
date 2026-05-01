@@ -9,10 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     build-essential \
     curl \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+# Create non-root user with fixed UID/GID for consistency with prod
+RUN useradd -m -u 10000 appuser
 
 # Install Python dependencies
 COPY py_engine/requirements.txt ./py_engine/
@@ -21,7 +22,7 @@ RUN pip install --no-cache-dir --upgrade pip --break-system-packages && \
 
 # Copy package files and install deps
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm ci --legacy-peer-deps --prefer-offline --no-audit
 
 # Create necessary directories for volumes
 RUN mkdir -p /app/public/dxf /app/cache /app/logs && \

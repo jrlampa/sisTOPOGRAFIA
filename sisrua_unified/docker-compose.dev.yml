@@ -1,0 +1,176 @@
+# SIS RUA Unified - Docker Compose DEVELOPMENT (Fixed)
+# Optimized for HMR with security hardening
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev.optimized
+    container_name: sisrua-app
+    image: sisrua-unified:dev
+    restart: unless-stopped
+
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - PYTHON_COMMAND=python3
+      - DOCKER_ENV=true
+      - APP_PUBLIC_URL=http://localhost:3000
+      - CORS_ORIGIN=http://localhost:3000,http://127.0.0.1:3000
+      - REDIS_PASSWORD_FILE=/run/secrets/redis_password
+      - OLLAMA_HOST=http://ollama:11434
+      - WATCHPACK_POLLING=true
+      # REMOVED: CHOKIDAR_USEPOLLING (redundant with WATCHPACK)
+      - USE_FIRESTORE=false
+      - USE_CLOUD_TASKS=false
+      - LOG_LEVEL=debug
+
+    secrets:
+      - redis_password
+
+    ports:
+      - "127.0.0.1:3000:3000" # Frontend (Vite)
+      - "127.0.0.1:3001:3001" # Backend API
+
+    volumes:
+      # Source code with hot reload
+      - .:/app
+      # node_modules isolated from host
+      - node-modules-dev:/app/node_modules
+      # Cache isolated
+      - cache-dev:/app/cache
+      # Logs for debugging
+      - logs-dev:/app/logs
+      # DXF output
+      - dxf-dev:/app/public/dxf
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+    networks:
+      - sisrua-network
+
+    depends_on:
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 3G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
+
+  redis:
+    image: redis:8.6-alpine
+    container_name: sisrua-redis
+    restart: unless-stopped
+
+    command: >
+      redis-server
+      --bind 0.0.0.0
+      --protected-mode yes
+      --requirepass $$(cat /run/secrets/redis_password)
+      --appendonly no
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+
+    secrets:
+      - redis_password
+
+    ports:
+      - "127.0.0.1:6379:6379"
+
+    volumes:
+      - redis-dev:/data
+
+    networks:
+      - sisrua-network
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "--no-auth-warning",
+          "-a",
+          "$$(cat /run/secrets/redis_password)",
+          "ping",
+        ]
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 5
+
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  ollama:
+    image: ollama/ollama:0.22.0
+    container_name: sisrua-ollama
+    restart: unless-stopped
+
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      - OLLAMA_KEEP_ALIVE=5m
+    ports:
+      - "127.0.0.1:11435:11434"
+
+    volumes:
+      - ollama-dev:/root/.ollama
+
+    networks:
+      - sisrua-network
+
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 5
+
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
+
+secrets:
+  redis_password:
+    file: ./secrets/redis_password.txt
+
+volumes:
+  node-modules-dev:
+    name: sisrua_node_modules_dev
+  cache-dev:
+    name: sisrua_cache_dev
+  logs-dev:
+    name: sisrua_logs_dev
+  dxf-dev:
+    name: sisrua_dxf_dev
+  redis-dev:
+    name: sisrua_redis_dev
+  ollama-dev:
+    name: sisrua_ollama_dev
+
+networks:
+  sisrua-network:
+    name: sisrua-network
+    driver: bridge

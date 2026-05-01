@@ -1,13 +1,18 @@
 import React from "react";
-import { Cloud, CloudUpload, AlertCircle, CheckCircle2 } from "lucide-react";
+import { CloudUpload, AlertCircle, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import type { AppLocale } from "../types";
+import { getAppHeaderText } from "../i18n/appHeaderText";
 
 interface Props {
   status: "idle" | "saving" | "error";
   lastSaved?: string;
+  locale: AppLocale;
 }
 
-export function AutoSaveIndicator({ status, lastSaved }: Props) {
+export function AutoSaveIndicator({ status, locale }: Props) {
+  const t = getAppHeaderText(locale);
+
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-sm transition-all duration-300">
       <AnimatePresence mode="wait">
@@ -20,7 +25,7 @@ export function AutoSaveIndicator({ status, lastSaved }: Props) {
             className="flex items-center gap-1.5 text-xs font-bold text-cyan-600 dark:text-cyan-400"
           >
             <CloudUpload size={12} className="animate-pulse" />
-            sincronizando
+            {t.autoSaveSaving}
           </motion.div>
         )}
 
@@ -33,7 +38,7 @@ export function AutoSaveIndicator({ status, lastSaved }: Props) {
             className="flex items-center gap-1.5 text-xs font-bold text-slate-400 dark:text-slate-500"
           >
             <CheckCircle2 size={12} className="text-emerald-500" />
-            salvo agora
+            {t.autoSaveSuccess}
           </motion.div>
         )}
 
@@ -46,7 +51,7 @@ export function AutoSaveIndicator({ status, lastSaved }: Props) {
             className="flex items-center gap-1.5 text-xs font-bold text-rose-500"
           >
             <AlertCircle size={12} />
-            erro ao sincronizar
+            {t.autoSaveError}
           </motion.div>
         )}
       </AnimatePresence>

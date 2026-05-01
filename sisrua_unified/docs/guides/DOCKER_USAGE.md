@@ -37,6 +37,7 @@ docker compose up
 ```
 
 **Pronto!** A aplicação está rodando com:
+
 - ✅ Node.js 22
 - ✅ Python 3 + todas as dependências
 - ✅ Frontend (React/Vite)
@@ -111,6 +112,7 @@ docker compose exec app python3 py_engine/main.py --help
 ### Workflow Recomendado
 
 **Opção A: Docker para Ambiente Completo** (Recomendado para novos devs)
+
 ```bash
 # Inicie uma vez
 docker compose up -d
@@ -121,6 +123,7 @@ docker compose up --build
 ```
 
 **Opção B: Nativo para Hot Reload** (Mais rápido para desenvolvimento ativo)
+
 ```bash
 # Use npm run dev para hot reload instantâneo
 npm run dev
@@ -133,13 +136,14 @@ docker compose up --build
 
 Docker Compose cria volumes para persistir dados:
 
-| Volume | Propósito | Localização |
-|--------|-----------|-------------|
-| `sisrua_dxf_output` | Arquivos DXF gerados | `/app/public/dxf` |
-| `sisrua_cache` | Cache de requisições OSM | `/app/cache` |
-| `sisrua_redis_data` | Dados Redis (se usado) | `/data` |
+| Volume              | Propósito                | Localização       |
+| ------------------- | ------------------------ | ----------------- |
+| `sisrua_dxf_output` | Arquivos DXF gerados     | `/app/public/dxf` |
+| `sisrua_cache`      | Cache de requisições OSM | `/app/cache`      |
+| `sisrua_redis_data` | Dados Redis (se usado)   | `/data`           |
 
 **Limpar volumes**:
+
 ```bash
 # Remove todos os volumes (CUIDADO: perde DXFs e cache)
 docker compose down -v
@@ -155,13 +159,6 @@ docker volume rm sisrua_dxf_output
 cp .env.example .env
 # Edite .env com suas configurações
 docker compose up
-
-# Opção 2: Variáveis inline
-GROQ_API_KEY=gsk_xxx docker compose up
-
-# Opção 3: Export (persiste na sessão do shell)
-export GROQ_API_KEY=gsk_xxx
-docker compose up
 ```
 
 ---
@@ -176,7 +173,6 @@ docker build -t sisrua-unified:latest .
 
 # Testa a imagem localmente
 docker run -p 8080:8080 \
-  -e GROQ_API_KEY=your-key \
   sisrua-unified:latest
 
 # Acesse http://localhost:8080
@@ -201,6 +197,7 @@ O Dockerfile usa **multi-stage build** para otimização:
 ```
 
 **Benefícios**:
+
 - 🚀 Builds 30-40% mais rápidos (reuso de venv)
 - 📦 Imagem final menor (~500MB vs ~800MB)
 - 🔒 Mais segura (minimal attack surface)
@@ -219,6 +216,7 @@ O deploy é automatizado via GitHub Actions:
 ```
 
 **Manual Deploy** (se necessário):
+
 ```bash
 # Autentique no GCP
 gcloud auth login
@@ -241,6 +239,7 @@ gcloud run deploy sisrua-app \
 ### ❌ Container não inicia
 
 **Erro**: `Error: Cannot find module...`
+
 ```bash
 # Rebuild sem cache
 docker compose build --no-cache
@@ -248,6 +247,7 @@ docker compose up
 ```
 
 **Erro**: `Port 8080 is already in use`
+
 ```bash
 # Opção 1: Pare processo usando a porta
 lsof -ti:8080 | xargs kill -9  # Linux/Mac
@@ -262,6 +262,7 @@ ports:
 ### ❌ Python engine falha
 
 **Erro**: `ModuleNotFoundError: No module named 'osmnx'`
+
 ```bash
 # Rebuild da imagem (Python venv pode estar corrompido)
 docker compose down
@@ -304,6 +305,7 @@ test_files
 ### ❌ Build lento
 
 **Solução 1: Use BuildKit** (cache mais inteligente)
+
 ```bash
 # Habilite BuildKit
 export DOCKER_BUILDKIT=1
@@ -314,6 +316,7 @@ echo 'export DOCKER_BUILDKIT=1' >> ~/.bashrc
 ```
 
 **Solução 2: Cache de layers**
+
 ```bash
 # Certifique-se de não usar --no-cache desnecessariamente
 docker compose build  # Usa cache (rápido)
@@ -327,12 +330,14 @@ docker compose build --no-cache  # Sem cache (lento, use apenas se necessário)
 ### Isolamento Python vs .exe
 
 **Antigo (Problemático)**:
+
 - ❌ PyInstaller compila `sisrua_engine.exe`
 - ❌ Antivírus bloqueia executável
 - ❌ Windows-only
 - ❌ ~150-300MB + dependências do SO
 
 **Atual (Enterprise)**:
+
 - ✅ Python roda diretamente no container
 - ✅ Zero falsos positivos de antivírus
 - ✅ Cross-platform (Linux, Mac, Windows)
@@ -342,14 +347,14 @@ docker compose build --no-cache  # Sem cache (lento, use apenas se necessário)
 
 ```typescript
 // PRODUÇÃO (Docker/Cloud Run):
-if (process.env.NODE_ENV === 'production') {
-    command = 'python';  // SEMPRE usa Python
-    args = [scriptPath];
+if (process.env.NODE_ENV === "production") {
+  command = "python"; // SEMPRE usa Python
+  args = [scriptPath];
 }
 // DESENVOLVIMENTO (Windows):
 else {
-    // Usa .exe se existir, senão Python
-    command = fs.existsSync(exePath) ? exePath : 'python';
+  // Usa .exe se existir, senão Python
+  command = fs.existsSync(exePath) ? exePath : "python";
 }
 ```
 
@@ -357,14 +362,14 @@ else {
 
 ### Comparação de Abordagens
 
-| Aspecto | Binário .exe | Docker Container |
-|---------|--------------|------------------|
-| Isolamento | ❌ Roda no SO host | ✅ Completamente isolado |
-| Segurança | ⚠️ Antivírus flags | ✅ Containerizado |
-| Portabilidade | ❌ Windows-only | ✅ Multiplataforma |
-| Escalabilidade | ❌ Manual | ✅ Auto-scaling (Cloud Run) |
-| Deploy | ❌ Manual | ✅ CI/CD automatizado |
-| Dependências | ❌ Requer Python no host | ✅ Self-contained |
+| Aspecto        | Binário .exe             | Docker Container            |
+| -------------- | ------------------------ | --------------------------- |
+| Isolamento     | ❌ Roda no SO host       | ✅ Completamente isolado    |
+| Segurança      | ⚠️ Antivírus flags       | ✅ Containerizado           |
+| Portabilidade  | ❌ Windows-only          | ✅ Multiplataforma          |
+| Escalabilidade | ❌ Manual                | ✅ Auto-scaling (Cloud Run) |
+| Deploy         | ❌ Manual                | ✅ CI/CD automatizado       |
+| Dependências   | ❌ Requer Python no host | ✅ Self-contained           |
 
 ---
 

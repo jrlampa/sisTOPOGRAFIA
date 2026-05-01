@@ -17,10 +17,12 @@
     "version:check": "bash scripts/check-version.sh",
     "docker:build": "docker build -t sisrua-unified:latest .",
     "docker:run": "docker run -p 8080:8080 --env-file .env sisrua-unified:latest",
-    "docker:dev": "docker compose up",
-    "docker:dev:build": "docker compose up --build",
-    "docker:down": "docker compose down",
-    "docker:logs": "docker compose logs -f app",
+    "docker:dev": "docker compose -f docker-compose.dev.yml up",
+    "docker:dev:build": "docker compose -f docker-compose.dev.yml up --build",
+    "docker:prod": "docker compose -f docker-compose.prod.yml up",
+    "docker:prod:build": "docker compose -f docker-compose.prod.yml up --build",
+    "docker:down": "docker compose -f docker-compose.dev.yml down",
+    "docker:logs": "docker compose -f docker-compose.dev.yml logs -f app",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 300",
     "lint:frontend": "eslint src/ --ext ts,tsx --max-warnings 300",
     "lint:backend": "eslint server/ --ext ts --max-warnings 0",
@@ -87,7 +89,6 @@
     "express-rate-limit": "^8.2.1",
     "express-validator": "^7.3.2",
     "framer-motion": "^12.34.0",
-    "groq-sdk": "^0.37.0",
     "helmet": "^8.1.0",
     "i18next": "^26.0.8",
     "i18next-browser-languagedetector": "^8.2.1",
@@ -117,7 +118,10 @@
     "zod": "^4.3.6"
   },
   "overrides": {
-    "serialize-javascript": "^7.0.5"
+    "serialize-javascript": "^7.0.5",
+    "react-router-dom": "^7.14.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",

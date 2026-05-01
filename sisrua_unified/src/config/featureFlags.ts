@@ -25,7 +25,7 @@ export enum FeatureFlag {
   /** Perfil de elevação */
   ELEVATION_PROFILE = "elevation_profile",
 
-  /** Análise de clandestinos com IA (Groq) */
+  /** Análise de clandestinos com IA (Ollama) */
   AI_CLANDESTINO_ANALYSIS = "ai_clandestino_analysis",
 
   /** Suporte a múltiplos cenários de projeto (proj1, proj2) */

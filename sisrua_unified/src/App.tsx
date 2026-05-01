@@ -1115,6 +1115,14 @@ function App() {
     showToast,
   };
 
+  const handleGoToPole = React.useCallback(
+    (poleId: string) => {
+      setSelectedPoleId(poleId);
+      setIsCommandPaletteOpen(false);
+    },
+    [setSelectedPoleId],
+  );
+
   const handleOpenProjectFromCommandPalette = React.useCallback(() => {
     const fileInput = document.createElement("input");
     fileInput.type = "file";
@@ -1450,6 +1458,9 @@ function App() {
           isOpen={isCommandPaletteOpen}
           onClose={() => setIsCommandPaletteOpen(false)}
           actions={commandPaletteActions}
+          poles={btTopology.poles}
+          onGoToPole={handleGoToPole}
+          locale={settings.locale}
         />
       </React.Suspense>
 

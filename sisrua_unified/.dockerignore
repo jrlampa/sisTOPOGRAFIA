@@ -1,22 +1,49 @@
+# Dependencies
 node_modules
-npm-debug.log
-dist
-.git
+.npm
 .venv
 venv
 ENV
-.env
-.env.local
-.vscode
 __pycache__
 *.pyc
 *.pyo
 *.pyd
+
+# Build output
+dist
+.next
+build
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.secrets
+.env.supabase
+secrets/
+
+# Development
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Test & Coverage
 .pytest_cache
 coverage
 .coverage
 htmlcov
-.DS_Store
+test-results
+playwright-report
+.lighthouseci
+
+# Artifacts & Cache
 logs/*.log
 public/dxf/*.dxf
 public/dxf/*.zip
@@ -24,7 +51,36 @@ cache/*
 !cache/.gitkeep
 tmp/*
 !tmp/.gitkeep
+_quarantine
+artifacts
+scratch
+download
+
+# Generated files
 *_memorial_descritivo_*.pdf
+npm-debug.log
+DB_LOG.log
+metadata.json
+
+# Docker files (don't copy into image)
 docker-compose.yml
+docker-compose.*.yml
 Dockerfile*
 .dockerignore
+
+# Documentation (optional, keep if needed)
+*.md
+README*
+CHANGELOG*
+ARCHITECTURE*
+
+# Config files
+tsconfig*
+vite.config*
+playwright.config*
+vite-env.d.ts
+README_LOCAL.md
+.bandit
+.gitleaks.toml
+lighthouserc.json
+test-metrics.config.json

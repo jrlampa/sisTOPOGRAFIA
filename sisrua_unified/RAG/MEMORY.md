@@ -1,5 +1,12 @@
+## Atualização Operacional (2026-05-01B) - UX Premium & Acessibilidade (Header)
+- **Descoberta de Histórico**: Histórico detalhado agora visível de forma explícita com rótulo "Histórico Recente" e ícone no `HistoryControls.tsx`, abandonando a dependência exclusiva do right-click (que se torna atalho avançado).
+- **Consistência de Microcopy**: Validado que `AutoSaveIndicator.tsx` já consome `appHeaderText.ts` (100% i18n sem hardcoded texts).
+- **Acessibilidade e Foco**: Implementado foco persistente com `focus-visible:ring-cyan-500/60` no Header. Adicionados tooltips nativos/acessíveis via classe `group` com hover e `group-focus-visible`.
+- **Hierarquia Visual**: Reduzido o peso de ações secundárias (Settings, Help, Open) para outline/ghost e evidenciado o botão "Salvar Projeto" como CTA principal.
+- **Motion com Intenção**: Animação contínua (ping) reservada apenas para status crítico (degradado/offline). Transitions em botões simplificadas para reduzir ruído cognitivo.
+- **Métricas de UX**: Adicionado track de métricas (`trackRework`) aos botões de desfazer/refazer para base de telemetria analítica de atrito.
+
 ## Atualização Operacional (2026-05-01A) - Premium Visual Evolution & UX Hardening
-- **Evolução Visual "Premium" (Concluída)**:
   - **Glassmorphism Premium**: Implementado novo sistema de tokens em `src/theme/tokens.ts` e classes utilitárias em `src/index.css` (`.glass-premium`, `.glass-shine`, `.glass-edge-light`).
   - **High-Fidelity 2.5D Viewport**: O `MapSelector.tsx` agora conta com efeitos de auto-dimming em modo edição, glow ativo e sombras dinâmicas para postes, melhorando a percepção de profundidade.
   - **Premium Header & Sidebar**: `AppHeader` e `SidebarWorkspace` atualizados com camadas de vidro refinadas e micro-interações de brilho (shine).

@@ -35,10 +35,12 @@ import { logger } from "../../utils/logger.js";
 import {
   buildMst,
   mstHasSpanViolation,
-  selectConductorForDemand,
+} from "./dgMst.js";
+import {
   assignTelescopicConductors,
-} from "./dgPartitioner.js";
-import type { MstEdge } from "./dgPartitioner.js";
+  selectConductorForDemand,
+} from "./dgTelescopic.js";
+import type { MstEdge } from "./dgMst.js";
 
 // ─── Derivação de Demanda (Wizard) ───────────────────────────────────────────
 

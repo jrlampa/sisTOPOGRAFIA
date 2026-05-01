@@ -5,7 +5,6 @@
 mkdir -p ./secrets
 
 # Create dummy secrets (replace with real values in production)
-echo "sk-groq-REPLACE-WITH-REAL-KEY" > ./secrets/groq_api_key.txt
 echo "redis-REPLACE-WITH-REAL-PASSWORD" > ./secrets/redis_password.txt
 
 # Secure permissions

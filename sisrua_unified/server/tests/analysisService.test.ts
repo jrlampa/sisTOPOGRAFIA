@@ -1,14 +1,14 @@
 /**
  * analysisService.test.ts
  *
- * Testes unitários para AnalysisService.analyzeArea().
- * Mock da lib groq-sdk para evitar chamadas reais de rede.
+ * Testes unitários para OllamaService.analyzeArea().
+ * Moca fetch global para evitar chamadas reais ao Ollama.
  */
 
-import { vi } from "vitest";
+import { vi, describe, it, expect, beforeEach } from "vitest";
 
-// ─── Mock logger ─────────────────────────────────────────────────────────────
-vi.mock("../utils/logger", () => ({
+// ─── Mock logger ──────────────────────────────────────────────────────────────
+vi.mock("../utils/logger.js", () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -17,38 +17,60 @@ vi.mock("../utils/logger", () => ({
   },
 }));
 
-// ─── Mock groq-sdk ────────────────────────────────────────────────────────────
-const { mockCreate, lastGroqOpts } = vi.hoisted(() => ({
-  mockCreate: vi.fn(),
-  lastGroqOpts: { current: null as null | { apiKey: string } },
+// ─── Mock config ──────────────────────────────────────────────────────────────
+vi.mock("../config.js", () => ({
+  config: {
+    OLLAMA_HOST: "http://localhost:11434",
+    OLLAMA_MODEL: "llama3.2",
+    OLLAMA_ENFORCE_ZERO_COST: undefined,
+    OLLAMA_FALLBACK_MODELS: "",
+    OLLAMA_ALLOWED_REMOTE_HOSTS: "",
+    OLLAMA_MIN_VERSION: "0.0.0",
+    OLLAMA_UPDATE_MAINTENANCE_WINDOW_UTC: "02:00-04:00",
+    OLLAMA_UPDATE_CHECK_ENABLED: undefined,
+    OLLAMA_STARTUP_WAIT_MS: 3000,
+    OLLAMA_CHECK_TIMEOUT_MS: 2000,
+  },
 }));
 
-vi.mock("groq-sdk", () => {
-  class MockGroq {
-    chat: { completions: { create: typeof mockCreate } };
-    constructor(_opts: { apiKey: string }) {
-      lastGroqOpts.current = _opts;
-      this.chat = { completions: { create: mockCreate } };
-    }
-  }
-  return { __esModule: true, default: MockGroq };
-});
-
 // ─── Import service (after mocks) ─────────────────────────────────────────────
-import { AnalysisService } from "../services/analysisService.js";
-import Groq from "groq-sdk";
-
-// mockCreate vem do vi.hoisted acima (compartilhado com o mock)
+import { OllamaService } from "../services/ollamaService.js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const stats = { buildings: 12, roads: 5, trees: 3 };
 const noDataStats = { buildings: 0, roads: 0, trees: 0 };
 const location = "São Paulo, SP";
-const apiKey = "test-api-key";
 
-function makeCompletion(text: string) {
+function makeOllamaResponse(responseText: string): Response {
+  return new Response(JSON.stringify({ response: responseText }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function makeRuntimeStatus(
+  overrides: Partial<{
+    available: boolean;
+    zeroCostCompliant: boolean;
+    selectedModel: string;
+    compatibility: {
+      configuredModelAvailable: boolean;
+      fallbackModelUsed: boolean;
+    };
+  }> = {},
+) {
   return {
-    choices: [{ message: { content: text } }],
+    available: true,
+    zeroCostCompliant: true,
+    selectedModel: "llama3.2",
+    configuredModel: "llama3.2",
+    host: "http://localhost:11434",
+    availableModels: ["llama3.2"],
+    zeroCostEnforced: true,
+    fallbackModels: [],
+    warnings: [],
+    compatibility: { configuredModelAvailable: true, fallbackModelUsed: false },
+    ...overrides,
   };
 }
 
@@ -56,44 +78,49 @@ function makeCompletion(text: string) {
 // Error conditions
 // ═════════════════════════════════════════════════════════════════════════════
 
-describe("AnalysisService.analyzeArea — error conditions", () => {
-  it("throws when apiKey is empty string", async () => {
-    await expect(
-      AnalysisService.analyzeArea(stats, location, ""),
-    ).rejects.toThrow("GROQ_API_KEY is missing");
-  });
-
-  it("throws when apiKey is undefined/null", async () => {
-    await expect(
-      AnalysisService.analyzeArea(stats, location, undefined as any),
-    ).rejects.toThrow("GROQ_API_KEY is missing");
-  });
-
-  it("returns error message string when Groq throws", async () => {
-    mockCreate.mockRejectedValue(new Error("network timeout"));
-    const result = await AnalysisService.analyzeArea(stats, location, apiKey);
-    expect(result.analysis).toContain("network timeout");
-    expect(result.analysis).toContain(location);
-  });
-
-  it("returns error message when Groq returns empty content", async () => {
-    mockCreate.mockResolvedValue({ choices: [{ message: { content: "" } }] });
-    const result = await AnalysisService.analyzeArea(stats, location, apiKey);
-    expect(result.analysis).toBe(
-      "Erro ao processar análise AI. Formato inválido.",
+describe("OllamaService.analyzeArea — error conditions", () => {
+  beforeEach(() => {
+    vi.spyOn(OllamaService, "getRuntimeStatus").mockResolvedValue(
+      makeRuntimeStatus() as any,
     );
   });
 
-  it("returns error message when Groq response has no JSON block", async () => {
-    mockCreate.mockResolvedValue(makeCompletion("Análise sem JSON"));
-    const result = await AnalysisService.analyzeArea(stats, location, apiKey);
-    expect(result.analysis).toContain("Erro ao processar análise AI");
+  it("returns blocked message when zero-cost policy is violated", async () => {
+    vi.spyOn(OllamaService, "getRuntimeStatus").mockResolvedValue(
+      makeRuntimeStatus({ zeroCostCompliant: false }) as any,
+    );
+    const result = await OllamaService.analyzeArea(stats, location);
+    expect(result.analysis).toContain("zero custo");
   });
 
-  it("returns error message when choices is undefined", async () => {
-    mockCreate.mockResolvedValue({ choices: [] });
-    const result = await AnalysisService.analyzeArea(stats, location, apiKey);
-    expect(result.analysis).toContain("Erro");
+  it("returns analysis text when Ollama returns non-JSON response", async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValue(makeOllamaResponse("Análise sem JSON"));
+    const result = await OllamaService.analyzeArea(stats, location);
+    expect(result.analysis).toBe("Análise sem JSON");
+  });
+
+  it("returns error message when Ollama HTTP request fails", async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response("Internal Server Error", { status: 500 }),
+      );
+    const result = await OllamaService.analyzeArea(stats, location);
+    expect(result.analysis).toContain("500");
+  });
+
+  it("returns error message when fetch throws (network error)", async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error("network timeout"));
+    const result = await OllamaService.analyzeArea(stats, location);
+    expect(result.analysis).toContain("network timeout");
+  });
+
+  it("returns error message when Ollama response is empty", async () => {
+    global.fetch = vi.fn().mockResolvedValue(makeOllamaResponse(""));
+    const result = await OllamaService.analyzeArea(stats, location);
+    expect(typeof result.analysis).toBe("string");
   });
 });
 
@@ -101,53 +128,75 @@ describe("AnalysisService.analyzeArea — error conditions", () => {
 // Happy path
 // ═════════════════════════════════════════════════════════════════════════════
 
-describe("AnalysisService.analyzeArea — happy path", () => {
+describe("OllamaService.analyzeArea — happy path", () => {
   beforeEach(() => {
-    mockCreate.mockReset();
+    vi.spyOn(OllamaService, "getRuntimeStatus").mockResolvedValue(
+      makeRuntimeStatus() as any,
+    );
   });
 
   it("returns parsed analysis on valid JSON response", async () => {
     const analysisText = "Melhorias recomendadas para mobilidade";
-    mockCreate.mockResolvedValue(
-      makeCompletion(JSON.stringify({ analysis: analysisText })),
-    );
-    const result = await AnalysisService.analyzeArea(stats, location, apiKey);
+    global.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        makeOllamaResponse(JSON.stringify({ analysis: analysisText })),
+      );
+    const result = await OllamaService.analyzeArea(stats, location);
     expect(result.analysis).toBe(analysisText);
   });
 
   it("parses JSON embedded in surrounding text", async () => {
-    mockCreate.mockResolvedValue(
-      makeCompletion('Aqui está a análise: { "analysis": "conteúdo" } fim.'),
-    );
-    const result = await AnalysisService.analyzeArea(stats, location, apiKey);
+    global.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        makeOllamaResponse(
+          'Aqui está a análise: { "analysis": "conteúdo" } fim.',
+        ),
+      );
+    const result = await OllamaService.analyzeArea(stats, location);
     expect(result.analysis).toBe("conteúdo");
   });
 
-  it("instantiates Groq with provided apiKey", async () => {
-    mockCreate.mockResolvedValue(makeCompletion('{ "analysis": "ok" }'));
-    await AnalysisService.analyzeArea(stats, location, apiKey);
-    expect(lastGroqOpts.current).toEqual({ apiKey });
+  it("sends request to correct Ollama endpoint", async () => {
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValue(makeOllamaResponse('{ "analysis": "ok" }'));
+    global.fetch = fetchSpy;
+    await OllamaService.analyzeArea(stats, location);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining("/api/generate"),
+      expect.any(Object),
+    );
   });
 
-  it("sends correct model name to Groq", async () => {
-    mockCreate.mockResolvedValue(makeCompletion('{ "analysis": "ok" }'));
-    await AnalysisService.analyzeArea(stats, location, apiKey);
-    const callArg = mockCreate.mock.calls[0][0] as any;
-    expect(callArg.model).toBe("llama-3.3-70b-versatile");
+  it("sends configured model name in request body", async () => {
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValue(makeOllamaResponse('{ "analysis": "ok" }'));
+    global.fetch = fetchSpy;
+    await OllamaService.analyzeArea(stats, location);
+    const body = JSON.parse(fetchSpy.mock.calls[0][1].body);
+    expect(body.model).toBe("llama3.2");
   });
 
   it("uses no-data prompt when all stats are zero", async () => {
-    mockCreate.mockResolvedValue(makeCompletion('{ "analysis": "sem dados" }'));
-    await AnalysisService.analyzeArea(noDataStats, location, apiKey);
-    const callArg = mockCreate.mock.calls[0][0] as any;
-    expect(callArg.messages[0].content).toContain("complementado");
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValue(makeOllamaResponse('{ "analysis": "sem dados" }'));
+    global.fetch = fetchSpy;
+    await OllamaService.analyzeArea(noDataStats, location);
+    const body = JSON.parse(fetchSpy.mock.calls[0][1].body);
+    expect(body.prompt).toContain("sem dados OSM");
   });
 
   it("uses data prompt when stats have values", async () => {
-    mockCreate.mockResolvedValue(makeCompletion('{ "analysis": "com dados" }'));
-    await AnalysisService.analyzeArea(stats, location, apiKey);
-    const callArg = mockCreate.mock.calls[0][0] as any;
-    expect(callArg.messages[0].content).toContain("mobilidade");
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValue(makeOllamaResponse('{ "analysis": "com dados" }'));
+    global.fetch = fetchSpy;
+    await OllamaService.analyzeArea(stats, location);
+    const body = JSON.parse(fetchSpy.mock.calls[0][1].body);
+    expect(body.prompt).toContain(location);
   });
 });
-

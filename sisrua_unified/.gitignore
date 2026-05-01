@@ -93,6 +93,7 @@ cache/
 .agents/
 .gemini/
 secrets/
+_quarantine/
 
 # Editor directories and files
 .vscode/*

@@ -329,18 +329,17 @@ www.dsr.inpe.br
 
 ### 7.2 Variáveis Opcionais com Impacto em Segurança
 
-| Variável                    | Descrição                         | Padrão                   | Sensível? |
-| --------------------------- | --------------------------------- | ------------------------ | --------- |
-| `METRICS_TOKEN`             | Token para proteger `/metrics`    | (sem auth)               | **Sim**   |
-| `METRICS_ENABLED`           | Habilitar endpoint Prometheus     | `true`                   | Não       |
-| `RATE_LIMIT_GENERAL_MAX`    | Max requisições por janela        | `100`                    | Não       |
-| `RATE_LIMIT_DXF_MAX`        | Max gerações DXF por hora         | `10`                     | Não       |
-| `PYTHON_PROCESS_TIMEOUT_MS` | Timeout do worker Python          | `300000` (5 min)         | Não       |
-| `DXF_WORKER_CONCURRENCY`    | Workers DXF simultâneos           | `2`                      | Não       |
-| `LOG_LEVEL`                 | Nível de log                      | `info`                   | Não       |
-| `TRUST_PROXY`               | Configuração de proxy reverso     | (auto)                   | Não       |
-| `GROQ_API_KEY`              | Chave API para funcionalidades AI | (sem AI)                 | **Sim**   |
-| `USE_SUPABASE_JOBS`         | Persistir jobs no banco           | `true` (se DATABASE_URL) | Não       |
+| Variável                    | Descrição                      | Padrão                   | Sensível? |
+| --------------------------- | ------------------------------ | ------------------------ | --------- |
+| `METRICS_TOKEN`             | Token para proteger `/metrics` | (sem auth)               | **Sim**   |
+| `METRICS_ENABLED`           | Habilitar endpoint Prometheus  | `true`                   | Não       |
+| `RATE_LIMIT_GENERAL_MAX`    | Max requisições por janela     | `100`                    | Não       |
+| `RATE_LIMIT_DXF_MAX`        | Max gerações DXF por hora      | `10`                     | Não       |
+| `PYTHON_PROCESS_TIMEOUT_MS` | Timeout do worker Python       | `300000` (5 min)         | Não       |
+| `DXF_WORKER_CONCURRENCY`    | Workers DXF simultâneos        | `2`                      | Não       |
+| `LOG_LEVEL`                 | Nível de log                   | `info`                   | Não       |
+| `TRUST_PROXY`               | Configuração de proxy reverso  | (auto)                   | Não       |
+| `USE_SUPABASE_JOBS`         | Persistir jobs no banco        | `true` (se DATABASE_URL) | Não       |
 
 ### 7.3 Variáveis de Constantes CQT (Banco de Dados)
 
@@ -356,7 +355,6 @@ www.dsr.inpe.br
 [ ] Todas as variáveis marcadas como "Sensível?" devem ser armazenadas em
     Google Secret Manager — NUNCA como variáveis de ambiente em texto claro.
 [ ] Rotação de DATABASE_URL e METRICS_TOKEN a cada 90 dias.
-[ ] GROQ_API_KEY com escopo mínimo necessário (apenas as APIs utilizadas).
 [ ] Auditoria de acesso aos secrets via Cloud Audit Logs.
 ```
 

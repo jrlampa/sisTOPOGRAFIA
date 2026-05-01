@@ -21,7 +21,7 @@
   - [ ] CLOUD_TASKS_OIDC_AUDIENCE
   - [ ] CORS_ORIGINS
   - [ ] GCP_PROJECT
-  - [ ] GROQ_API_KEY (secret configurado)
+  - [ ] Secrets do GCP configurados (DATABASE_URL, ADMIN_TOKEN)
 
 ### 2.1 D+7 - Gate Final GO Parcial (Evidência Única)
 

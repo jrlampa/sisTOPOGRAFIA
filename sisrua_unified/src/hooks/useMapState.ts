@@ -27,11 +27,14 @@ export function useMapState({
   loadElevationProfile,
   clearProfile,
 }: UseMapStateParams) {
-  const [toast, setToast] = useState<{
-    message: string;
-    type: ToastType;
-    action?: { label: string; onClick: () => void };
-  } | null>(null);
+  const [toasts, setToasts] = useState<
+    Array<{
+      id: string;
+      message: string;
+      type: ToastType;
+      action?: { label: string; onClick: () => void };
+    }>
+  >([]);
   const [showSettings, setShowSettings] = useState(false);
   const [sessionDraft, setSessionDraft] = useState<GlobalState | null>(null);
   const latestAppStateRef = useRef(appState);
@@ -49,12 +52,26 @@ export function useMapState({
     }
   }, []);
 
-  const showToast = (message: string, type: ToastType, action?: { label: string; onClick: () => void }) => {
-    setToast({ message, type, action });
+  const showToast = (
+    message: string,
+    type: ToastType,
+    action?: { label: string; onClick: () => void },
+  ) => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setToasts((prev) => {
+      // Keep max 3 toasts; drop the oldest if needed
+      const next = [...prev, { id, message, type, action }];
+      return next.length > 3 ? next.slice(next.length - 3) : next;
+    });
   };
 
-  const closeToast = () => {
-    setToast(null);
+  const closeToast = (id?: string) => {
+    if (id) {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    } else {
+      // Legacy: close all (backward compat for callers without id)
+      setToasts([]);
+    }
   };
 
   const openSettings = () => {
@@ -171,8 +188,10 @@ export function useMapState({
   );
 
   return {
-    toast,
+    toasts,
     closeToast,
+    /** @deprecated use toasts[] instead */
+    toast: toasts[toasts.length - 1] ?? null,
     showToast,
     showSettings,
     openSettings,

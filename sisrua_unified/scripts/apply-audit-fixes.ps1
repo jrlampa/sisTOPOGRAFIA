@@ -46,7 +46,6 @@ if (-not (Test-Path $envSecretsPath)) {
 # Add to .gitignore and rotate regularly.
 
 # API Keys
-GROQ_API_KEY=sk-test-PLACEHOLDER-REPLACE-WITH-REAL-KEY
 REDIS_PASSWORD=test-redis-password-CHANGE-IN-PROD
 
 # Admin/Metrics Tokens (generate with: openssl rand -hex 32)
@@ -62,7 +61,6 @@ DATABASE_URL=
 }
 
 $secretFiles = @(
-  @{ Path = (Join-Path $SecretsDir "groq_api_key.txt"); Value = "sk-test-PLACEHOLDER"; Label = "groq_api_key.txt" },
   @{ Path = (Join-Path $SecretsDir "redis_password.txt"); Value = "test-redis-password"; Label = "redis_password.txt" },
   @{ Path = (Join-Path $SecretsDir "admin_token.txt"); Value = ""; Label = "admin_token.txt" },
   @{ Path = (Join-Path $SecretsDir "metrics_token.txt"); Value = ""; Label = "metrics_token.txt" }

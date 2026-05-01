@@ -83,6 +83,17 @@ export default defineConfig(({ mode }) => {
       host: "0.0.0.0",
       // Habilita HTML5 history mode para React Router BrowserRouter
       historyApiFallback: true,
+      hmr: {
+        protocol: "ws",
+        host: "localhost",
+        port: 3000,
+      },
+      watch: {
+        usePolling: true,
+        interval: 1000,
+        binaryInterval: 1000,
+        ignored: ["**/node_modules/**", "**/.git/**", "**/.cache/**"],
+      },
       proxy: {
         "/api": {
           target: "http://localhost:3001",
@@ -171,7 +182,11 @@ export default defineConfig(({ mode }) => {
             if (id.includes("node_modules/lucide-react/")) {
               return "icons";
             }
-            if (id.includes("node_modules/recharts/") || id.includes("node_modules/d3") || id.includes("node_modules/victory-vendor/")) {
+            if (
+              id.includes("node_modules/recharts/") ||
+              id.includes("node_modules/d3") ||
+              id.includes("node_modules/victory-vendor/")
+            ) {
               return "recharts";
             }
             if (id.includes("node_modules/exceljs/")) {
@@ -179,9 +194,6 @@ export default defineConfig(({ mode }) => {
             }
             if (id.includes("node_modules/posthog-js/")) {
               return "analytics";
-            }
-            if (id.includes("node_modules/groq-sdk/") || id.includes("node_modules/groq/")) {
-              return "ai-sdk";
             }
             if (id.includes("node_modules/jszip/")) {
               return "jszip";

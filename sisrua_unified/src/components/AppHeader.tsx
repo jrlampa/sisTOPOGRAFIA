@@ -16,6 +16,8 @@ import type { HealthStatus } from "../hooks/useBackendHealth";
 import type { AppLocale } from "../types";
 import { getAppHeaderText } from "../i18n/appHeaderText";
 import type { HistoryEntry } from "../hooks/useUndoRedo";
+import { useReducedMotion } from "../theme/motion";
+import { trackHeaderAction, trackAutoSaveStatus } from "../utils/analytics";
 
 interface AppHeaderProps {
   locale: AppLocale;
@@ -60,11 +62,18 @@ export function AppHeader({
 }: AppHeaderProps) {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   const actionButtonClass =
-    "flex h-11 w-11 items-center justify-center rounded-2xl border-2 transition-all";
+    "flex items-center justify-center rounded-2xl border-2 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900";
 
   const t = getAppHeaderText(locale);
+
+  // UX-20: Track autosave errors for error-rate baseline metric
+  React.useEffect(() => {
+    if (autoSaveStatus === "error") trackAutoSaveStatus("error");
+    else if (autoSaveStatus === "saving") trackAutoSaveStatus("saving");
+  }, [autoSaveStatus]);
 
   const backendStatusLabel =
     backendStatus === "online"
@@ -115,12 +124,17 @@ export function AppHeader({
               onRedo={onRedo}
               past={past}
               future={future}
+              locale={locale}
             />
             <div className="flex items-center gap-2">
               <div className="relative">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
-                  onClick={onSaveProject}
+                  onClick={() => {
+                    trackHeaderAction("save_project");
+                    onSaveProject();
+                  }}
+                  aria-label={t.saveProject}
                   className={`${actionButtonClass} !h-10 !w-10 border-none shadow-sm ${
                     isDark
                       ? "bg-amber-500/10 text-amber-400"
@@ -134,12 +148,17 @@ export function AppHeader({
                   <AutoSaveIndicator
                     status={autoSaveStatus}
                     lastSaved={lastAutoSaved}
+                    locale={locale}
                   />
                 </div>
               </div>
               <motion.button
                 whileTap={{ scale: 0.95 }}
-                onClick={handleOpenProjectClick}
+                onClick={() => {
+                  trackHeaderAction("open_project");
+                  handleOpenProjectClick();
+                }}
+                aria-label={t.openProject}
                 className={`${actionButtonClass} !h-10 !w-10 border-none shadow-sm ${
                   isDark
                     ? "bg-amber-500/10 text-amber-400"
@@ -242,9 +261,13 @@ export function AppHeader({
             <motion.div
               aria-live="polite"
               initial={false}
-              animate={{
-                scale: backendStatus === "offline" ? [1, 1.02, 1] : 1,
-              }}
+              animate={
+                prefersReducedMotion
+                  ? false
+                  : {
+                      scale: backendStatus === "offline" ? [1, 1.02, 1] : 1,
+                    }
+              }
               transition={{ repeat: Infinity, duration: 2 }}
               className={`group relative flex items-center gap-2 overflow-hidden rounded-full border px-3 py-1 text-xs font-black tracking-wider transition-all duration-500 ${
                 backendStatus === "online"
@@ -260,15 +283,15 @@ export function AppHeader({
               }
             >
               <span className="relative flex h-2 w-2">
-                <span
-                  className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${
-                    backendStatus === "online"
-                      ? "bg-emerald-500"
-                      : backendStatus === "degraded"
+                {backendStatus !== "online" && (
+                  <span
+                    className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${
+                      backendStatus === "degraded"
                         ? "bg-amber-500"
                         : "bg-rose-500"
-                  }`}
-                />
+                    }`}
+                  />
+                )}
                 <span
                   className={`relative inline-flex h-2 w-2 rounded-full ${
                     backendStatus === "online"
@@ -301,34 +324,41 @@ export function AppHeader({
               ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
               : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
           }`}
-          onClick={() => setIsMobileMenuOpen((v) => !v)}
           aria-label={isMobileMenuOpen ? "Fechar menu" : "Abrir menu"}
           aria-expanded={isMobileMenuOpen}
+          onClick={() => {
+            const next = !isMobileMenuOpen;
+            trackHeaderAction(next ? "mobile_menu_open" : "mobile_menu_close");
+            setIsMobileMenuOpen(next);
+          }}
         >
           {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
 
         {/* Desktop: sidebar toggle + history */}
         <div className="hidden md:flex items-center gap-3">
-          <motion.button
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onToggleSidebarCollapsed}
-            className={`${actionButtonClass} shadow-lg transition-all duration-300 ${
+          <button
+            onClick={() => {
+              trackHeaderAction("toggle_sidebar");
+              onToggleSidebarCollapsed();
+            }}
+            className={`group relative ${actionButtonClass} h-11 w-11 shadow-sm ${
               isDark
-                ? "border-white/10 bg-white/5 text-slate-100 shadow-black/20 hover:bg-white/10 hover:shadow-cyan-500/10"
-                : "border-sky-100 bg-sky-50 text-sky-700 shadow-sky-500/5 hover:bg-sky-100 hover:shadow-sky-500/10"
+                ? "border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
+                : "border-sky-100 bg-sky-50 text-sky-700 hover:bg-sky-100"
             }`}
-            title={
-              isSidebarCollapsed ? t.toggleSidebarOpen : t.toggleSidebarClose
-            }
+            aria-expanded={!isSidebarCollapsed}
+            aria-controls="sidebar-workspace"
           >
             {isSidebarCollapsed ? (
               <PanelLeftOpen size={20} strokeWidth={2.5} />
             ) : (
               <PanelLeftClose size={20} strokeWidth={2.5} />
             )}
-          </motion.button>
+            <span className="absolute top-full mt-2 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
+              {isSidebarCollapsed ? t.toggleSidebarOpen : t.toggleSidebarClose}
+            </span>
+          </button>
 
           <HistoryControls
             canUndo={canUndo}
@@ -337,6 +367,7 @@ export function AppHeader({
             onRedo={onRedo}
             past={past}
             future={future}
+            locale={locale}
           />
         </div>
 
@@ -350,71 +381,72 @@ export function AppHeader({
 
         {/* Desktop: save/open/help/settings — hidden on mobile */}
         <div className="hidden md:flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-2xl bg-slate-100/50 p-1 dark:bg-slate-800/50">
-            <div className="relative group">
-              <motion.button
-                whileHover={{ scale: 1.05, y: -1 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onSaveProject}
-                className={`${actionButtonClass} !h-10 !w-10 border-none shadow-sm ${
-                  isDark
-                    ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
-                    : "bg-white text-amber-600 hover:bg-amber-50"
-                }`}
-                title={t.saveProject}
-              >
-                <Save size={18} strokeWidth={2.5} />
-              </motion.button>
-              <div className="absolute -top-1.5 -right-2 transition-all">
-                <AutoSaveIndicator
-                  status={autoSaveStatus}
-                  lastSaved={lastAutoSaved}
-                />
-              </div>
-            </div>
+          
+          <button
+            onClick={() => {
+              trackHeaderAction("open_help");
+              onOpenHelp();
+            }}
+            aria-label={t.openHelp}
+            className={`group relative ${actionButtonClass} h-11 w-11 border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/10`}
+          >
+            <HelpCircle size={20} strokeWidth={2} />
+            <span className="absolute top-full mt-2 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
+              {t.openHelp}
+            </span>
+          </button>
 
-            <motion.button
-              whileHover={{ scale: 1.05, y: -1 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleOpenProjectClick}
-              className={`${actionButtonClass} !h-10 !w-10 border-none shadow-sm ${
-                isDark
-                  ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
-                  : "bg-white text-amber-600 hover:bg-amber-50"
-              }`}
-              title={t.openProject}
+          <button
+            onClick={() => {
+              trackHeaderAction("open_settings");
+              onOpenSettings();
+            }}
+            aria-label={t.openSettings}
+            className={`group relative ${actionButtonClass} h-11 w-11 border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/10`}
+          >
+            <Settings size={20} strokeWidth={2} />
+            <span className="absolute top-full mt-2 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
+              {t.openSettings}
+            </span>
+          </button>
+
+          <div className="h-6 w-px bg-slate-200 dark:bg-white/10 mx-1" />
+
+          <button
+            onClick={() => {
+              trackHeaderAction("open_project");
+              handleOpenProjectClick();
+            }}
+            aria-label={t.openProject}
+            className={`group relative ${actionButtonClass} h-11 w-11 border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:border-white/20`}
+          >
+            <FolderOpen size={18} strokeWidth={2} />
+            <span className="absolute top-full mt-2 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
+              {t.openProject}
+            </span>
+          </button>
+
+          <div className="relative group">
+            <button
+              onClick={() => {
+                trackHeaderAction("save_project");
+                onSaveProject();
+              }}
+              aria-label={t.saveProject}
+              className={`${actionButtonClass} h-11 px-4 border-amber-500 bg-amber-500 text-white font-bold text-sm shadow-sm hover:bg-amber-600 hover:border-amber-600 dark:shadow-none dark:hover:bg-amber-400 dark:hover:border-amber-400`}
+              title={t.saveProject}
             >
-              <FolderOpen size={18} strokeWidth={2.5} />
-            </motion.button>
+              <Save size={18} strokeWidth={2.5} className="mr-2" />
+              {t.saveProject}
+            </button>
+            <div className="absolute -top-2 -right-2 transition-all">
+              <AutoSaveIndicator
+                status={autoSaveStatus}
+                lastSaved={lastAutoSaved}
+                locale={locale}
+              />
+            </div>
           </div>
-
-          <motion.button
-            whileHover={{ scale: 1.05, rotate: 15 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onOpenHelp}
-            className={`${actionButtonClass} !h-12 !w-12 shadow-lg transition-all ${
-              isDark
-                ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20"
-                : "border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 shadow-cyan-200/50"
-            }`}
-            title={t.openHelp}
-          >
-            <HelpCircle size={22} strokeWidth={2} />
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05, rotate: 15 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onOpenSettings}
-            className={`${actionButtonClass} !h-12 !w-12 shadow-lg transition-all ${
-              isDark
-                ? "border-white/10 bg-slate-900 text-slate-300 hover:bg-slate-800"
-                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 shadow-slate-200/50"
-            }`}
-            title={t.openSettings}
-          >
-            <Settings size={22} strokeWidth={2} />
-          </motion.button>
         </div>
       </div>
 

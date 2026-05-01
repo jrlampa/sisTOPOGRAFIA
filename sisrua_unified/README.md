@@ -308,7 +308,7 @@ npm run build
 
 ## 🎯 Funcionalidades
 
-- ✅ Busca de localização com AI (GROQ) e UTM
+- ✅ Busca de localização com AI (Ollama) e UTM
 - ✅ Seleção de área (círculo/polígono)
 - ✅ Importação KML
 - ✅ Exportação DXF com coordenadas UTM absolutas

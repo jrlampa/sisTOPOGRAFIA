@@ -47,7 +47,6 @@ if [ ! -f ".env" ]; then
   echo "  Note: No .env file found. Creating .env.example for reference."
   cat > .env.example << 'EOF'
 # Development environment variables
-GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 GCP_PROJECT=sisrua-producao
 CLOUD_TASKS_LOCATION=southamerica-east1
 CLOUD_TASKS_QUEUE=sisrua-queue

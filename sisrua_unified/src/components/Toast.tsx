@@ -21,6 +21,7 @@ interface ToastProps {
     label: string;
     onClick: () => void;
   };
+  stackOffset?: number;
 }
 
 const Toast: React.FC<ToastProps> = ({
@@ -29,6 +30,7 @@ const Toast: React.FC<ToastProps> = ({
   onClose,
   duration = 4000,
   action,
+  stackOffset = 0,
 }) => {
   useEffect(() => {
     // UX-20: Track error friction
@@ -38,7 +40,7 @@ const Toast: React.FC<ToastProps> = ({
 
     // If there is an action (like Retry), we might want to keep the toast open longer
     const adjustedDuration = action ? duration * 2 : duration;
-    
+
     const timer = setTimeout(() => {
       onClose();
     }, adjustedDuration);
@@ -103,7 +105,8 @@ const Toast: React.FC<ToastProps> = ({
       exit={{ opacity: 0, scale: 0.9, y: -20, x: 20 }}
       role="alert"
       aria-live="polite"
-      className={`fixed top-4 right-4 z-[1000] flex items-center gap-3 p-4 rounded-2xl border bg-gradient-to-br ${borderColors[type]} ${bgColors[type]} max-w-md w-[calc(100vw-2rem)] md:w-full transition-colors shadow-2xl backdrop-blur-lg`}
+      style={{ top: `${16 + stackOffset * 80}px` }}
+      className={`fixed right-4 z-[1000] flex items-center gap-3 p-4 rounded-2xl border bg-gradient-to-br ${borderColors[type]} ${bgColors[type]} max-w-md w-[calc(100vw-2rem)] md:w-full transition-colors shadow-2xl backdrop-blur-lg`}
     >
       <div className={`shrink-0 p-2 rounded-xl ${iconContainers[type]}`}>
         {icons[type]}

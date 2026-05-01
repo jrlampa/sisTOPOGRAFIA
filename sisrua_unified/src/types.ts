@@ -106,6 +106,7 @@ export interface LayerConfig {
   grid: boolean;
   btNetwork: boolean;
   mtNetwork: boolean;
+  electricalAudit: boolean;
 }
 
 export type ProjectionType = "local" | "utm";
