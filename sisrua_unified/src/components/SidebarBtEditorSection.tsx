@@ -26,6 +26,7 @@ import type { BtTransformerDerived } from "../services/btDerivedService";
 import type { PendingNormalClassificationPole } from "../utils/btNormalization";
 import type { AppLocale } from "../types";
 import { getSidebarBtEditorText } from "../i18n/sidebarBtEditorText";
+import { useTelescopicRemediation } from "../hooks/useTelescopicRemediation";
 import type {
   BtEdgeChangeFlag,
   BtPoleChangeFlag,
@@ -179,6 +180,18 @@ export function SidebarBtEditorSection({
   );
 
   const t = getSidebarBtEditorText(locale);
+
+  const { applyTelescopicUpgrade } = useTelescopicRemediation();
+
+  const handleRemediateCqt = () => {
+    const criticalPoleId = btAccumulatedByPole[0]?.poleId;
+    if (!criticalPoleId) return;
+
+    const remediatedTopology = applyTelescopicUpgrade(btTopology, criticalPoleId);
+    if (remediatedTopology !== btTopology) {
+      updateBtTopology(remediatedTopology);
+    }
+  };
 
   return (
     <>
@@ -411,6 +424,7 @@ export function SidebarBtEditorSection({
             onAcceptAll={onAcceptDgAll ?? (() => undefined)}
             onAcceptTrafoOnly={onAcceptDgTrafoOnly ?? (() => undefined)}
             onDiscard={onClearDgResult ?? (() => undefined)}
+            onRemediateCqt={handleRemediateCqt}
           />
         </>
       )}

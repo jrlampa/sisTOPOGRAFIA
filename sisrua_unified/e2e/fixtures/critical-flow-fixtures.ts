@@ -14,7 +14,7 @@ export interface HealthReleaseSnapshot {
 }
 
 export const CRITICAL_FLOW_FIXTURES = {
-  backendBaseUrl: process.env.E2E_BACKEND_URL ?? "http://localhost:3001",
+  backendBaseUrl: process.env.E2E_BACKEND_URL ?? "http://127.0.0.1:3001",
   metricsToken: process.env.METRICS_TOKEN ?? "release-smoke-metrics-token",
   constantsRefreshToken: process.env.E2E_CONSTANTS_REFRESH_TOKEN,
   snapshotPath: path.resolve(

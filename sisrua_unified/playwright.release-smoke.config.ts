@@ -11,7 +11,7 @@ export default defineConfig({
     ["json", { outputFile: "test-results/release-smoke-report.json" }],
   ],
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://127.0.0.1:3000",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
@@ -22,8 +22,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
+    command: "npm run server",
+    url: "http://127.0.0.1:3001/health",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
     env: {

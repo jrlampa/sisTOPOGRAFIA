@@ -7,7 +7,7 @@
     "ollama"
   ],
   "configEnvironment": "test",
-  "constantsCatalogNamespaces": null,
+  "constantsCatalogNamespaces": [],
   "queueBackendType": "undefined",
   "queueBackendAllowed": false,
   "hasExternalApiSection": true,

@@ -90,8 +90,10 @@ function ElectricalResultRow({
 
 function DiscardReasonList({
   summary,
+  onRemediate,
 }: {
   summary: Partial<Record<DgConstraintCode, number>>;
+  onRemediate?: (code: DgConstraintCode) => void;
 }) {
   const { t } = useTranslation();
   const entries = Object.entries(summary) as [DgConstraintCode, number][];
@@ -102,18 +104,30 @@ function DiscardReasonList({
         Motivos de descarte & Soluções
       </div>
       {entries.map(([code, count]) => (
-        <div key={code} className="space-y-0.5">
-          <div className="flex justify-between text-xs">
-            <span className="font-bold text-amber-900 dark:text-amber-200">
-              {t(`dgConstraints.${code}`, code)}
-            </span>
-            <span className="font-black text-amber-700 dark:text-amber-400">
+        <div key={code} className="space-y-1">
+          <div className="flex justify-between text-xs items-start">
+            <div className="flex flex-col flex-1">
+              <span className="font-bold text-amber-900 dark:text-amber-200 leading-tight">
+                {t(`dgConstraints.${code}`, code)}
+              </span>
+              <p className="text-[10px] leading-tight text-amber-800/80 dark:text-amber-300/60 italic mt-0.5">
+                {t(`dgTips.${code}`, "")}
+              </p>
+            </div>
+            <span className="font-black text-amber-700 dark:text-amber-400 ml-2">
               {count}×
             </span>
           </div>
-          <p className="text-[10px] leading-tight text-amber-800/80 dark:text-amber-300/60 italic">
-            {t(`dgTips.${code}`, "")}
-          </p>
+          
+          {code === "CQT_LIMIT_EXCEEDED" && onRemediate && (
+            <button
+              onClick={() => onRemediate(code)}
+              className="w-full mt-1.5 py-1 px-2 bg-amber-200 text-amber-900 text-[9px] font-black uppercase tracking-widest rounded-md hover:bg-amber-300 transition-all border border-amber-400/30 flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <Zap size={10} className="fill-current" />
+              Remediar: Upgrade Telescópico
+            </button>
+          )}
         </div>
       ))}
     </div>
@@ -205,6 +219,7 @@ export interface DgOptimizationPanelProps {
   onAcceptAll: (scenario: DgScenario) => void;
   onAcceptTrafoOnly: (scenario: DgScenario) => void;
   onDiscard: () => void;
+  onRemediateCqt?: () => void;
 }
 
 // ─── Componente principal ──────────────────────────────────────────────────────
@@ -227,6 +242,7 @@ export function DgOptimizationPanel({
   onAcceptAll,
   onAcceptTrafoOnly,
   onDiscard,
+  onRemediateCqt,
 }: DgOptimizationPanelProps) {
   const { t } = useTranslation();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -480,7 +496,14 @@ export function DgOptimizationPanel({
             {t("dgPanel.discarded", { count: rec?.discardedCount ?? 0 })}
           </div>
 
-          {rec && <DiscardReasonList summary={rec.discardReasonSummary} />}
+          {rec && (
+            <DiscardReasonList 
+              summary={rec.discardReasonSummary} 
+              onRemediate={(code) => {
+                if (code === "CQT_LIMIT_EXCEEDED") onRemediateCqt?.();
+              }}
+            />
+          )}
 
           {(currentTransformer || currentTotalCableLengthMeters != null) && (
             <div className="space-y-1 rounded-lg border border-violet-300/40 bg-white/70 p-2 dark:border-violet-600/40 dark:bg-zinc-900/30">

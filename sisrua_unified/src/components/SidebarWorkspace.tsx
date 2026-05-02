@@ -180,11 +180,13 @@ export function SidebarWorkspace({
             return (
               <button
                 key={s.id}
+                data-testid={`sidebar-stage-collapsed-${s.id}`}
                 onClick={() => {
                   setActiveStage(s.id);
                   onToggleCollapse(false);
                 }}
                 title={s.label}
+                aria-label={s.label}
                 className={`group relative flex h-12 w-12 items-center justify-center rounded-2xl transition-all ${
                   isActive
                     ? "bg-white/80 shadow-md dark:bg-white/10 glass-shine"
@@ -271,8 +273,10 @@ export function SidebarWorkspace({
           return (
             <button
               key={s.id}
+              data-testid={`sidebar-stage-${s.id}`}
               onClick={() => setActiveStage(s.id)}
               title={s.helper}
+              aria-label={s.label}
               className={`group relative flex flex-col items-center gap-2 rounded-xl py-3 transition-all ${
                 isActive
                   ? "bg-white/70 shadow-lg shadow-slate-200/50 dark:bg-white/10 dark:shadow-none glass-shine"

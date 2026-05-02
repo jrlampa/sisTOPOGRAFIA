@@ -57,7 +57,8 @@ export const requireMetricsToken = (
   res: Response,
   next: NextFunction
 ) => {
-  const token = req.headers.authorization?.replace(/^Bearer\s+/i, "");
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.replace(/^Bearer\s+/i, "");
 
   if (!config.METRICS_TOKEN) {
     logger.warn("[AuthGuard] METRICS_TOKEN not configured - metrics endpoint is open", {
@@ -65,6 +66,14 @@ export const requireMetricsToken = (
       ip: req.ip,
     });
     return next();
+  }
+
+  if (!authHeader) {
+    return res.status(401).json({
+      error: "Unauthorized",
+      code: "UNAUTHORIZED",
+      message: "Authorization header required",
+    });
   }
 
   if (!token || token !== config.METRICS_TOKEN) {

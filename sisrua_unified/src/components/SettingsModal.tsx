@@ -179,6 +179,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               return (
                 <button
                   key={tab.id}
+                  id={`settings-tab-${tab.id}`}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 ${
                     isActive

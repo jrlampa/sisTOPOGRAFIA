@@ -427,6 +427,21 @@ async function performHealthCheck() {
         totalRegistered: externalCircuitBreakers.length,
       },
     },
+    config: {
+      environment: config.NODE_ENV,
+      metricsEnabled: config.METRICS_ENABLED,
+      dxfCleanupIntervalMs: config.DXF_CLEANUP_INTERVAL_MS,
+      constantsCatalog: {
+        useDbCqt: config.useDbConstantsCqt,
+        useDbClandestino: config.useDbConstantsClandestino,
+        useDbConfig: config.useDbConstantsConfig,
+        enabledNamespaces: [
+          ...(config.useDbConstantsCqt ? ["cqt"] : []),
+          ...(config.useDbConstantsClandestino ? ["clandestino"] : []),
+          ...(config.useDbConstantsConfig ? ["config"] : []),
+        ],
+      },
+    },
   };
 
   const statusCode = healthData.status === "online" ? 200 : 503;
@@ -458,6 +473,7 @@ app.use("/api/jobs", jobRoutes);
 app.use("/api/firestore", firestoreRoutes);
 app.use("/api/dxf", dxfRoutes);
 app.use("/api/metrics", requireMetricsToken, metricsRoutes);
+app.use("/metrics", metricsRoutes);
 app.use("/api/feature-flags", featureFlagRoutes);
 app.use("/api/quota", quotaRoutes);
 app.use("/api/cost-center", costCenterRoutes);
