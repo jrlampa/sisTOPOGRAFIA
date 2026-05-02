@@ -37,9 +37,8 @@ import {
 import {
   getPoleClandestinoClients,
   getPoleNormalClients,
-  getPolesPendingNormalClassification,
-  migrateClandestinoToDefaultNormalType,
 } from "../utils/btPoleProjectTypeUtils";
+import { useBtPoleClandestinoHandlers } from "./useBtPoleClandestinoHandlers";
 import { generateEntityId, ID_PREFIX } from "../utils/idGenerator";
 import { fetchBtDerivedState } from "../services/btDerivedService";
 import { API_BASE_URL } from "../config/api";
@@ -80,12 +79,25 @@ export function useBtPoleOperations({
     pendingNormalClassificationPoles,
     setPendingNormalClassificationPoles,
   ] = useState<PendingNormalClassificationPole[]>([]);
-  const [clandestinoToNormalModal, setClandestinoToNormalModal] = useState<{
-    poles: PendingNormalClassificationPole[];
-  } | null>(null);
-  const [normalToClandestinoModal, setNormalToClandestinoModal] = useState<{
-    totalNormalClients: number;
-  } | null>(null);
+  const {
+    clandestinoToNormalModal,
+    setClandestinoToNormalModal,
+    normalToClandestinoModal,
+    setNormalToClandestinoModal,
+    onProjectTypeChange,
+    handleClandestinoToNormalClassifyLater,
+    handleClandestinoToNormalConvertNow,
+    handleNormalToClandestinoKeepClients,
+    handleNormalToClandestinoZeroNormalClients,
+  } = useBtPoleClandestinoHandlers({
+    btTopology,
+    settings,
+    setAppState,
+    showToast,
+    undo,
+    applyProjectTypeSwitch,
+    setPendingNormalClassificationPoles,
+  });
   const [normalRamalModal, setNormalRamalModal] = useState<{
     poleId: string;
     poleTitle: string;
@@ -680,107 +692,7 @@ export function useBtPoleOperations({
     setNormalRamalModal(null);
   };
 
-  const onProjectTypeChange = (nextProjectType: BtProjectType) => {
-    const currentProjectType = settings.projectType ?? "ramais";
-    if (currentProjectType === nextProjectType) {
-      return;
-    }
 
-    if (currentProjectType === "clandestino" && nextProjectType === "ramais") {
-      const pendingPoles = getPolesPendingNormalClassification(btTopology);
-      if (pendingPoles.length > 0) {
-        setClandestinoToNormalModal({ poles: pendingPoles });
-        return;
-      }
-    }
-
-    if (currentProjectType === "ramais" && nextProjectType === "clandestino") {
-      const totalNormalClients = btTopology.poles.reduce(
-        (acc, pole) => acc + getPoleNormalClients(pole),
-        0,
-      );
-      if (totalNormalClients > 0) {
-        setNormalToClandestinoModal({ totalNormalClients });
-        return;
-      }
-    }
-
-    setPendingNormalClassificationPoles([]);
-    setAppState(
-      (prev) => ({
-        ...prev,
-        settings: { ...prev.settings, projectType: nextProjectType },
-      }),
-      true,
-    );
-  };
-
-  const handleClandestinoToNormalClassifyLater = () => {
-    if (!clandestinoToNormalModal) {
-      return;
-    }
-
-    setPendingNormalClassificationPoles(clandestinoToNormalModal.poles);
-    applyProjectTypeSwitch("ramais");
-    setClandestinoToNormalModal(null);
-    showToast(
-      "Projeto mudou para Normal. Classificação de ramais pendente (DXF bloqueado).",
-      "info",
-      { label: "Desfazer", onClick: undo }
-    );
-  };
-
-  const handleClandestinoToNormalConvertNow = () => {
-    if (!clandestinoToNormalModal) {
-      return;
-    }
-
-    const migratedTopology = migrateClandestinoToDefaultNormalType(
-      btTopology,
-      NORMAL_CLIENT_RAMAL_TYPES[0],
-    );
-    setPendingNormalClassificationPoles([]);
-    applyProjectTypeSwitch("ramais", migratedTopology);
-    setClandestinoToNormalModal(null);
-    showToast("Ramais clandestinos migrados para Ramal Monofasico.", "success", {
-      label: "Desfazer",
-      onClick: undo,
-    });
-  };
-
-  const handleNormalToClandestinoKeepClients = () => {
-    setPendingNormalClassificationPoles([]);
-    applyProjectTypeSwitch("clandestino");
-    setNormalToClandestinoModal(null);
-    showToast(
-      "Mudança para Clandestino mantendo clientes normais para possível retorno.",
-      "info",
-      { label: "Desfazer", onClick: undo }
-    );
-  };
-
-  const handleNormalToClandestinoZeroNormalClients = () => {
-    const cleanedTopology: BtTopology = {
-      ...btTopology,
-      poles: btTopology.poles.map((pole) => ({
-        ...pole,
-        ramais: (pole.ramais ?? []).filter(
-          (ramal) =>
-            (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) ===
-            CLANDESTINO_RAMAL_TYPE,
-        ),
-      })),
-    };
-
-    setPendingNormalClassificationPoles([]);
-    applyProjectTypeSwitch("clandestino", cleanedTopology);
-    setNormalToClandestinoModal(null);
-    showToast(
-      "Clientes normais zerados. Apenas ramais clandestinos foram mantidos.",
-      "success",
-      { label: "Desfazer", onClick: undo }
-    );
-  };
 
   return {
     // ── UI State ───────────────────────────────────────────────────────────

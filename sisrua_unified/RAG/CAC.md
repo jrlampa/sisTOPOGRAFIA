@@ -32,6 +32,10 @@
 - **Chave**: `input_hash` (Baseado em coordenadas de postes + params técnicos).
 - **Mecanismo**: Evita re-cálculo de projetos pesados se a topologia for idêntica, retornando o `scenario_id` recomendado imediatamente.
 
+### Camada 7: Hook-Level State Isolation (React Architecture)
+- **Mecanismo**: Divisão de estados monolíticos em hooks especializados (`useAppEngineeringWorkflows`, `useAppLifecycleEffects`, `useAppMainHandlers`).
+- **Benefício**: Redução de re-renders desnecessários no `AppWorkspace` ao isolar lógicas de negócio pesadas em sub-lifecycles. Melhora a percepção de performance (UX-20) e facilita o Unit Testing.
+
 ## 📊 Monitoramento de Saúde (Health Check)
 Monitorado via `private.db_health_report()` diariamente às 07:00 UTC.
 - **Target Cache Hit Ratio**: > 99%.

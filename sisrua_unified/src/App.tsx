@@ -25,10 +25,23 @@ import { useBtCriticalConfirmations } from "./hooks/useBtCriticalConfirmations";
 import { useBtTelescopicAnalysis } from "./hooks/useBtTelescopicAnalysis";
 import { useMapUrlState } from "./hooks/useMapUrlState";
 import { useDgOptimization } from "./hooks/useDgOptimization";
+import { useAppOrchestrator } from "./hooks/useAppOrchestrator";
+import { useAppGlobalHotkeys } from "./hooks/useAppGlobalHotkeys";
+import { useAppCommandPalette } from "./hooks/useAppCommandPalette";
+import { useAppMapSelectorProps } from "./hooks/useAppMapSelectorProps";
+import { useAppSidebarProps } from "./hooks/useAppSidebarProps";
+import { useAppInspectedElement } from "./hooks/useAppInspectedElement";
+import { useAppBimInspector } from "./hooks/useAppBimInspector";
+import { useAppEngineeringWorkflows } from "./hooks/useAppEngineeringWorkflows";
+import { useAppElectricalAudit } from "./hooks/useAppElectricalAudit";
+import { useAppLifecycleEffects } from "./hooks/useAppLifecycleEffects";
+import { useAppMainHandlers } from "./hooks/useAppMainHandlers";
+import { useAppTopologySources } from "./hooks/useAppTopologySources";
 import type { DgScenario } from "./hooks/useDgOptimization";
 import type { DgWizardParams } from "./components/DgWizardModal";
 import { EMPTY_BT_TOPOLOGY } from "./utils/btNormalization";
 import { AppShellLayout } from "./components/AppShellLayout";
+import { AppWorkspace } from "./components/AppWorkspace";
 import { GuidedTaskChecklist } from "./components/GuidedTaskChecklist";
 import { INITIAL_APP_STATE } from "./app/initialState";
 import { persistAppSettings } from "./utils/preferencesPersistence";
@@ -89,37 +102,16 @@ function App() {
   const [isFocusModeManual, setIsFocusModeManual] = React.useState(false);
 
   const {
-    state: appState,
-    past: appPast,
-    future: appFuture,
-    setState: setAppStateBase,
+    appState,
+    appPast,
+    appFuture,
+    setAppState,
     undo,
     redo,
     canUndo,
     canRedo,
     saveSnapshot,
-  } = useUndoRedo<GlobalState>(
-    synchronizeGlobalTopologyState(INITIAL_APP_STATE),
-  );
-
-  const setAppState = React.useCallback(
-    (
-      nextState: GlobalState | ((prev: GlobalState) => GlobalState),
-      addToHistory = true,
-      actionLabel = "Ação",
-    ) => {
-      setAppStateBase(
-        (prev) => {
-          const resolvedNext =
-            typeof nextState === "function" ? nextState(prev) : nextState;
-          return synchronizeGlobalTopologyState(resolvedNext);
-        },
-        addToHistory,
-        actionLabel,
-      );
-    },
-    [setAppStateBase],
-  );
+  } = useAppOrchestrator();
 
   // Derived state
   const { center, radius, selectionMode, polygon, settings } = appState;
@@ -128,57 +120,10 @@ function App() {
     settings.btNetworkScenario ?? "asis";
   const isDark = settings.theme === "dark";
   const btEditorMode: BtEditorMode = settings.btEditorMode ?? "none";
-  const mtTopology = React.useMemo(
-    () => mergeMtTopologyWithBtPoles(btTopology, appState.mtTopology),
-    [btTopology, appState.mtTopology],
-  );
-  const mapRenderSources = React.useMemo(
-    () =>
-      selectMapTopologyRenderSources({
-        canonicalTopology: appState.canonicalTopology,
-        btTopology,
-        mtTopology,
-        btTransformers: btTopology.transformers,
-      }),
-    [appState.canonicalTopology, btTopology, mtTopology],
-  );
-  const dgTopologySource = React.useMemo<BtTopology>(() => {
-    const markerTopology = mapRenderSources.btMarkerTopology;
-
-    return {
-      poles: markerTopology.poles.map((pole) => {
-        const existingPole = btTopology.poles.find(
-          (item) => item.id === pole.id,
-        );
-        return {
-          ...existingPole,
-          ...pole,
-          ramais: pole.ramais ?? existingPole?.ramais ?? [],
-        };
-      }),
-      transformers: markerTopology.transformers.map((transformer) => {
-        const existingTransformer = btTopology.transformers.find(
-          (item) => item.id === transformer.id,
-        );
-        return {
-          ...existingTransformer,
-          ...transformer,
-          readings: transformer.readings ?? existingTransformer?.readings ?? [],
-        };
-      }),
-      edges: markerTopology.edges.map((edge) => {
-        const existingEdge = btTopology.edges.find(
-          (item) => item.id === edge.id,
-        );
-        return {
-          ...existingEdge,
-          ...edge,
-          conductors: edge.conductors ?? existingEdge?.conductors ?? [],
-        };
-      }),
-    };
-  }, [mapRenderSources.btMarkerTopology, btTopology]);
+    const { mtTopology, mapRenderSources, dgTopologySource } = useAppTopologySources({ appState, btTopology });
   const hasBtPoles = btTopology.poles.length > 0;
+
+  const [isXRayMode, setIsXRayMode] = React.useState(false);
 
   const isFocusMode =
     isFocusModeManual ||
@@ -186,17 +131,7 @@ function App() {
       btEditorMode !== "none" &&
       btEditorMode !== undefined);
 
-  // Ctrl+F for Focus Mode
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "f") {
-        e.preventDefault();
-        setIsFocusModeManual((prev) => !prev);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  useAppGlobalHotkeys(setIsFocusModeManual, setIsXRayMode);
 
   const {
     btAccumulatedByPole,
@@ -227,9 +162,7 @@ function App() {
   const { status: autoSaveStatus, lastSaved: lastAutoSaved } =
     useAutoSave(appState);
 
-  React.useEffect(() => {
-    persistAppSettings(settings);
-  }, [settings]);
+  useAppLifecycleEffects({ settings, isDark, btTopology, btSectioningImpact, showToast, setAppState });
 
   const {
     profileData: elevationProfileData,
@@ -269,95 +202,9 @@ function App() {
   // Sincroniza centro, raio e modo de seleção com os query params da URL.
   useMapUrlState({ appState, setAppState });
 
-  const previousTransformerCountRef = React.useRef(
-    btTopology.transformers.length,
-  );
 
-  React.useEffect(() => {
-    const previousTransformerCount = previousTransformerCountRef.current;
-    const currentTransformerCount = btTopology.transformers.length;
-    const hadTransformerRemoval =
-      currentTransformerCount < previousTransformerCount;
-
-    if (
-      hadTransformerRemoval &&
-      btSectioningImpact.unservedPoleIds.length > 0
-    ) {
-      const unservedPolesCount = btSectioningImpact.unservedPoleIds.length;
-      const unservedClients = btSectioningImpact.unservedClients;
-      showToast(
-        `Atenção: circuito sem transformador (${unservedPolesCount} poste(s), ${unservedClients} cliente(s) sem atendimento).`,
-        "error",
-      );
-    }
-
-    previousTransformerCountRef.current = currentTransformerCount;
-  }, [
-    btTopology.transformers.length,
-    btSectioningImpact.unservedPoleIds.length,
-    btSectioningImpact.unservedClients,
-    showToast,
-  ]);
-
-  // Sync theme with document attribute for CSS variables
-  React.useEffect(() => {
-    document.documentElement.setAttribute(
-      "data-theme",
-      isDark ? "dark" : "light",
-    );
-    document.documentElement.lang = settings.locale;
-    document.documentElement.setAttribute("data-locale", settings.locale);
-    if (isDark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [isDark, settings.locale]);
-
-  // Escuta mudanças no esquema de cores do sistema operacional.
-  // Só aplica se o tema atual ainda coincide com o sistema (usuário não divergiu manualmente).
-  React.useEffect(() => {
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = (e: MediaQueryListEvent) => {
-      const systemTheme = e.matches ? "dark" : "light";
-      // Só segue o sistema se o tema atual já estava seguindo-o
-      setAppState(
-        (prev) => ({
-          ...prev,
-          settings: { ...prev.settings, theme: systemTheme },
-        }),
-        false,
-      );
-    };
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-    // Intencionalmente sem appState/settings nas deps: o listener não deve reagir
-    // a mudanças manuais do usuário — apenas a eventos do sistema.
-  }, [setAppState]);
-
-  const [isBimInspectorOpen, setIsBimInspectorOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    if (selectedPoleId && selectedPoleIds.length === 1) {
-      setIsBimInspectorOpen(true);
-    }
-  }, [selectedPoleId, selectedPoleIds.length]);
-
-  const inspectedPole = React.useMemo(
-    () => btTopology.poles.find((p) => p.id === selectedPoleId) || null,
-    [btTopology.poles, selectedPoleId],
-  );
-
-  const inspectedTransformer = React.useMemo(
-    () =>
-      btTopology.transformers.find((t) => t.poleId === selectedPoleId) || null,
-    [btTopology.transformers, selectedPoleId],
-  );
-
-  const inspectedAccumulatedData = React.useMemo(
-    () => btAccumulatedByPole.find((d) => d.poleId === selectedPoleId) || null,
-    [btAccumulatedByPole, selectedPoleId],
-  );
+  const { isBimInspectorOpen, setIsBimInspectorOpen, inspectedPole, inspectedTransformer, inspectedAccumulatedData } = useAppBimInspector({ selectedPoleId, selectedPoleIds, btTopology, btAccumulatedByPole });
+  const {
     btExportHistory,
     btHistoryTotal,
     btHistoryLoading,
@@ -533,334 +380,37 @@ function App() {
   );
 
   const {
-    isAnalyzing: isBtTelescopicAnalyzing,
-    suggestions: btTelescopicSuggestions,
-    triggerAnalysis: triggerBtTelescopicAnalysis,
-    clearSuggestions: clearBtTelescopicSuggestions,
-  } = useBtTelescopicAnalysis();
-
-  // Design Generativo – Frente 3 (Frontend)
-  const {
-    isOptimizing: isDgOptimizing,
-    result: dgResult,
-    error: dgError,
-    activeAltIndex: dgActiveAltIndex,
-    setActiveAltIndex: setDgActiveAltIndex,
-    activeScenario: dgActiveScenario,
+    lastAppliedDgResults,
+    handleRunDgOptimization,
+    handleAcceptDgAll,
+    handleAcceptDgTrafoOnly,
+    handleDiscardDgResult,
+    handleTriggerTelescopicAnalysis,
+    handleApplyTelescopicSuggestions,
+  } = useAppEngineeringWorkflows({
+    dgTopologySource,
     runDgOptimization,
-    clearDgResult,
+    dgResult,
     logDgDecision,
+    dgActiveScenario,
+    setAppState,
     applyDgAll,
     applyDgTrafoOnly,
-    isPreviewActive,
-    setIsPreviewActive,
-  } = useDgOptimization();
-
-  /** Resultados técnicos do último cenário DG aplicado (para o memorial). */
-  const [lastAppliedDgResults, setLastAppliedDgResults] = React.useState<Record<
-    string,
-    unknown
-  > | null>(null);
-
-  const appendDgDecisionHistory = React.useCallback(
-    (params: {
-      mode: DgDecisionMode;
-      runId: string;
-      scenarioId?: string;
-      score?: number;
-      notes?: string;
-    }) => {
-      setAppState(
-        (prev) => ({
-          ...prev,
-          dgDecisionHistory: [
-            {
-              decidedAt: new Date().toISOString(),
-              mode: params.mode,
-              runId: params.runId,
-              scenarioId: params.scenarioId,
-              score: params.score,
-              notes: params.notes,
-            },
-            ...(prev.dgDecisionHistory ?? []),
-          ].slice(0, 200),
-        }),
-        false,
-        "Decisão DG",
-      );
-    },
-    [setAppState],
-  );
-
-  const handleRunDgOptimization = React.useCallback(
-    (wizardParams?: DgWizardParams) => {
-      void runDgOptimization(dgTopologySource, wizardParams);
-    },
-    [runDgOptimization, dgTopologySource],
-  );
-
-  const handleAcceptDgAll = React.useCallback(
-    (scenario: DgScenario) => {
-      const runId = dgResult?.runId;
-      if (runId) {
-        void logDgDecision("all", scenario);
-        appendDgDecisionHistory({
-          mode: "all",
-          runId,
-          scenarioId: scenario.scenarioId,
-          score: scenario.objectiveScore,
-          notes: "Aplicação completa: trafo + condutores.",
-        });
-      }
-
-      setLastAppliedDgResults({
-        selectedKva: scenario.metadata?.selectedKva,
-        cqtMax: scenario.electricalResult.cqtMaxFraction,
-        trafoUtilization: scenario.electricalResult.trafoUtilizationFraction,
-        totalCableLength: scenario.electricalResult.totalCableLengthMeters,
-        score: scenario.objectiveScore,
-        discardedCount: dgResult?.recommendation?.discardedCount,
-        scoreComponents: scenario.scoreComponents,
-      });
-
-      updateBtTopology(applyDgAll(dgTopologySource, scenario), "Design Generativo (Trafo + Condutores)");
-      clearDgResult();
-      showToast(
-        "Solução DG aplicada: trafo + condutores atualizados.",
-        "success",
-      );
-
-      const trafoLoc = {
-        lat: scenario.trafoPositionLatLon.lat,
-        lng: scenario.trafoPositionLatLon.lon,
-      };
-      const nearMtPole = findNearestMtPole(trafoLoc, 50);
-      if (nearMtPole) {
-        showToast(
-          `Poste MT "${nearMtPole.title}" detectado a menos de 50 m do trafo DG — considere adicionar aresta MT para conexão.`,
-          "info",
-        );
-      }
-    },
-    [
-      dgResult,
-      logDgDecision,
-      appendDgDecisionHistory,
-      applyDgAll,
-      dgTopologySource,
-      updateBtTopology,
-      clearDgResult,
-      showToast,
-      findNearestMtPole,
-    ],
-  );
-
-  const handleAcceptDgTrafoOnly = React.useCallback(
-    (scenario: DgScenario) => {
-      const runId = dgResult?.runId;
-      if (runId) {
-        void logDgDecision("trafo_only", scenario);
-        appendDgDecisionHistory({
-          mode: "trafo_only",
-          runId,
-          scenarioId: scenario.scenarioId,
-          score: scenario.objectiveScore,
-          notes: "Aplicação parcial: somente trafo.",
-        });
-      }
-
-      setLastAppliedDgResults({
-        selectedKva: scenario.metadata?.selectedKva,
-        cqtMax: scenario.electricalResult.cqtMaxFraction,
-        trafoUtilization: scenario.electricalResult.trafoUtilizationFraction,
-        totalCableLength: scenario.electricalResult.totalCableLengthMeters,
-        score: scenario.objectiveScore,
-        discardedCount: dgResult?.recommendation?.discardedCount,
-        scoreComponents: scenario.scoreComponents,
-      });
-
-      updateBtTopology(applyDgTrafoOnly(dgTopologySource, scenario), "Design Generativo (Apenas Trafo)");
-      clearDgResult();
-      showToast("Posição do trafo atualizada pelo DG.", "success");
-
-      const trafoLoc = {
-        lat: scenario.trafoPositionLatLon.lat,
-        lng: scenario.trafoPositionLatLon.lon,
-      };
-      const nearMtPole = findNearestMtPole(trafoLoc, 50);
-      if (nearMtPole) {
-        showToast(
-          `Poste MT "${nearMtPole.title}" detectado a menos de 50 m do trafo DG — considere adicionar aresta MT para conexão.`,
-          "info",
-        );
-      }
-    },
-    [
-      dgResult,
-      logDgDecision,
-      appendDgDecisionHistory,
-      applyDgTrafoOnly,
-      dgTopologySource,
-      updateBtTopology,
-      clearDgResult,
-      findNearestMtPole,
-      showToast,
-    ],
-  );
-
-  const handleDiscardDgResult = React.useCallback(() => {
-    const runId = dgResult?.runId;
-    if (runId) {
-      void logDgDecision("discard", dgActiveScenario ?? undefined);
-      appendDgDecisionHistory({
-        mode: "discard",
-        runId,
-        scenarioId: dgActiveScenario?.scenarioId,
-        score: dgActiveScenario?.objectiveScore,
-        notes: "Usuário descartou recomendação DG.",
-      });
-    }
-    clearDgResult();
-    showToast("Recomendação DG descartada.", "info");
-  }, [
-    dgResult?.runId,
-    dgActiveScenario,
-    logDgDecision,
-    appendDgDecisionHistory,
     clearDgResult,
     showToast,
-  ]);
-
-  const handleTriggerTelescopicAnalysis = React.useCallback(() => {
-    if (isBtTelescopicAnalyzing) {
-      showToast("Análise telescópica já está em execução.", "info");
-      return;
-    }
-
-    triggerBtTelescopicAnalysis(
-      btTopology,
-      btAccumulatedByPole,
-      btTransformerDebugById,
-      "projeto",
-      (onConfirm) => {
-        requestCriticalConfirmation({
-          title: "Executar análise telescópica da REDE NOVA?",
-          message:
-            "A análise avalia quedas de tensão e sugere substituições de condutores no sentido trafo para ponta.",
-          confirmLabel: "Executar análise",
-          cancelLabel: "Cancelar",
-          tone: "info",
-          onConfirm,
-        });
-      },
-    );
-  }, [
+    findNearestMtPole,
+    updateBtTopology,
     isBtTelescopicAnalyzing,
-    showToast,
     triggerBtTelescopicAnalysis,
     btTopology,
     btAccumulatedByPole,
     btTransformerDebugById,
     requestCriticalConfirmation,
-  ]);
+    settings,
+    clearBtTelescopicSuggestions,
+    btTelescopicSuggestions,
+  });
 
-  const handleApplyTelescopicSuggestions = React.useCallback(
-    (analysisOutput: NonNullable<typeof btTelescopicSuggestions>) => {
-      if ((settings.btNetworkScenario ?? "asis") !== "projeto") {
-        showToast(
-          "As sugestões telescópicas só podem ser aplicadas na REDE NOVA.",
-          "info",
-        );
-        clearBtTelescopicSuggestions();
-        return;
-      }
-
-      const conductorByEdgeId = new Map<string, string>();
-      for (const suggestion of analysisOutput.suggestions) {
-        for (const edge of suggestion.pathEdges) {
-          conductorByEdgeId.set(edge.edgeId, edge.suggestedConductorId);
-        }
-      }
-
-      if (conductorByEdgeId.size === 0) {
-        showToast("Nenhuma substituição de condutor foi sugerida.", "info");
-        clearBtTelescopicSuggestions();
-        return;
-      }
-
-      const nextEdges = btTopology.edges.map((edge, index) => {
-        const directKey = `${edge.fromPoleId}->${edge.toPoleId}`;
-        const reverseKey = `${edge.toPoleId}->${edge.fromPoleId}`;
-        const suggestedConductor =
-          conductorByEdgeId.get(directKey) ?? conductorByEdgeId.get(reverseKey);
-
-        if (!suggestedConductor) {
-          return edge;
-        }
-
-        const currentPrimary = edge.conductors[0];
-        if (currentPrimary?.conductorName === suggestedConductor) {
-          return edge;
-        }
-
-        const nextPrimary = currentPrimary
-          ? {
-              ...currentPrimary,
-              quantity: 1,
-              conductorName: suggestedConductor,
-            }
-          : {
-              id: `cond-auto-${Date.now()}-${index}`,
-              quantity: 1,
-              conductorName: suggestedConductor,
-            };
-
-        return {
-          ...edge,
-          edgeChangeFlag: (edge.edgeChangeFlag === "new"
-            ? "new"
-            : "replace") as "new" | "replace",
-          removeOnExecution: false,
-          replacementFromConductors:
-            edge.replacementFromConductors &&
-            edge.replacementFromConductors.length > 0
-              ? edge.replacementFromConductors
-              : edge.conductors,
-          conductors: [nextPrimary],
-        };
-      });
-
-      const changedCount = nextEdges.reduce(
-        (count, edge, index) =>
-          edge !== btTopology.edges[index] ? count + 1 : count,
-        0,
-      );
-
-      if (changedCount === 0) {
-        showToast("As sugestões já estavam refletidas na topologia.", "info");
-        clearBtTelescopicSuggestions();
-        return;
-      }
-
-      updateBtTopology({
-        ...btTopology,
-        edges: nextEdges,
-      });
-
-      showToast(
-        `${changedCount} trecho(s) atualizado(s) com sugestões telescópicas na REDE NOVA.`,
-        "success",
-      );
-      clearBtTelescopicSuggestions();
-    },
-    [
-      settings.btNetworkScenario,
-      showToast,
-      clearBtTelescopicSuggestions,
-      btTopology,
-      updateBtTopology,
-    ],
-  );
 
   const {
     handleDownloadDxf,
@@ -934,127 +484,9 @@ function App() {
     enabled: true,
   });
 
-  // Ctrl+K for Command Palette
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-        e.preventDefault();
-        setIsCommandPaletteOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  const { setBtEditorMode, setBtNetworkScenario, handleBoxSelect } = useAppMainHandlers({ setAppState, btTopology, setSelectedPoleIds, setSelectedPoleId, setIsCommandPaletteOpen });
 
-  const setBtEditorMode = React.useCallback(
-    (mode: BtEditorMode) => {
-      setAppState(
-        (prev) => ({
-          ...prev,
-          settings: { ...prev.settings, btEditorMode: mode },
-        }),
-        true,
-        `Modo Editor: ${mode}`,
-      );
-    },
-    [setAppState],
-  );
-
-  const setBtNetworkScenario = React.useCallback(
-    (scenario: BtNetworkScenario) => {
-      setAppState(
-        (prev) => ({
-          ...prev,
-          settings: { ...prev.settings, btNetworkScenario: scenario },
-        }),
-        true,
-        `Cenário: ${scenario}`,
-      );
-    },
-    [setAppState],
-  );
-
-  const handleBoxSelect = React.useCallback(
-    (bounds: L.LatLngBounds) => {
-      const selectedIds = btTopology.poles
-        .filter((pole) => bounds.contains([pole.lat, pole.lng]))
-        .map((pole) => pole.id);
-      setSelectedPoleIds(selectedIds);
-      if (selectedIds.length === 1) {
-        setSelectedPoleId(selectedIds[0]);
-      } else {
-        setSelectedPoleId("");
-      }
-    },
-    [btTopology.poles, setSelectedPoleIds, setSelectedPoleId],
-  );
-
-  const mapSelectorProps = {
-    center,
-    flyToEdgeTarget: btEdgeFlyToTarget,
-    flyToPoleTarget: btPoleFlyToTarget,
-    flyToTransformerTarget: btTransformerFlyToTarget,
-    radius,
-    selectionMode,
-    polygonPoints,
-    onLocationChange: handleMapClick,
-    btEditorMode,
-    btMarkerTopology: mapRenderSources.btMarkerTopology,
-    btPopupTopology: mapRenderSources.btPopupTopology,
-    onBtMapClick: handleBtMapClick,
-    onBtContextAction: handleBtContextAction,
-    pendingBtEdgeStartPoleId,
-    onBtDeletePole: confirmDeletePole,
-    onBtDeleteEdge: confirmDeleteEdge,
-    onBtDeleteTransformer: confirmDeleteTransformer,
-    onBtSetEdgeChangeFlag: handleBtSetEdgeChangeFlag,
-    onBtToggleTransformerOnPole: handleBtToggleTransformerOnPole,
-    onBtQuickAddPoleRamal: handleBtQuickAddPoleRamal,
-    onBtQuickRemovePoleRamal: confirmQuickRemovePoleRamal,
-    onBtQuickAddEdgeConductor: handleBtQuickAddEdgeConductor,
-    onBtQuickRemoveEdgeConductor: confirmQuickRemoveEdgeConductor,
-    onBtSetEdgeLengthMeters: handleBtSetEdgeLengthMeters,
-    onBtSetEdgeReplacementFromConductors:
-      handleBtSetEdgeReplacementFromConductors,
-    onBtRenamePole: handleBtRenamePole,
-    onBtRenameTransformer: handleBtRenameTransformer,
-    onBtSetPoleVerified: handleBtSetPoleVerified,
-    onBtSetPoleChangeFlag: handleBtSetPoleChangeFlag,
-    onBtTogglePoleCircuitBreak: handleBtTogglePoleCircuitBreak,
-    onBtSetTransformerChangeFlag: handleBtSetTransformerChangeFlag,
-    onBtDragPole: handleBtDragPole,
-    onBtDragTransformer: handleBtDragTransformer,
-    criticalPoleId: btCriticalPoleId,
-    loadCenterPoleId:
-      btNetworkScenario === "projeto"
-        ? (btSectioningImpact.suggestedPoleId ?? null)
-        : null,
-    accumulatedByPole: btAccumulatedByPole,
-    osmData: osmData,
-    onPolygonChange: handlePolygonChange,
-    measurePath: measurePathPoints,
-    onMeasurePathChange: handleMeasurePathChange,
-    onKmlDrop: handleKmlDrop,
-    mapStyle: settings.mapProvider === "satellite" ? "satellite" : "dark",
-    mtMarkerTopology: mapRenderSources.mtMarkerTopology,
-    mtPopupTopology: mapRenderSources.mtPopupTopology,
-    mtEditorMode: settings.mtEditorMode ?? "none",
-    onMtMapClick: handleMtMapClick,
-    onMtContextAction: handleMtContextAction,
-    onMtDeletePole: handleMtDeletePole,
-    onMtDeleteEdge: handleMtDeleteEdge,
-    onMtRenamePole: handleMtRenamePole,
-    onMtSetPoleVerified: handleMtSetPoleVerified,
-    onMtDragPole: handleMtDragPole,
-    onMtSetPoleChangeFlag: handleMtSetPoleChangeFlag,
-    onMtSetEdgeChangeFlag: handleMtSetEdgeChangeFlag,
-    onBtSelectPole: handleBtSelectedPoleChange,
-    dgScenario: dgActiveScenario,
-    dgGhostMode: isPreviewActive && dgActiveScenario != null,
-    onBoxSelect: handleBoxSelect,
-    locale: settings.locale,
-    layerConfig: settings.layers,
-  };
+  const mapSelectorProps = useAppMapSelectorProps({ center, btEdgeFlyToTarget, btPoleFlyToTarget, btTransformerFlyToTarget, radius, selectionMode, polygonPoints, handleMapClick, btEditorMode, mapRenderSources, handleBtMapClick, handleBtContextAction, pendingBtEdgeStartPoleId, confirmDeletePole, confirmDeleteEdge, confirmDeleteTransformer, handleBtSetEdgeChangeFlag, handleBtToggleTransformerOnPole, handleBtQuickAddPoleRamal, confirmQuickRemovePoleRamal, handleBtQuickAddEdgeConductor, confirmQuickRemoveEdgeConductor, handleBtSetEdgeLengthMeters, handleBtSetEdgeReplacementFromConductors, handleBtRenamePole, handleBtRenameTransformer, handleBtSetPoleVerified, handleBtSetPoleChangeFlag, handleBtTogglePoleCircuitBreak, handleBtSetTransformerChangeFlag, handleBtDragPole, handleBtDragTransformer, btCriticalPoleId, btNetworkScenario, btSectioningImpact, btAccumulatedByPole, osmData, handlePolygonChange, measurePathPoints, handleMeasurePathChange, handleKmlDrop, settings, handleMtMapClick, handleMtContextAction, handleMtDeletePole, handleMtDeleteEdge, handleMtRenamePole, handleMtSetPoleVerified, handleMtDragPole, handleMtSetPoleChangeFlag, handleMtSetEdgeChangeFlag, handleBtSelectedPoleChange, dgActiveScenario, isPreviewActive, handleBoxSelect });
 
   const btModalStackProps: React.ComponentProps<typeof BtModalStack> = {
     normalRamalModal,
@@ -1075,266 +507,12 @@ function App() {
     closeCriticalConfirmationModal,
   };
 
-  const sidebarSelectionControlsProps: React.ComponentProps<
-    typeof SidebarSelectionControls
-  > = {
+  const { sidebarSelectionControlsProps, sidebarBtEditorSectionProps, sidebarAnalysisResultsProps } = useAppSidebarProps({ settings, center, searchQuery, setSearchQuery, isSearching, handleSearch, selectionMode, handleSelectionModeChange, radius, handleRadiusChange, saveSnapshot, handleFetchAndAnalyze, isProcessing, isPolygonValid, setBtNetworkScenario, setBtEditorMode, btNetworkScenario, btEditorMode, btTopology, dgTopologySource, btAccumulatedByPole, btSummary, btPointDemandKva, btTransformerDebugById, btPoleCoordinateInput, setBtPoleCoordinateInput, handleBtInsertPoleByCoordinates, pendingNormalClassificationPoles, handleResetBtTopology, updateBtTopology, updateProjectType, updateClandestinoAreaM2, handleBtSelectedPoleChange, handleBtSelectedTransformerChange, handleBtSelectedEdgeChange, handleBtRenamePole, handleBtRenameTransformer, handleBtSetEdgeChangeFlag, handleBtSetPoleChangeFlag, handleBtTogglePoleCircuitBreak, handleBtSetTransformerChangeFlag, btClandestinoDisplay, btTransformersDerived, requestCriticalConfirmation, handleTriggerTelescopicAnalysis, isDgOptimizing, dgResult, dgError, dgActiveAltIndex, handleRunDgOptimization, handleAcceptDgAll, handleAcceptDgTrafoOnly, handleDiscardDgResult, setDgActiveAltIndex, isPreviewActive, setIsPreviewActive, selectedPoleId, selectedPoleIds, selectedEdgeId, selectedTransformerId, setSelectedPoleId, setSelectedPoleIds, setSelectedEdgeId, setSelectedTransformerId, mtTopology, osmData, stats, analysisText, terrainData, error, handleDownloadDxf, handleDownloadCoordinatesCsv, isDownloading, showToast });
+
+  const { commandPaletteActions, handleGoToPole } = useAppCommandPalette({
     locale: settings.locale,
-    center,
-    searchQuery,
-    setSearchQuery,
-    isSearching,
-    handleSearch,
-    selectionMode,
-    onSelectionModeChange: handleSelectionModeChange,
-    radius,
-    onRadiusChange: handleRadiusChange,
-    saveSnapshot,
-    onAnalyze: handleFetchAndAnalyze,
-    isProcessing,
-    isPolygonValid,
-  };
-
-  const sidebarBtEditorSectionProps: React.ComponentProps<
-    typeof SidebarBtEditorSection
-  > = {
-    locale: settings.locale,
-    settings,
-    setBtNetworkScenario,
-    setBtEditorMode,
-    btNetworkScenario,
-    btEditorMode,
-    btTopology,
-    dgTopology: dgTopologySource,
-    btAccumulatedByPole,
-    btSummary,
-    btPointDemandKva,
-    btTransformerDebugById,
-    btPoleCoordinateInput,
-    setBtPoleCoordinateInput,
-    handleBtInsertPoleByCoordinates,
-    clearPendingBtEdge,
-    pendingNormalClassificationPoles,
-    handleResetBtTopology,
-    updateBtTopology,
-    updateProjectType,
-    updateClandestinoAreaM2,
-    handleBtSelectedPoleChange,
-    handleBtSelectedTransformerChange,
-    handleBtSelectedEdgeChange,
-    handleBtRenamePole,
-    handleBtRenameTransformer,
-    handleBtSetEdgeChangeFlag,
-    handleBtSetPoleChangeFlag,
-    handleBtTogglePoleCircuitBreak,
-    handleBtSetTransformerChangeFlag,
-    btClandestinoDisplay,
-    btTransformersDerived,
-    requestCriticalConfirmation,
-    onTriggerTelescopicAnalysis: handleTriggerTelescopicAnalysis,
-    isDgOptimizing,
-    dgResult,
-    dgError,
-    dgActiveAltIndex,
-    onRunDgOptimization: handleRunDgOptimization,
-    onAcceptDgAll: handleAcceptDgAll,
-    onAcceptDgTrafoOnly: handleAcceptDgTrafoOnly,
-    onClearDgResult: handleDiscardDgResult,
-    onSetDgActiveAltIndex: setDgActiveAltIndex,
-    dgIsPreviewActive: isPreviewActive,
-    onSetDgIsPreviewActive: setIsPreviewActive,
-    // Hoisted selection state
-    selectedPoleId,
-    selectedPoleIds,
-    selectedEdgeId,
-    selectedTransformerId,
-    onSetSelectedPoleId: setSelectedPoleId,
-    onSetSelectedPoleIds: setSelectedPoleIds,
-    onSetSelectedEdgeId: setSelectedEdgeId,
-    onSetSelectedTransformerId: setSelectedTransformerId,
-    mtTopology: mtTopology,
-  };
-
-  const sidebarAnalysisResultsProps: React.ComponentProps<
-    typeof SidebarAnalysisResults
-  > = {
-    locale: settings.locale,
-    osmData,
-    stats,
-    analysisText,
-    terrainData,
-    error,
-    handleDownloadDxf,
-    handleDownloadCoordinatesCsv,
-    isDownloading,
-    showToast,
-  };
-
-  const handleGoToPole = React.useCallback(
-    (poleId: string) => {
-      setSelectedPoleId(poleId);
-      setIsCommandPaletteOpen(false);
-    },
-    [setSelectedPoleId],
-  );
-
-  const handleOpenProjectFromCommandPalette = React.useCallback(() => {
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.accept = ".srua,.json";
-    fileInput.onchange = (event) => {
-      const target = event.target as HTMLInputElement;
-      const file = target.files?.[0];
-      if (file) {
-        handleLoadProject(file);
-      }
-    };
-    fileInput.click();
-  }, [handleLoadProject]);
-
-  const i18nCmd = React.useMemo(() => getCommandPaletteText(settings.locale), [settings.locale]);
-
-  const commandPaletteActions = React.useMemo(() => [
-    {
-      id: "save",
-      label: i18nCmd.saveProject,
-      section: i18nCmd.sectionFile,
-      shortcut: "Ctrl+S",
-      onSelect: handleSaveProject,
-    },
-    {
-      id: "open",
-      label: i18nCmd.openProject,
-      section: i18nCmd.sectionFile,
-      shortcut: "Ctrl+O",
-      onSelect: handleOpenProjectFromCommandPalette,
-    },
-    {
-      id: "dxf",
-      label: i18nCmd.exportDxf,
-      section: i18nCmd.sectionExport,
-      shortcut: "Alt+D",
-      onSelect: handleDownloadDxf,
-    },
-    {
-      id: "geojson",
-      label: i18nCmd.exportGeoJson,
-      section: i18nCmd.sectionExport,
-      onSelect: handleDownloadGeoJSON,
-    },
-    {
-      id: "csv",
-      label: i18nCmd.exportCsv,
-      section: i18nCmd.sectionExport,
-      onSelect: handleDownloadCoordinatesCsv,
-    },
-    {
-      id: "reset-topology",
-      label: i18nCmd.resetTopology,
-      section: i18nCmd.sectionMacros,
-      onSelect: handleResetBtTopology,
-    },
-    {
-      id: "export-history",
-      label: i18nCmd.exportHistoryJson,
-      section: i18nCmd.sectionMacros,
-      onSelect: exportBtHistoryJson,
-    },
-    {
-      id: "export-history-csv",
-      label: i18nCmd.exportHistoryCsv,
-      section: i18nCmd.sectionMacros,
-      onSelect: exportBtHistoryCsv,
-    },
-    {
-      id: "undo",
-      label: i18nCmd.undo,
-      section: i18nCmd.sectionEdit,
-      shortcut: "Ctrl+Z",
-      onSelect: undo,
-    },
-    {
-      id: "redo",
-      label: i18nCmd.redo,
-      section: i18nCmd.sectionEdit,
-      shortcut: "Ctrl+Y",
-      onSelect: redo,
-    },
-    {
-      id: "help",
-      label: i18nCmd.openHelp,
-      section: i18nCmd.sectionGeneral,
-      shortcut: "/",
-      onSelect: () => setIsHelpOpen(true),
-    },
-    {
-      id: "settings",
-      label: i18nCmd.openSettings,
-      section: i18nCmd.sectionGeneral,
-      shortcut: "S",
-      onSelect: openSettings,
-    },
-    {
-      id: "focus-mode",
-      label: isFocusModeManual ? i18nCmd.disableFocusMode : i18nCmd.enableFocusMode,
-      section: i18nCmd.sectionGeneral,
-      shortcut: "Ctrl+F",
-      onSelect: () => setIsFocusModeManual(!isFocusModeManual),
-    },
-    {
-      id: "dg",
-      label: i18nCmd.runDgOptimization,
-      section: i18nCmd.sectionEngineering,
-      onSelect: () => handleRunDgOptimization(),
-    },
-    {
-      id: "telescopic",
-      label: i18nCmd.telescopicAnalysis,
-      section: i18nCmd.sectionEngineering,
-      onSelect: handleTriggerTelescopicAnalysis,
-    },
-    {
-      id: "mode-asis",
-      label: i18nCmd.scenarioAsIs,
-      section: i18nCmd.sectionVisualization,
-      onSelect: () => setBtNetworkScenario("asis"),
-    },
-    {
-      id: "mode-proj",
-      label: i18nCmd.scenarioProject,
-      section: i18nCmd.sectionVisualization,
-      onSelect: () => setBtNetworkScenario("projeto"),
-    },
-    {
-      id: "editor-none",
-      label: i18nCmd.exitEditorMode,
-      section: i18nCmd.sectionEdit,
-      onSelect: () => setBtEditorMode("none"),
-    },
-    {
-      id: "editor-pole",
-      label: i18nCmd.modeAddPole,
-      section: i18nCmd.sectionEdit,
-      shortcut: "P",
-      onSelect: () => setBtEditorMode("add-pole"),
-    },
-    {
-      id: "editor-edge",
-      label: i18nCmd.modeAddEdge,
-      section: i18nCmd.sectionEdit,
-      shortcut: "L",
-      onSelect: () => setBtEditorMode("add-edge"),
-    },
-    {
-      id: "editor-trafo",
-      label: i18nCmd.modeAddTransformer,
-      section: i18nCmd.sectionEdit,
-      shortcut: "T",
-      onSelect: () => setBtEditorMode("add-transformer"),
-    },
-  ], [
-    i18nCmd,
     handleSaveProject,
-    handleOpenProjectFromCommandPalette,
+    handleLoadProject,
     handleDownloadDxf,
     handleDownloadGeoJSON,
     handleDownloadCoordinatesCsv,
@@ -1343,244 +521,118 @@ function App() {
     exportBtHistoryCsv,
     undo,
     redo,
+    setIsHelpOpen,
     openSettings,
     isFocusModeManual,
+    setIsFocusModeManual,
     handleRunDgOptimization,
     handleTriggerTelescopicAnalysis,
     setBtNetworkScenario,
     setBtEditorMode,
-  ]);
+    setSelectedPoleId,
+    setIsCommandPaletteOpen,
+  });
 
-  // open audit drawer if electricalAudit layer is enabled and an element is selected
-  const [isAuditOpen, setIsAuditOpen] = React.useState(false);
+  const inspectedElement = useAppInspectedElement({ selectedPoleId, selectedTransformerId, selectedEdgeId, btTopology, btAccumulatedByPole });
+  const {
+    isAuditOpen,
+    setIsAuditOpen,
+    selectedAuditElement,
+    handleAuditAction,
+  } = useAppElectricalAudit({ showToast, settings });
 
-  const selectedAuditElement = React.useMemo(() => {
-    if (selectedPoleId) {
-      const pole = btTopology.poles.find((p) => p.id === selectedPoleId);
-      return { type: "pole" as const, id: selectedPoleId, data: pole };
-    }
-    if (selectedTransformerId) {
-      const transformer = btTopology.transformers.find(
-        (t) => t.id === selectedTransformerId,
-      );
-      return {
-        type: "transformer" as const,
-        id: selectedTransformerId,
-        data: transformer,
-      };
-    }
-    if (selectedEdgeId) {
-      const edge = btTopology.edges.find((e) => e.id === selectedEdgeId);
-      return { type: "edge" as const, id: selectedEdgeId, data: edge };
-    }
-    return null;
-  }, [
-    selectedPoleId,
-    selectedTransformerId,
-    selectedEdgeId,
-    btTopology.poles,
-    btTopology.transformers,
-    btTopology.edges,
-  ]);
-
-  React.useEffect(() => {
-    if (settings.layers.electricalAudit && selectedAuditElement) {
-      setIsAuditOpen(true);
-    } else {
-      setIsAuditOpen(false);
-    }
-  }, [settings.layers.electricalAudit, selectedAuditElement]);
-
-  const handleAuditAction = React.useCallback(
-    (action: "approve" | "reject", notes: string) => {
-      showToast(
-        `Auditoria ${action === "approve" ? "aprovada" : "rejeitada"}: ${notes}`,
-        action === "approve" ? "success" : "info",
-      );
-      setIsAuditOpen(false);
-    },
-    [showToast],
-  );
-
-  return (
-    <>
-      <AppShellLayout
-        locale={settings.locale}
-        isDark={isDark}
-        isFocusMode={isFocusMode}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={undo}
-        onRedo={redo}
-        past={appPast}
-        future={appFuture}
-        onSaveProject={handleSaveProject}
-        onOpenProject={handleLoadProject}
-        onOpenSettings={openSettings}
-        onOpenHelp={() => setIsHelpOpen(true)}
-        appStatusStackProps={{
-          toasts,
-          closeToast,
-          sessionDraft,
-          handleRestoreSession,
-          handleDismissSession,
-          isProcessing,
-          isDownloading,
-          progressValue,
-          statusMessage,
-          showDxfProgress,
-          dxfProgressValue,
-          dxfProgressStatus,
-          dxfProgressLabel,
-          btExportSummaryProps: {
-            latestBtExport,
-            btExportHistory,
-            exportBtHistoryJson,
-            exportBtHistoryCsv,
-            clearBtExportHistory: handleClearBtExportHistory,
-            btHistoryTotal,
-            btHistoryLoading,
-            btHistoryCanLoadMore,
-            onLoadMoreBtHistory: handleLoadMoreBtHistory,
-            historyProjectTypeFilter: btHistoryProjectTypeFilter,
-            onHistoryProjectTypeFilterChange: setBtHistoryProjectTypeFilter,
-            historyCqtScenarioFilter: btHistoryCqtScenarioFilter,
-            onHistoryCqtScenarioFilterChange: setBtHistoryCqtScenarioFilter,
-          },
-        }}
-        appSettingsOverlayProps={{
-          showSettings,
-          closeSettings,
-          settings,
-          updateSettings,
-          selectionMode,
-          handleSelectionModeChange,
-          radius,
-          handleRadiusChange,
-          polygon,
-          handleClearPolygon,
-          hasData: !!osmData,
-          isDownloading,
-          handleDownloadDxf,
-          handleDownloadGeoJSON,
-          handleSaveProject,
-          handleLoadProject,
-        }}
-        sidebarWorkspaceProps={{
-          locale: settings.locale,
-          isSidebarDockedForRamalModal,
-          selectionControlsProps: sidebarSelectionControlsProps,
-          btEditorSectionProps: sidebarBtEditorSectionProps,
-          mtEditorSectionProps: {
-            locale: settings.locale,
-            mtTopology,
-            onMtTopologyChange: updateMtTopology,
-            mtEditorMode: settings.mtEditorMode ?? "none",
-            hasBtPoles,
-            onMtEditorModeChange: (mode: any) =>
-              updateSettings({ ...settings, mtEditorMode: mode }),
-          },
-          analysisResultsProps: sidebarAnalysisResultsProps,
-        }}
-        mainMapWorkspaceProps={{
-          locale: settings.locale,
-          mapSelectorProps,
-          floatingLayerPanelProps: {
-            settings,
-            onUpdateSettings: updateSettings,
-            isDark,
-          },
-          elevationProfileData,
-          onCloseElevationProfile: () => {
-            clearProfile();
-            handleSelectionModeChange("circle");
-          },
-          isDark,
-          btModalStackProps,
-          hasAreaSelection: !!osmData,
-          onStartSearch: () => {
-            setIsHelpOpen(false);
-            handleSelectionModeChange("circle");
-          },
-          onMapClickAction: () => {
-            setIsHelpOpen(false);
-            handleSelectionModeChange("circle");
-            showToast(
-              "Clique no mapa para definir o centro da analise.",
-              "info",
-            );
-          },
-        }}
-        bimInspectorProps={{
-          isOpen: isBimInspectorOpen,
-          onClose: () => setIsBimInspectorOpen(false),
-          pole: inspectedPole,
-          transformer: inspectedTransformer,
-          accumulatedData: inspectedAccumulatedData,
-          btTopology: btTopology,
-          locale: settings.locale,
-          onRenamePole: handleBtRenamePole,
-          onSetPoleChangeFlag: handleBtSetPoleChangeFlag,
-        }}
-        hasAreaSelection={!!osmData}
-        onStartSearch={() => {
-          setIsHelpOpen(false);
-          handleSelectionModeChange("circle");
-        }}
-        onMapClickAction={() => {
-          setIsHelpOpen(false);
-          handleSelectionModeChange("circle");
-          showToast("Clique no mapa para definir o centro da analise.", "info");
-        }}
-        autoSaveStatus={autoSaveStatus}
-        lastAutoSaved={lastAutoSaved}
-      />
-
-      <React.Suspense fallback={null}>
-        <ElectricalAuditDrawer
-          locale={settings.locale}
-          isOpen={isAuditOpen}
-          onClose={() => setIsAuditOpen(false)}
-          selectedElement={selectedAuditElement}
-          onAuditAction={handleAuditAction}
-        />
-
-        <BtTelescopicSuggestionModal
-          output={btTelescopicSuggestions}
-          onApply={handleApplyTelescopicSuggestions}
-          onCancel={clearBtTelescopicSuggestions}
-        />
-
-        <HelpModal
-          isOpen={isHelpOpen}
-          locale={settings.locale}
-          onClose={() => setIsHelpOpen(false)}
-        />
-
-        <CommandPalette
-          isOpen={isCommandPaletteOpen}
-          onClose={() => setIsCommandPaletteOpen(false)}
-          actions={commandPaletteActions}
-          poles={btTopology.poles}
-          onGoToPole={handleGoToPole}
-          locale={settings.locale}
-        />
-      </React.Suspense>
-
-      {/* Guided onboarding checklist — shown only on first meaningful session */}
-      <GuidedTaskChecklist
-        tasks={[
-          { id: "area", label: "Selecionar área no mapa", done: !!osmData },
-          { id: "bt", label: "Lançar rede BT (postes)", done: hasBtPoles },
-          {
-            id: "terrain",
-            label: "Carregar terreno 2.5D",
-            done: !!terrainData,
-          },
-          { id: "export", label: "Exportar DXF", done: false },
-        ]}
-      />
-    </>
+    return (
+    <AppWorkspace
+      {...{
+        settings,
+        isDark,
+        isFocusMode,
+        isXRayMode,
+        canUndo,
+        canRedo,
+        undo,
+        redo,
+        appPast,
+        appFuture,
+        handleSaveProject,
+        handleLoadProject,
+        openSettings,
+        setIsHelpOpen,
+        toasts,
+        closeToast,
+        sessionDraft,
+        handleRestoreSession,
+        handleDismissSession,
+        isProcessing,
+        isDownloading,
+        progressValue,
+        statusMessage,
+        showDxfProgress,
+        dxfProgressValue,
+        dxfProgressStatus,
+        dxfProgressLabel,
+        latestBtExport,
+        btExportHistory,
+        exportBtHistoryJson,
+        exportBtHistoryCsv,
+        handleClearBtExportHistory,
+        btHistoryTotal,
+        btHistoryLoading,
+        btHistoryCanLoadMore,
+        handleLoadMoreBtHistory,
+        btHistoryProjectTypeFilter,
+        setBtHistoryProjectTypeFilter,
+        btHistoryCqtScenarioFilter,
+        setBtHistoryCqtScenarioFilter,
+        updateSettings,
+        selectionMode,
+        handleSelectionModeChange,
+        radius,
+        handleRadiusChange,
+        polygon,
+        handleClearPolygon,
+        osmData,
+        handleDownloadDxf,
+        handleDownloadGeoJSON,
+        isSidebarDockedForRamalModal,
+        sidebarSelectionControlsProps,
+        sidebarBtEditorSectionProps,
+        mtTopology,
+        updateMtTopology,
+        hasBtPoles,
+        sidebarAnalysisResultsProps,
+        mapSelectorProps,
+        elevationProfileData,
+        clearProfile,
+        btModalStackProps,
+        showToast,
+        isBimInspectorOpen,
+        setIsBimInspectorOpen,
+        inspectedPole,
+        inspectedTransformer,
+        inspectedAccumulatedData,
+        btTopology,
+        handleBtRenamePole,
+        handleBtSetPoleChangeFlag,
+        autoSaveStatus,
+        lastAutoSaved,
+        isAuditOpen,
+        setIsAuditOpen,
+        selectedAuditElement,
+        handleAuditAction,
+        btTelescopicSuggestions,
+        handleApplyTelescopicSuggestions,
+        clearBtTelescopicSuggestions,
+        isHelpOpen,
+        isCommandPaletteOpen,
+        setIsCommandPaletteOpen,
+        commandPaletteActions,
+        handleGoToPole,
+        terrainData,
+        showSettings,
+        closeSettings,
+      }}
+    />
   );
 }
 

@@ -1,9 +1,21 @@
+## Atualização Operacional (2026-05-02B) - Hardening de Arquitetura (Fase 6)
+- **Desmonolização de App.tsx**: Redução drástica do arquivo principal de ~1100 para **639 linhas**, atingindo o *SOFT LIMIT* de 750 linhas e cumprindo a meta de governança CI/CD.
+- **Ecossistema de Hooks Especializados**:
+  - `useAppEngineeringWorkflows.ts`: Centralização das lógicas de Design Generativo e Análise Telescópica.
+  - `useAppElectricalAudit.ts`: Encapsulamento completo do estado e ações de auditoria elétrica.
+  - `useAppLifecycleEffects.ts`: Gestão de efeitos colaterais globais (Tema OS, Sincronização de Preferências, Monitoramento de Impacto).
+  - `useAppMainHandlers.ts`: Orquestração de comandos globais, atalhos de sistema e seleção em lote (Box Select).
+- **Refatoração de Componentes**: Criação do `AppWorkspace.tsx` para desacoplar a renderização da interface (Thin App pattern).
+- **Conformidade de Hooks**: `useBtPoleOperations.ts` modularizado (extração de `useBtPoleClandestinoHandlers.ts`), reduzindo de 822 para **733 linhas** (abaixo do limite de 750).
+- **Status de Governança**: Auditores automáticos (`non-negotiables-audit.cjs`) retornando status VERDE para 100% da base de código.
+
 ## Atualização Operacional (2026-05-02A) - Hardening Fase 5 (UX & Dashboards)
+- **UX Imersiva de Engenharia**: Implementado o **Modo X-Ray (Focus Mode 2.0)** com atalho (`X` ou `Shift`) para esmaecimento de ativos saudáveis e *Neon Glow* pulsante em violações críticas.
+- **Guias de Precisão (Visual Snapping)**: Adicionado sistema de linhas guias pontilhadas (Cyan) que aparecem automaticamente ao alinhar postes ortogonalmente durante o arraste.
+- **Ghost Edits & BIM Pop-ins**: Implementado balão flutuante de "Delta CQT" em tempo real durante o arraste e cartões de metadados BIM com *Glassmorphism* (backdrop-blur) nos Tooltips/Popups.
 - **Dashboards de Saúde (Mini-Charts)**: Implementado sistema de visualização instantânea no `BtTopologyPanelStats.tsx` com Trafo Donut (utilização de carga) e Histogram de Vãos (distribuição mecânica) via SVG.
-- **Smart Snapping (Alinhamento)**: Integrado utilitário `smartSnapping.ts` ao fluxo de arrasto de postes no `useBtPoleOperations.ts`, permitindo alinhamento ortogonal automático com postes vizinhos (N/S e L/O).
-- **Esqueletos & Feedback Semântico**: Substituído spinner por Skeleton Screens no `DgOptimizationPanel.tsx`. Erros técnicos de DG agora são apresentados como Dicas de Engenharia acionáveis (ex: sugestão de aumento de seção para CQT alto).
-- **Lasso Tool & Heatmap**: Estabilizada ferramenta de Box Select no `MapSelectorSelectionManager.tsx` e Heatmap de Gradiente de Tensão (CQT) no `MapSelectorEdgesLayer.tsx`.
-- **Estabilidade & I18n**: Typecheck 100% OK e consolidação total de internacionalização (PT/EN/ES) em todos os novos componentes de análise.
+- **Internacionalização Industrial**: Consolidação total de termos industriais em PT/EN/ES, eliminando 100% das strings hardcoded no `MapSelectorPolesLayer` e `MapSelector`.
+- **Estabilidade & I18n**: Typecheck 100% OK.
 
 ## Atualização Operacional (2026-05-01C) - Telemetria e Macros DG (UX-20)
 - **Análise de Fricção DG**: Adicionado tracking de telemetria `trackDgParameterDivergence` no envio do `DgWizardModal`. Monitora atrito quando o projetista altera os parâmetros recomendados (clientes por poste, área, limitadores de kVA).
