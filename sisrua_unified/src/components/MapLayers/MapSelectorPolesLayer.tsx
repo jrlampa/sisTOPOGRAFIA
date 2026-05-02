@@ -1,7 +1,7 @@
-import React from "react";
-import { Pane, CircleMarker, Marker, Tooltip, Popup } from "react-leaflet";
+import React, { useState } from "react";
+import { Pane, CircleMarker, Marker, Tooltip, Popup, Circle } from "react-leaflet";
 import L from "leaflet";
-import { Trash2, Triangle, Plus, Minus } from "lucide-react";
+import { Trash2, Triangle, Plus, Minus, CheckCircle, Circle as CircleIcon } from "lucide-react";
 import { BtEditorMode, LayerConfig, AppLocale } from "../../types";
 import type { MapBtPole } from "../../types.map";
 import type { BtPoleAccumulatedDemand } from "../../utils/btTopologyFlow";
@@ -31,6 +31,7 @@ interface MapSelectorPolesLayerProps {
     label?: string;
   }) => void;
   onBtDragPole?: (poleId: string, lat: number, lng: number) => void;
+  onBtDragPoleRealtime?: (poleId: string, lat: number, lng: number) => void;
   onBtRenamePole?: (poleId: string, title: string) => void;
   onBtSetPoleChangeFlag?: (
     poleId: string,
@@ -43,6 +44,7 @@ interface MapSelectorPolesLayerProps {
   onBtQuickRemovePoleRamal?: (poleId: string) => void;
   onBtSelectPole?: (poleId: string, isShiftSelect?: boolean) => void;
   leafPoleIds?: Set<string>;
+  draggedPole?: { id: string; lat: number; lng: number } | null;
   locale: AppLocale;
   layerConfig?: LayerConfig;
 }
@@ -59,6 +61,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
   accumulatedByPoleMap,
   onBtMapClick,
   onBtDragPole,
+  onBtDragPoleRealtime,
   onBtRenamePole,
   onBtSetPoleChangeFlag,
   onBtTogglePoleCircuitBreak,
@@ -68,6 +71,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
   onBtQuickRemovePoleRamal,
   onBtSelectPole,
   leafPoleIds = new Set(),
+  draggedPole,
   locale,
   layerConfig,
 }) => {
@@ -142,11 +146,29 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
 
         const isLeaf = leafPoleIds.has(pole.id);
         const hasTransformer = !!poleHasTransformer.get(pole.id);
+        const isDragged = draggedPole?.id === pole.id;
+        const dragPos = isDragged && draggedPole ? L.latLng(draggedPole.lat, draggedPole.lng) : null;
 
         return (
           <React.Fragment
             key={`${pole.id}-${pole.verified ? "v" : "u"}-${pole.id === criticalPoleId ? "c" : "n"}-${pole.id === pendingBtEdgeStartPoleId ? "p" : "x"}-${hasTransformer ? "t" : "nt"}`}
           >
+            {/* Círculo de Alcance (Ghost Range) durante o Arrasto (UX: Prevenção de erro) */}
+            {isDragged && dragPos && (
+              <Pane name="drag-range-pane" style={{ zIndex: 400 }}>
+                <Circle
+                  center={dragPos}
+                  radius={30}
+                  pathOptions={{ color: "#3b82f6", weight: 1, fillOpacity: 0.05, interactive: false }}
+                />
+                <Circle
+                  center={dragPos}
+                  radius={40}
+                  pathOptions={{ color: "#f59e0b", weight: 1, fillOpacity: 0.03, dashArray: "5 5", interactive: false }}
+                />
+              </Pane>
+            )}
+
             {/* Rótulo Permanente de CQT nas Pontas (UX: Redução de ruído) */}
             {isLeaf && poleAccumulated?.dvAccumPercent != null && (
               <Marker
@@ -209,6 +231,11 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                 dragend: (e) => {
                   const { lat, lng } = (e.target as L.Marker).getLatLng();
                   onBtDragPole?.(pole.id, lat, lng);
+                  onBtDragPoleRealtime?.(pole.id, 0, 0); // Clear realtime state
+                },
+                drag: (e) => {
+                  const { lat, lng } = (e.target as L.Marker).getLatLng();
+                  onBtDragPoleRealtime?.(pole.id, lat, lng);
                 },
               }}
             >
@@ -330,7 +357,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                   
                   <div className="flex flex-col gap-1 text-[11px] border-t border-slate-100 pt-2 mt-1">
                     <div className={`flex items-center gap-1.5 font-bold ${pole.verified ? "text-green-600" : "text-amber-600"}`}>
-                      {pole.verified ? <CheckCircle size={12} /> : <Circle size={12} />}
+                      {pole.verified ? <CheckCircle size={12} /> : <CircleIcon size={12} />}
                       {pole.verified ? t.flagExisting : "Pendente de Verificação"}
                     </div>
                     <div className="text-slate-500">

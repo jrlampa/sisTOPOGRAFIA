@@ -1,5 +1,5 @@
-import React from "react";
-import { MapContainer, TileLayer } from "react-leaflet";
+import React, { useState, useMemo, useId } from "react";
+import { MapContainer, TileLayer, useMapEvents, Polyline, Marker, Circle, Pane, CircleMarker, Popup, Tooltip } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { GeoJsonObject } from "geojson";
@@ -18,14 +18,78 @@ import {
   GeoLocation,
   AppLocale,
   LayerConfig,
+  OsmElement,
 } from "../types";
-import type { MapBtTopology, MapMtTopology } from "../types.map";
-import type { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
-import type { DgScenario } from "../hooks/useDgOptimization";
+import { MapBtEdge, MapBtPole, MapBtTopology, MapMtTopology } from "../types.map";
+import { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
+import { DgScenario } from "../hooks/useDgOptimization";
 import { DefaultIcon } from "./MapSelectorStyles";
+import { applyOrthoSnap, applyRoadSnap } from "../utils/smartSnapping";
 
 // Initialize Leaflet Default Icon fix
 L.Marker.prototype.options.icon = DefaultIcon;
+
+// ─── Subcomponentes Internos para UX Dinâmica ─────────────────────────────────
+
+/**
+ * Rastreador de mouse para capturar coordenadas em tempo real no mapa.
+ */
+function MapMouseTracker({ 
+  onMouseMove 
+}: { 
+  onMouseMove: (pos: L.LatLng) => void 
+}) {
+  useMapEvents({
+    mousemove(e) {
+      onMouseMove(e.latlng);
+    },
+  });
+  return null;
+}
+
+/**
+ * Renderiza um "Vão Fantasma" (Ghost Edge) ao iniciar uma nova conexão.
+ */
+function GhostEdge({ 
+  startPole, 
+  mousePos 
+}: { 
+  startPole: MapBtPole, 
+  mousePos: L.LatLng 
+}) {
+  const distance = L.latLng(startPole.lat, startPole.lng).distanceTo(mousePos);
+  const color = distance > 40 ? "#ef4444" : distance > 30 ? "#f59e0b" : "#3b82f6";
+  
+  return (
+    <>
+      <Polyline 
+        positions={[[startPole.lat, startPole.lng], [mousePos.lat, mousePos.lng]]}
+        pathOptions={{ color, weight: 2, dashArray: "5 10", opacity: 0.6 }}
+      />
+      <Marker 
+        position={[ (startPole.lat + mousePos.lat)/2, (startPole.lng + mousePos.lng)/2 ]}
+        icon={L.divIcon({
+          className: "ghost-edge-label",
+          html: `<div class="px-2 py-0.5 rounded-full bg-white/90 border border-slate-200 shadow-md text-[10px] font-black whitespace-nowrap" style="color: ${color}; transform: translateY(-10px);">${distance.toFixed(1)}m</div>`,
+          iconSize: [0, 0]
+        })}
+        interactive={false}
+      />
+      <Circle 
+        center={[startPole.lat, startPole.lng]}
+        radius={30}
+        pathOptions={{ color: "#3b82f6", weight: 1, fillOpacity: 0.02, interactive: false }}
+      />
+       <Circle 
+        center={[startPole.lat, startPole.lng]}
+        radius={40}
+        pathOptions={{ color: "#f59e0b", weight: 1, fillOpacity: 0.01, dashArray: "5 5", interactive: false }}
+      />
+    </>
+  );
+}
+
+// ─── Componente Principal ─────────────────────────────────────────────────────
 
 interface MapSelectorProps {
   center: { lat: number; lng: number; label?: string };
@@ -133,6 +197,7 @@ interface MapSelectorProps {
   /** Ativa o Ghost Mode (esmaece a rede original) para contraste visual do cenário DG. */
   dgGhostMode?: boolean;
   onBoxSelect?: (bounds: L.LatLngBounds) => void;
+  osmData?: OsmElement[] | null;
   locale: AppLocale;
   layerConfig?: LayerConfig;
 }
@@ -198,16 +263,20 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   dgScenario,
   dgGhostMode = false,
   onBoxSelect,
+  osmData,
   locale,
   layerConfig,
 }) => {
+  const [draggedPole, setDraggedPole] = useState<{ id: string, lat: number, lng: number } | null>(null);
+  const [mousePos, setMousePos] = useState<L.LatLng | null>(null);
+
   const topology = btMarkerTopology ?? {
     poles: [],
     transformers: [],
     edges: [],
   };
   const popupTopology = btPopupTopology ?? topology;
-  const paneIdSuffix = React.useId().replace(/:/g, "-");
+  const paneIdSuffix = useId().replace(/:/g, "-");
   const btEdgesPaneName = `bt-edges-pane-${paneIdSuffix}`;
   const btPolesPaneName = `bt-poles-pane-${paneIdSuffix}`;
   const btTransformersPaneName = `bt-transformers-pane-${paneIdSuffix}`;
@@ -215,15 +284,15 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   const mtPolesPaneName = `mt-poles-pane-${paneIdSuffix}`;
   const dgOverlayPaneName = `dg-overlay-pane-${paneIdSuffix}`;
 
-  const polesById = React.useMemo(() => {
+  const polesById = useMemo(() => {
     return new Map(topology.poles.map((pole) => [pole.id, pole]));
   }, [topology.poles]);
 
-  const accumulatedByPoleMap = React.useMemo(() => {
+  const accumulatedByPoleMap = useMemo(() => {
     return new Map(accumulatedByPole.map((entry) => [entry.poleId, entry]));
   }, [accumulatedByPole]);
 
-  const poleHasTransformer = React.useMemo(() => {
+  const poleHasTransformer = useMemo(() => {
     const byPole = new Map<string, boolean>();
     const distanceThresholdMeters = 6;
 
@@ -257,7 +326,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     }
   };
 
-  const tileConfig = React.useMemo(() => {
+  const tileConfig = useMemo(() => {
     if (mapStyle === "satellite") {
       return {
         key: "satellite",
@@ -282,6 +351,34 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   const cursorClass = isEditing ? "map-cursor-active" : "";
   const dimClass = isBtEditing ? "map-bt-editing" : "";
   const ghostClass = dgGhostMode ? "map-dg-ghost-mode" : "";
+
+  const handleBtDragRealtime = (id: string, lat: number, lng: number) => {
+    if (lat === 0) {
+      setDraggedPole(null);
+      return;
+    }
+
+    // 1. Tenta Snap para o eixo da rua (OSM)
+    let snapResult = applyRoadSnap(lat, lng, osmData || []);
+
+    // 2. Se não deu snap na rua, tenta snap ortogonal nos vizinhos
+    if (!snapResult.type) {
+      const pole = polesById.get(id);
+      if (pole) {
+        const neighbors = topology.edges
+          .filter((e) => e.fromPoleId === id || e.toPoleId === id)
+          .map((e) => {
+            const neighborId = e.fromPoleId === id ? e.toPoleId : e.fromPoleId;
+            return polesById.get(neighborId);
+          })
+          .filter((p): p is NonNullable<typeof p> => !!p);
+        
+        snapResult = applyOrthoSnap(lat, lng, neighbors);
+      }
+    }
+
+    setDraggedPole({ id, lat: snapResult.lat, lng: snapResult.lng });
+  };
 
   return (
     <div
@@ -361,6 +458,16 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         maxZoom={24}
         className="h-full min-h-[400px] w-full"
       >
+        <MapMouseTracker onMouseMove={setMousePos} />
+        
+        {/* Vão Fantasma (Ghost Edge) em modo de adição de trecho */}
+        {pendingBtEdgeStartPoleId && mousePos && polesById.has(pendingBtEdgeStartPoleId) && (
+          <GhostEdge 
+            startPole={polesById.get(pendingBtEdgeStartPoleId)!} 
+            mousePos={mousePos} 
+          />
+        )}
+
         <TileLayer
           key={tileConfig.key}
           attribution={tileConfig.attribution}
@@ -409,6 +516,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           accumulatedByPoleMap={accumulatedByPoleMap}
           locale={locale}
           layerConfig={layerConfig}
+          draggedPole={draggedPole}
         />
 
         <MapSelectorPolesLayer
@@ -435,6 +543,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           })()}
           onBtMapClick={onBtMapClick}
           onBtDragPole={onBtDragPole}
+          onBtDragPoleRealtime={handleBtDragRealtime}
           onBtRenamePole={onBtRenamePole}
           onBtSetPoleChangeFlag={onBtSetPoleChangeFlag}
           onBtTogglePoleCircuitBreak={onBtTogglePoleCircuitBreak}
@@ -443,6 +552,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtQuickAddPoleRamal={onBtQuickAddPoleRamal}
           onBtQuickRemovePoleRamal={onBtQuickRemovePoleRamal}
           onBtSelectPole={onBtSelectPole}
+          draggedPole={draggedPole}
           locale={locale}
           layerConfig={layerConfig}
         />

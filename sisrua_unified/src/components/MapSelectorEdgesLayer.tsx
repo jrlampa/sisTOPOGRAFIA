@@ -174,6 +174,8 @@ interface MapSelectorEdgesLayerProps {
   accumulatedByPoleMap?: Map<string, BtPoleAccumulatedDemand>;
   locale: AppLocale;
   layerConfig?: LayerConfig;
+  draggedPole?: { id: string; lat: number; lng: number } | null;
+  isGhostMode?: boolean;
 }
 
 const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
@@ -190,6 +192,8 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
   accumulatedByPoleMap,
   locale,
   layerConfig,
+  draggedPole,
+  isGhostMode = false,
 }) => {
   const t = getBtTopologyPanelText(locale);
   const { poleVerification: tp, transformerEdge: te } = t;
@@ -228,10 +232,22 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
   return (
     <Pane name={paneName} style={{ zIndex: 420 }}>
       {(topology.edges || []).map((edge) => {
-        const from = polesById.get(edge.fromPoleId);
-        const to = polesById.get(edge.toPoleId);
+        let from = polesById.get(edge.fromPoleId);
+        let to = polesById.get(edge.toPoleId);
         if (!from || !to) {
           return null;
+        }
+
+        // Real-time drag support (UX: Dynamic Spans)
+        const isDraggingFrom = draggedPole?.id === edge.fromPoleId;
+        const isDraggingTo = draggedPole?.id === edge.toPoleId;
+        const isCurrentlyDragging = isDraggingFrom || isDraggingTo;
+
+        if (isDraggingFrom && draggedPole) {
+          from = { ...from, lat: draggedPole.lat, lng: draggedPole.lng };
+        }
+        if (isDraggingTo && draggedPole) {
+          to = { ...to, lat: draggedPole.lat, lng: draggedPole.lng };
         }
 
         const edgeChangeFlag = getEdgeChangeFlag(edge);
@@ -556,8 +572,24 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
         const hasBt = edge.conductors.length > 0;
         const hasMt = (edge.mtConductors ?? []).length > 0;
 
+        const currentDistance = L.latLng(from.lat, from.lng).distanceTo(L.latLng(to.lat, to.lng));
+        const distColorClass = currentDistance > 40 ? "text-red-600" : currentDistance > 30 ? "text-amber-600" : "text-emerald-600";
+
         return (
           <React.Fragment key={edge.id}>
+            {/* Rótulo Dinâmico de Distância durante o Arrasto (UX: Prevenção de erro) */}
+            {isCurrentlyDragging && (
+              <Marker
+                position={[(from.lat + to.lat) / 2, (from.lng + to.lng) / 2]}
+                icon={L.divIcon({
+                  className: "dynamic-span-badge",
+                  html: `<div class="px-2 py-0.5 rounded-full bg-white/90 border-2 border-white shadow-xl text-[11px] font-black whitespace-nowrap animate-pulse ${distColorClass}" style="transform: translateY(-10px);">${currentDistance.toFixed(1)}m</div>`,
+                  iconSize: [0, 0],
+                })}
+                interactive={false}
+              />
+            )}
+
             {/* Área de clique estendida */}
             <Polyline
               positions={[

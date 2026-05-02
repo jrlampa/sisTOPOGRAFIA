@@ -23,6 +23,8 @@ vi.mock("react-leaflet", () => ({
     on: vi.fn(),
     off: vi.fn(),
   }),
+  useMapEvents: vi.fn(),
+  Popup: ({ children }: any) => <div data-testid="popup">{children}</div>,
 }));
 
 // Mock do SelectionManager para evitar TypeError com hooks do Leaflet
