@@ -16,20 +16,22 @@ const {
   const addPageMock = vi.fn();
   const textMock = vi.fn();
   const splitTextToSizeMock = vi.fn((section: string) => [section]);
-  const jsPdfCtorMock = vi.fn(() => ({
-    internal: {
-      pageSize: {
-        getWidth: () => 595,
-        getHeight: () => 842,
+  const jsPdfCtorMock = vi.fn(function () {
+    return {
+      internal: {
+        pageSize: {
+          getWidth: () => 595,
+          getHeight: () => 842,
+        },
       },
-    },
-    setFont: setFontMock,
-    setFontSize: setFontSizeMock,
-    splitTextToSize: splitTextToSizeMock,
-    addPage: addPageMock,
-    text: textMock,
-    save: saveMock,
-  }));
+      setFont: setFontMock,
+      setFontSize: setFontSizeMock,
+      splitTextToSize: splitTextToSizeMock,
+      addPage: addPageMock,
+      text: textMock,
+      save: saveMock,
+    };
+  });
   const downloadTextMock = vi.fn();
 
   return {

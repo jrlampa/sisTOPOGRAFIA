@@ -182,7 +182,7 @@ describe("useDgOptimization", () => {
       await result.current.runDgOptimization(MOCK_TOPOLOGY);
     });
     expect(result.current.result).toBeNull();
-    expect(result.current.error).toBe("Serviço indisponível");
+    expect(result.current.error).toBe("Erro Técnico: Serviço indisponível. Recomendamos revisar o alinhamento da rede.");
   });
 
   it("clearDgResult limpa resultado e erro", async () => {

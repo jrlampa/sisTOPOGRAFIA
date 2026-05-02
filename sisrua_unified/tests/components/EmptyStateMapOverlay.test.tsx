@@ -14,39 +14,39 @@ describe("EmptyStateMapOverlay", () => {
     render(<EmptyStateMapOverlay {...defaultProps} />);
     
     // Verifica CTA Principal
-    expect(screen.getByText("INICIAR PROJETO")).toBeInTheDocument();
+    expect(screen.getByText("Selecionar no Mapa")).toBeInTheDocument();
     
     // Verifica Microinstrução
-    expect(screen.getByText(/Clique em qualquer lugar do mapa ou pesquise um endereço/i)).toBeInTheDocument();
+    expect(screen.getByText(/Clique no mapa ou pesquise o endereço para iniciar a seleção/i)).toBeInTheDocument();
   });
 
   it("renderiza o botão de pesquisa como opção secundária", () => {
     render(<EmptyStateMapOverlay {...defaultProps} />);
-    expect(screen.getByText("Pesquisar endereço")).toBeInTheDocument();
+    expect(screen.getByText("Pesquisar Endereço")).toBeInTheDocument();
   });
 
   it("chama onMapClickAction ao clicar no CTA principal", () => {
     render(<EmptyStateMapOverlay {...defaultProps} />);
-    const cta = screen.getByText("INICIAR PROJETO");
+    const cta = screen.getByText("Selecionar no Mapa");
     fireEvent.click(cta);
     expect(defaultProps.onMapClickAction).toHaveBeenCalled();
   });
 
   it("chama onStartSearch ao clicar no botão de pesquisa", () => {
     render(<EmptyStateMapOverlay {...defaultProps} />);
-    const searchBtn = screen.getByText("Pesquisar endereço");
+    const searchBtn = screen.getByText("Pesquisar Endereço");
     fireEvent.click(searchBtn);
     expect(defaultProps.onStartSearch).toHaveBeenCalled();
   });
 
   it("respeita o idioma pt-BR", () => {
     render(<EmptyStateMapOverlay {...defaultProps} locale="pt-BR" />);
-    expect(screen.getByText("Pronto para começar?")).toBeInTheDocument();
+    expect(screen.getByText("Guia de Inicialização")).toBeInTheDocument();
   });
 
   it("respeita o idioma en-US", () => {
     render(<EmptyStateMapOverlay {...defaultProps} locale="en-US" />);
-    expect(screen.getByText("Ready to start?")).toBeInTheDocument();
-    expect(screen.getByText("START PROJECT")).toBeInTheDocument();
+    expect(screen.getByText("Getting Started Guide")).toBeInTheDocument();
+    expect(screen.getByText("1. Import KML")).toBeInTheDocument();
   });
 });

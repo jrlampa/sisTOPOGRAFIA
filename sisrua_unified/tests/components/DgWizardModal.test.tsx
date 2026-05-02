@@ -1,3 +1,4 @@
+vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
 /**
  * DgWizardModal.test.tsx — Vitest: teste do wizard DG.
  * Verifica edição de clientes global e individual.
@@ -27,22 +28,22 @@ describe("DgWizardModal", () => {
     );
 
     // Passo 1: Demanda
-    const input = screen.getByLabelText(/clientes por poste/i);
+    const input = screen.getByLabelText(/dgWizard.demanda.labelClientesPorPoste/i);
     fireEvent.change(input, { target: { value: "5" } });
     
-    fireEvent.click(screen.getByRole("button", { name: /próximo/i }));
+    fireEvent.click(screen.getByRole("button", { name: /common.next/i }));
     
     // Passo 2: Expansão
-    expect(screen.getByText(/ocupação e expansão/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /próximo/i }));
+    expect(screen.getByText(/dgWizard.expansao.title/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /common.next/i }));
     
     // Passo 3: Técnico
-    expect(screen.getByText(/limites de engenharia/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /próximo/i }));
+    expect(screen.getByText(/dgWizard.tecnico.title/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /common.next/i }));
     
     // Passo 4: Revisão
-    expect(screen.getByText(/resumo do projeto/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /executar projeto/i }));
+    expect(screen.getByText(/dgWizard.revisao.title/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /dgWizard.revisao.btnExecute/i }));
     
     expect(onExecute).toHaveBeenCalledWith(expect.objectContaining({
         clientesPorPoste: 5,
@@ -62,7 +63,7 @@ describe("DgWizardModal", () => {
     );
 
     // Abre seção individual
-    fireEvent.click(screen.getByText(/ajustar postes individualmente/i));
+    fireEvent.click(screen.getByText(/dgWizard.demanda.adjustIndividual/i));
     
     // Verifica se os inputs individuais aparecem. 
     // Como usamos o mesmo valor padrão se não editado, buscamos o input pelo value ou seletor.
@@ -72,13 +73,14 @@ describe("DgWizardModal", () => {
     fireEvent.change(inputs[1], { target: { value: "10" } }); // P1 = 10
     
     // Avança até o fim
-    fireEvent.click(screen.getByRole("button", { name: /próximo/i }));
-    fireEvent.click(screen.getByRole("button", { name: /próximo/i }));
-    fireEvent.click(screen.getByRole("button", { name: /próximo/i }));
-    fireEvent.click(screen.getByRole("button", { name: /executar projeto/i }));
+    fireEvent.click(screen.getByRole("button", { name: /common.next/i }));
+    fireEvent.click(screen.getByRole("button", { name: /common.next/i }));
+    fireEvent.click(screen.getByRole("button", { name: /common.next/i }));
+    fireEvent.click(screen.getByRole("button", { name: /dgWizard.revisao.btnExecute/i }));
     
     expect(onExecute).toHaveBeenCalledWith(expect.objectContaining({
         poleOverrides: { "p1": 10 }
     }));
   });
 });
+

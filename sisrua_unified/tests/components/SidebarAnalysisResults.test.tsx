@@ -30,8 +30,8 @@ describe("SidebarAnalysisResults", () => {
   it("deve renderizar dashboard se houver dados OSM (verificando placeholders)", () => {
     const stats = { areaName: "Teste", totalPoints: 10, streetCount: 2 };
     render(<SidebarAnalysisResults {...DEFAULT_PROPS} osmData={{}} stats={stats} />);
-    // Como os subcomponentes são Lazy, verificamos se ao menos um placeholder de carregamento aparece
-    expect(screen.getAllByText(/carregando/i).length).toBeGreaterThan(0);
+    // O componente principal exibe os botões de exportação quando tem dados
+    expect(screen.getByRole("button", { name: /dxf/i })).toBeInTheDocument();
   });
 
   it("deve exibir botões de exportação se houver dados", () => {

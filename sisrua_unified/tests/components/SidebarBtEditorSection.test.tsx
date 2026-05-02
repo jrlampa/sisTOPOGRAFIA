@@ -1,3 +1,4 @@
+vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
 /**
  * SidebarBtEditorSection.test.tsx — Vitest: teste da barra lateral BT.
  * Verifica renderização de seções, painel DG e controles de topologia.
@@ -57,7 +58,7 @@ describe("SidebarBtEditorSection", () => {
 
   it("deve renderizar o painel DG quando onRunDgOptimization é fornecido", () => {
     render(<SidebarBtEditorSection {...DEFAULT_PROPS} onRunDgOptimization={vi.fn()} />);
-    expect(screen.getByText(/design generativo/i)).toBeInTheDocument();
+    expect(screen.getByText(/dgPanel.title/i)).toBeInTheDocument();
   });
 
   it("deve exibir os botões de controle de topologia", () => {
@@ -66,3 +67,4 @@ describe("SidebarBtEditorSection", () => {
     expect(screen.getByRole("button", { name: /\+ condutor/i })).toBeInTheDocument();
   });
 });
+
