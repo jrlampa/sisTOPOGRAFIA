@@ -272,6 +272,7 @@ export function AppHeader({
             {/* Backend status badge */}
             <motion.div
               aria-live="polite"
+              aria-atomic="true"
               initial={false}
               animate={
                 prefersReducedMotion
@@ -288,13 +289,13 @@ export function AppHeader({
                     ? "border-amber-500/30 bg-amber-500/5 text-amber-600 dark:text-amber-400"
                     : "border-rose-500/30 bg-rose-500/5 text-rose-600 dark:text-rose-400"
               }`}
-              title={
-                backendResponseTimeMs != null
-                  ? `${backendStatusLabel} (${backendResponseTimeMs} ms)`
-                  : backendStatusLabel
-              }
             >
-              <span className="relative flex h-2 w-2">
+              <span className="sr-only">
+                {backendStatusLabel}
+                {backendResponseTimeMs != null &&
+                  ` (${backendResponseTimeMs} ms)`}
+              </span>
+              <span className="relative flex h-2 w-2" aria-hidden="true">
                 {backendStatus !== "online" && (
                   <span
                     className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${
@@ -322,6 +323,12 @@ export function AppHeader({
                     : t.apiOffline}
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              
+              {/* Accessible tooltip */}
+              <span className="absolute top-full mt-2 left-0 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
+                {backendStatusLabel}
+                {backendResponseTimeMs != null && ` (${backendResponseTimeMs} ms)`}
+              </span>
             </motion.div>
           </div>
         </div>
@@ -337,7 +344,7 @@ export function AppHeader({
                 ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
                 : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
             }`}
-            aria-label={isMobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+            aria-label={isMobileMenuOpen ? t.closeMenu : t.openMenu}
             aria-expanded={isMobileMenuOpen}
             onClick={() => {
               const next = !isMobileMenuOpen;
@@ -347,7 +354,7 @@ export function AppHeader({
           >
             {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             <span className="absolute top-full mt-2 right-0 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
-              Menu
+              {t.menu}
             </span>
           </button>
         )}
@@ -435,7 +442,7 @@ export function AppHeader({
               handleOpenProjectClick();
             }}
             aria-label={t.openProject}
-            className={`group relative ${actionButtonClass} h-11 w-11 border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:border-white/20`}
+            className={`group relative ${actionButtonClass} h-11 w-11 border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/10`}
           >
             <FolderOpen size={18} strokeWidth={2} />
             <span className="absolute top-full mt-2 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">

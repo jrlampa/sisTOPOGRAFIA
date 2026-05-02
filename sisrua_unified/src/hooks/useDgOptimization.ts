@@ -10,6 +10,7 @@
 import { useState, useCallback } from "react";
 import type { BtTopology, BtEdge } from "../types";
 import type { DgWizardParams } from "../components/DgWizardModal";
+import { getSemanticErrorForException } from "../utils/dgSemanticFeedback";
 
 export type DgDecisionMode = "all" | "trafo_only" | "discard";
 
@@ -92,6 +93,7 @@ export interface DgRunState {
   isOptimizing: boolean;
   result: DgOptimizationOutput | null;
   error: string | null;
+  isPreviewActive: boolean;
 }
 
 // ─── Helpers de conversão ──────────────────────────────────────────────────────
@@ -136,6 +138,7 @@ export function useDgOptimization() {
     isOptimizing: false,
     result: null,
     error: null,
+    isPreviewActive: true,
   });
 
   /**
@@ -143,6 +146,10 @@ export function useDgOptimization() {
    * -1 = melhor cenário; 0..N = alternatives[N].
    */
   const [activeAltIndex, setActiveAltIndex] = useState<number>(-1);
+
+  const setIsPreviewActive = useCallback((active: boolean) => {
+    setState((prev) => ({ ...prev, isPreviewActive: active }));
+  }, []);
 
   /**
    * Executa otimização DG para a topologia BT atual.
@@ -155,7 +162,7 @@ export function useDgOptimization() {
       const transformer = btTopology.transformers[0];
       const isFullProject = !!wizardParams || !transformer;
 
-      setState({ isOptimizing: true, result: null, error: null });
+      setState((prev) => ({ ...prev, isOptimizing: true, result: null, error: null }));
 
       const payload: any = {
         poles: btTopology.poles.map((p) => {
@@ -203,14 +210,15 @@ export function useDgOptimization() {
         }
 
         const result = (await res.json()) as DgOptimizationOutput;
-        setState({ isOptimizing: false, result, error: null });
+        setState((prev) => ({ ...prev, isOptimizing: false, result, error: null, isPreviewActive: true }));
         setActiveAltIndex(-1); // Reinicia seleção ao melhor cenário
       } catch (err) {
-        setState({
+        setState((prev) => ({
+          ...prev,
           isOptimizing: false,
           result: null,
-          error: (err as Error).message,
-        });
+          error: getSemanticErrorForException((err as Error).message),
+        }));
       }
     },
     [],
@@ -218,7 +226,7 @@ export function useDgOptimization() {
 
   /** Limpa o resultado da última execução DG. */
   const clearDgResult = useCallback(() => {
-    setState({ isOptimizing: false, result: null, error: null });
+    setState((prev) => ({ ...prev, isOptimizing: false, result: null, error: null }));
     setActiveAltIndex(-1);
   }, []);
 
@@ -319,6 +327,7 @@ export function useDgOptimization() {
     ...state,
     activeAltIndex,
     setActiveAltIndex,
+    setIsPreviewActive,
     /** Cenário ativo: melhor (−1) ou alternativa selecionada. */
     activeScenario:
       state.result?.recommendation == null

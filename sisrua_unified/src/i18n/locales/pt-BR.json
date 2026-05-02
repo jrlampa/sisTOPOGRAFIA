@@ -58,5 +58,55 @@
       "minDemanda": "A demanda média por cliente deve ser maior que zero.",
       "minTrafos": "Selecione ao menos uma faixa de kVA permitida."
     }
+  },
+  "dgPanel": {
+    "title": "Design Generativo",
+    "addPolesNote": "Adicione ao menos 1 poste para otimizar.",
+    "btnProjectWizard": "PROJETAR REDE (WIZARD)",
+    "btnOptimizeNetwork": "OTIMIZAR REDE",
+    "noSolution": "Nenhuma solução viável encontrada.",
+    "candidatesEvaluated": "{{count}} candidatos avaliados",
+    "feasible": "Viáveis",
+    "previewActive": "Modo Preview Ativo",
+    "previewInactive": "Ativar Preview no Mapa",
+    "best": "Melhor",
+    "alt": "Alt. {{index}}",
+    "score": "Score DG",
+    "trafoSized": "Trafo Dimensionado",
+    "cqtMax": "CQT máx.",
+    "trafoUtilization": "Utilização trafo",
+    "cableTotal": "Cabo total",
+    "discarded": "{{count}} descartados",
+    "comparisonTitle": "Comparativo Atual x Sugerido",
+    "trafoShift": "Realocação do trafo",
+    "cableDelta": "Cabo total (delta)",
+    "confirmApplication": "Confirmo aplicação consciente após revisar o comparativo.",
+    "btnRelocateOnly": "SÓ REALOCAR",
+    "btnNewTrafoOnly": "SÓ NOVO TRAFO",
+    "btnAcceptAll": "ACEITAR TUDO",
+    "activatePreviewNote": "Ative o Modo Preview para habilitar a aplicação.",
+    "progressStages": {
+      "generating": "Gerando topologia...",
+      "calculating": "Calculando fluxos...",
+      "evaluating": "Avaliando CQT...",
+      "optimizing": "Otimizando cenários...",
+      "finishing": "Finalizando..."
+    }
+  },
+  "dgConstraints": {
+    "MAX_SPAN_EXCEEDED": "Vão máximo excedido",
+    "INSIDE_EXCLUSION_ZONE": "Dentro de zona de exclusão",
+    "OUTSIDE_ROAD_CORRIDOR": "Fora do corredor viário",
+    "CQT_LIMIT_EXCEEDED": "Limite CQT excedido",
+    "TRAFO_OVERLOAD": "Sobrecarga do trafo",
+    "NON_RADIAL_TOPOLOGY": "Topologia não radial"
+  },
+  "dgTips": {
+    "MAX_SPAN_EXCEEDED": "Considere adicionar um poste intermediário para reduzir o vão.",
+    "INSIDE_EXCLUSION_ZONE": "Remova postes de áreas restritas ou ajuste as zonas de exclusão.",
+    "OUTSIDE_ROAD_CORRIDOR": "Alinhe os postes mais próximos ao eixo da via.",
+    "CQT_LIMIT_EXCEEDED": "⚠️ Queda de tensão alta. Sugestão: Aumente a seção do cabo ou realoque o transformador.",
+    "TRAFO_OVERLOAD": "A carga atual supera a capacidade do trafo. Use um trafo de maior kVA.",
+    "NON_RADIAL_TOPOLOGY": "A rede deve ser conectada como uma árvore (sem anéis)."
   }
 }

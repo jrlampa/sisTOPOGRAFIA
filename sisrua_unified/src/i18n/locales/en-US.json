@@ -58,5 +58,55 @@
       "minDemanda": "Average demand per customer must be greater than zero.",
       "minTrafos": "Select at least one allowed kVA range."
     }
+  },
+  "dgPanel": {
+    "title": "Generative Design",
+    "addPolesNote": "Add at least 1 pole to optimize.",
+    "btnProjectWizard": "DESIGN NETWORK (WIZARD)",
+    "btnOptimizeNetwork": "OPTIMIZE NETWORK",
+    "noSolution": "No feasible solution found.",
+    "candidatesEvaluated": "{{count}} candidates evaluated",
+    "feasible": "Feasible",
+    "previewActive": "Preview Mode Active",
+    "previewInactive": "Enable Map Preview",
+    "best": "Best",
+    "alt": "Alt. {{index}}",
+    "score": "DG Score",
+    "trafoSized": "Sized Transformer",
+    "cqtMax": "Max CQT",
+    "trafoUtilization": "Trafo utilization",
+    "cableTotal": "Total cable",
+    "discarded": "{{count}} discarded",
+    "comparisonTitle": "Current vs. Suggested Comparison",
+    "trafoShift": "Transformer relocation",
+    "cableDelta": "Total cable (delta)",
+    "confirmApplication": "I confirm conscious application after reviewing the comparison.",
+    "btnRelocateOnly": "RELOCATE ONLY",
+    "btnNewTrafoOnly": "NEW TRAFO ONLY",
+    "btnAcceptAll": "ACCEPT ALL",
+    "activatePreviewNote": "Enable Preview Mode to allow application.",
+    "progressStages": {
+      "generating": "Generating topology...",
+      "calculating": "Calculating flows...",
+      "evaluating": "Evaluating CQT...",
+      "optimizing": "Optimizing scenarios...",
+      "finishing": "Finishing..."
+    }
+  },
+  "dgConstraints": {
+    "MAX_SPAN_EXCEEDED": "Max span exceeded",
+    "INSIDE_EXCLUSION_ZONE": "Inside exclusion zone",
+    "OUTSIDE_ROAD_CORRIDOR": "Outside road corridor",
+    "CQT_LIMIT_EXCEEDED": "Max CQT limit exceeded",
+    "TRAFO_OVERLOAD": "Transformer overload",
+    "NON_RADIAL_TOPOLOGY": "Non-radial topology"
+  },
+  "dgTips": {
+    "MAX_SPAN_EXCEEDED": "Consider adding an intermediate pole to reduce the span.",
+    "INSIDE_EXCLUSION_ZONE": "Remove poles from restricted areas or adjust exclusion zones.",
+    "OUTSIDE_ROAD_CORRIDOR": "Align poles closer to the road centerline.",
+    "CQT_LIMIT_EXCEEDED": "⚠️ High voltage drop. Suggestion: Increase cable section or relocate the transformer.",
+    "TRAFO_OVERLOAD": "Current load exceeds transformer capacity. Use a higher kVA transformer.",
+    "NON_RADIAL_TOPOLOGY": "The network must be connected as a tree (no loops)."
   }
 }

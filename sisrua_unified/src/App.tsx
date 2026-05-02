@@ -356,12 +356,14 @@ function App() {
     btPoleFlyToTarget,
     btTransformerFlyToTarget,
     selectedPoleId,
+    selectedPoleIds,
     selectedEdgeId,
     selectedTransformerId,
     handleBtSelectedEdgeChange,
     handleBtSelectedPoleChange,
     handleBtSelectedTransformerChange,
     setSelectedPoleId,
+    setSelectedPoleIds,
     setSelectedEdgeId,
     setSelectedTransformerId,
   } = useBtNavigationState({ btTopology, showToast });
@@ -524,6 +526,8 @@ function App() {
     logDgDecision,
     applyDgAll,
     applyDgTrafoOnly,
+    isPreviewActive,
+    setIsPreviewActive,
   } = useDgOptimization();
 
   /** Resultados técnicos do último cenário DG aplicado (para o memorial). */
@@ -943,6 +947,22 @@ function App() {
     },
     [setAppState],
   );
+
+  const handleBoxSelect = React.useCallback(
+    (bounds: L.LatLngBounds) => {
+      const selectedIds = btTopology.poles
+        .filter((pole) => bounds.contains([pole.lat, pole.lng]))
+        .map((pole) => pole.id);
+      setSelectedPoleIds(selectedIds);
+      if (selectedIds.length === 1) {
+        setSelectedPoleId(selectedIds[0]);
+      } else {
+        setSelectedPoleId("");
+      }
+    },
+    [btTopology.poles, setSelectedPoleIds, setSelectedPoleId],
+  );
+
   const mapSelectorProps = {
     center,
     flyToEdgeTarget: btEdgeFlyToTarget,
@@ -1003,6 +1023,8 @@ function App() {
     onMtSetEdgeChangeFlag: handleMtSetEdgeChangeFlag,
     onBtSelectPole: handleBtSelectedPoleChange,
     dgScenario: dgActiveScenario,
+    dgGhostMode: isPreviewActive && dgActiveScenario != null,
+    onBoxSelect: handleBoxSelect,
     locale: settings.locale,
     layerConfig: settings.layers,
   };
@@ -1091,11 +1113,15 @@ function App() {
     onAcceptDgTrafoOnly: handleAcceptDgTrafoOnly,
     onClearDgResult: handleDiscardDgResult,
     onSetDgActiveAltIndex: setDgActiveAltIndex,
+    dgIsPreviewActive: isPreviewActive,
+    onSetDgIsPreviewActive: setIsPreviewActive,
     // Hoisted selection state
     selectedPoleId,
+    selectedPoleIds,
     selectedEdgeId,
     selectedTransformerId,
     onSetSelectedPoleId: setSelectedPoleId,
+    onSetSelectedPoleIds: setSelectedPoleIds,
     onSetSelectedEdgeId: setSelectedEdgeId,
     onSetSelectedTransformerId: setSelectedTransformerId,
     mtTopology: mtTopology,

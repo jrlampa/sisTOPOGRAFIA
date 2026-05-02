@@ -8,6 +8,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2, Zap, CheckCircle, XCircle, Info, Eye, EyeOff } from "lucide-react";
 import type {
   DgOptimizationOutput,
@@ -15,22 +16,13 @@ import type {
   DgConstraintCode,
 } from "../hooks/useDgOptimization";
 import { DgWizardModal, DgWizardParams } from "./DgWizardModal";
-import type { BtPoleNode, BtTransformer } from "../types";
-import { motion, AnimatePresence } from "framer-motion";
+import { BtPoleNode, BtTransformer } from "../types";
+import { Skeleton } from "./Skeleton";
+
+
 
 const DG_WIZARD_FULL_MODE_ENABLED =
   String(import.meta.env.VITE_DG_WIZARD_FULL_MODE ?? "true") !== "false";
-
-// ─── Labels em pt-BR ───────────────────────────────────────────────────────────
-
-const CONSTRAINT_LABELS: Record<DgConstraintCode, string> = {
-  MAX_SPAN_EXCEEDED: "Vão máximo excedido",
-  INSIDE_EXCLUSION_ZONE: "Dentro de zona de exclusão",
-  OUTSIDE_ROAD_CORRIDOR: "Fora do corredor viário",
-  CQT_LIMIT_EXCEEDED: "Limite CQT excedido",
-  TRAFO_OVERLOAD: "Sobrecarga do trafo",
-  NON_RADIAL_TOPOLOGY: "Topologia não radial",
-};
 
 // ─── Subcomponentes internos ───────────────────────────────────────────────────
 
@@ -101,23 +93,93 @@ function DiscardReasonList({
 }: {
   summary: Partial<Record<DgConstraintCode, number>>;
 }) {
+  const { t } = useTranslation();
   const entries = Object.entries(summary) as [DgConstraintCode, number][];
   if (entries.length === 0) return null;
   return (
-    <div className="mt-2 space-y-0.5">
-      <div className="text-xs uppercase font-bold tracking-wider text-zinc-500 dark:text-zinc-400">
-        Motivos de descarte
+    <div className="mt-2 space-y-1.5 rounded-lg bg-amber-50/50 p-2 border border-amber-200/40 dark:bg-amber-950/10 dark:border-amber-900/20">
+      <div className="text-[10px] uppercase font-black tracking-widest text-amber-700 dark:text-amber-400">
+        Motivos de descarte & Soluções
       </div>
       {entries.map(([code, count]) => (
-        <div key={code} className="flex justify-between text-xs">
-          <span className="text-zinc-600 dark:text-zinc-400">
-            {CONSTRAINT_LABELS[code]}
-          </span>
-          <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-            {count}×
-          </span>
+        <div key={code} className="space-y-0.5">
+          <div className="flex justify-between text-xs">
+            <span className="font-bold text-amber-900 dark:text-amber-200">
+              {t(`dgConstraints.${code}`, code)}
+            </span>
+            <span className="font-black text-amber-700 dark:text-amber-400">
+              {count}×
+            </span>
+          </div>
+          <p className="text-[10px] leading-tight text-amber-800/80 dark:text-amber-300/60 italic">
+            {t(`dgTips.${code}`, "")}
+          </p>
         </div>
       ))}
+    </div>
+  );
+}
+
+function DgOptimizationSkeleton({ stage }: { stage: string }) {
+  const [logIdx, setLogIdx] = useState(0);
+  const logs = useMemo(() => [
+    "Analisando combinações de vãos...",
+    "Validando restrições técnicas...",
+    "Otimizando queda de tensão...",
+    "Processando 1.200 cenários...",
+    "Calculando score de engenharia...",
+  ], []);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLogIdx((prev) => (prev + 1) % logs.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [logs.length]);
+
+  return (
+    <div className="space-y-4 pt-2">
+      <div className="space-y-2">
+        <Skeleton className="h-9 w-full rounded-lg bg-violet-200 dark:bg-violet-900/30" />
+        <div className="flex flex-col items-center justify-center gap-1 py-1">
+          <div className="flex items-center gap-2">
+            <Loader2 size={14} className="animate-spin text-violet-600" />
+            <span className="text-xs font-bold text-violet-700 dark:text-violet-400 uppercase tracking-wider">
+              {stage}
+            </span>
+          </div>
+          <span className="text-[10px] text-zinc-500 italic animate-pulse">
+            {logs[logIdx]}
+          </span>
+        </div>
+      </div>
+      
+      <div className="space-y-3 px-1 opacity-60">
+        <div className="space-y-1">
+          <div className="flex justify-between">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-12" />
+          </div>
+          <Skeleton className="h-2 w-full rounded-full" />
+        </div>
+        
+        <div className="grid grid-cols-1 gap-2">
+          <div className="flex justify-between items-center">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+          <div className="flex justify-between items-center">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-12" />
+          </div>
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 pt-2">
+        <Skeleton className="h-9 w-full rounded-xl" />
+        <Skeleton className="h-9 w-full rounded-xl" />
+      </div>
     </div>
   );
 }
@@ -137,6 +199,8 @@ export interface DgOptimizationPanelProps {
   /** Índice da alternativa ativa: −1 = melhor, 0..N = alternatives[N]. */
   activeAltIndex: number;
   onSetActiveAltIndex: (index: number) => void;
+  isPreviewActive: boolean;
+  onSetIsPreviewActive: (active: boolean) => void;
   onRun: (wizardParams?: DgWizardParams) => void;
   onAcceptAll: (scenario: DgScenario) => void;
   onAcceptTrafoOnly: (scenario: DgScenario) => void;
@@ -157,22 +221,24 @@ export function DgOptimizationPanel({
   error,
   activeAltIndex,
   onSetActiveAltIndex,
+  isPreviewActive,
+  onSetIsPreviewActive,
   onRun,
   onAcceptAll,
   onAcceptTrafoOnly,
   onDiscard,
 }: DgOptimizationPanelProps) {
+  const { t } = useTranslation();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [acceptanceConfirmed, setAcceptanceConfirmed] = useState(false);
-  const [isPreviewActive, setIsPreviewActive] = useState(true); // Default to true for UX-07
   const [progressStage, setProgressStage] = useState(0);
 
   const PROGRESS_STAGES = [
-    "Gerando topologia...",
-    "Calculando fluxos...",
-    "Avaliando CQT...",
-    "Otimizando cenários...",
-    "Finalizando...",
+    t("dgPanel.progressStages.generating"),
+    t("dgPanel.progressStages.calculating"),
+    t("dgPanel.progressStages.evaluating"),
+    t("dgPanel.progressStages.optimizing"),
+    t("dgPanel.progressStages.finishing"),
   ];
 
   useEffect(() => {
@@ -184,7 +250,7 @@ export function DgOptimizationPanel({
     } else {
       setProgressStage(0);
     }
-  }, [isOptimizing]);
+  }, [isOptimizing, PROGRESS_STAGES.length]);
 
   const canRunFull = hasPoles && !isOptimizing;
 
@@ -199,8 +265,8 @@ export function DgOptimizationPanel({
 
   useEffect(() => {
     setAcceptanceConfirmed(false);
-    if (active) setIsPreviewActive(true);
-  }, [active?.scenarioId]);
+    if (active) onSetIsPreviewActive(true);
+  }, [active?.scenarioId, active, onSetIsPreviewActive]);
 
   const cableDeltaMeters = useMemo(() => {
     if (!active || currentTotalCableLengthMeters == null) return null;
@@ -239,6 +305,20 @@ export function DgOptimizationPanel({
     onRun(params);
   };
 
+  if (isOptimizing) {
+    return (
+      <div className="rounded-xl border-2 border-violet-700/30 bg-violet-50 p-3 dark:border-violet-500/35 dark:bg-violet-950/20">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Zap size={12} className="text-violet-700 dark:text-violet-300" />
+          <span className="text-xs font-black uppercase tracking-[0.18em] text-violet-800 dark:text-violet-200">
+            {t("dgPanel.title")}
+          </span>
+        </div>
+        <DgOptimizationSkeleton stage={PROGRESS_STAGES[progressStage]} />
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border-2 border-violet-700/30 bg-violet-50 p-3 space-y-3 dark:border-violet-500/35 dark:bg-violet-950/20">
       {/* Cabeçalho */}
@@ -246,13 +326,13 @@ export function DgOptimizationPanel({
         <div className="flex items-center gap-1.5">
           <Zap size={12} className="text-violet-700 dark:text-violet-300" />
           <span className="text-xs font-black uppercase tracking-[0.18em] text-violet-800 dark:text-violet-200">
-            Design Generativo
+            {t("dgPanel.title")}
           </span>
         </div>
         {result && (
           <button
             onClick={onDiscard}
-            aria-label="Descartar resultado DG"
+            aria-label={t("common.close")}
             className="rounded p-0.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
           >
             <XCircle size={13} />
@@ -263,7 +343,7 @@ export function DgOptimizationPanel({
       {/* Pré-requisito: sem poste */}
       {!hasPoles && (
         <p className="text-xs text-violet-700 dark:text-violet-300">
-          Adicione ao menos 1 poste para otimizar.
+          {t("dgPanel.addPolesNote")}
         </p>
       )}
 
@@ -274,24 +354,11 @@ export function DgOptimizationPanel({
           disabled={!canRunFull}
           className="w-full rounded-xl border-2 border-violet-700/40 bg-violet-700 py-2 text-xs font-black text-white transition-all hover:bg-violet-800 disabled:opacity-40 dark:border-violet-400/40 dark:bg-violet-700 dark:hover:bg-violet-600 min-h-[44px]"
         >
-          {isOptimizing ? (
-            <span className="flex items-center justify-center gap-2">
-              <Loader2 size={14} className="animate-spin" />
-              <motion.span
-                key={progressStage}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="inline-block"
-              >
-                {PROGRESS_STAGES[progressStage]}
-              </motion.span>
-            </span>
-          ) : DG_WIZARD_FULL_MODE_ENABLED &&
+          {DG_WIZARD_FULL_MODE_ENABLED &&
             (hasProjectedPoles || !hasTransformer) ? (
-            "PROJETAR REDE (WIZARD)"
+            t("dgPanel.btnProjectWizard")
           ) : (
-            "OTIMIZAR REDE"
+            t("dgPanel.btnOptimizeNetwork")
           )}
         </button>
       )}
@@ -308,10 +375,10 @@ export function DgOptimizationPanel({
         <div className="space-y-2">
           <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
             <Info size={11} />
-            Nenhuma solução viável encontrada.
+            {t("dgPanel.noSolution")}
           </div>
           <div className="text-xs text-zinc-500 dark:text-zinc-400">
-            Candidatos avaliados: {result.totalCandidatesEvaluated} · Viáveis:{" "}
+            {t("dgPanel.candidatesEvaluated", { count: result.totalCandidatesEvaluated })} · {t("dgPanel.feasible")}:{" "}
             {result.totalFeasible}
           </div>
         </div>
@@ -322,7 +389,7 @@ export function DgOptimizationPanel({
         <div className="space-y-3">
           {/* Preview Toggle (UX-07) */}
           <button
-            onClick={() => setIsPreviewActive(!isPreviewActive)}
+            onClick={() => onSetIsPreviewActive(!isPreviewActive)}
             className={`flex w-full items-center justify-center gap-2 rounded-lg border-2 py-2 text-xs font-black uppercase tracking-widest transition-all ${
               isPreviewActive 
                 ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" 
@@ -330,7 +397,7 @@ export function DgOptimizationPanel({
             }`}
           >
             {isPreviewActive ? <Eye size={12} /> : <EyeOff size={12} />}
-            {isPreviewActive ? "Modo Preview Ativo" : "Ativar Preview no Mapa"}
+            {isPreviewActive ? t("dgPanel.previewActive") : t("dgPanel.previewInactive")}
           </button>
 
           {/* Navegação entre cenários (melhor + alternativas) */}
@@ -344,7 +411,7 @@ export function DgOptimizationPanel({
                     : "border border-violet-400/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30"
                 }`}
               >
-                Melhor
+                {t("dgPanel.best")}
               </button>
               {rec.alternatives.map((_, i) => (
                 <button
@@ -356,7 +423,7 @@ export function DgOptimizationPanel({
                       : "border border-violet-400/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30"
                   }`}
                 >
-                  Alt. {i + 1}
+                  {t("dgPanel.alt", { index: i + 1 })}
                 </button>
               ))}
             </div>
@@ -365,7 +432,7 @@ export function DgOptimizationPanel({
           {/* Score */}
           <div className="space-y-1">
             <div className="flex justify-between text-xs">
-              <span className="text-zinc-500 dark:text-zinc-400">Score DG</span>
+              <span className="text-zinc-500 dark:text-zinc-400">{t("dgPanel.score")}</span>
               <span className="font-black text-violet-700 dark:text-violet-300">
                 {active.objectiveScore.toFixed(1)} / 100
               </span>
@@ -377,30 +444,30 @@ export function DgOptimizationPanel({
           <div className="space-y-1">
             {active.metadata?.selectedKva && (
               <ElectricalResultRow
-                label="Trafo Dimensionado"
+                label={t("dgPanel.trafoSized")}
                 value={`${active.metadata.selectedKva} kVA`}
               />
             )}
             <ElectricalResultRow
-              label="CQT máx."
+              label={t("dgPanel.cqtMax")}
               value={`${(active.electricalResult.cqtMaxFraction * 100).toFixed(1)}%`}
               warn={active.electricalResult.cqtMaxFraction > 0.08}
             />
             <ElectricalResultRow
-              label="Utilização trafo"
+              label={t("dgPanel.trafoUtilization")}
               value={`${(active.electricalResult.trafoUtilizationFraction * 100).toFixed(1)}%`}
               warn={active.electricalResult.trafoUtilizationFraction > 0.95}
             />
             <ElectricalResultRow
-              label="Cabo total"
+              label={t("dgPanel.cableTotal")}
               value={`${active.electricalResult.totalCableLengthMeters.toFixed(0)} m`}
             />
           </div>
 
           {/* Meta: candidatos / descartados */}
           <div className="text-xs text-zinc-500 dark:text-zinc-400">
-            {result?.totalCandidatesEvaluated ?? 0} candidatos ·{" "}
-            {rec?.discardedCount ?? 0} descartados
+            {t("dgPanel.candidatesEvaluated", { count: result?.totalCandidatesEvaluated ?? 0 })} ·{" "}
+            {t("dgPanel.discarded", { count: rec?.discardedCount ?? 0 })}
           </div>
 
           {rec && <DiscardReasonList summary={rec.discardReasonSummary} />}
@@ -408,11 +475,11 @@ export function DgOptimizationPanel({
           {(currentTransformer || currentTotalCableLengthMeters != null) && (
             <div className="space-y-1 rounded-lg border border-violet-300/40 bg-white/70 p-2 dark:border-violet-600/40 dark:bg-zinc-900/30">
               <div className="text-xs uppercase font-bold tracking-wider text-violet-700 dark:text-violet-300">
-                Comparativo Atual x Sugerido
+                {t("dgPanel.comparisonTitle")}
               </div>
               {currentTransformer && (
                 <ElectricalResultRow
-                  label="Realocação do trafo"
+                  label={t("dgPanel.trafoShift")}
                   value={
                     trafoShiftMeters == null
                       ? "-"
@@ -422,7 +489,7 @@ export function DgOptimizationPanel({
               )}
               {currentTotalCableLengthMeters != null && (
                 <ElectricalResultRow
-                  label="Cabo total (delta)"
+                  label={t("dgPanel.cableDelta")}
                   value={
                     cableDeltaMeters == null
                       ? "-"
@@ -443,10 +510,10 @@ export function DgOptimizationPanel({
               type="checkbox"
               checked={acceptanceConfirmed}
               onChange={(e) => setAcceptanceConfirmed(e.target.checked)}
-              aria-label="Confirmo aplicação consciente do cenário"
+              aria-label={t("dgPanel.confirmApplication")}
               className="accent-emerald-600"
             />
-            <span className="font-bold">Confirmo aplicação consciente após revisar o comparativo.</span>
+            <span className="font-bold">{t("dgPanel.confirmApplication")}</span>
           </label>
 
           {/* Botões de aceitação */}
@@ -456,7 +523,7 @@ export function DgOptimizationPanel({
               disabled={!acceptanceConfirmed || !isPreviewActive}
               className="rounded-xl border-2 border-violet-700/40 py-2 text-xs font-black text-violet-800 transition-all hover:bg-violet-100 disabled:opacity-40 dark:border-violet-500/40 dark:text-violet-200 dark:hover:bg-violet-900/30"
             >
-              {hasTransformer ? "SÓ REALOCAR" : "SÓ NOVO TRAFO"}
+              {hasTransformer ? t("dgPanel.btnRelocateOnly") : t("dgPanel.btnNewTrafoOnly")}
             </button>
             <button
               onClick={() => onAcceptAll(active)}
@@ -465,14 +532,14 @@ export function DgOptimizationPanel({
             >
               <span className="flex items-center justify-center gap-1">
                 <CheckCircle size={10} />
-                ACEITAR TUDO
+                {t("dgPanel.btnAcceptAll")}
               </span>
             </button>
           </div>
           
           {!isPreviewActive && (
             <p className="text-center text-xs font-bold text-amber-600 animate-pulse">
-              Ative o Modo Preview para habilitar a aplicação.
+              {t("dgPanel.activatePreviewNote")}
             </p>
           )}
         </div>

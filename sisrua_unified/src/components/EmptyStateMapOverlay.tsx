@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Search, MapPin, MousePointer2, ArrowRight, Zap } from "lucide-react";
+import { Search, MapPin, MousePointer2, FileDown, Zap } from "lucide-react";
 import type { AppLocale } from "../types";
 
 type Props = {
@@ -11,30 +11,40 @@ type Props = {
 
 const TEXTS = {
   "pt-BR": {
-    title: "Pronto para começar?",
-    subtitle: "Inicie seu projeto de engenharia agora.",
-    primaryCta: "INICIAR PROJETO",
-    microInstruction:
-      "Clique em qualquer lugar do mapa ou pesquise um endereço.",
-    searchLabel: "Pesquisar endereço",
-    clickLabel: "Clicar no mapa",
+    title: "Guia de Inicialização",
+    subtitle: "Siga os passos para criar sua rede inteligente.",
+    step1: "1. Importar KML",
+    step1Desc: "Arraste um arquivo KML para o mapa ou clique em abrir projeto.",
+    step2: "2. Definir Centro de Carga",
+    step2Desc: "Clique no mapa ou pesquise o endereço para iniciar a seleção.",
+    step3: "3. Design Generativo",
+    step3Desc: "Acesse o painel lateral para gerar e otimizar a rede.",
+    actionSearch: "Pesquisar Endereço",
+    actionClick: "Selecionar no Mapa",
   },
   "en-US": {
-    title: "Ready to start?",
-    subtitle: "Start your engineering project now.",
-    primaryCta: "START PROJECT",
-    microInstruction: "Click anywhere on the map or search for an address.",
-    searchLabel: "Search address",
-    clickLabel: "Click on map",
+    title: "Getting Started Guide",
+    subtitle: "Follow these steps to create your smart network.",
+    step1: "1. Import KML",
+    step1Desc: "Drag a KML file onto the map or click open project.",
+    step2: "2. Define Load Center",
+    step2Desc: "Click on the map or search for an address to begin selection.",
+    step3: "3. Generative Design",
+    step3Desc: "Open the side panel to generate and optimize the network.",
+    actionSearch: "Search Address",
+    actionClick: "Select on Map",
   },
   "es-ES": {
-    title: "¿Listo para empezar?",
-    subtitle: "Inicie su proyecto de ingeniería ahora.",
-    primaryCta: "INICIAR PROYECTO",
-    microInstruction:
-      "Haga clic en cualquier lugar del mapa o busque una dirección.",
-    searchLabel: "Buscar dirección",
-    clickLabel: "Clic en el mapa",
+    title: "Guía de Inicio",
+    subtitle: "Siga los pasos para crear su red inteligente.",
+    step1: "1. Importar KML",
+    step1Desc: "Arrastre un archivo KML al mapa o haga clic en abrir proyecto.",
+    step2: "2. Definir Centro de Carga",
+    step2Desc: "Haga clic en el mapa o busque una dirección para iniciar.",
+    step3: "3. Diseño Generativo",
+    step3Desc: "Abra el panel lateral para generar y optimizar la red.",
+    actionSearch: "Buscar Dirección",
+    actionClick: "Seleccionar en Mapa",
   },
 };
 
@@ -49,80 +59,72 @@ export function EmptyStateMapOverlay({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="absolute inset-0 z-[450] flex items-center justify-center p-6 bg-slate-900/10 pointer-events-none"
+      className="absolute inset-0 z-[450] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm pointer-events-none"
     >
       <motion.div
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="glass-card pointer-events-auto max-w-sm overflow-hidden border-sky-400/30 shadow-[0_32px_64px_-12px_rgba(15,23,42,0.3)] dark:border-white/10 dark:bg-slate-900/90 text-center"
+        className="glass-card pointer-events-auto w-full max-w-md overflow-hidden rounded-3xl border border-sky-400/30 bg-white/95 shadow-[0_32px_64px_-12px_rgba(15,23,42,0.3)] dark:border-white/10 dark:bg-slate-900/95"
       >
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-white relative overflow-hidden">
-          {/* Decorative background element */}
-          <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
-
-          <motion.div
-            initial={{ rotate: -10, scale: 0.8 }}
-            animate={{ rotate: 0, scale: 1 }}
-            transition={{ type: "spring", damping: 12 }}
-            className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md shadow-inner"
-          >
-            <Zap size={32} className="text-yellow-300 fill-yellow-300/20" />
-          </motion.div>
-          <h2 className="text-2xl font-black tracking-tight leading-tight">
-            {t.title}
-          </h2>
-          <p className="mt-2 text-sm font-medium text-blue-100 opacity-90">
-            {t.subtitle}
-          </p>
+        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white text-center">
+          <h2 className="text-xl font-black tracking-tight">{t.title}</h2>
+          <p className="mt-1 text-xs font-medium text-blue-100 opacity-90">{t.subtitle}</p>
         </div>
 
-        <div className="p-8 space-y-6">
-          <button
-            onClick={onMapClickAction}
-            className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-blue-600 px-6 py-4 text-white shadow-[0_10px_20px_-5px_rgba(37,99,235,0.4)] transition-all hover:bg-blue-700 hover:shadow-[0_15px_30px_-10px_rgba(37,99,235,0.6)] active:scale-[0.97] active:duration-75"
-          >
-            <span className="text-sm font-black uppercase tracking-[0.15em]">
-              {t.primaryCta}
-            </span>
-            <ArrowRight
-              size={18}
-              className="transition-transform group-hover:translate-x-1"
-            />
-          </button>
-
-          <div className="relative">
-            <div
-              className="absolute inset-0 flex items-center"
-              aria-hidden="true"
-            >
-              <div className="w-full border-t border-slate-200 dark:border-white/10"></div>
+        <div className="p-6 space-y-4">
+          {/* Step 1 */}
+          <div className="flex items-start gap-4 rounded-2xl bg-slate-50 p-4 border border-slate-100 dark:bg-slate-800/50 dark:border-slate-700/50">
+            <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
+              <FileDown size={16} />
             </div>
-            <div className="relative flex justify-center text-xs font-bold uppercase tracking-widest">
-              <span className="bg-white px-2 text-slate-400 dark:bg-slate-900">
-                OU
-              </span>
+            <div>
+              <div className="text-sm font-bold text-slate-800 dark:text-slate-200">{t.step1}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t.step1Desc}</div>
             </div>
           </div>
 
-          <button
-            onClick={onStartSearch}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-slate-600 transition-all hover:border-blue-400 hover:text-blue-600 active:scale-[0.98] dark:border-white/5 dark:bg-white/5 dark:text-slate-400 dark:hover:border-blue-500/50 dark:hover:text-blue-400"
-          >
-            <Search size={16} />
-            <span className="text-xs font-bold uppercase tracking-wider">
-              {t.searchLabel}
-            </span>
-          </button>
+          {/* Step 2 */}
+          <div className="relative flex flex-col gap-3 rounded-2xl bg-white p-4 border-2 border-indigo-500 shadow-lg shadow-indigo-500/10 dark:bg-slate-800 dark:border-indigo-400">
+            <div className="absolute -top-1.5 -right-1.5 flex h-3 w-3 items-center justify-center">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400">
+                <MapPin size={16} />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-slate-800 dark:text-slate-200">{t.step2}</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t.step2Desc}</div>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={onMapClickAction}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-indigo-50 py-2 text-xs font-bold text-indigo-700 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+              >
+                <MousePointer2 size={14} />
+                {t.actionClick}
+              </button>
+              <button
+                onClick={onStartSearch}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-indigo-50 py-2 text-xs font-bold text-indigo-700 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+              >
+                <Search size={14} />
+                {t.actionSearch}
+              </button>
+            </div>
+          </div>
 
-          <p className="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-            {t.microInstruction}
-          </p>
-        </div>
-
-        <div className="border-t border-slate-100 bg-slate-50/50 p-4 dark:border-white/5 dark:bg-white/5">
-          <div className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
-            sisrua unified engine v2.0
+          {/* Step 3 */}
+          <div className="flex items-start gap-4 rounded-2xl bg-slate-50 p-4 border border-slate-100 dark:bg-slate-800/50 dark:border-slate-700/50 opacity-60">
+            <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-violet-600 dark:bg-violet-900/50 dark:text-violet-400">
+              <Zap size={16} />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-slate-800 dark:text-slate-200">{t.step3}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t.step3Desc}</div>
+            </div>
           </div>
         </div>
       </motion.div>

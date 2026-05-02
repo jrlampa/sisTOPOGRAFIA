@@ -7,6 +7,7 @@ type BtTopologyPanelText = {
   clandestinoAreaTitle: string;
   clandestinoAreaPlaceholder: string;
   btnBulkImport: string;
+  massEditTitle: string;
   
   stats: {
     componentsTitle: string;
@@ -15,6 +16,8 @@ type BtTopologyPanelText = {
     edges: string;
     metricsTitle: string;
     networkLengthMeters: string;
+    trafoUtilTitle: string;
+    spansTitle: string;
   };
 
   poleVerification: {
@@ -128,6 +131,7 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
     clandestinoAreaTitle: "Área de clandestinos (m²)",
     clandestinoAreaPlaceholder: "Informe a área em m²",
     btnBulkImport: "Importação em Massa",
+    massEditTitle: "Edição em Massa",
 
     stats: {
       componentsTitle: "Componentes",
@@ -135,7 +139,9 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       transformers: "Trafos",
       edges: "Trechos",
       metricsTitle: "Métricas",
-      networkLengthMeters: "m de rede",
+      networkLengthMeters: "Comprimento da Rede (m)",
+      trafoUtilTitle: "Util. Trafo",
+      spansTitle: "Vãos (m)",
     },
 
     poleVerification: {
@@ -247,6 +253,7 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
     clandestinoAreaTitle: "Unregistered area (m²)",
     clandestinoAreaPlaceholder: "Enter area in m²",
     btnBulkImport: "Bulk Import",
+    massEditTitle: "Bulk Edit",
 
     stats: {
       componentsTitle: "Components",
@@ -254,7 +261,9 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       transformers: "Transformers",
       edges: "Spans",
       metricsTitle: "Metrics",
-      networkLengthMeters: "m of network",
+      networkLengthMeters: "Network Length (m)",
+      trafoUtilTitle: "Trafo Util.",
+      spansTitle: "Spans (m)",
     },
 
     poleVerification: {
@@ -366,6 +375,7 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
     clandestinoAreaTitle: "Área clandestina (m²)",
     clandestinoAreaPlaceholder: "Informe el área en m²",
     btnBulkImport: "Importación Masiva",
+    massEditTitle: "Edición Masiva",
 
     stats: {
       componentsTitle: "Componentes",
@@ -373,7 +383,9 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       transformers: "Trafos",
       edges: "Tramos",
       metricsTitle: "Métricas",
-      networkLengthMeters: "m de red",
+      networkLengthMeters: "Longitud de Red (m)",
+      trafoUtilTitle: "Util. Trafo",
+      spansTitle: "Vanos (m)",
     },
 
     poleVerification: {

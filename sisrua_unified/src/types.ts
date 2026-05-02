@@ -107,6 +107,7 @@ export interface LayerConfig {
   btNetwork: boolean;
   mtNetwork: boolean;
   electricalAudit: boolean;
+  cqtHeatmap: boolean;
 }
 
 export type ProjectionType = "local" | "utm";

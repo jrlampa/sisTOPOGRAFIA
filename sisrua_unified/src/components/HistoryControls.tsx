@@ -5,7 +5,6 @@ import type { HistoryEntry } from "../hooks/useUndoRedo";
 import type { AppLocale } from "../types";
 import { getAppHeaderText } from "../i18n/appHeaderText";
 import { trackHeaderAction, trackRework } from "../utils/analytics";
-import { useABTest } from "../hooks/useABTest";
 
 interface HistoryControlsProps {
   canUndo: boolean;
@@ -30,9 +29,6 @@ const HistoryControls: React.FC<HistoryControlsProps> = ({
   const containerRef = React.useRef<HTMLDivElement>(null);
   const t = getAppHeaderText(locale);
   
-  // UX-20: A/B Experiment - Explicit History Button vs Hidden (Control)
-  const isExplicitHistoryEnabled = useABTest("ux20-explicit-history", true);
-
   // Close when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -60,11 +56,9 @@ const HistoryControls: React.FC<HistoryControlsProps> = ({
       role="group"
       aria-label={t.recentHistory}
       onContextMenu={(e) => {
-        if (!isExplicitHistoryEnabled) {
-          e.preventDefault();
-          if (!showHistory) trackHeaderAction("history_panel_open");
-          setShowHistory(!showHistory);
-        }
+        e.preventDefault();
+        if (!showHistory) trackHeaderAction("history_panel_open");
+        setShowHistory(!showHistory);
       }}
       className="relative flex items-center gap-1 rounded-2xl border border-slate-200 bg-sky-50/70 p-1 shadow-[0_10px_24px_rgba(148,163,184,0.16)] dark:border-white/10 dark:bg-white/5 dark:shadow-none"
     >
@@ -85,26 +79,24 @@ const HistoryControls: React.FC<HistoryControlsProps> = ({
         <Undo2 size={18} />
       </button>
 
-      {isExplicitHistoryEnabled && (
-        <button
-          onClick={() => {
-            if (!showHistory) trackHeaderAction("history_panel_open");
-            setShowHistory(!showHistory);
-          }}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 font-bold text-xs ${
-            showHistory
-              ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
-              : "text-slate-700 hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-white"
-          }`}
-          title={t.historyTooltip}
-          aria-label={t.historyTooltip}
-          aria-expanded={showHistory}
-          aria-haspopup="true"
-        >
-          <History size={16} />
-          <span className="hidden sm:inline">{t.recentHistory}</span>
-        </button>
-      )}
+      <button
+        onClick={() => {
+          if (!showHistory) trackHeaderAction("history_panel_open");
+          setShowHistory(!showHistory);
+        }}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 font-bold text-xs ${
+          showHistory
+            ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+            : "text-slate-700 hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-white"
+        }`}
+        title={t.historyTooltip}
+        aria-label={t.historyTooltip}
+        aria-expanded={showHistory}
+        aria-haspopup="true"
+      >
+        <History size={16} />
+        <span className="hidden sm:inline">{t.recentHistory}</span>
+      </button>
 
       <button
         onClick={() => {

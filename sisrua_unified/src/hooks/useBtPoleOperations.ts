@@ -43,6 +43,7 @@ import {
 import { generateEntityId, ID_PREFIX } from "../utils/idGenerator";
 import { fetchBtDerivedState } from "../services/btDerivedService";
 import { API_BASE_URL } from "../config/api";
+import { applyOrthoSnap } from "../utils/smartSnapping";
 
 export type { PendingNormalClassificationPole };
 
@@ -447,7 +448,18 @@ export function useBtPoleOperations({
     );
   };
 
-  const handleBtDragPole = (poleId: string, lat: number, lng: number) => {
+  const handleBtDragPole = (poleId: string, rawLat: number, rawLng: number) => {
+    // Smart Snapping: atrai o poste para eixos ortogonais dos vizinhos
+    const neighbors = btTopology.edges
+      .filter((e) => e.fromPoleId === poleId || e.toPoleId === poleId)
+      .map((e) => {
+        const neighborId = e.fromPoleId === poleId ? e.toPoleId : e.fromPoleId;
+        return btTopology.poles.find((p) => p.id === neighborId);
+      })
+      .filter((p): p is NonNullable<typeof p> => !!p);
+
+    const { lat, lng } = applyOrthoSnap(rawLat, rawLng, neighbors);
+
     const updatedPoles = btTopology.poles.map((p) =>
       p.id === poleId ? { ...p, lat, lng } : p,
     );

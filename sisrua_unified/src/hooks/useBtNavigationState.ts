@@ -25,6 +25,7 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
   const [btPoleFlyToTarget, setBtPoleFlyToTarget] = useState<FlyToTarget | null>(null);
   const [btTransformerFlyToTarget, setBtTransformerFlyToTarget] = useState<FlyToTarget | null>(null);
   const [selectedPoleId, setSelectedPoleId] = useState<string>("");
+  const [selectedPoleIds, setSelectedPoleIds] = useState<string[]>([]);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string>("");
   const [selectedTransformerId, setSelectedTransformerId] = useState<string>("");
   const lastTransformerConflictSignatureRef = useRef<string | null>(null);
@@ -77,13 +78,30 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
     setBtEdgeFlyToTarget(buildFlyToTarget((fromPole.lat + toPole.lat) / 2, (fromPole.lng + toPole.lng) / 2));
   };
 
-  const handleBtSelectedPoleChange = (poleId: string) => {
+  const handleBtSelectedPoleChange = (poleId: string, isShiftSelect?: boolean) => {
     const pole = btTopology.poles.find((candidate) => candidate.id === poleId);
     if (!pole) {
       return;
     }
 
-    setSelectedPoleId(poleId);
+    if (isShiftSelect) {
+      setSelectedPoleIds((prev) => {
+        const next = prev.includes(poleId)
+          ? prev.filter((id) => id !== poleId)
+          : [...prev, poleId];
+        
+        if (next.length === 1) {
+          setSelectedPoleId(next[0]);
+        } else {
+          setSelectedPoleId("");
+        }
+        return next;
+      });
+    } else {
+      setSelectedPoleIds([poleId]);
+      setSelectedPoleId(poleId);
+    }
+
     setBtPoleFlyToTarget(buildFlyToTarget(pole.lat, pole.lng));
   };
 
@@ -102,12 +120,14 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
     btPoleFlyToTarget,
     btTransformerFlyToTarget,
     selectedPoleId,
+    selectedPoleIds,
     selectedEdgeId,
     selectedTransformerId,
     handleBtSelectedEdgeChange,
     handleBtSelectedPoleChange,
     handleBtSelectedTransformerChange,
     setSelectedPoleId,
+    setSelectedPoleIds,
     setSelectedEdgeId,
     setSelectedTransformerId,
   };

@@ -62,6 +62,7 @@ const DEFAULT_APP_STATE: GlobalState = {
       btNetwork: true,
       mtNetwork: true,
       electricalAudit: false,
+      cqtHeatmap: false,
     },
     projectMetadata: {
       projectName: "PROJECT OSM-01",

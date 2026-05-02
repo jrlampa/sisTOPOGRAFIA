@@ -70,6 +70,7 @@ const MapSelectorDgOverlay: React.FC<MapSelectorDgOverlayProps> = ({
             weight: DG_EDGE_WEIGHT,
             opacity: DG_EDGE_OPACITY,
             dashArray: DG_EDGE_DASH,
+            className: "dg-overlay-path",
           }}
         >
           <Tooltip sticky>
@@ -87,6 +88,7 @@ const MapSelectorDgOverlay: React.FC<MapSelectorDgOverlayProps> = ({
           fillColor: DG_TRAFO_FILL,
           fillOpacity: 0.9,
           weight: 2.5,
+          className: "dg-marker dg-overlay-path",
         }}
       >
         <Tooltip permanent={false} direction="top">

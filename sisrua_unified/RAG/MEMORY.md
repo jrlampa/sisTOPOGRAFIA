@@ -1,8 +1,17 @@
+## Atualização Operacional (2026-05-02A) - Hardening Fase 5 (UX & Dashboards)
+- **Dashboards de Saúde (Mini-Charts)**: Implementado sistema de visualização instantânea no `BtTopologyPanelStats.tsx` com Trafo Donut (utilização de carga) e Histogram de Vãos (distribuição mecânica) via SVG.
+- **Smart Snapping (Alinhamento)**: Integrado utilitário `smartSnapping.ts` ao fluxo de arrasto de postes no `useBtPoleOperations.ts`, permitindo alinhamento ortogonal automático com postes vizinhos (N/S e L/O).
+- **Esqueletos & Feedback Semântico**: Substituído spinner por Skeleton Screens no `DgOptimizationPanel.tsx`. Erros técnicos de DG agora são apresentados como Dicas de Engenharia acionáveis (ex: sugestão de aumento de seção para CQT alto).
+- **Lasso Tool & Heatmap**: Estabilizada ferramenta de Box Select no `MapSelectorSelectionManager.tsx` e Heatmap de Gradiente de Tensão (CQT) no `MapSelectorEdgesLayer.tsx`.
+- **Estabilidade & I18n**: Typecheck 100% OK e consolidação total de internacionalização (PT/EN/ES) em todos os novos componentes de análise.
+
 ## Atualização Operacional (2026-05-01C) - Telemetria e Macros DG (UX-20)
 - **Análise de Fricção DG**: Adicionado tracking de telemetria `trackDgParameterDivergence` no envio do `DgWizardModal`. Monitora atrito quando o projetista altera os parâmetros recomendados (clientes por poste, área, limitadores de kVA).
 - **Rastreio de Undo**: Atualizado o `updateBtTopology` com passagem dinâmica de `actionLabel` no `App.tsx`. A telemetria de Rework agora registra com exatidão quando um usuário reverte (Ctrl+Z) a aplicação do Design Generativo.
 - **Aceleração de Comandos (Macros)**: O Command Palette (`Ctrl+K`) foi expandido com buscas semânticas (já operantes para "Ir para poste X") e inclusão de "Macros de Projeto" rápidas (Limpar Topologia BT, Exportar Histórico JSON/CSV).
 - **Internacionalização (Item 26)**: As macros e ações do Command Palette no `App.tsx` foram totalmente extraídas e traduzidas para PT/EN/ES através do novo arquivo `src/i18n/commandPaletteText.ts`, mantendo a precisão dos termos técnicos (ex: *Span* para Vão, *Generative Design*, etc.).
+- **Experimentos A/B e Acessibilidade Plena**: Criado o hook `useABTest.ts` integrado ao PostHog para controlar via feature flags o novo menu mobile e o botão explícito de histórico no `HistoryControls.tsx`. Adicionadas tooltips acessíveis persistentes (via `focus-visible`) nos ícones de ação do Header.
+- **Métrica de Engajamento**: Instrumentado o evento de `first_useful_action` no `analytics.ts` para capturar e calcular em milissegundos o tempo decorrido entre a inicialização da aplicação e a primeira ação de valor (ex: abrir ou salvar projeto) realizada pelo usuário no AppHeader.
 
 ## Atualização Operacional (2026-05-01B) - UX Premium & Acessibilidade (Header)
 - **Descoberta de Histórico**: Histórico detalhado agora visível de forma explícita com rótulo "Histórico Recente" e ícone no `HistoryControls.tsx`, abandonando a dependência exclusiva do right-click (que se torna atalho avançado).

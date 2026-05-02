@@ -97,7 +97,7 @@ interface MapSelectorProps {
     lat: number,
     lng: number,
   ) => void;
-  onBtSelectPole?: (poleId: string) => void;
+  onBtSelectPole?: (poleId: string, isShiftSelect?: boolean) => void;
   criticalPoleId?: string | null;
   accumulatedByPole?: BtPoleAccumulatedDemand[];
   loadCenterPoleId?: string | null;
@@ -130,6 +130,9 @@ interface MapSelectorProps {
   ) => void;
   /** Cenário DG ativo para sobreposição visual no mapa. */
   dgScenario?: DgScenario | null;
+  /** Ativa o Ghost Mode (esmaece a rede original) para contraste visual do cenário DG. */
+  dgGhostMode?: boolean;
+  onBoxSelect?: (bounds: L.LatLngBounds) => void;
   locale: AppLocale;
   layerConfig?: LayerConfig;
 }
@@ -193,6 +196,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onMtSetPoleChangeFlag,
   onMtSetEdgeChangeFlag,
   dgScenario,
+  dgGhostMode = false,
+  onBoxSelect,
   locale,
   layerConfig,
 }) => {
@@ -276,10 +281,11 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   const isBtEditing = btEditorMode !== "none";
   const cursorClass = isEditing ? "map-cursor-active" : "";
   const dimClass = isBtEditing ? "map-bt-editing" : "";
+  const ghostClass = dgGhostMode ? "map-dg-ghost-mode" : "";
 
   return (
     <div
-      className={`relative z-0 h-full min-h-[400px] w-full overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-100/5 shadow-2xl glass-premium ${cursorClass} ${dimClass}`}
+      className={`relative z-0 h-full min-h-[400px] w-full overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-100/5 shadow-2xl glass-premium ${cursorClass} ${dimClass} ${ghostClass}`}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
@@ -316,6 +322,22 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         @keyframes map-active-glow {
           from { border-color: rgba(56, 189, 248, 0.3); box-shadow: inset 0 0 20px rgba(56, 189, 248, 0.05); }
           to { border-color: rgba(56, 189, 248, 0.6); box-shadow: inset 0 0 40px rgba(56, 189, 248, 0.2); }
+        }
+
+        /* Ghost Mode: Esmaece camadas BT/MT para dar destaque visual ao DG (Frente 3) */
+        .map-dg-ghost-mode .leaflet-tile-pane {
+          filter: grayscale(80%) opacity(0.5) contrast(0.8);
+          transition: filter 0.6s ease;
+        }
+        .map-dg-ghost-mode .leaflet-overlay-pane svg path:not(.dg-overlay-path) {
+          opacity: 0.15;
+          filter: grayscale(100%);
+          transition: all 0.6s ease;
+        }
+        .map-dg-ghost-mode .leaflet-marker-pane .leaflet-marker-icon:not(.dg-marker) {
+          opacity: 0.3;
+          filter: grayscale(100%);
+          transition: all 0.6s ease;
         }
 
         .leaflet-container {
@@ -368,6 +390,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onMtMapClick={onMtMapClick}
           onMtContextAction={onMtContextAction}
           keyboardPanEnabled={keyboardPanEnabled}
+          onBoxSelect={onBoxSelect}
         />
 
         <MapSelectorEdgesLayer
@@ -383,6 +406,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtSetEdgeReplacementFromConductors={
             onBtSetEdgeReplacementFromConductors
           }
+          accumulatedByPoleMap={accumulatedByPoleMap}
           locale={locale}
           layerConfig={layerConfig}
         />

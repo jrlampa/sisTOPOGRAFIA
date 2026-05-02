@@ -13,6 +13,7 @@ import {
   X,
   Zap,
   ShieldCheck,
+  Flame,
 } from "lucide-react";
 import { AppSettings, LayerConfig } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -196,6 +197,12 @@ const FloatingLayerPanel: React.FC<FloatingLayerPanelProps> = ({
       label: "Auditoria Elétrica",
       icon: ShieldCheck,
       colorClass: "text-emerald-600",
+    },
+    {
+      key: "cqtHeatmap",
+      label: "Mapa de Calor CQT",
+      icon: Flame,
+      colorClass: "text-orange-500",
     },
   ];
 

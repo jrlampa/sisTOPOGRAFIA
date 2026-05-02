@@ -4,7 +4,7 @@ const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY || "placeholder_key";
 const POSTHOG_HOST =
   import.meta.env.VITE_POSTHOG_HOST || "https://app.posthog.com";
 
-let appInitTime = Date.now();
+const appInitTime = Date.now();
 let firstActionTracked = false;
 
 /**

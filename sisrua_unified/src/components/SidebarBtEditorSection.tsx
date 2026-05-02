@@ -102,11 +102,15 @@ export interface SidebarBtEditorSectionProps {
   onAcceptDgTrafoOnly?: (scenario: DgScenario) => void;
   onClearDgResult?: () => void;
   onSetDgActiveAltIndex?: (index: number) => void;
+  dgIsPreviewActive?: boolean;
+  onSetDgIsPreviewActive?: (active: boolean) => void;
   // Hoisted selection state
   selectedPoleId?: string;
+  selectedPoleIds?: string[];
   selectedEdgeId?: string;
   selectedTransformerId?: string;
   onSetSelectedPoleId?: (id: string) => void;
+  onSetSelectedPoleIds?: (ids: string[]) => void;
   onSetSelectedEdgeId?: (id: string) => void;
   onSetSelectedTransformerId?: (id: string) => void;
   mtTopology: MtTopology;
@@ -156,10 +160,14 @@ export function SidebarBtEditorSection({
   onAcceptDgTrafoOnly,
   onClearDgResult,
   onSetDgActiveAltIndex,
+  dgIsPreviewActive = true,
+  onSetDgIsPreviewActive,
   selectedPoleId = "",
+  selectedPoleIds = [],
   selectedEdgeId = "",
   selectedTransformerId = "",
   onSetSelectedPoleId,
+  onSetSelectedPoleIds,
   onSetSelectedEdgeId,
   onSetSelectedTransformerId,
   mtTopology,
@@ -365,9 +373,11 @@ export function SidebarBtEditorSection({
           transformersDerived={btTransformersDerived}
           onRequestCriticalConfirmation={requestCriticalConfirmation}
           selectedPoleId={selectedPoleId}
+          selectedPoleIds={selectedPoleIds}
           selectedEdgeId={selectedEdgeId}
           selectedTransformerId={selectedTransformerId}
           onSetSelectedPoleId={onSetSelectedPoleId}
+          onSetSelectedPoleIds={onSetSelectedPoleIds}
           onSetSelectedEdgeId={onSetSelectedEdgeId}
           onSetSelectedTransformerId={onSetSelectedTransformerId}
           mtTopology={mtTopology}
@@ -395,6 +405,8 @@ export function SidebarBtEditorSection({
             error={dgError}
             activeAltIndex={dgActiveAltIndex}
             onSetActiveAltIndex={onSetDgActiveAltIndex ?? (() => undefined)}
+            isPreviewActive={dgIsPreviewActive}
+            onSetIsPreviewActive={onSetDgIsPreviewActive ?? (() => undefined)}
             onRun={onRunDgOptimization}
             onAcceptAll={onAcceptDgAll ?? (() => undefined)}
             onAcceptTrafoOnly={onAcceptDgTrafoOnly ?? (() => undefined)}

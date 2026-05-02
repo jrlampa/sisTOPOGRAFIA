@@ -62,9 +62,11 @@ interface BtTopologyPanelProps {
   clandestinoDisplay: BtClandestinoDisplay;
   transformersDerived: BtTransformerDerived[];
   selectedPoleId?: string;
+  selectedPoleIds?: string[];
   selectedEdgeId?: string;
   selectedTransformerId?: string;
   onSetSelectedPoleId?: (id: string) => void;
+  onSetSelectedPoleIds?: (ids: string[]) => void;
   onSetSelectedEdgeId?: (id: string) => void;
   onSetSelectedTransformerId?: (id: string) => void;
   mtTopology: MtTopology;
@@ -97,9 +99,11 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
   onClandestinoAreaChange,
   pointDemandKva: _pointDemandKva,
   selectedPoleId = "",
+  selectedPoleIds = [],
   selectedEdgeId = "",
   selectedTransformerId = "",
   onSetSelectedPoleId,
+  onSetSelectedPoleIds,
   onSetSelectedEdgeId,
   onSetSelectedTransformerId,
   mtTopology,
@@ -233,6 +237,11 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           edges={summary.edges}
           totalLengthMeters={summary.totalLengthMeters}
           transformerDemandKva={summary.transformerDemandKva}
+          transformerNominalKva={
+            btTopology.transformers[0]?.projectPowerKva ??
+            75
+          }
+          spanLengthsM={btTopology.edges.map((e) => e.lengthMeters ?? 0).filter(Boolean)}
         />
 
         <div className="rounded-lg border border-slate-300 bg-white p-3 shadow-sm">
@@ -290,7 +299,9 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           btNetworkScenario={btNetworkScenario}
           projectType={projectType}
           selectedPoleId={selectedPoleId}
+          selectedPoleIds={selectedPoleIds}
           selectedPole={selectedPole}
+          onSetSelectedPoleIds={onSetSelectedPoleIds}
           selectedTransformerId={selectedTransformerId}
           selectedTransformer={selectedTransformer}
           selectedEdgeId={selectedEdgeId}

@@ -91,9 +91,9 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     toggleSidebarOpen: "Mostrar panel lateral",
     toggleSidebarClose: "Ocultar panel lateral",
     mapModeInfo: "Modo mapa: teclado+ratón",
-    saveProject: "Guardar projeto",
-    openProject: "Abrir projeto",
-    selectProjectFile: "Seleccionar archivo de projeto",
+    saveProject: "Guardar proyecto",
+    openProject: "Abrir proyecto",
+    selectProjectFile: "Seleccionar archivo de proyecto",
     openSettings: "Abrir configuraciones",
     openHelp: "Abrir ayuda",
     autoSaveSaving: "sincronizando",
@@ -108,7 +108,40 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     },
     };
 
+type ExtraHeaderKeys = {
+  closeMenu: string;
+  openMenu: string;
+  menu: string;
+  navigate: string;
+  execute: string;
+};
 
-export function getAppHeaderText(locale: AppLocale): AppHeaderText {
-  return TEXTS[locale] ?? TEXTS["pt-BR"];
+const EXTRA_TEXTS: Record<AppLocale, ExtraHeaderKeys> = {
+  "pt-BR": {
+    closeMenu: "Fechar menu",
+    openMenu: "Abrir menu",
+    menu: "Menu",
+    navigate: "Navegar",
+    execute: "Executar",
+  },
+  "en-US": {
+    closeMenu: "Close menu",
+    openMenu: "Open menu",
+    menu: "Menu",
+    navigate: "Navigate",
+    execute: "Execute",
+  },
+  "es-ES": {
+    closeMenu: "Cerrar menú",
+    openMenu: "Abrir menú",
+    menu: "Menú",
+    navigate: "Navegar",
+    execute: "Ejecutar",
+  },
+};
+
+export function getAppHeaderText(locale: AppLocale): AppHeaderText & ExtraHeaderKeys {
+  const base = TEXTS[locale] ?? TEXTS["pt-BR"];
+  const extra = EXTRA_TEXTS[locale] ?? EXTRA_TEXTS["pt-BR"];
+  return { ...base, ...extra };
 }

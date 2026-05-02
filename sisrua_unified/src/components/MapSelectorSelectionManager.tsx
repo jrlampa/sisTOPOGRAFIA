@@ -43,6 +43,7 @@ interface SelectionManagerProps {
     location: GeoLocation,
   ) => void;
   keyboardPanEnabled?: boolean;
+  onBoxSelect?: (bounds: L.LatLngBounds) => void;
 }
 
 const SelectionManager: React.FC<SelectionManagerProps> = ({
@@ -65,6 +66,7 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
   onMtMapClick,
   onMtContextAction,
   keyboardPanEnabled = false,
+  onBoxSelect,
 }) => {
   const t = getSelectionManagerText(locale);
   const middlePanActiveRef = React.useRef(false);
@@ -221,6 +223,12 @@ const SelectionManager: React.FC<SelectionManagerProps> = ({
       if (middlePanMovedRef.current) {
         suppressNextClickRef.current = true;
         middlePanMovedRef.current = false;
+      }
+    },
+    // @ts-expect-error: Leaflet event type missing boxzoomend
+    boxzoomend(e: any) {
+      if (onBoxSelect) {
+        onBoxSelect(e.boxZoomBounds);
       }
     },
   });

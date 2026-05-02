@@ -41,7 +41,7 @@ interface MapSelectorPolesLayerProps {
   onBtToggleTransformerOnPole?: (poleId: string) => void;
   onBtQuickAddPoleRamal?: (poleId: string) => void;
   onBtQuickRemovePoleRamal?: (poleId: string) => void;
-  onBtSelectPole?: (poleId: string) => void;
+  onBtSelectPole?: (poleId: string, isShiftSelect?: boolean) => void;
   locale: AppLocale;
   layerConfig?: LayerConfig;
 }
@@ -172,7 +172,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                 btEditorMode !== "add-transformer"
               }
               eventHandlers={{
-                click: () => {
+                click: (e) => {
                   if (
                     (btEditorMode === "add-edge" ||
                       btEditorMode === "add-transformer") &&
@@ -185,7 +185,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                     });
                   } else if (onBtSelectPole) {
                     // Sincronização Poste-Driven: seleciona na sidebar ao clicar no mapa
-                    onBtSelectPole(pole.id);
+                    onBtSelectPole(pole.id, e.originalEvent.shiftKey);
                   }
                 },
                 dragend: (e) => {

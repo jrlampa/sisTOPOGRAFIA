@@ -70,6 +70,7 @@ export function MainMapWorkspace({
         <div className="relative h-full rounded-[1.75rem] border border-sky-200 bg-white p-2 shadow-[0_18px_42px_rgba(148,163,184,0.2)] dark:border-white/10 dark:bg-slate-950 dark:shadow-none">
           <MapSelector
             {...mapSelectorProps}
+            dgGhostMode={mapSelectorProps.dgGhostMode}
             locale={locale}
             keyboardPanEnabled={isSidebarCollapsed}
           />

@@ -1,9 +1,10 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Command, CornerDownLeft, X, MapPin } from "lucide-react";
+import { Search, Command, CornerDownLeft, MapPin } from "lucide-react";
 import { fade, fadeSlideUp } from "../theme/motion";
 import type { AppLocale } from "../types";
 import { trackCommandPalette, trackPoleFocus } from "../utils/analytics";
+import { getAppHeaderText } from "../i18n/appHeaderText";
 
 interface CommandPaletteAction {
   id: string;
@@ -34,6 +35,7 @@ export function CommandPalette({
   const [query, setSearchQuery] = React.useState("");
   const [activeIndex, setActiveIndex] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const t = getAppHeaderText(locale || "pt-BR");
 
   // i18n strings for the palette UI
   const i18n = React.useMemo(() => {
@@ -271,13 +273,13 @@ export function CommandPalette({
                   <span className="rounded border border-slate-200 bg-white px-1 dark:border-white/10 dark:bg-slate-800">
                     ↑↓
                   </span>{" "}
-                  Navegar
+                  {t.navigate}
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="rounded border border-slate-200 bg-white px-1 dark:border-white/10 dark:bg-slate-800">
                     ENTER
                   </span>{" "}
-                  Executar
+                  {t.execute}
                 </div>
               </div>
               <div className="flex items-center gap-2 text-xs font-black text-blue-500 uppercase">

@@ -9,6 +9,7 @@ import {
 } from "../constants/magicNumbers";
 import { getBtTopologyPanelText } from "../i18n/btTopologyPanelText";
 import { AppLocale, LayerConfig } from "../types";
+import type { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
 
 const CONDUCTOR_OPTIONS = [
   "70 Al - MX",
@@ -170,6 +171,7 @@ interface MapSelectorEdgesLayerProps {
     edgeId: string,
     conductors: Array<{ id: string; quantity: number; conductorName: string }>,
   ) => void;
+  accumulatedByPoleMap?: Map<string, BtPoleAccumulatedDemand>;
   locale: AppLocale;
   layerConfig?: LayerConfig;
 }
@@ -185,6 +187,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
   onBtQuickRemoveEdgeConductor,
   onBtSetEdgeLengthMeters,
   onBtSetEdgeReplacementFromConductors,
+  accumulatedByPoleMap,
   locale,
   layerConfig,
 }) => {
@@ -236,7 +239,22 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
         const popupFrom = popupPolesById.get(edge.fromPoleId) ?? from;
         const popupTo = popupPolesById.get(edge.toPoleId) ?? to;
         const popupEdgeChangeFlag = getEdgeChangeFlag(popupEdge);
-        const edgeVisual = getEdgeVisualConfig(edge);
+        let edgeVisual = getEdgeVisualConfig(edge);
+
+        if (layerConfig?.cqtHeatmap && accumulatedByPoleMap) {
+          const accFrom = accumulatedByPoleMap.get(from.id)?.dvAccumPercent ?? 0;
+          const accTo = accumulatedByPoleMap.get(to.id)?.dvAccumPercent ?? 0;
+          const maxCqt = Math.max(accFrom, accTo);
+
+          let heatmapColor = edgeVisual.color; // default
+          if (maxCqt > 7) heatmapColor = "#ef4444"; // Vermelho
+          else if (maxCqt > 5) heatmapColor = "#f97316"; // Laranja
+          else if (maxCqt > 3) heatmapColor = "#eab308"; // Amarelo
+          else heatmapColor = "#22c55e"; // Verde
+
+          edgeVisual = { ...edgeVisual, color: heatmapColor };
+        }
+
         const edgeFlagLabel =
           popupEdgeChangeFlag === "remove"
             ? tp.flagRemove

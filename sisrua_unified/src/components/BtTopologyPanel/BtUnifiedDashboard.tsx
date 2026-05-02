@@ -23,7 +23,9 @@ interface BtUnifiedDashboardProps {
   btNetworkScenario: BtNetworkScenario;
   projectType: BtProjectType;
   selectedPoleId: string;
+  selectedPoleIds?: string[];
   selectedPole: BtPoleNode | null;
+  onSetSelectedPoleIds?: (ids: string[]) => void;
   selectedTransformerId: string;
   selectedTransformer: BtTransformer | null;
   selectedEdgeId: string;
@@ -62,7 +64,7 @@ export const BtUnifiedDashboard: React.FC<BtUnifiedDashboardProps> = (props) => 
   const [activeTab, setActiveTab] = useState<TabType>("infra");
   const t = getBtTopologyPanelText(props.locale);
 
-  if (!props.selectedPole) {
+  if (!props.selectedPole && (!props.selectedPoleIds || props.selectedPoleIds.length <= 1)) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400 bg-white/50 backdrop-blur-sm rounded-2xl border border-slate-200">
         <Info size={32} className="mb-2 opacity-20" />
@@ -76,6 +78,69 @@ export const BtUnifiedDashboard: React.FC<BtUnifiedDashboardProps> = (props) => 
     { id: "electrical", label: t.dashboard.tabElectrical, icon: <Zap size={14} /> },
     { id: "commercial", label: t.dashboard.tabCommercial, icon: <ShoppingCart size={14} /> },
   ];
+
+  if (props.selectedPoleIds && props.selectedPoleIds.length > 1) {
+    const ids = props.selectedPoleIds;
+    return (
+      <div className="flex flex-col h-full bg-slate-50 border border-slate-200 rounded-xl p-4 overflow-y-auto">
+        <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 mb-2">
+          {t.massEditTitle || "Edição em Massa"}
+        </h3>
+        <p className="text-xs text-slate-500 mb-4 font-medium">
+          {ids.length} postes selecionados.
+        </p>
+        <button
+          onClick={() => props.onSetSelectedPoleIds?.([])}
+          className="self-start text-xs font-bold text-slate-500 hover:text-slate-800 transition"
+        >
+          Limpar Seleção
+        </button>
+
+        <div className="mt-6 flex flex-col gap-4">
+          <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Especificação Comum</h4>
+            <select
+              className="w-full text-xs font-semibold rounded border border-slate-300 p-1.5 focus:ring-2 focus:ring-blue-500 outline-none"
+              onChange={(e) => {
+                const spec = e.target.value;
+                if (!spec) return;
+                ids.forEach(id => {
+                  props.updatePoleSpec(id, spec);
+                  props.onBtSetPoleChangeFlag?.(id, "replace");
+                });
+              }}
+            >
+              <option value="">Selecione para aplicar a todos...</option>
+              <option value="Concreto DT">Concreto DT</option>
+              <option value="Fibra de Vidro">Fibra de Vidro</option>
+              <option value="Madeira">Madeira</option>
+            </select>
+          </div>
+          
+          <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Esforço Nominal (daN)</h4>
+            <select
+              className="w-full text-xs font-semibold rounded border border-slate-300 p-1.5 focus:ring-2 focus:ring-blue-500 outline-none"
+              onChange={(e) => {
+                const spec = e.target.value;
+                if (!spec) return;
+                ids.forEach(id => {
+                  props.updatePoleSpec(id, spec);
+                  props.onBtSetPoleChangeFlag?.(id, "replace");
+                });
+              }}
+            >
+              <option value="">Selecione para aplicar a todos...</option>
+              <option value="150 daN">150 daN</option>
+              <option value="300 daN">300 daN</option>
+              <option value="600 daN">600 daN</option>
+              <option value="1000 daN">1000 daN</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
