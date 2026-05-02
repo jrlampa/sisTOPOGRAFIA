@@ -1,0 +1,35 @@
+name: Non-Negotiables Audit
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev, main ] # Bloqueia PRs que não tenham 'dev' como alvo ou que tentem ir direto pra main
+
+jobs:
+  audit:
+    name: Verify Project Rules
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Run Non-Negotiables Audit
+        run: node scripts/non-negotiables-audit.cjs
+        env:
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+
+      - name: Run Tests (Coverage Check)
+        run: npm test -- --coverage
+        # A regra exige suite de testes full e cobertura >= 80%
+        # O vitest/jest deve estar configurado para falhar se não atingir o threshold
