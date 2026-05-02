@@ -148,6 +148,10 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
         const hasTransformer = !!poleHasTransformer.get(pole.id);
         const isDragged = draggedPole?.id === pole.id;
         const dragPos = isDragged && draggedPole ? L.latLng(draggedPole.lat, draggedPole.lng) : null;
+        
+        const isViolation =
+          poleAccumulated?.cqtStatus === "CRÍTICO" ||
+          pole.id === criticalPoleId;
 
         return (
           <React.Fragment
@@ -184,6 +188,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
 
             <CircleMarker
               center={[pole.lat, pole.lng]}
+              data-violation={isViolation ? "true" : undefined}
               radius={
                 pole.id === criticalPoleId
                   ? 9
@@ -207,6 +212,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
               position={[pole.lat, pole.lng]}
               icon={makePoleIcon(pole.id, !!pole.verified)}
               zIndexOffset={1200}
+              data-violation={isViolation ? "true" : undefined}
               draggable={
                 btEditorMode !== "add-edge" &&
                 btEditorMode !== "add-transformer"
@@ -242,34 +248,51 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
               <Tooltip
                 direction="top"
                 offset={[0, -12]}
-                opacity={0.95}
-                className="custom-map-tooltip"
+                opacity={1}
+                className="bim-pop-in-tooltip"
               >
-                <div className="flex flex-col items-center min-w-[80px] p-1">
-                  <span className="text-xs font-black text-slate-900 border-b border-slate-200 mb-1 w-full text-center pb-0.5">
-                    {pole.title || pole.id.slice(-4)}
-                  </span>
-                  
-                  {poleAccumulated && (
-                    <div className="flex flex-col items-center gap-0.5 w-full">
-                      <div className="flex justify-between w-full gap-2 px-1">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase">Dmd:</span>
-                        <span className="text-[9px] font-black text-slate-800">{poleAccumulated.accumulatedDemandKva.toFixed(1)}kVA</span>
+                <div className="min-w-[140px] overflow-hidden rounded-2xl border border-white/20 bg-slate-900/40 p-3 shadow-2xl backdrop-blur-md dark:bg-zinc-950/60">
+                  <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white/90">
+                      {pole.title || pole.id.slice(-4)}
+                    </span>
+                    {isViolation && (
+                      <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex flex-col">
+                        <span className="text-[8px] font-bold uppercase text-white/40">CQT</span>
+                        <span className={`text-xs font-black ${cqtClass.replace('text-', 'text-white')}`}>
+                          {poleAccumulated?.dvAccumPercent?.toFixed(1) ?? "-"}%
+                        </span>
                       </div>
-                      <div className="flex justify-between w-full gap-2 px-1">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase">dV:</span>
-                        <span className={`text-[9px] font-black ${cqtClass}`}>
-                          {poleAccumulated.dvAccumPercent?.toFixed(2) ?? "-"}%
+                      <div className="flex flex-col text-right">
+                        <span className="text-[8px] font-bold uppercase text-white/40">Dmd</span>
+                        <span className="text-xs font-black text-white/90">
+                          {poleAccumulated?.accumulatedDemandKva?.toFixed(1) ?? "0"}k
                         </span>
                       </div>
                     </div>
-                  )}
 
-                  {pole.poleSpec && (
-                    <span className="text-[8px] font-bold text-sky-700 mt-1">
-                      {pole.poleSpec.heightM}m / {pole.poleSpec.nominalEffortDan}daN
-                    </span>
-                  )}
+                    <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                      <span className="text-[8px] font-bold uppercase text-white/40">Esforço</span>
+                      <span className="text-[9px] font-black text-sky-400">
+                        {pole.poleSpec?.nominalEffortDan ?? "N/D"} daN
+                      </span>
+                    </div>
+
+                    {poleAccumulated?.distanceFromTrafoMeters != null && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-[8px] font-bold uppercase text-white/40">Dist. Trafo</span>
+                        <span className="text-[9px] font-black text-emerald-400">
+                          {poleAccumulated.distanceFromTrafoMeters.toFixed(0)}m
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </Tooltip>
               {!layerConfig?.disablePopups && (

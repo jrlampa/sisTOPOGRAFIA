@@ -242,348 +242,38 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
         const isDraggingFrom = draggedPole?.id === edge.fromPoleId;
         const isDraggingTo = draggedPole?.id === edge.toPoleId;
         const isCurrentlyDragging = isDraggingFrom || isDraggingTo;
-
-        if (isDraggingFrom && draggedPole) {
-          from = { ...from, lat: draggedPole.lat, lng: draggedPole.lng };
-        }
-        if (isDraggingTo && draggedPole) {
-          to = { ...to, lat: draggedPole.lat, lng: draggedPole.lng };
-        }
-
-        const edgeChangeFlag = getEdgeChangeFlag(edge);
-        const popupEdge = popupEdgesById.get(edge.id) ?? edge;
-        const popupFrom = popupPolesById.get(edge.fromPoleId) ?? from;
-        const popupTo = popupPolesById.get(edge.toPoleId) ?? to;
-        const popupEdgeChangeFlag = getEdgeChangeFlag(popupEdge);
-        let edgeVisual = getEdgeVisualConfig(edge);
-
-        if (layerConfig?.cqtHeatmap && accumulatedByPoleMap) {
-          const accFrom = accumulatedByPoleMap.get(from.id)?.dvAccumPercent ?? 0;
-          const accTo = accumulatedByPoleMap.get(to.id)?.dvAccumPercent ?? 0;
-          const maxCqt = Math.max(accFrom, accTo);
-
-          let heatmapColor = edgeVisual.color; // default
-          if (maxCqt > 7) heatmapColor = "#ef4444"; // Vermelho
-          else if (maxCqt > 5) heatmapColor = "#f97316"; // Laranja
-          else if (maxCqt > 3) heatmapColor = "#eab308"; // Amarelo
-          else heatmapColor = "#22c55e"; // Verde
-
-          edgeVisual = { ...edgeVisual, color: heatmapColor };
-        }
-
-        const edgeFlagLabel =
-          popupEdgeChangeFlag === "remove"
-            ? tp.flagRemove
-            : popupEdgeChangeFlag === "new"
-              ? tp.flagNew
-              : popupEdgeChangeFlag === "replace"
-                ? tp.flagReplace
-                : tp.flagExisting;
-
-        const selectedConductor =
-          edgeConductorSelection[edge.id] ??
-          popupEdge.conductors[popupEdge.conductors.length - 1]
-            ?.conductorName ??
-          CONDUCTOR_OPTIONS[0];
-        const selectedReplacementFromConductor =
-          edgeReplacementFromSelection[edge.id] ??
-          popupEdge.replacementFromConductors?.[
-            popupEdge.replacementFromConductors.length - 1
-          ]?.conductorName ??
-          CONDUCTOR_OPTIONS[0];
-
-        const edgePopup = (
-          <Popup eventHandlers={popupEventHandlers}>
-            <div
-              className="text-xs"
-              onMouseDown={(event) => event.stopPropagation()}
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => event.stopPropagation()}
-              onTouchStart={(event) => event.stopPropagation()}
-            >
-              <div>
-                <strong>{edge.id}</strong>
-              </div>
-              <div className="mt-0.5 text-slate-700">
-                {popupFrom.title} {"<->"} {popupTo.title}
-              </div>
-              <div className="mt-1 text-slate-700">
-                Flag: <strong>{edgeFlagLabel}</strong>
-              </div>
-              <div className="mt-1 text-slate-700">{te.conductorPhase}</div>
-              <div className="mt-0.5">
-                <select
-                  value={selectedConductor}
-                  aria-label={`Condutor do trecho ${edge.id}`}
-                  title={`Condutor do trecho ${edge.id}`}
-                  onChange={(e) => {
-                    const conductorName = e.target.value;
-                    setEdgeConductorSelection((current) => ({
-                      ...current,
-                      [edge.id]: conductorName,
-                    }));
-                  }}
-                  className={POPUP_SELECT_CLASS}
-                >
-                  {CONDUCTOR_OPTIONS.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="mt-1 text-slate-700">
-                {t.stats.networkLengthMeters.replace("m de rede", "Metragem")}:{" "}
-                {typeof (
-                  popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters
-                ) === "number"
-                  ? `${popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters} m`
-                  : "-"}
-              </div>
-              {onBtSetEdgeLengthMeters && (
-                <div className="mt-1">
-                  <label className="mb-0.5 block text-slate-700">
-                    Ajustar metragem CQT (m)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    defaultValue={
-                      typeof (
-                        popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters
-                      ) === "number"
-                        ? Number(
-                            popupEdge.cqtLengthMeters ?? popupEdge.lengthMeters,
-                          )
-                        : 0
-                    }
-                    onBlur={(e) => {
-                      const parsed = Number(e.target.value);
-                      if (!Number.isFinite(parsed) || parsed < 0) {
-                        e.target.value = String(
-                          Number(
-                            popupEdge.cqtLengthMeters ??
-                              popupEdge.lengthMeters ??
-                              0,
-                          ),
-                        );
-                        return;
-                      }
-                      onBtSetEdgeLengthMeters(edge.id, parsed);
-                    }}
-                    className="w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-sm text-slate-700"
-                    title={`Metragem CQT do trecho ${edge.id}`}
-                  />
-                </div>
-              )}
-              {popupEdgeChangeFlag === "replace" && (
-                <>
-                  <div className="mt-1.5 text-slate-700">{te.replaceConductor.replace("Substituir condutores de", "Condutor que sai")}</div>
-                  <div className="mt-0.5">
-                    <select
-                      value={selectedReplacementFromConductor}
-                      aria-label={`Condutor de saída do trecho ${edge.id}`}
-                      title={`Condutor de saída do trecho ${edge.id}`}
-                      onChange={(e) => {
-                        const conductorName = e.target.value;
-                        setEdgeReplacementFromSelection((current) => ({
-                          ...current,
-                          [edge.id]: conductorName,
-                        }));
-                      }}
-                      className={POPUP_SELECT_CLASS}
-                    >
-                      {CONDUCTOR_OPTIONS.map((name) => (
-                        <option key={name} value={name}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {onBtSetEdgeReplacementFromConductors && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBtSetEdgeReplacementFromConductors(edge.id, [
-                          {
-                            id: `${ENTITY_ID_PREFIXES.CONDUCTOR_REPLACEMENT}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`,
-                            quantity: 1,
-                            conductorName: selectedReplacementFromConductor,
-                          },
-                        ]);
-                      }}
-                      className="mt-1.5 h-6 w-full rounded border border-amber-500 bg-amber-50 text-sm font-bold text-amber-800 transition-colors hover:bg-amber-100"
-                    >
-                      Definir condutor que sai
-                    </button>
-                  )}
-                </>
-              )}
-
-              {popupEdge.conductors.length > 0 ? (
-                <div className="mt-0.5 text-slate-700">
-                  {popupEdge.conductors.map((entry) => (
-                    <div key={entry.id}>
-                      {entry.quantity} x {entry.conductorName}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-0.5 text-slate-500">
-                  {t.popup.noConductor}
-                </div>
-              )}
-              {(popupEdge.mtConductors ?? []).length > 0 && (
-                <div className="mt-1 rounded border border-orange-200 bg-orange-50 px-1.5 py-1 text-xs text-orange-900">
-                  <div className="font-bold uppercase tracking-wide">
-                    {t.popup.linkedMtConductor}
-                  </div>
-                  {(popupEdge.mtConductors ?? []).map((entry) => (
-                    <div key={entry.id}>
-                      {entry.quantity} x {entry.conductorName}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {popupEdgeChangeFlag === "replace" && (
-                <div className="mt-0.5 text-amber-900">
-                  {(popupEdge.replacementFromConductors ?? []).length > 0 ? (
-                    (popupEdge.replacementFromConductors ?? []).map((entry) => (
-                      <div key={entry.id}>
-                        {t.popup.leaving}: {entry.quantity} x {entry.conductorName}
-                      </div>
-                    ))
-                  ) : (
-                    <div>{t.popup.noLeavingConductor}</div>
-                  )}
-                </div>
-              )}
-              <div
-                className={`mt-0.5 font-semibold ${popupEdge.verified ? "text-green-600" : "text-amber-600"}`}
-              >
-                {popupEdge.verified ? `✓ ${t.popup.verified}` : `○ ${t.popup.notVerified}`}
-              </div>
-              {onBtSetEdgeChangeFlag && (
-                <div className={POPUP_FLAG_GRID_CLASS}>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onBtSetEdgeChangeFlag(edge.id, "existing");
-                    }}
-                    className={getFlagButtonClass(
-                      popupEdgeChangeFlag === "existing",
-                      "existing",
-                    )}
-                  >
-                    {tp.flagExisting}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onBtSetEdgeChangeFlag(edge.id, "new");
-                    }}
-                    className={getFlagButtonClass(
-                      popupEdgeChangeFlag === "new",
-                      "new",
-                    )}
-                  >
-                    {tp.flagNew}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onBtSetEdgeChangeFlag(edge.id, "replace");
-                    }}
-                    className={getFlagButtonClass(
-                      popupEdgeChangeFlag === "replace",
-                      "replace",
-                    )}
-                  >
-                    {tp.flagReplace}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onBtSetEdgeChangeFlag(edge.id, "remove");
-                    }}
-                    className={getFlagButtonClass(
-                      popupEdgeChangeFlag === "remove",
-                      "remove",
-                    )}
-                  >
-                    {tp.flagRemove}
-                  </button>
-                </div>
-              )}
-              <div className={POPUP_TOOLBAR_CLASS}>
-                {onBtDeleteEdge && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onBtDeleteEdge(edge.id);
-                    }}
-                    title="Deletar trecho"
-                    aria-label="Deletar trecho"
-                    className={getIconActionButtonClass("danger")}
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                )}
-                {onBtQuickAddEdgeConductor && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onBtQuickAddEdgeConductor(edge.id, selectedConductor);
-                    }}
-                    title="Informar condutor"
-                    aria-label="Informar condutor"
-                    className={getIconActionButtonClass("sky")}
-                  >
-                    <Plus size={12} />
-                  </button>
-                )}
-                {onBtQuickRemoveEdgeConductor && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onBtQuickRemoveEdgeConductor(edge.id, selectedConductor);
-                    }}
-                    title="Retirar condutor"
-                    aria-label="Retirar condutor"
-                    className={getIconActionButtonClass("slate")}
-                  >
-                    <Minus size={12} />
-                  </button>
-                )}
-              </div>
-            </div>
-          </Popup>
-        );
-
-        const hasBt = edge.conductors.length > 0;
-        const hasMt = (edge.mtConductors ?? []).length > 0;
-
+        const poleAccumulated = accumulatedByPoleMap?.get(isDraggingFrom ? edge.fromPoleId : edge.toPoleId);
+        
+        const oldDistance = L.latLng(polesById.get(edge.fromPoleId)!.lat, polesById.get(edge.fromPoleId)!.lng)
+          .distanceTo(L.latLng(polesById.get(edge.toPoleId)!.lat, polesById.get(edge.toPoleId)!.lng));
         const currentDistance = L.latLng(from.lat, from.lng).distanceTo(L.latLng(to.lat, to.lng));
+        
+        // Ghost CQT Estimation
+        let estimatedCqtStr = "";
+        if (isCurrentlyDragging && poleAccumulated?.dvAccumPercent) {
+          const ratio = currentDistance / (oldDistance || 1);
+          const estimatedCqt = poleAccumulated.dvAccumPercent * ratio;
+          estimatedCqtStr = `${poleAccumulated.dvAccumPercent.toFixed(1)}% → ${estimatedCqt.toFixed(1)}%`;
+        }
+
+        const isViolation = (poleAccumulated?.dvAccumPercent ?? 0) > 7;
+
         const distColorClass = currentDistance > 40 ? "text-red-600" : currentDistance > 30 ? "text-amber-600" : "text-emerald-600";
 
         return (
           <React.Fragment key={edge.id}>
-            {/* Rótulo Dinâmico de Distância durante o Arrasto (UX: Prevenção de erro) */}
+            {/* Rótulo Dinâmico de Distância + Ghost CQT (UX: Ghost Edits) */}
             {isCurrentlyDragging && (
               <Marker
                 position={[(from.lat + to.lat) / 2, (from.lng + to.lng) / 2]}
                 icon={L.divIcon({
                   className: "dynamic-span-badge",
-                  html: `<div class="px-2 py-0.5 rounded-full bg-white/90 border-2 border-white shadow-xl text-[11px] font-black whitespace-nowrap animate-pulse ${distColorClass}" style="transform: translateY(-10px);">${currentDistance.toFixed(1)}m</div>`,
+                  html: `
+                    <div class="flex flex-col items-center gap-1 animate-pulse" style="transform: translateY(-20px);">
+                      <div class="px-2 py-0.5 rounded-full bg-white/90 border-2 border-white shadow-xl text-[11px] font-black whitespace-nowrap ${distColorClass}">${currentDistance.toFixed(1)}m</div>
+                      ${estimatedCqtStr ? `<div class="px-2 py-0.5 rounded-lg bg-slate-900/80 text-white text-[9px] font-black border border-white/20 backdrop-blur-sm">CQT Est: ${estimatedCqtStr}</div>` : ""}
+                    </div>
+                  `,
                   iconSize: [0, 0],
                 })}
                 interactive={false}
@@ -603,6 +293,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                 lineCap: "round",
                 lineJoin: "round",
               }}
+              data-violation={isViolation ? "true" : undefined}
             >
               {edgePopup}
               {layerConfig?.labels && (

@@ -14,9 +14,11 @@ export interface SnapTarget {
   lat: number;
   lng: number;
   type?: "ortho" | "road";
+  snapId?: string; // ID do poste vizinho que causou o snap
 }
 
 export interface SnapNeighbor {
+  id: string;
   lat: number;
   lng: number;
 }
@@ -36,6 +38,7 @@ export function applyOrthoSnap(
   let snappedLat = lat;
   let snappedLng = lng;
   let type: "ortho" | undefined;
+  let snapId: string | undefined;
 
   for (const neighbor of neighbors) {
     const dlat = Math.abs(lat - neighbor.lat);
@@ -45,6 +48,7 @@ export function applyOrthoSnap(
     if (dlat < ORTHO_THRESHOLD_DEG && dlat < dlng) {
       snappedLat = neighbor.lat;
       type = "ortho";
+      snapId = neighbor.id;
       break;
     }
 
@@ -52,11 +56,12 @@ export function applyOrthoSnap(
     if (dlng < ORTHO_THRESHOLD_DEG && dlng < dlat) {
       snappedLng = neighbor.lng;
       type = "ortho";
+      snapId = neighbor.id;
       break;
     }
   }
 
-  return { lat: snappedLat, lng: snappedLng, type };
+  return { lat: snappedLat, lng: snappedLng, type, snapId };
 }
 
 /**

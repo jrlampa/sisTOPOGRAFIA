@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useId } from "react";
+import React, { useState, useMemo, useId, useEffect } from "react";
 import { MapContainer, TileLayer, useMapEvents, Polyline, Marker, Circle, Pane, CircleMarker, Popup, Tooltip } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -267,8 +267,27 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   locale,
   layerConfig,
 }) => {
-  const [draggedPole, setDraggedPole] = useState<{ id: string, lat: number, lng: number } | null>(null);
+  const [draggedPole, setDraggedPole] = useState<{ id: string, lat: number, lng: number, snapId?: string } | null>(null);
   const [mousePos, setMousePos] = useState<L.LatLng | null>(null);
+  const [isXRayMode, setIsXRayMode] = useState(false);
+
+  // UX: Atalho de teclado para X-Ray Mode (X ou Shift)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase();
+      if (k === "shift" || k === "x") setIsXRayMode(true);
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase();
+      if (k === "shift" || k === "x") setIsXRayMode(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
 
   const topology = btMarkerTopology ?? {
     poles: [],
@@ -351,6 +370,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   const cursorClass = isEditing ? "map-cursor-active" : "";
   const dimClass = isBtEditing ? "map-bt-editing" : "";
   const ghostClass = dgGhostMode ? "map-dg-ghost-mode" : "";
+  const xrayClass = isXRayMode ? "map-xray-mode" : "";
 
   const handleBtDragRealtime = (id: string, lat: number, lng: number) => {
     if (lat === 0) {
@@ -369,7 +389,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           .filter((e) => e.fromPoleId === id || e.toPoleId === id)
           .map((e) => {
             const neighborId = e.fromPoleId === id ? e.toPoleId : e.fromPoleId;
-            return polesById.get(neighborId);
+            const p = polesById.get(neighborId);
+            return p ? { id: p.id, lat: p.lat, lng: p.lng } : null;
           })
           .filter((p): p is NonNullable<typeof p> => !!p);
         
@@ -377,12 +398,12 @@ const MapSelector: React.FC<MapSelectorProps> = ({
       }
     }
 
-    setDraggedPole({ id, lat: snapResult.lat, lng: snapResult.lng });
+    setDraggedPole({ id, lat: snapResult.lat, lng: snapResult.lng, snapId: snapResult.snapId });
   };
 
   return (
     <div
-      className={`relative z-0 h-full min-h-[400px] w-full overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-100/5 shadow-2xl glass-premium ${cursorClass} ${dimClass} ${ghostClass}`}
+      className={`relative z-0 h-full min-h-[400px] w-full overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-100/5 shadow-2xl glass-premium ${cursorClass} ${dimClass} ${ghostClass} ${xrayClass}`}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
@@ -437,6 +458,47 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           transition: all 0.6s ease;
         }
 
+        /* X-Ray Mode: Focus Mode 2.0 */
+        .map-xray-mode .leaflet-tile-pane {
+          filter: grayscale(100%) brightness(0.2) contrast(1.2) blur(1px);
+          opacity: 0.1;
+          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .map-xray-mode .leaflet-overlay-pane svg path:not([data-violation="true"]) {
+          opacity: 0.05;
+          filter: grayscale(100%);
+          transition: all 0.5s ease;
+        }
+        .map-xray-mode .leaflet-marker-pane .leaflet-marker-icon:not([data-violation="true"]) {
+          opacity: 0.1;
+          filter: grayscale(100%) blur(2px);
+          transition: all 0.5s ease;
+        }
+        .map-xray-mode [data-violation="true"] {
+          filter: 
+            drop-shadow(0 0 10px #ef4444) 
+            drop-shadow(0 0 20px #ef4444)
+            brightness(1.5);
+          opacity: 1 !important;
+          z-index: 1000 !important;
+          animation: violation-neon-pulse 1.5s infinite alternate;
+        }
+        @keyframes violation-neon-pulse {
+          from { filter: drop-shadow(0 0 10px #ef4444) brightness(1.2); }
+          to { filter: drop-shadow(0 0 25px #ef4444) drop-shadow(0 0 40px #ef4444) brightness(1.8); }
+        }
+
+        /* Snapping Guides */
+        .snapping-guide-line {
+          filter: drop-shadow(0 0 3px rgba(34, 211, 238, 0.8));
+          stroke-dasharray: 4, 8;
+          animation: guide-pulse 2s infinite ease-in-out;
+        }
+        @keyframes guide-pulse {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 1; }
+        }
+
         .leaflet-container {
           background: transparent !important;
           transition: filter 0.5s ease;
@@ -465,6 +527,17 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           <GhostEdge 
             startPole={polesById.get(pendingBtEdgeStartPoleId)!} 
             mousePos={mousePos} 
+          />
+        )}
+
+        {/* Snapping Guides Visual Confirmation */}
+        {draggedPole?.snapId && polesById.has(draggedPole.snapId) && (
+          <Polyline 
+            positions={[
+              [draggedPole.lat, draggedPole.lng],
+              [polesById.get(draggedPole.snapId)!.lat, polesById.get(draggedPole.snapId)!.lng]
+            ]}
+            pathOptions={{ color: "#22d3ee", weight: 2, className: "snapping-guide-line" }}
           />
         )}
 
