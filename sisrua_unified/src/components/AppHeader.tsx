@@ -18,6 +18,7 @@ import { getAppHeaderText } from "../i18n/appHeaderText";
 import type { HistoryEntry } from "../hooks/useUndoRedo";
 import { useReducedMotion } from "../theme/motion";
 import { trackHeaderAction, trackAutoSaveStatus } from "../utils/analytics";
+import { useABTest } from "../hooks/useABTest";
 
 interface AppHeaderProps {
   locale: AppLocale;
@@ -68,6 +69,7 @@ export function AppHeader({
     "flex items-center justify-center rounded-2xl border-2 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900";
 
   const t = getAppHeaderText(locale);
+  const isMobileMenuEnabled = useABTest("ux20-mobile-menu-redesign", true);
 
   // UX-20: Track autosave errors for error-rate baseline metric
   React.useEffect(() => {
@@ -135,14 +137,16 @@ export function AppHeader({
                     onSaveProject();
                   }}
                   aria-label={t.saveProject}
-                  className={`${actionButtonClass} !h-10 !w-10 border-none shadow-sm ${
+                  className={`group relative ${actionButtonClass} !h-10 !w-10 border-none shadow-sm ${
                     isDark
                       ? "bg-amber-500/10 text-amber-400"
                       : "bg-amber-50 text-amber-600"
                   }`}
-                  title={t.saveProject}
                 >
                   <Save size={18} strokeWidth={2.5} />
+                  <span className="absolute top-full mt-2 right-0 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
+                    {t.saveProject}
+                  </span>
                 </motion.button>
                 <div className="absolute -top-1.5 -right-2">
                   <AutoSaveIndicator
@@ -159,38 +163,46 @@ export function AppHeader({
                   handleOpenProjectClick();
                 }}
                 aria-label={t.openProject}
-                className={`${actionButtonClass} !h-10 !w-10 border-none shadow-sm ${
+                className={`group relative ${actionButtonClass} !h-10 !w-10 border-none shadow-sm ${
                   isDark
                     ? "bg-amber-500/10 text-amber-400"
                     : "bg-amber-50 text-amber-600"
                 }`}
-                title={t.openProject}
               >
                 <FolderOpen size={18} strokeWidth={2.5} />
+                <span className="absolute top-full mt-2 right-0 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
+                  {t.openProject}
+                </span>
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={onOpenHelp}
-                className={`${actionButtonClass} !h-10 !w-10 shadow-sm ${
+                aria-label={t.openHelp}
+                className={`group relative ${actionButtonClass} !h-10 !w-10 shadow-sm ${
                   isDark
                     ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-200"
                     : "border-cyan-200 bg-cyan-50 text-cyan-700"
                 }`}
-                title={t.openHelp}
               >
                 <HelpCircle size={18} strokeWidth={2} />
+                <span className="absolute top-full mt-2 right-0 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
+                  {t.openHelp}
+                </span>
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={onOpenSettings}
-                className={`${actionButtonClass} !h-10 !w-10 shadow-sm ${
+                aria-label={t.openSettings}
+                className={`group relative ${actionButtonClass} !h-10 !w-10 shadow-sm ${
                   isDark
                     ? "border-white/10 bg-slate-900 text-slate-300"
                     : "border-slate-200 bg-white text-slate-600"
                 }`}
-                title={t.openSettings}
               >
                 <Settings size={18} strokeWidth={2} />
+                <span className="absolute top-full mt-2 right-0 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
+                  {t.openSettings}
+                </span>
               </motion.button>
             </div>
           </motion.div>
@@ -317,23 +329,28 @@ export function AppHeader({
 
       {/* ─── Right section: actions ───────────────────────────────── */}
       <div className="flex items-center gap-3 lg:gap-6">
-        {/* Mobile hamburger — only visible on small screens */}
-        <button
-          className={`flex h-10 w-10 items-center justify-center rounded-xl border-2 transition-colors md:hidden ${
-            isDark
-              ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
-              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-          }`}
-          aria-label={isMobileMenuOpen ? "Fechar menu" : "Abrir menu"}
-          aria-expanded={isMobileMenuOpen}
-          onClick={() => {
-            const next = !isMobileMenuOpen;
-            trackHeaderAction(next ? "mobile_menu_open" : "mobile_menu_close");
-            setIsMobileMenuOpen(next);
-          }}
-        >
-          {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-        </button>
+        {/* Mobile hamburger — conditionally rendered via A/B experiment */}
+        {isMobileMenuEnabled && (
+          <button
+            className={`group relative flex h-10 w-10 items-center justify-center rounded-xl border-2 transition-colors md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 focus-visible:ring-offset-1 ${
+              isDark
+                ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+            }`}
+            aria-label={isMobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+            aria-expanded={isMobileMenuOpen}
+            onClick={() => {
+              const next = !isMobileMenuOpen;
+              trackHeaderAction(next ? "mobile_menu_open" : "mobile_menu_close");
+              setIsMobileMenuOpen(next);
+            }}
+          >
+            {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            <span className="absolute top-full mt-2 right-0 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
+              Menu
+            </span>
+          </button>
+        )}
 
         {/* Desktop: sidebar toggle + history */}
         <div className="hidden md:flex items-center gap-3">
@@ -379,8 +396,8 @@ export function AppHeader({
           </div>
         )}
 
-        {/* Desktop: save/open/help/settings — hidden on mobile */}
-        <div className="hidden md:flex items-center gap-3">
+        {/* Desktop: save/open/help/settings — hidden on mobile when new menu is enabled */}
+        <div className={`${isMobileMenuEnabled ? "hidden md:flex" : "flex"} items-center gap-3`}>
           
           <button
             onClick={() => {

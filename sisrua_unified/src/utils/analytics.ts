@@ -4,6 +4,9 @@ const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY || "placeholder_key";
 const POSTHOG_HOST =
   import.meta.env.VITE_POSTHOG_HOST || "https://app.posthog.com";
 
+let appInitTime = Date.now();
+let firstActionTracked = false;
+
 /**
  * Initializes PostHog for client-side tracking.
  * Only initializes if a key is provided and not in development mode (optional).
@@ -125,6 +128,13 @@ export const trackHeaderAction = (
     | "mobile_menu_close"
     | "history_panel_open",
 ) => {
+  if (!firstActionTracked) {
+    trackEvent("first_useful_action", {
+      action,
+      time_to_action_ms: Date.now() - appInitTime,
+    });
+    firstActionTracked = true;
+  }
   trackEvent("header_action", { action });
 };
 
