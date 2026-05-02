@@ -154,3 +154,23 @@ export const trackPoleFocus = (
 ) => {
   trackEvent("pole_focused", { pole_id: poleId, source });
 };
+
+/**
+ * UX-20: Tracks DG Wizard parameter divergence to identify friction with default AI logic.
+ */
+export const trackDgParameterDivergence = (
+  params: any,
+  poleOverrides: Record<string, number>
+) => {
+  const overridesCount = Object.keys(poleOverrides).length;
+  trackEvent("dg_parameter_divergence", {
+    clientes_por_poste: params.clientesPorPoste,
+    area_clandestina: params.areaClandestinaM2,
+    demanda_media: params.demandaMediaClienteKva,
+    fator_simultaneidade: params.fatorSimultaneidade,
+    trafos_permitidos_count: params.faixaKvaTrafoPermitida?.length || 0,
+    max_span: params.maxSpanMeters,
+    pole_overrides_count: overridesCount,
+    has_divergence: params.clientesPorPoste !== 1 || params.demandaMediaClienteKva !== 1.5 || overridesCount > 0,
+  });
+};

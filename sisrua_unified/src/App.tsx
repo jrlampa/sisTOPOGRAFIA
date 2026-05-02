@@ -36,6 +36,7 @@ import { mergeMtTopologyWithBtPoles } from "./utils/mtTopologyBridge";
 import { synchronizeGlobalTopologyState } from "./utils/synchronizeGlobalTopologyState";
 import { selectMapTopologyRenderSources } from "./utils/selectMapTopologyRenderSources";
 import type { CriticalConfirmationConfig } from "./components/BtModals";
+import { getCommandPaletteText } from "./i18n/commandPaletteText";
 
 // ─── Lazy components (Audit P1: Routing & Bundle Optimization) ──────────
 const SidebarBtEditorSection = React.lazy(() =>
@@ -592,7 +593,7 @@ function App() {
         scoreComponents: scenario.scoreComponents,
       });
 
-      updateBtTopology(applyDgAll(dgTopologySource, scenario));
+      updateBtTopology(applyDgAll(dgTopologySource, scenario), "Design Generativo (Trafo + Condutores)");
       clearDgResult();
       showToast(
         "Solução DG aplicada: trafo + condutores atualizados.",
@@ -648,7 +649,7 @@ function App() {
         scoreComponents: scenario.scoreComponents,
       });
 
-      updateBtTopology(applyDgTrafoOnly(dgTopologySource, scenario));
+      updateBtTopology(applyDgTrafoOnly(dgTopologySource, scenario), "Design Generativo (Apenas Trafo)");
       clearDgResult();
       showToast("Posição do trafo atualizada pelo DG.", "success");
 
@@ -1137,127 +1138,165 @@ function App() {
     fileInput.click();
   }, [handleLoadProject]);
 
-  const commandPaletteActions = [
+  const i18nCmd = React.useMemo(() => getCommandPaletteText(settings.locale), [settings.locale]);
+
+  const commandPaletteActions = React.useMemo(() => [
     {
       id: "save",
-      label: "Salvar Projeto",
-      section: "Arquivo",
+      label: i18nCmd.saveProject,
+      section: i18nCmd.sectionFile,
       shortcut: "Ctrl+S",
       onSelect: handleSaveProject,
     },
     {
       id: "open",
-      label: "Abrir Projeto",
-      section: "Arquivo",
+      label: i18nCmd.openProject,
+      section: i18nCmd.sectionFile,
       shortcut: "Ctrl+O",
       onSelect: handleOpenProjectFromCommandPalette,
     },
     {
       id: "dxf",
-      label: "Exportar DXF",
-      section: "Exportação",
+      label: i18nCmd.exportDxf,
+      section: i18nCmd.sectionExport,
       shortcut: "Alt+D",
       onSelect: handleDownloadDxf,
     },
     {
       id: "geojson",
-      label: "Exportar GeoJSON",
-      section: "Exportação",
+      label: i18nCmd.exportGeoJson,
+      section: i18nCmd.sectionExport,
       onSelect: handleDownloadGeoJSON,
     },
     {
       id: "csv",
-      label: "Exportar Coordenadas CSV",
-      section: "Exportação",
+      label: i18nCmd.exportCsv,
+      section: i18nCmd.sectionExport,
       onSelect: handleDownloadCoordinatesCsv,
     },
     {
+      id: "reset-topology",
+      label: i18nCmd.resetTopology,
+      section: i18nCmd.sectionMacros,
+      onSelect: handleResetBtTopology,
+    },
+    {
+      id: "export-history",
+      label: i18nCmd.exportHistoryJson,
+      section: i18nCmd.sectionMacros,
+      onSelect: exportBtHistoryJson,
+    },
+    {
+      id: "export-history-csv",
+      label: i18nCmd.exportHistoryCsv,
+      section: i18nCmd.sectionMacros,
+      onSelect: exportBtHistoryCsv,
+    },
+    {
       id: "undo",
-      label: "Desfazer",
-      section: "Edição",
+      label: i18nCmd.undo,
+      section: i18nCmd.sectionEdit,
       shortcut: "Ctrl+Z",
       onSelect: undo,
     },
     {
       id: "redo",
-      label: "Refazer",
-      section: "Edição",
+      label: i18nCmd.redo,
+      section: i18nCmd.sectionEdit,
       shortcut: "Ctrl+Y",
       onSelect: redo,
     },
     {
       id: "help",
-      label: "Abrir Ajuda",
-      section: "Geral",
+      label: i18nCmd.openHelp,
+      section: i18nCmd.sectionGeneral,
       shortcut: "/",
       onSelect: () => setIsHelpOpen(true),
     },
     {
       id: "settings",
-      label: "Configurações",
-      section: "Geral",
+      label: i18nCmd.openSettings,
+      section: i18nCmd.sectionGeneral,
       shortcut: "S",
       onSelect: openSettings,
     },
     {
       id: "focus-mode",
-      label: isFocusModeManual ? "Desativar Modo Foco" : "Ativar Modo Foco",
-      section: "Geral",
+      label: isFocusModeManual ? i18nCmd.disableFocusMode : i18nCmd.enableFocusMode,
+      section: i18nCmd.sectionGeneral,
       shortcut: "Ctrl+F",
       onSelect: () => setIsFocusModeManual(!isFocusModeManual),
     },
     {
       id: "dg",
-      label: "Otimização DG",
-      section: "Engenharia",
+      label: i18nCmd.runDgOptimization,
+      section: i18nCmd.sectionEngineering,
       onSelect: () => handleRunDgOptimization(),
     },
     {
       id: "telescopic",
-      label: "Análise Telescópica",
-      section: "Engenharia",
+      label: i18nCmd.telescopicAnalysis,
+      section: i18nCmd.sectionEngineering,
       onSelect: handleTriggerTelescopicAnalysis,
     },
     {
       id: "mode-asis",
-      label: "Cenário: Rede Atual",
-      section: "Visualização",
+      label: i18nCmd.scenarioAsIs,
+      section: i18nCmd.sectionVisualization,
       onSelect: () => setBtNetworkScenario("asis"),
     },
     {
       id: "mode-proj",
-      label: "Cenário: Rede Nova",
-      section: "Visualização",
+      label: i18nCmd.scenarioProject,
+      section: i18nCmd.sectionVisualization,
       onSelect: () => setBtNetworkScenario("projeto"),
     },
     {
       id: "editor-none",
-      label: "Sair do Modo Edição",
-      section: "Edição",
+      label: i18nCmd.exitEditorMode,
+      section: i18nCmd.sectionEdit,
       onSelect: () => setBtEditorMode("none"),
     },
     {
       id: "editor-pole",
-      label: "Modo: Adicionar Poste",
-      section: "Edição",
+      label: i18nCmd.modeAddPole,
+      section: i18nCmd.sectionEdit,
       shortcut: "P",
       onSelect: () => setBtEditorMode("add-pole"),
     },
     {
       id: "editor-edge",
-      label: "Modo: Adicionar Vão",
-      section: "Edição",
+      label: i18nCmd.modeAddEdge,
+      section: i18nCmd.sectionEdit,
       shortcut: "L",
       onSelect: () => setBtEditorMode("add-edge"),
     },
     {
       id: "editor-trafo",
-      label: "Modo: Adicionar Trafo",
-      section: "Edição",
+      label: i18nCmd.modeAddTransformer,
+      section: i18nCmd.sectionEdit,
       shortcut: "T",
       onSelect: () => setBtEditorMode("add-transformer"),
     },
-  ];
+  ], [
+    i18nCmd,
+    handleSaveProject,
+    handleOpenProjectFromCommandPalette,
+    handleDownloadDxf,
+    handleDownloadGeoJSON,
+    handleDownloadCoordinatesCsv,
+    handleResetBtTopology,
+    exportBtHistoryJson,
+    exportBtHistoryCsv,
+    undo,
+    redo,
+    openSettings,
+    isFocusModeManual,
+    handleRunDgOptimization,
+    handleTriggerTelescopicAnalysis,
+    setBtNetworkScenario,
+    setBtEditorMode,
+  ]);
 
   // open audit drawer if electricalAudit layer is enabled and an element is selected
   const [isAuditOpen, setIsAuditOpen] = React.useState(false);

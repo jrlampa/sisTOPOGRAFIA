@@ -1,3 +1,9 @@
+## Atualização Operacional (2026-05-01C) - Telemetria e Macros DG (UX-20)
+- **Análise de Fricção DG**: Adicionado tracking de telemetria `trackDgParameterDivergence` no envio do `DgWizardModal`. Monitora atrito quando o projetista altera os parâmetros recomendados (clientes por poste, área, limitadores de kVA).
+- **Rastreio de Undo**: Atualizado o `updateBtTopology` com passagem dinâmica de `actionLabel` no `App.tsx`. A telemetria de Rework agora registra com exatidão quando um usuário reverte (Ctrl+Z) a aplicação do Design Generativo.
+- **Aceleração de Comandos (Macros)**: O Command Palette (`Ctrl+K`) foi expandido com buscas semânticas (já operantes para "Ir para poste X") e inclusão de "Macros de Projeto" rápidas (Limpar Topologia BT, Exportar Histórico JSON/CSV).
+- **Internacionalização (Item 26)**: As macros e ações do Command Palette no `App.tsx` foram totalmente extraídas e traduzidas para PT/EN/ES através do novo arquivo `src/i18n/commandPaletteText.ts`, mantendo a precisão dos termos técnicos (ex: *Span* para Vão, *Generative Design*, etc.).
+
 ## Atualização Operacional (2026-05-01B) - UX Premium & Acessibilidade (Header)
 - **Descoberta de Histórico**: Histórico detalhado agora visível de forma explícita com rótulo "Histórico Recente" e ícone no `HistoryControls.tsx`, abandonando a dependência exclusiva do right-click (que se torna atalho avançado).
 - **Consistência de Microcopy**: Validado que `AutoSaveIndicator.tsx` já consome `appHeaderText.ts` (100% i18n sem hardcoded texts).

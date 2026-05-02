@@ -25,7 +25,7 @@ import {
   Info,
 } from "lucide-react";
 import type { BtPoleNode } from "../types";
-import { trackModalAbandonment } from "../utils/analytics";
+import { trackModalAbandonment, trackDgParameterDivergence } from "../utils/analytics";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 
 interface DgWizardModalProps {
@@ -187,6 +187,7 @@ export function DgWizardModal({
         true,
         "COMPLETED",
       );
+      trackDgParameterDivergence(params, poleOverrides);
       onExecute({ ...params, poleOverrides });
     } else {
       handleNext();

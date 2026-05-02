@@ -54,6 +54,7 @@ type Params = {
   setAppState: (
     state: GlobalState | ((prev: GlobalState) => GlobalState),
     addToHistory: boolean,
+    actionLabel?: string,
   ) => void;
   showToast: (
     message: string, 
@@ -103,7 +104,7 @@ export function useBtCrudHandlers({
 
   // ─── Central Orchestration ─────────────────────────────────────────────────
 
-  const updateBtTopology = (nextTopology: BtTopology) => {
+  const updateBtTopology = (nextTopology: BtTopology, actionLabel = "Topologia Atualizada") => {
     setAppState(
       {
         ...appState,
@@ -115,6 +116,7 @@ export function useBtCrudHandlers({
         },
       },
       true,
+      actionLabel
     );
   };
 
