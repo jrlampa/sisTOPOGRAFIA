@@ -77,6 +77,11 @@ const ElectricalAuditDrawer = React.lazy(() =>
     default: m.ElectricalAuditDrawer,
   })),
 );
+const BimInspectorDrawer = React.lazy(() =>
+  import("./components/BimInspectorDrawer").then((m) => ({
+    default: m.BimInspectorDrawer,
+  })),
+);
 
 function App() {
   const [isHelpOpen, setIsHelpOpen] = React.useState(false);
@@ -330,8 +335,29 @@ function App() {
     // a mudanças manuais do usuário — apenas a eventos do sistema.
   }, [setAppState]);
 
-  const {
-    latestBtExport,
+  const [isBimInspectorOpen, setIsBimInspectorOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (selectedPoleId && selectedPoleIds.length === 1) {
+      setIsBimInspectorOpen(true);
+    }
+  }, [selectedPoleId, selectedPoleIds.length]);
+
+  const inspectedPole = React.useMemo(
+    () => btTopology.poles.find((p) => p.id === selectedPoleId) || null,
+    [btTopology.poles, selectedPoleId],
+  );
+
+  const inspectedTransformer = React.useMemo(
+    () =>
+      btTopology.transformers.find((t) => t.poleId === selectedPoleId) || null,
+    [btTopology.transformers, selectedPoleId],
+  );
+
+  const inspectedAccumulatedData = React.useMemo(
+    () => btAccumulatedByPole.find((d) => d.poleId === selectedPoleId) || null,
+    [btAccumulatedByPole, selectedPoleId],
+  );
     btExportHistory,
     btHistoryTotal,
     btHistoryLoading,
@@ -1004,6 +1030,7 @@ function App() {
         ? (btSectioningImpact.suggestedPoleId ?? null)
         : null,
     accumulatedByPole: btAccumulatedByPole,
+    osmData: osmData,
     onPolygonChange: handlePolygonChange,
     measurePath: measurePathPoints,
     onMeasurePathChange: handleMeasurePathChange,
@@ -1483,6 +1510,17 @@ function App() {
               "info",
             );
           },
+        }}
+        bimInspectorProps={{
+          isOpen: isBimInspectorOpen,
+          onClose: () => setIsBimInspectorOpen(false),
+          pole: inspectedPole,
+          transformer: inspectedTransformer,
+          accumulatedData: inspectedAccumulatedData,
+          btTopology: btTopology,
+          locale: settings.locale,
+          onRenamePole: handleBtRenamePole,
+          onSetPoleChangeFlag: handleBtSetPoleChangeFlag,
         }}
         hasAreaSelection={!!osmData}
         onStartSearch={() => {

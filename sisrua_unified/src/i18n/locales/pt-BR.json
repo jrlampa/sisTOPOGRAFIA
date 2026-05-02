@@ -85,6 +85,12 @@
     "btnNewTrafoOnly": "SÓ NOVO TRAFO",
     "btnAcceptAll": "ACEITAR TUDO",
     "activatePreviewNote": "Ative o Modo Preview para habilitar a aplicação.",
+    "matrix": {
+      "scenario": "Cenário",
+      "cableTotal": "Cabo (m)",
+      "cqtMax": "CQT Máx",
+      "score": "Score"
+    },
     "progressStages": {
       "generating": "Gerando topologia...",
       "calculating": "Calculando fluxos...",

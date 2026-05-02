@@ -16,7 +16,7 @@ import type {
   DgConstraintCode,
 } from "../hooks/useDgOptimization";
 import { DgWizardModal, DgWizardParams } from "./DgWizardModal";
-import { BtPoleNode, BtTransformer } from "../types";
+import { BtPoleNode, BtTransformer, AppLocale } from "../types";
 import { Skeleton } from "./Skeleton";
 
 
@@ -198,6 +198,79 @@ function DgOptimizationSkeleton({ stage }: { stage: string }) {
   );
 }
 
+function DgScenarioMatrix({
+  best,
+  alternatives,
+  selectedIndex,
+  onSelect,
+  onHover,
+  locale,
+}: {
+  best: DgScenario;
+  alternatives: DgScenario[];
+  selectedIndex: number;
+  onSelect: (index: number) => void;
+  onHover: (index: number | null) => void;
+  locale: AppLocale;
+}) {
+  const { t } = useTranslation();
+  const all = [best, ...alternatives];
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-zinc-900/50">
+      <table className="w-full text-left text-[10px] border-collapse">
+        <thead>
+          <tr className="bg-slate-50 dark:bg-white/5 border-b border-slate-100 dark:border-white/5">
+            <th className="px-2 py-1.5 font-black uppercase tracking-tighter text-slate-400">
+              {t("dgPanel.matrix.scenario")}
+            </th>
+            <th className="px-2 py-1.5 font-black uppercase tracking-tighter text-slate-400 text-right">
+              {t("dgPanel.matrix.cableTotal")}
+            </th>
+            <th className="px-2 py-1.5 font-black uppercase tracking-tighter text-slate-400 text-right">
+              {t("dgPanel.matrix.cqtMax")}
+            </th>
+            <th className="px-2 py-1.5 font-black uppercase tracking-tighter text-slate-400 text-right">
+              {t("dgPanel.matrix.score")}
+            </th>
+          </tr>
+        </thead>
+        <tbody onMouseLeave={() => onHover(null)}>
+          {all.map((s, i) => {
+            const idx = i - 1; // -1 para best, 0..N para alts
+            const isSelected = selectedIndex === idx;
+            return (
+              <tr
+                key={s.scenarioId}
+                onClick={() => onSelect(idx)}
+                onMouseEnter={() => onHover(idx)}
+                className={`cursor-pointer transition-colors border-b border-slate-50 dark:border-white/5 last:border-0 ${
+                  isSelected
+                    ? "bg-violet-50 text-violet-900 dark:bg-violet-900/20 dark:text-violet-200"
+                    : "hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400"
+                }`}
+              >
+                <td className="px-2 py-1.5 font-bold">
+                  {idx === -1 ? t("dgPanel.best") : `${t("dgPanel.alt", { index: idx + 1 })}`}
+                </td>
+                <td className="px-2 py-1.5 text-right tabular-nums">
+                  {s.electricalResult.totalCableLengthMeters.toFixed(0)}
+                </td>
+                <td className="px-2 py-1.5 text-right tabular-nums font-bold">
+                  {(s.electricalResult.cqtMaxFraction * 100).toFixed(1)}%
+                </td>
+                <td className="px-2 py-1.5 text-right tabular-nums font-black text-violet-600 dark:text-violet-400">
+                  {s.objectiveScore.toFixed(0)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
 export interface DgOptimizationPanelProps {
@@ -220,6 +293,7 @@ export interface DgOptimizationPanelProps {
   onAcceptTrafoOnly: (scenario: DgScenario) => void;
   onDiscard: () => void;
   onRemediateCqt?: () => void;
+  locale: AppLocale;
 }
 
 // ─── Componente principal ──────────────────────────────────────────────────────
@@ -243,11 +317,20 @@ export function DgOptimizationPanel({
   onAcceptTrafoOnly,
   onDiscard,
   onRemediateCqt,
+  locale,
 }: DgOptimizationPanelProps) {
   const { t } = useTranslation();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [acceptanceConfirmed, setAcceptanceConfirmed] = useState(false);
   const [progressStage, setProgressStage] = useState(0);
+
+  // UX-04: Persistência do índice clicado para o Quick Preview (Hover)
+  const [actualSelectedIndex, setActualSelectedIndex] = useState(activeAltIndex);
+
+  // Sincroniza estado local se o prop mudar externamente (ex: undo/redo)
+  useEffect(() => {
+    setActualSelectedIndex(activeAltIndex);
+  }, [activeAltIndex]);
 
   const PROGRESS_STAGES = [
     t("dgPanel.progressStages.generating"),
@@ -426,33 +509,22 @@ export function DgOptimizationPanel({
             {isPreviewActive ? t("dgPanel.previewActive") : t("dgPanel.previewInactive")}
           </button>
 
-          {/* Navegação entre cenários (melhor + alternativas) */}
-          {rec && rec.alternatives.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              <button
-                onClick={() => onSetActiveAltIndex(-1)}
-                className={`rounded-full px-2 py-0.5 text-xs font-bold transition-colors ${
-                  activeAltIndex === -1
-                    ? "bg-violet-700 text-white"
-                    : "border border-violet-400/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30"
-                }`}
-              >
-                {t("dgPanel.best")}
-              </button>
-              {rec.alternatives.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => onSetActiveAltIndex(i)}
-                  className={`rounded-full px-2 py-0.5 text-xs font-bold transition-colors ${
-                    activeAltIndex === i
-                      ? "bg-violet-700 text-white"
-                      : "border border-violet-400/60 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/30"
-                  }`}
-                >
-                  {t("dgPanel.alt", { index: i + 1 })}
-                </button>
-              ))}
-            </div>
+          {/* Matriz de Decisão (UX: Comparativo Multi-Cenário) */}
+          {rec && (
+            <DgScenarioMatrix 
+              best={rec.bestScenario}
+              alternatives={rec.alternatives}
+              selectedIndex={actualSelectedIndex}
+              locale={locale}
+              onSelect={(idx) => {
+                setActualSelectedIndex(idx);
+                onSetActiveAltIndex(idx);
+              }}
+              onHover={(idx) => {
+                // Quick Preview: muda no mapa ao passar o mouse, mas volta ao selecionado no leave
+                onSetActiveAltIndex(idx !== null ? idx : actualSelectedIndex);
+              }}
+            />
           )}
 
           {/* Score */}

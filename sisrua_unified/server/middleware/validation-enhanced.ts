@@ -245,6 +245,9 @@ export const validatorsExpanded = {
 export const validatePayloadRate = (
   maxPayloadMb: number = 50
 ) => (req: Request, res: Response, next: NextFunction) => {
+  if (!req.body) {
+    return next();
+  }
   const payloadSize = JSON.stringify(req.body).length / (1024 * 1024);
 
   if (payloadSize > maxPayloadMb) {

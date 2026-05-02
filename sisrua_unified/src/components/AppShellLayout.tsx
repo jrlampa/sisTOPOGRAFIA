@@ -4,6 +4,7 @@ import { AppSettingsOverlay } from "./AppSettingsOverlay";
 import { AppStatusStack } from "./AppStatusStack";
 import { MainMapWorkspace } from "./MainMapWorkspace";
 import { SidebarWorkspace } from "./SidebarWorkspace";
+import { BimInspectorDrawer } from "./BimInspectorDrawer";
 import { useBackendHealth } from "../hooks/useBackendHealth";
 import {
   loadSidebarUiState,
@@ -33,6 +34,7 @@ type Props = {
     "isCollapsed" | "onToggleCollapse"
   >;
   mainMapWorkspaceProps: React.ComponentProps<typeof MainMapWorkspace>;
+  bimInspectorProps?: React.ComponentProps<typeof BimInspectorDrawer>;
   hasAreaSelection: boolean;
   onStartSearch: () => void;
   onMapClickAction: () => void;
@@ -58,6 +60,7 @@ export function AppShellLayout({
   appSettingsOverlayProps,
   sidebarWorkspaceProps,
   mainMapWorkspaceProps,
+  bimInspectorProps,
   hasAreaSelection,
   onStartSearch,
   onMapClickAction,
@@ -92,6 +95,10 @@ export function AppShellLayout({
       </div>
       <AppStatusStack {...appStatusStackProps} />
       <AppSettingsOverlay {...appSettingsOverlayProps} />
+      
+      {/* BIM Deep Inspector Drawer */}
+      {bimInspectorProps && <BimInspectorDrawer {...bimInspectorProps} />}
+
       <AppHeader
         locale={locale}
         canUndo={canUndo}
