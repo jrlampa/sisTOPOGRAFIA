@@ -31,9 +31,10 @@ const RAMAL_QUICK_NOTES: Array<{
 ];
 
 const BtUnifiedCommercialTab: React.FC<BtUnifiedCommercialTabProps> = (props) => {
-  const { selectedPole: pole, accumulatedByPole } = props;
+  const { selectedPole: pole, accumulatedByPole, projectType } = props;
   const t = getBtTopologyPanelText(props.locale);
   const pt = t.poleVerification;
+  const isClandestino = projectType === "clandestino";
 
   if (!pole) return null;
 
@@ -41,7 +42,7 @@ const BtUnifiedCommercialTab: React.FC<BtUnifiedCommercialTabProps> = (props) =>
   const ramais = pole.ramais ?? [];
 
   const handleAddRamal = () => {
-    const defaultRamalType = props.projectType === "clandestino" 
+    const defaultRamalType = isClandestino 
       ? CLANDESTINO_RAMAL_TYPE 
       : NORMAL_CLIENT_RAMAL_TYPES[0];
     
@@ -98,20 +99,30 @@ const BtUnifiedCommercialTab: React.FC<BtUnifiedCommercialTabProps> = (props) =>
               <ShoppingCart size={16} />
             </div>
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">
-              {pt.ramaisTitle}
+              {isClandestino ? "Clientes Clandestinos" : pt.ramaisTitle}
             </h3>
           </div>
-          <button
-            onClick={handleAddRamal}
-            className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm active:scale-95"
-          >
-            <Plus size={16} />
-          </button>
+          {!isClandestino && (
+            <button
+              onClick={handleAddRamal}
+              className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm active:scale-95"
+            >
+              <Plus size={16} />
+            </button>
+          )}
+          {isClandestino && ramais.length === 0 && (
+             <button
+              onClick={handleAddRamal}
+              className="px-3 py-1 bg-violet-600 text-white text-[10px] font-black uppercase rounded-lg hover:bg-violet-700 transition-all shadow-sm active:scale-95"
+            >
+              Iniciar Carga
+            </button>
+          )}
         </div>
 
         {ramais.length === 0 ? (
           <div className="text-xs text-slate-400 italic p-4 bg-slate-50 rounded-xl border border-slate-100 text-center">
-            {pt.noRamais}
+            {isClandestino ? "Nenhuma carga informada para este poste." : pt.noRamais}
           </div>
         ) : (
           <div className="space-y-4">
@@ -119,62 +130,79 @@ const BtUnifiedCommercialTab: React.FC<BtUnifiedCommercialTabProps> = (props) =>
               <div key={ramal.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="flex-1 flex items-center gap-2">
-                    <input
-                      type="number"
-                      min={1}
-                      value={ramal.quantity}
-                      onChange={(e) => handleUpdateRamal(ramal.id, { quantity: Math.max(1, numberFromInput(e.target.value)) })}
-                      className="w-12 bg-white border border-slate-200 rounded p-1 text-xs font-bold text-center"
-                    />
-                    <select
-                      value={ramal.ramalType ?? (props.projectType === "clandestino" ? CLANDESTINO_RAMAL_TYPE : NORMAL_CLIENT_RAMAL_TYPES[0])}
-                      onChange={(e) => handleUpdateRamal(ramal.id, { ramalType: e.target.value })}
-                      className="flex-1 bg-white border border-slate-200 rounded p-1 text-xs font-bold"
-                    >
-                      {(props.projectType === "clandestino" ? [CLANDESTINO_RAMAL_TYPE] : NORMAL_CLIENT_RAMAL_TYPES).map(t => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
+                    <div className="flex flex-col flex-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase mb-1">Qtd Clientes</span>
+                      <input
+                        type="number"
+                        min={1}
+                        value={ramal.quantity}
+                        onChange={(e) => handleUpdateRamal(ramal.id, { quantity: Math.max(1, numberFromInput(e.target.value)) })}
+                        className="w-full bg-white border border-slate-200 rounded p-1.5 text-xs font-black text-center focus:ring-2 focus:ring-violet-500 outline-none"
+                      />
+                    </div>
+                    {!isClandestino ? (
+                      <div className="flex flex-col flex-[2]">
+                        <span className="text-[9px] font-black text-slate-400 uppercase mb-1">Tipo de Ramal</span>
+                        <select
+                          value={ramal.ramalType ?? NORMAL_CLIENT_RAMAL_TYPES[0]}
+                          onChange={(e) => handleUpdateRamal(ramal.id, { ramalType: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded p-1.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                        >
+                          {NORMAL_CLIENT_RAMAL_TYPES.map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col flex-[2]">
+                         <span className="text-[9px] font-black text-slate-400 uppercase mb-1">Categoria</span>
+                         <div className="p-1.5 bg-violet-100 text-violet-700 text-xs font-black rounded border border-violet-200 text-center">
+                           CLANDESTINO
+                         </div>
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={() => handleRemoveRamal(ramal.id)}
-                    className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                    className="p-1.5 mt-4 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
                   >
                     <Trash2 size={14} />
                   </button>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex flex-wrap gap-1">
-                    {RAMAL_QUICK_NOTES.map((chip) => {
-                      const label = pt.quickNotes[chip.labelKey];
-                      const isActive = ramal.notes === label;
-                      return (
-                        <button
-                          key={chip.value}
-                          onClick={() => handleUpdateRamal(ramal.id, { notes: isActive ? undefined : label })}
-                          className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter border transition-all ${
-                            isActive 
-                              ? "bg-amber-100 border-amber-200 text-amber-700" 
-                              : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
+                {!isClandestino && (
+                  <div className="space-y-2 pt-1 border-t border-slate-100">
+                    <div className="flex flex-wrap gap-1">
+                      {RAMAL_QUICK_NOTES.map((chip) => {
+                        const label = pt.quickNotes[chip.labelKey];
+                        const isActive = ramal.notes === label;
+                        return (
+                          <button
+                            key={chip.value}
+                            onClick={() => handleUpdateRamal(ramal.id, { notes: isActive ? undefined : label })}
+                            className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter border transition-all ${
+                              isActive 
+                                ? "bg-amber-100 border-amber-200 text-amber-700" 
+                                : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="relative">
+                      <Tag size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-300" />
+                      <input
+                        type="text"
+                        value={ramal.notes ?? ""}
+                        onChange={(e) => handleUpdateRamal(ramal.id, { notes: e.target.value || undefined })}
+                        className="w-full bg-white border border-slate-200 rounded-lg py-1.5 pl-6 pr-2 text-xs placeholder:opacity-30"
+                        placeholder={pt.freeObservation}
+                      />
+                    </div>
                   </div>
-                  <div className="relative">
-                    <Tag size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input
-                      type="text"
-                      value={ramal.notes ?? ""}
-                      onChange={(e) => handleUpdateRamal(ramal.id, { notes: e.target.value || undefined })}
-                      className="w-full bg-white border border-slate-200 rounded-lg py-1.5 pl-6 pr-2 text-xs placeholder:opacity-30"
-                      placeholder={pt.freeObservation}
-                    />
-                  </div>
-                </div>
+                )}
               </div>
             ))}
           </div>

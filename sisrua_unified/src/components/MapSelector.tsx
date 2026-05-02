@@ -421,6 +421,18 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           loadCenterPoleId={loadCenterPoleId ?? null}
           poleHasTransformer={poleHasTransformer}
           accumulatedByPoleMap={accumulatedByPoleMap}
+          leafPoleIds={(() => {
+            const parentPoleIds = new Set<string>();
+            topology.edges.forEach((edge) => {
+              const edgeFlag = edge.edgeChangeFlag ?? (edge.removeOnExecution ? "remove" : "existing");
+              if (edgeFlag !== "remove") parentPoleIds.add(edge.fromPoleId);
+            });
+            const leaves = new Set<string>();
+            topology.poles.forEach((p) => {
+              if (!parentPoleIds.has(p.id)) leaves.add(p.id);
+            });
+            return leaves;
+          })()}
           onBtMapClick={onBtMapClick}
           onBtDragPole={onBtDragPole}
           onBtRenamePole={onBtRenamePole}

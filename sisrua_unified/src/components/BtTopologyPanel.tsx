@@ -261,27 +261,47 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = ({
           </select>
 
           {projectType === "clandestino" && (
-            <div className="mt-3">
-              <label htmlFor="bt-clandestino-area-input" className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                {t.clandestinoAreaTitle}
-              </label>
-              <input
-                id="bt-clandestino-area-input"
-                type="number"
-                min={0}
-                step={1}
-                inputMode="numeric"
-                value={Number.isFinite(clandestinoAreaM2) ? clandestinoAreaM2 : 0}
-                onChange={(e) => {
-                  const nextAreaM2 = Number(e.target.value);
-                  if (!Number.isFinite(nextAreaM2)) {
-                    return;
-                  }
-                  onClandestinoAreaChange(Math.max(0, nextAreaM2));
-                }}
-                placeholder={t.clandestinoAreaPlaceholder}
-                className="w-full rounded border border-slate-300 p-1.5 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
-              />
+            <div className="mt-3 space-y-3">
+              <div>
+                <label htmlFor="bt-clandestino-avg-area-input" className="mb-1 block text-[10px] font-black uppercase tracking-widest text-violet-600 dark:text-violet-400">
+                  m² Médio por Cliente
+                </label>
+                <input
+                  id="bt-clandestino-avg-area-input"
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  defaultValue={40} // Padrão de mercado para invasões densas
+                  className="w-full rounded-xl border border-violet-200 bg-violet-50/30 p-2 text-xs font-black text-violet-900 focus:ring-2 focus:ring-violet-500 outline-none"
+                  title="Área média estimada por barraco/unidade para cálculo de densidade de carga."
+                />
+              </div>
+
+              <div>
+                <label htmlFor="bt-clandestino-area-input" className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                  {t.clandestinoAreaTitle} (Total)
+                </label>
+                <input
+                  id="bt-clandestino-area-input"
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
+                  value={Number.isFinite(clandestinoAreaM2) ? clandestinoAreaM2 : 0}
+                  onChange={(e) => {
+                    const nextAreaM2 = Number(e.target.value);
+                    if (!Number.isFinite(nextAreaM2)) {
+                      return;
+                    }
+                    onClandestinoAreaChange(Math.max(0, nextAreaM2));
+                  }}
+                  placeholder={t.clandestinoAreaPlaceholder}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <p className="mt-1 text-[9px] text-slate-400 italic">
+                  * Dica: Em modo clandestino, a carga é calculada por W/m².
+                </p>
+              </div>
             </div>
           )}
 

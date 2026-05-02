@@ -9,7 +9,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Zap, CheckCircle, XCircle, Info, Eye, EyeOff } from "lucide-react";
+import { Loader2, Zap, CheckCircle, XCircle, Info, Eye, EyeOff, RotateCcw } from "lucide-react";
 import type {
   DgOptimizationOutput,
   DgScenario,
@@ -332,10 +332,11 @@ export function DgOptimizationPanel({
         {result && (
           <button
             onClick={onDiscard}
+            title="Descartar e Fechar"
             aria-label={t("common.close")}
-            className="rounded p-0.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+            className="rounded p-1 text-zinc-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
           >
-            <XCircle size={13} />
+            <XCircle size={14} />
           </button>
         )}
       </div>
@@ -380,6 +381,15 @@ export function DgOptimizationPanel({
           <div className="text-xs text-zinc-500 dark:text-zinc-400">
             {t("dgPanel.candidatesEvaluated", { count: result.totalCandidatesEvaluated })} · {t("dgPanel.feasible")}:{" "}
             {result.totalFeasible}
+          </div>
+          <div className="pt-2">
+             <button
+              onClick={() => onRun()}
+              className="w-full flex items-center justify-center gap-2 py-2 bg-white border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all rounded-xl shadow-sm"
+            >
+              <RotateCcw size={14} />
+              Reanalisar
+            </button>
           </div>
         </div>
       )}
@@ -542,6 +552,17 @@ export function DgOptimizationPanel({
               {t("dgPanel.activatePreviewNote")}
             </p>
           )}
+
+          {/* Ações Adicionais (UX: Reanalisar) */}
+          <div className="pt-2 border-t border-violet-100 dark:border-violet-900/30">
+            <button
+              onClick={() => onRun()}
+              className="w-full flex items-center justify-center gap-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all rounded-lg"
+            >
+              <RotateCcw size={12} />
+              Reanalisar (Gerar Novo Cenário)
+            </button>
+          </div>
         </div>
       )}
 

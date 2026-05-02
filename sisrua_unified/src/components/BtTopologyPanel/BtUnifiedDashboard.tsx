@@ -82,60 +82,84 @@ export const BtUnifiedDashboard: React.FC<BtUnifiedDashboardProps> = (props) => 
   if (props.selectedPoleIds && props.selectedPoleIds.length > 1) {
     const ids = props.selectedPoleIds;
     return (
-      <div className="flex flex-col h-full bg-slate-50 border border-slate-200 rounded-xl p-4 overflow-y-auto">
-        <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 mb-2">
-          {t.massEditTitle || "Edição em Massa"}
-        </h3>
-        <p className="text-xs text-slate-500 mb-4 font-medium">
-          {ids.length} postes selecionados.
-        </p>
-        <button
-          onClick={() => props.onSetSelectedPoleIds?.([])}
-          className="self-start text-xs font-bold text-slate-500 hover:text-slate-800 transition"
-        >
-          Limpar Seleção
-        </button>
+      <div className="flex flex-col h-full bg-slate-50/50 border border-slate-200 rounded-3xl p-5 overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-sm font-black uppercase tracking-wider text-slate-800">
+              {t.massEditTitle || "Edição em Massa"}
+            </h3>
+            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-tight">
+              {ids.length} postes selecionados
+            </p>
+          </div>
+          <button
+            onClick={() => props.onSetSelectedPoleIds?.([])}
+            className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-rose-500 hover:border-rose-200 transition-all shadow-sm"
+            title="Limpar Seleção"
+          >
+            <Info size={16} />
+          </button>
+        </div>
 
-        <div className="mt-6 flex flex-col gap-4">
-          <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
-            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Especificação Comum</h4>
-            <select
-              className="w-full text-xs font-semibold rounded border border-slate-300 p-1.5 focus:ring-2 focus:ring-blue-500 outline-none"
-              onChange={(e) => {
-                const spec = e.target.value;
-                if (!spec) return;
-                ids.forEach(id => {
-                  props.updatePoleSpec(id, spec);
-                  props.onBtSetPoleChangeFlag?.(id, "replace");
-                });
-              }}
-            >
-              <option value="">Selecione para aplicar a todos...</option>
-              <option value="Concreto DT">Concreto DT</option>
-              <option value="Fibra de Vidro">Fibra de Vidro</option>
-              <option value="Madeira">Madeira</option>
-            </select>
+        <div className="space-y-4">
+          <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Especificação de Material</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {(["Concreto DT", "Fibra de Vidro", "Madeira", "Ferro"] as const).map(mat => (
+                <button
+                  key={mat}
+                  onClick={() => ids.forEach(id => props.updatePoleSpec(id, { ...props.btTopology.poles.find(p => p.id === id)?.poleSpec, material: mat.split(' ')[0] as any }))}
+                  className="py-2 px-1 text-[9px] font-black uppercase rounded-lg border border-slate-100 bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-all"
+                >
+                  {mat}
+                </button>
+              ))}
+            </div>
           </div>
           
-          <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
-            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Esforço Nominal (daN)</h4>
-            <select
-              className="w-full text-xs font-semibold rounded border border-slate-300 p-1.5 focus:ring-2 focus:ring-blue-500 outline-none"
-              onChange={(e) => {
-                const spec = e.target.value;
-                if (!spec) return;
-                ids.forEach(id => {
-                  props.updatePoleSpec(id, spec);
-                  props.onBtSetPoleChangeFlag?.(id, "replace");
-                });
-              }}
+          <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Altura e Esforço</h4>
+            <div className="space-y-3">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[9px] font-bold text-slate-500 uppercase">Altura Nominal (m)</span>
+                <div className="flex gap-1.5">
+                  {[9, 10, 11, 12].map(h => (
+                    <button
+                      key={h}
+                      onClick={() => ids.forEach(id => props.updatePoleSpec(id, { ...props.btTopology.poles.find(p => p.id === id)?.poleSpec, heightM: h }))}
+                      className="flex-1 py-1.5 text-xs font-black rounded-lg border border-slate-100 bg-slate-50 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all"
+                    >
+                      {h}m
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[9px] font-bold text-slate-500 uppercase">Esforço (daN)</span>
+                <div className="flex gap-1.5">
+                  {[150, 300, 600, 1000].map(e => (
+                    <button
+                      key={e}
+                      onClick={() => ids.forEach(id => props.updatePoleSpec(id, { ...props.btTopology.poles.find(p => p.id === id)?.poleSpec, nominalEffortDan: e }))}
+                      className="flex-1 py-1.5 text-[10px] font-black rounded-lg border border-slate-100 bg-slate-50 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all"
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 bg-violet-50 border border-violet-100 rounded-2xl shadow-sm">
+            <h4 className="text-[10px] font-black text-violet-700 uppercase tracking-widest mb-3">Ações de Engenharia</h4>
+            <button
+              onClick={() => ids.forEach(id => props.onBtSetPoleChangeFlag?.(id, "replace"))}
+              className="w-full py-3 bg-violet-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-violet-700 transition-all shadow-md active:scale-[0.98]"
             >
-              <option value="">Selecione para aplicar a todos...</option>
-              <option value="150 daN">150 daN</option>
-              <option value="300 daN">300 daN</option>
-              <option value="600 daN">600 daN</option>
-              <option value="1000 daN">1000 daN</option>
-            </select>
+              Marcar todos para Substituição
+            </button>
           </div>
         </div>
       </div>

@@ -42,6 +42,7 @@ interface MapSelectorPolesLayerProps {
   onBtQuickAddPoleRamal?: (poleId: string) => void;
   onBtQuickRemovePoleRamal?: (poleId: string) => void;
   onBtSelectPole?: (poleId: string, isShiftSelect?: boolean) => void;
+  leafPoleIds?: Set<string>;
   locale: AppLocale;
   layerConfig?: LayerConfig;
 }
@@ -66,6 +67,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
   onBtQuickAddPoleRamal,
   onBtQuickRemovePoleRamal,
   onBtSelectPole,
+  leafPoleIds = new Set(),
   locale,
   layerConfig,
 }) => {
@@ -138,10 +140,26 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
               ? "text-amber-600"
               : "text-emerald-700";
 
+        const isLeaf = leafPoleIds.has(pole.id);
+        const hasTransformer = !!poleHasTransformer.get(pole.id);
+
         return (
           <React.Fragment
-            key={`${pole.id}-${pole.verified ? "v" : "u"}-${pole.id === criticalPoleId ? "c" : "n"}-${pole.id === pendingBtEdgeStartPoleId ? "p" : "x"}-${poleHasTransformer.get(pole.id) ? "t" : "nt"}`}
+            key={`${pole.id}-${pole.verified ? "v" : "u"}-${pole.id === criticalPoleId ? "c" : "n"}-${pole.id === pendingBtEdgeStartPoleId ? "p" : "x"}-${hasTransformer ? "t" : "nt"}`}
           >
+            {/* Rótulo Permanente de CQT nas Pontas (UX: Redução de ruído) */}
+            {isLeaf && poleAccumulated?.dvAccumPercent != null && (
+              <Marker
+                position={[pole.lat, pole.lng]}
+                icon={L.divIcon({
+                  className: "cqt-leaf-label",
+                  html: `<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-1.5 py-0.5 rounded-md border-2 border-white shadow-lg text-[10px] font-black whitespace-nowrap bg-white/90 ${cqtClass} animate-in zoom-in-50 duration-300" style="transform: translate(-50%, -10px); pointer-events: none; animation: subtle-bounce 2s infinite ease-in-out;">${poleAccumulated.dvAccumPercent.toFixed(1)}%</div><style>@keyframes subtle-bounce { 0%, 100% { transform: translate(-50%, -10px); } 50% { transform: translate(-50%, -14px); } }</style>`,
+                  iconSize: [0, 0],
+                })}
+                interactive={false}
+              />
+            )}
+
             <CircleMarker
               center={[pole.lat, pole.lng]}
               radius={
@@ -228,20 +246,62 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                 </div>
               </Tooltip>
               <Popup>
-                <div className="text-xs">
-                  <strong>{popupPole.title}</strong>
-                  <div className="text-xs text-slate-500">{popupPole.id}</div>
+                <div className="text-xs min-w-[200px]">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-1 mb-2">
+                    <div>
+                      <strong className="text-sm">{popupPole.title}</strong>
+                      <div className="text-[10px] text-slate-400 font-mono uppercase">{popupPole.id}</div>
+                    </div>
+                    {isLeaf && (
+                      <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-bold uppercase tracking-wider">Ponta</span>
+                    )}
+                  </div>
+
+                  {/* Resultados de Engenharia Detalhados */}
+                  {poleAccumulated && (
+                    <div className="space-y-1.5 bg-slate-50 p-2 rounded-lg mb-3 border border-slate-100">
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-slate-500 uppercase font-bold tracking-tighter">Carga Acumulada:</span>
+                        <span className="font-black text-slate-900">{poleAccumulated.accumulatedDemandKva.toFixed(2)} kVA</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-slate-500 uppercase font-bold tracking-tighter">Queda de Tensão (dV):</span>
+                        <span className={`font-black ${cqtClass}`}>
+                          {poleAccumulated.dvAccumPercent?.toFixed(2) ?? "-"}%
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-slate-500 uppercase font-bold tracking-tighter">Tensão no Nó:</span>
+                        <span className="font-bold text-slate-700">{poleAccumulated.voltageV?.toFixed(1) ?? "-"} V</span>
+                      </div>
+
+                      <div className="flex justify-between items-center text-[10px] pt-1 border-t border-slate-200/50">
+                        <span className="text-slate-400 uppercase">Clientes: {poleAccumulated.accumulatedClients}</span>
+                        {poleAccumulated.cqtStatus && (
+                          <span className={`px-1 rounded-sm text-[9px] font-black uppercase ${
+                            poleAccumulated.cqtStatus === "OK" ? "bg-emerald-100 text-emerald-700" :
+                            poleAccumulated.cqtStatus === "ATENÇÃO" ? "bg-amber-100 text-amber-700" :
+                            "bg-red-100 text-red-700"
+                          }`}>
+                            Status: {poleAccumulated.cqtStatus}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* BIM Specs Section */}
                   {(popupPole.poleSpec || popupPole.btStructures) && (
-                    <div className="mt-1 border-t border-slate-100 pt-1">
+                    <div className="mt-1 border-t border-slate-100 pt-1 pb-2">
                       {popupPole.poleSpec && (
                         <div className="font-semibold text-slate-800">
                           BIM: {popupPole.poleSpec.heightM}m | {popupPole.poleSpec.nominalEffortDan}daN
                         </div>
                       )}
                       {popupPole.btStructures && (
-                        <div className="text-sky-800 italic">
+                        <div className="text-sky-800 italic text-[10px]">
                           Estruturas: {[
                             popupPole.btStructures.si1,
                             popupPole.btStructures.si2,
@@ -259,55 +319,38 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                       title={`Nome do poste ${pole.id}`}
                       placeholder="Nome do poste"
                       onChange={(e) => onBtRenamePole(pole.id, e.target.value)}
-                      className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
+                      className="mb-2 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
                     />
                   )}
                   {pole.id === criticalPoleId && (
-                    <div className="mt-0.5 font-bold text-red-500">
-                      ⚠ Ponto crítico
+                    <div className="mb-2 font-black text-red-600 bg-red-50 p-1.5 rounded-md border border-red-200 text-center animate-pulse">
+                      ⚠ PONTO CRÍTICO DE ENGENHARIA
                     </div>
                   )}
-                  {poleAccumulated && (
-                    <div className="mt-1 text-slate-700">
-                      <div>CLT acum.: {poleAccumulated.accumulatedClients}</div>
-                      <div>
-                        Demanda acum.:{" "}
-                        {poleAccumulated.accumulatedDemandKva.toFixed(2)} kVA
-                      </div>
-                      {(typeof poleAccumulated.voltageV === "number" ||
-                        typeof poleAccumulated.dvAccumPercent === "number") && (
-                        <div className={`mt-0.5 font-semibold ${cqtClass}`}>
-                          Tensão: {poleAccumulated.voltageV?.toFixed(2) ?? "-"}{" "}
-                          V{" | "}
-                          dV:{" "}
-                          {poleAccumulated.dvAccumPercent?.toFixed(2) ?? "-"}%
-                          {poleAccumulated.cqtStatus
-                            ? ` | ${poleAccumulated.cqtStatus}`
-                            : ""}
-                        </div>
-                      )}
+                  
+                  <div className="flex flex-col gap-1 text-[11px] border-t border-slate-100 pt-2 mt-1">
+                    <div className={`flex items-center gap-1.5 font-bold ${pole.verified ? "text-green-600" : "text-amber-600"}`}>
+                      {pole.verified ? <CheckCircle size={12} /> : <Circle size={12} />}
+                      {pole.verified ? t.flagExisting : "Pendente de Verificação"}
                     </div>
-                  )}
-                  <div
-                    className={`mt-0.5 font-semibold ${pole.verified ? "text-green-600" : "text-amber-600"}`}
-                  >
-                    {pole.verified ? `✓ ${t.btnMarkVerified.replace("Marcar poste como ", "")}` : `○ ${t.btnMarkUnverified.replace("Marcar como ", "")}`}
+                    <div className="text-slate-500">
+                      Estado: <span className="font-bold text-slate-700">{
+                        getPoleChangeFlag(popupPole) === "new" ? t.flagNew :
+                        getPoleChangeFlag(popupPole) === "remove" ? t.flagRemove :
+                        getPoleChangeFlag(popupPole) === "replace" ? t.flagReplace :
+                        t.flagExisting
+                      }</span>
+                    </div>
                   </div>
-                  <div className="mt-0.5 text-slate-700">
-                    Flag: <strong>{
-                      getPoleChangeFlag(popupPole) === "new" ? t.flagNew :
-                      getPoleChangeFlag(popupPole) === "remove" ? t.flagRemove :
-                      getPoleChangeFlag(popupPole) === "replace" ? t.flagReplace :
-                      t.flagExisting
-                    }</strong>
-                  </div>
+
                   {popupPole.circuitBreakPoint && (
-                    <div className="mt-0.5 font-bold text-sky-700">
-                      Separação física ativa.
+                    <div className="mt-2 font-black text-sky-700 bg-sky-50 px-2 py-1 rounded border border-sky-200 text-center text-[10px]">
+                      SEPARAÇÃO FÍSICA ATIVA
                     </div>
                   )}
+
                   {onBtSetPoleChangeFlag && (
-                    <div className={POPUP_FLAG_GRID_CLASS}>
+                    <div className={`${POPUP_FLAG_GRID_CLASS} mt-3`}>
                       {(["existing", "new", "replace", "remove"] as const).map(
                         (flag) => (
                           <button
@@ -337,12 +380,14 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                           );
                         }}
                         className={`h-6 rounded border text-xs font-bold ${popupPole.circuitBreakPoint ? "border-sky-400 bg-sky-100 text-sky-700" : "border-slate-400 bg-white text-slate-600"}`}
+                        title="Alternar Separação de Circuito"
                       >
                         -| |-
                       </button>
                     </div>
                   )}
-                  <div className={POPUP_TOOLBAR_CLASS}>
+
+                  <div className={`${POPUP_TOOLBAR_CLASS} mt-4 pt-2 border-t border-slate-100`}>
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -352,34 +397,34 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                       className={getIconActionButtonClass("danger")}
                       title="Deletar poste"
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={14} />
                     </button>
                     <button
                       onClick={() => onBtToggleTransformerOnPole?.(pole.id)}
                       className={getIconActionButtonClass(
                         "violet",
-                        !!poleHasTransformer.get(pole.id),
+                        !!hasTransformer,
                       )}
-                      title="Toggle Trafo"
+                      title="Alternar Transformador"
                     >
-                      <Triangle size={12} className="rotate-180 fill-current" />
+                      <Triangle size={14} className="rotate-180 fill-current" />
                     </button>
                     {onBtQuickAddPoleRamal && (
                       <button
                         onClick={() => onBtQuickAddPoleRamal(pole.id)}
                         className={getIconActionButtonClass("sky")}
-                        title="Add Ramal"
+                        title="Adicionar Ramal"
                       >
-                        <Plus size={12} />
+                        <Plus size={14} />
                       </button>
                     )}
                     {onBtQuickRemovePoleRamal && (
                       <button
                         onClick={() => onBtQuickRemovePoleRamal(pole.id)}
                         className={getIconActionButtonClass("slate")}
-                        title="Rem Ramal"
+                        title="Remover Ramal"
                       >
-                        <Minus size={12} />
+                        <Minus size={14} />
                       </button>
                     )}
                   </div>

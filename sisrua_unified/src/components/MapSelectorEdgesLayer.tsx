@@ -553,8 +553,12 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
           </Popup>
         );
 
+        const hasBt = edge.conductors.length > 0;
+        const hasMt = (edge.mtConductors ?? []).length > 0;
+
         return (
           <React.Fragment key={edge.id}>
+            {/* Área de clique estendida */}
             <Polyline
               positions={[
                 [from.lat, from.lng],
@@ -577,19 +581,27 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                   className="bt-edge-tooltip"
                 >
                   <div className="flex flex-col items-center bg-white/90 px-1 py-0.5 rounded border border-slate-200 shadow-sm pointer-events-none">
-                    {edge.conductors.length > 0 ? (
+                    {hasBt ? (
                       edge.conductors.map((c) => (
                         <div key={c.id} className="text-[8px] font-bold text-slate-800 leading-tight">
-                          {c.quantity}x{c.conductorName}
+                          {c.quantity}x{c.conductorName} (BT)
                         </div>
                       ))
-                    ) : (
+                    ) : null}
+                    {hasMt && (edge.mtConductors ?? []).map((c) => (
+                      <div key={c.id} className="text-[8px] font-bold text-orange-700 leading-tight">
+                        {c.quantity}x{c.conductorName} (MT)
+                      </div>
+                    ))}
+                    {!hasBt && !hasMt && (
                       <div className="text-[8px] italic text-slate-400">Sem cabo</div>
                     )}
                   </div>
                 </Tooltip>
               )}
             </Polyline>
+            
+            {/* Linha de fundo (glow/border) */}
             <Polyline
               positions={[
                 [from.lat, from.lng],
@@ -605,6 +617,8 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                 lineJoin: "round",
               }}
             />
+
+            {/* Linha Principal (BT ou Mista) */}
             <Polyline
               positions={[
                 [from.lat, from.lng],
@@ -620,6 +634,32 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                 lineJoin: "round",
               }}
             />
+
+            {/* Linha de Offset para MT (Representação Multi-Cabo) */}
+            {hasMt && (
+              <Polyline
+                positions={(() => {
+                  // Simples offset lateral de ~2 metros em graus (aproximado)
+                  const offset = 0.00002; 
+                  const dx = to.lng - from.lng;
+                  const dy = to.lat - from.lat;
+                  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                  const nx = -dy / len;
+                  const ny = dx / len;
+                  return [
+                    [from.lat + nx * offset, from.lng + ny * offset],
+                    [to.lat + nx * offset, to.lng + ny * offset],
+                  ];
+                })()}
+                pathOptions={{
+                  color: "#f97316", // Cor de MT (Laranja)
+                  weight: 2.5,
+                  opacity: 0.9,
+                  dashArray: "4 4",
+                  interactive: false,
+                }}
+              />
+            )}
             {edgeChangeFlag === "remove" && (
               <>
                 {getRemovalMarkersForEdge(from, to).map(
