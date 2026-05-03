@@ -1,5 +1,5 @@
-import React, { Suspense } from "react";
-import { Loader2 } from "lucide-react";
+import React, { Suspense, useMemo } from "react";
+import { Loader2, Zap } from "lucide-react";
 import {
   FormFieldMessage,
   getValidationInputClassName,
@@ -176,6 +176,13 @@ export function SidebarBtEditorSection({
   mtTopology,
 }: SidebarBtEditorSectionProps) {
   const effectiveDgTopology = dgTopology ?? btTopology;
+
+  const currentTotalCableLengthMeters = useMemo(() => {
+    return effectiveDgTopology.edges.reduce(
+      (sum, edge) => sum + (edge.lengthMeters ?? 0),
+      0,
+    );
+  }, [effectiveDgTopology.edges]);
 
   const coordinateValidation = getCoordinateInputFeedback(
     btPoleCoordinateInput,
@@ -416,10 +423,7 @@ export function SidebarBtEditorSection({
             hasPoles={effectiveDgTopology.poles.length > 0}
             poles={effectiveDgTopology.poles}
             currentTransformer={effectiveDgTopology.transformers[0]}
-            currentTotalCableLengthMeters={effectiveDgTopology.edges.reduce(
-              (sum, edge) => sum + (edge.lengthMeters ?? 0),
-              0,
-            )}
+            currentTotalCableLengthMeters={currentTotalCableLengthMeters}
             hasTransformer={effectiveDgTopology.transformers.length > 0}
             hasProjectedPoles={effectiveDgTopology.poles.some(
               (p) => p.nodeChangeFlag === "new",

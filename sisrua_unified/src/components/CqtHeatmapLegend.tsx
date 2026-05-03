@@ -22,7 +22,7 @@ export function CqtHeatmapLegend() {
           <div className="h-1.5 w-14 rounded-full bg-orange-500/80 shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]" />
         </div>
         <div className="flex items-center justify-between gap-6">
-          <span className="text-[9px] font-bold text-rose-400/80 uppercase tracking-tighter">Violação (>7%)</span>
+          <span className="text-[9px] font-bold text-rose-400/80 uppercase tracking-tighter">Violação (&gt;7%)</span>
           <div className="h-1.5 w-14 rounded-full bg-red-600/80 shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]" />
         </div>
       </div>

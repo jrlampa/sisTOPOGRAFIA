@@ -5,9 +5,104 @@ import { ElectricalAuditDrawer } from "./ElectricalAuditDrawer";
 import { BtTelescopicSuggestionModal } from "./BtTelescopicSuggestionModal";
 import { HelpModal } from "./HelpModal";
 import { CommandPalette } from "./CommandPalette";
-import { CqtHeatmapLegend } from "./CqtHeatmapLegend";
+import { AppSettings, BtTopology, MtTopology } from "../types";
+import { 
+  BtPoleAccumulatedDemand, 
+  BtClandestinoDisplay, 
+  BtTransformerDerived 
+} from "../services/btDerivedService";
 
-export function AppWorkspace(props: any) {
+interface AppWorkspaceProps {
+  settings: AppSettings;
+  isDark: boolean;
+  isFocusMode: boolean;
+  isXRayMode: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
+  undo: () => void;
+  redo: () => void;
+  appPast: any[];
+  appFuture: any[];
+  handleSaveProject: () => void;
+  handleLoadProject: (file: File) => void;
+  openSettings: () => void;
+  setIsHelpOpen: (open: boolean) => void;
+  toasts: any[];
+  closeToast: (id: string) => void;
+  sessionDraft: any;
+  handleRestoreSession: () => void;
+  handleDismissSession: () => void;
+  isProcessing: boolean;
+  isDownloading: boolean;
+  progressValue: number;
+  statusMessage: string;
+  showDxfProgress: boolean;
+  dxfProgressValue: number;
+  dxfProgressStatus: string;
+  dxfProgressLabel: string;
+  latestBtExport: any;
+  btExportHistory: any[];
+  exportBtHistoryJson: () => void;
+  exportBtHistoryCsv: () => void;
+  handleClearBtExportHistory: () => void;
+  btHistoryTotal: number;
+  btHistoryLoading: boolean;
+  btHistoryCanLoadMore: boolean;
+  handleLoadMoreBtHistory: () => void;
+  btHistoryProjectTypeFilter: string;
+  setBtHistoryProjectTypeFilter: (filter: string) => void;
+  btHistoryCqtScenarioFilter: string;
+  setBtHistoryCqtScenarioFilter: (filter: string) => void;
+  updateSettings: (settings: AppSettings) => void;
+  selectionMode: string;
+  handleSelectionModeChange: (mode: any) => void;
+  radius: number;
+  handleRadiusChange: (r: number) => void;
+  polygon: any;
+  handleClearPolygon: () => void;
+  osmData: any;
+  handleDownloadDxf: () => void;
+  handleDownloadGeoJSON: () => void;
+  isSidebarDockedForRamalModal: boolean;
+  sidebarSelectionControlsProps: any;
+  sidebarBtEditorSectionProps: any;
+  mtTopology: MtTopology;
+  updateMtTopology: (topology: MtTopology) => void;
+  hasBtPoles: boolean;
+  sidebarAnalysisResultsProps: any;
+  mapSelectorProps: any;
+  elevationProfileData: any;
+  clearProfile: () => void;
+  btModalStackProps: any;
+  showToast: (msg: string, type: any) => void;
+  isBimInspectorOpen: boolean;
+  setIsBimInspectorOpen: (open: boolean) => void;
+  inspectedPole: any;
+  inspectedTransformer: any;
+  inspectedAccumulatedData: BtPoleAccumulatedDemand | null;
+  btTopology: BtTopology;
+  handleBtRenamePole: (id: string, title: string) => void;
+  handleBtSetPoleChangeFlag: (id: string, flag: any) => void;
+  autoSaveStatus: 'idle' | 'saving' | 'error';
+  lastAutoSaved?: string;
+  isAuditOpen: boolean;
+  setIsAuditOpen: (open: boolean) => void;
+  selectedAuditElement: any;
+  handleAuditAction: (action: any) => void;
+  btTelescopicSuggestions: any;
+  handleApplyTelescopicSuggestions: () => void;
+  clearBtTelescopicSuggestions: () => void;
+  isHelpOpen: boolean;
+  isCommandPaletteOpen: boolean;
+  setIsCommandPaletteOpen: (open: boolean) => void;
+  commandPaletteActions: any[];
+  handleGoToPole: (id: string) => void;
+  terrainData: any;
+  showSettings: boolean;
+  closeSettings: () => void;
+}
+
+export function AppWorkspace(props: AppWorkspaceProps) {
   const {
     settings,
     isDark,
@@ -230,8 +325,6 @@ export function AppWorkspace(props: any) {
         autoSaveStatus={autoSaveStatus}
         lastAutoSaved={lastAutoSaved}
       />
-
-      {settings.layers?.cqtHeatmap && <CqtHeatmapLegend />}
 
       <React.Suspense fallback={null}>
         <ElectricalAuditDrawer

@@ -1,3 +1,14 @@
+## Atualização Operacional (2026-05-03A) - Experiência Imersiva & Edição em Massa (Fase 7)
+- **Mapa de Calor de Performance (CQT Heatmap)**: ✅ Implementado sistema de visualização cromática dinâmica para vãos (edges).
+    - Verde (0-3%): Ideal | Amarelo (3-5%): Aceitável | Laranja (5-7%): Limite | Vermelho (>7%): Crítico.
+    - Adicionada `CqtHeatmapLegend.tsx` flutuante e persistente com *backdrop-blur* e animações de entrada.
+- **Seleção por Laço (Lasso/Polygon Select)**: ✅ Implementada detecção geométrica em tempo real para seleção de múltiplos ativos.
+    - O fechamento de um polígono no mapa (Modo Seleção Polígono) dispara automaticamente a seleção de todos os postes contidos (`isPointInPolygon`).
+- **Edição em Massa (Bulk Edit)**: ✅ Criado o componente `SidebarBulkEditSection.tsx` que surge dinamicamente no Sidebar ao selecionar >1 ativo.
+    - Permite alteração simultânea de flags (Existente/Novo/Remover/Substituir) para todos os itens selecionados, eliminando trabalho repetitivo.
+- **Saneamento de Arquitetura**: Finalizada a desmonolização do `App.tsx` com 100% de correção nos tipos TypeScript e orquestração de hooks (`useMapState`, `useBtNavigationState`, `useAppLifecycleEffects`).
+- **Governança**: Auditoria `non-negotiables-audit.cjs` validada com sucesso (VERDE).
+
 ## Atualização Operacional (2026-05-02B) - Hardening de Arquitetura (Fase 6)
 - **Desmonolização de App.tsx**: Redução drástica do arquivo principal de ~1100 para **639 linhas**, atingindo o *SOFT LIMIT* de 750 linhas e cumprindo a meta de governança CI/CD.
 - **Ecossistema de Hooks Especializados**:

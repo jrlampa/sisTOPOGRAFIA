@@ -8,6 +8,7 @@ import {
   Network,
   ChevronRight,
   ChevronLeft,
+  Zap,
 } from "lucide-react";
 import type { AppLocale } from "../types";
 import { getSidebarWorkspaceText } from "../i18n/sidebarWorkspaceText";
@@ -96,7 +97,7 @@ export function SidebarWorkspace({
       id: 3,
       label: t.stage3Label,
       helper: t.stage3Helper,
-      icon: ZapIcon,
+      icon: Zap,
       component: <SidebarMtEditorSection {...mtEditorSectionProps} />,
     },
     {
@@ -415,20 +416,3 @@ export function SidebarWorkspace({
     </motion.aside>
   );
 }
-
-// Helper to use Zap icon without importing it again
-const ZapIcon = ({ size, className, strokeWidth }: any) => (
-  <svg
-    width={size}
-    height={size}
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-  </svg>
-);
