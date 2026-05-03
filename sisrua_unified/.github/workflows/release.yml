@@ -77,6 +77,11 @@ jobs:
           NODE_ENV: test
           OFFLINE_MODE: true
 
+      - name: Validar Quality Gate (Cobertura e Débito Técnico)
+        run: npm run coverage:policy:strict
+        env:
+          NODE_ENV: test
+
       - name: Instalar Playwright Chromium
         run: npx playwright install --with-deps chromium
 

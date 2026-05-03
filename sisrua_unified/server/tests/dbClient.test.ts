@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+import { config } from "../config.js";
 /**
  * dbClient.test.ts
  * Testa todas as funções do cliente PostgreSQL singleton.
@@ -6,6 +7,11 @@ import { vi } from "vitest";
 
 vi.mock('../utils/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+}));
+
+// Mock inicial do config para evitar leitura real do ambiente
+vi.mock("../config.js", () => ({
+  config: { DATABASE_URL: 'postgresql://user:pass@localhost:5432/testdb', NODE_ENV: 'test' },
 }));
 
 describe('dbClient', () => {
@@ -16,6 +22,9 @@ describe('dbClient', () => {
 
   beforeEach(() => {
     vi.resetModules();
+    // Restaura config padrão para os testes
+    config.DATABASE_URL = DB_URL;
+    config.NODE_ENV = 'test';
 
     mockClientInstance = Object.assign(
       vi.fn().mockResolvedValue([{ '?column?': 1 }]) as any,
@@ -27,9 +36,6 @@ describe('dbClient', () => {
     mockPostgres = vi.fn(() => mockClientInstance);
 
     vi.doMock('postgres', () => ({ __esModule: true, default: mockPostgres }));
-    vi.doMock("../config.js", () => ({
-      config: { DATABASE_URL: DB_URL, NODE_ENV: 'test' },
-    }));
   });
 
   async function loadModule() {
@@ -55,9 +61,7 @@ describe('dbClient', () => {
   });
 
   it('initDbClient: não inicializa sem DATABASE_URL', async () => {
-    vi.doMock("../config.js", () => ({
-      config: { DATABASE_URL: '', NODE_ENV: 'test' },
-    }));
+    config.DATABASE_URL = '';
     const { initDbClient, isDbAvailable } = await loadModule();
     await initDbClient();
     expect(isDbAvailable()).toBe(false);
@@ -74,9 +78,8 @@ describe('dbClient', () => {
   });
 
   it('initDbClient: NODE_ENV production usa ssl=require', async () => {
-    vi.doMock("../config.js", () => ({
-      config: { DATABASE_URL: DB_URL, NODE_ENV: 'production' },
-    }));
+    config.NODE_ENV = 'production';
+    vi.resetModules(); // Ensure the module is re-evaluated with the new config
     const { initDbClient } = await loadModule();
     await initDbClient();
     expect(mockPostgres).toHaveBeenCalledWith(
@@ -84,6 +87,7 @@ describe('dbClient', () => {
       expect.objectContaining({ ssl: 'require' }),
     );
   });
+
 
   it('initDbClient: NODE_ENV test usa ssl=false', async () => {
     const { initDbClient } = await loadModule();

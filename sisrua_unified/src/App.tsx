@@ -50,6 +50,7 @@ import { synchronizeGlobalTopologyState } from "./utils/synchronizeGlobalTopolog
 import { selectMapTopologyRenderSources } from "./utils/selectMapTopologyRenderSources";
 import type { CriticalConfirmationConfig } from "./components/BtModals";
 import { getCommandPaletteText } from "./i18n/commandPaletteText";
+import { CqtHeatmapLegend } from "./components/CqtHeatmapLegend";
 
 // ─── Lazy components (Audit P1: Routing & Bundle Optimization) ──────────
 const SidebarBtEditorSection = React.lazy(() =>
@@ -162,7 +163,6 @@ function App() {
   const { status: autoSaveStatus, lastSaved: lastAutoSaved } =
     useAutoSave(appState);
 
-  useAppLifecycleEffects({ settings, isDark, btTopology, btSectioningImpact, showToast, setAppState });
 
   const {
     profileData: elevationProfileData,
@@ -172,9 +172,6 @@ function App() {
 
   const {
     toast,
-    closeToast,
-    showToast,
-    toasts,
     showSettings,
     openSettings,
     closeSettings,
@@ -191,6 +188,9 @@ function App() {
     isPolygonValid,
     polygonPoints,
     measurePathPoints,
+    toasts,
+    showToast,
+    closeToast,
   } = useMapState({
     appState,
     setAppState,
@@ -199,14 +199,42 @@ function App() {
     clearProfile,
   });
 
+  useAppLifecycleEffects({ settings, isDark, btTopology, btSectioningImpact, showToast, setAppState });
+
   // Sincroniza centro, raio e modo de seleção com os query params da URL.
   useMapUrlState({ appState, setAppState });
 
 
-  const { isBimInspectorOpen, setIsBimInspectorOpen, inspectedPole, inspectedTransformer, inspectedAccumulatedData } = useAppBimInspector({ selectedPoleId, selectedPoleIds, btTopology, btAccumulatedByPole });
+  const {
+    btEdgeFlyToTarget,
+    btPoleFlyToTarget,
+    btTransformerFlyToTarget,
+    selectedPoleId,
+    selectedPoleIds,
+    selectedEdgeId,
+    selectedTransformerId,
+    handleBtSelectedEdgeChange,
+    handleBtSelectedPoleChange,
+    handleBtSelectedTransformerChange,
+    handleSelectAllInPolygon,
+    setSelectedPoleId,
+    setSelectedPoleIds,
+    setSelectedEdgeId,
+    setSelectedTransformerId,
+  } = useBtNavigationState({ btTopology, showToast });
+
+  React.useEffect(() => {
+    if (isPolygonValid && appState.selectionMode === "polygon") {
+      handleSelectAllInPolygon(
+        polygonPoints.map((p) => ({ lat: p[0], lng: p[1] })),
+      );
+    }
+  }, [isPolygonValid, polygonPoints, appState.selectionMode, handleSelectAllInPolygon]);
+
   const {
     btExportHistory,
     btHistoryTotal,
+    latestBtExport,
     btHistoryLoading,
     btHistoryCanLoadMore,
     btHistoryProjectTypeFilter,
@@ -224,22 +252,7 @@ function App() {
       settings.projectType === "clandestino" ? "clandestino" : "ramais",
   });
 
-  const {
-    btEdgeFlyToTarget,
-    btPoleFlyToTarget,
-    btTransformerFlyToTarget,
-    selectedPoleId,
-    selectedPoleIds,
-    selectedEdgeId,
-    selectedTransformerId,
-    handleBtSelectedEdgeChange,
-    handleBtSelectedPoleChange,
-    handleBtSelectedTransformerChange,
-    setSelectedPoleId,
-    setSelectedPoleIds,
-    setSelectedEdgeId,
-    setSelectedTransformerId,
-  } = useBtNavigationState({ btTopology, showToast });
+  const { isBimInspectorOpen, setIsBimInspectorOpen, inspectedPole, inspectedTransformer, inspectedAccumulatedData } = useAppBimInspector({ selectedPoleId, selectedPoleIds, btTopology, btAccumulatedByPole });
 
   const {
     btPoleCoordinateInput,
@@ -380,7 +393,31 @@ function App() {
   );
 
   const {
+    isOptimizing: isDgOptimizing,
+    result: dgResult,
+    error: dgError,
+    activeAltIndex: dgActiveAltIndex,
+    runDgOptimization,
+    applyDgAll,
+    applyDgTrafoOnly,
+    clearDgResult,
+    logDgDecision,
+    setActiveAltIndex: setDgActiveAltIndex,
+    activeScenario: dgActiveScenario,
+    isPreviewActive,
+    setIsPreviewActive,
+  } = useDgOptimization();
+
+  const {
+    isAnalyzing: isBtTelescopicAnalyzing,
+    suggestions: btTelescopicSuggestions,
+    triggerAnalysis: triggerBtTelescopicAnalysis,
+    clearSuggestions: clearBtTelescopicSuggestions,
+  } = useBtTelescopicAnalysis();
+
+  const {
     lastAppliedDgResults,
+
     handleRunDgOptimization,
     handleAcceptDgAll,
     handleAcceptDgTrafoOnly,

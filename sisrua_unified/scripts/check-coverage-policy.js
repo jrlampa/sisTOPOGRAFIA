@@ -143,6 +143,11 @@ async function run() {
     console.warn('\n⚠️  Um ou mais arquivos de cobertura estão ausentes (execute npm run test primeiro).');
   }
 
+  if (hasMissing && strict) {
+    console.error('\nFalha na política de cobertura: Arquivos de cobertura ausentes (modo estrito).');
+    process.exit(1);
+  }
+
   if (hasFailure && strict) {
     console.error('\nFalha na política de cobertura (modo estrito).');
     process.exit(1);

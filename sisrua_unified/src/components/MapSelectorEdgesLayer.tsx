@@ -176,6 +176,7 @@ interface MapSelectorEdgesLayerProps {
   layerConfig?: LayerConfig;
   draggedPole?: { id: string; lat: number; lng: number } | null;
   isGhostMode?: boolean;
+  isXRayMode?: boolean;
 }
 
 const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
@@ -194,6 +195,7 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
   layerConfig,
   draggedPole,
   isGhostMode = false,
+  isXRayMode = false,
 }) => {
   const t = getBtTopologyPanelText(locale);
   const { poleVerification: tp, transformerEdge: te } = t;
@@ -232,22 +234,34 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
   return (
     <Pane name={paneName} style={{ zIndex: 420 }}>
       {(topology.edges || []).map((edge) => {
-        let from = polesById.get(edge.fromPoleId);
-        let to = polesById.get(edge.toPoleId);
+        const from = polesById.get(edge.fromPoleId);
+        const to = polesById.get(edge.toPoleId);
         if (!from || !to) {
           return null;
         }
+
+        const edgeChangeFlag = getEdgeChangeFlag(edge);
+        const hasBt = edge.conductors.length > 0;
+        const hasMt = (edge.mtConductors ?? []).length > 0;
+        const edgeVisual = getEdgeVisualConfig(edge);
 
         // Real-time drag support (UX: Dynamic Spans)
         const isDraggingFrom = draggedPole?.id === edge.fromPoleId;
         const isDraggingTo = draggedPole?.id === edge.toPoleId;
         const isCurrentlyDragging = isDraggingFrom || isDraggingTo;
         const poleAccumulated = accumulatedByPoleMap?.get(isDraggingFrom ? edge.fromPoleId : edge.toPoleId);
+        const accumulatedData = accumulatedByPoleMap?.get(edge.toPoleId);
         
         const oldDistance = L.latLng(polesById.get(edge.fromPoleId)!.lat, polesById.get(edge.fromPoleId)!.lng)
           .distanceTo(L.latLng(polesById.get(edge.toPoleId)!.lat, polesById.get(edge.toPoleId)!.lng));
         const currentDistance = L.latLng(from.lat, from.lng).distanceTo(L.latLng(to.lat, to.lng));
         
+        // CQT Heatmap Logic
+        let heatmapColor: string | null = null;
+        if (layerConfig?.cqtHeatmap && accumulatedData) {
+          heatmapColor = getCqtHeatmapColor(accumulatedData.dvAccumPercent);
+        }
+
         // Ghost CQT Estimation
         let estimatedCqtStr = "";
         if (isCurrentlyDragging && poleAccumulated?.dvAccumPercent) {
@@ -259,6 +273,63 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
         const isViolation = (poleAccumulated?.dvAccumPercent ?? 0) > 7;
 
         const distColorClass = currentDistance > 40 ? "text-red-600" : currentDistance > 30 ? "text-amber-600" : "text-emerald-600";
+
+        const edgePopup = (
+          <Popup position={[(from.lat + to.lat) / 2, (from.lng + to.lng) / 2]} eventHandlers={popupEventHandlers}>
+            <div className="min-w-[200px] space-y-3 p-1">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Vão {edge.id}</span>
+                <button 
+                   onClick={() => onBtDeleteEdge?.(edge.id)}
+                   className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+
+              {/* Status de Projeto */}
+              <div className={POPUP_FLAG_GRID_CLASS}>
+                {(["existing", "new", "replace", "remove"] as BtEdgeChangeFlag[]).map((f) => (
+                  <button
+                    key={f}
+                    className={getFlagButtonClass(edgeChangeFlag === f, f)}
+                    onClick={() => onBtSetEdgeChangeFlag?.(edge.id, f)}
+                  >
+                    {f.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
+              {/* Condutores BT */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase text-slate-400">Cabos BT (Multiplexados)</label>
+                <div className="flex gap-1.5">
+                  <select 
+                    className={POPUP_SELECT_CLASS}
+                    value={edgeConductorSelection[edge.id] || CONDUCTOR_OPTIONS[0]}
+                    onChange={(e) => setEdgeConductorSelection(prev => ({ ...prev, [edge.id]: e.target.value }))}
+                  >
+                    {CONDUCTOR_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                  <button 
+                    onClick={() => onBtQuickAddEdgeConductor?.(edge.id, edgeConductorSelection[edge.id] || CONDUCTOR_OPTIONS[0])}
+                    className={getIconActionButtonClass("violet")}
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {edge.conductors.map(c => (
+                    <div key={c.id} className="flex items-center gap-1.5 px-2 py-0.5 bg-violet-50 border border-violet-100 rounded-md text-[10px] font-bold text-violet-700">
+                      {c.quantity}x {c.conductorName}
+                      <button onClick={() => onBtQuickRemoveEdgeConductor?.(edge.id, c.conductorName)} className="text-violet-400 hover:text-violet-600"><Plus size={10} className="rotate-45" /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Popup>
+        );
 
         return (
           <React.Fragment key={edge.id}>
@@ -348,13 +419,16 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                 [to.lat, to.lng],
               ]}
               pathOptions={{
-                color: edgeVisual.color,
-                weight: edgeVisual.weight,
-                opacity: 0.98,
+                color: heatmapColor || edgeVisual.color,
+                weight: heatmapColor ? 4 : edgeVisual.weight,
                 dashArray: edgeVisual.dashArray,
+                opacity: isXRayMode ? (heatmapColor ? 1.0 : 0.05) : edgeVisual.opacity,
                 interactive: false,
                 lineCap: "round",
                 lineJoin: "round",
+                className: isXRayMode && poleAccumulated?.cqtStatus === "CRÍTICO" 
+                  ? "critical-neon-glow" 
+                  : undefined
               }}
             />
 

@@ -1,7 +1,8 @@
 import React from "react";
 
-export function useAppElectricalAudit({ settings, selectedAuditElement, setIsAuditOpen, showToast }: any) {
-  const [isAuditOpenInternal, setIsAuditOpenInternal] = React.useState(false);
+export function useAppElectricalAudit({ settings, showToast }: any) {
+  const [isAuditOpen, setIsAuditOpen] = React.useState(false);
+  const [selectedAuditElement, setSelectedAuditElement] = React.useState<any>(null);
 
   React.useEffect(() => {
     if (settings.layers.electricalAudit && selectedAuditElement) {
@@ -9,7 +10,7 @@ export function useAppElectricalAudit({ settings, selectedAuditElement, setIsAud
     } else {
       setIsAuditOpen(false);
     }
-  }, [settings.layers.electricalAudit, selectedAuditElement, setIsAuditOpen]);
+  }, [settings.layers.electricalAudit, selectedAuditElement]);
 
   const handleAuditAction = React.useCallback(
     (action: "approve" | "reject", notes: string) => {
@@ -19,8 +20,14 @@ export function useAppElectricalAudit({ settings, selectedAuditElement, setIsAud
       );
       setIsAuditOpen(false);
     },
-    [showToast, setIsAuditOpen],
+    [showToast],
   );
 
-  return { handleAuditAction };
+  return { 
+    isAuditOpen, 
+    setIsAuditOpen, 
+    selectedAuditElement, 
+    setSelectedAuditElement,
+    handleAuditAction 
+  };
 }

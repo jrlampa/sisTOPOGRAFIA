@@ -13,8 +13,13 @@ if ! command -v node &> /dev/null; then
   echo "❌ Node.js not found. Install from https://nodejs.org"
   exit 1
 fi
-NODE_VERSION=$(node --version)
-echo "✅ Node.js: $NODE_VERSION"
+NODE_VERSION=$(node -v | cut -d'v' -f2)
+MAJOR_VERSION=$(echo $NODE_VERSION | cut -d'.' -f1)
+if [ "$MAJOR_VERSION" -lt 22 ]; then
+  echo "⚠️ Warning: Node.js version $NODE_VERSION detected. Project recommends v22+."
+else
+  echo "✅ Node.js: v$NODE_VERSION"
+fi
 
 # Check Python
 echo "[2/5] Checking Python..."
@@ -22,16 +27,21 @@ if ! command -v python3 &> /dev/null; then
   echo "❌ Python not found. Install Python 3.9+"
   exit 1
 fi
-PYTHON_VERSION=$(python3 --version)
+PYTHON_VERSION=$(python3 --version | cut -d' ' -f2)
 echo "✅ Python: $PYTHON_VERSION"
 
 # Check npm dependencies
 echo "[3/5] Checking npm dependencies..."
 if [ ! -d "node_modules" ]; then
-  echo "  Installing npm packages..."
-  npm ci --prefer-offline
+  read -p "  node_modules missing. Install now? (y/n) " -n 1 -r
+  echo ""
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    npm ci --prefer-offline
+  else
+    echo "  Skipping npm install. Tests might fail."
+  fi
 fi
-echo "✅ npm dependencies ready"
+echo "✅ npm dependencies status checked"
 
 # Check Python dependencies
 echo "[4/5] Checking Python dependencies..."

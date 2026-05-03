@@ -59,6 +59,11 @@ export const validateGeometryComplexity = (req: Request, res: Response, next: Ne
  * Detecta padrões suspeitos de injeção SQL / XSS
  */
 export const detectSuspiciousPatterns = (req: Request, res: Response, next: NextFunction) => {
+  // Allow pentest hardening routes to receive test payloads
+  if (req.path.startsWith("/pentest/hardening") || req.path.startsWith("/api/pentest/hardening")) {
+    return next();
+  }
+
   const bodyStr = JSON.stringify(req.body);
   const queryStr = JSON.stringify(req.query);
   const combined = `${bodyStr}${queryStr}`.toUpperCase();

@@ -168,7 +168,7 @@ export function BimInspectorDrawer({
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-slate-500">Carga Local:</span>
-                      <span className="font-bold">{accumulatedData?.localDemandKva.toFixed(2) ?? "0.00"} kVA</span>
+                      <span className="font-bold">{accumulatedData?.localTrechoDemandKva.toFixed(2) ?? "0.00"} kVA</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-slate-500">Carga Acumulada:</span>

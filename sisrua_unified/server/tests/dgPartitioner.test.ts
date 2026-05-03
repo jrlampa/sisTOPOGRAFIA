@@ -9,14 +9,14 @@
  *   - End-to-end: partitionNetwork
  */
 
+import { partitionNetwork } from "../services/dg/dgPartitioner";
+import { buildMst } from "../services/dg/dgMst";
+import { findBestCutEdge } from "../services/dg/dgCuts";
+import { applyEccentricityDrag } from "../services/dg/dgEccentricity";
 import {
-  buildMst,
-  findBestCutEdge,
-  applyEccentricityDrag,
   selectConductorForDemand,
   assignTelescopicConductors,
-  partitionNetwork,
-} from "../services/dg/dgPartitioner";
+} from "../services/dg/dgTelescopic";
 import { DEFAULT_DG_PARAMS, type DgPoleInput } from "../services/dg/dgTypes";
 import { latLonToUtm } from "../services/dg/dgCandidates";
 

@@ -25,6 +25,7 @@ import { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
 import { DgScenario } from "../hooks/useDgOptimization";
 import { DefaultIcon } from "./MapSelectorStyles";
 import { applyOrthoSnap, applyRoadSnap } from "../utils/smartSnapping";
+import { getMainMapWorkspaceText } from "../i18n/mainMapWorkspaceText";
 
 // Initialize Leaflet Default Icon fix
 L.Marker.prototype.options.icon = DefaultIcon;
@@ -200,6 +201,7 @@ interface MapSelectorProps {
   osmData?: OsmElement[] | null;
   locale: AppLocale;
   layerConfig?: LayerConfig;
+  isXRayMode?: boolean;
 }
 
 const MapSelector: React.FC<MapSelectorProps> = ({
@@ -248,6 +250,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onMapStyleChange: _onMapStyleChange,
   showAnalysis: _showAnalysis = false,
   keyboardPanEnabled = false,
+  isXRayMode = false,
   mtMarkerTopology,
   mtPopupTopology,
   mtEditorMode = "none",
@@ -267,27 +270,9 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   locale,
   layerConfig,
 }) => {
+  const t = getMainMapWorkspaceText(locale);
   const [draggedPole, setDraggedPole] = useState<{ id: string, lat: number, lng: number, snapId?: string } | null>(null);
   const [mousePos, setMousePos] = useState<L.LatLng | null>(null);
-  const [isXRayMode, setIsXRayMode] = useState(false);
-
-  // UX: Atalho de teclado para X-Ray Mode (X ou Shift)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const k = e.key.toLowerCase();
-      if (k === "shift" || k === "x") setIsXRayMode(true);
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      const k = e.key.toLowerCase();
-      if (k === "shift" || k === "x") setIsXRayMode(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-    };
-  }, []);
 
   const topology = btMarkerTopology ?? {
     poles: [],
@@ -628,7 +613,55 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           draggedPole={draggedPole}
           locale={locale}
           layerConfig={layerConfig}
+          isXRayMode={isXRayMode}
         />
+
+        {/* Ghost Edits: Floating label during drag */}
+        {draggedPole && (
+          <Marker 
+            position={[draggedPole.lat, draggedPole.lng]}
+            icon={L.divIcon({
+              className: "ghost-edit-label",
+              html: `
+                <div class="flex flex-col gap-0.5 px-2.5 py-1.5 rounded-xl bg-slate-900/90 text-white shadow-2xl border border-white/20 backdrop-blur-md animate-in fade-in zoom-in-75" style="transform: translate(20px, -40px); min-width: 90px;">
+                  <div class="flex items-center gap-1.5">
+                    <div class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></div>
+                    <span class="text-[9px] font-black uppercase tracking-widest text-cyan-200">${t.ghostEstimate}</span>
+                  </div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="text-xs font-black">${t.ghostDeltaCqt}</span>
+                    <span class="text-sm font-black text-emerald-400">±0.2%</span>
+                  </div>
+                  <div class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">${t.ghostRealtimeImpact}</div>
+                </div>
+              `,
+              iconSize: [0, 0]
+            })}
+            interactive={false}
+          />
+        )}
+
+        {/* Guias de Snapping (Cyan Dotted Lines) */}
+        {draggedPole && draggedPole.snapId && (
+          <Pane name="snap-guides" style={{ zIndex: 650 }}>
+            {(() => {
+              const snapNeighbor = topology.poles.find(p => p.id === draggedPole.snapId);
+              if (!snapNeighbor) return null;
+              return (
+                <Polyline 
+                  positions={[[draggedPole.lat, draggedPole.lng], [snapNeighbor.lat, snapNeighbor.lng]]}
+                  pathOptions={{ 
+                    color: "#06b6d4", // Cyan 500
+                    weight: 2, 
+                    dashArray: "5 8", 
+                    opacity: 0.8,
+                    interactive: false 
+                  }}
+                />
+              );
+            })()}
+          </Pane>
+        )}
 
         <MapSelectorTransformersLayer
           paneName={btTransformersPaneName}

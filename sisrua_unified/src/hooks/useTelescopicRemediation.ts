@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import type { BtTopology, BtEdge, BtConductor } from "../types";
+import type { BtTopology, BtEdge } from "../types";
 import { ENTITY_ID_PREFIXES } from "../constants/magicNumbers";
 
 /**

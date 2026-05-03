@@ -41,6 +41,7 @@ type Props = {
   autoSaveStatus?: 'idle' | 'saving' | 'error';
   lastAutoSaved?: string;
   isFocusMode?: boolean;
+  isXRayMode?: boolean;
 };
 
 export function AppShellLayout({
@@ -67,6 +68,7 @@ export function AppShellLayout({
   autoSaveStatus,
   lastAutoSaved,
   isFocusMode = false,
+  isXRayMode = false,
 }: Props) {
   const backendHealth = useBackendHealth();
   const [isSidebarCollapsedManual, setIsSidebarCollapsed] = React.useState(
@@ -135,6 +137,7 @@ export function AppShellLayout({
           hasAreaSelection={hasAreaSelection}
           onStartSearch={onStartSearch}
           onMapClickAction={onMapClickAction}
+          isXRayMode={isXRayMode}
         />
       </main>
     </div>

@@ -61,6 +61,16 @@ type BtTopologyPanelText = {
       crossing: string;
       other: string;
     };
+    pontaLabel: string;
+    cargaAcumulada: string;
+    quedaTensao: string;
+    tensaoNo: string;
+    clientes: string;
+    statusLabel: string;
+    criticalWarning: string;
+    separationActive: string;
+    bimTitle: string;
+    structuresLabel: string;
   };
 
   transformerEdge: {
@@ -185,6 +195,16 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
         crossing: "Cruzamento",
         other: "Outro",
       },
+      pontaLabel: "Ponta",
+      cargaAcumulada: "Carga Acumulada:",
+      quedaTensao: "Queda de Tensão (dV):",
+      tensaoNo: "Tensão no Nó:",
+      clientes: "Clientes:",
+      statusLabel: "Status:",
+      criticalWarning: "⚠ PONTO CRÍTICO DE ENGENHARIA",
+      separationActive: "SEPARAÇÃO FÍSICA ATIVA",
+      bimTitle: "BIM:",
+      structuresLabel: "Estruturas:",
     },
 
     transformerEdge: {
@@ -307,6 +327,16 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
         crossing: "Crossing",
         other: "Other",
       },
+      pontaLabel: "Endpoint",
+      cargaAcumulada: "Accumulated Load:",
+      quedaTensao: "Voltage Drop (dV):",
+      tensaoNo: "Node Voltage:",
+      clientes: "Customers:",
+      statusLabel: "Status:",
+      criticalWarning: "⚠ CRITICAL ENGINEERING POINT",
+      separationActive: "PHYSICAL SEPARATION ACTIVE",
+      bimTitle: "BIM:",
+      structuresLabel: "Structures:",
     },
 
     transformerEdge: {
@@ -429,6 +459,16 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
         crossing: "Cruce",
         other: "Otro",
       },
+      pontaLabel: "Extremo",
+      cargaAcumulada: "Carga Acumulada:",
+      quedaTensao: "Caída de Tensión (dV):",
+      tensaoNo: "Tensión en el Nodo:",
+      clientes: "Clientes:",
+      statusLabel: "Estado:",
+      criticalWarning: "⚠ PUNTO CRÍTICO DE INGENIERÍA",
+      separationActive: "SEPARACIÓN FÍSICA ACTIVA",
+      bimTitle: "BIM:",
+      structuresLabel: "Estructuras:",
     },
 
     transformerEdge: {

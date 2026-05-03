@@ -4,12 +4,12 @@ import { ToastType } from "../components/Toast";
 import { 
   CLANDESTINO_RAMAL_TYPE, 
   NORMAL_CLIENT_RAMAL_TYPES,
-  getPolesPendingNormalClassification,
-  migrateClandestinoToDefaultNormalType,
   PendingNormalClassificationPole
 } from "../utils/btNormalization";
 import { 
-  getPoleNormalClients 
+  getPoleNormalClients,
+  getPolesPendingNormalClassification,
+  migrateClandestinoToDefaultNormalType
 } from "../utils/btPoleProjectTypeUtils";
 
 interface Params {

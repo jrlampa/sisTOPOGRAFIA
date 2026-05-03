@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import { requirePermission, Permission } from '../middleware/permissionHandler';
 import { Request, Response, NextFunction } from 'express';
-import type { UserRole } from '../services/roleService';
+import type { UserContext } from '../services/roleService';
 
 // Mock logger
 vi.mock('../utils/logger', () => ({
@@ -14,7 +14,7 @@ vi.mock('../utils/logger', () => ({
 }));
 
 // Mock roleService to avoid real DB connections in tests
-const mockGetUserRole = vi.fn<(userId: string | undefined) => Promise<UserRole>>();
+const mockGetUserRole = vi.fn<(userId: string | undefined) => Promise<UserContext>>();
 vi.mock('../services/roleService', () => ({
     getUserRole: (...args: [string | undefined]) => mockGetUserRole(...args),
 }));
@@ -40,7 +40,7 @@ describe('PermissionHandler Middleware', () => {
 
     describe('admin role', () => {
         beforeEach(() => {
-            mockGetUserRole.mockResolvedValue('admin');
+            mockGetUserRole.mockResolvedValue({ role: 'admin', tenantId: null });
         });
 
         it('should allow admin to perform read', async () => {
@@ -76,7 +76,7 @@ describe('PermissionHandler Middleware', () => {
 
     describe('technician role', () => {
         beforeEach(() => {
-            mockGetUserRole.mockResolvedValue('technician');
+            mockGetUserRole.mockResolvedValue({ role: 'technician', tenantId: null });
         });
 
         it('should allow technician to perform read', async () => {
@@ -122,7 +122,7 @@ describe('PermissionHandler Middleware', () => {
 
     describe('viewer role', () => {
         beforeEach(() => {
-            mockGetUserRole.mockResolvedValue('viewer');
+            mockGetUserRole.mockResolvedValue({ role: 'viewer', tenantId: null });
         });
 
         it('should allow viewer to perform read', async () => {
@@ -164,7 +164,7 @@ describe('PermissionHandler Middleware', () => {
 
     describe('guest role', () => {
         beforeEach(() => {
-            mockGetUserRole.mockResolvedValue('guest');
+            mockGetUserRole.mockResolvedValue({ role: 'guest', tenantId: null });
         });
 
         it('should deny guest from read', async () => {
@@ -198,14 +198,14 @@ describe('PermissionHandler Middleware', () => {
         });
 
         it('should call getUserRole with header userId', async () => {
-            mockGetUserRole.mockResolvedValue('viewer');
+            mockGetUserRole.mockResolvedValue({ role: 'viewer', tenantId: null });
             mockReq.headers!['x-user-id'] = 'header-user-123';
             await requirePermission('read')(mockReq as Request, mockRes as Response, nextFunction);
             expect(mockGetUserRole).toHaveBeenCalledWith('header-user-123');
         });
 
         it('should prefer header userId over res.locals.userId', async () => {
-            mockGetUserRole.mockResolvedValue('admin');
+            mockGetUserRole.mockResolvedValue({ role: 'admin', tenantId: null });
             mockReq.headers!['x-user-id'] = 'header-user';
             mockRes.locals!.userId = 'local-user';
             await requirePermission('delete')(mockReq as Request, mockRes as Response, nextFunction);

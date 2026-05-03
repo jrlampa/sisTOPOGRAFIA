@@ -46,6 +46,7 @@ type Props = {
   hasAreaSelection: boolean;
   onStartSearch: () => void;
   onMapClickAction: () => void;
+  isXRayMode?: boolean;
 };
 
 export function MainMapWorkspace({
@@ -61,6 +62,7 @@ export function MainMapWorkspace({
   hasAreaSelection,
   onStartSearch,
   onMapClickAction,
+  isXRayMode = false,
 }: Props) {
   const t = getMainMapWorkspaceText(locale);
 
@@ -73,6 +75,7 @@ export function MainMapWorkspace({
             dgGhostMode={mapSelectorProps.dgGhostMode}
             locale={locale}
             keyboardPanEnabled={isSidebarCollapsed}
+            isXRayMode={isXRayMode}
           />
 
           {!hasAreaSelection && (

@@ -41,64 +41,64 @@ describe('RoleService', () => {
 
     describe('getUserRole', () => {
         it('should return guest for undefined userId', async () => {
-            const role = await getUserRole(undefined);
-            expect(role).toBe('guest');
+            const context = await getUserRole(undefined);
+            expect(context).toEqual({ role: 'guest', tenantId: null });
             expect(mockSql).not.toHaveBeenCalled();
         });
 
         it('should return guest for empty string userId', async () => {
-            const role = await getUserRole('');
-            expect(role).toBe('guest');
+            const context = await getUserRole('');
+            expect(context).toEqual({ role: 'guest', tenantId: null });
             expect(mockSql).not.toHaveBeenCalled();
         });
 
         it('should return guest for whitespace-only userId', async () => {
-            const role = await getUserRole('   ');
-            expect(role).toBe('guest');
+            const context = await getUserRole('   ');
+            expect(context).toEqual({ role: 'guest', tenantId: null });
             expect(mockSql).not.toHaveBeenCalled();
         });
 
         it('should return role from database for valid userId', async () => {
-            mockSql.mockResolvedValueOnce([{ user_id: 'user-1', role: 'admin' }]);
-            const role = await getUserRole('user-1');
-            expect(role).toBe('admin');
+            mockSql.mockResolvedValueOnce([{ user_id: 'user-1', role: 'admin', tenant_id: 't-1' }]);
+            const context = await getUserRole('user-1');
+            expect(context).toEqual({ role: 'admin', tenantId: 't-1' });
         });
 
         it('should return viewer if user not found in database', async () => {
             mockSql.mockResolvedValueOnce([]);
-            const role = await getUserRole('unknown-user');
-            expect(role).toBe('viewer');
+            const context = await getUserRole('unknown-user');
+            expect(context).toEqual({ role: 'viewer', tenantId: null });
         });
 
         it('should return viewer on database error (safe fallback)', async () => {
             mockSql.mockRejectedValueOnce(new Error('Connection refused'));
-            const role = await getUserRole('any-user');
-            expect(role).toBe('viewer');
+            const context = await getUserRole('any-user');
+            expect(context).toEqual({ role: 'viewer', tenantId: null });
         });
 
         it('should cache result and not call DB again', async () => {
-            mockSql.mockResolvedValueOnce([{ user_id: 'cached-user', role: 'technician' }]);
-            const role1 = await getUserRole('cached-user');
-            const role2 = await getUserRole('cached-user');
-            expect(role1).toBe('technician');
-            expect(role2).toBe('technician');
+            mockSql.mockResolvedValueOnce([{ user_id: 'cached-user', role: 'technician', tenant_id: 't-2' }]);
+            const context1 = await getUserRole('cached-user');
+            const context2 = await getUserRole('cached-user');
+            expect(context1).toEqual({ role: 'technician', tenantId: 't-2' });
+            expect(context2).toEqual({ role: 'technician', tenantId: 't-2' });
             // DB called only once due to cache hit on second call
             expect(mockSql).toHaveBeenCalledTimes(1);
         });
 
         it('should trim whitespace from userId before lookup', async () => {
-            mockSql.mockResolvedValueOnce([{ user_id: 'user-trim', role: 'viewer' }]);
-            const role = await getUserRole('  user-trim  ');
-            expect(role).toBe('viewer');
+            mockSql.mockResolvedValueOnce([{ user_id: 'user-trim', role: 'viewer', tenant_id: null }]);
+            const context = await getUserRole('  user-trim  ');
+            expect(context).toEqual({ role: 'viewer', tenantId: null });
         });
 
         it('should support all valid UserRole values', async () => {
             const roles: UserRole[] = ['admin', 'technician', 'viewer', 'guest'];
             for (const expectedRole of roles) {
                 clearRoleCache();
-                mockSql.mockResolvedValueOnce([{ user_id: 'test-user', role: expectedRole }]);
-                const role = await getUserRole('test-user');
-                expect(role).toBe(expectedRole);
+                mockSql.mockResolvedValueOnce([{ user_id: 'test-user', role: expectedRole, tenant_id: null }]);
+                const context = await getUserRole('test-user');
+                expect(context).toEqual({ role: expectedRole, tenantId: null });
             }
         });
     });
@@ -106,14 +106,14 @@ describe('RoleService', () => {
     describe('clearRoleCache', () => {
         it('should clear all cached roles', async () => {
             // Prime cache
-            mockSql.mockResolvedValueOnce([{ user_id: 'cache-user', role: 'admin' }]);
+            mockSql.mockResolvedValueOnce([{ user_id: 'cache-user', role: 'admin', tenant_id: null }]);
             await getUserRole('cache-user');
             expect(mockSql).toHaveBeenCalledTimes(1);
 
             clearRoleCache();
 
             // After clear, DB is called again
-            mockSql.mockResolvedValueOnce([{ user_id: 'cache-user', role: 'admin' }]);
+            mockSql.mockResolvedValueOnce([{ user_id: 'cache-user', role: 'admin', tenant_id: null }]);
             await getUserRole('cache-user');
             expect(mockSql).toHaveBeenCalledTimes(2);
         });
@@ -123,8 +123,8 @@ describe('RoleService', () => {
         it('should clear cache for specific user only', async () => {
             // Prime caches for two users
             mockSql
-                .mockResolvedValueOnce([{ user_id: 'user-a', role: 'admin' }])
-                .mockResolvedValueOnce([{ user_id: 'user-b', role: 'viewer' }]);
+                .mockResolvedValueOnce([{ user_id: 'user-a', role: 'admin', tenant_id: null }])
+                .mockResolvedValueOnce([{ user_id: 'user-b', role: 'viewer', tenant_id: null }]);
             await getUserRole('user-a');
             await getUserRole('user-b');
             expect(mockSql).toHaveBeenCalledTimes(2);
@@ -132,11 +132,11 @@ describe('RoleService', () => {
             clearUserRoleCache('user-a');
 
             // user-a must hit DB again; user-b should use cache
-            mockSql.mockResolvedValueOnce([{ user_id: 'user-a', role: 'technician' }]);
-            const roleA = await getUserRole('user-a');
-            const roleB = await getUserRole('user-b');
-            expect(roleA).toBe('technician');
-            expect(roleB).toBe('viewer');
+            mockSql.mockResolvedValueOnce([{ user_id: 'user-a', role: 'technician', tenant_id: null }]);
+            const contextA = await getUserRole('user-a');
+            const contextB = await getUserRole('user-b');
+            expect(contextA).toEqual({ role: 'technician', tenantId: null });
+            expect(contextB).toEqual({ role: 'viewer', tenantId: null });
             expect(mockSql).toHaveBeenCalledTimes(3);
         });
     });

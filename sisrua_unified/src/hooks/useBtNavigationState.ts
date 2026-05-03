@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { isPointInPolygon } from '../utils/btNormalization';
 import type { BtTopology } from '../types';
 import { findTransformerConflictsWithoutSectioning } from '../utils/btCalculations';
 import type { ToastType } from '../components/Toast';
@@ -115,6 +116,20 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
     setBtTransformerFlyToTarget(buildFlyToTarget(transformer.lat, transformer.lng));
   };
 
+  const handleSelectAllInPolygon = (polygon: Array<{ lat: number; lng: number }>) => {
+    const insidePoles = btTopology.poles.filter(pole => isPointInPolygon(pole, polygon));
+    const ids = insidePoles.map(p => p.id);
+    setSelectedPoleIds(ids);
+    if (ids.length > 0) {
+      showToast(`${ids.length} ativos selecionados via laço.`, "info");
+      if (ids.length === 1) {
+        setSelectedPoleId(ids[0]);
+      } else {
+        setSelectedPoleId("");
+      }
+    }
+  };
+
   return {
     btEdgeFlyToTarget,
     btPoleFlyToTarget,
@@ -126,6 +141,7 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
     handleBtSelectedEdgeChange,
     handleBtSelectedPoleChange,
     handleBtSelectedTransformerChange,
+    handleSelectAllInPolygon,
     setSelectedPoleId,
     setSelectedPoleIds,
     setSelectedEdgeId,

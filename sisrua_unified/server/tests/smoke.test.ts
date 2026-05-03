@@ -6,6 +6,28 @@
  */
 import request from "supertest";
 import { vi } from "vitest";
+
+// Mock DB client functions to prevent connection timeouts during tests
+vi.mock("../repositories/dbClient.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../repositories/dbClient.js")>();
+  return {
+    ...actual,
+    initDbClient: vi.fn().mockResolvedValue(undefined),
+    pingDb: vi.fn().mockResolvedValue(false),
+    isDbAvailable: vi.fn().mockReturnValue(false),
+  };
+});
+// Need to also mock index.js which re-exports them
+vi.mock("../repositories/index.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../repositories/index.js")>();
+  return {
+    ...actual,
+    initDbClient: vi.fn().mockResolvedValue(undefined),
+    pingDb: vi.fn().mockResolvedValue(false),
+    isDbAvailable: vi.fn().mockReturnValue(false),
+  };
+});
+
 import app from "../app.js";
 import { config } from "../config.js";
 

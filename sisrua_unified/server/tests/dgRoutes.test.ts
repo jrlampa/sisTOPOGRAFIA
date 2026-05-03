@@ -4,7 +4,7 @@ import { vi } from "vitest";
 
 // Mock do roleService para evitar erros 403 nos testes
 vi.mock("../services/roleService.js", () => ({
-  getUserRole: vi.fn().mockResolvedValue("admin"),
+  getUserRole: vi.fn().mockResolvedValue({ role: "admin", tenantId: null }),
 }));
 
 const BASE = "/api/dg";

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Pane, CircleMarker, Marker, Tooltip, Popup, Circle } from "react-leaflet";
 import L from "leaflet";
 import { Trash2, Triangle, Plus, Minus, CheckCircle, Circle as CircleIcon } from "lucide-react";
@@ -47,6 +47,7 @@ interface MapSelectorPolesLayerProps {
   draggedPole?: { id: string; lat: number; lng: number } | null;
   locale: AppLocale;
   layerConfig?: LayerConfig;
+  isXRayMode?: boolean;
 }
 
 const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
@@ -74,6 +75,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
   draggedPole,
   locale,
   layerConfig,
+  isXRayMode = false,
 }) => {
   const t = getBtTopologyPanelText(locale).poleVerification;
   const popupPolesById = React.useMemo(
@@ -199,12 +201,13 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
               pathOptions={{
                 color: "#ffffff",
                 weight: 2,
-                opacity: 1,
                 fillColor: getFlagColor(
                   getPoleChangeFlag(pole),
                   pole.verified ? "#16a34a" : "#2563eb",
                 ),
-                fillOpacity: 0.95,
+                fillOpacity: isXRayMode ? (isViolation ? 1.0 : 0.05) : 0.95,
+                opacity: isXRayMode ? (isViolation ? 1.0 : 0.05) : 1,
+                className: isXRayMode && isViolation ? "critical-neon-glow" : undefined
               }}
               interactive={false}
             />
@@ -284,14 +287,6 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                       </span>
                     </div>
 
-                    {poleAccumulated?.distanceFromTrafoMeters != null && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-[8px] font-bold uppercase text-white/40">Dist. Trafo</span>
-                        <span className="text-[9px] font-black text-emerald-400">
-                          {poleAccumulated.distanceFromTrafoMeters.toFixed(0)}m
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </Tooltip>
@@ -304,7 +299,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                         <div className="text-[10px] text-slate-400 font-mono uppercase">{popupPole.id}</div>
                       </div>
                       {isLeaf && (
-                        <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-bold uppercase tracking-wider">Ponta</span>
+                        <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-bold uppercase tracking-wider">{t.pontaLabel}</span>
                       )}
                     </div>
 
@@ -312,31 +307,31 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                     {poleAccumulated && (
                       <div className="space-y-1.5 bg-slate-50 p-2 rounded-lg mb-3 border border-slate-100">
                         <div className="flex justify-between items-center text-[11px]">
-                          <span className="text-slate-500 uppercase font-bold tracking-tighter">Carga Acumulada:</span>
+                          <span className="text-slate-500 uppercase font-bold tracking-tighter">{t.cargaAcumulada}</span>
                           <span className="font-black text-slate-900">{poleAccumulated.accumulatedDemandKva.toFixed(2)} kVA</span>
                         </div>
                         
                         <div className="flex justify-between items-center text-[11px]">
-                          <span className="text-slate-500 uppercase font-bold tracking-tighter">Queda de Tensão (dV):</span>
+                          <span className="text-slate-500 uppercase font-bold tracking-tighter">{t.quedaTensao}</span>
                           <span className={`font-black ${cqtClass}`}>
                             {poleAccumulated.dvAccumPercent?.toFixed(2) ?? "-"}%
                           </span>
                         </div>
 
                         <div className="flex justify-between items-center text-[11px]">
-                          <span className="text-slate-500 uppercase font-bold tracking-tighter">Tensão no Nó:</span>
+                          <span className="text-slate-500 uppercase font-bold tracking-tighter">{t.tensaoNo}</span>
                           <span className="font-bold text-slate-700">{poleAccumulated.voltageV?.toFixed(1) ?? "-"} V</span>
                         </div>
 
                         <div className="flex justify-between items-center text-[10px] pt-1 border-t border-slate-200/50">
-                          <span className="text-slate-400 uppercase">Clientes: {poleAccumulated.accumulatedClients}</span>
+                          <span className="text-slate-400 uppercase">{t.clientes} {poleAccumulated.accumulatedClients}</span>
                           {poleAccumulated.cqtStatus && (
                             <span className={`px-1 rounded-sm text-[9px] font-black uppercase ${
                               poleAccumulated.cqtStatus === "OK" ? "bg-emerald-100 text-emerald-700" :
                               poleAccumulated.cqtStatus === "ATENÇÃO" ? "bg-amber-100 text-amber-700" :
                               "bg-red-100 text-red-700"
                             }`}>
-                              Status: {poleAccumulated.cqtStatus}
+                              {t.statusLabel} {poleAccumulated.cqtStatus}
                             </span>
                           )}
                         </div>
@@ -348,12 +343,12 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                       <div className="mt-1 border-t border-slate-100 pt-1 pb-2">
                         {popupPole.poleSpec && (
                           <div className="font-semibold text-slate-800">
-                            BIM: {popupPole.poleSpec.heightM}m | {popupPole.poleSpec.nominalEffortDan}daN
+                            {t.bimTitle} {popupPole.poleSpec.heightM}m | {popupPole.poleSpec.nominalEffortDan}daN
                           </div>
                         )}
                         {popupPole.btStructures && (
                           <div className="text-sky-800 italic text-[10px]">
-                            Estruturas: {[
+                            {t.structuresLabel} {[
                               popupPole.btStructures.si1,
                               popupPole.btStructures.si2,
                               popupPole.btStructures.si3,
@@ -375,7 +370,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
                     )}
                     {pole.id === criticalPoleId && (
                       <div className="mb-2 font-black text-red-600 bg-red-50 p-1.5 rounded-md border border-red-200 text-center animate-pulse">
-                        ⚠ PONTO CRÍTICO DE ENGENHARIA
+                        {t.criticalWarning}
                       </div>
                     )}
                     
@@ -396,7 +391,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
 
                     {popupPole.circuitBreakPoint && (
                       <div className="mt-2 font-black text-sky-700 bg-sky-50 px-2 py-1 rounded border border-sky-200 text-center text-[10px]">
-                        SEPARAÇÃO FÍSICA ATIVA
+                        {t.separationActive}
                       </div>
                     )}
 

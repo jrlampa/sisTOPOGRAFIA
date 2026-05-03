@@ -1,5 +1,6 @@
 import React from "react";
-import { BtTopology, DgScenario, DgDecisionMode, BtNetworkScenario } from "../types";
+import { BtTopology, DgDecisionMode, BtNetworkScenario, AppSettings } from "../types";
+import { DgScenario } from "./useDgOptimization";
 import { DgWizardParams } from "../components/DgWizardModal";
 
 export function useAppEngineeringWorkflows({

@@ -40,6 +40,8 @@ const BtTopologyPanel = React.lazy(() =>
   lazyWithRetry(() => import("./BtTopologyPanel")),
 );
 
+import { SidebarBulkEditSection } from "./SidebarBulkEditSection";
+
 type TransformerDebugById = Record<
   string,
   { assignedClients: number; estimatedDemandKva: number }
@@ -357,6 +359,14 @@ export function SidebarBtEditorSection({
         </button>
       </div>
 
+      {selectedPoleIds.length > 1 && (
+        <SidebarBulkEditSection
+          selectedPoleIds={selectedPoleIds}
+          onSetPoleChangeFlag={handleBtSetPoleChangeFlag}
+          onClearSelection={() => onSetSelectedPoleIds?.([])}
+        />
+      )}
+
       <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
 
       <Suspense fallback={<InlineSuspenseFallback label={t.loadingBtPanel} />}>
@@ -402,6 +412,7 @@ export function SidebarBtEditorSection({
         <>
           <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
           <DgOptimizationPanel
+            locale={locale}
             hasPoles={effectiveDgTopology.poles.length > 0}
             poles={effectiveDgTopology.poles}
             currentTransformer={effectiveDgTopology.transformers[0]}
