@@ -65,6 +65,13 @@ export const getPoleChangeFlag = (pole: MapBtPole) =>
 export const getTransformerChangeFlag = (transformer: MapBtTransformer) =>
   transformer.transformerChangeFlag ?? "existing";
 
+export const getCqtHeatmapColor = (dvPercent: number): string => {
+  if (dvPercent > 7) return "#ef4444"; // Vermelho (Crítico)
+  if (dvPercent > 5) return "#f97316"; // Laranja (Atenção)
+  if (dvPercent > 3) return "#eab308"; // Amarelo (Alerta)
+  return "#22c55e"; // Verde (Saudável)
+};
+
 export const DefaultIcon = L.icon({
   iconRetinaUrl: `${LEAFLET_ICON_BASE_URL}marker-icon-2x.png`,
   iconUrl: `${LEAFLET_ICON_BASE_URL}marker-icon.png`,

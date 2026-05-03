@@ -1,13 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, Suspense, lazy } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Box, ShoppingCart, Info } from "lucide-react";
+import { Zap, Box, ShoppingCart, Info, Loader2 } from "lucide-react";
 import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
-import BtUnifiedInfraTab from "./BtUnifiedInfraTab";
-import BtUnifiedElectricalTab from "./BtUnifiedElectricalTab";
-import BtUnifiedCommercialTab from "./BtUnifiedCommercialTab";
 import { useBtTopologyContext } from "./BtTopologyContext";
 
+// ─── Lazy Loading Tabs (Audit P1: Bundle Optimization) ───────────────────────
+
+const BtUnifiedInfraTab = lazy(() => import("./BtUnifiedInfraTab"));
+const BtUnifiedElectricalTab = lazy(() => import("./BtUnifiedElectricalTab"));
+const BtUnifiedCommercialTab = lazy(() => import("./BtUnifiedCommercialTab"));
+
 type TabType = "infra" | "electrical" | "commercial";
+
+const TabLoadingFallback = () => (
+  <div className="flex flex-col items-center justify-center p-12 text-slate-400 animate-pulse">
+    <Loader2 size={24} className="animate-spin mb-3 opacity-20" />
+    <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Carregando Módulo...</span>
+  </div>
+);
 
 export const BtUnifiedDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>("infra");
@@ -18,7 +28,7 @@ export const BtUnifiedDashboard: React.FC = () => {
     selectedPole,
     selectedPoleIds,
     onSetSelectedPoleIds,
-    updatePoleSpec,
+    isCalculating,
     onBtSetPoleChangeFlag,
   } = useBtTopologyContext();
 
@@ -26,12 +36,12 @@ export const BtUnifiedDashboard: React.FC = () => {
 
   if (isCalculating) {
     return (
-      <div className="space-y-4 animate-pulse">
+      <div className="space-y-4 animate-pulse p-2">
         <div className="h-12 bg-slate-200 dark:bg-zinc-800 rounded-xl" />
-        <div className="h-48 bg-slate-100 dark:bg-zinc-900 rounded-3xl" />
+        <div className="h-64 bg-slate-100 dark:bg-zinc-900 rounded-3xl" />
         <div className="grid grid-cols-2 gap-2">
-          <div className="h-16 bg-slate-100 dark:bg-zinc-900 rounded-xl" />
-          <div className="h-16 bg-slate-100 dark:bg-zinc-900 rounded-xl" />
+          <div className="h-20 bg-slate-100 dark:bg-zinc-900 rounded-xl" />
+          <div className="h-20 bg-slate-100 dark:bg-zinc-900 rounded-xl" />
         </div>
       </div>
     );
@@ -76,60 +86,10 @@ export const BtUnifiedDashboard: React.FC = () => {
 
         <div className="space-y-4">
           <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm dark:bg-zinc-950/40 dark:border-white/5">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Especificação de Material</h4>
-            <div className="grid grid-cols-2 gap-2">
-              {(["Concreto DT", "Fibra de Vidro", "Madeira", "Ferro"] as const).map(mat => (
-                <button
-                  key={mat}
-                  onClick={() => ids.forEach(id => updatePoleSpec(id, { ...btTopology.poles.find(p => p.id === id)?.poleSpec, material: mat.split(' ')[0] as any }))}
-                  className="py-2 px-1 text-[9px] font-black uppercase rounded-lg border border-slate-100 bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-all dark:bg-zinc-900 dark:border-white/5 dark:text-slate-400 dark:hover:bg-blue-900/20"
-                >
-                  {mat}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm dark:bg-zinc-950/40 dark:border-white/5">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Altura e Esforço</h4>
-            <div className="space-y-3">
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[9px] font-bold text-slate-500 uppercase">Altura Nominal (m)</span>
-                <div className="flex gap-1.5">
-                  {[9, 10, 11, 12].map(h => (
-                    <button
-                      key={h}
-                      onClick={() => ids.forEach(id => updatePoleSpec(id, { ...btTopology.poles.find(p => p.id === id)?.poleSpec, heightM: h }))}
-                      className="flex-1 py-1.5 text-xs font-black rounded-lg border border-slate-100 bg-slate-50 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all dark:bg-zinc-900 dark:border-white/5 dark:text-slate-300 dark:hover:bg-indigo-900/20"
-                    >
-                      {h}m
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[9px] font-bold text-slate-500 uppercase">Esforço (daN)</span>
-                <div className="flex gap-1.5">
-                  {[150, 300, 600, 1000].map(e => (
-                    <button
-                      key={e}
-                      onClick={() => ids.forEach(id => updatePoleSpec(id, { ...btTopology.poles.find(p => p.id === id)?.poleSpec, nominalEffortDan: e }))}
-                      className="flex-1 py-1.5 text-[10px] font-black rounded-lg border border-slate-100 bg-slate-50 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all dark:bg-zinc-900 dark:border-white/5 dark:text-slate-300 dark:hover:bg-emerald-900/20"
-                    >
-                      {e}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 bg-violet-50 border border-violet-100 rounded-2xl shadow-sm dark:bg-violet-950/20 dark:border-violet-900/30">
-            <h4 className="text-[10px] font-black text-violet-700 uppercase tracking-widest mb-3 dark:text-violet-400">Ações de Engenharia</h4>
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Ações de Engenharia</h4>
             <button
               onClick={() => ids.forEach(id => onBtSetPoleChangeFlag?.(id, "replace"))}
-              className="w-full py-3 bg-violet-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-violet-700 transition-all shadow-md active:scale-[0.98] dark:bg-violet-600 dark:hover:bg-violet-500"
+              className="w-full py-3 bg-violet-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-violet-700 transition-all shadow-md active:scale-95 dark:bg-violet-600 dark:hover:bg-violet-500"
             >
               Marcar todos para Substituição
             </button>
@@ -177,15 +137,17 @@ export const BtUnifiedDashboard: React.FC = () => {
             transition={{ duration: 0.2 }}
             className="h-full"
           >
-            {activeTab === "infra" && (
-              <BtUnifiedInfraTab />
-            )}
-            {activeTab === "electrical" && (
-              <BtUnifiedElectricalTab />
-            )}
-            {activeTab === "commercial" && (
-              <BtUnifiedCommercialTab />
-            )}
+            <Suspense fallback={<TabLoadingFallback />}>
+              {activeTab === "infra" && (
+                <BtUnifiedInfraTab />
+              )}
+              {activeTab === "electrical" && (
+                <BtUnifiedElectricalTab />
+              )}
+              {activeTab === "commercial" && (
+                <BtUnifiedCommercialTab />
+              )}
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </div>

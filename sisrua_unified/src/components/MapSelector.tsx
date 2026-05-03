@@ -552,6 +552,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         scrollWheelZoom={true}
         maxZoom={24}
         className="h-full min-h-[400px] w-full"
+        preferCanvas={true}
       >
         <MapMouseTracker onMouseMove={setMousePos} />
         
