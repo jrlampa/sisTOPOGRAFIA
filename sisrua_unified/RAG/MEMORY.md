@@ -1,3 +1,10 @@
+## Atualização Operacional (2026-05-03E) - Auditoria FinOps e Gestão de Custos
+- **FinOps**: Realizada auditoria de custos pós-deploy com foco na regra "Zero custo a todo custo!".
+    - **IA**: Confirmada economia de 100% via execução local do Ollama (Llama 3.2).
+    - **Banco de Dados**: Validada conformidade com o Free Tier do Supabase através de políticas de expiração de jobs (TTL 1h).
+    - **Infraestrutura**: Projetada necessidade de 16GB RAM / 8 vCPUs para operação estável sem custos variáveis de nuvem.
+    - **Relatório**: Criado `finops_report.md` com o detalhamento de infraestrutura e riscos.
+
 ## Atualização Operacional (2026-05-03D) - Hardening de Segurança & Pentest Automatizado
 - **Segurança (Red Team)**: Implementada suíte de testes `server/tests/advancedAttacks.test.ts` cobrindo vetores críticos:
     - **IDOR (Insecure Direct Object Reference)**: Proteção em jobs e dossiês DXF, impedindo acesso cross-tenant via enumeração de IDs.
