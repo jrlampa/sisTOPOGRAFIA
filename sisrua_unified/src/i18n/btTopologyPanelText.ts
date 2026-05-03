@@ -6,6 +6,8 @@ type BtTopologyPanelText = {
   projectTypeClandestino: string;
   clandestinoAreaTitle: string;
   clandestinoAreaPlaceholder: string;
+  clandestinoAvgAreaLabel: string;
+  clandestinoHint: string;
   btnBulkImport: string;
   massEditTitle: string;
   
@@ -121,6 +123,13 @@ type BtTopologyPanelText = {
     mediumVoltageConnections: string;
     notAvailable: string;
     spansCount: (count: number) => string;
+    loadStatisticsTitle: string;
+    clientsLabel: string;
+    demandKvaLabel: string;
+    clientsQtyLabel: string;
+    connectionTypeLabel: string;
+    categoryLabel: string;
+    categoryClandestine: string;
   };
   popup: {
     flag: string;
@@ -140,6 +149,8 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
     projectTypeClandestino: "Clandestino (Carga por Área)",
     clandestinoAreaTitle: "Área de clandestinos (m²)",
     clandestinoAreaPlaceholder: "Informe a área em m²",
+    clandestinoAvgAreaLabel: "m² Médio por Cliente",
+    clandestinoHint: "* Dica: Em modo clandestino, a carga é calculada por W/m².",
     btnBulkImport: "Importação em Massa",
     massEditTitle: "Edição em Massa",
 
@@ -255,6 +266,13 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       mediumVoltageConnections: "Conexões MT",
       notAvailable: "N/D",
       spansCount: (count: number) => `${count} trecho(s)`,
+      loadStatisticsTitle: "Estatísticas de Carga",
+      clientsLabel: "Clientes",
+      demandKvaLabel: "kVA (Demanda)",
+      clientsQtyLabel: "Qtd Clientes",
+      connectionTypeLabel: "Tipo de Ramal",
+      categoryLabel: "Categoria",
+      categoryClandestine: "CLANDESTINO",
     },
     popup: {
       flag: "Flag",
@@ -272,6 +290,8 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
     projectTypeClandestino: "Unregistered (Load by Area)",
     clandestinoAreaTitle: "Unregistered area (m²)",
     clandestinoAreaPlaceholder: "Enter area in m²",
+    clandestinoAvgAreaLabel: "Avg. m² per Client",
+    clandestinoHint: "* Hint: In unregistered mode, load is calculated by W/m².",
     btnBulkImport: "Bulk Import",
     massEditTitle: "Bulk Edit",
 
@@ -309,7 +329,7 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       stateProjected: "Projected",
       stateLeaning: "Leaning",
       stateCracked: "Cracked",
-      stateCondemned: "Condemned",
+      stateCondemned: "Condenado",
       equipmentsTitle: "Equipment",
       equipmentsPlaceholder: "e.g., fuse cutout, 75 kVA transformer, luminaire, recloser...",
       generalNotesTitle: "General notes",
@@ -387,6 +407,13 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       mediumVoltageConnections: "MV Connections",
       notAvailable: "N/A",
       spansCount: (count: number) => `${count} span(s)`,
+      loadStatisticsTitle: "Load Statistics",
+      clientsLabel: "Clients",
+      demandKvaLabel: "kVA (Demand)",
+      clientsQtyLabel: "Clients Qty",
+      connectionTypeLabel: "Connection Type",
+      categoryLabel: "Category",
+      categoryClandestine: "UNREGISTERED",
     },
     popup: {
       flag: "Flag",
@@ -404,6 +431,8 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
     projectTypeClandestino: "Clandestino (Carga por Área)",
     clandestinoAreaTitle: "Área clandestina (m²)",
     clandestinoAreaPlaceholder: "Informe el área en m²",
+    clandestinoAvgAreaLabel: "m² Promedio por Cliente",
+    clandestinoHint: "* Sugerencia: En modo clandestino, la carga se calcula por W/m².",
     btnBulkImport: "Importación Masiva",
     massEditTitle: "Edición Masiva",
 
@@ -466,13 +495,13 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       clientes: "Clientes:",
       statusLabel: "Estado:",
       criticalWarning: "⚠ PUNTO CRÍTICO DE INGENIERÍA",
-      separationActive: "SEPARACIÓN FÍSICA ACTIVA",
+      separationActive: "SEPARAÇÃO FÍSICA ATIVA",
       bimTitle: "BIM:",
-      structuresLabel: "Estructuras:",
+      structuresLabel: "Estruturas:",
     },
 
     transformerEdge: {
-      transformerTitleAsis: "Transformador (lecturas actuales)",
+      transformerTitleAsis: "Transformador (leituras atuais)",
       transformerTitleProject: "Transformador (proyecto)",
       noTransformer: "Ningún transformador insertado.",
       placeholderTransformerName: "Nombre del Trafo",
@@ -481,7 +510,7 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
       demandKva: "Demanda:",
 
       edgeTitleAsis: "Conductor (existente)",
-      edgeTitleProject: "Conductor (proyecto)",
+      edgeTitleProject: "Conductor (projeto)",
       edgeComposition: "Composición:",
       btnAddConductor: "Añadir Conductor",
 
@@ -508,17 +537,24 @@ const TEXTS: Record<AppLocale, BtTopologyPanelText> = {
 
     dashboard: {
       tabInfra: "Infra",
-      tabElectrical: "Eléctrica",
+      tabElectrical: "Elétrica",
       tabCommercial: "Comercial",
       poleContext: "Poste",
       transformerContext: "Trafo",
       edgeContext: "Tramo",
       noSelection: "Seleccione um item en el mapa",
       mediumVoltageContext: "Contexto de Media Tensión (MT)",
-      mediumVoltageStructures: "Estructuras MT",
+      mediumVoltageStructures: "Estruturas MT",
       mediumVoltageConnections: "Conexiones MT",
       notAvailable: "N/D",
       spansCount: (count: number) => `${count} tramo(s)`,
+      loadStatisticsTitle: "Estadísticas de Carga",
+      clientsLabel: "Clientes",
+      demandKvaLabel: "kVA (Demanda)",
+      clientsQtyLabel: "Cant. Clientes",
+      connectionTypeLabel: "Tipo de Acometida",
+      categoryLabel: "Categoría",
+      categoryClandestine: "CLANDESTINO",
     },
     popup: {
       flag: "Flag",

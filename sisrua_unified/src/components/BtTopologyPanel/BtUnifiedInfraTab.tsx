@@ -1,40 +1,30 @@
 import React from "react";
 import { FileText, Zap } from "lucide-react";
-import type { BtPoleNode, AppLocale, MtTopology } from "../../types";
 import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
 import PoleCockpitCard from "./Cockpit/PoleCockpitCard";
-import type {
-  BtDerivedSummary,
-  BtPoleAccumulatedDemand,
-} from "../../services/btDerivedService";
+import { useBtTopologyContext } from "./BtTopologyContext";
 
-interface BtUnifiedInfraTabProps {
-  locale: AppLocale;
-  selectedPole: BtPoleNode | null;
-  onBtRenamePole?: (poleId: string, title: string) => void;
-  onBtSetPoleChangeFlag?: (poleId: string, flag: any) => void;
-  onBtTogglePoleCircuitBreak?: (poleId: string, active: boolean) => void;
-  updatePoleVerified: (poleId: string, v: boolean) => void;
-  updatePoleSpec: (poleId: string, s: any) => void;
-  updatePoleBtStructures: (poleId: string, s: any) => void;
-  updatePoleConditionStatus: (poleId: string, s: any) => void;
-  updatePoleEquipmentNotes: (poleId: string, s: any) => void;
-  updatePoleGeneralNotes: (poleId: string, s: any) => void;
-  mtTopology: MtTopology;
-  summary: BtDerivedSummary;
-  accumulatedByPole: BtPoleAccumulatedDemand[];
-}
+const BtUnifiedInfraTab: React.FC = () => {
+  const {
+    locale,
+    selectedPole: pole,
+    accumulatedByPole,
+    mtTopology,
+    onBtRenamePole,
+    onBtSetPoleChangeFlag,
+    updatePoleSpec,
+    updatePoleConditionStatus,
+    updatePoleBtStructures,
+    updatePoleGeneralNotes,
+  } = useBtTopologyContext();
 
-const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
-  const { selectedPole: pole } = props;
-  const t = getBtTopologyPanelText(props.locale);
+  const t = getBtTopologyPanelText(locale);
   const pt = t.poleVerification;
   const dashboardText = t.dashboard;
 
   if (!pole) return null;
 
-  // Encontrar resultados do cockpit nos dados derivados (Simulação até integração total da API)
-  const accData = props.accumulatedByPole.find((a) => a.poleId === pole.id);
+  const accData = accumulatedByPole.find((a) => a.poleId === pole.id);
 
   // Mocks de resultados dos motores recém-criados para visualização imediata no Cockpit
   const mechanicalResult = accData
@@ -51,7 +41,7 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
       : 0;
 
   // Extrair estruturas de MT para o cockpit
-  const mtPole = props.mtTopology.poles.find((p) => p.id === pole.id);
+  const mtPole = mtTopology.poles.find((p) => p.id === pole.id);
   const mtStructures = mtPole
     ? Object.values(mtPole.mtStructures || {}).filter(Boolean)
     : [];
@@ -62,12 +52,12 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
         key={pole.id}
         pole={pole}
         mtStructures={mtStructures}
-        locale={props.locale}
-        onRename={(id, title) => props.onBtRenamePole?.(id, title)}
-        onSetFlag={(id, flag) => props.onBtSetPoleChangeFlag?.(id, flag)}
-        onUpdateSpec={(id, spec) => props.updatePoleSpec(id, spec)}
+        locale={locale}
+        onRename={(id, title) => onBtRenamePole?.(id, title)}
+        onSetFlag={(id, flag) => onBtSetPoleChangeFlag?.(id, flag)}
+        onUpdateSpec={(id, spec) => updatePoleSpec(id, spec)}
         onUpdateAcessibilidade={(id, hasAccess, dist) => {
-          props.updatePoleSpec(id, {
+          updatePoleSpec(id, {
             ...pole,
             hasVehicleAccess: hasAccess,
             manualDragDistanceMeters: dist,
@@ -78,20 +68,20 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
       />
 
       {/* Physical State & Structures */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm space-y-4 dark:bg-zinc-900/40 dark:border-white/5">
         <div>
-          <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
+          <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2 dark:text-slate-500">
             {pt.poleStateTitle}
           </label>
           <select
             value={pole.conditionStatus ?? ""}
             onChange={(e) =>
-              props.updatePoleConditionStatus(
+              updatePoleConditionStatus(
                 pole.id,
                 e.target.value || undefined,
               )
             }
-            className="w-full bg-slate-50 border-none rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-100"
+            className="w-full bg-slate-50 border-none rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-100 dark:bg-zinc-950 dark:text-slate-200 dark:focus:ring-blue-900/20"
           >
             <option value="">{pt.selectState}</option>
             <option value="bom_estado">{pt.stateGood}</option>
@@ -103,7 +93,7 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
         </div>
 
         <div>
-          <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
+          <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2 dark:text-slate-500">
             {pt.structuresTitle}
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -114,12 +104,12 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
                 placeholder={slot.toUpperCase()}
                 value={pole.btStructures?.[slot] ?? ""}
                 onChange={(e) =>
-                  props.updatePoleBtStructures(pole.id, {
+                  updatePoleBtStructures(pole.id, {
                     ...pole.btStructures,
                     [slot]: e.target.value || undefined,
                   })
                 }
-                className="bg-slate-50 border-none rounded-xl p-2.5 text-xs font-mono font-bold text-slate-700 placeholder:opacity-30 focus:ring-2 focus:ring-blue-100"
+                className="bg-slate-50 border-none rounded-xl p-2.5 text-xs font-mono font-bold text-slate-700 placeholder:opacity-30 focus:ring-2 focus:ring-blue-100 dark:bg-zinc-950 dark:text-slate-200 dark:focus:ring-blue-900/20"
               />
             ))}
           </div>
@@ -127,35 +117,35 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
       </div>
 
       {/* Notes */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm">
-        <label className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
+      <div className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm dark:bg-zinc-900/40 dark:border-white/5">
+        <label className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-slate-400 mb-2 dark:text-slate-500">
           <FileText size={12} /> {pt.generalNotesTitle}
         </label>
         <textarea
           value={pole.generalNotes ?? ""}
           onChange={(e) =>
-            props.updatePoleGeneralNotes(pole.id, e.target.value || undefined)
+            updatePoleGeneralNotes(pole.id, e.target.value || undefined)
           }
           rows={3}
-          className="w-full bg-slate-50 border-none rounded-xl p-3 text-sm text-slate-800 focus:ring-2 focus:ring-blue-100 resize-none"
+          className="w-full bg-slate-50 border-none rounded-xl p-3 text-sm text-slate-800 focus:ring-2 focus:ring-blue-100 resize-none dark:bg-zinc-950 dark:text-slate-200 dark:focus:ring-blue-900/20"
           placeholder={pt.generalNotesPlaceholder}
         />
       </div>
 
       {/* MT Context (Unified Vision) */}
-      {props.mtTopology.poles.some((p) => p.id === pole.id) && (
-        <div className="bg-gradient-to-br from-amber-50 to-orange-100/50 border border-orange-200 rounded-3xl p-4 shadow-sm">
-          <label className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-orange-700/60 mb-3">
+      {mtTopology.poles.some((p) => p.id === pole.id) && (
+        <div className="bg-gradient-to-br from-amber-50 to-orange-100/50 border border-orange-200 rounded-3xl p-4 shadow-sm dark:from-amber-950/20 dark:to-orange-950/20 dark:border-orange-900/30">
+          <label className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-orange-700/60 mb-3 dark:text-orange-400/60">
             <Zap size={12} /> {dashboardText.mediumVoltageContext}
           </label>
           <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center bg-white/60 p-2.5 rounded-xl border border-orange-200/30">
-              <span className="text-xs font-bold text-orange-900/70 uppercase">
+            <div className="flex justify-between items-center bg-white/60 p-2.5 rounded-xl border border-orange-200/30 dark:bg-zinc-950/40 dark:border-white/5">
+              <span className="text-xs font-bold text-orange-900/70 uppercase dark:text-orange-200/70">
                 {dashboardText.mediumVoltageStructures}
               </span>
-              <span className="text-xs font-mono font-bold text-orange-800">
+              <span className="text-xs font-mono font-bold text-orange-800 dark:text-orange-400">
                 {(() => {
-                  const mtPole = props.mtTopology.poles.find(
+                  const mtPole = mtTopology.poles.find(
                     (p) => p.id === pole.id,
                   );
                   if (!mtPole?.mtStructures) return dashboardText.notAvailable;
@@ -165,13 +155,13 @@ const BtUnifiedInfraTab: React.FC<BtUnifiedInfraTabProps> = (props) => {
                 })()}
               </span>
             </div>
-            <div className="flex justify-between items-center bg-white/60 p-2.5 rounded-xl border border-orange-200/30">
-              <span className="text-xs font-bold text-orange-900/70 uppercase">
+            <div className="flex justify-between items-center bg-white/60 p-2.5 rounded-xl border border-orange-200/30 dark:bg-zinc-950/40 dark:border-white/5">
+              <span className="text-xs font-bold text-orange-900/70 uppercase dark:text-orange-200/70">
                 {dashboardText.mediumVoltageConnections}
               </span>
-              <span className="text-xs font-mono font-bold text-orange-800">
+              <span className="text-xs font-mono font-bold text-orange-800 dark:text-orange-400">
                 {dashboardText.spansCount(
-                  props.mtTopology.edges.filter(
+                  mtTopology.edges.filter(
                     (e) => e.fromPoleId === pole.id || e.toPoleId === pole.id,
                   ).length,
                 )}

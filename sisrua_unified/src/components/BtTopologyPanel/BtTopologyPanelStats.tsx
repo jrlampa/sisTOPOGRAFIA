@@ -25,7 +25,7 @@ const TrafoDonut: React.FC<{ pct: number }> = ({ pct }) => {
     pct > 90 ? "#ef4444" : pct > 70 ? "#f59e0b" : "#10b981";
   return (
     <svg width={60} height={60} viewBox="0 0 60 60" aria-label={`Utilização do trafo: ${pct.toFixed(1)}%`}>
-      <circle cx={30} cy={30} r={r} fill="none" stroke="#e2e8f0" strokeWidth={7} />
+      <circle cx={30} cy={30} r={r} fill="none" stroke="currentColor" strokeWidth={7} className="text-slate-100 dark:text-zinc-800" />
       <circle
         cx={30} cy={30} r={r}
         fill="none"
@@ -47,7 +47,6 @@ const TrafoDonut: React.FC<{ pct: number }> = ({ pct }) => {
 const SpanHistogram: React.FC<{ spans: number[] }> = ({ spans }) => {
   if (!spans.length) return <div className="text-[9px] text-slate-400 italic">Sem vãos</div>;
 
-  // Buckets: <30m, 30-50m, 50-70m, 70-100m, >100m
   const buckets = [0, 0, 0, 0, 0];
   const labels = ["<30", "30-50", "50-70", "70-100", ">100"];
   spans.forEach(s => {
@@ -83,7 +82,7 @@ const SpanHistogram: React.FC<{ spans: number[] }> = ({ spans }) => {
           );
         })}
       </svg>
-      <div className="flex gap-[2px] text-[7px] font-bold text-slate-400">
+      <div className="flex gap-[2px] text-[7px] font-bold text-slate-400 dark:text-zinc-600">
         {labels.map((l, i) => (
           <span key={i} style={{ width: barW, textAlign: "center" }}>{l}</span>
         ))}
@@ -108,50 +107,50 @@ const BtTopologyPanelStats: React.FC<BtTopologyPanelStatsProps> = ({
     : 0;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
       {/* Row 1 – counts */}
-      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-        <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-slate-400">
-          <Hash size={9} className="text-blue-500" />
+      <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/50">
+        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">
+          <Hash size={10} className="text-blue-500" />
           {t.componentsTitle}
         </div>
-        <div className="flex items-center gap-3 text-[10px] font-semibold text-slate-600">
-          <span className="flex items-center gap-0.5">
-            <Circle size={8} className="fill-blue-500 text-blue-500" /> {poles}P
+        <div className="flex items-center gap-4 text-[11px] font-black text-slate-700 dark:text-slate-300">
+          <span className="flex items-center gap-1">
+            <div className="h-1.5 w-1.5 rounded-full bg-blue-500" /> {poles}P
           </span>
-          <span className="flex items-center gap-0.5">
-            <Circle size={8} className="fill-fuchsia-500 text-fuchsia-500" /> {transformers}T
+          <span className="flex items-center gap-1">
+            <div className="h-1.5 w-1.5 rounded-full bg-fuchsia-500" /> {transformers}T
           </span>
-          <span className="flex items-center gap-0.5">
-            <Circle size={8} className="fill-emerald-500 text-emerald-500" /> {edges}V
+          <span className="flex items-center gap-1">
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {edges}V
           </span>
-          <span className="ml-1 text-slate-400">{totalLengthMeters.toFixed(0)}m</span>
+          <span className="ml-1 text-[10px] text-slate-400 font-bold">{totalLengthMeters.toFixed(0)}m</span>
         </div>
       </div>
 
       {/* Row 2 – charts side by side */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         {/* Trafo donut */}
-        <div className="flex flex-col items-center rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
-          <div className="mb-1 text-[8px] font-black uppercase tracking-widest text-slate-400">
+        <div className="flex flex-col items-center rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/50">
+          <div className="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
             {t.trafoUtilTitle}
           </div>
           <TrafoDonut pct={utilPct} />
-          <div className="mt-1 text-[9px] font-bold text-slate-600">
-            {transformerDemandKva.toFixed(1)} / {transformerNominalKva} kVA
+          <div className="mt-2 text-[10px] font-black text-slate-700 dark:text-slate-300">
+            {transformerDemandKva.toFixed(1)} <span className="text-slate-400 dark:text-zinc-600 font-bold">/ {transformerNominalKva} kVA</span>
           </div>
         </div>
 
         {/* Span histogram */}
-        <div className="flex flex-col items-center rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
-          <div className="mb-1 flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-slate-400">
-            <Activity size={9} className="text-indigo-500" />
+        <div className="flex flex-col items-center rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/50">
+          <div className="mb-2 flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+            <Activity size={10} className="text-indigo-500" />
             {t.spansTitle}
           </div>
           {spanLengthsM.length > 0 ? (
             <SpanHistogram spans={spanLengthsM} />
           ) : (
-            <div className="flex h-12 items-center text-[9px] italic text-slate-300">
+            <div className="flex h-12 items-center text-[10px] italic text-slate-300 dark:text-zinc-700 font-bold">
               sem dados
             </div>
           )}

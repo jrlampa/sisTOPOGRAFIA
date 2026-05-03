@@ -4,7 +4,7 @@ import { Keyboard, Loader2, PanelLeftOpen } from "lucide-react";
 import { BtModalStack } from "./BtModalStack";
 import { EmptyStateMapOverlay } from "./EmptyStateMapOverlay";
 import { lazyWithRetry } from "../utils/lazyWithRetry";
-import type { AppLocale } from "../types";
+import type { AppLocale, AppTheme } from "../types";
 import { getMainMapWorkspaceText } from "../i18n/mainMapWorkspaceText";
 
 const MapSelector = React.lazy(() =>
@@ -47,6 +47,7 @@ type Props = {
   onStartSearch: () => void;
   onMapClickAction: () => void;
   isXRayMode?: boolean;
+  theme?: AppTheme;
 };
 
 export function MainMapWorkspace({
@@ -63,6 +64,7 @@ export function MainMapWorkspace({
   onStartSearch,
   onMapClickAction,
   isXRayMode = false,
+  theme,
 }: Props) {
   const t = getMainMapWorkspaceText(locale);
 
@@ -76,6 +78,7 @@ export function MainMapWorkspace({
             locale={locale}
             keyboardPanEnabled={isSidebarCollapsed}
             isXRayMode={isXRayMode}
+            theme={theme}
           />
 
           {!hasAreaSelection && (

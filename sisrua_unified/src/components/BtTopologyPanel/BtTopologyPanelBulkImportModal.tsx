@@ -3,6 +3,7 @@ import { Copy, FileSpreadsheet, Play, SkipForward, X } from "lucide-react";
 import { BulkImportReviewState } from "./useBtTopologyPanelBulkImport";
 import type { AppLocale } from "../../types";
 import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 interface BtTopologyPanelBulkImportModalProps {
   locale: AppLocale;
@@ -33,6 +34,8 @@ const BtTopologyPanelBulkImportModal: React.FC<
   fileInputRef,
   onReviewNext,
 }) => {
+  const containerRef = useFocusTrap(isOpen);
+
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
@@ -48,7 +51,10 @@ const BtTopologyPanelBulkImportModal: React.FC<
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-      <div className="relative flex h-[600px] w-full max-w-2xl flex-col rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden">
+      <div 
+        ref={containerRef}
+        className="relative flex h-[600px] w-full max-w-2xl flex-col rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden"
+      >
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 px-4 py-3 bg-slate-50 dark:bg-slate-800/60">
           <div className="flex items-center gap-2">
             <Copy className="text-blue-600 dark:text-blue-400" size={18} />

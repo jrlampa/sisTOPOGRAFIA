@@ -19,13 +19,13 @@ import {
   AppLocale,
   LayerConfig,
   OsmElement,
+  AppTheme,
 } from "../types";
 import { MapBtEdge, MapBtPole, MapBtTopology, MapMtTopology } from "../types.map";
 import { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
 import { DgScenario } from "../hooks/useDgOptimization";
 import { DefaultIcon } from "./MapSelectorStyles";
 import { applyOrthoSnap, applyRoadSnap } from "../utils/smartSnapping";
-import { getMainMapWorkspaceText } from "../i18n/mainMapWorkspaceText";
 
 // Initialize Leaflet Default Icon fix
 L.Marker.prototype.options.icon = DefaultIcon;
@@ -201,7 +201,7 @@ interface MapSelectorProps {
   osmData?: OsmElement[] | null;
   locale: AppLocale;
   layerConfig?: LayerConfig;
-  isXRayMode?: boolean;
+  theme?: AppTheme;
 }
 
 const MapSelector: React.FC<MapSelectorProps> = ({
@@ -250,7 +250,6 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onMapStyleChange: _onMapStyleChange,
   showAnalysis: _showAnalysis = false,
   keyboardPanEnabled = false,
-  isXRayMode = false,
   mtMarkerTopology,
   mtPopupTopology,
   mtEditorMode = "none",
@@ -269,10 +268,29 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   osmData,
   locale,
   layerConfig,
+  theme,
 }) => {
-  const t = getMainMapWorkspaceText(locale);
   const [draggedPole, setDraggedPole] = useState<{ id: string, lat: number, lng: number, snapId?: string } | null>(null);
   const [mousePos, setMousePos] = useState<L.LatLng | null>(null);
+  const [isXRayMode, setIsXRayMode] = useState(false);
+
+  // UX: Atalho de teclado para X-Ray Mode (X ou Shift)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase();
+      if (k === "shift" || k === "x") setIsXRayMode(true);
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase();
+      if (k === "shift" || k === "x") setIsXRayMode(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
 
   const topology = btMarkerTopology ?? {
     poles: [],
@@ -356,6 +374,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   const dimClass = isBtEditing ? "map-bt-editing" : "";
   const ghostClass = dgGhostMode ? "map-dg-ghost-mode" : "";
   const xrayClass = isXRayMode ? "map-xray-mode" : "";
+  const themeClass = `map-theme-${theme || "dark"}`;
 
   const handleBtDragRealtime = (id: string, lat: number, lng: number) => {
     if (lat === 0) {
@@ -388,7 +407,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
 
   return (
     <div
-      className={`relative z-0 h-full min-h-[400px] w-full overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-100/5 shadow-2xl glass-premium ${cursorClass} ${dimClass} ${ghostClass} ${xrayClass}`}
+      className={`relative z-0 h-full min-h-[400px] w-full overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-100/5 shadow-2xl glass-premium ${cursorClass} ${dimClass} ${ghostClass} ${xrayClass} ${themeClass}`}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
@@ -396,6 +415,35 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         .map-cursor-active .leaflet-container {
           cursor: crosshair !important;
         }
+
+        /* Sunlight Mode: High Contrast for field use */
+        .map-theme-sunlight .leaflet-tile-pane {
+          filter: contrast(1.5) brightness(1.2) grayscale(100%) !important;
+          opacity: 1 !important;
+        }
+        .map-theme-sunlight .leaflet-overlay-pane svg path {
+          stroke-width: 3.5 !important;
+          filter: none !important;
+          opacity: 1 !important;
+        }
+        .map-theme-sunlight .leaflet-marker-pane .leaflet-marker-icon {
+          filter: none !important;
+          opacity: 1 !important;
+        }
+        .map-theme-sunlight.map-bt-editing .leaflet-tile-pane {
+          filter: contrast(2) brightness(1.5) grayscale(100%) !important;
+          opacity: 0.4 !important;
+        }
+        .map-theme-sunlight .bim-pop-in-tooltip > div {
+          background: #ffff00 !important;
+          color: #000000 !important;
+          border: 2px solid #000000 !important;
+          backdrop-filter: none !important;
+        }
+        .map-theme-sunlight .bim-pop-in-tooltip span {
+          color: #000000 !important;
+        }
+
         /* Auto-dimming: quando em modo edição BT, camadas base perdem saturação
            para que a rede BT (postes/vãos) seja o foco visual dominante. */
         .map-bt-editing .leaflet-tile-pane {
@@ -613,55 +661,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           draggedPole={draggedPole}
           locale={locale}
           layerConfig={layerConfig}
-          isXRayMode={isXRayMode}
         />
-
-        {/* Ghost Edits: Floating label during drag */}
-        {draggedPole && (
-          <Marker 
-            position={[draggedPole.lat, draggedPole.lng]}
-            icon={L.divIcon({
-              className: "ghost-edit-label",
-              html: `
-                <div class="flex flex-col gap-0.5 px-2.5 py-1.5 rounded-xl bg-slate-900/90 text-white shadow-2xl border border-white/20 backdrop-blur-md animate-in fade-in zoom-in-75" style="transform: translate(20px, -40px); min-width: 90px;">
-                  <div class="flex items-center gap-1.5">
-                    <div class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></div>
-                    <span class="text-[9px] font-black uppercase tracking-widest text-cyan-200">${t.ghostEstimate}</span>
-                  </div>
-                  <div class="flex items-baseline gap-1">
-                    <span class="text-xs font-black">${t.ghostDeltaCqt}</span>
-                    <span class="text-sm font-black text-emerald-400">±0.2%</span>
-                  </div>
-                  <div class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">${t.ghostRealtimeImpact}</div>
-                </div>
-              `,
-              iconSize: [0, 0]
-            })}
-            interactive={false}
-          />
-        )}
-
-        {/* Guias de Snapping (Cyan Dotted Lines) */}
-        {draggedPole && draggedPole.snapId && (
-          <Pane name="snap-guides" style={{ zIndex: 650 }}>
-            {(() => {
-              const snapNeighbor = topology.poles.find(p => p.id === draggedPole.snapId);
-              if (!snapNeighbor) return null;
-              return (
-                <Polyline 
-                  positions={[[draggedPole.lat, draggedPole.lng], [snapNeighbor.lat, snapNeighbor.lng]]}
-                  pathOptions={{ 
-                    color: "#06b6d4", // Cyan 500
-                    weight: 2, 
-                    dashArray: "5 8", 
-                    opacity: 0.8,
-                    interactive: false 
-                  }}
-                />
-              );
-            })()}
-          </Pane>
-        )}
 
         <MapSelectorTransformersLayer
           paneName={btTransformersPaneName}
@@ -695,7 +695,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
               mtEditorMode={mtEditorMode}
               onMtMapClick={onMtMapClick}
               onMtDragPole={onMtDragPole}
-              onMtRenamePole={onMtRenamePole}
+              onBtRenamePole={onMtRenamePole}
               onMtSetPoleChangeFlag={onMtSetPoleChangeFlag}
               onMtDeletePole={onMtDeletePole}
               onMtSetPoleVerified={onMtSetPoleVerified}

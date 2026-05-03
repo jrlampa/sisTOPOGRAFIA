@@ -68,7 +68,12 @@ function App() {
       btEditorMode !== "none" &&
       btEditorMode !== undefined);
 
-  useAppGlobalHotkeys(setIsFocusModeManual, setIsXRayMode);
+  useAppGlobalHotkeys(
+    setIsFocusModeManual,
+    setIsXRayMode,
+    settings.theme,
+    (theme) => updateSettings({ ...settings, theme })
+  );
 
   const {
     btAccumulatedByPole,

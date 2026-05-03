@@ -276,6 +276,7 @@ export function AppWorkspace(props: AppWorkspaceProps) {
         }}
         mainMapWorkspaceProps={{
           locale: settings.locale,
+          theme: settings.theme,
           mapSelectorProps,
           floatingLayerPanelProps: {
             settings,
