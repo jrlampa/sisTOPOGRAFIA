@@ -92,53 +92,64 @@ function buildPythonEnvProbeCode(): string {
   ].join(";");
 }
 
-function probePythonEnvironment(command: string): PythonEnvProbeResult {
+/**
+ * Probes the Python environment asynchronously.
+ * Optimized to avoid event-loop blocking (Audit P1).
+ */
+async function probePythonEnvironment(command: string): Promise<PythonEnvProbeResult> {
   const now = Date.now();
   const cached = pythonEnvProbeCache.get(command);
   if (cached && now - cached.at <= PYTHON_ENV_PROBE_TTL_MS) {
     return cached.result;
   }
 
-  const check = spawnSync(command, ["-c", buildPythonEnvProbeCode()], {
-    cwd: path.join(dirname, "..", "py_engine"),
-    timeout: 10_000,
-    encoding: "utf-8",
+  return new Promise((resolve, reject) => {
+    const check = spawn(command, ["-c", buildPythonEnvProbeCode()], {
+      cwd: path.join(dirname, "..", "py_engine"),
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    const timeout = setTimeout(() => {
+        if (check && typeof check.kill === 'function') {
+            check.kill();
+        }
+        reject(new Error(`Python env probe timed out for '${command}'`));
+    }, 10000);
+
+    check.stdout.on("data", (data) => { stdout += data; });
+    check.stderr.on("data", (data) => { stderr += data; });
+
+    check.on("close", (code) => {
+        clearTimeout(timeout);
+        if (code !== 0) {
+            return reject(new Error(`Python env probe exited with code ${code} for '${command}'. stderr=${stderr.trim()}`));
+        }
+
+        try {
+            const parsed = JSON.parse(stdout.trim());
+            const result: PythonEnvProbeResult = {
+                command,
+                executable: String(parsed.executable || ""),
+                version: String(parsed.version || ""),
+                missingModules: Array.isArray(parsed.missingModules)
+                  ? parsed.missingModules.map((item) => String(item))
+                  : [],
+                pyEnginePathPresent: Boolean(parsed.pyEnginePathPresent),
+            };
+            pythonEnvProbeCache.set(command, { at: now, result });
+            resolve(result);
+        } catch (e) {
+            reject(new Error(`Python env probe returned invalid JSON for '${command}': ${stdout.trim()}`));
+        }
+    });
+
+    check.on("error", (err) => {
+        clearTimeout(timeout);
+        reject(new Error(`Python env probe failed for '${command}': ${err.message}`));
+    });
   });
-
-  if (check.error) {
-    throw new Error(
-      `Python env probe failed for '${command}': ${check.error.message}`,
-    );
-  }
-
-  if (typeof check.status === "number" && check.status !== 0) {
-    const stderr = (check.stderr || "").trim();
-    throw new Error(
-      `Python env probe exited with code ${check.status} for '${command}'. stderr=${stderr || "<empty>"}`,
-    );
-  }
-
-  let parsed: Omit<PythonEnvProbeResult, "command">;
-  try {
-    parsed = JSON.parse((check.stdout || "").trim());
-  } catch {
-    throw new Error(
-      `Python env probe returned invalid JSON for '${command}': ${(check.stdout || "").trim()}`,
-    );
-  }
-
-  const result: PythonEnvProbeResult = {
-    command,
-    executable: String(parsed.executable || ""),
-    version: String(parsed.version || ""),
-    missingModules: Array.isArray(parsed.missingModules)
-      ? parsed.missingModules.map((item) => String(item))
-      : [],
-    pyEnginePathPresent: Boolean(parsed.pyEnginePathPresent),
-  };
-
-  pythonEnvProbeCache.set(command, { at: now, result });
-  return result;
 }
 
 export const generateDxf = (options: DxfOptions): Promise<string> => {
@@ -173,10 +184,8 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
     }
 
     // DOCKER-FIRST: Always use Python directly (no .exe binaries)
-    // This works in both Docker containers and native development environments
     const scriptPath = path.join(dirname, "../py_engine/main.py");
 
-    // Allow customization via environment variable and fallback executables for Windows/Linux.
     const envPythonCommand = config.PYTHON_COMMAND;
     const fallbackCommands =
       process.platform === "win32"
@@ -191,8 +200,6 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
 
     const args = [scriptPath];
 
-    // SECURITY: Sanitize all arguments - convert to strings to prevent injection
-    // Add DXF arguments
     args.push(
       "--lat",
       String(options.lat),
@@ -213,7 +220,6 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
       "--no-preview",
     );
 
-    // Item 99: passa limite de memória RSS ao watchdog Python
     const memoryLimitMb = Number(process.env.PYTHON_MEMORY_LIMIT_MB ?? 0);
     if (memoryLimitMb > 0) {
       args.push("--memory-limit-mb", String(memoryLimitMb));
@@ -239,21 +245,19 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
       timestamp: new Date().toISOString(),
     });
 
-    // Item 17: mede duração end-to-end para SLO de geração DXF
     const generationStartMs = Date.now();
     const rssBeforeMb = Math.round(process.memoryUsage().rss / (1024 * 1024));
     metricsService.recordMetricObservation(
       "node_rss_mb_before_python",
       rssBeforeMb,
     );
-    logger.info("Python spawn pre-flight memory snapshot", { rssBeforeMb });
 
-    const runWithCommand = (index: number) => {
+    const runWithCommand = async (index: number) => {
       const selectedCommand = commandCandidates[index];
       let envProbe: PythonEnvProbeResult;
 
       try {
-        envProbe = probePythonEnvironment(selectedCommand);
+        envProbe = await probePythonEnvironment(selectedCommand);
       } catch (probeError) {
         const hasNextCandidate = index < commandCandidates.length - 1;
         if (hasNextCandidate) {
@@ -368,7 +372,6 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
           return;
         }
 
-        // Item 99: OOM detectado – erro distinguível para retry transparente
         if (code === PYTHON_OOM_EXIT_CODE) {
           handled = true;
           logger.error(

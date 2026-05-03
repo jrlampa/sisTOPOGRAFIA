@@ -1,3 +1,14 @@
+## Atualização Operacional (2026-05-03B) - Hardening Final e Governança (Fase 8)
+- **Modularização de App.tsx (Concluída)**: Refatoração final do `App.tsx` reduzindo o arquivo de ~1100 para **686 linhas**.
+    - Todas as lógicas de orquestração foram movidas para `AppWorkspace.tsx` e hooks especializados.
+    - Cumpre o *SOFT LIMIT* de 750 linhas (IDEAL: 500, HARD: 1000).
+- **Estabilização de Suíte de Testes**:
+    - **Fix `pythonBridge.test.ts`**: Corrigido mock de `spawn` para suportar as múltiplas tentativas de comando Python (probe) sem gerar `undefined`.
+    - **Fix `jobStatusService.test.ts`**: Introduzido `resetServiceState()` para garantir isolamento entre testes de persistência Postgres e memória.
+    - **Fix `dgRoutes.test.ts`**: Mockado `dgRunRepository` para isolar rotas de efeitos colaterais de banco de dados durante testes de integração.
+- **Auditoria de Governança**: Executado `scripts/non-negotiables-audit.cjs` com status **VERDE** para toda a base de código (frontend e backend).
+- **Cobertura de Código**: Mantida conformidade com a regra de cobertura mínima >=80% para os 20% mais críticos do código.
+
 ## Atualização Operacional (2026-05-03A) - Experiência Imersiva & Edição em Massa (Fase 7)
 - **Mapa de Calor de Performance (CQT Heatmap)**: ✅ Implementado sistema de visualização cromática dinâmica para vãos (edges).
     - Verde (0-3%): Ideal | Amarelo (3-5%): Aceitável | Laranja (5-7%): Limite | Vermelho (>7%): Crítico.

@@ -139,6 +139,7 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
   const operation_id = res.locals?.operation_id;
   const projeto_id = res.locals?.projeto_id;
   const ponto_id = res.locals?.ponto_id;
+  const tenant_id = res.locals?.tenantId || res.locals?.tenant_id;
 
   // 1. Handle our custom ApiError
   if (err instanceof ApiError) {
@@ -155,6 +156,7 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
     const logMetadata = {
       statusCode: err.statusCode,
       requestId,
+      tenant_id,
       operation_id,
       projeto_id,
       ponto_id,
@@ -184,6 +186,7 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
 
     logger.warn(`[${ErrorCode.INPUT_INVALID}] Zod Validation Error`, {
       requestId,
+      tenant_id,
       errors: err.issues,
     });
 
@@ -202,6 +205,7 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
 
   logger.error(`[${ErrorCode.INTERNAL_SERVER_ERROR}] ${err.message || "Unknown error"}`, {
     requestId,
+    tenant_id,
     operation_id,
     projeto_id,
     ponto_id,

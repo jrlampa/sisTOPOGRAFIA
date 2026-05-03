@@ -38,38 +38,33 @@ export interface TopologyReadResult {
 
 export interface ICanonicalTopologyRepository {
   /**
-   * Lê a topologia canônica completa.
+   * Lê a topologia canônica completa filtrada por tenant.
    * Retorna canonical se houver dados; caso contrário legado (se taskId fornecido).
    *
+   * @param tenantId ID do tenant para isolamento.
    * @param taskId  ID da tarefa DXF para fallback legado (opcional).
    * @param forceLegacy  Força leitura do legado independente do canônico.
    */
   readTopology(
+    tenantId: string,
     taskId?: string,
     forceLegacy?: boolean,
   ): Promise<TopologyReadResult>;
-  /**
-   * Variante com tenantId para resolução de feature flag por tenant.
-   * A flag `canonical_topology_read` do tenant tem precedência sobre
-   * a env var CANONICAL_TOPOLOGY_READ.
-   */
-  readTopologyForTenant(
-    tenantId: string,
-    taskId?: string,
-  ): Promise<TopologyReadResult>;
 
-  /** Lê apenas postes canônicos. */
+  /** Lê apenas postes canônicos filtrados por tenant. */
   readPoles(
+    tenantId: string,
     source?: "legacy_bt" | "legacy_mt" | "canonical",
   ): Promise<CanonicalPoleNode[]>;
 
-  /** Lê apenas arestas canônicas. */
+  /** Lê apenas arestas canônicas filtradas por tenant. */
   readEdges(
+    tenantId: string,
     source?: "legacy_bt" | "legacy_mt" | "canonical",
   ): Promise<CanonicalNetworkEdge[]>;
 
-  /** Conta postes e arestas no canônico. */
-  countCanonical(): Promise<{ poles: number; edges: number }>;
+  /** Conta postes e arestas no canônico para um tenant. */
+  countCanonical(tenantId: string): Promise<{ poles: number; edges: number }>;
 }
 
 // ─── Mapeadores de linha DB → tipo canônico ───────────────────────────────────
@@ -153,6 +148,7 @@ function rowToEdge(r: Record<string, unknown>): CanonicalNetworkEdge {
 
 async function readTopologyFromLegacyTask(
   taskId: string,
+  tenantId: string,
 ): Promise<CanonicalNetworkTopology | null> {
   const sql = getDbClient();
   if (!sql) return null;
@@ -162,9 +158,9 @@ async function readTopologyFromLegacyTask(
       `SELECT payload->'btContext'->'topology' AS bt_topology,
               payload->'mtContext'->'topology' AS mt_topology
        FROM dxf_tasks
-       WHERE task_id = $1
+       WHERE task_id = $1 AND tenant_id = $2
        LIMIT 1`,
-      [taskId],
+      [taskId, tenantId],
     );
 
     if (!rows.length) return null;
@@ -329,6 +325,7 @@ function logTopologyDivergenceIfAny(
 
 export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRepository {
   async readPoles(
+    tenantId: string,
     source?: "legacy_bt" | "legacy_mt" | "canonical",
   ): Promise<CanonicalPoleNode[]> {
     const sql = getDbClient();
@@ -342,9 +339,9 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
                     condition_status, equipment_notes, general_notes,
                     circuit_break_point, verified, node_change_flag
              FROM public.canonical_poles
-             WHERE source = $1
+             WHERE tenant_id = $1 AND source = $2
              ORDER BY pk ASC`,
-            [source],
+            [tenantId, source],
           )
         : await sql.unsafe(
             `SELECT id, lat, lng, title, has_bt, has_mt,
@@ -352,17 +349,20 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
                     condition_status, equipment_notes, general_notes,
                     circuit_break_point, verified, node_change_flag
              FROM public.canonical_poles
+             WHERE tenant_id = $1
              ORDER BY pk ASC`,
+            [tenantId],
           );
 
       return (rows as Record<string, unknown>[]).map(rowToPoleNode);
     } catch (err) {
-      logger.warn("[CanonicalTopologyRepository] readPoles falhou", { err });
+      logger.warn("[CanonicalTopologyRepository] readPoles falhou", { tenantId, err });
       return [];
     }
   }
 
   async readEdges(
+    tenantId: string,
     source?: "legacy_bt" | "legacy_mt" | "canonical",
   ): Promise<CanonicalNetworkEdge[]> {
     const sql = getDbClient();
@@ -375,33 +375,35 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
                     bt_conductors, mt_conductors, bt_replacement_conductors,
                     remove_on_execution, verified, edge_change_flag
              FROM public.canonical_edges
-             WHERE source = $1
+             WHERE tenant_id = $1 AND source = $2
              ORDER BY pk ASC`,
-            [source],
+            [tenantId, source],
           )
         : await sql.unsafe(
             `SELECT id, from_pole_id, to_pole_id, length_meters, cqt_length_meters,
                     bt_conductors, mt_conductors, bt_replacement_conductors,
                     remove_on_execution, verified, edge_change_flag
              FROM public.canonical_edges
+             WHERE tenant_id = $1
              ORDER BY pk ASC`,
+            [tenantId],
           );
 
       return (rows as Record<string, unknown>[]).map(rowToEdge);
     } catch (err) {
-      logger.warn("[CanonicalTopologyRepository] readEdges falhou", { err });
+      logger.warn("[CanonicalTopologyRepository] readEdges falhou", { tenantId, err });
       return [];
     }
   }
 
-  async countCanonical(): Promise<{ poles: number; edges: number }> {
+  async countCanonical(tenantId: string): Promise<{ poles: number; edges: number }> {
     const sql = getDbClient();
     if (!sql) return { poles: 0, edges: 0 };
 
     try {
       const [pRow, eRow] = await Promise.all([
-        sql.unsafe(`SELECT COUNT(*) AS cnt FROM public.canonical_poles`),
-        sql.unsafe(`SELECT COUNT(*) AS cnt FROM public.canonical_edges`),
+        sql.unsafe(`SELECT COUNT(*) AS cnt FROM public.canonical_poles WHERE tenant_id = $1`, [tenantId]),
+        sql.unsafe(`SELECT COUNT(*) AS cnt FROM public.canonical_edges WHERE tenant_id = $1`, [tenantId]),
       ]);
       return {
         poles: Number((pRow as any[])[0]?.cnt ?? 0),
@@ -409,6 +411,7 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
       };
     } catch (err) {
       logger.warn("[CanonicalTopologyRepository] countCanonical falhou", {
+        tenantId,
         err,
       });
       return { poles: 0, edges: 0 };
@@ -416,28 +419,30 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
   }
 
   async readTopology(
+    tenantId: string,
     taskId?: string,
     forceLegacy = false,
   ): Promise<TopologyReadResult> {
-    // Verificar se o canônico tem dados
-    const counts = await this.countCanonical();
+    // Verificar se o canônico tem dados para este tenant
+    const counts = await this.countCanonical(tenantId);
     const canonicalHasData = counts.poles > 0;
 
     if (!forceLegacy && canonicalHasData) {
       // Leitura canônica
       const [poles, edges] = await Promise.all([
-        this.readPoles(),
-        this.readEdges(),
+        this.readPoles(tenantId),
+        this.readEdges(tenantId),
       ]);
 
       if (taskId) {
-        const legacyTopo = await readTopologyFromLegacyTask(taskId);
+        const legacyTopo = await readTopologyFromLegacyTask(taskId, tenantId);
         if (legacyTopo) {
           logTopologyDivergenceIfAny({ poles, edges }, legacyTopo, taskId);
         }
       }
 
       logger.debug("[CanonicalTopologyRepository] leitura canônica", {
+        tenantId,
         poles: poles.length,
         edges: edges.length,
       });
@@ -451,9 +456,10 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
 
     // Fallback legado
     if (taskId) {
-      const legacyTopo = await readTopologyFromLegacyTask(taskId);
+      const legacyTopo = await readTopologyFromLegacyTask(taskId, tenantId);
       if (legacyTopo) {
         logger.info("[CanonicalTopologyRepository] fallback legado ativado", {
+          tenantId,
           taskId,
           poles: legacyTopo.poles.length,
           edges: legacyTopo.edges.length,
@@ -469,7 +475,8 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
 
     // Sem dados disponíveis — retorna topologia vazia
     logger.warn(
-      "[CanonicalTopologyRepository] sem dados: canônico vazio e sem taskId de fallback",
+      "[CanonicalTopologyRepository] sem dados para tenant",
+      { tenantId, taskId }
     );
     return {
       topology: { poles: [], edges: [] },
@@ -489,7 +496,7 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
       tenantFlag !== null ? tenantFlag : config.canonicalTopologyRead;
 
     // forceLegacy = true quando a flag está desligada (legado prioritário)
-    return this.readTopology(taskId, !useCanonical);
+    return this.readTopology(tenantId, taskId, !useCanonical);
   }
 }
 

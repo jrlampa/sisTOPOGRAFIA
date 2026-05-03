@@ -31,11 +31,11 @@ export interface JobResultPayload {
 }
 
 export interface IJobRepository {
-  upsert(id: string, status: JobStatus, progress: number): Promise<void>;
-  complete(id: string, result: JobResultPayload): Promise<void>;
-  fail(id: string, error: string): Promise<void>;
-  findById(id: string): Promise<JobRow | null>;
-  findRecent(limit: number): Promise<JobRow[]>;
+  upsert(id: string, tenantId: string, status: JobStatus, progress: number): Promise<void>;
+  complete(id: string, tenantId: string, result: JobResultPayload): Promise<void>;
+  fail(id: string, tenantId: string, error: string): Promise<void>;
+  findById(id: string, tenantId?: string): Promise<JobRow | null>;
+  findRecent(limit: number, tenantId?: string): Promise<JobRow[]>;
   deleteOld(
     completedMaxAgeMs: number,
     absoluteMaxAgeMs: number,
@@ -45,25 +45,25 @@ export interface IJobRepository {
 // ── Implementation ────────────────────────────────────────────────────────────
 
 export class PostgresJobRepository implements IJobRepository {
-  async upsert(id: string, status: JobStatus, progress: number): Promise<void> {
+  async upsert(id: string, tenantId: string, status: JobStatus, progress: number): Promise<void> {
     const sql = getDbClient();
     if (!sql) return;
     try {
       await sql.unsafe(
-        `INSERT INTO jobs (id, status, progress, updated_at)
-         VALUES ($1, $2, $3, NOW())
+        `INSERT INTO jobs (id, tenant_id, status, progress, updated_at)
+         VALUES ($1, $2, $3, $4, NOW())
          ON CONFLICT ON CONSTRAINT jobs_pkey DO UPDATE
            SET status = EXCLUDED.status,
                progress = EXCLUDED.progress,
                updated_at = NOW()`,
-        [id, status, progress],
+        [id, tenantId, status, progress],
       );
     } catch (err) {
-      logger.warn("[JobRepository] upsert failed", { id, err });
+      logger.warn("[JobRepository] upsert failed", { id, tenantId, err });
     }
   }
 
-  async complete(id: string, result: JobResultPayload): Promise<void> {
+  async complete(id: string, tenantId: string, result: JobResultPayload): Promise<void> {
     const sql = getDbClient();
     if (!sql) return;
     try {
@@ -71,53 +71,69 @@ export class PostgresJobRepository implements IJobRepository {
         `UPDATE jobs
          SET status = 'completed',
              progress = 100,
-             result = $2::jsonb,
-             artifact_sha256 = $3,
+             result = $3::jsonb,
+             artifact_sha256 = $4,
              updated_at = NOW()
-         WHERE id = $1`,
-        [id, JSON.stringify(result), result.artifactSha256 ?? null],
+         WHERE id = $1 AND tenant_id = $2`,
+        [id, tenantId, JSON.stringify(result), result.artifactSha256 ?? null],
       );
     } catch (err) {
-      logger.warn("[JobRepository] complete failed", { id, err });
+      logger.warn("[JobRepository] complete failed", { id, tenantId, err });
     }
   }
 
-  async fail(id: string, error: string): Promise<void> {
+  async fail(id: string, tenantId: string, error: string): Promise<void> {
     const sql = getDbClient();
     if (!sql) return;
     try {
       await sql.unsafe(
         `UPDATE jobs
-         SET status = 'failed', error = $2, updated_at = NOW()
-         WHERE id = $1`,
-        [id, error],
+         SET status = 'failed', error = $3, updated_at = NOW()
+         WHERE id = $1 AND tenant_id = $2`,
+        [id, tenantId, error],
       );
     } catch (err) {
-      logger.warn("[JobRepository] fail failed", { id, err });
+      logger.warn("[JobRepository] fail failed", { id, tenantId, err });
     }
   }
 
-  async findById(id: string): Promise<JobRow | null> {
+  async findById(id: string, tenantId?: string): Promise<JobRow | null> {
     const sql = getDbClient();
     if (!sql) return null;
-    const rows = await sql.unsafe(
-      `SELECT id, status, progress, result, error, created_at, updated_at, attempts
-       FROM jobs WHERE id = $1 LIMIT 1`,
-      [id],
-    );
+    
+    const rows = tenantId 
+      ? await sql.unsafe(
+          `SELECT id, status, progress, result, error, created_at, updated_at, attempts
+           FROM jobs WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
+          [id, tenantId],
+        )
+      : await sql.unsafe(
+          `SELECT id, status, progress, result, error, created_at, updated_at, attempts
+           FROM jobs WHERE id = $1 LIMIT 1`,
+          [id],
+        );
+
     const r = (rows as any[])[0];
     if (!r) return null;
     return _mapRow(r as RawJobRow);
   }
 
-  async findRecent(limit: number): Promise<JobRow[]> {
+  async findRecent(limit: number, tenantId?: string): Promise<JobRow[]> {
     const sql = getDbClient();
     if (!sql) return [];
-    const rows = await sql.unsafe(
-      `SELECT id, status, progress, result, error, created_at, updated_at, attempts
-       FROM jobs ORDER BY created_at DESC LIMIT $1`,
-      [limit],
-    );
+    
+    const rows = tenantId
+      ? await sql.unsafe(
+          `SELECT id, status, progress, result, error, created_at, updated_at, attempts
+           FROM jobs WHERE tenant_id = $2 ORDER BY created_at DESC LIMIT $1`,
+          [limit, tenantId],
+        )
+      : await sql.unsafe(
+          `SELECT id, status, progress, result, error, created_at, updated_at, attempts
+           FROM jobs ORDER BY created_at DESC LIMIT $1`,
+          [limit],
+        );
+        
     return (rows as any[]).map((r) => _mapRow(r as RawJobRow));
   }
 

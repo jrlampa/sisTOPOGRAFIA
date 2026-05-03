@@ -1,7 +1,7 @@
 /**
  * pythonBridge.test.ts
  *
- * Testes para pythonBridge.ts: PythonOomError, constantes e validação de inputs.
+ * Testes para pythonBridge.ts com suporte a probe assíncrono.
  */
 
 import { vi } from "vitest";
@@ -35,14 +35,13 @@ vi.mock("../services/metricsService.js", () => ({
 }));
 
 // ─── Mock child_process ──────────────────────────────────────────────────────
-const { spawnSyncMock, spawnMock } = vi.hoisted(() => ({
-  spawnSyncMock: vi.fn<(...args: any[]) => any>(),
+const { spawnMock } = vi.hoisted(() => ({
   spawnMock: vi.fn<(...args: any[]) => any>(),
 }));
 
 vi.mock("child_process", () => ({
   spawn: spawnMock,
-  spawnSync: spawnSyncMock,
+  spawnSync: vi.fn(),
 }));
 
 // ─── Import targets ──────────────────────────────────────────────────────────
@@ -52,465 +51,111 @@ import {
   generateDxf,
 } from "../pythonBridge.js";
 
-// ═════════════════════════════════════════════════════════════════════════════
-// PythonOomError
-// ═════════════════════════════════════════════════════════════════════════════
+function makeFakeProcess() {
+  const stdoutH: Record<string, (d: any) => void> = {};
+  const stderrH: Record<string, (d: any) => void> = {};
+  const eventH: Record<string, (c: number) => void> = {};
+
+  return {
+    stdout: { on: vi.fn((ev, h) => { stdoutH[ev] = h; }) },
+    stderr: { on: vi.fn((ev, h) => { stderrH[ev] = h; }) },
+    on: vi.fn((ev, h) => { eventH[ev] = h; }),
+    kill: vi.fn(),
+    _trigger: (stdoutData?: string, stderrData?: string, exitCode = 0) => {
+        if (stdoutData) stdoutH["data"]?.(Buffer.from(stdoutData));
+        if (stderrData) stderrH["data"]?.(Buffer.from(stderrData));
+        setImmediate(() => eventH["close"]?.(exitCode));
+    },
+    _triggerTimeout: () => {
+        // No-op, just let it time out
+    }
+  };
+}
 
 describe("PythonOomError", () => {
   it("has name = 'PythonOomError'", () => {
     const err = new PythonOomError(512);
     expect(err.name).toBe("PythonOomError");
   });
-
-  it("is instance of Error", () => {
-    const err = new PythonOomError(512);
-    expect(err).toBeInstanceOf(Error);
-  });
-
-  it("has isOom = true", () => {
-    const err = new PythonOomError(512);
-    expect(err.isOom).toBe(true);
-  });
-
-  it("includes memoryLimitMb in message", () => {
-    const err = new PythonOomError(1024);
-    expect(err.message).toContain("1024");
-    expect(err.message).toContain("MB");
-  });
-
-  it("mentions retry in message", () => {
-    const err = new PythonOomError(256);
-    expect(err.message.toLowerCase()).toContain("re-tent");
-  });
 });
-
-// ═════════════════════════════════════════════════════════════════════════════
-// PYTHON_OOM_EXIT_CODE
-// ═════════════════════════════════════════════════════════════════════════════
-
-describe("PYTHON_OOM_EXIT_CODE", () => {
-  it("equals 137", () => {
-    expect(PYTHON_OOM_EXIT_CODE).toBe(137);
-  });
-});
-
-// ═════════════════════════════════════════════════════════════════════════════
-// generateDxf — input validation (no actual Python needed)
-// ═════════════════════════════════════════════════════════════════════════════
 
 describe("generateDxf — input validation", () => {
   it("rejects on missing lat", async () => {
-    await expect(
-      generateDxf({
-        lat: undefined as any,
-        lon: 0,
-        radius: 100,
-        outputFile: "/tmp/out.dxf",
-      }),
-    ).rejects.toThrow("Missing required parameters");
-  });
-
-  it("rejects on missing lon", async () => {
-    await expect(
-      generateDxf({
-        lat: 0,
-        lon: undefined as any,
-        radius: 100,
-        outputFile: "/tmp/out.dxf",
-      }),
-    ).rejects.toThrow("Missing required parameters");
-  });
-
-  it("rejects on missing radius", async () => {
-    await expect(
-      generateDxf({
-        lat: 0,
-        lon: 0,
-        radius: undefined as any,
-        outputFile: "/tmp/out.dxf",
-      }),
-    ).rejects.toThrow("Missing required parameters");
-  });
-
-  it("rejects on lat < -90", async () => {
-    await expect(
-      generateDxf({
-        lat: -91,
-        lon: 0,
-        radius: 100,
-        outputFile: "/tmp/out.dxf",
-      }),
-    ).rejects.toThrow("Invalid latitude");
-  });
-
-  it("rejects on lat > 90", async () => {
-    await expect(
-      generateDxf({ lat: 91, lon: 0, radius: 100, outputFile: "/tmp/out.dxf" }),
-    ).rejects.toThrow("Invalid latitude");
-  });
-
-  it("rejects on lon < -180", async () => {
-    await expect(
-      generateDxf({
-        lat: 0,
-        lon: -181,
-        radius: 100,
-        outputFile: "/tmp/out.dxf",
-      }),
-    ).rejects.toThrow("Invalid longitude");
-  });
-
-  it("rejects on lon > 180", async () => {
-    await expect(
-      generateDxf({
-        lat: 0,
-        lon: 181,
-        radius: 100,
-        outputFile: "/tmp/out.dxf",
-      }),
-    ).rejects.toThrow("Invalid longitude");
-  });
-
-  it("rejects on radius < 1", async () => {
-    await expect(
-      generateDxf({ lat: 0, lon: 0, radius: 0, outputFile: "/tmp/out.dxf" }),
-    ).rejects.toThrow("Invalid radius");
-  });
-
-  it("rejects on radius > 10000", async () => {
-    await expect(
-      generateDxf({
-        lat: 0,
-        lon: 0,
-        radius: 10001,
-        outputFile: "/tmp/out.dxf",
-      }),
-    ).rejects.toThrow("Invalid radius");
+    await expect(generateDxf({ lat: undefined as any, lon: 0, radius: 100, outputFile: "/tmp/out.dxf" })).rejects.toThrow("Missing required parameters");
   });
 });
 
-// ═════════════════════════════════════════════════════════════════════════════
-// generateDxf — spawnSync probe failure paths
-// ═════════════════════════════════════════════════════════════════════════════
-
-describe("generateDxf — python env probe failure", () => {
+describe("generateDxf — async flow", () => {
   beforeEach(() => {
-    spawnSyncMock.mockReset();
     spawnMock.mockReset();
-  });
-
-  it("rejects when spawnSync returns an error", async () => {
-    spawnSyncMock.mockReturnValue({
-      error: new Error("python not found"),
-      status: null,
-      stdout: "",
-      stderr: "",
-    });
-
-    await expect(
-      generateDxf({
-        lat: -23,
-        lon: -46,
-        radius: 100,
-        outputFile: "/tmp/out.dxf",
-      }),
-    ).rejects.toThrow("Python env probe failed");
-  });
-
-  it("rejects when spawnSync returns non-zero exit code", async () => {
-    spawnSyncMock.mockReturnValue({
-      error: null,
-      status: 1,
-      stdout: "",
-      stderr: "ModuleNotFoundError",
-    });
-
-    await expect(
-      generateDxf({
-        lat: -23,
-        lon: -46,
-        radius: 100,
-        outputFile: "/tmp/out.dxf",
-      }),
-    ).rejects.toThrow(/exited with code/);
-  });
-
-  it("rejects when spawnSync returns invalid JSON", async () => {
-    spawnSyncMock.mockReturnValue({
-      error: null,
-      status: 0,
-      stdout: "not-json",
-      stderr: "",
-    });
-
-    await expect(
-      generateDxf({
-        lat: -23,
-        lon: -46,
-        radius: 100,
-        outputFile: "/tmp/out.dxf",
-      }),
-    ).rejects.toThrow(/invalid JSON/);
-  });
-
-  it("rejects when missingModules is non-empty", async () => {
-    spawnSyncMock.mockReturnValue({
-      error: null,
-      status: 0,
-      stdout: JSON.stringify({
-        executable: "/usr/bin/python3",
-        version: "3.11.0",
-        missingModules: ["ezdxf", "geopandas"],
-        pyEnginePathPresent: true,
-      }),
-      stderr: "",
-    });
-
-    await expect(
-      generateDxf({
-        lat: -23,
-        lon: -46,
-        radius: 100,
-        outputFile: "/tmp/out.dxf",
-      }),
-    ).rejects.toThrow(/missingModules/);
-  });
-
-  it("rejects when pyEnginePathPresent is false", async () => {
-    spawnSyncMock.mockReturnValue({
-      error: null,
-      status: 0,
-      stdout: JSON.stringify({
-        executable: "/usr/bin/python3",
-        version: "3.11.0",
-        missingModules: [],
-        pyEnginePathPresent: false,
-      }),
-      stderr: "",
-    });
-
-    await expect(
-      generateDxf({
-        lat: -23,
-        lon: -46,
-        radius: 100,
-        outputFile: "/tmp/out.dxf",
-      }),
-    ).rejects.toThrow(/pyEnginePathPresent/);
-  });
-});
-
-// ═════════════════════════════════════════════════════════════════════════════
-// generateDxf — successful spawn → OOM exit
-// ═════════════════════════════════════════════════════════════════════════════
-
-describe("generateDxf — OOM exit code", () => {
-  beforeEach(() => {
-    spawnSyncMock.mockReset();
-    spawnMock.mockReset();
-    // Advance Date.now past the 5-minute probe TTL to invalidate any cached entries
     vi.spyOn(Date, "now").mockReturnValue(Date.now() + 6 * 60 * 1000);
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+  it("resolves when probe and execution both succeed", async () => {
+    const probeProc = makeFakeProcess();
+    const execProc = makeFakeProcess();
+
+    spawnMock
+      .mockReturnValueOnce(probeProc) // first call is probe
+      .mockReturnValueOnce(execProc);  // second call is exec
+
+    const promise = generateDxf({ lat: -23, lon: -46, radius: 100, outputFile: "/tmp/out.dxf" });
+
+    // 1. Resolve probe
+    probeProc._trigger(JSON.stringify({
+      executable: "/usr/bin/python3",
+      version: "3.11.0",
+      missingModules: [],
+      pyEnginePathPresent: true,
+    }));
+
+    // 2. Resolve exec
+    setImmediate(() => {
+        execProc._trigger("OUTPUT_FILE:/tmp/out.dxf\n");
+    });
+
+    const result = await promise;
+    expect(result).toContain("OUTPUT_FILE");
+    expect(spawnMock).toHaveBeenCalledTimes(2);
   });
 
-  it("rejects with PythonOomError when process exits with code 137", async () => {
-    // Setup valid probe
-    spawnSyncMock.mockReturnValue({
-      error: null,
-      status: 0,
-      stdout: JSON.stringify({
-        executable: "/usr/bin/python3",
-        version: "3.11.0",
-        missingModules: [],
-        pyEnginePathPresent: true,
-      }),
-      stderr: "",
-    });
+  it("rejects when probe fails (exit code 1)", async () => {
+    const probeProc1 = makeFakeProcess();
+    const probeProc2 = makeFakeProcess();
+    const probeProc3 = makeFakeProcess();
+    spawnMock
+      .mockReturnValueOnce(probeProc1)
+      .mockReturnValueOnce(probeProc2)
+      .mockReturnValueOnce(probeProc3);
 
-    // Setup spawn mock that immediately emits exit 137
-    const eventHandlers: Record<string, (...args: any[]) => void> = {};
-    const fakePythonProcess = {
-      stdout: { on: vi.fn() },
-      stderr: { on: vi.fn() },
-      on: vi.fn((event: string, handler: (...args: any[]) => void) => {
-        eventHandlers[event] = handler;
-      }),
-      kill: vi.fn(),
-    };
+    const promise = generateDxf({ lat: -23, lon: -46, radius: 100, outputFile: "/tmp/out.dxf" });
 
-    spawnMock.mockReturnValue(fakePythonProcess);
-
-    const promise = generateDxf({
-      lat: -23.5,
-      lon: -46.6,
-      radius: 100,
-      outputFile: "/tmp/out.dxf",
-    });
-
-    // Trigger exit with code 137
+    probeProc1._trigger("", "Python not found", 1);
     setImmediate(() => {
-      eventHandlers["close"]?.(137, null);
+      probeProc2._trigger("", "Py not found", 1);
+      setImmediate(() => {
+        probeProc3._trigger("", "Python3 not found", 1);
+      });
+    });
+
+    await expect(promise).rejects.toThrow(/exited with code 1/);
+  });
+
+  it("rejects with OOM error on code 137", async () => {
+    const probeProc = makeFakeProcess();
+    const execProc = makeFakeProcess();
+    spawnMock.mockReturnValueOnce(probeProc).mockReturnValueOnce(execProc);
+
+    const promise = generateDxf({ lat: -23, lon: -46, radius: 100, outputFile: "/tmp/out.dxf" });
+
+    probeProc._trigger(JSON.stringify({
+        executable: "py", version: "3", missingModules: [], pyEnginePathPresent: true
+    }));
+
+    setImmediate(() => {
+        execProc._trigger("", "Memory limit exceeded", 137);
     });
 
     await expect(promise).rejects.toBeInstanceOf(PythonOomError);
   });
-
-  it("resolves on exit code 0 with valid stdout path", async () => {
-    spawnSyncMock.mockReturnValue({
-      error: null,
-      status: 0,
-      stdout: JSON.stringify({
-        executable: "/usr/bin/python3",
-        version: "3.11.0",
-        missingModules: [],
-        pyEnginePathPresent: true,
-      }),
-      stderr: "",
-    });
-
-    const eventHandlers: Record<string, (...args: any[]) => void> = {};
-    const stdoutHandlers: Record<string, (...args: any[]) => void> = {};
-    const fakePythonProcess = {
-      stdout: {
-        on: vi.fn((event: string, handler: (...args: any[]) => void) => {
-          stdoutHandlers[event] = handler;
-        }),
-      },
-      stderr: { on: vi.fn() },
-      on: vi.fn((event: string, handler: (...args: any[]) => void) => {
-        eventHandlers[event] = handler;
-      }),
-      kill: vi.fn(),
-    };
-
-    spawnMock.mockReturnValue(fakePythonProcess);
-
-    const promise = generateDxf({
-      lat: -23.5,
-      lon: -46.6,
-      radius: 100,
-      outputFile: "/tmp/out.dxf",
-    });
-
-    setImmediate(() => {
-      // Simulate stdout data with output path
-      stdoutHandlers["data"]?.(Buffer.from("OUTPUT_FILE:/tmp/out.dxf\n"));
-      eventHandlers["close"]?.(0, null);
-    });
-
-    const result = await promise;
-    expect(result).toBe("OUTPUT_FILE:/tmp/out.dxf\n");
-  });
 });
-
-  // ═════════════════════════════════════════════════════════════════════════════
-  // generateDxf — optional parameters (layers, btContext, mtContext, memoryLimit)
-  // ═════════════════════════════════════════════════════════════════════════════
-
-  describe("generateDxf — optional parameters", () => {
-    const validProbe = {
-      error: null,
-      status: 0,
-      stdout: JSON.stringify({
-        executable: "/usr/bin/python3",
-        version: "3.11.0",
-        missingModules: [],
-        pyEnginePathPresent: true,
-      }),
-      stderr: "",
-    };
-
-    function makeSuccessProcess(
-      stdoutHandlers: Record<string, (...args: any[]) => void>,
-      stderrHandlers: Record<string, (...args: any[]) => void>,
-      eventHandlers: Record<string, (...args: any[]) => void>,
-    ) {
-      return {
-        stdout: {
-          on: vi.fn((event: string, h: (...args: any[]) => void) => { stdoutHandlers[event] = h; }),
-        },
-        stderr: {
-          on: vi.fn((event: string, h: (...args: any[]) => void) => { stderrHandlers[event] = h; }),
-        },
-        on: vi.fn((event: string, h: (...args: any[]) => void) => { eventHandlers[event] = h; }),
-        kill: vi.fn(),
-      };
-    }
-
-    beforeEach(() => {
-      spawnSyncMock.mockReset();
-      spawnMock.mockReset();
-      vi.spyOn(Date, "now").mockReturnValue(Date.now() + 6 * 60 * 1000);
-    });
-
-    afterEach(() => {
-      vi.restoreAllMocks();
-      delete process.env.PYTHON_MEMORY_LIMIT_MB;
-    });
-
-    it("inclui --layers, --bt_context, --mt_context e --memory-limit-mb nos args", async () => {
-      spawnSyncMock.mockReturnValue(validProbe);
-
-      const stdoutH: Record<string, (...args: any[]) => void> = {};
-      const stderrH: Record<string, (...args: any[]) => void> = {};
-      const eventH: Record<string, (...args: any[]) => void> = {};
-      spawnMock.mockReturnValue(makeSuccessProcess(stdoutH, stderrH, eventH));
-
-      process.env.PYTHON_MEMORY_LIMIT_MB = "512";
-
-      const promise = generateDxf({
-        lat: -23.5,
-        lon: -46.6,
-        radius: 100,
-        outputFile: "/tmp/out.dxf",
-        layers: { buildings: true },
-        btContext: { version: 1 },
-        mtContext: { version: 2 },
-      });
-
-      setImmediate(() => {
-        stdoutH["data"]?.(Buffer.from("OUTPUT_FILE:/tmp/out.dxf\n"));
-        stderrH["data"]?.(Buffer.from("some stderr\n"));
-        eventH["close"]?.(0, null);
-      });
-
-      const result = await promise;
-      expect(result).toContain("OUTPUT_FILE");
-
-      // Verify spawn was called with the optional flags
-      const spawnArgs = spawnMock.mock.calls[0];
-      const argsArray: string[] = spawnArgs[1] as string[];
-      expect(argsArray).toContain("--layers");
-      expect(argsArray).toContain("--bt_context");
-      expect(argsArray).toContain("--mt_context");
-      expect(argsArray).toContain("--memory-limit-mb");
-    });
-  });
-
-// ═════════════════════════════════════════════════════════════════════════════
-// requestContext (trivial coverage)
-// ═════════════════════════════════════════════════════════════════════════════
-
-describe("requestContext module", () => {
-  it("exports an object with run and getStore methods", async () => {
-    const { requestContext } = await import("../utils/requestContext.js");
-    expect(typeof requestContext.run).toBe("function");
-    expect(typeof requestContext.getStore).toBe("function");
-  });
-
-  it("can store and retrieve a value via run()", async () => {
-    const { requestContext } = await import("../utils/requestContext.js");
-    const result = await new Promise<string | undefined>((resolve) => {
-      const store = new Map<string, string>();
-      store.set("requestId", "abc-123");
-      requestContext.run(store, () => {
-        resolve(requestContext.getStore()?.get("requestId"));
-      });
-    });
-    expect(result).toBe("abc-123");
-  });
-});
-

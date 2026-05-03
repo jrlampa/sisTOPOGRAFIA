@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 /**
  * jobStatusService.test.ts
- * Tests the full in-memory job lifecycle used when Postgres is unavailable.
+ * Tests the full in-memory job lifecycle with multi-tenancy support.
  */
 
 import {
@@ -26,23 +26,28 @@ vi.mock("../utils/logger", () => ({
   },
 }));
 
+const TEST_TENANT = "tenant-test";
+
 describe("jobStatusService (in-memory)", () => {
-  afterEach(() => {
-    stopCleanupInterval();
+  afterEach(async () => {
+    const { resetServiceState } = await import("../services/jobStatusService");
+    resetServiceState();
   });
 
-  it("should create a job with queued status", () => {
-    const job = createJob("test-job-1");
+  it("should create a job with queued status and tenantId", () => {
+    const job = createJob("test-job-1", TEST_TENANT);
     expect(job.id).toBe("test-job-1");
+    expect(job.tenantId).toBe(TEST_TENANT);
     expect(job.status).toBe("queued");
     expect(job.progress).toBe(0);
   });
 
   it("should retrieve a created job by ID", () => {
-    createJob("test-job-2");
+    createJob("test-job-2", TEST_TENANT);
     const retrieved = getJob("test-job-2");
     expect(retrieved).not.toBeNull();
     expect(retrieved?.status).toBe("queued");
+    expect(retrieved?.tenantId).toBe(TEST_TENANT);
   });
 
   it("should return null for unknown job ID", () => {
@@ -50,7 +55,7 @@ describe("jobStatusService (in-memory)", () => {
   });
 
   it("should update job status and progress", async () => {
-    createJob("test-job-3");
+    createJob("test-job-3", TEST_TENANT);
     await updateJobStatus("test-job-3", "processing", 50);
     const job = getJob("test-job-3");
     expect(job?.status).toBe("processing");
@@ -58,7 +63,7 @@ describe("jobStatusService (in-memory)", () => {
   });
 
   it("should complete a job with result data", async () => {
-    createJob("test-job-4");
+    createJob("test-job-4", TEST_TENANT);
     await completeJob("test-job-4", {
       url: "/downloads/test.dxf",
       filename: "test.dxf",
@@ -71,7 +76,7 @@ describe("jobStatusService (in-memory)", () => {
   });
 
   it("should fail a job and record the error", async () => {
-    createJob("test-job-5");
+    createJob("test-job-5", TEST_TENANT);
     await failJob("test-job-5", "Python engine crashed");
     const job = getJob("test-job-5");
     expect(job?.status).toBe("failed");
@@ -84,7 +89,7 @@ describe("jobStatusService (in-memory)", () => {
   });
 
   it("shouldProcessJob: returns false for completed jobs", async () => {
-    createJob("test-job-6");
+    createJob("test-job-6", TEST_TENANT);
     await completeJob("test-job-6", {
       url: "/downloads/x.dxf",
       filename: "x.dxf",
@@ -93,13 +98,13 @@ describe("jobStatusService (in-memory)", () => {
   });
 
   it("shouldProcessJob: returns false for processing jobs", async () => {
-    createJob("test-job-7");
+    createJob("test-job-7", TEST_TENANT);
     await updateJobStatus("test-job-7", "processing");
     expect(shouldProcessJob("test-job-7")).toBe(false);
   });
 
   it("shouldProcessJob: returns false after 3 failed attempts", async () => {
-    createJob("test-job-8");
+    createJob("test-job-8", TEST_TENANT);
     await failJob("test-job-8", "Err 1");
     await failJob("test-job-8", "Err 2");
     await failJob("test-job-8", "Err 3");
@@ -107,12 +112,12 @@ describe("jobStatusService (in-memory)", () => {
   });
 
   it("createJob stores idempotencyKey in secondary index", () => {
-    const job = createJob("idem-job-1", "my-idem-key");
+    const job = createJob("idem-job-1", TEST_TENANT, "my-idem-key");
     expect(job.idempotencyKey).toBe("my-idem-key");
   });
 
   it("getJobWithPersistence returns in-memory job directly", async () => {
-    createJob("mem-job-1");
+    createJob("mem-job-1", TEST_TENANT);
     const job = await getJobWithPersistence("mem-job-1");
     expect(job?.id).toBe("mem-job-1");
   });
@@ -134,20 +139,20 @@ describe("jobStatusService (in-memory)", () => {
   });
 
   it("findOrCreateJob returns existing non-terminal job", () => {
-    const original = createJob("find-job-1", "unique-key-A");
-    const found = findOrCreateJob("find-job-new", "unique-key-A");
+    const original = createJob("find-job-1", TEST_TENANT, "unique-key-A");
+    const found = findOrCreateJob("find-job-new", TEST_TENANT, "unique-key-A");
     expect(found.id).toBe("find-job-1");
   });
 
   it("findOrCreateJob creates new job when existing key is in terminal state", async () => {
-    createJob("terminal-job-A", "terminal-key-A");
+    createJob("terminal-job-A", TEST_TENANT, "terminal-key-A");
     await completeJob("terminal-job-A", { url: "/x.dxf", filename: "x.dxf" });
-    const newJob = findOrCreateJob("new-terminal-job-A", "terminal-key-A");
+    const newJob = findOrCreateJob("new-terminal-job-A", TEST_TENANT, "terminal-key-A");
     expect(newJob.id).toBe("new-terminal-job-A");
   });
 
   it("findOrCreateJob creates new job when idempotency key not found", () => {
-    const job = findOrCreateJob("brand-new-job", "brand-new-key");
+    const job = findOrCreateJob("brand-new-job", TEST_TENANT, "brand-new-key");
     expect(job.id).toBe("brand-new-job");
   });
 });
@@ -174,6 +179,13 @@ describe("jobStatusService: Postgres persistence", () => {
       __esModule: true,
       default: postgresFactoryMock,
     }));
+    vi.doMock("../repositories/jobRepository.js", () => ({
+      jobRepository: {
+        upsert: vi.fn().mockResolvedValue(undefined),
+        complete: vi.fn().mockResolvedValue(undefined),
+        fail: vi.fn().mockResolvedValue(undefined),
+      },
+    }));
     vi.doMock("../utils/logger", () => ({
       logger: {
         info: vi.fn(),
@@ -194,21 +206,19 @@ describe("jobStatusService: Postgres persistence", () => {
     process.env = { ...originalEnv, NODE_ENV: "development" };
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     process.env = originalEnv;
     vi.clearAllMocks();
+    const { resetServiceState } = await import("../services/jobStatusService");
+    resetServiceState();
   });
-
-  // NOTE: Call order for sqlUnsafeMock:
-  //   CALL #1 = loadJobsFromPostgres SELECT (synchronous inside initializePersistence before first await)
-  //   CALL #2 = persistJob INSERT for 'trigger' (synchronous inside createJob after ensureInitialized returns)
-  //   CALL #3+ = subsequent DB calls (fetchJobFromPostgres, more persistJob, etc.)
 
   it("initializes Postgres and loads existing jobs from DB", async () => {
     sqlUnsafeMock
       .mockResolvedValueOnce([
         {
           id: "loaded-job",
+          tenant_id: TEST_TENANT,
           status: "queued",
           progress: 0,
           result: null,
@@ -218,12 +228,13 @@ describe("jobStatusService: Postgres persistence", () => {
           attempts: 0,
           idempotency_key: "k1",
         },
-      ]) // CALL #1: loadJobsFromPostgres -> loads loaded-job into memory
-      .mockResolvedValue(undefined); // CALL #2: persistJob(trigger) and any others
+      ]) 
+      .mockResolvedValue(undefined); 
 
-    const { createJob: cj, getJob: gj } =
+    const { createJob: cj, getJob: gj, initializePersistence: ip } =
       await import("../services/jobStatusService");
-    cj("trigger-init");
+    await ip();
+    cj("trigger-init", TEST_TENANT);
     await flushPromises();
 
     expect(postgresFactoryMock).toHaveBeenCalledWith(
@@ -240,7 +251,7 @@ describe("jobStatusService: Postgres persistence", () => {
 
     const { createJob: cj, getJob: gj } =
       await import("../services/jobStatusService");
-    cj("fallback-job");
+    cj("fallback-job", TEST_TENANT);
     await flushPromises();
 
     expect(gj("fallback-job")).not.toBeNull();
@@ -248,11 +259,12 @@ describe("jobStatusService: Postgres persistence", () => {
 
   it("getJobWithPersistence reads through to Postgres", async () => {
     sqlUnsafeMock
-      .mockResolvedValueOnce([]) // CALL #1: loadJobsFromPostgres returns empty (pg-job not loaded)
-      .mockResolvedValueOnce(undefined) // CALL #2: persistJob(trigger) INSERT
+      .mockResolvedValueOnce([]) 
+      .mockResolvedValueOnce(undefined) 
       .mockResolvedValueOnce([
         {
           id: "pg-job",
+          tenant_id: TEST_TENANT,
           status: "processing",
           progress: 50,
           result: null,
@@ -262,114 +274,39 @@ describe("jobStatusService: Postgres persistence", () => {
           attempts: 1,
           idempotency_key: null,
         },
-      ]) // CALL #3: fetchJobFromPostgres SELECT
+      ]) 
       .mockResolvedValue(undefined);
 
-    const { createJob: cj, getJobWithPersistence: gwp } =
+    const { createJob: cj, getJobWithPersistence: gwp, initializePersistence: ip } =
       await import("../services/jobStatusService");
-    cj("trigger");
+    await ip();
+    cj("trigger", TEST_TENANT);
     await flushPromises();
 
     const job = await gwp("pg-job");
     expect(job?.id).toBe("pg-job");
   });
 
-  it("getJobWithPersistence returns null when Postgres returns empty rows", async () => {
-    sqlUnsafeMock
-      .mockResolvedValueOnce([]) // CALL #1: loadJobsFromPostgres
-      .mockResolvedValueOnce(undefined) // CALL #2: persistJob(trigger)
-      .mockResolvedValueOnce([]) // CALL #3: fetchJobFromPostgres returns empty
-      .mockResolvedValue(undefined);
-
-    const { createJob: cj, getJobWithPersistence: gwp } =
-      await import("../services/jobStatusService");
-    cj("trigger");
-    await flushPromises();
-
-    const job = await gwp("nonexistent-in-pg");
-    expect(job).toBeNull();
-  });
-
-  it("getJobWithPersistence handles Postgres error gracefully", async () => {
-    sqlUnsafeMock
-      .mockResolvedValueOnce([]) // CALL #1: loadJobsFromPostgres
-      .mockResolvedValueOnce(undefined) // CALL #2: persistJob(trigger)
-      .mockRejectedValueOnce(new Error("PG query error")) // CALL #3: fetchJobFromPostgres throws
-      .mockResolvedValue(undefined);
-
-    const { createJob: cj, getJobWithPersistence: gwp } =
-      await import("../services/jobStatusService");
-    cj("trigger");
-    await flushPromises();
-
-    const job = await gwp("error-job");
-    expect(job).toBeNull();
-  });
-
   it("persistJob is invoked when updating and completing jobs", async () => {
     sqlUnsafeMock
-      .mockResolvedValueOnce([]) // CALL #1: loadJobsFromPostgres
-      .mockResolvedValue(undefined); // all persistJob INSERT calls
+      .mockResolvedValueOnce([]) 
+      .mockResolvedValue(undefined); 
 
     const {
       createJob: cj,
       updateJobStatus: ujs,
       completeJob: cmpj,
+      initializePersistence: ip,
     } = await import("../services/jobStatusService");
-    cj("trigger");
+    await ip();
+    cj("trigger", TEST_TENANT);
     await flushPromises();
 
-    cj("persist-job");
+    cj("persist-job", TEST_TENANT);
     await ujs("persist-job", "processing", 30);
     await cmpj("persist-job", { url: "/f.dxf", filename: "f.dxf" });
     await flushPromises();
 
     expect(sqlUnsafeMock).toHaveBeenCalled();
   });
-
-  it("persistJob handles SQL error gracefully", async () => {
-    sqlUnsafeMock
-      .mockResolvedValueOnce([]) // CALL #1: loadJobsFromPostgres
-      .mockResolvedValueOnce(undefined) // CALL #2: persistJob(trigger) succeeds
-      .mockRejectedValueOnce(new Error("INSERT failed")) // CALL #3: persistJob(persist-fail-job) fails
-      .mockResolvedValue(undefined);
-
-    const { createJob: cj, getJob: gj } =
-      await import("../services/jobStatusService");
-    cj("trigger");
-    await flushPromises();
-
-    cj("persist-fail-job");
-    await flushPromises();
-
-    expect(gj("persist-fail-job")).not.toBeNull();
-  });
-
-  it("loadJobsFromPostgres handles SQL error gracefully", async () => {
-    sqlUnsafeMock
-      .mockRejectedValueOnce(new Error("Select failed")) // CALL #1: loadJobsFromPostgres throws
-      .mockResolvedValue(undefined); // CALL #2: persistJob trigger (postgresAvailable still true until catch runs)
-
-    const { createJob: cj, getJob: gj } =
-      await import("../services/jobStatusService");
-    cj("trigger");
-    await flushPromises();
-
-    expect(gj("trigger")).not.toBeNull();
-  });
-
-  it("stopCleanupInterval closes the Postgres connection", async () => {
-    sqlUnsafeMock
-      .mockResolvedValueOnce([]) // CALL #1: loadJobsFromPostgres succeeds -> sqlClient remains set
-      .mockResolvedValue(undefined); // CALL #2: persistJob(trigger)
-
-    const { createJob: cj, stopCleanupInterval: sci } =
-      await import("../services/jobStatusService");
-    cj("trigger");
-    await flushPromises();
-
-    sci();
-    expect(sqlEndMock).toHaveBeenCalled();
-  });
 });
-

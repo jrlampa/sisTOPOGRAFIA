@@ -116,9 +116,9 @@ describe("hashDgInput", () => {
 });
 
 describe("runDgOptimizer – exaustivo", () => {
-  it("retorna ao menos um cenário viável para rede pequena", () => {
+  it("retorna ao menos um cenário viável para rede pequena", async () => {
     const candidates = generateCandidates(POLES_4, PARAMS_DEFAULT);
-    const { allScenarios, totalCandidatesEvaluated } = runDgOptimizer(
+    const { allScenarios, totalCandidatesEvaluated } = await runDgOptimizer(
       candidates,
       POLES_4,
       TRAFO_75KVA,

@@ -405,21 +405,21 @@ describe("PostgresJobRepository", () => {
 
   it("upsert: calls DB with correct args", async () => {
     mockUnsafe.mockResolvedValue([]);
-    await repo.upsert("job-001", "processing", 50);
-    expect(mockUnsafe.mock.calls[0][1]).toEqual(["job-001", "processing", 50]);
+    await repo.upsert("job-001", "t1", "processing", 50);
+    expect(mockUnsafe.mock.calls[0][1]).toEqual(["job-001", "t1", "processing", 50]);
   });
 
   it("upsert: no-op when DB null", async () => {
     setDbNull();
     await expect(
-      repo.upsert("job-001", "processing", 0),
+      repo.upsert("job-001", "t1", "processing", 0),
     ).resolves.toBeUndefined();
   });
 
   it("upsert: silently handles DB error", async () => {
     mockUnsafe.mockRejectedValue(new Error("conflict"));
     await expect(
-      repo.upsert("job-001", "processing", 0),
+      repo.upsert("job-001", "t1", "processing", 0),
     ).resolves.toBeUndefined();
   });
 
@@ -427,25 +427,26 @@ describe("PostgresJobRepository", () => {
 
   it("complete: passes result payload", async () => {
     mockUnsafe.mockResolvedValue([]);
-    await repo.complete("job-001", {
+    await repo.complete("job-001", "t1", {
       url: "/dl/x.dxf",
       filename: "x.dxf",
       artifactSha256: "sha",
     });
     expect(mockUnsafe.mock.calls[0][1]).toContain("job-001");
+    expect(mockUnsafe.mock.calls[0][1]).toContain("t1");
   });
 
   it("complete: no-op when DB null", async () => {
     setDbNull();
     await expect(
-      repo.complete("job-001", { url: "/dl/x.dxf", filename: "x.dxf" }),
+      repo.complete("job-001", "t1", { url: "/dl/x.dxf", filename: "x.dxf" }),
     ).resolves.toBeUndefined();
   });
 
   it("complete: handles DB error silently", async () => {
     mockUnsafe.mockRejectedValue(new Error("update failed"));
     await expect(
-      repo.complete("job-001", { url: "/dl/x.dxf", filename: "x.dxf" }),
+      repo.complete("job-001", "t1", { url: "/dl/x.dxf", filename: "x.dxf" }),
     ).resolves.toBeUndefined();
   });
 

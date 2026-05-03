@@ -227,9 +227,7 @@ export function analyzeTelescopicPaths(
       maxAllowedAmpacity = chosen.ampacity;
 
       pathEdges.push({
-        edgeId: edge
-          ? buildEdgeId(fromId, toId, input.edges)
-          : `${fromId}-${toId}`,
+        edgeId: edge ? `${fromId}->${toId}` : `${fromId}-${toId}`,
         suggestedConductorId: chosen.id,
         lengthM: edge.lengthMeters,
       });

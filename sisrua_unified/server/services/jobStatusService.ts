@@ -2,11 +2,13 @@ import { logger } from "../utils/logger.js";
 import { createHash } from "crypto";
 import postgres from "postgres";
 import { config } from "../config.js";
+import { jobRepository } from "../repositories/jobRepository.js";
 
 export type JobStatus = "queued" | "processing" | "completed" | "failed";
 
 export interface JobInfo {
   id: string;
+  tenantId: string; // Mandatory for multi-tenancy enforcement
   status: JobStatus;
   progress: number;
   result?: {
@@ -19,8 +21,8 @@ export interface JobInfo {
   error?: string;
   createdAt: Date;
   updatedAt: Date;
-  attempts?: number; // For idempotency tracking
-  idempotencyKey?: string; // SHA-256 of job parameters for deduplication
+  attempts?: number; 
+  idempotencyKey?: string; 
 }
 
 // In-memory storage for job statuses (fallback when Postgres is unavailable)
@@ -48,43 +50,53 @@ const MAX_JOB_AGE = config.JOB_MAX_AGE_MS;
 
 let cleanupIntervalId: NodeJS.Timeout | null = null;
 let initializationStarted = false;
+let initializationPromise: Promise<void> | null = null;
 
+/**
+ * Initializes the Postgres connection pool and loads recent jobs.
+ * This is called automatically by the first job operation.
+ */
 export async function initializePersistence(): Promise<void> {
   if (!USE_SUPABASE_JOBS || !DATABASE_URL || postgresAvailable) {
     return;
   }
 
-  try {
-    sqlClient = postgres(DATABASE_URL, {
-      ssl: config.NODE_ENV === "production" ? "require" : undefined,
-      max: 2,
-      connect_timeout: 8,
-      idle_timeout: 10,
-    });
-
-    // Removed implicit DDL (create table if not exists). This is now handled by migration files.
-
-    postgresAvailable = true;
-    logger.info("JobStatusService: Supabase/Postgres persistence enabled");
-
-    // Load existing jobs from Postgres on startup
-    await loadJobsFromPostgres();
-    
-    // Start cleanup interval after successful initialization
-    startCleanupInterval();
-  } catch (error) {
-    logger.warn(
-      "JobStatusService: Supabase/Postgres unavailable, using in-memory fallback",
-      { error },
-    );
-    postgresAvailable = false;
-    if (sqlClient) {
-      await sqlClient.end({ timeout: 3 }).catch(() => undefined);
-      sqlClient = null;
-    }
-    // Still start cleanup for in-memory fallback
-    startCleanupInterval();
+  if (initializationPromise) {
+    return initializationPromise;
   }
+
+  initializationPromise = (async () => {
+    try {
+      sqlClient = postgres(DATABASE_URL, {
+        ssl: config.NODE_ENV === "production" ? "require" : undefined,
+        max: 5, 
+        connect_timeout: 10,
+        idle_timeout: 15,
+      });
+
+      postgresAvailable = true;
+      logger.info("JobStatusService: Supabase/Postgres persistence enabled");
+
+      // Load existing jobs from Postgres on startup
+      await loadJobsFromPostgres();
+      
+      // Start cleanup interval after successful initialization
+      startCleanupInterval();
+    } catch (error) {
+      logger.warn(
+        "JobStatusService: Supabase/Postgres unavailable, using in-memory fallback",
+        { error },
+      );
+      postgresAvailable = false;
+      if (sqlClient) {
+        await sqlClient.end({ timeout: 3 }).catch(() => undefined);
+        sqlClient = null;
+      }
+      startCleanupInterval();
+    }
+  })();
+
+  return initializationPromise;
 }
 
 async function loadJobsFromPostgres(): Promise<void> {
@@ -95,7 +107,7 @@ async function loadJobsFromPostgres(): Promise<void> {
   try {
     const rows = await sqlClient.unsafe(
       `
-            select id, status, progress, result, error, created_at, updated_at, attempts, idempotency_key
+            select id, tenant_id, status, progress, result, error, created_at, updated_at, attempts, idempotency_key
             from ${JOBS_TABLE}
             where updated_at > (now() - ($1::bigint * interval '1 millisecond'))
         `,
@@ -105,6 +117,7 @@ async function loadJobsFromPostgres(): Promise<void> {
     rows.forEach((row: any) => {
       const job: JobInfo = {
         id: String(row.id),
+        tenantId: String(row.tenant_id),
         status: row.status as JobStatus,
         progress: Number(row.progress || 0),
         result: row.result ?? undefined,
@@ -129,6 +142,7 @@ async function loadJobsFromPostgres(): Promise<void> {
 function mapRowToJobInfo(row: any): JobInfo {
   return {
     id: String(row.id),
+    tenantId: String(row.tenant_id),
     status: row.status as JobStatus,
     progress: Number(row.progress || 0),
     result: row.result ?? undefined,
@@ -148,7 +162,7 @@ async function fetchJobFromPostgres(id: string): Promise<JobInfo | null> {
   try {
     const rows = await sqlClient.unsafe(
       `
-            select id, status, progress, result, error, created_at, updated_at, attempts, idempotency_key
+            select id, tenant_id, status, progress, result, error, created_at, updated_at, attempts, idempotency_key
             from ${JOBS_TABLE}
             where id = $1
             limit 1
@@ -172,46 +186,6 @@ async function fetchJobFromPostgres(id: string): Promise<JobInfo | null> {
       error,
     });
     return null;
-  }
-}
-
-async function persistJob(job: JobInfo): Promise<void> {
-  if (!postgresAvailable || !sqlClient) {
-    return;
-  }
-
-  try {
-    await sqlClient.unsafe(
-      `
-            insert into ${JOBS_TABLE} (id, status, progress, result, error, created_at, updated_at, attempts, idempotency_key)
-            values ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9)
-            on conflict on constraint jobs_pkey
-            do update set
-                status = excluded.status,
-                progress = excluded.progress,
-                result = excluded.result,
-                error = excluded.error,
-                updated_at = excluded.updated_at,
-                attempts = excluded.attempts,
-                idempotency_key = excluded.idempotency_key
-        `,
-      [
-        job.id,
-        job.status,
-        job.progress,
-        job.result ? JSON.stringify(job.result) : null,
-        job.error || null,
-        job.createdAt,
-        job.updatedAt,
-        job.attempts || 0,
-        job.idempotencyKey || null,
-      ],
-    );
-  } catch (error) {
-    logger.error("Failed to persist job to Supabase/Postgres", {
-      jobId: job.id,
-      error,
-    });
   }
 }
 
@@ -248,6 +222,14 @@ export function stopCleanupInterval() {
   }
 }
 
+export function resetServiceState() {
+  stopCleanupInterval();
+  jobs.clear();
+  jobsByIdempotencyKey.clear();
+  initializationStarted = false;
+  initializationPromise = null;
+}
+
 function ensureInitialized(): void {
   if (initializationStarted) {
     return;
@@ -259,19 +241,19 @@ function ensureInitialized(): void {
   }
 
   initializationStarted = true;
-  initializePersistence()
-    .then(() => {
-      startCleanupInterval();
-    })
-    .catch((err) => {
-      logger.error("Failed to initialize Supabase/Postgres for job status", {
-        error: err,
-      });
-      startCleanupInterval();
+  // Non-blocking background initialization
+  initializePersistence().catch((err) => {
+    logger.error("Failed to initialize Supabase/Postgres for job status", {
+      error: err,
     });
+  });
 }
 
-export function createJob(id: string, idempotencyKey?: string): JobInfo {
+/**
+ * Creates a new job. Synchronous for in-memory safety, 
+ * persists to Postgres in the background.
+ */
+export function createJob(id: string, tenantId: string, idempotencyKey?: string): JobInfo {
   ensureInitialized();
 
   if (jobs.size >= MAX_SYSTEM_CAPACITY) {
@@ -288,6 +270,7 @@ export function createJob(id: string, idempotencyKey?: string): JobInfo {
 
   const job: JobInfo = {
     id,
+    tenantId,
     status: "queued",
     progress: 0,
     createdAt: new Date(),
@@ -300,12 +283,12 @@ export function createJob(id: string, idempotencyKey?: string): JobInfo {
     jobsByIdempotencyKey.set(idempotencyKey, id);
   }
 
-  // Persist to Firestore if available
-  persistJob(job).catch((err) =>
-    logger.error("Failed to persist new job", { jobId: id, error: err }),
+  // Background persistence via repository
+  jobRepository.upsert(id, tenantId, "queued", 0).catch((err) =>
+    logger.error("Failed to persist new job", { jobId: id, tenantId, error: err }),
   );
 
-  logger.info("Job created", { jobId: id, idempotencyKey });
+  logger.info("Job created", { jobId: id, tenantId, idempotencyKey });
   return job;
 }
 
@@ -320,16 +303,18 @@ export function getJob(id: string): JobInfo | null {
  */
 export async function getJobWithPersistence(
   id: string,
+  tenantId?: string,
 ): Promise<JobInfo | null> {
   ensureInitialized();
 
   const inMemory = jobs.get(id);
-  if (inMemory) {
+  if (inMemory && (!tenantId || inMemory.tenantId === tenantId)) {
     return inMemory;
   }
 
   return fetchJobFromPostgres(id);
 }
+
 export async function updateJobStatus(
   id: string,
   status: JobStatus,
@@ -346,8 +331,8 @@ export async function updateJobStatus(
     job.updatedAt = new Date();
     jobs.set(id, job);
 
-    // Persist to Firestore
-    await persistJob(job);
+    // Persist to DB via repository
+    await jobRepository.upsert(id, job.tenantId, status, job.progress);
 
     logger.info("Job status updated", { jobId: id, status, progress });
   }
@@ -373,8 +358,8 @@ export async function completeJob(
     job.updatedAt = new Date();
     jobs.set(id, job);
 
-    // Persist to Firestore
-    await persistJob(job);
+    // Persist to DB via repository
+    await jobRepository.complete(id, job.tenantId, result);
 
     logger.info("Job completed", { jobId: id, filename: result.filename });
   }
@@ -391,8 +376,8 @@ export async function failJob(id: string, error: string): Promise<void> {
     job.attempts = (job.attempts || 0) + 1;
     jobs.set(id, job);
 
-    // Persist to Firestore
-    await persistJob(job);
+    // Persist to DB via repository
+    await jobRepository.fail(id, job.tenantId, error);
 
     logger.error("Job failed", { jobId: id, error, attempts: job.attempts });
   }
@@ -446,7 +431,7 @@ export function computeIdempotencyKey(params: Record<string, unknown>): string {
  *   (`completed` | `failed`), the existing job is returned (deduplication).
  * - Otherwise a new job is created with the given *id*.
  */
-export function findOrCreateJob(id: string, idempotencyKey: string): JobInfo {
+export function findOrCreateJob(id: string, tenantId: string, idempotencyKey: string): JobInfo {
   ensureInitialized();
 
   const existingId = jobsByIdempotencyKey.get(idempotencyKey);
@@ -464,5 +449,5 @@ export function findOrCreateJob(id: string, idempotencyKey: string): JobInfo {
     jobsByIdempotencyKey.delete(idempotencyKey);
   }
 
-  return createJob(id, idempotencyKey);
+  return createJob(id, tenantId, idempotencyKey);
 }

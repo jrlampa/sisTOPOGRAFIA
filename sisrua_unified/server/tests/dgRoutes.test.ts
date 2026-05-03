@@ -7,6 +7,17 @@ vi.mock("../services/roleService.js", () => ({
   getUserRole: vi.fn().mockResolvedValue({ role: "admin", tenantId: null }),
 }));
 
+vi.mock("../repositories/dgRunRepository.js", () => ({
+  dgRunRepository: {
+    save: vi.fn().mockResolvedValue(undefined),
+    list: vi.fn().mockResolvedValue([]),
+    listDiscardRates: vi.fn().mockResolvedValue([]),
+    findById: vi.fn().mockResolvedValue(null),
+    findScenarios: vi.fn().mockResolvedValue([]),
+    findRecommendation: vi.fn().mockResolvedValue(null),
+  },
+}));
+
 const BASE = "/api/dg";
 
 const optimizePayload = {

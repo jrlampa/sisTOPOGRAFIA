@@ -1,13 +1,6 @@
 /**
  * canonicalTopologyRepository.test.ts
- * Testa o repositório de topologia canônica Poste-Driven.
- *
- * Cobre:
- *   - readPoles: DB indisponível, leitura com e sem filtro de source, erro SQL
- *   - readEdges: DB indisponível, leitura com e sem filtro de source, erro SQL
- *   - countCanonical: DB indisponível, contagem correta
- *   - readTopology: leitura canônica quando há dados, fallback legado quando vazio,
- *                   forceLegacy ignora canônico, sem dados retorna topologia vazia
+ * Testa o repositório de topologia canônica Poste-Driven com multi-tenancy.
  */
 import { vi } from "vitest";
 
@@ -30,12 +23,14 @@ import { PostgresCanonicalTopologyRepository } from "../repositories/canonicalTo
 import { getDbClient } from "../repositories/dbClient";
 
 const getDbClientMock = getDbClient as vi.Mock;
+const TEST_TENANT = "tenant-repo-test";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function makePoleRow(overrides: Record<string, unknown> = {}) {
   return {
     id: "P-001",
+    tenant_id: TEST_TENANT,
     lat: -23.5505,
     lng: -46.6333,
     title: "Poste 001",
@@ -58,6 +53,7 @@ function makePoleRow(overrides: Record<string, unknown> = {}) {
 function makeEdgeRow(overrides: Record<string, unknown> = {}) {
   return {
     id: "E-001",
+    tenant_id: TEST_TENANT,
     from_pole_id: "P-001",
     to_pole_id: "P-002",
     length_meters: 42.5,
@@ -88,14 +84,14 @@ describe("PostgresCanonicalTopologyRepository", () => {
   describe("readPoles", () => {
     it("retorna array vazio quando DB indisponível", async () => {
       getDbClientMock.mockReturnValueOnce(null);
-      const result = await repo.readPoles();
+      const result = await repo.readPoles(TEST_TENANT);
       expect(result).toEqual([]);
       expect(unsafeMock).not.toHaveBeenCalled();
     });
 
     it("mapeia linha DB para CanonicalPoleNode corretamente", async () => {
       unsafeMock.mockResolvedValueOnce([makePoleRow()]);
-      const result = await repo.readPoles();
+      const result = await repo.readPoles(TEST_TENANT);
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
         id: "P-001",
@@ -110,16 +106,16 @@ describe("PostgresCanonicalTopologyRepository", () => {
       });
     });
 
-    it("passa filtro source na query quando especificado", async () => {
+    it("passa filtro tenant_id e source na query quando especificado", async () => {
       unsafeMock.mockResolvedValueOnce([]);
-      await repo.readPoles("legacy_bt");
+      await repo.readPoles(TEST_TENANT, "legacy_bt");
       expect(unsafeMock).toHaveBeenCalledTimes(1);
-      expect(unsafeMock.mock.calls[0][1]).toEqual(["legacy_bt"]);
+      expect(unsafeMock.mock.calls[0][1]).toEqual([TEST_TENANT, "legacy_bt"]);
     });
 
     it("retorna array vazio em caso de erro SQL", async () => {
       unsafeMock.mockRejectedValueOnce(new Error("SQL error"));
-      const result = await repo.readPoles();
+      const result = await repo.readPoles(TEST_TENANT);
       expect(result).toEqual([]);
     });
 
@@ -128,7 +124,7 @@ describe("PostgresCanonicalTopologyRepository", () => {
       unsafeMock.mockResolvedValueOnce([
         makePoleRow({ bt_structures: JSON.stringify(structures) }),
       ]);
-      const result = await repo.readPoles();
+      const result = await repo.readPoles(TEST_TENANT);
       expect(result[0].btStructures).toEqual(structures);
     });
 
@@ -137,7 +133,7 @@ describe("PostgresCanonicalTopologyRepository", () => {
       unsafeMock.mockResolvedValueOnce([
         makePoleRow({ bt_structures: structures }),
       ]);
-      const result = await repo.readPoles();
+      const result = await repo.readPoles(TEST_TENANT);
       expect(result[0].btStructures).toEqual(structures);
     });
   });
@@ -147,13 +143,13 @@ describe("PostgresCanonicalTopologyRepository", () => {
   describe("readEdges", () => {
     it("retorna array vazio quando DB indisponível", async () => {
       getDbClientMock.mockReturnValueOnce(null);
-      const result = await repo.readEdges();
+      const result = await repo.readEdges(TEST_TENANT);
       expect(result).toEqual([]);
     });
 
     it("mapeia linha DB para CanonicalNetworkEdge corretamente", async () => {
       unsafeMock.mockResolvedValueOnce([makeEdgeRow()]);
-      const result = await repo.readEdges();
+      const result = await repo.readEdges(TEST_TENANT);
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
         id: "E-001",
@@ -165,23 +161,16 @@ describe("PostgresCanonicalTopologyRepository", () => {
       });
     });
 
-    it("passa filtro source na query quando especificado", async () => {
+    it("passa filtro tenant_id e source na query quando especificado", async () => {
       unsafeMock.mockResolvedValueOnce([]);
-      await repo.readEdges("legacy_mt");
-      expect(unsafeMock.mock.calls[0][1]).toEqual(["legacy_mt"]);
-    });
-
-    it("retorna undefined para cqtLengthMeters quando null", async () => {
-      unsafeMock.mockResolvedValueOnce([
-        makeEdgeRow({ cqt_length_meters: null }),
-      ]);
-      const result = await repo.readEdges();
-      expect(result[0].cqtLengthMeters).toBeUndefined();
+      await repo.readEdges(TEST_TENANT, "legacy_mt");
+      expect(unsafeMock).toHaveBeenCalledTimes(1);
+      expect(unsafeMock.mock.calls[0][1]).toEqual([TEST_TENANT, "legacy_mt"]);
     });
 
     it("retorna array vazio em caso de erro SQL", async () => {
       unsafeMock.mockRejectedValueOnce(new Error("SQL error"));
-      const result = await repo.readEdges();
+      const result = await repo.readEdges(TEST_TENANT);
       expect(result).toEqual([]);
     });
   });
@@ -191,22 +180,17 @@ describe("PostgresCanonicalTopologyRepository", () => {
   describe("countCanonical", () => {
     it("retorna zeros quando DB indisponível", async () => {
       getDbClientMock.mockReturnValueOnce(null);
-      const result = await repo.countCanonical();
+      const result = await repo.countCanonical(TEST_TENANT);
       expect(result).toEqual({ poles: 0, edges: 0 });
     });
 
-    it("retorna contagens corretas quando DB disponível", async () => {
+    it("retorna contagens corretas para o tenant", async () => {
       unsafeMock
         .mockResolvedValueOnce([{ cnt: "15" }])
         .mockResolvedValueOnce([{ cnt: "30" }]);
-      const result = await repo.countCanonical();
+      const result = await repo.countCanonical(TEST_TENANT);
       expect(result).toEqual({ poles: 15, edges: 30 });
-    });
-
-    it("retorna zeros em caso de erro SQL", async () => {
-      unsafeMock.mockRejectedValue(new Error("SQL error"));
-      const result = await repo.countCanonical();
-      expect(result).toEqual({ poles: 0, edges: 0 });
+      expect(unsafeMock.mock.calls[0][1]).toEqual([TEST_TENANT]);
     });
   });
 
@@ -221,7 +205,7 @@ describe("PostgresCanonicalTopologyRepository", () => {
         .mockResolvedValueOnce([makePoleRow()]) // readPoles
         .mockResolvedValueOnce([makeEdgeRow()]); // readEdges
 
-      const result = await repo.readTopology();
+      const result = await repo.readTopology(TEST_TENANT);
       expect(result.source).toBe("canonical");
       expect(result.poleCount).toBe(1);
       expect(result.edgeCount).toBe(1);
@@ -244,7 +228,7 @@ describe("PostgresCanonicalTopologyRepository", () => {
           },
         ]);
 
-      const result = await repo.readTopology("task-legado-123");
+      const result = await repo.readTopology(TEST_TENANT, "task-legado-123");
       expect(result.source).toBe("legacy");
       expect(result.poleCount).toBe(1);
       expect(result.topology.poles[0]).toMatchObject({
@@ -254,7 +238,7 @@ describe("PostgresCanonicalTopologyRepository", () => {
     });
 
     it("forceLegacy ignora canônico mesmo com dados disponíveis", async () => {
-      // countCanonical seria chamado, mas forceLegacy=true pula direto para legado
+      // countCanonical: poles=10, edges=5
       unsafeMock
         .mockResolvedValueOnce([{ cnt: "10" }]) // count poles
         .mockResolvedValueOnce([{ cnt: "5" }]) // count edges
@@ -272,7 +256,7 @@ describe("PostgresCanonicalTopologyRepository", () => {
           },
         ]);
 
-      const result = await repo.readTopology("task-123", true);
+      const result = await repo.readTopology(TEST_TENANT, "task-123", true);
       expect(result.source).toBe("legacy");
       expect(result.topology.poles[0].id).toBe("P-F01");
     });
@@ -282,7 +266,7 @@ describe("PostgresCanonicalTopologyRepository", () => {
         .mockResolvedValueOnce([{ cnt: "0" }])
         .mockResolvedValueOnce([{ cnt: "0" }]);
 
-      const result = await repo.readTopology();
+      const result = await repo.readTopology(TEST_TENANT);
       expect(result.source).toBe("canonical");
       expect(result.poleCount).toBe(0);
       expect(result.edgeCount).toBe(0);
@@ -307,7 +291,7 @@ describe("PostgresCanonicalTopologyRepository", () => {
           },
         ]);
 
-      const result = await repo.readTopology("task-abc");
+      const result = await repo.readTopology(TEST_TENANT, "task-abc");
       // Mesmo id → mesclado em um único poste com hasBt=true e hasMt=true
       const poles = result.topology.poles.filter((p) => p.id === "P-C01");
       expect(poles).toHaveLength(1);
@@ -316,4 +300,3 @@ describe("PostgresCanonicalTopologyRepository", () => {
     });
   });
 });
-

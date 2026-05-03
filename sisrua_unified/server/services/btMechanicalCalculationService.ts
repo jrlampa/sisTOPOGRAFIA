@@ -45,28 +45,31 @@ export interface BtMechanicalOutput {
 /**
  * Performs vector summation of mechanical tractions on each pole.
  * Now aggregates multiple circuits per span.
+ * Optimized for O(N) performance on large topologies.
  */
 export function calculateBtMechanical(input: BtMechanicalInput): BtMechanicalOutput {
     const { nodes, edges } = input;
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    const edgeMap = new Map(edges.map(e => [e.id, e]));
     const nodeResults: BtMechanicalNodeResult[] = [];
     const edgeResults: BtMechanicalEdgeResult[] = [];
 
-    // Group edges by incident nodes
+    // Group edges by incident nodes (Adjacency List)
     const adj = new Map<string, string[]>();
-    edges.forEach(edge => {
+    
+    // Pass 1: Build adjacency and pre-calculate per-edge totals
+    for (const edge of edges) {
         if (!adj.has(edge.fromNodeId)) adj.set(edge.fromNodeId, []);
         if (!adj.has(edge.toNodeId)) adj.set(edge.toNodeId, []);
         adj.get(edge.fromNodeId)!.push(edge.id);
         adj.get(edge.toNodeId)!.push(edge.id);
 
-        // Pre-calculate per-edge totals
         let edgeTraction = 0;
         let edgeWeight = 0;
         for (const cond of edge.conductors) {
             const data = LIGHT_CONDUCTOR_MECHANICAL_DATA[cond.conductorName] || LIGHT_CONDUCTOR_MECHANICAL_DATA['DEFAULT'];
             edgeTraction += cond.quantity * data.designTractionDaN;
-            edgeWeight += cond.quantity * data.weightDaNm; // Assuming DaNm * L, but here we just show the base load
+            edgeWeight += cond.quantity * data.weightDaNm;
         }
         edgeResults.push({
             edgeId: edge.id,
@@ -74,8 +77,9 @@ export function calculateBtMechanical(input: BtMechanicalInput): BtMechanicalOut
             totalWeightDaN: edgeWeight,
             circuitsCount: edge.conductors.length
         });
-    });
+    }
 
+    // Pass 2: Vector summation for each node
     for (const node of nodes) {
         const incidentEdgeIds = adj.get(node.id) || [];
         let totalX = 0;
@@ -83,7 +87,9 @@ export function calculateBtMechanical(input: BtMechanicalInput): BtMechanicalOut
         const incidentVectors: BtMechanicalNodeResult['incidentVectors'] = [];
 
         for (const edgeId of incidentEdgeIds) {
-            const edge = edges.find(e => e.id === edgeId)!;
+            const edge = edgeMap.get(edgeId);
+            if (!edge) continue;
+
             const otherNodeId = edge.fromNodeId === node.id ? edge.toNodeId : edge.fromNodeId;
             const otherNode = nodeMap.get(otherNodeId);
 
@@ -91,24 +97,20 @@ export function calculateBtMechanical(input: BtMechanicalInput): BtMechanicalOut
                 throw new BtMechanicalValidationError(`Edge ${edgeId} references unknown node ${otherNodeId}`);
             }
 
-            // Calculate bearing from current node to neighbor
+            // Calculate bearing (Azimuth) from current node to neighbor
             const bearing = calculateBearing(node.lat, node.lng, otherNode.lat, otherNode.lng);
             
-            // Calculate total design traction in this span
             let spanTractionDaN = 0;
             for (const cond of edge.conductors) {
                 const data = LIGHT_CONDUCTOR_MECHANICAL_DATA[cond.conductorName] || LIGHT_CONDUCTOR_MECHANICAL_DATA['DEFAULT'];
                 spanTractionDaN += cond.quantity * data.designTractionDaN;
             }
 
-            // Convert to Cartesian components (Bearing 0 = North = Y axis)
-            // θ_math = 90 - bearing
+            // Convert Azimuth (0=North, clockwise) to Cartesian Math Angle (0=East, counter-clockwise)
+            // θ_math = 90 - Azimuth
             const angleRad = ((90 - bearing) * Math.PI) / 180;
-            const vx = spanTractionDaN * Math.cos(angleRad);
-            const vy = spanTractionDaN * Math.sin(angleRad);
-
-            totalX += vx;
-            totalY += vy;
+            totalX += spanTractionDaN * Math.cos(angleRad);
+            totalY += spanTractionDaN * Math.sin(angleRad);
 
             incidentVectors.push({
                 toNodeId: otherNodeId,
@@ -121,7 +123,7 @@ export function calculateBtMechanical(input: BtMechanicalInput): BtMechanicalOut
         const resultantAngleRad = Math.atan2(totalY, totalX);
         const resultantAngleDegrees = (90 - (resultantAngleRad * 180) / Math.PI + 360) % 360;
 
-        const nominalCapacity = node.nominalCapacityDaN || 300; // Default Light pole
+        const nominalCapacity = node.nominalCapacityDaN || 300; 
         const overloaded = resultantForceDaN > nominalCapacity;
 
         nodeResults.push({

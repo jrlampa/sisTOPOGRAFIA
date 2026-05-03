@@ -221,18 +221,66 @@ function graspLocalImprovement(scenarios: DgScenario[], poles: DgPoleInput[], tr
 
 export interface OptimizerResult { allScenarios: DgScenario[]; totalCandidatesEvaluated: number; }
 
-export function runDgOptimizer(candidates: DgCandidate[], poles: DgPoleInput[], transformer: DgTransformerInput | undefined, exclusionPolygons: DgExclusionPolygon[], roadCorridors: DgRoadCorridor[], params: DgParams): OptimizerResult {
+/** Evaluation in chunks to avoid event-loop starvation */
+async function evaluateInChunks(
+  candidates: DgCandidate[],
+  derivedPoles: DgPoleInput[],
+  transformer: DgTransformerInput | undefined,
+  exclusionPolygons: DgExclusionPolygon[],
+  roadCorridors: DgRoadCorridor[],
+  params: DgParams,
+  chunkSize: number = 5
+): Promise<DgScenario[]> {
+  const allResults: DgScenario[] = [];
+  for (let i = 0; i < candidates.length; i += chunkSize) {
+    const chunk = candidates.slice(i, i + chunkSize);
+    const results = chunk.map(cand => evaluateCandidate(cand, derivedPoles, transformer, exclusionPolygons, roadCorridors, params));
+    allResults.push(...results);
+    
+    // Yield to event loop
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  return allResults;
+}
+
+export async function runDgOptimizer(
+  candidates: DgCandidate[],
+  poles: DgPoleInput[],
+  transformer: DgTransformerInput | undefined,
+  exclusionPolygons: DgExclusionPolygon[],
+  roadCorridors: DgRoadCorridor[],
+  params: DgParams
+): Promise<OptimizerResult> {
   const derivedPoles = derivePolesDemand(poles, params);
   const maxEval = params.maxCandidatesHeuristic ?? 50; 
   const candidatesToEvaluate = params.searchMode === "heuristic" 
     ? [...candidates].sort((a, b) => a.weightedDistanceSum - b.weightedDistanceSum).slice(0, maxEval)
     : candidates;
 
-  const evaluated = candidatesToEvaluate.map(cand => evaluateCandidate(cand, derivedPoles, transformer, exclusionPolygons, roadCorridors, params));
+  const evaluated = await evaluateInChunks(candidatesToEvaluate, derivedPoles, transformer, exclusionPolygons, roadCorridors, params);
   let allScenarios = evaluated;
+  
   if (params.searchMode === "heuristic") {
-    const improved = graspLocalImprovement(evaluated, derivedPoles, transformer, exclusionPolygons, roadCorridors, params);
+    // Local improvement also chunked
+    const feasible = evaluated.filter(s => s.feasible);
+    const improved: DgScenario[] = [];
+    const polesUtm = derivedPoles.map(p => ({ ...p, positionUtm: latLonToUtm(p.position.lat, p.position.lon) }));
+    
+    for (let i = 0; i < feasible.length; i++) {
+        const scenario = feasible[i];
+        const sorted = [...polesUtm].sort((a, b) => euclideanDistanceM(a.positionUtm, scenario.trafoPositionUtm) - euclideanDistanceM(b.positionUtm, scenario.trafoPositionUtm));
+        const k = Math.min(3, sorted.length);
+        const cx = sorted.slice(0, k).reduce((s, p) => s + p.positionUtm.x, 0) / k;
+        const cy = sorted.slice(0, k).reduce((s, p) => s + p.positionUtm.y, 0) / k;
+        const perturbedCandidate = { candidateId: `grasp-${scenario.candidateId}`, position: utmToLatLon(cx, cy), positionUtm: { x: cx, y: cy }, weightedDistanceSum: 0, source: "fermat_weber" as const };
+        
+        const perturbedScenario = evaluateCandidate(perturbedCandidate, derivedPoles, transformer, exclusionPolygons, roadCorridors, params);
+        improved.push(perturbedScenario.objectiveScore > scenario.objectiveScore ? perturbedScenario : scenario);
+        
+        if (i % 5 === 0) await new Promise(resolve => setImmediate(resolve));
+    }
     allScenarios = [...evaluated, ...improved];
   }
+  
   return { allScenarios, totalCandidatesEvaluated: candidatesToEvaluate.length };
 }

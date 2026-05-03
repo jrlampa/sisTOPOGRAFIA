@@ -101,7 +101,7 @@ export async function runDgOptimization(
   }
 
   const candidates = generateCandidates(input.poles, params);
-  const { allScenarios, totalCandidatesEvaluated } = runDgOptimizer(
+  const { allScenarios, totalCandidatesEvaluated } = await runDgOptimizer(
     candidates,
     input.poles,
     input.transformer,
