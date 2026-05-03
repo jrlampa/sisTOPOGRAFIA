@@ -11,6 +11,8 @@ import {
   BtClandestinoDisplay, 
   BtTransformerDerived 
 } from "../services/btDerivedService";
+import { getMainMapWorkspaceText } from "../i18n/mainMapWorkspaceText";
+import { getGuidedTaskChecklistText } from "../i18n/guidedTaskChecklistText";
 
 interface AppWorkspaceProps {
   settings: AppSettings;
@@ -296,7 +298,7 @@ export function AppWorkspace(props: AppWorkspaceProps) {
             setIsHelpOpen(false);
             handleSelectionModeChange("circle");
             showToast(
-              "Clique no mapa para definir o centro da analise.",
+              getMainMapWorkspaceText(settings.locale).clickToDefineCenter,
               "info",
             );
           },
@@ -320,7 +322,7 @@ export function AppWorkspace(props: AppWorkspaceProps) {
         onMapClickAction={() => {
           setIsHelpOpen(false);
           handleSelectionModeChange("circle");
-          showToast("Clique no mapa para definir o centro da analise.", "info");
+          showToast(getMainMapWorkspaceText(settings.locale).clickToDefineCenter, "info");
         }}
         autoSaveStatus={autoSaveStatus}
         lastAutoSaved={lastAutoSaved}
@@ -358,15 +360,16 @@ export function AppWorkspace(props: AppWorkspaceProps) {
       </React.Suspense>
 
       <GuidedTaskChecklist
+        locale={settings.locale}
         tasks={[
-          { id: "area", label: "Selecionar área no mapa", done: !!osmData },
-          { id: "bt", label: "Lançar rede BT (postes)", done: hasBtPoles },
+          { id: "area", label: getGuidedTaskChecklistText(settings.locale).taskArea, done: !!osmData },
+          { id: "bt", label: getGuidedTaskChecklistText(settings.locale).taskBt, done: hasBtPoles },
           {
             id: "terrain",
-            label: "Carregar terreno 2.5D",
+            label: getGuidedTaskChecklistText(settings.locale).taskTerrain,
             done: !!terrainData,
           },
-          { id: "export", label: "Exportar DXF", done: false },
+          { id: "export", label: getGuidedTaskChecklistText(settings.locale).taskExport, done: false },
         ]}
       />
     </>

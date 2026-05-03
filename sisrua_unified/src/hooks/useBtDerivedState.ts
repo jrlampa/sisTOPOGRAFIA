@@ -81,33 +81,37 @@ export function useBtDerivedState({
   useEffect(() => {
     let active = true;
 
-    fetchBtDerivedState({
-      topology: btTopology as BtTopology,
-      projectType: settings.projectType ?? "ramais",
-      clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
-    })
-      .then((payload) => {
-        if (!active) {
-          return;
-        }
-        setBtAccumulatedByPole(payload.accumulatedByPole);
-        setBtEstimatedByTransformer(payload.estimatedByTransformer);
-        setBtSummary(payload.summary);
-        setBtPointDemandKva(payload.pointDemandKva);
-        setBtSectioningImpact(
-          payload.sectioningImpact ?? EMPTY_SECTIONING_IMPACT,
-        );
-        setBtClandestinoDisplay(
-          payload.clandestinoDisplay ?? EMPTY_CLANDESTINO_DISPLAY,
-        );
-        setBtTransformersDerived(payload.transformersDerived ?? []);
+    // Debounce: aguarda 300ms de inatividade na topologia antes de disparar o motor de cálculo
+    const timer = setTimeout(() => {
+      fetchBtDerivedState({
+        topology: btTopology as BtTopology,
+        projectType: settings.projectType ?? "ramais",
+        clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
       })
-      .catch(() => {
-        // On error, keep previous values (no silent local fallback).
-      });
+        .then((payload) => {
+          if (!active) {
+            return;
+          }
+          setBtAccumulatedByPole(payload.accumulatedByPole);
+          setBtEstimatedByTransformer(payload.estimatedByTransformer);
+          setBtSummary(payload.summary);
+          setBtPointDemandKva(payload.pointDemandKva);
+          setBtSectioningImpact(
+            payload.sectioningImpact ?? EMPTY_SECTIONING_IMPACT,
+          );
+          setBtClandestinoDisplay(
+            payload.clandestinoDisplay ?? EMPTY_CLANDESTINO_DISPLAY,
+          );
+          setBtTransformersDerived(payload.transformersDerived ?? []);
+        })
+        .catch(() => {
+          // On error, keep previous values (no silent local fallback).
+        });
+    }, 300);
 
     return () => {
       active = false;
+      clearTimeout(timer);
     };
   }, [btTopology, settings.projectType, settings.clandestinoAreaM2]);
 

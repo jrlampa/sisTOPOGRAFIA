@@ -13,6 +13,33 @@ export interface HistoryState<T> {
   future: HistoryEntry<T>[];
 }
 
+/**
+ * High-performance deep equality check optimized for large state objects.
+ * Prioritizes reference checks and avoids deep traversal of massive arrays.
+ */
+function fastDeepEqual(a: any, b: any): boolean {
+  if (a === b) return true;
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+  
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    // Optimization: For large arrays (topology), we rely on reference equality
+    if (a.length > 50) return a === b; 
+    for (let i = 0; i < a.length; i++) {
+      if (!fastDeepEqual(a[i], b[i])) return false;
+    }
+    return true;
+  }
+
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  for (const key of keys) {
+    if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+    if (!fastDeepEqual(a[key], b[key])) return false;
+  }
+  return true;
+}
+
 export function useUndoRedo<T>(initialPresent: T) {
   const [state, setState] = useState<HistoryState<T>>({
     past: [],
@@ -75,8 +102,8 @@ export function useUndoRedo<T>(initialPresent: T) {
       assertImmutable(resolvedNewPresent, 'appState in useUndoRedo.set()');
 
       if (commit) {
-        // Prevent duplicate history entries if value hasn't effectively changed
-        if (JSON.stringify(currentState.present) === JSON.stringify(resolvedNewPresent)) {
+        // High-performance deduplication
+        if (fastDeepEqual(currentState.present, resolvedNewPresent)) {
             return currentState;
         }
         return {

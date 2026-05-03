@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Circle, ChevronDown, ChevronUp, X } from "lucide-react";
+import { getGuidedTaskChecklistText } from "../i18n/guidedTaskChecklistText";
+import { AppLocale } from "../types";
 
 export interface GuidedTask {
   id: string;
@@ -11,6 +13,7 @@ export interface GuidedTask {
 interface GuidedTaskChecklistProps {
   /** Controlled task list — parent derives done state from app state */
   tasks: GuidedTask[];
+  locale: AppLocale;
   onDismiss?: () => void;
 }
 
@@ -18,12 +21,15 @@ const STORAGE_KEY = "sisrua.guided_checklist.dismissed";
 
 export function GuidedTaskChecklist({
   tasks,
+  locale,
   onDismiss,
 }: GuidedTaskChecklistProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [dismissed, setDismissed] = useState(
     () => localStorage.getItem(STORAGE_KEY) === "true",
   );
+
+  const t = getGuidedTaskChecklistText(locale);
 
   // Auto-collapse once all done
   useEffect(() => {
@@ -54,13 +60,13 @@ export function GuidedTaskChecklist({
         transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
         className="fixed bottom-6 right-6 z-[9000] w-60 rounded-2xl border border-white/20 bg-white/90 dark:bg-slate-900/90 shadow-2xl backdrop-blur-xl"
         role="region"
-        aria-label="Checklist de início rápido"
+        aria-label={t.regionLabel}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="text-xs font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">
-              Início rápido
+              {t.headerTitle}
             </span>
             <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-600 dark:bg-blue-500/20 dark:text-blue-300">
               {doneCount}/{tasks.length}
@@ -70,7 +76,7 @@ export function GuidedTaskChecklist({
             <button
               onClick={() => setCollapsed((c) => !c)}
               aria-label={
-                collapsed ? "Expandir checklist" : "Recolher checklist"
+                collapsed ? t.expandLabel : t.collapseLabel
               }
               className="flex h-6 w-6 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
             >
@@ -78,7 +84,7 @@ export function GuidedTaskChecklist({
             </button>
             <button
               onClick={handleDismiss}
-              aria-label="Fechar checklist"
+              aria-label={t.closeLabel}
               className="flex h-6 w-6 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
             >
               <X size={13} />
@@ -152,7 +158,7 @@ export function GuidedTaskChecklist({
               exit={{ opacity: 0, height: 0 }}
               className="border-t border-emerald-100 dark:border-emerald-500/20 px-4 py-2 text-center text-[11px] font-bold text-emerald-600 dark:text-emerald-400"
             >
-              ✓ Projeto configurado!
+              {t.successMsg}
             </motion.div>
           )}
         </AnimatePresence>

@@ -10,6 +10,7 @@ type MainMapWorkspaceText = {
   navHintScroll: string;
   navHintMiddleBtn: string;
   elevationProfileLoading: string;
+  clickToDefineCenter: string;
   ghostEstimate: string;
   ghostDeltaCqt: string;
   ghostRealtimeImpact: string;
@@ -26,6 +27,7 @@ const TEXTS: Record<AppLocale, MainMapWorkspaceText> = {
     navHintScroll: "Roda do mouse: zoom",
     navHintMiddleBtn: "Botão do meio: pan livre",
     elevationProfileLoading: "Carregando perfil altimétrico",
+    clickToDefineCenter: "Clique no mapa para definir o centro da análise.",
     ghostEstimate: "Estimativa",
     ghostDeltaCqt: "Δ CQT:",
     ghostRealtimeImpact: "Impacto em Tempo Real",
@@ -40,6 +42,7 @@ const TEXTS: Record<AppLocale, MainMapWorkspaceText> = {
     navHintScroll: "Mouse wheel: zoom",
     navHintMiddleBtn: "Middle button: free pan",
     elevationProfileLoading: "Loading elevation profile",
+    clickToDefineCenter: "Click on the map to define the analysis center.",
     ghostEstimate: "Estimate",
     ghostDeltaCqt: "Δ V.D.:",
     ghostRealtimeImpact: "Real-time Impact",
@@ -54,6 +57,7 @@ const TEXTS: Record<AppLocale, MainMapWorkspaceText> = {
     navHintScroll: "Rueda del ratón: zoom",
     navHintMiddleBtn: "Botón central: pan libre",
     elevationProfileLoading: "Cargando perfil altimétrico",
+    clickToDefineCenter: "Haga clic en el mapa para definir el centro del análisis.",
     ghostEstimate: "Estimación",
     ghostDeltaCqt: "Δ C.V.:",
     ghostRealtimeImpact: "Impacto en Tiempo Real",
