@@ -102,6 +102,7 @@ interface AppWorkspaceProps {
   terrainData: any;
   showSettings: boolean;
   closeSettings: () => void;
+  isCalculating: boolean;
 }
 
 export function AppWorkspace(props: AppWorkspaceProps) {
@@ -191,6 +192,7 @@ export function AppWorkspace(props: AppWorkspaceProps) {
     commandPaletteActions,
     handleGoToPole,
     terrainData,
+    isCalculating,
   } = props;
 
   return (
@@ -262,7 +264,10 @@ export function AppWorkspace(props: AppWorkspaceProps) {
           locale: settings.locale,
           isSidebarDockedForRamalModal,
           selectionControlsProps: sidebarSelectionControlsProps,
-          btEditorSectionProps: sidebarBtEditorSectionProps,
+          btEditorSectionProps: {
+            ...sidebarBtEditorSectionProps,
+            isCalculating,
+          },
           mtEditorSectionProps: {
             locale: settings.locale,
             mtTopology,

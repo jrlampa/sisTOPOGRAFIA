@@ -76,6 +76,7 @@ function App() {
   );
 
   const {
+    isCalculating,
     btAccumulatedByPole,
     btTransformerDebugById,
     btCriticalPoleId,
@@ -221,6 +222,7 @@ function App() {
     handleBtRenamePole,
     handleBtRenameTransformer,
     handleBtSetPoleVerified,
+    handleBtSetPoleVerified: _onBtSetPoleVerified,
     handleBtQuickAddPoleRamal,
     handleBtQuickRemovePoleRamal,
     handleBtQuickAddEdgeConductor,
@@ -477,6 +479,7 @@ function App() {
     btNetworkScenario,
     btSectioningImpact,
     btAccumulatedByPole,
+    isCalculating,
     osmData,
     handlePolygonChange,
     measurePathPoints,
@@ -497,6 +500,7 @@ function App() {
     isPreviewActive,
     handleBoxSelect,
     locale: settings.locale,
+    theme: settings.theme,
   }), [
     center, btEdgeFlyToTarget, btPoleFlyToTarget, btTransformerFlyToTarget, radius,
     selectionMode, polygonPoints, handleMapClick, btEditorMode, mapRenderSources,
@@ -508,7 +512,7 @@ function App() {
     handleBtSetPoleVerified, handleBtSetPoleChangeFlag, handleBtTogglePoleCircuitBreak,
     handleBtSetTransformerChangeFlag, handleBtDragPole, handleBtDragTransformer,
     btCriticalPoleId, btNetworkScenario, btSectioningImpact, btAccumulatedByPole,
-    osmData, handlePolygonChange, measurePathPoints, handleMeasurePathChange,
+    isCalculating, osmData, handlePolygonChange, measurePathPoints, handleMeasurePathChange,
     handleKmlDrop, settings, handleMtMapClick, handleMtContextAction, handleMtDeletePole,
     handleMtDeleteEdge, handleMtRenamePole, handleMtSetPoleVerified, handleMtDragPole,
     handleMtSetPoleChangeFlag, handleMtSetEdgeChangeFlag, handleBtSelectedPoleChange,
@@ -543,7 +547,7 @@ function App() {
     setNormalRamalModal, setNormalToClandestinoModal, setResetConfirmOpen
   ]);
 
-  const { sidebarSelectionControlsProps, sidebarBtEditorSectionProps, sidebarAnalysisResultsProps } = useAppSidebarProps({ settings, center, searchQuery, setSearchQuery, isSearching, handleSearch, selectionMode, handleSelectionModeChange, radius, handleRadiusChange, saveSnapshot, handleFetchAndAnalyze, isProcessing, isPolygonValid, setBtNetworkScenario, setBtEditorMode, btNetworkScenario, btEditorMode, btTopology, dgTopologySource, btAccumulatedByPole, btSummary, btPointDemandKva, btTransformerDebugById, btPoleCoordinateInput, setBtPoleCoordinateInput, handleBtInsertPoleByCoordinates, pendingNormalClassificationPoles, handleResetBtTopology, updateBtTopology, updateProjectType, updateClandestinoAreaM2, handleBtSelectedPoleChange, handleBtSelectedTransformerChange, handleBtSelectedEdgeChange, handleBtRenamePole, handleBtRenameTransformer, handleBtSetEdgeChangeFlag, handleBtSetPoleChangeFlag, handleBtTogglePoleCircuitBreak, handleBtSetTransformerChangeFlag, btClandestinoDisplay, btTransformersDerived, requestCriticalConfirmation, handleTriggerTelescopicAnalysis, isDgOptimizing, dgResult, dgError, dgActiveAltIndex, handleRunDgOptimization, handleAcceptDgAll, handleAcceptDgTrafoOnly, handleDiscardDgResult, setDgActiveAltIndex, isPreviewActive, setIsPreviewActive, selectedPoleId, selectedPoleIds, selectedEdgeId, selectedTransformerId, setSelectedPoleId, setSelectedPoleIds, setSelectedEdgeId, setSelectedTransformerId, mtTopology, osmData, stats, analysisText, terrainData, error, handleDownloadDxf, handleDownloadCoordinatesCsv, isDownloading, showToast });
+  const { sidebarSelectionControlsProps, sidebarBtEditorSectionProps, sidebarAnalysisResultsProps } = useAppSidebarProps({ settings, center, searchQuery, setSearchQuery, isSearching, handleSearch, selectionMode, handleSelectionModeChange, radius, handleRadiusChange, saveSnapshot, handleFetchAndAnalyze, isProcessing, isPolygonValid, setBtNetworkScenario, setBtEditorMode, btNetworkScenario, btEditorMode, btTopology, dgTopologySource, btAccumulatedByPole, btSummary, btPointDemandKva, btTransformerDebugById, btPoleCoordinateInput, setBtPoleCoordinateInput, handleBtInsertPoleByCoordinates, pendingNormalClassificationPoles, handleResetBtTopology, updateBtTopology, updateProjectType, updateClandestinoAreaM2, handleBtSelectedPoleChange, handleBtSelectedTransformerChange, handleBtSelectedEdgeChange, handleBtRenamePole, handleBtRenameTransformer, handleBtSetEdgeChangeFlag, handleBtSetPoleChangeFlag, handleBtTogglePoleCircuitBreak, handleBtSetTransformerChangeFlag, btClandestinoDisplay, btTransformersDerived, requestCriticalConfirmation, handleTriggerTelescopicAnalysis, isDgOptimizing, dgResult, dgError, dgActiveAltIndex, handleRunDgOptimization, handleAcceptDgAll, handleAcceptDgTrafoOnly, handleDiscardDgResult, setDgActiveAltIndex, isPreviewActive, setIsPreviewActive, selectedPoleId, selectedPoleIds, selectedEdgeId, selectedTransformerId, setSelectedPoleId, setSelectedPoleIds, setSelectedEdgeId, setSelectedTransformerId, mtTopology, osmData, stats, analysisText, terrainData, error, handleDownloadDxf, handleDownloadCoordinatesCsv, isDownloading, showToast, isCalculating });
 
   const { commandPaletteActions, handleGoToPole } = useAppCommandPalette({
     locale: settings.locale,
@@ -669,6 +673,7 @@ function App() {
       terrainData={terrainData}
       showSettings={showSettings}
       closeSettings={closeSettings}
+      isCalculating={isCalculating}
     />
   );
 }

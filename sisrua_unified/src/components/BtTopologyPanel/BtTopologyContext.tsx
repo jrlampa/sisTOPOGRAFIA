@@ -36,6 +36,7 @@ interface BtTopologyContextType {
   selectedTransformer: BtTransformer | null;
   selectedEdgeId: string;
   selectedEdge: BtEdge | null;
+  isCalculating: boolean;
 
   // Actions
   onTopologyChange: (next: BtTopology) => void;

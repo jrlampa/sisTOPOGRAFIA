@@ -9,7 +9,6 @@ import {
   AlertCircle,
   Activity,
   Layers,
-  ArrowRight
 } from "lucide-react";
 import type { 
   BtPoleNode, 
@@ -18,6 +17,7 @@ import type {
   BtTopology 
 } from "../types";
 import type { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 interface BimInspectorDrawerProps {
   isOpen: boolean;
@@ -39,12 +39,12 @@ export function BimInspectorDrawer({
   pole,
   transformer,
   accumulatedData,
-  btTopology,
-  locale,
+  locale: _locale,
   onRenamePole,
   onSetPoleChangeFlag,
 }: BimInspectorDrawerProps) {
   const [activeTab, setActiveTab] = useState<InspectorTab>("engineering");
+  const containerRef = useFocusTrap(isOpen);
 
   if (!pole) return null;
 
@@ -65,6 +65,7 @@ export function BimInspectorDrawer({
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          ref={containerRef}
           initial={{ x: "100%" }}
           animate={{ x: 0 }}
           exit={{ x: "100%" }}

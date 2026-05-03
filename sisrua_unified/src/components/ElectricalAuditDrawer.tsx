@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { AppLocale } from "../types";
 import { getElectricalAuditDrawerText } from "../i18n/electricalAuditDrawerText";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 interface ElectricalAuditDrawerProps {
   locale: AppLocale;
@@ -34,6 +35,7 @@ export function ElectricalAuditDrawer({
   selectedElement,
   onAuditAction
 }: ElectricalAuditDrawerProps) {
+  const containerRef = useFocusTrap(isOpen);
   const t = getElectricalAuditDrawerText(locale);
   const [isDetailedMode, setIsDetailedMode] = React.useState(false);
   const [auditNotes, setAuditNotes] = React.useState("");
@@ -81,6 +83,7 @@ export function ElectricalAuditDrawer({
           )}
 
           <motion.aside
+            ref={containerRef}
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}

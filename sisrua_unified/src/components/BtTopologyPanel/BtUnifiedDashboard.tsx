@@ -24,6 +24,19 @@ export const BtUnifiedDashboard: React.FC = () => {
 
   const t = getBtTopologyPanelText(locale);
 
+  if (isCalculating) {
+    return (
+      <div className="space-y-4 animate-pulse">
+        <div className="h-12 bg-slate-200 dark:bg-zinc-800 rounded-xl" />
+        <div className="h-48 bg-slate-100 dark:bg-zinc-900 rounded-3xl" />
+        <div className="grid grid-cols-2 gap-2">
+          <div className="h-16 bg-slate-100 dark:bg-zinc-900 rounded-xl" />
+          <div className="h-16 bg-slate-100 dark:bg-zinc-900 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
   if (!selectedPole && (!selectedPoleIds || selectedPoleIds.length <= 1)) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400 bg-white/50 backdrop-blur-sm rounded-2xl border border-slate-200 dark:bg-zinc-900/30 dark:border-white/5">

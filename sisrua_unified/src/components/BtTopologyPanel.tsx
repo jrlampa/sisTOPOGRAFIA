@@ -30,7 +30,7 @@ interface BtTopologyPanelProps {
   onSelectedTransformerChange?: (transformerId: string) => void;
   onSelectedEdgeChange?: (edgeId: string) => void;
   onBtRenamePole?: (poleId: string, title: string) => void;
-  onBtRenameTransformer?: (transformerId: string, title: string) => void;
+  onBtRenameTransformer?: (id: string, title: string) => void;
   onBtSetPoleChangeFlag?: (
     poleId: string,
     nodeChangeFlag: "existing" | "new" | "remove" | "replace",
@@ -71,6 +71,7 @@ interface BtTopologyPanelProps {
   onSetSelectedEdgeId?: (id: string) => void;
   onSetSelectedTransformerId?: (id: string) => void;
   mtTopology: MtTopology;
+  isCalculating?: boolean;
 }
 
 const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
@@ -106,6 +107,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
     onSetSelectedEdgeId,
     onSetSelectedTransformerId,
     mtTopology,
+    isCalculating = false,
   } = props;
 
   const bulkImport = useBtTopologyPanelBulkImport({
@@ -208,6 +210,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
     selectedTransformer,
     selectedEdgeId,
     selectedEdge,
+    isCalculating,
     onTopologyChange,
     onBtRenamePole,
     onBtSetPoleChangeFlag,
