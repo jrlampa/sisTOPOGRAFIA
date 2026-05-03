@@ -242,6 +242,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
             transformerDemandKva={summary.transformerDemandKva}
             transformerNominalKva={btTopology.transformers[0]?.projectPowerKva ?? 75}
             spanLengthsM={btTopology.edges.map((e) => e.lengthMeters ?? 0).filter(Boolean)}
+            clandestinoDisplay={clandestinoDisplay}
+            isClandestino={projectType === "clandestino"}
           />
 
           <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/50">

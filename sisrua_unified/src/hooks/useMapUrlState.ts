@@ -7,16 +7,21 @@
  *   lng    — longitude do centro (float)
  *   r      — raio em metros (inteiro, 10–50000)
  *   mode   — modo de seleção: "circle" | "polygon" | "measure"
+ *   pole   — ID do poste para selecionar/focar
+ *   trafo  — ID do transformador para selecionar
+ *   type   — Tipo de projeto: "ramais" | "clandestino"
  *
- * Exemplo: /app?lat=-23.5505&lng=-46.6333&r=1000&mode=circle
+ * Exemplo: /app?lat=-23.5505&lng=-46.6333&r=1000&mode=circle&pole=P001
  */
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { GeoLocation, GlobalState, SelectionMode } from "../types";
+import type { BtProjectType, GeoLocation, GlobalState, SelectionMode } from "../types";
 
 interface UseMapUrlStateParams {
   appState: GlobalState;
-  setAppState: (nextState: GlobalState, commit?: boolean) => void;
+  setAppState: (nextState: GlobalState | ((prev: GlobalState) => GlobalState), commit?: boolean) => void;
+  onSelectPole?: (id: string) => void;
+  onSelectTransformer?: (id: string) => void;
 }
 
 const VALID_MODES: SelectionMode[] = ["circle", "polygon", "measure"];
@@ -44,6 +49,8 @@ function parseOptionalInt(
 export function useMapUrlState({
   appState,
   setAppState,
+  onSelectPole,
+  onSelectTransformer,
 }: UseMapUrlStateParams): void {
   const [searchParams, setSearchParams] = useSearchParams();
   const appliedFromUrlRef = useRef(false);
@@ -62,8 +69,12 @@ export function useMapUrlState({
         ? (rawMode as SelectionMode)
         : null;
 
+    const poleId = searchParams.get("pole");
+    const trafoId = searchParams.get("trafo");
+    const projectType = searchParams.get("type") as BtProjectType | null;
+
     const hasUrlParams =
-      lat !== null || lng !== null || radius !== null || selectionMode !== null;
+      lat !== null || lng !== null || radius !== null || selectionMode !== null || poleId || trafoId || projectType;
     if (!hasUrlParams) return;
 
     const nextCenter: GeoLocation =
@@ -72,26 +83,39 @@ export function useMapUrlState({
         : appState.center;
 
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         center: nextCenter,
-        radius: radius ?? appState.radius,
-        selectionMode: selectionMode ?? appState.selectionMode,
-      },
+        radius: radius ?? prev.radius,
+        selectionMode: selectionMode ?? prev.selectionMode,
+        settings: {
+          ...prev.settings,
+          projectType: projectType ?? prev.settings.projectType,
+        }
+      }),
       false, // sem commit no histórico de undo
     );
+
+    // Deep-linking focus
+    if (poleId) setTimeout(() => onSelectPole?.(poleId), 200);
+    if (trafoId) setTimeout(() => onSelectTransformer?.(trafoId), 200);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intencionalmente vazio: só executa na montagem
 
   // ─── Estado → URL (replace, sem criar histórico no browser) ─────────────
   useEffect(() => {
-    const { center, radius, selectionMode } = appState;
+    const { center, radius, selectionMode, settings } = appState;
     const next = new URLSearchParams();
 
     next.set("lat", center.lat.toFixed(6));
     next.set("lng", center.lng.toFixed(6));
     next.set("r", String(radius));
     next.set("mode", selectionMode);
+
+    if (settings.projectType) {
+        next.set("type", settings.projectType);
+    }
 
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,5 +124,6 @@ export function useMapUrlState({
     appState.center.lng,
     appState.radius,
     appState.selectionMode,
+    appState.settings.projectType,
   ]);
 }

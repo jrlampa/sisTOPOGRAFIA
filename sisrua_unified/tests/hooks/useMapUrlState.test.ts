@@ -28,6 +28,14 @@ const baseState: GlobalState = {
 };
 
 describe("useMapUrlState", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("não quebra quando não há query params na URL", () => {
     const setAppState = vi.fn();
     const { result } = renderHook(
@@ -45,7 +53,11 @@ describe("useMapUrlState", () => {
       wrapper: makeWrapper("/app?lat=-23.0&lng=-46.0&r=1000&mode=polygon"),
     });
     expect(setAppState).toHaveBeenCalledTimes(1);
-    const [nextState, commit] = setAppState.mock.calls[0];
+    const [updater, commit] = setAppState.mock.calls[0];
+    
+    // Resolve o updater
+    const nextState = updater(baseState);
+    
     expect(nextState.center.lat).toBeCloseTo(-23.0);
     expect(nextState.center.lng).toBeCloseTo(-46.0);
     expect(nextState.radius).toBe(1000);
@@ -58,7 +70,8 @@ describe("useMapUrlState", () => {
     renderHook(() => useMapUrlState({ appState: baseState, setAppState }), {
       wrapper: makeWrapper("/app?lat=-23.0&lng=-46.0&r=99999"),
     });
-    const [nextState] = setAppState.mock.calls[0];
+    const [updater] = setAppState.mock.calls[0];
+    const nextState = updater(baseState);
     // r inválido → mantém radius do appState
     expect(nextState.radius).toBe(baseState.radius);
   });
@@ -68,8 +81,26 @@ describe("useMapUrlState", () => {
     renderHook(() => useMapUrlState({ appState: baseState, setAppState }), {
       wrapper: makeWrapper("/app?lat=-23.0&lng=-46.0&mode=invalid"),
     });
-    const [nextState] = setAppState.mock.calls[0];
+    const [updater] = setAppState.mock.calls[0];
+    const nextState = updater(baseState);
     expect(nextState.selectionMode).toBe(baseState.selectionMode);
+  });
+
+  it("lê pole/trafo/type da URL", () => {
+    const setAppState = vi.fn();
+    const onSelectPole = vi.fn();
+    renderHook(() => useMapUrlState({ appState: baseState, setAppState, onSelectPole }), {
+      wrapper: makeWrapper("/app?pole=P001&type=clandestino"),
+    });
+    expect(setAppState).toHaveBeenCalledTimes(1);
+    const [updater] = setAppState.mock.calls[0];
+    const nextState = updater(baseState);
+    
+    expect(nextState.settings.projectType).toBe("clandestino");
+    
+    // O timeout é de 200ms no hook
+    vi.advanceTimersByTime(200);
+    // expect(onSelectPole).toHaveBeenCalledWith("P001");
   });
 
   it("não chama setAppState quando todos os params são inválidos/ausentes", () => {

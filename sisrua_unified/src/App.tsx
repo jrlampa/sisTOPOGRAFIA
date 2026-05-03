@@ -137,7 +137,12 @@ function App() {
   });
 
   useAppLifecycleEffects({ settings, isDark, btTopology, btSectioningImpact, showToast, setAppState });
-  useMapUrlState({ appState, setAppState });
+  useMapUrlState({ 
+    appState, 
+    setAppState,
+    onSelectPole: handleBtSelectedPoleChange,
+    onSelectTransformer: handleBtSelectedTransformerChange,
+  });
 
   const {
     btEdgeFlyToTarget,

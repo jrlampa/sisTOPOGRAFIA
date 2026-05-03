@@ -35,18 +35,31 @@ export function useAutoSave(state: GlobalState, enabled = true) {
 
     const persist = useCallback((s: GlobalState) => {
         const timestamp = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        
+        // Strip bulky/transient data that can be refetched or isn't part of the core design
+        // This prevents hitting the 5MB localStorage limit on large projects.
+        const stateToSave = {
+            ...s,
+            // Transient session data — should not be persisted in a project draft
+            osmData: null,
+            terrainData: null,
+            btExportHistory: [], // Large history is kept in DB/Backend
+            autoSaveStatus: 'idle',
+        };
+
         const draft: SessionDraft = {
-            state: s,
+            state: stateToSave as GlobalState,
             savedAt: new Date().toISOString(),
             version: DRAFT_VERSION,
         };
+        
         try {
             const serialized = JSON.stringify(draft);
             localStorage.setItem(STORAGE_KEY, serialized);
             setLastSaved(timestamp);
             setStatus('idle');
         } catch (error) {
-            console.error('[AutoSave] Failed to persist state');
+            console.error('[AutoSave] Failed to persist state (likely exceeded quota)');
             setStatus('error');
         }
     }, []);

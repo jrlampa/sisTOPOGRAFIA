@@ -1,7 +1,8 @@
 import React from "react";
-import { Circle, Hash, Activity } from "lucide-react";
+import { Hash, Activity } from "lucide-react";
 import type { AppLocale } from "../../types";
 import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
+import type { BtClandestinoDisplay } from "../../services/btDerivedService";
 
 interface BtTopologyPanelStatsProps {
   locale: AppLocale;
@@ -14,6 +15,8 @@ interface BtTopologyPanelStatsProps {
   transformerNominalKva?: number;
   /** Array de comprimentos dos vãos em metros */
   spanLengthsM?: number[];
+  clandestinoDisplay?: BtClandestinoDisplay;
+  isClandestino?: boolean;
 }
 
 /** Donut SVG compacto para utilização do trafo */
@@ -100,6 +103,8 @@ const BtTopologyPanelStats: React.FC<BtTopologyPanelStatsProps> = ({
   transformerDemandKva,
   transformerNominalKva = 75,
   spanLengthsM = [],
+  clandestinoDisplay,
+  isClandestino,
 }) => {
   const t = getBtTopologyPanelText(locale).stats;
   const utilPct = transformerNominalKva > 0
@@ -108,6 +113,27 @@ const BtTopologyPanelStats: React.FC<BtTopologyPanelStatsProps> = ({
 
   return (
     <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
+      {/* Clandestine Summary (Contextual) */}
+      {isClandestino && clandestinoDisplay && (
+        <div className="rounded-2xl border border-violet-200 bg-violet-50/50 px-4 py-2 flex items-center justify-between dark:bg-violet-900/10 dark:border-violet-800/40">
+           <div className="flex items-center gap-2">
+             <div className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+             <span className="text-[10px] font-black uppercase text-violet-700 dark:text-violet-400 tracking-widest">Modo Clandestino</span>
+           </div>
+           <div className="flex items-center gap-3">
+             <div className="flex flex-col items-end">
+               <span className="text-[8px] font-bold text-violet-400 uppercase leading-none">Clientes Est.</span>
+               <span className="text-xs font-black text-violet-900 dark:text-violet-200">{clandestinoDisplay.totalEstimatedClients}</span>
+             </div>
+             <div className="h-6 w-px bg-violet-200 dark:bg-violet-800" />
+             <div className="flex flex-col items-end">
+               <span className="text-[8px] font-bold text-violet-400 uppercase leading-none">Carga Méd.</span>
+               <span className="text-xs font-black text-violet-900 dark:text-violet-200">{clandestinoDisplay.averageClientLoadKva.toFixed(2)} kVA</span>
+             </div>
+           </div>
+        </div>
+      )}
+
       {/* Row 1 – counts */}
       <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/50">
         <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">
