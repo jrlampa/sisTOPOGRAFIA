@@ -18,6 +18,7 @@ import { getDxfEngine, type DxfEngine } from "./dxfEngine.js";
 
 export interface DxfTaskPayload {
   taskId: string;
+  tenantId: string;
   lat: number;
   lon: number;
   radius: number;
@@ -32,6 +33,7 @@ export interface DxfTaskPayload {
     endpoint?: string;
     requestId?: string;
     source?: string;
+    tenantId?: string; // Duplicate for meta context if needed
     ip?: string;
     userAgent?: string;
     queuedAt?: string;
@@ -464,7 +466,8 @@ export async function stopTaskWorker(): Promise<void> {
  * Falls back to local async processing when DB is unavailable.
  */
 export async function createDxfTask(
-  payload: Omit<DxfTaskPayload, "taskId">,
+  payload: Omit<DxfTaskPayload, "taskId" | "tenantId">,
+  tenantId: string,
 ): Promise<TaskCreationResult> {
   await initializeQueuePersistence();
   startWorkerIfNeeded();
@@ -494,7 +497,7 @@ export async function createDxfTask(
   }
 
   const taskId = randomUUID();
-  const validation = validateDxfCoreInput(payload);
+  const validation = validateDxfCoreInput(payload as any);
   if (!validation.valid) {
     const sourceTag = buildPayloadSourceTag(payload);
     logger.warn("DXF task rejected before queue (invalid core input)", {
@@ -511,17 +514,17 @@ export async function createDxfTask(
     );
   }
 
-  const fullPayload: DxfTaskPayload = { taskId, ...payload };
+  const fullPayload: DxfTaskPayload = { taskId, tenantId, ...payload };
 
   // Create the job as close as possible to queueing to avoid state races.
-  createJob(taskId);
+  createJob(taskId, tenantId);
 
   if (postgresAvailable && sqlClient) {
     await sqlClient.unsafe(
-      `INSERT INTO dxf_tasks (task_id, status, payload, attempts, idempotency_key, updated_at)
-       VALUES ($1, 'queued', $2::jsonb, 0, $3, now())
+      `INSERT INTO dxf_tasks (task_id, status, payload, attempts, idempotency_key, updated_at, tenant_id)
+       VALUES ($1, 'queued', $2::jsonb, 0, $3, now(), $4)
        ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL AND status NOT IN ('failed', 'cancelled') DO NOTHING`,
-      [taskId, JSON.stringify(fullPayload), payload.cacheKey],
+      [taskId, JSON.stringify(fullPayload), payload.cacheKey, tenantId],
     );
 
     logger.info("DXF task queued in Supabase/Postgres", {

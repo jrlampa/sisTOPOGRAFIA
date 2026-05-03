@@ -3,13 +3,15 @@ import { getJobWithPersistence } from "../services/jobStatusService.js";
 import { logger } from "../utils/logger.js";
 import { z } from "zod";
 
+import { requirePermission } from "../middleware/permissionHandler.js";
+
 const router = Router();
 const jobIdParamSchema = z.object({
   id: z.string().trim().min(1).max(128),
 });
 
 // Job Status Endpoint
-router.get("/:id", async (req: Request, res: Response) => {
+router.get("/:id", requirePermission("read"), async (req: Request, res: Response) => {
   try {
     res.setHeader(
       "Cache-Control",
@@ -27,8 +29,21 @@ router.get("/:id", async (req: Request, res: Response) => {
     }
 
     const job = await getJobWithPersistence(validation.data.id);
+    const userTenantId = res.locals.tenantId;
+
     if (!job) {
       return res.status(404).json({ error: "Job not found" });
+    }
+
+    // Security: IDOR protection — check if job belongs to the user's tenant
+    if (job.tenantId !== userTenantId && res.locals.userRole !== "admin") {
+      logger.warn("Tentativa de IDOR detectada: acesso cross-tenant bloqueado", {
+        userId: res.locals.userId,
+        jobId: job.id,
+        jobTenant: job.tenantId,
+        userTenant: userTenantId,
+      });
+      return res.status(404).json({ error: "Job not found" }); // Return 404 to avoid leaking job existence
     }
 
     return res.json({

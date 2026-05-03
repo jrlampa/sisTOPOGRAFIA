@@ -5,7 +5,12 @@ import {
   type IsolationLevel,
 } from "../services/multiTenantIsolationService.js";
 
+import { requirePermission } from "../middleware/permissionHandler.js";
+
 const router = Router();
+
+// Todas as rotas de isolamento multi-tenant exigem permissão de admin
+router.use(requirePermission("admin"));
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 

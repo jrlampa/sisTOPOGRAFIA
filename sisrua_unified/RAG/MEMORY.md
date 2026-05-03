@@ -1,3 +1,13 @@
+## Atualização Operacional (2026-05-03D) - Hardening de Segurança & Pentest Automatizado
+- **Segurança (Red Team)**: Implementada suíte de testes `server/tests/advancedAttacks.test.ts` cobrindo vetores críticos:
+    - **IDOR (Insecure Direct Object Reference)**: Proteção em jobs e dossiês DXF, impedindo acesso cross-tenant via enumeração de IDs.
+    - **Broken Access Control (BAC)**: Isolamento rigoroso de rotas administrativas e de auditoria; proteção global em `/api/multi-tenant-isolation/*`.
+    - **Injeção (NoSQL)**: Validação contra poluição de objetos em campos numéricos/geográficos.
+    - **HPP & Mass Assignment**: Sanitização de parâmetros duplicados e bloqueio de sobre-escrita de campos sensíveis (audit_metadata, role, tenantId).
+- **Multi-Tenant Isolation**: Hardening da criação de jobs; agora `tenantId` é obrigatório em `createDxfTask` e `createJob`, garantindo rastreabilidade desde a origem.
+- **Monitoramento de Depreciação**: Integrada detecção de `DeprecationWarning` (DEP0169 - url.parse) na suíte de testes para garantir conformidade contínua com Node.js modern.
+- **Status de Governança**: 100% de conformidade nos testes de segurança unificados no pipeline.
+
 ## Atualização Operacional (2026-05-03C) - Quality Gates Unificados
 - **CI/CD**: Criado `.github/workflows/quality-gates.yml` que unifica:
     - Auditoria de Regras Não Negociáveis.

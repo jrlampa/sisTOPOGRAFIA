@@ -462,24 +462,32 @@ router.post(
         requestSource,
       });
 
-      const { taskId, alreadyCompleted } = await createDxfTask({
-        lat,
-        lon,
-        radius,
-        mode: resolvedMode,
-        polygon:
-          typeof polygon === "string" ? polygon : JSON.stringify(polygon || []),
-        layers: layers || {},
-        projection: projection || "local",
-        contourRenderMode: resolvedContourRenderMode,
-        btContext: btContext ?? null,
-        mtContext: validatedMtContext ?? null,
-        requestMeta: requestSource,
-        outputFile,
-        filename,
-        cacheKey,
-        downloadUrl,
-      });
+      const userTenantId = res.locals.tenantId;
+
+      const { taskId, alreadyCompleted } = await createDxfTask(
+        {
+          lat,
+          lon,
+          radius,
+          mode: resolvedMode,
+          polygon:
+            typeof polygon === "string" ? polygon : JSON.stringify(polygon || []),
+          layers: layers || {},
+          projection: projection || "local",
+          contourRenderMode: resolvedContourRenderMode,
+          btContext: btContext ?? null,
+          mtContext: validatedMtContext ?? null,
+          requestMeta: {
+            ...requestSource,
+            tenantId: userTenantId,
+          },
+          outputFile,
+          filename,
+          cacheKey,
+          downloadUrl,
+        },
+        userTenantId,
+      );
 
       const responseStatus = alreadyCompleted ? "success" : "queued";
       metricsService.recordDxfRequest("generated");
@@ -512,6 +520,7 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const requestSource = buildDxfRequestSource(req);
+      const userTenantId = res.locals.tenantId;
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
@@ -561,25 +570,29 @@ router.post(
         });
 
         try {
-          const { taskId } = await createDxfTask({
-            lat,
-            lon,
-            radius,
-            mode: mode || "circle",
-            polygon: "[]",
-            layers: {},
-            projection: "local",
-            contourRenderMode: "spline",
-            btContext: null,
-            requestMeta: {
-              ...requestSource,
-              source: `${requestSource.source}|batch:${name}`,
+          const { taskId } = await createDxfTask(
+            {
+              lat,
+              lon,
+              radius,
+              mode: mode || "circle",
+              polygon: "[]",
+              layers: {},
+              projection: "local",
+              contourRenderMode: "spline",
+              btContext: null,
+              requestMeta: {
+                ...requestSource,
+                source: `${requestSource.source}|batch:${name}`,
+                tenantId: userTenantId,
+              },
+              outputFile,
+              filename,
+              downloadUrl,
+              cacheKey,
             },
-            outputFile,
-            filename,
-            downloadUrl,
-            cacheKey,
-          });
+            userTenantId,
+          );
 
           results.push({ name, line, taskId, status: "queued" });
         } catch (err: any) {
@@ -659,7 +672,14 @@ router.get(
     try {
       const raw = Number(req.query["limit"] ?? 50);
       const limit = Number.isFinite(raw) ? raw : 50;
-      const jobs = await listRecentJobs(limit);
+      
+      const userTenantId = res.locals.tenantId;
+      const userRole = res.locals.userRole;
+
+      // Se não for admin, filtra pelo tenantId
+      const tenantToFilter = userRole === "admin" ? undefined : userTenantId;
+      
+      const jobs = await listRecentJobs(limit, tenantToFilter);
       return res.json({ total: jobs.length, jobs });
     } catch (err) {
       logger.error("Erro ao listar jobs recentes", { error: err });
@@ -678,6 +698,19 @@ router.get(
     if (!dossier) {
       return res.status(404).json({ error: "Tarefa não encontrada" });
     }
+
+    // Security: IDOR protection — check if job belongs to the user's tenant
+    const userTenantId = res.locals.tenantId;
+    if (dossier.tenantId !== userTenantId && res.locals.userRole !== "admin") {
+      logger.warn("Tentativa de IDOR detectada em DXF Dossier", {
+        userId: res.locals.userId,
+        taskId,
+        dossierTenant: dossier.tenantId,
+        userTenant: userTenantId,
+      });
+      return res.status(404).json({ error: "Tarefa não encontrada" });
+    }
+
     return res.json(dossier);
   },
 );
