@@ -1,3 +1,12 @@
+## Atualização Operacional (2026-05-03F) - Internacionalização Técnica & SOC2 Readiness
+- **Standards Engine**: Implementado motor de padrões técnicos (`server/standards/`) para desacoplar constantes de engenharia (voltagem, bitolas, coeficientes) do código principal.
+    - Criado `br.ts` com os padrões Light/ANEEL.
+    - Refatorados `btDerivedConstants.ts`, `cqtEngine.ts` e `btRadialCalculationService.ts` para consumir o motor de standards.
+- **Preparação SOC2 / ISO 27001**: 
+    - Atualizadas as **Regras Não Negociáveis** (`docs/RULES_ENFORCEMENT.md`) para incluir obrigatoriedade de trilhas de auditoria (Audit Trails), Criptografia (TLS 1.3/AES-256) e Princípio do Mínimo Privilégio (PoLP).
+    - Preparada infraestrutura de governança para certificações internacionais.
+- **Escalabilidade Global**: Sistema agora está pronto para suportar novos países (ex: `us.ts`, `eu.ts`) apenas via configuração, mantendo o "Smart Backend" independente de normas locais.
+
 ## Atualização Operacional (2026-05-03E) - Auditoria FinOps e Gestão de Custos
 - **FinOps**: Realizada auditoria de custos pós-deploy com foco na regra "Zero custo a todo custo!".
     - **IA**: Confirmada economia de 100% via execução local do Ollama (Llama 3.2).

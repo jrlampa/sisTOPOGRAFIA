@@ -35,6 +35,7 @@ export { BtRadialValidationError } from './bt/btTypes.js';
 
 // ─── Internal imports ─────────────────────────────────────────────────────────
 
+import { getActiveConstants } from '../standards/index.js';
 import { calculateDbIndicators } from './cqtEngine.js';
 import { lookupTransformerById } from './btCatalogService.js';
 import { validateRadialTopology, buildTree } from './bt/btGraph.js';
@@ -61,9 +62,10 @@ export function calculateBtRadial(input: BtRadialTopologyInput): BtRadialCalcula
     // Step 1: validate topology (E1-H1)
     const adj = validateRadialTopology(input);
 
+    const constants = getActiveConstants();
     const nodeMap = new Map(input.nodes.map((n) => [n.id, n]));
-    const temperatureC = input.temperatureC ?? 75;
-    const phaseVoltageV = input.nominalVoltageV ?? 127;
+    const temperatureC = input.temperatureC ?? constants.DEFAULT_AMBIENT_TEMP_C;
+    const phaseVoltageV = input.nominalVoltageV ?? constants.BT_PHASE_VOLTAGE_V;
     const phase = input.phase;
 
     // Step 2: build directed tree

@@ -1,8 +1,12 @@
+import { getEngineeringStandard } from "../standards/index.js";
 import {
   excelIfError,
   excelVLookupApprox,
   excelVLookupExact,
 } from "./cqtLookupService.js";
+
+const activeStandard = getEngineeringStandard();
+const { constants } = activeStandard;
 
 export interface DmdiInput {
   clandestinoEnabled: boolean;
@@ -71,13 +75,14 @@ export interface GeralCqtNoPontoInput {
  * Workbook parity (GERAL!CQT NO PONTO):
  * ESQUERDO -> VLOOKUP(ponto, ESQ_ATUAL, col_eta_cqt, 0)
  * DIREITO  -> VLOOKUP(ponto, DIR_ATUAL, col_eta_cqt, 0)
- * TRAFO    -> 127 - 127 * QT_MTTR
+ * TRAFO    -> 127 - 127 * QT_MTTR (Standardized)
  */
 export const calculateGeralCqtNoPonto = (
   input: GeralCqtNoPontoInput,
 ): number => {
   if (input.lado === "TRAFO") {
-    return 127 - 127 * input.qtMttr;
+    const vPhase = constants.BT_PHASE_VOLTAGE_V;
+    return vPhase - vPhase * input.qtMttr;
   }
 
   const sourceTable =
@@ -177,7 +182,7 @@ export const calculateIb = (input: IbInput): number => {
     }
 
     if (input.fase === "MONO") {
-      return (input.acumuladaKva * 1000) / (220 * input.eta);
+      return (input.acumuladaKva * 1000) / (constants.BT_LINE_REFERENCE_VOLTAGE_V * input.eta);
     }
 
     if (input.fase === "BIF") {
@@ -325,6 +330,7 @@ export interface QtPontoInput {
  */
 export const calculateQtPonto = (input: QtPontoInput): number => {
   return excelIfError(() => {
+    // Workbook parity: MONO=6, BIF=2, TRI=1
     const phaseFactor =
       input.fase === "MONO" ? 6 : input.fase === "BIF" ? 2 : 1;
     const calculationMethod =
@@ -353,7 +359,7 @@ export const calculateQtPonto = (input: QtPontoInput): number => {
         input.acumuladaKva *
         (impedance / voltageFactor) *
         input.lengthMeters *
-        127) /
+        constants.BT_PHASE_VOLTAGE_V) /
       100
     );
   }, 0);

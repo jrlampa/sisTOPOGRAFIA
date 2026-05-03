@@ -306,6 +306,24 @@ npm run test:all  # Frontend + Backend + E2E
 | Ideal 500 / Soft 750 / Hard 1000 linhas | 🟡     | Limites atualizados v1.4               |
 | Zero Custo                              | ✅     | Apenas APIs públicas                   |
 | Versionamento único propagado           | 🟡     | VERSION → package.json → metadata.json |
+| SOC2 / ISO 27001 Readiness              | ✅     | Audit logs + Encryption + PoLP         |
+| Internacionalização Técnica             | ✅     | Motor de Standards (br.ts)             |
+
+---
+
+### 16. ✅ SOC2 / ISO 27001 Readiness
+
+- **Trilha de Auditoria Obrigatória**: Todas as ações administrativas (mudança de papéis, gestão de usuários, configurações de tenant) DEVEM ser registradas na tabela `audit_logs`.
+- **Criptografia**: Dados em trânsito via TLS 1.3 obrigatório. Dados em repouso via AES-256 (gerenciado pelo Supabase).
+- **Mínimo Privilégio (PoLP)**: O acesso padrão é "Negar Tudo". Permissões concedidas apenas conforme a necessidade do papel (RBAC).
+
+---
+
+### 17. ✅ Internacionalização Técnica (Standards Engine)
+
+- **Desacoplamento**: Lógicas de engenharia (voltagem, bitolas, coeficientes) devem ser movidas para o motor de `standards`.
+- **Padrões Suportados**: `br.ts` (Light/ANEEL) implementado como padrão inicial.
+- **Preparação Global**: Estrutura pronta para novos países (`us.ts`, `eu.ts`) sem alteração no core do serviço.
 
 ---
 
