@@ -27,7 +27,12 @@
     - O fechamento de um polígono no mapa (Modo Seleção Polígono) dispara automaticamente a seleção de todos os postes contidos (`isPointInPolygon`).
 - **Edição em Massa (Bulk Edit)**: ✅ Criado o componente `SidebarBulkEditSection.tsx` que surge dinamicamente no Sidebar ao selecionar >1 ativo.
     - Permite alteração simultânea de flags (Existente/Novo/Remover/Substituir) para todos os itens selecionados, eliminando trabalho repetitivo.
-- **Saneamento de Arquitetura**: Finalizada a desmonolização do `App.tsx` com 100% de correção nos tipos TypeScript e orquestração de hooks (`useMapState`, `useBtNavigationState`, `useAppLifecycleEffects`).
+- **Segurança & Pentest (Fase 8 - Hardening)**: 
+    - Criada suíte `securityVulnerability.test.ts` (Unit/Int) e `security.spec.ts` (E2E).
+    - **Correção de Path Traversal**: Proteção no download de DXF via `path.resolve` e validação de caracteres de escape.
+    - **DoS Protection**: Implementado check de `Content-Length` proativo para evitar OOM em payloads gigantes.
+    - **Error Handling**: Handler global agora preserva códigos 413 (Payload Too Large) e evita vazamento de stack em produção.
+    - **SQLi/XSS**: Validada eficácia do middleware `detectSuspiciousPatterns`.
 - **Governança**: Auditoria `non-negotiables-audit.cjs` validada com sucesso (VERDE).
 
 ## Atualização Operacional (2026-05-02B) - Hardening de Arquitetura (Fase 6)
@@ -205,6 +210,7 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 ### **Fase Anterior: Estabilização de Infraestrutura e Frontend Concluída**
 - [x] Hardening de Infra: Estabilização de testes (pythonBridge, jobStatusService) e auditoria VERDE.
 - [x] CI/CD Gate: Implementação do workflow `quality-gates.yml` agregando todos os testes e regras normativas.
+- [x] Segurança & Pentest: Implementação de suíte de testes de vulnerabilidade (Path Traversal, XSS, DoS) e correções críticas.
 
 - **Infraestrutura Resiliente (Docker)**:
   - **Infraestrutura**: Migração para fluxo Docker HMR (Dockerfile.dev) com volume mount (`.:/app`).
