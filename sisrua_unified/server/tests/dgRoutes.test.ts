@@ -12,7 +12,17 @@ vi.mock("../repositories/dgRunRepository.js", () => ({
     save: vi.fn().mockResolvedValue(undefined),
     list: vi.fn().mockResolvedValue([]),
     listDiscardRates: vi.fn().mockResolvedValue([]),
-    findById: vi.fn().mockResolvedValue(null),
+    findById: vi.fn().mockImplementation((id: string) => {
+        if (id === optimizePayload.runId) {
+            return Promise.resolve({
+                runId: id,
+                inputHash: "hash123",
+                scenarios: [],
+                recommendation: null,
+            });
+        }
+        return Promise.resolve(null);
+    }),
     findScenarios: vi.fn().mockResolvedValue([]),
     findRecommendation: vi.fn().mockResolvedValue(null),
   },

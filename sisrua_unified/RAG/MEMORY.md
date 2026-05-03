@@ -1,3 +1,13 @@
+## Atualização Operacional (2026-05-03C) - Quality Gates Unificados
+- **CI/CD**: Criado `.github/workflows/quality-gates.yml` que unifica:
+    - Auditoria de Regras Não Negociáveis.
+    - Testes Unitários (Frontend/Backend) com cobertura rigorosa.
+    - Testes E2E Smoke (Playwright).
+    - Validação de Checkpoints (D+5/D+7) e Checklist Normativo.
+    - Gate de Paridade CQT (P0).
+- **Hardening**: Removido `non-negotiables-audit.yml` legado em favor do gate unificado.
+- **Governança**: O job agregador `✅ FINAL QUALITY GATE` agora é a única verdade para permitir merges.
+
 ## Atualização Operacional (2026-05-03B) - Hardening Final e Governança (Fase 8)
 - **Modularização de App.tsx (Concluída)**: Refatoração final do `App.tsx` reduzindo o arquivo de ~1100 para **686 linhas**.
     - Todas as lógicas de orquestração foram movidas para `AppWorkspace.tsx` e hooks especializados.
@@ -36,7 +46,7 @@
 - **Guias de Precisão (Visual Snapping)**: Adicionado sistema de linhas guias pontilhadas (Cyan) que aparecem automaticamente ao alinhar postes ortogonalmente durante o arraste.
 - **Ghost Edits & BIM Pop-ins**: Implementado balão flutuante de "Delta CQT" em tempo real durante o arraste e cartões de metadados BIM com *Glassmorphism* (backdrop-blur) nos Tooltips/Popups.
 - **Dashboards de Saúde (Mini-Charts)**: Implementado sistema de visualização instantânea no `BtTopologyPanelStats.tsx` com Trafo Donut (utilização de carga) e Histogram de Vãos (distribuição mecânica) via SVG.
-- **Internacionalização Industrial**: Consolidação total de termos industriais em PT/EN/ES, eliminando 100% das strings hardcoded no `MapSelectorPolesLayer` e `MapSelector`.
+- **Internacionalização Industrial**: Consolidação total de termos industriais em PT/EN/ES, eliminando 100% das strings hardcoded no `MapSelectorPolesLayer` and `MapSelector`.
 - **Estabilidade & I18n**: Typecheck 100% OK.
 
 ## Atualização Operacional (2026-05-01C) - Telemetria e Macros DG (UX-20)
@@ -193,6 +203,8 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 - **Resiliência de Testes**: Lógica de warm-up do `dbClient` refatorada no ambiente Jest para evitar falsos positivos por timeouts. Skips intencionais adicionados para `ExcelJS` streams corrompidos em ambiente JSDOM/Node.
 
 ### **Fase Anterior: Estabilização de Infraestrutura e Frontend Concluída**
+- [x] Hardening de Infra: Estabilização de testes (pythonBridge, jobStatusService) e auditoria VERDE.
+- [x] CI/CD Gate: Implementação do workflow `quality-gates.yml` agregando todos os testes e regras normativas.
 
 - **Infraestrutura Resiliente (Docker)**:
   - **Infraestrutura**: Migração para fluxo Docker HMR (Dockerfile.dev) com volume mount (`.:/app`).

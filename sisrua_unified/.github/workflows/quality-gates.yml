@@ -1,0 +1,266 @@
+name: Quality Gates – sisRUA Full Pipeline
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev, main, master ]
+
+concurrency:
+  group: quality-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 1. Audit & Rules
+  audit:
+    name: Non-Negotiables Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci --prefer-offline --no-audit
+      - name: Enforcement Rule Check
+        run: npm run ci:non-negotiables
+
+  # 2. Lint & Typecheck
+  lint:
+    name: Lint & Typecheck (Full)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci --prefer-offline --no-audit
+      - name: Lint Frontend
+        run: npm run lint:frontend
+      - name: Lint Backend
+        run: npm run lint:backend
+      - name: Typecheck Frontend
+        run: npm run typecheck:frontend
+      - name: Typecheck Backend
+        run: npm run typecheck:backend
+
+  # 3. Backend Tests
+  test-backend:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci --prefer-offline --no-audit
+      - name: Run Backend Tests
+        run: npm run test:backend
+      - name: Upload Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: coverage/backend/
+          retention-days: 1
+
+  # 4. Frontend Tests
+  test-frontend:
+    name: Frontend Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci --prefer-offline --no-audit
+      - name: Run Frontend Tests
+        run: npm run test:frontend
+      - name: Run Frontend Risk Tests
+        run: npm run test:frontend:risk
+      - name: Upload Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-risk-coverage
+          path: coverage/frontend-risk/
+          retention-days: 1
+
+  # 5. Security & SBOM
+  security:
+    name: Security & Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci --prefer-offline --no-audit
+      - name: Security Audit (NPM)
+        run: npm run security:policy-gate
+      - name: SBOM Generation
+        run: npm run security:sbom:node
+
+  # 6. Build Verification
+  build:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci --prefer-offline --no-audit
+      - name: Full Build
+        run: npm run build
+
+  # 7. Parity Check (P0)
+  parity-p0:
+    name: CQT Parity Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - run: pip install pandas openpyxl
+      - run: npm ci --prefer-offline --no-audit
+      - name: CQT Parity Strict Check
+        run: npm run cqt:parity-check:strict
+
+  # 8. E2E Smoke
+  e2e-smoke:
+    name: E2E Smoke Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci --prefer-offline --no-audit
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E Smoke
+        run: npm run test:e2e -- --grep @smoke
+
+  # 9. D7 Go Parcial Gate
+  d7-go-parcial:
+    name: D7 Go Parcial Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci --prefer-offline --no-audit
+      - name: Enforce D7 Evidence
+        run: npm run ci:d7-go-parcial-gate
+
+  # 10. Checkpoints Validation
+  checkpoints:
+    name: Checkpoints Integrity
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend, lint, security, build, parity-p0, e2e-smoke]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci --prefer-offline --no-audit
+      - name: Validate Timeline & Quality Gates
+        run: node scripts/ci/enforce-checkpoints-timeline.mjs
+
+  # 11. Coverage Policy
+  coverage-gate:
+    name: Coverage Policy Enforcement
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci --prefer-offline --no-audit
+      - name: Download Backend Coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-coverage
+          path: coverage/backend
+      - name: Download Frontend Risk Coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-risk-coverage
+          path: coverage/frontend-risk
+      - name: Check Coverage Policy
+        run: npm run coverage:policy:strict
+
+  # 12. FINAL AGGREGATOR GATE
+  quality-gate:
+    name: ✅ FINAL QUALITY GATE
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - audit
+      - lint
+      - test-backend
+      - test-frontend
+      - security
+      - build
+      - parity-p0
+      - e2e-smoke
+      - d7-go-parcial
+      - checkpoints
+      - coverage-gate
+    steps:
+      - name: Aggregated Status Check
+        run: |
+          echo "Audit: ${{ needs.audit.result }}"
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Test Backend: ${{ needs.test-backend.result }}"
+          echo "Test Frontend: ${{ needs.test-frontend.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          echo "Build: ${{ needs.build.result }}"
+          echo "Parity: ${{ needs.parity-p0.result }}"
+          echo "E2E Smoke: ${{ needs.e2e-smoke.result }}"
+          echo "D7 Go: ${{ needs.d7-go-parcial.result }}"
+          echo "Checkpoints: ${{ needs.checkpoints.result }}"
+          echo "Coverage Gate: ${{ needs.coverage-gate.result }}"
+
+          FAILED=""
+          for JOB in audit lint test-backend test-frontend security build parity-p0 e2e-smoke d7-go-parcial checkpoints coverage-gate; do
+            RESULT=$(
+              case $JOB in
+                audit) echo "${{ needs.audit.result }}" ;;
+                lint) echo "${{ needs.lint.result }}" ;;
+                test-backend) echo "${{ needs.test-backend.result }}" ;;
+                test-frontend) echo "${{ needs.test-frontend.result }}" ;;
+                security) echo "${{ needs.security.result }}" ;;
+                build) echo "${{ needs.build.result }}" ;;
+                parity-p0) echo "${{ needs.parity-p0.result }}" ;;
+                e2e-smoke) echo "${{ needs.e2e-smoke.result }}" ;;
+                d7-go-parcial) echo "${{ needs.d7-go-parcial.result }}" ;;
+                checkpoints) echo "${{ needs.checkpoints.result }}" ;;
+                coverage-gate) echo "${{ needs.coverage-gate.result }}" ;;
+              esac
+            )
+            if [ "$RESULT" != "success" ]; then
+              FAILED="$FAILED $JOB($RESULT)"
+            fi
+          done
+
+          if [ -n "$FAILED" ]; then
+            echo "❌ Quality Gate Failed: $FAILED"
+            exit 1
+          fi
+          echo "✅ All Quality Gates Passed"
