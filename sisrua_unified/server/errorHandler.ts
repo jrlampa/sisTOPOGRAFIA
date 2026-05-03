@@ -193,7 +193,27 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
     return res.status(400).json(response);
   }
 
-  // 3. Handle unknown errors
+  // 3. Handle errors with status codes (e.g. body-parser 413, or other middleware errors)
+  if (err.status || err.statusCode) {
+    const statusCode = err.status || err.statusCode;
+    const response: ApiErrorResponse = {
+      error: err.message || "Request Error",
+      code: statusCode === 413 ? ErrorCode.FILE_TOO_LARGE : ErrorCode.INPUT_INVALID,
+      category: ErrorCategory.VALIDATION,
+      requestId,
+      timestamp: new Date().toISOString(),
+    };
+
+    if (statusCode >= 500) {
+      logger.error(`[${ErrorCode.INTERNAL_SERVER_ERROR}] ${err.message}`, { requestId, tenant_id, error: err });
+    } else {
+      logger.warn(`[${ErrorCode.INPUT_INVALID}] ${err.message}`, { requestId, tenant_id, error: err });
+    }
+
+    return res.status(statusCode).json(response);
+  }
+
+  // 4. Handle unknown errors
   const response: ApiErrorResponse = {
     error:
       config.NODE_ENV === "development" ? err.message : "Internal server error",

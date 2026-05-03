@@ -45,8 +45,21 @@ const router = Router();
 // Servir arquivos DXF gerados (Mover para o topo)
 router.get("/downloads/:filename", (req: Request, res: Response) => {
   const { filename } = req.params;
+  
+  // Basic sanitization: block any path separators or null bytes
+  if (filename.includes("/") || filename.includes("\\") || filename.includes("\0")) {
+    logger.warn("Tentativa de Path Traversal bloqueada", { filename, ip: req.ip });
+    return res.status(400).json({ error: "Nome de arquivo inválido" });
+  }
+
   const dxfDirectory = resolveDxfDirectory();
-  const filePath = path.join(dxfDirectory, filename);
+  const filePath = path.resolve(dxfDirectory, filename);
+
+  // Ensure the resolved path is still inside the dxfDirectory
+  if (!filePath.startsWith(dxfDirectory)) {
+    logger.warn("Tentativa de escape de diretório detectada", { filename, filePath, ip: req.ip });
+    return res.status(403).json({ error: "Acesso negado" });
+  }
 
   logger.info("Tentativa de download de DXF", { filename, filePath });
 
@@ -668,27 +681,6 @@ router.get(
     return res.json(dossier);
   },
 );
-
-// Servir arquivos DXF gerados
-router.get("/downloads/:filename", (req: Request, res: Response) => {
-  const { filename } = req.params;
-  const dxfDirectory = resolveDxfDirectory();
-  const filePath = path.join(dxfDirectory, filename);
-
-  if (fs.existsSync(filePath)) {
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    res.setHeader("Content-Type", "application/dxf");
-    return res.sendFile(filePath);
-  } else {
-    logger.warn("Tentativa de download de arquivo inexistente", {
-      filename,
-      filePath,
-    });
-    return res
-      .status(404)
-      .json({ error: "Arquivo não encontrado ou expirado" });
-  }
-});
 
 // POST /dxf/jobs/:taskId/replay  — replay controlado (somente admin)
 router.post(

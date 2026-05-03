@@ -9,6 +9,7 @@ import { Request, Response, NextFunction } from "express";
 import { body, query, param } from "express-validator";
 import { createHash } from 'crypto';
 import { logger } from "../utils/logger.js";
+import { ErrorCode } from "../errorHandler.js";
 
 /**
  * Valida complexidade de geometria para evitar DoS
@@ -37,17 +38,19 @@ export const validateGeometryComplexity = (req: Request, res: Response, next: Ne
     });
   }
 
-  // Verificar tamanho total do payload
-  const payloadSize = JSON.stringify(req.body).length / (1024 * 1024);
-  if (payloadSize > MAX_POLYGON_SIZE_MB) {
-    logger.warn("Payload exceeds max size", {
+  // Verificar tamanho total do payload via header (mais rápido e seguro)
+  const contentLength = parseInt(req.headers['content-length'] || '0', 10);
+  const MAX_SIZE_BYTES = MAX_POLYGON_SIZE_MB * 1024 * 1024;
+
+  if (contentLength > MAX_SIZE_BYTES) {
+    logger.warn("Payload exceeds max size (via header)", {
       ip: req.ip,
-      sizeMb: payloadSize.toFixed(2),
-      maxMb: MAX_POLYGON_SIZE_MB,
+      sizeBytes: contentLength,
+      maxBytes: MAX_SIZE_BYTES,
     });
     return res.status(413).json({
       error: "Payload too large",
-      code: "PAYLOAD_TOO_LARGE",
+      code: "FILE_EXCEEDS_LIMIT",
       details: { maxMb: MAX_POLYGON_SIZE_MB },
     });
   }
