@@ -218,6 +218,7 @@ export function AppWorkspace(props: AppWorkspaceProps) {
         onOpenSettings={openSettings}
         onOpenHelp={() => setIsHelpOpen(true)}
         appStatusStackProps={{
+          locale: settings.locale,
           toasts,
           closeToast,
           sessionDraft,

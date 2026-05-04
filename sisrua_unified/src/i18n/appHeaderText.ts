@@ -19,6 +19,7 @@ type AppHeaderText = {
   autoSaveSaving: string;
   autoSaveError: string;
   autoSaveSuccess: string;
+  autoSaveAt: string;
   recentHistory: string;
   present: string;
   noActions: string;
@@ -47,14 +48,15 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     autoSaveSaving: "sincronizando",
     autoSaveError: "erro ao sincronizar",
     autoSaveSuccess: "salvo agora",
+    autoSaveAt: "salvo às",
     recentHistory: "Histórico Recente",
     present: "Presente",
     noActions: "Sem ações registradas",
     undoAction: "Desfazer",
     redoAction: "Refazer",
     historyTooltip: "Ver histórico de ações",
-    },
-    "en-US": {
+  },
+  "en-US": {
     backendStatusOnline: "Backend online",
     backendStatusDegraded: "Backend degraded",
     backendStatusOffline: "Backend offline",
@@ -73,14 +75,15 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     autoSaveSaving: "syncing",
     autoSaveError: "sync error",
     autoSaveSuccess: "saved now",
+    autoSaveAt: "saved at",
     recentHistory: "Recent History",
     present: "Present",
     noActions: "No actions recorded",
     undoAction: "Undo",
     redoAction: "Redo",
     historyTooltip: "View action history",
-    },
-    "es-ES": {
+  },
+  "es-ES": {
     backendStatusOnline: "Backend en línea",
     backendStatusDegraded: "Backend degradado",
     backendStatusOffline: "Backend fuera de línea",
@@ -99,14 +102,15 @@ const TEXTS: Record<AppLocale, AppHeaderText> = {
     autoSaveSaving: "sincronizando",
     autoSaveError: "error al sincronizar",
     autoSaveSuccess: "guardado ahora",
+    autoSaveAt: "guardado a las",
     recentHistory: "Historial Reciente",
     present: "Presente",
     noActions: "No hay acciones registradas",
     undoAction: "Deshacer",
     redoAction: "Rehacer",
     historyTooltip: "Ver historial de acciones",
-    },
-    };
+  },
+};
 
 type ExtraHeaderKeys = {
   closeMenu: string;
@@ -140,7 +144,9 @@ const EXTRA_TEXTS: Record<AppLocale, ExtraHeaderKeys> = {
   },
 };
 
-export function getAppHeaderText(locale: AppLocale): AppHeaderText & ExtraHeaderKeys {
+export function getAppHeaderText(
+  locale: AppLocale,
+): AppHeaderText & ExtraHeaderKeys {
   const base = TEXTS[locale] ?? TEXTS["pt-BR"];
   const extra = EXTRA_TEXTS[locale] ?? EXTRA_TEXTS["pt-BR"];
   return { ...base, ...extra };

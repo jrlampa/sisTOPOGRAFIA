@@ -59,6 +59,12 @@ export function DxfProgressBadge({ visible, label, progress, status }: Props) {
           Você pode continuar navegando no mapa enquanto o arquivo é gerado.
         </p>
       )}
+
+      {status === "failed" && (
+        <p className="mt-2 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+          Falha ao gerar o arquivo. Verifique os dados e tente novamente.
+        </p>
+      )}
     </div>
   );
 }

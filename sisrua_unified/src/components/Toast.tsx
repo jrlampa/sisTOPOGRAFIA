@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import {
   CheckCircle2,
   AlertCircle,
@@ -32,20 +32,47 @@ const Toast: React.FC<ToastProps> = ({
   action,
   stackOffset = 0,
 }) => {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const remainingRef = useRef<number>(action ? duration * 2 : duration);
+  const startTimeRef = useRef<number>(Date.now());
+  const isPausedRef = useRef(false);
+
+  const startTimer = useCallback(() => {
+    timerRef.current = setTimeout(() => {
+      onClose();
+    }, remainingRef.current);
+    startTimeRef.current = Date.now();
+  }, [onClose]);
+
+  const pauseTimer = useCallback(() => {
+    if (timerRef.current && !isPausedRef.current) {
+      clearTimeout(timerRef.current);
+      remainingRef.current -= Date.now() - startTimeRef.current;
+      isPausedRef.current = true;
+    }
+  }, []);
+
+  const resumeTimer = useCallback(() => {
+    if (isPausedRef.current) {
+      isPausedRef.current = false;
+      startTimer();
+    }
+  }, [startTimer]);
+
   useEffect(() => {
     // UX-20: Track error friction
     if (type === "error") {
       trackErrorFriction(message, !!action);
     }
 
-    // If there is an action (like Retry), we might want to keep the toast open longer
     const adjustedDuration = action ? duration * 2 : duration;
+    remainingRef.current = adjustedDuration;
+    startTimer();
 
-    const timer = setTimeout(() => {
-      onClose();
-    }, adjustedDuration);
-
-    return () => clearTimeout(timer);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose, duration, action, type, message]);
 
   const icons = {
@@ -105,6 +132,8 @@ const Toast: React.FC<ToastProps> = ({
       exit={{ opacity: 0, scale: 0.9, y: -20, x: 20 }}
       role="alert"
       aria-live="polite"
+      onMouseEnter={pauseTimer}
+      onMouseLeave={resumeTimer}
       style={{ top: `${16 + stackOffset * 80}px` }}
       className={`fixed right-4 z-[1000] flex items-center gap-3 p-4 rounded-2xl border bg-gradient-to-br ${borderColors[type]} ${bgColors[type]} max-w-md w-[calc(100vw-2rem)] md:w-full transition-colors shadow-2xl backdrop-blur-lg`}
     >

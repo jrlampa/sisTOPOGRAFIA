@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import type { GlobalState } from "../types";
+import type { GlobalState, AppLocale } from "../types";
 import Toast, { ToastType } from "./Toast";
 import ProgressIndicator from "./ProgressIndicator";
 import { SessionRecoveryBanner } from "./SessionRecoveryBanner";
@@ -8,6 +8,7 @@ import { DxfProgressBadge } from "./DxfProgressBadge";
 import { BtExportSummaryBanner } from "./BtExportSummaryBanner";
 
 type Props = {
+  locale: AppLocale;
   toasts: Array<{
     id: string;
     message: string;
@@ -30,6 +31,7 @@ type Props = {
 };
 
 export function AppStatusStack({
+  locale,
   toasts,
   closeToast,
   sessionDraft,
@@ -76,6 +78,7 @@ export function AppStatusStack({
       </AnimatePresence>
 
       <SessionRecoveryBanner
+        locale={locale}
         sessionDraft={sessionDraft}
         onRestore={handleRestoreSession}
         onDismiss={handleDismissSession}

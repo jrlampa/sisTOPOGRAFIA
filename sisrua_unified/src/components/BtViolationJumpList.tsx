@@ -36,11 +36,17 @@ const TYPE_CONFIG = {
   },
 } as const;
 
+const SEVERITY_ORDER: Record<string, number> = { critical: 0, warning: 1, info: 2 };
+
 export function BtViolationJumpList({
   violations,
   onJumpToLocation,
 }: BtViolationJumpListProps) {
   if (violations.length === 0) return null;
+
+  const sorted = [...violations].sort(
+    (a, b) => (SEVERITY_ORDER[a.type] ?? 3) - (SEVERITY_ORDER[b.type] ?? 3),
+  );
 
   const criticalCount = violations.filter((v) => v.type === "critical").length;
   const warnCount = violations.filter((v) => v.type === "warning").length;
@@ -66,7 +72,7 @@ export function BtViolationJumpList({
 
       {/* Violation rows */}
       <AnimatePresence initial={false}>
-        {violations.map((v, i) => {
+        {sorted.map((v, i) => {
           const cfg = TYPE_CONFIG[v.type];
           const Icon = cfg.icon;
 

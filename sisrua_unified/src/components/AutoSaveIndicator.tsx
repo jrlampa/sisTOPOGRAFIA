@@ -10,7 +10,7 @@ interface Props {
   locale: AppLocale;
 }
 
-export function AutoSaveIndicator({ status, locale }: Props) {
+export function AutoSaveIndicator({ status, lastSaved, locale }: Props) {
   const t = getAppHeaderText(locale);
 
   return (
@@ -31,14 +31,14 @@ export function AutoSaveIndicator({ status, locale }: Props) {
 
         {status === "idle" && (
           <motion.div
-            key="idle"
+            key={`idle-${lastSaved ?? "none"}`}
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
             className="flex items-center gap-1.5 text-xs font-bold text-slate-400 dark:text-slate-500"
           >
             <CheckCircle2 size={12} className="text-emerald-500" />
-            {t.autoSaveSuccess}
+            {lastSaved ? `${t.autoSaveAt} ${lastSaved}` : t.autoSaveSuccess}
           </motion.div>
         )}
 
