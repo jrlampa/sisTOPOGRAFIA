@@ -9,7 +9,7 @@
  *   - End-to-end: partitionNetwork
  */
 
-import { partitionNetwork } from "../services/dg/dgPartitioner";
+import { partitionNetwork, planMtRouter } from "../services/dg/dgPartitioner";
 import { buildMst } from "../services/dg/dgMst";
 import { findBestCutEdge } from "../services/dg/dgCuts";
 import { applyEccentricityDrag } from "../services/dg/dgEccentricity";
@@ -255,5 +255,69 @@ describe("partitionNetwork", () => {
     const poles = makePoles(8, 10);
     const result = partitionNetwork(poles, DEFAULT_DG_PARAMS);
     expect(result.infeasiblePartitions).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// ─── MT Router skill (POC) ───────────────────────────────────────────────────
+
+describe("planMtRouter", () => {
+  it("conecta origem MT a 3 terminais sobre malha viária", () => {
+    const result = planMtRouter({
+      source: { lat: -23.55, lon: -46.64 },
+      terminals: [
+        { id: "TR-A", position: { lat: -23.55, lon: -46.6394 } },
+        { id: "TR-B", position: { lat: -23.5496, lon: -46.6394 } },
+        { id: "TR-C", position: { lat: -23.5492, lon: -46.6394 } },
+      ],
+      roadCorridors: [
+        {
+          id: "via-principal",
+          bufferMeters: 20,
+          centerPoints: [
+            { lat: -23.55, lon: -46.64 },
+            { lat: -23.55, lon: -46.6394 },
+            { lat: -23.55, lon: -46.6388 },
+          ],
+        },
+        {
+          id: "via-secundaria",
+          bufferMeters: 20,
+          centerPoints: [
+            { lat: -23.55, lon: -46.6394 },
+            { lat: -23.5496, lon: -46.6394 },
+            { lat: -23.5492, lon: -46.6394 },
+          ],
+        },
+      ],
+      maxSnapDistanceMeters: 120,
+    });
+
+    expect(result.feasible).toBe(true);
+    expect(result.connectedTerminals).toBe(3);
+    expect(result.paths).toHaveLength(3);
+    expect(result.edges.length).toBeGreaterThan(0);
+    expect(result.totalLengthMeters).toBeGreaterThan(0);
+  });
+
+  it("retorna inviável quando origem e terminais não alcançam a malha", () => {
+    const result = planMtRouter({
+      source: { lat: -23.5, lon: -46.7 },
+      terminals: [{ id: "TR-X", position: { lat: -23.5005, lon: -46.7005 } }],
+      roadCorridors: [
+        {
+          id: "via-distante",
+          bufferMeters: 20,
+          centerPoints: [
+            { lat: -23.55, lon: -46.64 },
+            { lat: -23.55, lon: -46.639 },
+          ],
+        },
+      ],
+      maxSnapDistanceMeters: 30,
+    });
+
+    expect(result.feasible).toBe(false);
+    expect(result.connectedTerminals).toBe(0);
+    expect(result.reason).toBeTruthy();
   });
 });

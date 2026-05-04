@@ -14,6 +14,9 @@ import type {
   DgElectricalResult,
   DgPartition,
   DgPartitionedResult,
+  DgMtRouterInput,
+  DgMtRouterResult,
+  DgMtRouterEdge,
 } from "./dgTypes.js";
 import {
   latLonToUtm,
@@ -384,5 +387,233 @@ export function partitionNetwork(
     infeasiblePartitions: partitions.filter((p) => !p.electricalResult.feasible)
       .length,
     totalDemandKva,
+  };
+}
+
+// ─── Skill DG: MT Router (grafo viário + menor caminho) ─────────────────────
+
+interface MtGraphNode {
+  id: string;
+  point: { x: number; y: number };
+}
+
+interface MtGraphEdge {
+  from: string;
+  to: string;
+  lengthMeters: number;
+}
+
+function mtDistance(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function mtNodeId(lat: number, lon: number): string {
+  return `${lat.toFixed(7)},${lon.toFixed(7)}`;
+}
+
+function buildRoadGraph(input: DgMtRouterInput): {
+  nodes: Map<string, MtGraphNode>;
+  adjacency: Map<string, MtGraphEdge[]>;
+} {
+  const nodes = new Map<string, MtGraphNode>();
+  const adjacency = new Map<string, MtGraphEdge[]>();
+
+  const addNode = (lat: number, lon: number): string => {
+    const id = mtNodeId(lat, lon);
+    if (!nodes.has(id)) {
+      nodes.set(id, { id, point: latLonToUtm(lat, lon) });
+      adjacency.set(id, []);
+    }
+    return id;
+  };
+
+  const addEdge = (from: string, to: string): void => {
+    if (from === to) return;
+    const fromNode = nodes.get(from);
+    const toNode = nodes.get(to);
+    if (!fromNode || !toNode) return;
+    const lengthMeters = mtDistance(fromNode.point, toNode.point);
+    if (lengthMeters <= 0) return;
+
+    adjacency.get(from)?.push({ from, to, lengthMeters });
+    adjacency.get(to)?.push({ from: to, to: from, lengthMeters });
+  };
+
+  for (const corridor of input.roadCorridors) {
+    if (corridor.centerPoints.length < 2) continue;
+    let previous: string | null = null;
+    for (const point of corridor.centerPoints) {
+      const current = addNode(point.lat, point.lon);
+      if (previous) addEdge(previous, current);
+      previous = current;
+    }
+  }
+
+  return { nodes, adjacency };
+}
+
+function findClosestNode(
+  nodes: Map<string, MtGraphNode>,
+  lat: number,
+  lon: number,
+): { nodeId: string; distanceMeters: number } | null {
+  if (nodes.size === 0) return null;
+  const point = latLonToUtm(lat, lon);
+  let best: { nodeId: string; distanceMeters: number } | null = null;
+
+  for (const node of nodes.values()) {
+    const d = mtDistance(point, node.point);
+    if (!best || d < best.distanceMeters) {
+      best = { nodeId: node.id, distanceMeters: d };
+    }
+  }
+  return best;
+}
+
+function shortestPath(
+  adjacency: Map<string, MtGraphEdge[]>,
+  source: string,
+  target: string,
+): { nodeIds: string[]; lengthMeters: number } | null {
+  if (source === target) return { nodeIds: [source], lengthMeters: 0 };
+
+  const dist = new Map<string, number>([[source, 0]]);
+  const prev = new Map<string, string>();
+  const visited = new Set<string>();
+  const queue = new Set<string>([source]);
+
+  while (queue.size > 0) {
+    let u: string | null = null;
+    let best = Number.POSITIVE_INFINITY;
+    for (const n of queue) {
+      const d = dist.get(n) ?? Number.POSITIVE_INFINITY;
+      if (d < best) {
+        best = d;
+        u = n;
+      }
+    }
+    if (!u) break;
+
+    queue.delete(u);
+    if (u === target) break;
+    if (visited.has(u)) continue;
+    visited.add(u);
+
+    for (const edge of adjacency.get(u) ?? []) {
+      const alt = (dist.get(u) ?? Number.POSITIVE_INFINITY) + edge.lengthMeters;
+      if (alt < (dist.get(edge.to) ?? Number.POSITIVE_INFINITY)) {
+        dist.set(edge.to, alt);
+        prev.set(edge.to, u);
+        queue.add(edge.to);
+      }
+    }
+  }
+
+  const lengthMeters = dist.get(target);
+  if (lengthMeters == null || !Number.isFinite(lengthMeters)) return null;
+
+  const nodeIds: string[] = [];
+  let current: string | undefined = target;
+  while (current) {
+    nodeIds.push(current);
+    if (current === source) break;
+    current = prev.get(current);
+  }
+
+  if (nodeIds[nodeIds.length - 1] !== source) return null;
+  nodeIds.reverse();
+  return { nodeIds, lengthMeters };
+}
+
+function uniqueEdgeKey(a: string, b: string): string {
+  return a < b ? `${a}→${b}` : `${b}→${a}`;
+}
+
+export function planMtRouter(input: DgMtRouterInput): DgMtRouterResult {
+  const maxSnapDistanceMeters = input.maxSnapDistanceMeters ?? 150;
+  if (!input.terminals.length) {
+    return {
+      feasible: false,
+      reason: "É necessário informar ao menos um terminal (trafo).",
+      connectedTerminals: 0,
+      totalLengthMeters: 0,
+      edges: [],
+      paths: [],
+    };
+  }
+
+  const { nodes, adjacency } = buildRoadGraph(input);
+  if (nodes.size === 0) {
+    return {
+      feasible: false,
+      reason: "Grafo viário vazio. Forneça roadCorridors com ao menos 2 pontos por corredor.",
+      connectedTerminals: 0,
+      totalLengthMeters: 0,
+      edges: [],
+      paths: [],
+    };
+  }
+
+  const sourceSnap = findClosestNode(nodes, input.source.lat, input.source.lon);
+  if (!sourceSnap || sourceSnap.distanceMeters > maxSnapDistanceMeters) {
+    return {
+      feasible: false,
+      reason: "Origem MT distante demais da malha viária para snap seguro.",
+      connectedTerminals: 0,
+      totalLengthMeters: 0,
+      edges: [],
+      paths: [],
+    };
+  }
+
+  const uniqueEdges = new Map<string, DgMtRouterEdge>();
+  const paths: DgMtRouterResult["paths"] = [];
+
+  for (const terminal of input.terminals) {
+    const terminalSnap = findClosestNode(nodes, terminal.position.lat, terminal.position.lon);
+    if (!terminalSnap || terminalSnap.distanceMeters > maxSnapDistanceMeters) {
+      continue;
+    }
+
+    const route = shortestPath(adjacency, sourceSnap.nodeId, terminalSnap.nodeId);
+    if (!route) continue;
+
+    paths.push({
+      terminalId: terminal.id,
+      lengthMeters: route.lengthMeters,
+      nodeIds: route.nodeIds,
+    });
+
+    for (let i = 0; i < route.nodeIds.length - 1; i++) {
+      const fromNodeId = route.nodeIds[i];
+      const toNodeId = route.nodeIds[i + 1];
+      const fromNode = nodes.get(fromNodeId);
+      const toNode = nodes.get(toNodeId);
+      if (!fromNode || !toNode) continue;
+      const key = uniqueEdgeKey(fromNodeId, toNodeId);
+      if (!uniqueEdges.has(key)) {
+        uniqueEdges.set(key, {
+          fromNodeId,
+          toNodeId,
+          lengthMeters: mtDistance(fromNode.point, toNode.point),
+        });
+      }
+    }
+  }
+
+  const edges = [...uniqueEdges.values()];
+  const totalLengthMeters = edges.reduce((sum, edge) => sum + edge.lengthMeters, 0);
+
+  return {
+    feasible: paths.length > 0,
+    reason:
+      paths.length > 0
+        ? undefined
+        : "Nenhum terminal foi conectado via grafo viário dentro do raio de snap.",
+    sourceNodeId: sourceSnap.nodeId,
+    connectedTerminals: paths.length,
+    totalLengthMeters,
+    edges,
+    paths,
   };
 }

@@ -350,3 +350,40 @@ export interface DgPartitionedResult {
   /** Demanda total de todos os postes (kVA). */
   totalDemandKva: number;
 }
+
+// ─── Skill DG: MT Router (expansão de rede MT guiada por vias) ───────────────
+
+export interface DgMtTerminalInput {
+  id: string;
+  position: DgLatLon;
+}
+
+export interface DgMtRouterInput {
+  source: DgLatLon;
+  terminals: DgMtTerminalInput[];
+  roadCorridors: DgRoadCorridor[];
+  /** Distância máxima para snap em nó viário (m). Padrão: 150m. */
+  maxSnapDistanceMeters?: number;
+}
+
+export interface DgMtRouterPath {
+  terminalId: string;
+  lengthMeters: number;
+  nodeIds: string[];
+}
+
+export interface DgMtRouterEdge {
+  fromNodeId: string;
+  toNodeId: string;
+  lengthMeters: number;
+}
+
+export interface DgMtRouterResult {
+  feasible: boolean;
+  reason?: string;
+  sourceNodeId?: string;
+  connectedTerminals: number;
+  totalLengthMeters: number;
+  edges: DgMtRouterEdge[];
+  paths: DgMtRouterPath[];
+}

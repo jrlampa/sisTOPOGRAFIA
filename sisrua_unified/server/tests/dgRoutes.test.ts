@@ -62,6 +62,66 @@ const fullProjectPayload = {
 };
 
 describe("dgRoutes", () => {
+  it("POST /mt-router retorna trilha MT conectando terminais", async () => {
+    const res = await request(app)
+      .post(`${BASE}/mt-router`)
+      .set("x-user-id", "test-user")
+      .send({
+        source: { lat: -23.55, lon: -46.64 },
+        terminals: [
+          { id: "TR-A", position: { lat: -23.55, lon: -46.6394 } },
+          { id: "TR-B", position: { lat: -23.5497, lon: -46.6392 } },
+        ],
+        roadCorridors: [
+          {
+            id: "r1",
+            bufferMeters: 20,
+            centerPoints: [
+              { lat: -23.55, lon: -46.64 },
+              { lat: -23.55, lon: -46.6394 },
+            ],
+          },
+          {
+            id: "r2",
+            bufferMeters: 20,
+            centerPoints: [
+              { lat: -23.55, lon: -46.6392 },
+              { lat: -23.5497, lon: -46.6392 },
+            ],
+          },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.feasible).toBe(true);
+    expect(res.body.connectedTerminals).toBeGreaterThanOrEqual(1);
+    expect(Array.isArray(res.body.edges)).toBe(true);
+  });
+
+  it("POST /mt-router retorna 422 para cenário inviável", async () => {
+    const res = await request(app)
+      .post(`${BASE}/mt-router`)
+      .set("x-user-id", "test-user")
+      .send({
+        source: { lat: -23.5, lon: -46.7 },
+        terminals: [{ id: "TR-X", position: { lat: -23.5003, lon: -46.7002 } }],
+        roadCorridors: [
+          {
+            id: "r-dist",
+            bufferMeters: 20,
+            centerPoints: [
+              { lat: -23.55, lon: -46.64 },
+              { lat: -23.55, lon: -46.639 },
+            ],
+          },
+        ],
+        maxSnapDistanceMeters: 20,
+      });
+
+    expect(res.status).toBe(422);
+    expect(res.body.feasible).toBe(false);
+  });
+
   it("GET /discard-rates retorna agregados de descarte por restrição", async () => {
     await request(app)
       .post(`${BASE}/optimize`)

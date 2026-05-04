@@ -22,6 +22,7 @@ import {
   getDgRunScenarios,
   getDgRunRecommendation,
 } from "../services/dgOptimizationService.js";
+import { planMtRouter } from "../services/dg/dgPartitioner.js";
 import { logAudit } from "../services/auditLogService.js";
 import { permissionHandler } from "../middleware/permissionHandler.js";
 import { schemaValidator } from "../middleware/schemaValidator.js";
@@ -112,6 +113,16 @@ const optimizeBodySchema = z.object({
   }
 });
 
+const mtRouterBodySchema = z.object({
+  source: latLonSchema,
+  terminals: z.array(z.object({
+    id: z.string().min(1),
+    position: latLonSchema,
+  })).min(1),
+  roadCorridors: z.array(corridorSchema).min(1),
+  maxSnapDistanceMeters: z.number().positive().max(1000).optional(),
+});
+
 const decisionBodySchema = z.object({
   runId: z.string().uuid(),
   scenarioId: z.string().min(1).optional(),
@@ -129,6 +140,23 @@ router.post("/optimize", permissionHandler("WRITE_DESIGN_GENERATIVO"), async (re
     return res.status(200).json(output);
   } catch (err) {
     logger.error("DG optimize error", { message: (err as Error).message, stack: (err as Error).stack });
+    return res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+router.post("/mt-router", permissionHandler("WRITE_DESIGN_GENERATIVO"), async (req: Request, res: Response) => {
+  const parsed = mtRouterBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Parâmetros inválidos", details: parsed.error.flatten() });
+  }
+  try {
+    const result = planMtRouter(parsed.data);
+    return res.status(result.feasible ? 200 : 422).json(result);
+  } catch (err) {
+    logger.error("DG mt-router error", {
+      message: (err as Error).message,
+      stack: (err as Error).stack,
+    });
     return res.status(500).json({ error: (err as Error).message });
   }
 });
