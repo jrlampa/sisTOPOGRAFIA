@@ -28,7 +28,7 @@ import { calculateBtRadial } from "../btRadialCalculationService.js";
 import type { BtRadialTopologyInput } from "../bt/btTypes.js";
 import { logger } from "../../utils/logger.js";
 
-const MIN_POLES_PER_PARTITION = 3;
+const MIN_POLES_PER_PARTITION = 1;
 
 // ─── Avaliação elétrica de uma partição ─────────────────────────────────────
 

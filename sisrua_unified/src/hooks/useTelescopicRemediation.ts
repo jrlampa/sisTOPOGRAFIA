@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import type { BtTopology, BtEdge } from "../types";
+import type { BtTopology } from "../types";
 import { ENTITY_ID_PREFIXES } from "../constants/magicNumbers";
 
 /**
@@ -27,13 +27,16 @@ export function useTelescopicRemediation() {
   /**
    * Encontra o próximo condutor padronizado superior ao atual.
    */
-  const getNextUpConductor = useCallback((currentName: string): string | null => {
-    const currentSection = getSectionFromConductorName(currentName);
-    const next = STANDARD_CONDUCTORS.find(
-      (name) => getSectionFromConductorName(name) > currentSection
-    );
-    return next || null;
-  }, []);
+  const getNextUpConductor = useCallback(
+    (currentName: string): string | null => {
+      const currentSection = getSectionFromConductorName(currentName);
+      const next = STANDARD_CONDUCTORS.find(
+        (name) => getSectionFromConductorName(name) > currentSection,
+      );
+      return next || null;
+    },
+    [],
+  );
 
   /**
    * Identifica o caminho do transformador até um nó específico.
@@ -48,7 +51,7 @@ export function useTelescopicRemediation() {
       const startPole = topology.poles.find(
         (p) =>
           Math.abs(p.lat - trafo.lat) < 0.00001 &&
-          Math.abs(p.lng - trafo.lng) < 0.00001
+          Math.abs(p.lng - trafo.lng) < 0.00001,
       );
       if (!startPole) return [];
 
@@ -69,12 +72,12 @@ export function useTelescopicRemediation() {
 
       return edgePath;
     },
-    []
+    [],
   );
 
   /**
    * Aplica remediação telescópica:
-   * Realiza o upgrade das seções no caminho para reduzir CQT, 
+   * Realiza o upgrade das seções no caminho para reduzir CQT,
    * garantindo que a regra telescópica seja mantida (pai >= filho).
    */
   const applyTelescopicUpgrade = useCallback(
@@ -86,10 +89,14 @@ export function useTelescopicRemediation() {
       const nextEdges = [...topology.edges];
 
       // Tenta fazer o upgrade do último trecho e propaga para trás
-      const lastEdgeIdx = nextEdges.findIndex((e) => e.id === pathIds[pathIds.length - 1]);
+      const lastEdgeIdx = nextEdges.findIndex(
+        (e) => e.id === pathIds[pathIds.length - 1],
+      );
       if (lastEdgeIdx === -1) return topology;
 
-      const currentCond = nextEdges[lastEdgeIdx].conductors[0]?.conductorName || STANDARD_CONDUCTORS[0];
+      const currentCond =
+        nextEdges[lastEdgeIdx].conductors[0]?.conductorName ||
+        STANDARD_CONDUCTORS[0];
       const nextCond = getNextUpConductor(currentCond);
 
       if (!nextCond) return topology; // Já está no máximo do catálogo
@@ -101,7 +108,7 @@ export function useTelescopicRemediation() {
         const idx = nextEdges.findIndex((e) => e.id === edgeId);
         const edge = nextEdges[idx];
         const currentSection = getSectionFromConductorName(
-          edge.conductors[0]?.conductorName || ""
+          edge.conductors[0]?.conductorName || "",
         );
 
         if (currentSection < nextSection) {
@@ -128,7 +135,7 @@ export function useTelescopicRemediation() {
         edges: nextEdges,
       };
     },
-    [findPathFromTransformer, getNextUpConductor]
+    [findPathFromTransformer, getNextUpConductor],
   );
 
   return {

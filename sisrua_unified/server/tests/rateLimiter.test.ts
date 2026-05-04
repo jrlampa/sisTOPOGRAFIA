@@ -29,6 +29,7 @@ import {
   dxfRateLimiter,
   generalRateLimiter,
   getRateLimitPolicySnapshot,
+  resolveTrustedRateLimitKey,
   shouldSkipGeneralRateLimit,
 } from "../middleware/rateLimiter.js";
 
@@ -147,6 +148,36 @@ describe("Rate Limiter Middleware", () => {
           limit: 20,
         },
       });
+    });
+
+    it("should use x-user-id for rate limiting outside production", () => {
+      mockConfig.NODE_ENV = "development";
+      const key = resolveTrustedRateLimitKey({
+        headers: { "x-user-id": "dev-user" },
+        res: { locals: {} },
+      } as unknown as Request);
+
+      expect(key).toBe("user:dev-user");
+    });
+
+    it("should ignore x-user-id for rate limiting in production", () => {
+      mockConfig.NODE_ENV = "production";
+      const key = resolveTrustedRateLimitKey({
+        headers: { "x-user-id": "spoofed-user" },
+        res: { locals: {} },
+      } as unknown as Request);
+
+      expect(key).toBeNull();
+    });
+
+    it("should hash bearer token for rate limiting when available", () => {
+      mockConfig.NODE_ENV = "production";
+      const key = resolveTrustedRateLimitKey({
+        headers: { authorization: "Bearer secret-token" },
+        res: { locals: {} },
+      } as unknown as Request);
+
+      expect(key).toMatch(/^bearer:[a-f0-9]{64}$/);
     });
   });
 

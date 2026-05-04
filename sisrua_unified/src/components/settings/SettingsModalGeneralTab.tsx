@@ -37,7 +37,6 @@ type SettingsModalGeneralTabProps = {
   settings: AppSettings;
   onUpdateSettings: (settings: AppSettings) => void;
   setSimplification: (level: SimplificationLevel) => void;
-  toggleTheme: () => void;
   setProjection: (proj: ProjectionType) => void;
   setMapProvider: (provider: MapProvider) => void;
   setContourRenderMode: (mode: ContourRenderMode) => void;
@@ -83,7 +82,6 @@ export function SettingsModalGeneralTab({
   settings,
   onUpdateSettings,
   setSimplification,
-  toggleTheme,
   setProjection,
   setMapProvider,
   setContourRenderMode,
@@ -153,18 +151,22 @@ export function SettingsModalGeneralTab({
               {text.uiDensityTitle}
             </span>
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-               <button 
-                 onClick={() => onUpdateSettings({ ...settings, uiDensity: "compact" })}
-                 className={`px-3 py-1 text-xs font-black uppercase rounded-md transition-all ${settings.uiDensity === "compact" ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600" : "text-slate-400"}`}
-               >
-                 {text.uiDensityCompact}
-               </button>
-               <button 
-                 onClick={() => onUpdateSettings({ ...settings, uiDensity: "comfortable" })}
-                 className={`px-3 py-1 text-xs font-black uppercase rounded-md transition-all ${settings.uiDensity === "comfortable" || !settings.uiDensity ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600" : "text-slate-400"}`}
-               >
-                 {text.uiDensityComfortable}
-               </button>
+              <button
+                onClick={() =>
+                  onUpdateSettings({ ...settings, uiDensity: "compact" })
+                }
+                className={`px-3 py-1 text-xs font-black uppercase rounded-md transition-all ${settings.uiDensity === "compact" ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600" : "text-slate-400"}`}
+              >
+                {text.uiDensityCompact}
+              </button>
+              <button
+                onClick={() =>
+                  onUpdateSettings({ ...settings, uiDensity: "comfortable" })
+                }
+                className={`px-3 py-1 text-xs font-black uppercase rounded-md transition-all ${settings.uiDensity === "comfortable" || !settings.uiDensity ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600" : "text-slate-400"}`}
+              >
+                {text.uiDensityComfortable}
+              </button>
             </div>
           </div>
 
@@ -174,10 +176,17 @@ export function SettingsModalGeneralTab({
                 <Maximize2 size={16} className="text-violet-500" />
                 {text.focusModeLabel}
               </span>
-              <span className="text-xs text-slate-400 font-medium ml-6">{text.focusModeHint}</span>
+              <span className="text-xs text-slate-400 font-medium ml-6">
+                {text.focusModeHint}
+              </span>
             </div>
             <button
-              onClick={() => onUpdateSettings({ ...settings, enableFocusMode: !settings.enableFocusMode })}
+              onClick={() =>
+                onUpdateSettings({
+                  ...settings,
+                  enableFocusMode: !settings.enableFocusMode,
+                })
+              }
               className={`w-12 h-6 rounded-full relative transition-colors ${settings.enableFocusMode ? "bg-violet-600" : "bg-slate-300 dark:bg-slate-700"}`}
             >
               <span
@@ -560,9 +569,7 @@ export function SettingsModalGeneralTab({
               {text.projectionUtm}
             </button>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            {text.projectionHint}
-          </p>
+          <p className="text-xs text-slate-500 mt-1">{text.projectionHint}</p>
         </div>
 
         <ConstantsCatalogOps locale={settings.locale} />

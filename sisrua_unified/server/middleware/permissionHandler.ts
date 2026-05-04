@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { logger } from "../utils/logger.js";
 import { createError } from "../errorHandler.js";
+import { config } from "../config.js";
 import { getUserRole, type UserRole } from "../services/roleService.js";
 
 export type Permission =
@@ -18,8 +19,24 @@ export type Permission =
  * Define quais permissões cada papel tem
  */
 const permissionsMatrix: Record<UserRole, Permission[]> = {
-  admin: ["read", "write", "delete", "admin", "export_dxf", "bt_calculate", "read_dg", "write_dg"],
-  technician: ["read", "write", "export_dxf", "bt_calculate", "read_dg", "write_dg"],
+  admin: [
+    "read",
+    "write",
+    "delete",
+    "admin",
+    "export_dxf",
+    "bt_calculate",
+    "read_dg",
+    "write_dg",
+  ],
+  technician: [
+    "read",
+    "write",
+    "export_dxf",
+    "bt_calculate",
+    "read_dg",
+    "write_dg",
+  ],
   viewer: ["read", "read_dg"],
   guest: [],
 };
@@ -29,14 +46,39 @@ const permissionsMatrix: Record<UserRole, Permission[]> = {
  */
 export const requirePermission = (requiredPermission: Permission) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const userId = (req.headers["x-user-id"] as string) || res.locals.userId;
+    const localUserId =
+      typeof res.locals.userId === "string" ? res.locals.userId.trim() : "";
+    const headerUserId =
+      typeof req.headers["x-user-id"] === "string"
+        ? req.headers["x-user-id"].trim()
+        : "";
+    const canTrustHeaderIdentity = config.NODE_ENV !== "production";
+    const userId =
+      localUserId || (canTrustHeaderIdentity ? headerUserId : "") || undefined;
     const requestId = res.locals.requestId;
+
+    if (localUserId && headerUserId && localUserId !== headerUserId) {
+      logger.warn("User identity mismatch between trusted context and header", {
+        requestId,
+        path: req.path,
+        localUserId,
+        headerUserId,
+      });
+    }
+
+    if (!localUserId && headerUserId && !canTrustHeaderIdentity) {
+      logger.warn("Ignoring client-provided x-user-id in production", {
+        requestId,
+        path: req.path,
+        headerUserId,
+      });
+    }
 
     try {
       const userContext = await getUserRole(userId);
       const userRole = userContext.role;
       const tenantId = userContext.tenantId;
-      
+
       // Propaga o tenantId para os repositórios através do res.locals
       res.locals.userId = userId;
       res.locals.userRole = userRole;
@@ -49,14 +91,34 @@ export const requirePermission = (requiredPermission: Permission) => {
         userPermissions.includes("admin");
 
       if (hasPermission) {
-        logger.info("Permission granted", { userId, userRole, requiredPermission, requestId });
+        logger.info("Permission granted", {
+          userId,
+          userRole,
+          requiredPermission,
+          requestId,
+        });
         return next();
       }
 
-      logger.warn("Permission denied", { userId, userRole, requiredPermission, requestId, path: req.path });
-      return next(createError.authorization(`Missing required permission: ${requiredPermission}`));
+      logger.warn("Permission denied", {
+        userId,
+        userRole,
+        requiredPermission,
+        requestId,
+        path: req.path,
+      });
+      return next(
+        createError.authorization(
+          `Missing required permission: ${requiredPermission}`,
+        ),
+      );
     } catch (err: unknown) {
-      logger.error("Error checking permissions", { userId, requiredPermission, requestId, error: err instanceof Error ? err.message : String(err) });
+      logger.error("Error checking permissions", {
+        userId,
+        requiredPermission,
+        requestId,
+        error: err instanceof Error ? err.message : String(err),
+      });
       return next(createError.authorization("Permission check failed"));
     }
   };
@@ -69,8 +131,10 @@ export const requirePermission = (requiredPermission: Permission) => {
 export const permissionHandler = (permissions: string | string[]) => {
   const list = Array.isArray(permissions) ? permissions : [permissions];
   // Tenta encontrar uma permissão DG correspondente
-  if (list.includes("READ_DESIGN_GENERATIVO")) return requirePermission("read_dg");
-  if (list.includes("WRITE_DESIGN_GENERATIVO")) return requirePermission("write_dg");
-  
+  if (list.includes("READ_DESIGN_GENERATIVO"))
+    return requirePermission("read_dg");
+  if (list.includes("WRITE_DESIGN_GENERATIVO"))
+    return requirePermission("write_dg");
+
   return requirePermission("read");
 };

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { X, Cpu, Settings, FolderTree, Layout, FileDown } from "lucide-react";
+import { Settings, FolderTree, Layout } from "lucide-react";
 import {
   AppSettings,
   LayerConfig,
@@ -95,11 +95,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const setSimplification = (level: SimplificationLevel) =>
     onUpdateSettings({ ...settings, simplificationLevel: level });
-  const toggleTheme = () =>
-    onUpdateSettings({
-      ...settings,
-      theme: settings.theme === "dark" ? "light" : "dark",
-    });
 
   const setProjection = (proj: ProjectionType) =>
     onUpdateSettings({ ...settings, projection: proj });
@@ -239,7 +234,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     settings={settings}
                     onUpdateSettings={onUpdateSettings}
                     setSimplification={setSimplification}
-                    toggleTheme={toggleTheme}
                     setProjection={setProjection}
                     setMapProvider={setMapProvider}
                     setContourRenderMode={setContourRenderMode}

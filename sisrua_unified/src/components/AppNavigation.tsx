@@ -20,6 +20,7 @@ import {
   X,
   Activity,
 } from "lucide-react";
+import { useAuth } from "../auth/AuthProvider";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -53,6 +54,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export function AppNavigation({ isDark = false, onToggleTheme, role = "cliente" }: AppNavigationProps) {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -68,9 +70,8 @@ export function AppNavigation({ isDark = false, onToggleTheme, role = "cliente" 
     ? "glass-panel-hover text-slate-300 hover:text-slate-100"
     : "glass-panel-hover text-slate-700 hover:text-slate-950";
 
-  function handleLogout() {
-    // Limpa sessão local e redireciona para landing
-    localStorage.removeItem("sisrua_token");
+  async function handleLogout() {
+    await signOut();
     navigate("/");
   }
 

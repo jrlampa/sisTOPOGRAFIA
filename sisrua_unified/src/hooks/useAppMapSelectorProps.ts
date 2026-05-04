@@ -1,7 +1,3 @@
-import { BtEditorMode, BtTopology, GeoLocation } from "../types";
-import { DgWizardParams } from "../components/DgWizardModal";
-import { DgScenario } from "./useDgOptimization";
-
 export function useAppMapSelectorProps({
   center,
   btEdgeFlyToTarget,

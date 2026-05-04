@@ -3,7 +3,6 @@ import { Pane, Polyline, Marker, Popup, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import { Plus, Trash2 } from "lucide-react";
 import type { MapBtEdge, MapBtPole, MapBtTopology } from "../types.map";
-import { getBtTopologyPanelText } from "../i18n/btTopologyPanelText";
 import { AppLocale, LayerConfig } from "../types";
 import type { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
 import {
@@ -60,9 +59,12 @@ const getEdgeChangeFlag = (edge: MapBtEdge): BtEdgeChangeFlag => {
 
 const getEdgeVisualConfig = (edge: MapBtEdge) => {
   const flag = getEdgeChangeFlag(edge);
-  if (flag === "new") return { color: "#22c55e", dashArray: "8 6", weight: 3, opacity: 0.8 };
-  if (flag === "remove") return { color: "#ef4444", dashArray: "8 6", weight: 3, opacity: 0.8 };
-  if (flag === "replace") return { color: "#facc15", dashArray: undefined, weight: 3, opacity: 0.9 };
+  if (flag === "new")
+    return { color: "#22c55e", dashArray: "8 6", weight: 3, opacity: 0.8 };
+  if (flag === "remove")
+    return { color: "#ef4444", dashArray: "8 6", weight: 3, opacity: 0.8 };
+  if (flag === "replace")
+    return { color: "#facc15", dashArray: undefined, weight: 3, opacity: 0.9 };
   return { color: "#d946ef", dashArray: undefined, weight: 3, opacity: 0.9 };
 };
 
@@ -123,19 +125,22 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
   onBtQuickAddEdgeConductor,
   onBtQuickRemoveEdgeConductor,
   accumulatedByPoleMap,
-  locale,
+  locale: _locale,
   layerConfig,
   draggedPole,
   isXRayMode = false,
 }) => {
-  const t = getBtTopologyPanelText(locale).transformerEdge;
-  const [edgeConductorSelection, setEdgeConductorSelection] = React.useState<Record<string, string>>({});
+  const [edgeConductorSelection, setEdgeConductorSelection] = React.useState<
+    Record<string, string>
+  >({});
 
   const popupEventHandlers = React.useMemo(
     () => ({
       add: (event: any) => {
         const popupEl = event?.popup?.getElement?.() as HTMLElement | null;
-        const contentEl = popupEl?.querySelector(".leaflet-popup-content") as HTMLElement | null;
+        const contentEl = popupEl?.querySelector(
+          ".leaflet-popup-content",
+        ) as HTMLElement | null;
         if (!contentEl) return;
         L.DomEvent.disableClickPropagation(contentEl);
         L.DomEvent.disableScrollPropagation(contentEl);
@@ -159,16 +164,29 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
         const isDraggingFrom = draggedPole?.id === edge.fromPoleId;
         const isDraggingTo = draggedPole?.id === edge.toPoleId;
         const isCurrentlyDragging = isDraggingFrom || isDraggingTo;
-        const poleAccumulated = accumulatedByPoleMap?.get(isDraggingFrom ? edge.fromPoleId : edge.toPoleId);
+        const poleAccumulated = accumulatedByPoleMap?.get(
+          isDraggingFrom ? edge.fromPoleId : edge.toPoleId,
+        );
         const accumulatedData = accumulatedByPoleMap?.get(edge.toPoleId);
-        
-        const oldDistance = L.latLng(polesById.get(edge.fromPoleId)!.lat, polesById.get(edge.fromPoleId)!.lng)
-          .distanceTo(L.latLng(polesById.get(edge.toPoleId)!.lat, polesById.get(edge.toPoleId)!.lng));
-        const currentDistance = L.latLng(from.lat, from.lng).distanceTo(L.latLng(to.lat, to.lng));
-        
+
+        const oldDistance = L.latLng(
+          polesById.get(edge.fromPoleId)!.lat,
+          polesById.get(edge.fromPoleId)!.lng,
+        ).distanceTo(
+          L.latLng(
+            polesById.get(edge.toPoleId)!.lat,
+            polesById.get(edge.toPoleId)!.lng,
+          ),
+        );
+        const currentDistance = L.latLng(from.lat, from.lng).distanceTo(
+          L.latLng(to.lat, to.lng),
+        );
+
         let heatmapColor: string | null = null;
         if (layerConfig?.cqtHeatmap && accumulatedData) {
-          heatmapColor = getCqtHeatmapColor(accumulatedData.dvAccumPercent);
+          heatmapColor = getCqtHeatmapColor(
+            accumulatedData.dvAccumPercent ?? 0,
+          );
         }
 
         let estimatedCqtStr = "";
@@ -179,22 +197,34 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
         }
 
         const isViolation = (poleAccumulated?.dvAccumPercent ?? 0) > 7;
-        const distColorClass = currentDistance > 40 ? "text-red-600" : currentDistance > 30 ? "text-amber-600" : "text-emerald-600";
+        const distColorClass =
+          currentDistance > 40
+            ? "text-red-600"
+            : currentDistance > 30
+              ? "text-amber-600"
+              : "text-emerald-600";
 
         const edgePopup = (
-          <Popup position={[(from.lat + to.lat) / 2, (from.lng + to.lng) / 2]} eventHandlers={popupEventHandlers}>
+          <Popup
+            position={[(from.lat + to.lat) / 2, (from.lng + to.lng) / 2]}
+            eventHandlers={popupEventHandlers}
+          >
             <div className="min-w-[200px] space-y-3 p-1">
               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Vão {edge.id}</span>
-                <button 
-                   onClick={() => onBtDeleteEdge?.(edge.id)}
-                   className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Vão {edge.id}
+                </span>
+                <button
+                  onClick={() => onBtDeleteEdge?.(edge.id)}
+                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <Trash2 size={14} />
                 </button>
               </div>
               <div className={POPUP_FLAG_GRID_CLASS}>
-                {(["existing", "new", "replace", "remove"] as BtEdgeChangeFlag[]).map((f) => (
+                {(
+                  ["existing", "new", "replace", "remove"] as BtEdgeChangeFlag[]
+                ).map((f) => (
                   <button
                     key={f}
                     className={getFlagButtonClass(edgeChangeFlag === f, f)}
@@ -205,27 +235,58 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
                 ))}
               </div>
               <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase text-slate-400">Cabos BT</label>
+                <label className="text-[9px] font-black uppercase text-slate-400">
+                  Cabos BT
+                </label>
                 <div className="flex gap-1.5">
-                  <select 
+                  <select
                     className={POPUP_SELECT_CLASS}
-                    value={edgeConductorSelection[edge.id] || CONDUCTOR_OPTIONS[0]}
-                    onChange={(e) => setEdgeConductorSelection(prev => ({ ...prev, [edge.id]: e.target.value }))}
+                    value={
+                      edgeConductorSelection[edge.id] || CONDUCTOR_OPTIONS[0]
+                    }
+                    onChange={(e) =>
+                      setEdgeConductorSelection((prev) => ({
+                        ...prev,
+                        [edge.id]: e.target.value,
+                      }))
+                    }
                   >
-                    {CONDUCTOR_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    {CONDUCTOR_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
                   </select>
-                  <button 
-                    onClick={() => onBtQuickAddEdgeConductor?.(edge.id, edgeConductorSelection[edge.id] || CONDUCTOR_OPTIONS[0])}
+                  <button
+                    onClick={() =>
+                      onBtQuickAddEdgeConductor?.(
+                        edge.id,
+                        edgeConductorSelection[edge.id] || CONDUCTOR_OPTIONS[0],
+                      )
+                    }
                     className={getIconActionButtonClass("violet")}
                   >
                     <Plus size={14} />
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {edge.conductors.map(c => (
-                    <div key={c.id} className="flex items-center gap-1.5 px-2 py-0.5 bg-violet-50 border border-violet-100 rounded-md text-[10px] font-bold text-violet-700">
+                  {edge.conductors.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center gap-1.5 px-2 py-0.5 bg-violet-50 border border-violet-100 rounded-md text-[10px] font-bold text-violet-700"
+                    >
                       {c.quantity}x {c.conductorName}
-                      <button onClick={() => onBtQuickRemoveEdgeConductor?.(edge.id, c.conductorName)} className="text-violet-400 hover:text-violet-600"><Plus size={10} className="rotate-45" /></button>
+                      <button
+                        onClick={() =>
+                          onBtQuickRemoveEdgeConductor?.(
+                            edge.id,
+                            c.conductorName,
+                          )
+                        }
+                        className="text-violet-400 hover:text-violet-600"
+                      >
+                        <Plus size={10} className="rotate-45" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -253,7 +314,10 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
               />
             )}
             <Polyline
-              positions={[[from.lat, from.lng], [to.lat, to.lng]]}
+              positions={[
+                [from.lat, from.lng],
+                [to.lat, to.lng],
+              ]}
               pathOptions={{
                 color: "#000000",
                 weight: EDGE_HIT_AREA_WEIGHT,
@@ -265,21 +329,46 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
             >
               {edgePopup}
               {layerConfig?.labels && (
-                <Tooltip permanent direction="center" opacity={0.8} className="bt-edge-tooltip">
+                <Tooltip
+                  permanent
+                  direction="center"
+                  opacity={0.8}
+                  className="bt-edge-tooltip"
+                >
                   <div className="flex flex-col items-center bg-white/90 px-1 py-0.5 rounded border border-slate-200 shadow-sm pointer-events-none">
-                    {hasBt ? edge.conductors.map((c) => (
-                      <div key={c.id} className="text-[8px] font-bold text-slate-800 leading-tight">{c.quantity}x{c.conductorName} (BT)</div>
-                    )) : null}
-                    {hasMt && (edge.mtConductors ?? []).map((c) => (
-                      <div key={c.id} className="text-[8px] font-bold text-orange-700 leading-tight">{c.quantity}x{c.conductorName} (MT)</div>
-                    ))}
-                    {!hasBt && !hasMt && <div className="text-[8px] italic text-slate-400">Sem cabo</div>}
+                    {hasBt
+                      ? edge.conductors.map((c) => (
+                          <div
+                            key={c.id}
+                            className="text-[8px] font-bold text-slate-800 leading-tight"
+                          >
+                            {c.quantity}x{c.conductorName} (BT)
+                          </div>
+                        ))
+                      : null}
+                    {hasMt &&
+                      (edge.mtConductors ?? []).map((c) => (
+                        <div
+                          key={c.id}
+                          className="text-[8px] font-bold text-orange-700 leading-tight"
+                        >
+                          {c.quantity}x{c.conductorName} (MT)
+                        </div>
+                      ))}
+                    {!hasBt && !hasMt && (
+                      <div className="text-[8px] italic text-slate-400">
+                        Sem cabo
+                      </div>
+                    )}
                   </div>
                 </Tooltip>
               )}
             </Polyline>
             <Polyline
-              positions={[[from.lat, from.lng], [to.lat, to.lng]]}
+              positions={[
+                [from.lat, from.lng],
+                [to.lat, to.lng],
+              ]}
               pathOptions={{
                 color: "#ffffff",
                 weight: edgeVisual.weight + 3,
@@ -291,12 +380,19 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
               }}
             />
             <Polyline
-              positions={[[from.lat, from.lng], [to.lat, to.lng]]}
+              positions={[
+                [from.lat, from.lng],
+                [to.lat, to.lng],
+              ]}
               pathOptions={{
                 color: heatmapColor || edgeVisual.color,
                 weight: heatmapColor ? 4 : edgeVisual.weight,
                 dashArray: edgeVisual.dashArray,
-                opacity: isXRayMode ? (heatmapColor ? 1.0 : 0.05) : edgeVisual.opacity,
+                opacity: isXRayMode
+                  ? heatmapColor
+                    ? 1.0
+                    : 0.05
+                  : edgeVisual.opacity,
                 interactive: false,
                 lineCap: "round",
                 lineJoin: "round",
@@ -305,32 +401,43 @@ const MapSelectorEdgesLayer: React.FC<MapSelectorEdgesLayerProps> = ({
             {hasMt && (
               <Polyline
                 positions={(() => {
-                  const offset = 0.00002; 
+                  const offset = 0.00002;
                   const dx = to.lng - from.lng;
                   const dy = to.lat - from.lat;
                   const len = Math.sqrt(dx * dx + dy * dy) || 1;
                   const nx = -dy / len;
                   const ny = dx / len;
-                  return [[from.lat + nx * offset, from.lng + ny * offset], [to.lat + nx * offset, to.lng + ny * offset]];
+                  return [
+                    [from.lat + nx * offset, from.lng + ny * offset],
+                    [to.lat + nx * offset, to.lng + ny * offset],
+                  ];
                 })()}
-                pathOptions={{ color: "#f97316", weight: 2.5, opacity: 0.9, dashArray: "4 4", interactive: false }}
+                pathOptions={{
+                  color: "#f97316",
+                  weight: 2.5,
+                  opacity: 0.9,
+                  dashArray: "4 4",
+                  interactive: false,
+                }}
               />
             )}
             {edgeChangeFlag === "remove" && (
               <>
-                {getRemovalMarkersForEdge(from, to).map((position, markerIndex) => (
-                  <Marker
-                    key={`${edge.id}-removal-x-${markerIndex}`}
-                    position={position}
-                    icon={L.divIcon({
-                      className: "bt-edge-remove-label",
-                      html: '<div class="bt-edge-remove-glyph">X</div>',
-                      iconSize: [12, 12],
-                      iconAnchor: [6, 6],
-                    })}
-                    interactive={false}
-                  />
-                ))}
+                {getRemovalMarkersForEdge(from, to).map(
+                  (position, markerIndex) => (
+                    <Marker
+                      key={`${edge.id}-removal-x-${markerIndex}`}
+                      position={position}
+                      icon={L.divIcon({
+                        className: "bt-edge-remove-label",
+                        html: '<div class="bt-edge-remove-glyph">X</div>',
+                        iconSize: [12, 12],
+                        iconAnchor: [6, 6],
+                      })}
+                      interactive={false}
+                    />
+                  ),
+                )}
               </>
             )}
           </React.Fragment>

@@ -1,12 +1,15 @@
 
 import { API_BASE_URL } from "../config/api";
+import { getAuthSnapshot } from "../auth/authSession";
 
 /**
  * Resolves the user identity from localStorage with appropriate fallbacks.
  * This ensures consistent identification across all API calls.
  */
 export const resolveRequestIdentity = (): { userId: string; token: string | null } => {
+  const snapshot = getAuthSnapshot();
   const fromStorage =
+    snapshot.userId ||
     localStorage.getItem("sisrua_user_id") ||
     localStorage.getItem("sisrua_userId") ||
     localStorage.getItem("user_id") ||
@@ -17,7 +20,7 @@ export const resolveRequestIdentity = (): { userId: string; token: string | null
     "system-admin";
 
   const userId = (fromStorage || fallbackUserId).trim();
-  const token = localStorage.getItem("sisrua_token");
+  const token = snapshot.token || localStorage.getItem("sisrua_token");
 
   return { userId, token };
 };

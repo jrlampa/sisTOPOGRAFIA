@@ -277,7 +277,9 @@ async function readTopologyFromLegacyTask(
       }
     }
 
-    return { poles, edges };
+    const transformers = (btTopo?.transformers as any[]) ?? [];
+
+    return { poles, edges, transformers };
   } catch (err) {
     logger.warn("[CanonicalTopologyRepository] fallback legado falhou", {
       taskId,
@@ -434,10 +436,12 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
         this.readEdges(tenantId),
       ]);
 
+      let transformers: any[] = [];
       if (taskId) {
         const legacyTopo = await readTopologyFromLegacyTask(taskId, tenantId);
         if (legacyTopo) {
-          logTopologyDivergenceIfAny({ poles, edges }, legacyTopo, taskId);
+          transformers = legacyTopo.transformers;
+          logTopologyDivergenceIfAny({ poles, edges, transformers }, legacyTopo, taskId);
         }
       }
 
@@ -447,7 +451,7 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
         edges: edges.length,
       });
       return {
-        topology: { poles, edges },
+        topology: { poles, edges, transformers },
         source: "canonical",
         poleCount: poles.length,
         edgeCount: edges.length,
@@ -479,7 +483,7 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
       { tenantId, taskId }
     );
     return {
-      topology: { poles: [], edges: [] },
+      topology: { poles: [], edges: [], transformers: [] },
       source: "canonical",
       poleCount: 0,
       edgeCount: 0,

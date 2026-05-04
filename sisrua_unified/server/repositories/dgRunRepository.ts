@@ -35,7 +35,19 @@ export interface IDgRunRepository {
   ): Promise<DgRecommendation | null>;
 }
 
+const MAX_IN_MEMORY_RUNS = 100;
 const inMemoryRuns = new Map<string, DgOptimizationOutput>();
+
+/**
+ * Adiciona um run ao cache em memória com política de despejo simples (FIFO-ish)
+ */
+function addToInMemoryCache(run: DgOptimizationOutput) {
+  if (inMemoryRuns.size >= MAX_IN_MEMORY_RUNS) {
+    const firstKey = inMemoryRuns.keys().next().value;
+    if (firstKey !== undefined) inMemoryRuns.delete(firstKey);
+  }
+  inMemoryRuns.set(run.runId, run);
+}
 
 type RecommendationEntry = {
   rankOrder: number;
@@ -416,7 +428,7 @@ function buildDiscardRatesFromRun(
 
 export class PostgresDgRunRepository implements IDgRunRepository {
   async save(run: DgOptimizationOutput): Promise<void> {
-    inMemoryRuns.set(run.runId, run);
+    addToInMemoryCache(run);
 
     const sql = getDbClient();
     if (!sql) return;

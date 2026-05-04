@@ -23,6 +23,7 @@ import { monitoringMiddleware } from "./middleware/monitoring.js";
 import { specs } from "./swagger.js";
 import { errorHandler } from "./errorHandler.js";
 import {
+  attachSupabaseUserIfPresent,
   requireAdminToken,
   requireMetricsToken,
 } from "./middleware/authGuard.js";
@@ -149,7 +150,12 @@ import portalStakeholderRoutes from "./routes/portalStakeholderRoutes.js";
 import provenienciaForenseRoutes from "./routes/provenienciaForenseRoutes.js";
 import assinaturaNuvemRoutes from "./routes/assinaturaNuvemRoutes.js";
 import gisHardeningRoutes from "./routes/gisHardeningRoutes.js";
-import { pingDb, initDbClient, isDbAvailable } from "./repositories/index.js";
+import authRoutes from "./routes/authRoutes.js";
+import {
+  initDbClient,
+  isDbAvailable,
+  pingDb,
+} from "./repositories/dbClient.js";
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
 const dirname = path.join(process.cwd(), "server");
@@ -316,6 +322,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   requestContext.run(store, () => next());
 });
 
+app.use("/api", attachSupabaseUserIfPresent);
+
 app.use(monitoringMiddleware);
 app.use(requestMetrics);
 app.use(generalRateLimiter);
@@ -473,7 +481,8 @@ app.use("/api/jobs", jobRoutes);
 app.use("/api/firestore", firestoreRoutes);
 app.use("/api/dxf", dxfRoutes);
 app.use("/api/metrics", requireMetricsToken, metricsRoutes);
-app.use("/metrics", metricsRoutes);
+app.use("/metrics", requireMetricsToken, metricsRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/feature-flags", featureFlagRoutes);
 app.use("/api/quota", quotaRoutes);
 app.use("/api/cost-center", costCenterRoutes);

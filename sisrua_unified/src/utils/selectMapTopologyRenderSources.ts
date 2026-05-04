@@ -31,7 +31,11 @@ export function selectMapTopologyRenderSources({
   const legacyBtTopology = btTopology ?? EMPTY_BT_TOPOLOGY;
   const legacyMtTopology = mtTopology ?? EMPTY_MT_TOPOLOGY;
   const transformers = btTransformers ?? legacyBtTopology.transformers ?? [];
-  const fallbackCanonical = canonicalTopology ?? { poles: [], edges: [] };
+  const fallbackCanonical = canonicalTopology ?? {
+    poles: [],
+    edges: [],
+    transformers,
+  };
 
   const canonicalVisualTopologies = deriveLegacyTopologiesFromCanonical(
     fallbackCanonical,

@@ -7,7 +7,7 @@
 import React from "react";
 import { CheckCircle2, AlertCircle, BarChart3, Shield, Database } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 import { InfoCard, PapelBadge } from "./AdminPagePrimitives";
 

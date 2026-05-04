@@ -63,31 +63,32 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = pg_catalog, public, private
 AS $$
 BEGIN
-    -- Delega para a função canônica de verificação de backup (migration 033).
+    -- Delega para a função canônica de verificação de backup.
+    -- p_backup_id é mantido apenas por compatibilidade de assinatura.
     -- Se a função canônica não existe, retorna uma linha de diagnóstico.
     IF EXISTS (
         SELECT 1 FROM pg_proc p
         JOIN pg_namespace n ON n.oid = p.pronamespace
-        WHERE n.nspname = 'public' AND p.proname = 'check_backup_integrity'
+        WHERE n.nspname = 'private' AND p.proname = 'verify_backup_integrity'
     ) THEN
         RETURN QUERY
             SELECT r.check_name, r.status, r.detail
-            FROM public.check_backup_integrity(p_backup_id) r;
+            FROM private.verify_backup_integrity() r;
     ELSE
         RETURN QUERY
             SELECT
                 'backup_system'::TEXT     AS check_name,
                 'unavailable'::TEXT       AS status,
-                'Função check_backup_integrity não encontrada. Verifique migration 033.'::TEXT AS detail;
+                'Função private.verify_backup_integrity não encontrada. Verifique a cadeia 022/032/033/056.'::TEXT AS detail;
     END IF;
 END;
 $$;
 
 COMMENT ON FUNCTION public.verify_backup_integrity IS
-    'Wrapper de compatibilidade para check_backup_integrity (migration 033). '
+    'Wrapper de compatibilidade para private.verify_backup_integrity(). '
     'Mantém contratos com código legado que chama o nome antigo.';
 
 -- ─────────────────────────────────────────────────────────────────────────────

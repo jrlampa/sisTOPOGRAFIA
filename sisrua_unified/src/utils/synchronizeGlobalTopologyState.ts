@@ -1,6 +1,7 @@
 import { FeatureFlag, isFeatureEnabled } from "../config/featureFlags";
 import type { GlobalState } from "../types";
 import type { CanonicalTopologyStateMeta } from "../types";
+import type { CanonicalNetworkTopology } from "../types.canonical";
 import { EMPTY_BT_TOPOLOGY } from "./btNormalization";
 import { EMPTY_MT_TOPOLOGY } from "./mtNormalization";
 import {
@@ -21,7 +22,9 @@ function hasLegacyTopology(state: GlobalState): boolean {
   );
 }
 
-export function synchronizeGlobalTopologyState(state: GlobalState): GlobalState {
+export function synchronizeGlobalTopologyState(
+  state: GlobalState,
+): GlobalState {
   const btTopology = state.btTopology ?? EMPTY_BT_TOPOLOGY;
   const mtTopology = state.mtTopology ?? EMPTY_MT_TOPOLOGY;
   const hasCanonical = Boolean(state.canonicalTopology);
@@ -29,7 +32,12 @@ export function synchronizeGlobalTopologyState(state: GlobalState): GlobalState 
 
   let nextBtTopology = btTopology;
   let nextMtTopology = mtTopology;
-  let nextCanonicalTopology = state.canonicalTopology;
+  let nextCanonicalTopology: CanonicalNetworkTopology =
+    state.canonicalTopology ?? {
+      poles: [],
+      edges: [],
+      transformers: btTopology.transformers,
+    };
   let source: CanonicalTopologyStateMeta["source"] = "empty";
 
   if (hasCanonical && !hasLegacy && state.canonicalTopology) {
@@ -50,7 +58,11 @@ export function synchronizeGlobalTopologyState(state: GlobalState): GlobalState 
   } else if (state.canonicalTopology) {
     nextCanonicalTopology = state.canonicalTopology;
   } else {
-    nextCanonicalTopology = { poles: [], edges: [] };
+    nextCanonicalTopology = {
+      poles: [],
+      edges: [],
+      transformers: btTopology.transformers,
+    };
   }
 
   const divergenceWarnings = collectCanonicalDivergenceWarnings(

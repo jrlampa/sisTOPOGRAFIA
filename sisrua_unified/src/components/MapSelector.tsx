@@ -1,5 +1,12 @@
 import React, { useState, useMemo, useId, useEffect } from "react";
-import { MapContainer, TileLayer, useMapEvents, Polyline, Marker, Circle, Pane, CircleMarker, Popup, Tooltip } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  useMapEvents,
+  Polyline,
+  Marker,
+  Circle,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { GeoJsonObject } from "geojson";
@@ -21,7 +28,11 @@ import {
   OsmElement,
   AppTheme,
 } from "../types";
-import { MapBtEdge, MapBtPole, MapBtTopology, MapMtTopology } from "../types.map";
+import {
+  MapBtPole,
+  MapBtTopology,
+  MapMtTopology,
+} from "../types.map";
 import { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
 import { DgScenario } from "../hooks/useDgOptimization";
 import { DefaultIcon } from "./MapSelectorStyles";
@@ -35,10 +46,10 @@ L.Marker.prototype.options.icon = DefaultIcon;
 /**
  * Rastreador de mouse para capturar coordenadas em tempo real no mapa.
  */
-function MapMouseTracker({ 
-  onMouseMove 
-}: { 
-  onMouseMove: (pos: L.LatLng) => void 
+function MapMouseTracker({
+  onMouseMove,
+}: {
+  onMouseMove: (pos: L.LatLng) => void;
 }) {
   useMapEvents({
     mousemove(e) {
@@ -51,40 +62,58 @@ function MapMouseTracker({
 /**
  * Renderiza um "Vão Fantasma" (Ghost Edge) ao iniciar uma nova conexão.
  */
-function GhostEdge({ 
-  startPole, 
-  mousePos 
-}: { 
-  startPole: MapBtPole, 
-  mousePos: L.LatLng 
+function GhostEdge({
+  startPole,
+  mousePos,
+}: {
+  startPole: MapBtPole;
+  mousePos: L.LatLng;
 }) {
   const distance = L.latLng(startPole.lat, startPole.lng).distanceTo(mousePos);
-  const color = distance > 40 ? "#ef4444" : distance > 30 ? "#f59e0b" : "#3b82f6";
-  
+  const color =
+    distance > 40 ? "#ef4444" : distance > 30 ? "#f59e0b" : "#3b82f6";
+
   return (
     <>
-      <Polyline 
-        positions={[[startPole.lat, startPole.lng], [mousePos.lat, mousePos.lng]]}
+      <Polyline
+        positions={[
+          [startPole.lat, startPole.lng],
+          [mousePos.lat, mousePos.lng],
+        ]}
         pathOptions={{ color, weight: 2, dashArray: "5 10", opacity: 0.6 }}
       />
-      <Marker 
-        position={[ (startPole.lat + mousePos.lat)/2, (startPole.lng + mousePos.lng)/2 ]}
+      <Marker
+        position={[
+          (startPole.lat + mousePos.lat) / 2,
+          (startPole.lng + mousePos.lng) / 2,
+        ]}
         icon={L.divIcon({
           className: "ghost-edge-label",
           html: `<div class="px-2 py-0.5 rounded-full bg-white/90 border border-slate-200 shadow-md text-[10px] font-black whitespace-nowrap" style="color: ${color}; transform: translateY(-10px);">${distance.toFixed(1)}m</div>`,
-          iconSize: [0, 0]
+          iconSize: [0, 0],
         })}
         interactive={false}
       />
-      <Circle 
+      <Circle
         center={[startPole.lat, startPole.lng]}
         radius={30}
-        pathOptions={{ color: "#3b82f6", weight: 1, fillOpacity: 0.02, interactive: false }}
+        pathOptions={{
+          color: "#3b82f6",
+          weight: 1,
+          fillOpacity: 0.02,
+          interactive: false,
+        }}
       />
-       <Circle 
+      <Circle
         center={[startPole.lat, startPole.lng]}
         radius={40}
-        pathOptions={{ color: "#f59e0b", weight: 1, fillOpacity: 0.01, dashArray: "5 5", interactive: false }}
+        pathOptions={{
+          color: "#f59e0b",
+          weight: 1,
+          fillOpacity: 0.01,
+          dashArray: "5 5",
+          interactive: false,
+        }}
       />
     </>
   );
@@ -270,7 +299,12 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   layerConfig,
   theme,
 }) => {
-  const [draggedPole, setDraggedPole] = useState<{ id: string, lat: number, lng: number, snapId?: string } | null>(null);
+  const [draggedPole, setDraggedPole] = useState<{
+    id: string;
+    lat: number;
+    lng: number;
+    snapId?: string;
+  } | null>(null);
   const [mousePos, setMousePos] = useState<L.LatLng | null>(null);
   const [isXRayMode, setIsXRayMode] = useState(false);
 
@@ -397,12 +431,17 @@ const MapSelector: React.FC<MapSelectorProps> = ({
             return p ? { id: p.id, lat: p.lat, lng: p.lng } : null;
           })
           .filter((p): p is NonNullable<typeof p> => !!p);
-        
+
         snapResult = applyOrthoSnap(lat, lng, neighbors);
       }
     }
 
-    setDraggedPole({ id, lat: snapResult.lat, lng: snapResult.lng, snapId: snapResult.snapId });
+    setDraggedPole({
+      id,
+      lat: snapResult.lat,
+      lng: snapResult.lng,
+      snapId: snapResult.snapId,
+    });
   };
 
   return (
@@ -555,23 +594,32 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         preferCanvas={true}
       >
         <MapMouseTracker onMouseMove={setMousePos} />
-        
+
         {/* Vão Fantasma (Ghost Edge) em modo de adição de trecho */}
-        {pendingBtEdgeStartPoleId && mousePos && polesById.has(pendingBtEdgeStartPoleId) && (
-          <GhostEdge 
-            startPole={polesById.get(pendingBtEdgeStartPoleId)!} 
-            mousePos={mousePos} 
-          />
-        )}
+        {pendingBtEdgeStartPoleId &&
+          mousePos &&
+          polesById.has(pendingBtEdgeStartPoleId) && (
+            <GhostEdge
+              startPole={polesById.get(pendingBtEdgeStartPoleId)!}
+              mousePos={mousePos}
+            />
+          )}
 
         {/* Snapping Guides Visual Confirmation */}
         {draggedPole?.snapId && polesById.has(draggedPole.snapId) && (
-          <Polyline 
+          <Polyline
             positions={[
               [draggedPole.lat, draggedPole.lng],
-              [polesById.get(draggedPole.snapId)!.lat, polesById.get(draggedPole.snapId)!.lng]
+              [
+                polesById.get(draggedPole.snapId)!.lat,
+                polesById.get(draggedPole.snapId)!.lng,
+              ],
             ]}
-            pathOptions={{ color: "#22d3ee", weight: 2, className: "snapping-guide-line" }}
+            pathOptions={{
+              color: "#22d3ee",
+              weight: 2,
+              className: "snapping-guide-line",
+            }}
           />
         )}
 
@@ -639,7 +687,9 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           leafPoleIds={(() => {
             const parentPoleIds = new Set<string>();
             topology.edges.forEach((edge) => {
-              const edgeFlag = edge.edgeChangeFlag ?? (edge.removeOnExecution ? "remove" : "existing");
+              const edgeFlag =
+                edge.edgeChangeFlag ??
+                (edge.removeOnExecution ? "remove" : "existing");
               if (edgeFlag !== "remove") parentPoleIds.add(edge.fromPoleId);
             });
             const leaves = new Set<string>();
@@ -696,7 +746,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
               mtEditorMode={mtEditorMode}
               onMtMapClick={onMtMapClick}
               onMtDragPole={onMtDragPole}
-              onBtRenamePole={onMtRenamePole}
+              onMtRenamePole={onMtRenamePole}
               onMtSetPoleChangeFlag={onMtSetPoleChangeFlag}
               onMtDeletePole={onMtDeletePole}
               onMtSetPoleVerified={onMtSetPoleVerified}

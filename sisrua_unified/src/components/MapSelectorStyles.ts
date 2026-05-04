@@ -4,6 +4,8 @@ import type { MapBtPole, MapBtTransformer } from "../types.map";
 export const LEAFLET_ICON_BASE_URL = import.meta.env.BASE_URL;
 export const POPUP_TOOLBAR_CLASS = "mt-1.5 flex items-center gap-2";
 export const POPUP_FLAG_GRID_CLASS = "mt-1.5 grid grid-cols-2 gap-1.5";
+export const POPUP_SELECT_CLASS =
+  "h-7 w-full rounded border border-slate-300 bg-white px-1.5 text-[11px] font-semibold text-slate-700";
 
 export const getFlagButtonClass = (
   isActive: boolean,

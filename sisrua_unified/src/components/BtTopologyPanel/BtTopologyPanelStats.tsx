@@ -24,13 +24,27 @@ const TrafoDonut: React.FC<{ pct: number }> = ({ pct }) => {
   const r = 22;
   const circ = 2 * Math.PI * r;
   const dash = Math.min(pct / 100, 1) * circ;
-  const color =
-    pct > 90 ? "#ef4444" : pct > 70 ? "#f59e0b" : "#10b981";
+  const color = pct > 90 ? "#ef4444" : pct > 70 ? "#f59e0b" : "#10b981";
   return (
-    <svg width={60} height={60} viewBox="0 0 60 60" aria-label={`Utilização do trafo: ${pct.toFixed(1)}%`}>
-      <circle cx={30} cy={30} r={r} fill="none" stroke="currentColor" strokeWidth={7} className="text-slate-100 dark:text-zinc-800" />
+    <svg
+      width={60}
+      height={60}
+      viewBox="0 0 60 60"
+      aria-label={`Utilização do trafo: ${pct.toFixed(1)}%`}
+    >
       <circle
-        cx={30} cy={30} r={r}
+        cx={30}
+        cy={30}
+        r={r}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={7}
+        className="text-slate-100 dark:text-zinc-800"
+      />
+      <circle
+        cx={30}
+        cy={30}
+        r={r}
         fill="none"
         stroke={color}
         strokeWidth={7}
@@ -39,7 +53,14 @@ const TrafoDonut: React.FC<{ pct: number }> = ({ pct }) => {
         transform="rotate(-90 30 30)"
         style={{ transition: "stroke-dasharray 0.6s ease" }}
       />
-      <text x={30} y={34} textAnchor="middle" fontSize={10} fontWeight="800" fill={color}>
+      <text
+        x={30}
+        y={34}
+        textAnchor="middle"
+        fontSize={10}
+        fontWeight="800"
+        fill={color}
+      >
         {pct.toFixed(0)}%
       </text>
     </svg>
@@ -48,11 +69,12 @@ const TrafoDonut: React.FC<{ pct: number }> = ({ pct }) => {
 
 /** Histograma SVG compacto de distribuição de vãos */
 const SpanHistogram: React.FC<{ spans: number[] }> = ({ spans }) => {
-  if (!spans.length) return <div className="text-[9px] text-slate-400 italic">Sem vãos</div>;
+  if (!spans.length)
+    return <div className="text-[9px] text-slate-400 italic">Sem vãos</div>;
 
   const buckets = [0, 0, 0, 0, 0];
   const labels = ["<30", "30-50", "50-70", "70-100", ">100"];
-  spans.forEach(s => {
+  spans.forEach((s) => {
     if (s < 30) buckets[0]++;
     else if (s < 50) buckets[1]++;
     else if (s < 70) buckets[2]++;
@@ -68,16 +90,36 @@ const SpanHistogram: React.FC<{ spans: number[] }> = ({ spans }) => {
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`} aria-label="Histograma de vãos">
+      <svg
+        width={svgW}
+        height={svgH}
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        aria-label="Histograma de vãos"
+      >
         {buckets.map((val, i) => {
           const barH = Math.max((val / maxVal) * (svgH - 4), 2);
           const x = i * (barW + barGap);
           const y = svgH - barH;
           return (
             <g key={i}>
-              <rect x={x} y={y} width={barW} height={barH} rx={3} fill={colors[i]} opacity={0.85} />
+              <rect
+                x={x}
+                y={y}
+                width={barW}
+                height={barH}
+                rx={3}
+                fill={colors[i]}
+                opacity={0.85}
+              />
               {val > 0 && (
-                <text x={x + barW / 2} y={y - 1} textAnchor="middle" fontSize={7} fill={colors[i]} fontWeight="700">
+                <text
+                  x={x + barW / 2}
+                  y={y - 1}
+                  textAnchor="middle"
+                  fontSize={7}
+                  fill={colors[i]}
+                  fontWeight="700"
+                >
                   {val}
                 </text>
               )}
@@ -87,7 +129,9 @@ const SpanHistogram: React.FC<{ spans: number[] }> = ({ spans }) => {
       </svg>
       <div className="flex gap-[2px] text-[7px] font-bold text-slate-400 dark:text-zinc-600">
         {labels.map((l, i) => (
-          <span key={i} style={{ width: barW, textAlign: "center" }}>{l}</span>
+          <span key={i} style={{ width: barW, textAlign: "center" }}>
+            {l}
+          </span>
         ))}
       </div>
     </div>
@@ -107,30 +151,41 @@ const BtTopologyPanelStats: React.FC<BtTopologyPanelStatsProps> = ({
   isClandestino,
 }) => {
   const t = getBtTopologyPanelText(locale).stats;
-  const utilPct = transformerNominalKva > 0
-    ? (transformerDemandKva / transformerNominalKva) * 100
-    : 0;
+  const utilPct =
+    transformerNominalKva > 0
+      ? (transformerDemandKva / transformerNominalKva) * 100
+      : 0;
 
   return (
     <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
       {/* Clandestine Summary (Contextual) */}
       {isClandestino && clandestinoDisplay && (
         <div className="rounded-2xl border border-violet-200 bg-violet-50/50 px-4 py-2 flex items-center justify-between dark:bg-violet-900/10 dark:border-violet-800/40">
-           <div className="flex items-center gap-2">
-             <div className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
-             <span className="text-[10px] font-black uppercase text-violet-700 dark:text-violet-400 tracking-widest">Modo Clandestino</span>
-           </div>
-           <div className="flex items-center gap-3">
-             <div className="flex flex-col items-end">
-               <span className="text-[8px] font-bold text-violet-400 uppercase leading-none">Clientes Est.</span>
-               <span className="text-xs font-black text-violet-900 dark:text-violet-200">{clandestinoDisplay.totalEstimatedClients}</span>
-             </div>
-             <div className="h-6 w-px bg-violet-200 dark:bg-violet-800" />
-             <div className="flex flex-col items-end">
-               <span className="text-[8px] font-bold text-violet-400 uppercase leading-none">Carga Méd.</span>
-               <span className="text-xs font-black text-violet-900 dark:text-violet-200">{clandestinoDisplay.averageClientLoadKva.toFixed(2)} kVA</span>
-             </div>
-           </div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+            <span className="text-[10px] font-black uppercase text-violet-700 dark:text-violet-400 tracking-widest">
+              Modo Clandestino
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col items-end">
+              <span className="text-[8px] font-bold text-violet-400 uppercase leading-none">
+                Demanda Final
+              </span>
+              <span className="text-xs font-black text-violet-900 dark:text-violet-200">
+                {clandestinoDisplay.finalDemandKva.toFixed(2)} kVA
+              </span>
+            </div>
+            <div className="h-6 w-px bg-violet-200 dark:bg-violet-800" />
+            <div className="flex flex-col items-end">
+              <span className="text-[8px] font-bold text-violet-400 uppercase leading-none">
+                Fator Div.
+              </span>
+              <span className="text-xs font-black text-violet-900 dark:text-violet-200">
+                {(clandestinoDisplay.diversificationFactor ?? 0).toFixed(2)}
+              </span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -145,12 +200,15 @@ const BtTopologyPanelStats: React.FC<BtTopologyPanelStatsProps> = ({
             <div className="h-1.5 w-1.5 rounded-full bg-blue-500" /> {poles}P
           </span>
           <span className="flex items-center gap-1">
-            <div className="h-1.5 w-1.5 rounded-full bg-fuchsia-500" /> {transformers}T
+            <div className="h-1.5 w-1.5 rounded-full bg-fuchsia-500" />{" "}
+            {transformers}T
           </span>
           <span className="flex items-center gap-1">
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {edges}V
           </span>
-          <span className="ml-1 text-[10px] text-slate-400 font-bold">{totalLengthMeters.toFixed(0)}m</span>
+          <span className="ml-1 text-[10px] text-slate-400 font-bold">
+            {totalLengthMeters.toFixed(0)}m
+          </span>
         </div>
       </div>
 
@@ -163,7 +221,10 @@ const BtTopologyPanelStats: React.FC<BtTopologyPanelStatsProps> = ({
           </div>
           <TrafoDonut pct={utilPct} />
           <div className="mt-2 text-[10px] font-black text-slate-700 dark:text-slate-300">
-            {transformerDemandKva.toFixed(1)} <span className="text-slate-400 dark:text-zinc-600 font-bold">/ {transformerNominalKva} kVA</span>
+            {transformerDemandKva.toFixed(1)}{" "}
+            <span className="text-slate-400 dark:text-zinc-600 font-bold">
+              / {transformerNominalKva} kVA
+            </span>
           </div>
         </div>
 

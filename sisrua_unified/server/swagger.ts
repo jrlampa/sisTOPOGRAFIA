@@ -3,7 +3,7 @@ import { swaggerDefinition } from './swagger/definition.js';
 
 const specs = swaggerJsdoc({
     definition: swaggerDefinition,
-    apis: []
+    apis: ["./server/routes/*.ts", "./server/app.ts"]
 });
 
 export { specs };

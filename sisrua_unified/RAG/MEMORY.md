@@ -1,3 +1,18 @@
+## Atualização Operacional (2026-05-04A) - Gate de Banco no CI & Auditoria Live do BD
+
+- **DB Gate no PR Path**: Adicionado job `db-predeploy` em `.github/workflows/quality-gates.yml` como job #0 — executa `npm run ci:db:predeploy` (via `scripts/predeploy_db_healthcheck.py`) antes de qualquer auditoria ou build; o agregador `quality-gate` final passa a depender dele.
+- **Scripts de Auditoria DB** (novos arquivos em `scripts/`):
+  - `predeploy_db_healthcheck.py`: 6 checks de pré-deploy (conectividade, drift, funções críticas, grants, RLS). Status: **VERDE** em produção.
+  - `audit_db_migrations.py`: auditoria estática de migrations (5 regras de regex).
+  - `live_db_audit.py`: auditoria operacional live com 8 domínios via `pg_stat_statements`, `pg_locks`, `pg_stat_user_tables`, `pg_stat_user_indexes`, RLS e migrations drift.
+- **Resultado da Auditoria Live (2026-05-04)**:
+  - 🔴 ALTO: 0 | 🟡 MÉDIO: 2 | ✅ OK: 6
+  - 🟡 Queries lentas: `v_audit_siem_export` (ORDER sem LIMIT) ~1119 ms médio; `pg_timezone_names` chamado 108× sem cache.
+  - 🟡 RLS: 49 tabelas sem RLS — são partições (`audit_logs_*`, `bt_export_history_*`) que herdam da tabela-mãe; falso positivo esperado.
+  - ✅ Locks, Bloat, Conexões (13/60), Grants DML, Drift (62/62 sincronizados).
+- **Migrations novas**: `058_audit_logs_tenant_isolation.sql`, `059_revoke_excess_grants_new_objects.sql` — aplicadas em produção.
+- **Lição técnica**: ao executar múltiplas queries diagnósticas numa mesma conexão PostgreSQL, usar `SAVEPOINT` explícito por check para evitar cascata de erros por transação abortada.
+
 ## Atualização Operacional (2026-05-03F) - Internacionalização Técnica & SOC2 Readiness
 - **Standards Engine**: Implementado motor de padrões técnicos (`server/standards/`) para desacoplar constantes de engenharia (voltagem, bitolas, coeficientes) do código principal.
     - Criado `br.ts` com os padrões Light/ANEEL.

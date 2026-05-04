@@ -1,5 +1,5 @@
 import React, { Suspense, useMemo } from "react";
-import { Loader2, Zap } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import {
   FormFieldMessage,
   getValidationInputClassName,
@@ -196,7 +196,10 @@ export function SidebarBtEditorSection({
     const criticalPoleId = btAccumulatedByPole[0]?.poleId;
     if (!criticalPoleId) return;
 
-    const remediatedTopology = applyTelescopicUpgrade(btTopology, criticalPoleId);
+    const remediatedTopology = applyTelescopicUpgrade(
+      btTopology,
+      criticalPoleId,
+    );
     if (remediatedTopology !== btTopology) {
       updateBtTopology(remediatedTopology);
     }
@@ -217,7 +220,11 @@ export function SidebarBtEditorSection({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2" role="group" aria-label="Seleção de cenário de rede">
+        <div
+          className="grid grid-cols-2 gap-2"
+          role="group"
+          aria-label="Seleção de cenário de rede"
+        >
           <button
             onClick={() => {
               setBtNetworkScenario("asis");
@@ -240,7 +247,11 @@ export function SidebarBtEditorSection({
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-2" role="group" aria-label="Modos de edição de topologia">
+        <div
+          className="grid grid-cols-3 gap-2"
+          role="group"
+          aria-label="Modos de edição de topologia"
+        >
           <button
             onClick={() => setBtEditorMode("none")}
             aria-pressed={btEditorMode === "none"}
@@ -290,7 +301,10 @@ export function SidebarBtEditorSection({
             aria-labelledby="bt-add-pole-title"
             className="rounded-xl border-2 border-blue-700/35 bg-blue-50 p-2.5 space-y-2 transition-all dark:border-blue-500/40 dark:bg-blue-950/25"
           >
-            <div id="bt-add-pole-title" className="text-xs font-bold text-blue-800 dark:text-blue-200 uppercase tracking-widest">
+            <div
+              id="bt-add-pole-title"
+              className="text-xs font-bold text-blue-800 dark:text-blue-200 uppercase tracking-widest"
+            >
               {t.insertPoleCoordinatesTitle}
             </div>
             <div className="relative group">
@@ -306,7 +320,10 @@ export function SidebarBtEditorSection({
                 aria-describedby="bt-coordinate-feedback"
                 className={`w-full rounded-xl border-2 border-blue-700/25 bg-white p-2.5 text-xs font-semibold text-blue-950 shadow-inner transition-all outline-none placeholder-blue-600 dark:border-blue-500/45 dark:bg-zinc-950 dark:text-blue-100 dark:placeholder-blue-300/60 ${getValidationInputClassName(coordinateValidation.state, settings.theme === "dark" ? "dark" : "light")}`}
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1 items-center" aria-hidden="true">
+              <div
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1 items-center"
+                aria-hidden="true"
+              >
                 {btPoleCoordinateInput &&
                   (coordinateValidation.state === "success" ? (
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />

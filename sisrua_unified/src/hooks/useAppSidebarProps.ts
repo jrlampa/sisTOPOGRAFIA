@@ -1,16 +1,10 @@
 import { useMemo } from "react";
-import { 
-  AppSettings, 
-  GeoLocation, 
-  BtTopology, 
-  MtTopology, 
-  AppLocale 
-} from "../types";
-import { 
-  BtPoleAccumulatedDemand, 
-  BtDerivedSummary, 
-  BtClandestinoDisplay, 
-  BtTransformerDerived 
+import { AppSettings, GeoLocation, BtTopology, MtTopology } from "../types";
+import {
+  BtPoleAccumulatedDemand,
+  BtDerivedSummary,
+  BtClandestinoDisplay,
+  BtTransformerDerived,
 } from "../services/btDerivedService";
 
 interface SidebarPropsParams {
@@ -19,7 +13,7 @@ interface SidebarPropsParams {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   isSearching: boolean;
-  handleSearch: () => void;
+  handleSearch: (e: React.FormEvent) => Promise<void>;
   selectionMode: string;
   handleSelectionModeChange: (m: any) => void;
   radius: number;
@@ -64,8 +58,8 @@ interface SidebarPropsParams {
   dgError: any;
   dgActiveAltIndex: number;
   handleRunDgOptimization: () => void;
-  handleAcceptDgAll: () => void;
-  handleAcceptDgTrafoOnly: () => void;
+  handleAcceptDgAll: (scenario: any) => void;
+  handleAcceptDgTrafoOnly: (scenario: any) => void;
   handleDiscardDgResult: () => void;
   setDgActiveAltIndex: (i: number) => void;
   isPreviewActive: boolean;
@@ -84,10 +78,11 @@ interface SidebarPropsParams {
   analysisText: string;
   terrainData: any;
   error: any;
-  handleDownloadDxf: () => void;
+  handleDownloadDxf: () => Promise<void>;
   handleDownloadCoordinatesCsv: () => void;
   isDownloading: boolean;
   showToast: (msg: string, type: any) => void;
+  isCalculating: boolean;
 }
 
 export function useAppSidebarProps({
@@ -165,115 +160,182 @@ export function useAppSidebarProps({
   handleDownloadCoordinatesCsv,
   isDownloading,
   showToast,
+  isCalculating: _isCalculating,
 }: SidebarPropsParams) {
-  const sidebarSelectionControlsProps = useMemo(() => ({
-    locale: settings.locale,
-    center,
-    searchQuery,
-    setSearchQuery,
-    isSearching,
-    handleSearch,
-    selectionMode,
-    onSelectionModeChange: handleSelectionModeChange,
-    radius,
-    onRadiusChange: handleRadiusChange,
-    saveSnapshot,
-    onAnalyze: handleFetchAndAnalyze,
-    isProcessing,
-    isPolygonValid,
-  }), [
-    settings.locale, center, searchQuery, setSearchQuery, isSearching, 
-    handleSearch, selectionMode, handleSelectionModeChange, radius, 
-    handleRadiusChange, saveSnapshot, handleFetchAndAnalyze, isProcessing, isPolygonValid
-  ]);
+  const sidebarSelectionControlsProps = useMemo(
+    () => ({
+      locale: settings.locale,
+      center,
+      searchQuery,
+      setSearchQuery,
+      isSearching,
+      handleSearch,
+      selectionMode,
+      onSelectionModeChange: handleSelectionModeChange,
+      radius,
+      onRadiusChange: handleRadiusChange,
+      saveSnapshot,
+      onAnalyze: handleFetchAndAnalyze,
+      isProcessing,
+      isPolygonValid,
+    }),
+    [
+      settings.locale,
+      center,
+      searchQuery,
+      setSearchQuery,
+      isSearching,
+      handleSearch,
+      selectionMode,
+      handleSelectionModeChange,
+      radius,
+      handleRadiusChange,
+      saveSnapshot,
+      handleFetchAndAnalyze,
+      isProcessing,
+      isPolygonValid,
+    ],
+  );
 
-  const sidebarBtEditorSectionProps = useMemo(() => ({
-    locale: settings.locale,
-    settings,
-    setBtNetworkScenario,
-    setBtEditorMode,
-    btNetworkScenario,
-    btEditorMode,
-    btTopology,
-    dgTopology: dgTopologySource,
-    btAccumulatedByPole,
-    btSummary,
-    btPointDemandKva,
-    btTransformerDebugById,
-    btPoleCoordinateInput,
-    setBtPoleCoordinateInput,
-    handleBtInsertPoleByCoordinates,
-    clearPendingBtEdge: () => {},
-    pendingNormalClassificationPoles,
-    handleResetBtTopology,
-    updateBtTopology,
-    updateProjectType,
-    updateClandestinoAreaM2,
-    handleBtSelectedPoleChange,
-    handleBtSelectedTransformerChange,
-    handleBtSelectedEdgeChange,
-    handleBtRenamePole,
-    handleBtRenameTransformer,
-    handleBtSetEdgeChangeFlag,
-    handleBtSetPoleChangeFlag,
-    handleBtTogglePoleCircuitBreak,
-    handleBtSetTransformerChangeFlag,
-    btClandestinoDisplay,
-    btTransformersDerived,
-    requestCriticalConfirmation,
-    onTriggerTelescopicAnalysis: handleTriggerTelescopicAnalysis,
-    isDgOptimizing,
-    dgResult,
-    dgError,
-    dgActiveAltIndex,
-    onRunDgOptimization: handleRunDgOptimization,
-    onAcceptDgAll: handleAcceptDgAll,
-    onAcceptDgTrafoOnly: handleAcceptDgTrafoOnly,
-    onClearDgResult: handleDiscardDgResult,
-    onSetDgActiveAltIndex: setDgActiveAltIndex,
-    dgIsPreviewActive: isPreviewActive,
-    onSetDgIsPreviewActive: setIsPreviewActive,
-    selectedPoleId,
-    selectedPoleIds,
-    selectedEdgeId,
-    selectedTransformerId,
-    onSetSelectedPoleId: setSelectedPoleId,
-    onSetSelectedPoleIds: setSelectedPoleIds,
-    onSetSelectedEdgeId: setSelectedEdgeId,
-    onSetSelectedTransformerId: setSelectedTransformerId,
-    mtTopology,
-  }), [
-    settings, btNetworkScenario, btEditorMode, btTopology, dgTopologySource,
-    btAccumulatedByPole, btSummary, btPointDemandKva, btTransformerDebugById,
-    btPoleCoordinateInput, setBtPoleCoordinateInput, handleBtInsertPoleByCoordinates,
-    pendingNormalClassificationPoles, handleResetBtTopology, updateBtTopology,
-    updateProjectType, updateClandestinoAreaM2, handleBtSelectedPoleChange,
-    handleBtSelectedTransformerChange, handleBtSelectedEdgeChange, handleBtRenamePole,
-    handleBtRenameTransformer, handleBtSetEdgeChangeFlag, handleBtSetPoleChangeFlag,
-    handleBtTogglePoleCircuitBreak, handleBtSetTransformerChangeFlag, btClandestinoDisplay,
-    btTransformersDerived, requestCriticalConfirmation, handleTriggerTelescopicAnalysis,
-    isDgOptimizing, dgResult, dgError, dgActiveAltIndex, handleRunDgOptimization,
-    handleAcceptDgAll, handleAcceptDgTrafoOnly, handleDiscardDgResult, setDgActiveAltIndex,
-    isPreviewActive, setIsPreviewActive, selectedPoleId, selectedPoleIds, selectedEdgeId,
-    selectedTransformerId, setSelectedPoleId, setSelectedPoleIds, setSelectedEdgeId,
-    setSelectedTransformerId, mtTopology
-  ]);
+  const sidebarBtEditorSectionProps = useMemo(
+    () => ({
+      locale: settings.locale,
+      settings,
+      setBtNetworkScenario,
+      setBtEditorMode,
+      btNetworkScenario,
+      btEditorMode,
+      btTopology,
+      dgTopology: dgTopologySource,
+      btAccumulatedByPole,
+      btSummary,
+      btPointDemandKva,
+      btTransformerDebugById,
+      btPoleCoordinateInput,
+      setBtPoleCoordinateInput,
+      handleBtInsertPoleByCoordinates,
+      clearPendingBtEdge: () => {},
+      pendingNormalClassificationPoles,
+      handleResetBtTopology,
+      updateBtTopology,
+      updateProjectType,
+      updateClandestinoAreaM2,
+      handleBtSelectedPoleChange,
+      handleBtSelectedTransformerChange,
+      handleBtSelectedEdgeChange,
+      handleBtRenamePole,
+      handleBtRenameTransformer,
+      handleBtSetEdgeChangeFlag,
+      handleBtSetPoleChangeFlag,
+      handleBtTogglePoleCircuitBreak,
+      handleBtSetTransformerChangeFlag,
+      btClandestinoDisplay,
+      btTransformersDerived,
+      requestCriticalConfirmation,
+      onTriggerTelescopicAnalysis: handleTriggerTelescopicAnalysis,
+      isDgOptimizing,
+      dgResult,
+      dgError,
+      dgActiveAltIndex,
+      onRunDgOptimization: handleRunDgOptimization,
+      onAcceptDgAll: handleAcceptDgAll,
+      onAcceptDgTrafoOnly: handleAcceptDgTrafoOnly,
+      onClearDgResult: handleDiscardDgResult,
+      onSetDgActiveAltIndex: setDgActiveAltIndex,
+      dgIsPreviewActive: isPreviewActive,
+      onSetDgIsPreviewActive: setIsPreviewActive,
+      selectedPoleId,
+      selectedPoleIds,
+      selectedEdgeId,
+      selectedTransformerId,
+      onSetSelectedPoleId: setSelectedPoleId,
+      onSetSelectedPoleIds: setSelectedPoleIds,
+      onSetSelectedEdgeId: setSelectedEdgeId,
+      onSetSelectedTransformerId: setSelectedTransformerId,
+      mtTopology,
+    }),
+    [
+      settings,
+      btNetworkScenario,
+      btEditorMode,
+      btTopology,
+      dgTopologySource,
+      btAccumulatedByPole,
+      btSummary,
+      btPointDemandKva,
+      btTransformerDebugById,
+      btPoleCoordinateInput,
+      setBtPoleCoordinateInput,
+      handleBtInsertPoleByCoordinates,
+      pendingNormalClassificationPoles,
+      handleResetBtTopology,
+      updateBtTopology,
+      updateProjectType,
+      updateClandestinoAreaM2,
+      handleBtSelectedPoleChange,
+      handleBtSelectedTransformerChange,
+      handleBtSelectedEdgeChange,
+      setBtNetworkScenario,
+      setBtEditorMode,
+      handleBtRenamePole,
+      handleBtRenameTransformer,
+      handleBtSetEdgeChangeFlag,
+      handleBtSetPoleChangeFlag,
+      handleBtTogglePoleCircuitBreak,
+      handleBtSetTransformerChangeFlag,
+      btClandestinoDisplay,
+      btTransformersDerived,
+      requestCriticalConfirmation,
+      handleTriggerTelescopicAnalysis,
+      isDgOptimizing,
+      dgResult,
+      dgError,
+      dgActiveAltIndex,
+      handleRunDgOptimization,
+      handleAcceptDgAll,
+      handleAcceptDgTrafoOnly,
+      handleDiscardDgResult,
+      setDgActiveAltIndex,
+      isPreviewActive,
+      setIsPreviewActive,
+      selectedPoleId,
+      selectedPoleIds,
+      selectedEdgeId,
+      selectedTransformerId,
+      setSelectedPoleId,
+      setSelectedPoleIds,
+      setSelectedEdgeId,
+      setSelectedTransformerId,
+      mtTopology,
+    ],
+  );
 
-  const sidebarAnalysisResultsProps = useMemo(() => ({
-    locale: settings.locale,
-    osmData,
-    stats,
-    analysisText,
-    terrainData,
-    error,
-    handleDownloadDxf,
-    handleDownloadCoordinatesCsv,
-    isDownloading,
-    showToast,
-  }), [
-    settings.locale, osmData, stats, analysisText, terrainData, error,
-    handleDownloadDxf, handleDownloadCoordinatesCsv, isDownloading, showToast
-  ]);
+  const sidebarAnalysisResultsProps = useMemo(
+    () => ({
+      locale: settings.locale,
+      osmData,
+      stats,
+      analysisText,
+      terrainData,
+      error,
+      handleDownloadDxf,
+      handleDownloadCoordinatesCsv,
+      isDownloading,
+      showToast,
+    }),
+    [
+      settings.locale,
+      osmData,
+      stats,
+      analysisText,
+      terrainData,
+      error,
+      handleDownloadDxf,
+      handleDownloadCoordinatesCsv,
+      isDownloading,
+      showToast,
+    ],
+  );
 
   return {
     sidebarSelectionControlsProps,

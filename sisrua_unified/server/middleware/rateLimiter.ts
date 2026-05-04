@@ -1,5 +1,6 @@
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { Request } from "express";
+import { createHash } from "crypto";
 import { logger } from "../utils/logger.js";
 import { config } from "../config.js";
 import { constantsService } from "../services/constantsService.js";
@@ -26,16 +27,47 @@ export const shouldSkipGeneralRateLimit = (req: Request): boolean => {
   return config.NODE_ENV !== "production" && isLoopbackIp(req.ip);
 };
 
+const resolveTrustedRateLimitKey = (req: Request): string | null => {
+  const localUserId =
+    typeof req.res?.locals?.userId === "string"
+      ? req.res.locals.userId.trim()
+      : "";
+  if (localUserId) {
+    return `user:${localUserId}`;
+  }
+
+  if (config.NODE_ENV !== "production") {
+    const devUserId = req.headers["x-user-id"];
+    if (typeof devUserId === "string" && devUserId.trim().length > 0) {
+      return `user:${devUserId.trim()}`;
+    }
+  }
+
+  const authHeader =
+    typeof req.headers.authorization === "string"
+      ? req.headers.authorization.trim()
+      : "";
+  const tokenMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (tokenMatch?.[1]) {
+    const tokenHash = createHash("sha256")
+      .update(tokenMatch[1].trim())
+      .digest("hex");
+    return `bearer:${tokenHash}`;
+  }
+
+  return null;
+};
+
 /**
- * Custom key generator that prioritizes User ID over IP address.
- * 1. Checks for 'x-user-id' header (set by frontend).
- * 2. Falls back to ipKeyGenerator for IP-based limiting.
+ * Custom key generator that prioritizes trusted identity over IP address.
+ * In production, client-controlled x-user-id is ignored.
  */
 const keyGenerator = (req: Request): string => {
-  const userId = req.headers["x-user-id"];
-  if (userId && typeof userId === "string") {
-    return `user:${userId}`;
+  const trustedKey = resolveTrustedRateLimitKey(req);
+  if (trustedKey) {
+    return trustedKey;
   }
+
   return ipKeyGenerator(req.ip || "unknown");
 };
 
@@ -241,4 +273,5 @@ export {
   generalRateLimiter,
   analyzeRateLimiter,
   downloadsRateLimiter,
+  resolveTrustedRateLimitKey,
 };

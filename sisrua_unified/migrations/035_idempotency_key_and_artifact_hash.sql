@@ -21,7 +21,7 @@ ALTER TABLE public.jobs
 CREATE UNIQUE INDEX IF NOT EXISTS uq_jobs_idempotency_key
   ON public.jobs (idempotency_key)
   WHERE idempotency_key IS NOT NULL
-    AND status NOT IN ('failed');
+    AND status NOT IN ('failed', 'cancelled');
 
 -- ─── jobs: hash SHA-256 do artefato gerado ───────────────────────────────────
 
@@ -69,7 +69,7 @@ BEGIN
   SELECT id INTO v_existing_id
   FROM public.jobs
   WHERE idempotency_key = p_idempotency_key
-    AND status NOT IN ('failed')
+    AND status NOT IN ('failed', 'cancelled')
   LIMIT 1;
 
   IF FOUND THEN
@@ -80,13 +80,13 @@ BEGIN
   -- Nenhum job existente: insere o novo
   INSERT INTO public.jobs (id, status, progress, attempts, idempotency_key)
   VALUES (p_job_id, p_status, 0, 0, p_idempotency_key)
-  ON CONFLICT (idempotency_key) WHERE status NOT IN ('failed') DO NOTHING;
+  ON CONFLICT DO NOTHING;
 
   -- Verifica se nossa inserção ganhou a corrida
   SELECT id INTO v_existing_id
   FROM public.jobs
   WHERE idempotency_key = p_idempotency_key
-    AND status NOT IN ('failed')
+    AND status NOT IN ('failed', 'cancelled')
   LIMIT 1;
 
   RETURN QUERY SELECT v_existing_id, (v_existing_id = p_job_id);

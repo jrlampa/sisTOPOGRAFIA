@@ -104,6 +104,25 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().optional(),
   /** Alias accepted for compatibility with Supabase-focused env files. */
   SUPABASE_DB_URL: z.string().optional(),
+  /** Supabase project URL used for Auth/OAuth and JWT verification. */
+  SUPABASE_URL: z.string().url().optional(),
+  /** Service-role key used only on the backend for secure onboarding checks. */
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  /** Optional explicit audience for Supabase access-token verification. */
+  SUPABASE_JWT_AUDIENCE: z.string().optional(),
+  /** Email of the platform superadmin — bypasses domain check and always gets admin role. */
+  SUPABASE_SUPERADMIN_EMAIL: z.string().email().optional(),
+  /** Corporate domain allowed to self-register with automatic access. */
+  SUPABASE_ALLOWED_EMAIL_DOMAIN: z.string().default("im3brasil.com.br"),
+  /** Role granted to confirmed self-signup users from the allowed domain. */
+  SUPABASE_ALLOWED_DOMAIN_ROLE: z
+    .enum(["admin", "technician", "viewer"])
+    .default("admin"),
+  /** Default tenant assigned during self-service onboarding. */
+  DEFAULT_TENANT_ID: z
+    .string()
+    .uuid()
+    .default("00000000-0000-0000-0000-000000000001"),
   /** Explicit opt-in/out for Supabase jobs persistence. Defaults to true when DATABASE_URL exists. */
   USE_SUPABASE_JOBS: z.string().optional(),
   /** Explicit opt-in/out for DB cleanup jobs in maintenance service. */

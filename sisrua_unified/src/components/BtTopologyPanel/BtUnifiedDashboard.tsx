@@ -24,7 +24,6 @@ export const BtUnifiedDashboard: React.FC = () => {
   
   const {
     locale,
-    btTopology,
     selectedPole,
     selectedPoleIds,
     onSetSelectedPoleIds,

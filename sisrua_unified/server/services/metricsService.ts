@@ -132,6 +132,20 @@ const cacheSizeGauge = new client.Gauge({
   registers: [registry],
 });
 
+// ── Database ──────────────────────────────────────────────────────────────────
+
+const dbPoolSizeGauge = new client.Gauge({
+  name: `${prefix}db_pool_size`,
+  help: "Current number of connections in the PostgreSQL pool",
+  registers: [registry],
+});
+
+const dbPoolUsedGauge = new client.Gauge({
+  name: `${prefix}db_pool_used`,
+  help: "Current number of active (busy) connections in the PostgreSQL pool",
+  registers: [registry],
+});
+
 // ── SLO / SRE (Roadmap Item 17) ──────────────────────────────────────────────
 
 /**
@@ -364,6 +378,11 @@ export const metricsService = {
 
   recordCacheSize(size: number): void {
     cacheSizeGauge.set(size);
+  },
+
+  recordDbPoolState(state: { size: number; used: number }): void {
+    dbPoolSizeGauge.set(state.size);
+    dbPoolUsedGauge.set(state.used);
   },
 
   async getMetrics(): Promise<string> {

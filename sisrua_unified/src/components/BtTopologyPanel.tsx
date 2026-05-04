@@ -130,7 +130,12 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
       onSetSelectedPoleId?.(nextPoleId);
       onSelectedPoleChange?.(nextPoleId);
     }
-  }, [btTopology.poles, selectedPoleId, onSelectedPoleChange, onSetSelectedPoleId]);
+  }, [
+    btTopology.poles,
+    selectedPoleId,
+    onSelectedPoleChange,
+    onSetSelectedPoleId,
+  ]);
 
   React.useEffect(() => {
     if (btTopology.transformers.length === 0) {
@@ -142,7 +147,12 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
       onSetSelectedTransformerId?.(nextTransformerId);
       onSelectedTransformerChange?.(nextTransformerId);
     }
-  }, [btTopology.transformers, selectedTransformerId, onSelectedTransformerChange, onSetSelectedTransformerId]);
+  }, [
+    btTopology.transformers,
+    selectedTransformerId,
+    onSelectedTransformerChange,
+    onSetSelectedTransformerId,
+  ]);
 
   React.useEffect(() => {
     if (btTopology.edges.length === 0) {
@@ -154,7 +164,12 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
       onSetSelectedEdgeId?.(nextEdgeId);
       onSelectedEdgeChange?.(nextEdgeId);
     }
-  }, [btTopology.edges, selectedEdgeId, onSelectedEdgeChange, onSetSelectedEdgeId]);
+  }, [
+    btTopology.edges,
+    selectedEdgeId,
+    onSelectedEdgeChange,
+    onSetSelectedEdgeId,
+  ]);
 
   const selectTransformer = (id: string) => {
     onSetSelectedTransformerId?.(id);
@@ -166,29 +181,125 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
     onSelectedEdgeChange?.(id);
   };
 
-  const selectedPole = useMemo(() => btTopology.poles.find((p) => p.id === selectedPoleId) ?? null, [btTopology.poles, selectedPoleId]);
-  const selectedTransformer = useMemo(() => btTopology.transformers.find((t) => t.id === selectedTransformerId) ?? null, [btTopology.transformers, selectedTransformerId]);
-  const selectedEdge = useMemo(() => btTopology.edges.find((e) => e.id === selectedEdgeId) ?? null, [btTopology.edges, selectedEdgeId]);
+  const selectedPole = useMemo(
+    () => btTopology.poles.find((p) => p.id === selectedPoleId) ?? null,
+    [btTopology.poles, selectedPoleId],
+  );
+  const selectedTransformer = useMemo(
+    () =>
+      btTopology.transformers.find((t) => t.id === selectedTransformerId) ??
+      null,
+    [btTopology.transformers, selectedTransformerId],
+  );
+  const selectedEdge = useMemo(
+    () => btTopology.edges.find((e) => e.id === selectedEdgeId) ?? null,
+    [btTopology.edges, selectedEdgeId],
+  );
 
   const updatePole = (poleId: string, updater: (pole: any) => any) => {
     onTopologyChange({
       ...btTopology,
-      poles: btTopology.poles.map((pole) => pole.id === poleId ? updater(pole) : pole),
+      poles: btTopology.poles.map((pole) =>
+        pole.id === poleId ? updater(pole) : pole,
+      ),
     });
   };
 
   const updateTransformer = (id: string, updater: (t: any) => any) => {
     onTopologyChange({
       ...btTopology,
-      transformers: btTopology.transformers.map((t) => t.id === id ? updater(t) : t),
+      transformers: btTopology.transformers.map((t) =>
+        t.id === id ? updater(t) : t,
+      ),
     });
   };
 
   const updateEdge = (id: string, updater: (e: any) => any) => {
     onTopologyChange({
       ...btTopology,
-      edges: btTopology.edges.map((e) => e.id === id ? updater(e) : e),
+      edges: btTopology.edges.map((e) => (e.id === id ? updater(e) : e)),
     });
+  };
+
+  const updatePoleRamais = (
+    poleId: string,
+    ramais: BtTopology["poles"][number]["ramais"],
+  ) => {
+    updatePole(poleId, (pole) => ({ ...pole, ramais }));
+  };
+
+  const updatePoleSpec = (
+    poleId: string,
+    spec: BtTopology["poles"][number]["poleSpec"] | undefined,
+  ) => {
+    updatePole(poleId, (pole) => ({ ...pole, poleSpec: spec }));
+  };
+
+  const updatePoleConditionStatus = (
+    poleId: string,
+    conditionStatus: BtTopology["poles"][number]["conditionStatus"] | undefined,
+  ) => {
+    updatePole(poleId, (pole) => ({ ...pole, conditionStatus }));
+  };
+
+  const updatePoleBtStructures = (
+    poleId: string,
+    btStructures: BtTopology["poles"][number]["btStructures"] | undefined,
+  ) => {
+    updatePole(poleId, (pole) => ({ ...pole, btStructures }));
+  };
+
+  const updatePoleGeneralNotes = (
+    poleId: string,
+    generalNotes: string | undefined,
+  ) => {
+    updatePole(poleId, (pole) => ({ ...pole, generalNotes }));
+  };
+
+  const updateTransformerVerified = (id: string, verified: boolean) => {
+    updateTransformer(id, (transformer) => ({ ...transformer, verified }));
+  };
+
+  const updateTransformerReadings = (
+    id: string,
+    readings: BtTopology["transformers"][number]["readings"],
+  ) => {
+    updateTransformer(id, (transformer) => ({ ...transformer, readings }));
+  };
+
+  const updateTransformerProjectPower = (
+    id: string,
+    projectPowerKva: number,
+  ) => {
+    updateTransformer(id, (transformer) => ({
+      ...transformer,
+      projectPowerKva,
+    }));
+  };
+
+  const updateEdgeVerified = (id: string, verified: boolean) => {
+    updateEdge(id, (edge) => ({ ...edge, verified }));
+  };
+
+  const updateEdgeConductors = (
+    id: string,
+    conductors: BtTopology["edges"][number]["conductors"],
+  ) => {
+    updateEdge(id, (edge) => ({ ...edge, conductors }));
+  };
+
+  const updateEdgeMtConductors = (
+    id: string,
+    mtConductors: BtTopology["edges"][number]["conductors"],
+  ) => {
+    updateEdge(id, (edge) => ({ ...edge, mtConductors }));
+  };
+
+  const updateEdgeReplacementFromConductors = (
+    id: string,
+    replacementFromConductors: BtTopology["edges"][number]["conductors"],
+  ) => {
+    updateEdge(id, (edge) => ({ ...edge, replacementFromConductors }));
   };
 
   const contextValue = {
@@ -227,6 +338,18 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
     updatePole,
     updateTransformer,
     updateEdge,
+    updatePoleRamais,
+    updatePoleSpec,
+    updatePoleConditionStatus,
+    updatePoleBtStructures,
+    updatePoleGeneralNotes,
+    updateTransformerVerified,
+    updateTransformerReadings,
+    updateTransformerProjectPower,
+    updateEdgeVerified,
+    updateEdgeConductors,
+    updateEdgeMtConductors,
+    updateEdgeReplacementFromConductors,
   };
 
   return (
@@ -240,21 +363,30 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
             edges={summary.edges}
             totalLengthMeters={summary.totalLengthMeters}
             transformerDemandKva={summary.transformerDemandKva}
-            transformerNominalKva={btTopology.transformers[0]?.projectPowerKva ?? 75}
-            spanLengthsM={btTopology.edges.map((e) => e.lengthMeters ?? 0).filter(Boolean)}
+            transformerNominalKva={
+              btTopology.transformers[0]?.projectPowerKva ?? 75
+            }
+            spanLengthsM={btTopology.edges
+              .map((e) => e.lengthMeters ?? 0)
+              .filter(Boolean)}
             clandestinoDisplay={clandestinoDisplay}
             isClandestino={projectType === "clandestino"}
           />
 
           <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/50">
-            <label htmlFor="bt-project-type-select" className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+            <label
+              htmlFor="bt-project-type-select"
+              className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500"
+            >
               {t.projectTypeTitle}
             </label>
             <select
               id="bt-project-type-select"
               className="mt-2 w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-2.5 text-xs font-black text-slate-800 focus:border-blue-200 focus:ring-4 focus:ring-blue-50 dark:border-white/5 dark:bg-zinc-950 dark:text-slate-200 dark:focus:ring-blue-900/20 outline-none transition-all"
               value={projectType}
-              onChange={(e) => onProjectTypeChange(e.target.value as BtProjectType)}
+              onChange={(e) =>
+                onProjectTypeChange(e.target.value as BtProjectType)
+              }
             >
               <option value="ramais">{t.projectTypeRamais}</option>
               <option value="clandestino">{t.projectTypeClandestino}</option>
@@ -263,7 +395,10 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
             {projectType === "clandestino" && (
               <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div>
-                  <label htmlFor="bt-clandestino-avg-area-input" className="mb-1 block text-[10px] font-black uppercase tracking-widest text-violet-600 dark:text-violet-400">
+                  <label
+                    htmlFor="bt-clandestino-avg-area-input"
+                    className="mb-1 block text-[10px] font-black uppercase tracking-widest text-violet-600 dark:text-violet-400"
+                  >
                     {t.clandestinoAvgAreaLabel}
                   </label>
                   <input
@@ -278,7 +413,10 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
                 </div>
 
                 <div>
-                  <label htmlFor="bt-clandestino-area-input" className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                  <label
+                    htmlFor="bt-clandestino-area-input"
+                    className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400"
+                  >
                     {t.clandestinoAreaTitle}
                   </label>
                   <input
@@ -287,8 +425,14 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
                     min={0}
                     step={1}
                     inputMode="numeric"
-                    value={Number.isFinite(clandestinoAreaM2) ? clandestinoAreaM2 : 0}
-                    onChange={(e) => onClandestinoAreaChange(Math.max(0, Number(e.target.value)))}
+                    value={
+                      Number.isFinite(clandestinoAreaM2) ? clandestinoAreaM2 : 0
+                    }
+                    onChange={(e) =>
+                      onClandestinoAreaChange(
+                        Math.max(0, Number(e.target.value)),
+                      )
+                    }
                     placeholder={t.clandestinoAreaPlaceholder}
                     className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-2.5 text-xs font-bold text-slate-700 focus:border-blue-100 focus:ring-4 focus:ring-blue-50 dark:border-white/5 dark:bg-zinc-950 dark:text-slate-200 outline-none transition-all"
                   />

@@ -1,6 +1,7 @@
 import React from "react";
 import { FileText, Zap } from "lucide-react";
 import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
+import type { BtPoleConditionStatus } from "../../types";
 import PoleCockpitCard from "./Cockpit/PoleCockpitCard";
 import { useBtTopologyContext } from "./BtTopologyContext";
 
@@ -56,13 +57,7 @@ const BtUnifiedInfraTab: React.FC = () => {
         onRename={(id, title) => onBtRenamePole?.(id, title)}
         onSetFlag={(id, flag) => onBtSetPoleChangeFlag?.(id, flag)}
         onUpdateSpec={(id, spec) => updatePoleSpec(id, spec)}
-        onUpdateAcessibilidade={(id, hasAccess, dist) => {
-          updatePoleSpec(id, {
-            ...pole,
-            hasVehicleAccess: hasAccess,
-            manualDragDistanceMeters: dist,
-          });
-        }}
+        onUpdateAcessibilidade={() => {}}
         mechanicalResult={mechanicalResult}
         accessibilityCost={accessibilityCost}
       />
@@ -78,7 +73,9 @@ const BtUnifiedInfraTab: React.FC = () => {
             onChange={(e) =>
               updatePoleConditionStatus(
                 pole.id,
-                e.target.value || undefined,
+                (e.target.value || undefined) as
+                  | BtPoleConditionStatus
+                  | undefined,
               )
             }
             className="w-full bg-slate-50 border-none rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-100 dark:bg-zinc-950 dark:text-slate-200 dark:focus:ring-blue-900/20"
@@ -145,9 +142,7 @@ const BtUnifiedInfraTab: React.FC = () => {
               </span>
               <span className="text-xs font-mono font-bold text-orange-800 dark:text-orange-400">
                 {(() => {
-                  const mtPole = mtTopology.poles.find(
-                    (p) => p.id === pole.id,
-                  );
+                  const mtPole = mtTopology.poles.find((p) => p.id === pole.id);
                   if (!mtPole?.mtStructures) return dashboardText.notAvailable;
                   return Object.values(mtPole.mtStructures)
                     .filter(Boolean)

@@ -68,8 +68,30 @@ jobs:
           node-version: "22"
           cache: "npm"
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Instalar dependências
         run: npm ci
+
+      - name: Instalar dependências Python para gate de banco
+        run: pip install psycopg2-binary
+
+      - name: Validar secret DATABASE_URL para gate de banco
+        run: |
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL secret is required for pre-deploy DB checks"
+            exit 1
+          fi
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Gate de banco (drift/RLS/grants/funções críticas)
+        run: npm run ci:db:predeploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Executar testes unitários (backend + frontend)
         run: npm run test:backend && npm run test:frontend

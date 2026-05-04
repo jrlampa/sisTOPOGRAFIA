@@ -5,11 +5,9 @@ import { ElectricalAuditDrawer } from "./ElectricalAuditDrawer";
 import { BtTelescopicSuggestionModal } from "./BtTelescopicSuggestionModal";
 import { HelpModal } from "./HelpModal";
 import { CommandPalette } from "./CommandPalette";
-import { AppSettings, BtTopology, MtTopology } from "../types";
-import { 
-  BtPoleAccumulatedDemand, 
-  BtClandestinoDisplay, 
-  BtTransformerDerived 
+import { AppSettings, BtTopology, MtTopology, SelectionMode } from "../types";
+import {
+  BtPoleAccumulatedDemand
 } from "../services/btDerivedService";
 import { getMainMapWorkspaceText } from "../i18n/mainMapWorkspaceText";
 import { getGuidedTaskChecklistText } from "../i18n/guidedTaskChecklistText";
@@ -30,7 +28,7 @@ interface AppWorkspaceProps {
   openSettings: () => void;
   setIsHelpOpen: (open: boolean) => void;
   toasts: any[];
-  closeToast: (id: string) => void;
+  closeToast: (id?: string) => void;
   sessionDraft: any;
   handleRestoreSession: () => void;
   handleDismissSession: () => void;
@@ -40,7 +38,7 @@ interface AppWorkspaceProps {
   statusMessage: string;
   showDxfProgress: boolean;
   dxfProgressValue: number;
-  dxfProgressStatus: string;
+  dxfProgressStatus: string | null;
   dxfProgressLabel: string;
   latestBtExport: any;
   btExportHistory: any[];
@@ -51,20 +49,24 @@ interface AppWorkspaceProps {
   btHistoryLoading: boolean;
   btHistoryCanLoadMore: boolean;
   handleLoadMoreBtHistory: () => void;
-  btHistoryProjectTypeFilter: string;
-  setBtHistoryProjectTypeFilter: (filter: string) => void;
-  btHistoryCqtScenarioFilter: string;
-  setBtHistoryCqtScenarioFilter: (filter: string) => void;
+  btHistoryProjectTypeFilter: "all" | "ramais" | "clandestino";
+  setBtHistoryProjectTypeFilter: React.Dispatch<
+    React.SetStateAction<"all" | "ramais" | "clandestino">
+  >;
+  btHistoryCqtScenarioFilter: "all" | "atual" | "proj1" | "proj2";
+  setBtHistoryCqtScenarioFilter: React.Dispatch<
+    React.SetStateAction<"all" | "atual" | "proj1" | "proj2">
+  >;
   updateSettings: (settings: AppSettings) => void;
-  selectionMode: string;
+  selectionMode: SelectionMode;
   handleSelectionModeChange: (mode: any) => void;
   radius: number;
   handleRadiusChange: (r: number) => void;
   polygon: any;
   handleClearPolygon: () => void;
   osmData: any;
-  handleDownloadDxf: () => void;
-  handleDownloadGeoJSON: () => void;
+  handleDownloadDxf: () => Promise<void>;
+  handleDownloadGeoJSON: () => Promise<void>;
   isSidebarDockedForRamalModal: boolean;
   sidebarSelectionControlsProps: any;
   sidebarBtEditorSectionProps: any;
@@ -76,7 +78,10 @@ interface AppWorkspaceProps {
   elevationProfileData: any;
   clearProfile: () => void;
   btModalStackProps: any;
-  showToast: (msg: string, type: any) => void;
+  showToast: (
+    message: string,
+    type: "success" | "error" | "info" | "warning",
+  ) => void;
   isBimInspectorOpen: boolean;
   setIsBimInspectorOpen: (open: boolean) => void;
   inspectedPole: any;
@@ -85,14 +90,14 @@ interface AppWorkspaceProps {
   btTopology: BtTopology;
   handleBtRenamePole: (id: string, title: string) => void;
   handleBtSetPoleChangeFlag: (id: string, flag: any) => void;
-  autoSaveStatus: 'idle' | 'saving' | 'error';
+  autoSaveStatus: "idle" | "saving" | "error";
   lastAutoSaved?: string;
   isAuditOpen: boolean;
   setIsAuditOpen: (open: boolean) => void;
   selectedAuditElement: any;
-  handleAuditAction: (action: any) => void;
+  handleAuditAction: (action: "approve" | "reject", notes: string) => void;
   btTelescopicSuggestions: any;
-  handleApplyTelescopicSuggestions: () => void;
+  handleApplyTelescopicSuggestions: (analysisOutput: any) => void;
   clearBtTelescopicSuggestions: () => void;
   isHelpOpen: boolean;
   isCommandPaletteOpen: boolean;
@@ -328,7 +333,10 @@ export function AppWorkspace(props: AppWorkspaceProps) {
         onMapClickAction={() => {
           setIsHelpOpen(false);
           handleSelectionModeChange("circle");
-          showToast(getMainMapWorkspaceText(settings.locale).clickToDefineCenter, "info");
+          showToast(
+            getMainMapWorkspaceText(settings.locale).clickToDefineCenter,
+            "info",
+          );
         }}
         autoSaveStatus={autoSaveStatus}
         lastAutoSaved={lastAutoSaved}
@@ -368,14 +376,26 @@ export function AppWorkspace(props: AppWorkspaceProps) {
       <GuidedTaskChecklist
         locale={settings.locale}
         tasks={[
-          { id: "area", label: getGuidedTaskChecklistText(settings.locale).taskArea, done: !!osmData },
-          { id: "bt", label: getGuidedTaskChecklistText(settings.locale).taskBt, done: hasBtPoles },
+          {
+            id: "area",
+            label: getGuidedTaskChecklistText(settings.locale).taskArea,
+            done: !!osmData,
+          },
+          {
+            id: "bt",
+            label: getGuidedTaskChecklistText(settings.locale).taskBt,
+            done: hasBtPoles,
+          },
           {
             id: "terrain",
             label: getGuidedTaskChecklistText(settings.locale).taskTerrain,
             done: !!terrainData,
           },
-          { id: "export", label: getGuidedTaskChecklistText(settings.locale).taskExport, done: false },
+          {
+            id: "export",
+            label: getGuidedTaskChecklistText(settings.locale).taskExport,
+            done: false,
+          },
         ]}
       />
     </>

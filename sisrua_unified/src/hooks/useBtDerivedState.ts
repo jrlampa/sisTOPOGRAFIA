@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GlobalState, BtTopology } from "../types";
 import type {
   BtPoleAccumulatedDemand,
@@ -10,15 +10,20 @@ import { fetchBtDerivedState } from "../services/btDerivedService";
 import type { BtTransformerDerived } from "../services/btDerivedService";
 
 const EMPTY_SECTIONING_IMPACT: BtSectioningImpact = {
+  unservedPoleIds: [],
   unservedClients: 0,
   estimatedDemandKva: 0,
-  originalTransformerId: "",
-  suggestedTransformerId: "",
+  loadCenter: null,
+  suggestedPoleId: null,
 };
 
 const EMPTY_CLANDESTINO_DISPLAY: BtClandestinoDisplay = {
-  totalEstimatedClients: 0,
-  averageClientLoadKva: 0,
+  demandKva: null,
+  areaMin: 0,
+  areaMax: 0,
+  baseDemandKva: null,
+  diversificationFactor: null,
+  finalDemandKva: 0,
 };
 
 type Params = {

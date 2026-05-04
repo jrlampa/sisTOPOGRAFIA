@@ -204,7 +204,7 @@ function DgScenarioMatrix({
   selectedIndex,
   onSelect,
   onHover,
-  locale,
+  locale: _locale,
 }: {
   best: DgScenario;
   alternatives: DgScenario[];

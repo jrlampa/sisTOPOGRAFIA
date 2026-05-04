@@ -11,6 +11,7 @@
 import postgres from "postgres";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
+import { metricsService } from "../services/metricsService.js";
 
 export type SqlClient = ReturnType<typeof postgres>;
 
@@ -101,6 +102,17 @@ export async function pingDb(): Promise<boolean> {
   try {
     await _client`SELECT 1`;
     _available = true;
+
+    // Report pool stats (postgres.js provides a simple stats object)
+    // @ts-ignore - stats is available on the postgres client
+    const stats = (_client as any).stats;
+    if (stats) {
+      metricsService.recordDbPoolState({
+        size: stats.max || 0,
+        used: (stats.max || 0) - (stats.idle || 0)
+      });
+    }
+
     return true;
   } catch (err) {
     _available = false;

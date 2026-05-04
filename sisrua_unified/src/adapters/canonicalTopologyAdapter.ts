@@ -104,6 +104,7 @@ export function buildCanonicalTopologyFromLegacy(
   return {
     poles: Array.from(polesById.values()),
     edges: [...btEdges, ...mtEdges],
+    transformers: btTopology.transformers ?? [],
   };
 }
 
@@ -185,11 +186,15 @@ function toMtEdge(edge: CanonicalNetworkEdge): MtEdge {
 
 export function deriveLegacyTopologiesFromCanonical(
   canonicalTopology: CanonicalNetworkTopology,
-  transformers: BtTransformer[] = [],
+  transformersFallback: BtTransformer[] = [],
 ): LegacyTopologyPair {
   const polesById = new Map(
     canonicalTopology.poles.map((pole) => [pole.id, pole] as const),
   );
+
+  const transformers = canonicalTopology.transformers && canonicalTopology.transformers.length > 0 
+    ? canonicalTopology.transformers 
+    : transformersFallback;
 
   return {
     btTopology: {

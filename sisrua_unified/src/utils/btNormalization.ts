@@ -1,10 +1,4 @@
-import {
-  BtTopology,
-  BtPoleNode,
-  BtTransformer,
-  BtEdge,
-  GeoLocation,
-} from "../types";
+import { BtTopology, BtPoleNode, BtTransformer, BtEdge } from "../types";
 import { haversineDistanceMeters } from "../../shared/geodesic";
 import {
   LEGACY_ID_ENTROPY,

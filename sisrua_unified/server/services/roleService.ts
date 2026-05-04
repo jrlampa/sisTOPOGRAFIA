@@ -127,6 +127,7 @@ export async function setUserRole(
   role: UserRole,
   assignedBy: string,
   reason?: string,
+  tenantId?: string | null,
 ): Promise<boolean> {
   if (!userId || userId.trim().length === 0) {
     logger.warn("userId inválido em setUserRole");
@@ -147,10 +148,11 @@ export async function setUserRole(
       return false;
     }
     const rows = await sql<UserRoleUpsertResult[]>`
-      INSERT INTO user_roles (user_id, role, assigned_by, reason)
-      VALUES (${normalizedUserId}, ${role}, ${normalizedAssignedBy}, ${reason ?? null})
+      INSERT INTO user_roles (user_id, role, tenant_id, assigned_by, reason)
+      VALUES (${normalizedUserId}, ${role}, ${tenantId ?? null}, ${normalizedAssignedBy}, ${reason ?? null})
       ON CONFLICT (user_id) DO UPDATE
         SET role        = ${role},
+            tenant_id   = COALESCE(EXCLUDED.tenant_id, user_roles.tenant_id),
             assigned_by = ${normalizedAssignedBy},
             reason      = ${reason ?? null}
       RETURNING user_id, role

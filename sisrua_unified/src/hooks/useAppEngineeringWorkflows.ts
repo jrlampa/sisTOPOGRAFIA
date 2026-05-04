@@ -1,5 +1,5 @@
 import React from "react";
-import { BtTopology, DgDecisionMode, BtNetworkScenario, AppSettings } from "../types";
+import { DgDecisionMode } from "../types";
 import { DgScenario } from "./useDgOptimization";
 import { DgWizardParams } from "../components/DgWizardModal";
 
@@ -24,9 +24,11 @@ export function useAppEngineeringWorkflows({
   requestCriticalConfirmation,
   settings,
   clearBtTelescopicSuggestions,
-  btTelescopicSuggestions,
 }: any) {
-  const [lastAppliedDgResults, setLastAppliedDgResults] = React.useState<Record<string, any> | null>(null);
+  const [lastAppliedDgResults, setLastAppliedDgResults] = React.useState<Record<
+    string,
+    any
+  > | null>(null);
 
   const appendDgDecisionHistory = React.useCallback(
     (params: {
@@ -89,9 +91,15 @@ export function useAppEngineeringWorkflows({
         scoreComponents: scenario.scoreComponents,
       });
 
-      updateBtTopology(applyDgAll(dgTopologySource, scenario), "Design Generativo (Trafo + Condutores)");
+      updateBtTopology(
+        applyDgAll(dgTopologySource, scenario),
+        "Design Generativo (Trafo + Condutores)",
+      );
       clearDgResult();
-      showToast("Solução DG aplicada: trafo + condutores atualizados.", "success");
+      showToast(
+        "Solução DG aplicada: trafo + condutores atualizados.",
+        "success",
+      );
 
       const trafoLoc = {
         lat: scenario.trafoPositionLatLon.lat,
@@ -105,7 +113,17 @@ export function useAppEngineeringWorkflows({
         );
       }
     },
-    [dgResult, logDgDecision, appendDgDecisionHistory, applyDgAll, dgTopologySource, updateBtTopology, clearDgResult, showToast, findNearestMtPole],
+    [
+      dgResult,
+      logDgDecision,
+      appendDgDecisionHistory,
+      applyDgAll,
+      dgTopologySource,
+      updateBtTopology,
+      clearDgResult,
+      showToast,
+      findNearestMtPole,
+    ],
   );
 
   const handleAcceptDgTrafoOnly = React.useCallback(
@@ -132,7 +150,10 @@ export function useAppEngineeringWorkflows({
         scoreComponents: scenario.scoreComponents,
       });
 
-      updateBtTopology(applyDgTrafoOnly(dgTopologySource, scenario), "Design Generativo (Apenas Trafo)");
+      updateBtTopology(
+        applyDgTrafoOnly(dgTopologySource, scenario),
+        "Design Generativo (Apenas Trafo)",
+      );
       clearDgResult();
       showToast("Posição do trafo atualizada pelo DG.", "success");
 
@@ -148,7 +169,17 @@ export function useAppEngineeringWorkflows({
         );
       }
     },
-    [dgResult, logDgDecision, appendDgDecisionHistory, applyDgTrafoOnly, dgTopologySource, updateBtTopology, clearDgResult, findNearestMtPole, showToast],
+    [
+      dgResult,
+      logDgDecision,
+      appendDgDecisionHistory,
+      applyDgTrafoOnly,
+      dgTopologySource,
+      updateBtTopology,
+      clearDgResult,
+      findNearestMtPole,
+      showToast,
+    ],
   );
 
   const handleDiscardDgResult = React.useCallback(() => {
@@ -165,7 +196,14 @@ export function useAppEngineeringWorkflows({
     }
     clearDgResult();
     showToast("Recomendação DG descartada.", "info");
-  }, [dgResult?.runId, dgActiveScenario, logDgDecision, appendDgDecisionHistory, clearDgResult, showToast]);
+  }, [
+    dgResult?.runId,
+    dgActiveScenario,
+    logDgDecision,
+    appendDgDecisionHistory,
+    clearDgResult,
+    showToast,
+  ]);
 
   const handleTriggerTelescopicAnalysis = React.useCallback(() => {
     if (isBtTelescopicAnalyzing) {
@@ -181,7 +219,8 @@ export function useAppEngineeringWorkflows({
       (onConfirm: any) => {
         requestCriticalConfirmation({
           title: "Executar análise telescópica da REDE NOVA?",
-          message: "A análise avalia quedas de tensão e sugere substituições de condutores no sentido trafo para ponta.",
+          message:
+            "A análise avalia quedas de tensão e sugere substituições de condutores no sentido trafo para ponta.",
           confirmLabel: "Executar análise",
           cancelLabel: "Cancelar",
           tone: "info",
@@ -189,12 +228,23 @@ export function useAppEngineeringWorkflows({
         });
       },
     );
-  }, [isBtTelescopicAnalyzing, showToast, triggerBtTelescopicAnalysis, btTopology, btAccumulatedByPole, btTransformerDebugById, requestCriticalConfirmation]);
+  }, [
+    isBtTelescopicAnalyzing,
+    showToast,
+    triggerBtTelescopicAnalysis,
+    btTopology,
+    btAccumulatedByPole,
+    btTransformerDebugById,
+    requestCriticalConfirmation,
+  ]);
 
   const handleApplyTelescopicSuggestions = React.useCallback(
-    (analysisOutput: NonNullable<typeof btTelescopicSuggestions>) => {
+    (analysisOutput: { suggestions: any[] }) => {
       if ((settings.btNetworkScenario ?? "asis") !== "projeto") {
-        showToast("As sugestões telescópicas só podem ser aplicadas na REDE NOVA.", "info");
+        showToast(
+          "As sugestões telescópicas só podem ser aplicadas na REDE NOVA.",
+          "info",
+        );
         clearBtTelescopicSuggestions();
         return;
       }
@@ -215,7 +265,8 @@ export function useAppEngineeringWorkflows({
       const nextEdges = btTopology.edges.map((edge: any, index: number) => {
         const directKey = `${edge.fromPoleId}->${edge.toPoleId}`;
         const reverseKey = `${edge.toPoleId}->${edge.fromPoleId}`;
-        const suggestedConductor = conductorByEdgeId.get(directKey) ?? conductorByEdgeId.get(reverseKey);
+        const suggestedConductor =
+          conductorByEdgeId.get(directKey) ?? conductorByEdgeId.get(reverseKey);
 
         if (!suggestedConductor) return edge;
 
@@ -223,19 +274,37 @@ export function useAppEngineeringWorkflows({
         if (currentPrimary?.conductorName === suggestedConductor) return edge;
 
         const nextPrimary = currentPrimary
-          ? { ...currentPrimary, quantity: 1, conductorName: suggestedConductor }
-          : { id: `cond-auto-${Date.now()}-${index}`, quantity: 1, conductorName: suggestedConductor };
+          ? {
+              ...currentPrimary,
+              quantity: 1,
+              conductorName: suggestedConductor,
+            }
+          : {
+              id: `cond-auto-${Date.now()}-${index}`,
+              quantity: 1,
+              conductorName: suggestedConductor,
+            };
 
         return {
           ...edge,
-          edgeChangeFlag: (edge.edgeChangeFlag === "new" ? "new" : "replace") as "new" | "replace",
+          edgeChangeFlag: (edge.edgeChangeFlag === "new"
+            ? "new"
+            : "replace") as "new" | "replace",
           removeOnExecution: false,
-          replacementFromConductors: edge.replacementFromConductors && edge.replacementFromConductors.length > 0 ? edge.replacementFromConductors : edge.conductors,
+          replacementFromConductors:
+            edge.replacementFromConductors &&
+            edge.replacementFromConductors.length > 0
+              ? edge.replacementFromConductors
+              : edge.conductors,
           conductors: [nextPrimary],
         };
       });
 
-      const changedCount = nextEdges.reduce((count: number, edge: any, index: number) => (edge !== btTopology.edges[index] ? count + 1 : count), 0);
+      const changedCount = nextEdges.reduce(
+        (count: number, edge: any, index: number) =>
+          edge !== btTopology.edges[index] ? count + 1 : count,
+        0,
+      );
 
       if (changedCount === 0) {
         showToast("As sugestões já estavam refletidas na topologia.", "info");
@@ -244,10 +313,19 @@ export function useAppEngineeringWorkflows({
       }
 
       updateBtTopology({ ...btTopology, edges: nextEdges });
-      showToast(`${changedCount} trecho(s) atualizado(s) com sugestões telescópicas na REDE NOVA.`, "success");
+      showToast(
+        `${changedCount} trecho(s) atualizado(s) com sugestões telescópicas na REDE NOVA.`,
+        "success",
+      );
       clearBtTelescopicSuggestions();
     },
-    [settings.btNetworkScenario, showToast, clearBtTelescopicSuggestions, btTopology, updateBtTopology],
+    [
+      settings.btNetworkScenario,
+      showToast,
+      clearBtTelescopicSuggestions,
+      btTopology,
+      updateBtTopology,
+    ],
   );
 
   return {

@@ -58,6 +58,7 @@
     "security:check": "npm run security:audit && echo '\n--- Security audit complete ---'",
     "ci:checkpoint-gate": "node scripts/ci/enforce-checkpoints-timeline.mjs",
     "ci:non-negotiables": "node scripts/ci/enforce-non-negotiables.mjs",
+    "ci:db:predeploy": "python scripts/predeploy_db_healthcheck.py",
     "security:python": "bandit -c .bandit -r py_engine/ -f json -o artifacts/bandit-report.json || bandit -c .bandit -r py_engine/ -ll",
     "security:python:ci": "bandit -c .bandit -r py_engine/ -ll --exit-zero -f json -o artifacts/bandit-report.json",
     "security:pip:audit": "pip-audit -r py_engine/requirements.txt --format json -o artifacts/pip-audit-report.json || pip-audit -r py_engine/requirements.txt",
@@ -75,6 +76,7 @@
   "dependencies": {
     "@google-cloud/firestore": "^8.3.0",
     "@google-cloud/tasks": "^6.2.1",
+    "@supabase/supabase-js": "^2.105.1",
     "@types/multer": "^2.0.0",
     "@types/proj4": "^2.5.6",
     "@types/swagger-jsdoc": "^6.0.4",
@@ -92,6 +94,7 @@
     "helmet": "^8.1.0",
     "i18next": "^26.0.8",
     "i18next-browser-languagedetector": "^8.2.1",
+    "jose": "^6.2.3",
     "jspdf": "^4.2.1",
     "jszip": "^3.10.1",
     "leaflet": "^1.9.4",

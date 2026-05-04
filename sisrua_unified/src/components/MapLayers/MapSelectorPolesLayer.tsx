@@ -189,7 +189,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
             )}
 
             <CircleMarker
-              center={[pole.lat, pole.lng]}
+              center={dragPos || [pole.lat, pole.lng]}
               data-violation={isViolation ? "true" : undefined}
               radius={
                 pole.id === criticalPoleId
@@ -212,7 +212,7 @@ const MapSelectorPolesLayer: React.FC<MapSelectorPolesLayerProps> = ({
               interactive={false}
             />
             <Marker
-              position={[pole.lat, pole.lng]}
+              position={dragPos || [pole.lat, pole.lng]}
               icon={makePoleIcon(pole.id, !!pole.verified)}
               zIndexOffset={1200}
               data-violation={isViolation ? "true" : undefined}

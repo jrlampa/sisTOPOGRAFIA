@@ -149,6 +149,10 @@ export interface CanonicalNetworkEdge {
 
 // ─── NetworkTopology canônica ─────────────────────────────────────────────────
 
+import type { BtTransformer } from "./types.js";
+
+// ... rest of imports if any
+
 /**
  * NetworkTopology canônica — grafo completo de uma rede elétrica.
  *
@@ -163,9 +167,8 @@ export interface CanonicalNetworkTopology {
   edges: CanonicalNetworkEdge[];
   /**
    * Transformadores mantidos como tipo legado BtTransformer durante migração.
-   * Use `import type { BtTransformer } from './types.js'` nos consumidores.
    */
-  // transformers: BtTransformer[];   ← adicionado na Fase B3
+  transformers: BtTransformer[];
 }
 
 // ─── Guards de migração ───────────────────────────────────────────────────────

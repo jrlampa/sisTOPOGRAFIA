@@ -13,26 +13,15 @@ import BtTopologyEdgeSubSection from "./BtTopologyEdgeSubSection";
 import { useBtTopologyContext } from "./BtTopologyContext";
 
 const BtUnifiedElectricalTab: React.FC = () => {
+  const [isTransformerDropdownOpen, setIsTransformerDropdownOpen] =
+    React.useState(false);
+
   const {
-    locale,
     btTopology,
-    btNetworkScenario,
+    locale,
     selectedPole: pole,
     selectedTransformerId,
-    selectedTransformer,
     selectedEdgeId,
-    selectedEdge,
-    transformerDebugById,
-    onBtRenameTransformer,
-    onBtSetTransformerChangeFlag,
-    updateTransformerVerified,
-    updateTransformerReadings,
-    updateTransformerProjectPower,
-    onBtSetEdgeChangeFlag,
-    updateEdgeVerified,
-    updateEdgeConductors,
-    updateEdgeMtConductors,
-    updateEdgeReplacementFromConductors,
     onSelectedEdgeChange,
     onSelectedTransformerChange,
   } = useBtTopologyContext();
@@ -76,9 +65,7 @@ const BtUnifiedElectricalTab: React.FC = () => {
                 </span>
               </div>
               <button
-                onClick={() =>
-                  onSelectedTransformerChange(poleTransformer.id)
-                }
+                onClick={() => onSelectedTransformerChange(poleTransformer.id)}
                 className="text-xs font-black uppercase tracking-tighter text-amber-600 hover:underline dark:text-amber-400"
               >
                 Editar Detalhes
@@ -89,24 +76,8 @@ const BtUnifiedElectricalTab: React.FC = () => {
             {selectedTransformerId === poleTransformer.id && (
               <div className="mt-2 pt-2 border-t border-amber-100 dark:border-amber-900/20 animate-in fade-in slide-in-from-top-2 duration-300">
                 <BtTopologyTransformerSubSection
-                  locale={locale}
-                  btTopology={btTopology}
-                  btNetworkScenario={btNetworkScenario}
-                  selectedTransformer={selectedTransformer}
-                  isTransformerDropdownOpen={false}
-                  setIsTransformerDropdownOpen={() => {}}
-                  selectTransformer={onSelectedTransformerChange}
-                  transformerDebugById={transformerDebugById}
-                  pointDemandKva={0} // Not needed for this view
-                  onBtRenameTransformer={onBtRenameTransformer}
-                  onBtSetTransformerChangeFlag={
-                    onBtSetTransformerChangeFlag
-                  }
-                  updateTransformerVerified={updateTransformerVerified}
-                  updateTransformerReadings={updateTransformerReadings}
-                  updateTransformerProjectPower={
-                    updateTransformerProjectPower
-                  }
+                  isTransformerDropdownOpen={isTransformerDropdownOpen}
+                  setIsTransformerDropdownOpen={setIsTransformerDropdownOpen}
                 />
               </div>
             )}
@@ -190,21 +161,7 @@ const BtUnifiedElectricalTab: React.FC = () => {
                 {/* If this edge is selected, show the sub-section editor */}
                 {isSelected && (
                   <div className="p-3 bg-blue-50/30 rounded-2xl border border-blue-100/50 animate-in fade-in zoom-in-95 duration-300 dark:bg-blue-950/5 dark:border-blue-900/20">
-                    <BtTopologyEdgeSubSection
-                      locale={locale}
-                      btTopology={btTopology}
-                      btNetworkScenario={btNetworkScenario}
-                      selectedEdge={selectedEdge}
-                      selectedEdgeId={selectedEdgeId}
-                      selectEdge={onSelectedEdgeChange}
-                      updateEdgeVerified={updateEdgeVerified}
-                      updateEdgeConductors={updateEdgeConductors}
-                      updateEdgeMtConductors={updateEdgeMtConductors}
-                      updateEdgeReplacementFromConductors={
-                        updateEdgeReplacementFromConductors
-                      }
-                      onBtSetEdgeChangeFlag={onBtSetEdgeChangeFlag}
-                    />
+                    <BtTopologyEdgeSubSection />
                   </div>
                 )}
               </div>

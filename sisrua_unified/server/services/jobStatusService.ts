@@ -8,7 +8,7 @@ export type JobStatus = "queued" | "processing" | "completed" | "failed";
 
 export interface JobInfo {
   id: string;
-  tenantId: string; 
+  tenantId: string;
   status: JobStatus;
   progress: number;
   result?: {
@@ -21,8 +21,8 @@ export interface JobInfo {
   error?: string;
   createdAt: Date;
   updatedAt: Date;
-  attempts?: number; 
-  idempotencyKey?: string; 
+  attempts?: number;
+  idempotencyKey?: string;
 }
 
 let jobs = new Map<string, JobInfo>();
@@ -46,23 +46,20 @@ let cleanupIntervalId: NodeJS.Timeout | null = null;
 let initializationStarted = false;
 let initializationPromise: Promise<void> | null = null;
 
-/**
- * Technical utility for tests to clear internal state.
- */
 export function resetServiceState(): void {
-    jobs = new Map();
-    jobsByIdempotencyKey = new Map();
-    initializationStarted = false;
-    initializationPromise = null;
-    postgresAvailable = false;
-    if (cleanupIntervalId) {
-        clearInterval(cleanupIntervalId);
-        cleanupIntervalId = null;
-    }
-    if (sqlClient) {
-        sqlClient.end({ timeout: 1 }).catch(() => undefined);
-        sqlClient = null;
-    }
+  jobs = new Map();
+  jobsByIdempotencyKey = new Map();
+  initializationStarted = false;
+  initializationPromise = null;
+  postgresAvailable = false;
+  if (cleanupIntervalId) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+  }
+  if (sqlClient) {
+    sqlClient.end({ timeout: 1 }).catch(() => undefined);
+    sqlClient = null;
+  }
 }
 
 export async function initializePersistence(): Promise<void> {
@@ -78,17 +75,18 @@ export async function initializePersistence(): Promise<void> {
     try {
       sqlClient = postgres(DATABASE_URL, {
         ssl: config.NODE_ENV === "production" ? "require" : undefined,
-        max: 5, 
+        max: 5,
         connect_timeout: 10,
         idle_timeout: 15,
       });
 
+      await sqlClient`SELECT 1`;
       postgresAvailable = true;
-      logger.info("JobStatusService: Supabase/Postgres persistence enabled");
+      logger.info("JobStatusService: Postgres persistence enabled");
       await loadJobsFromPostgres();
       startCleanupInterval();
     } catch (error) {
-      logger.warn("JobStatusService: Supabase/Postgres unavailable", { error });
+      logger.warn("JobStatusService: Postgres unavailable", { error });
       postgresAvailable = false;
       if (sqlClient) {
         await sqlClient.end({ timeout: 1 }).catch(() => undefined);
@@ -96,7 +94,7 @@ export async function initializePersistence(): Promise<void> {
       }
       startCleanupInterval();
     } finally {
-        initializationPromise = null;
+      initializationPromise = null;
     }
   })();
 
@@ -116,9 +114,11 @@ async function loadJobsFromPostgres(): Promise<void> {
 
     rows.forEach((row: any) => {
       const job = mapRowToJobInfo(row);
-      jobs.set(job.id, job);
-      if (job.idempotencyKey) {
-        jobsByIdempotencyKey.set(job.idempotencyKey, job.id);
+      if (job.id && job.id !== "unknown") {
+        jobs.set(job.id, job);
+        if (job.idempotencyKey) {
+          jobsByIdempotencyKey.set(job.idempotencyKey, job.id);
+        }
       }
     });
   } catch (error) {
@@ -127,38 +127,53 @@ async function loadJobsFromPostgres(): Promise<void> {
 }
 
 function mapRowToJobInfo(row: any): JobInfo {
+  const id = row.id || row.id_job || "unknown";
+  const tenantId = row.tenant_id || row.tenantId || "unknown";
+
   return {
-    id: String(row.id),
-    tenantId: String(row.tenant_id),
-    status: row.status as JobStatus,
+    id: String(id),
+    tenantId: String(tenantId),
+    status: (row.status as JobStatus) || "queued",
     progress: Number(row.progress || 0),
     result: row.result ?? undefined,
     error: row.error ?? undefined,
     createdAt: row.created_at ? new Date(row.created_at) : new Date(),
     updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(),
     attempts: Number(row.attempts || 0),
-    idempotencyKey: row.idempotency_key ?? undefined,
+    idempotencyKey: row.idempotency_key || row.idempotencyKey || undefined,
   };
 }
 
-async function fetchJobFromPostgres(id: string): Promise<JobInfo | null> {
+async function fetchJobFromPostgres(
+  id: string,
+  tenantId?: string,
+): Promise<JobInfo | null> {
   if (!postgresAvailable || !sqlClient) return null;
 
   try {
-    const rows = await sqlClient.unsafe(
-      `SELECT id, tenant_id, status, progress, result, error, created_at, updated_at, attempts, idempotency_key
-       FROM ${JOBS_TABLE} WHERE id = $1 LIMIT 1`,
-      [id],
-    );
+    const rows = tenantId
+      ? await sqlClient.unsafe(
+          `SELECT id, tenant_id, status, progress, result, error, created_at, updated_at, attempts, idempotency_key
+           FROM ${JOBS_TABLE} WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
+          [id, tenantId],
+        )
+      : await sqlClient.unsafe(
+          `SELECT id, tenant_id, status, progress, result, error, created_at, updated_at, attempts, idempotency_key
+           FROM ${JOBS_TABLE} WHERE id = $1 LIMIT 1`,
+          [id],
+        );
 
-    if (!rows.length) return null;
+    if (!rows || !rows.length) return null;
 
     const job = mapRowToJobInfo(rows[0]);
-    jobs.set(job.id, job);
-    if (job.idempotencyKey) {
-      jobsByIdempotencyKey.set(job.idempotencyKey, job.id);
+    if (job.id && job.id !== "unknown") {
+      jobs.set(job.id, job);
+      if (job.idempotencyKey) {
+        jobsByIdempotencyKey.set(job.idempotencyKey, job.id);
+      }
+      return job;
     }
-    return job;
+    return null;
   } catch (error) {
     logger.error("Failed to fetch job from Postgres", { jobId: id, error });
     return null;
@@ -195,29 +210,36 @@ async function ensureInitialized(): Promise<void> {
     if (initializationPromise) await initializationPromise;
     return;
   }
-
-  if (process.env.NODE_ENV === "test") {
-    initializationStarted = true;
-    return;
-  }
-
   initializationStarted = true;
   await initializePersistence();
 }
 
-export function createJob(id: string, tenantId: string, idempotencyKey?: string): JobInfo {
-  if (!initializationStarted && process.env.NODE_ENV !== "test") {
-      initializationStarted = true;
-      initializePersistence().catch(() => undefined);
+export function createJob(
+  id: string,
+  tenantId: string,
+  idempotencyKey?: string,
+): JobInfo {
+  if (!initializationStarted) {
+    initializationStarted = true;
+    initializePersistence().catch(() => undefined);
   }
 
   if (jobs.size >= MAX_SYSTEM_CAPACITY) {
-    throw new Error("CapacityError: O sistema atingiu a capacidade máxima.");
+    const err = new Error(
+      "CapacityError: O sistema atingiu a capacidade máxima.",
+    );
+    (err as any).code = "ERR_CAPACITY";
+    throw err;
   }
 
   const job: JobInfo = {
-    id, tenantId, status: "queued", progress: 0,
-    createdAt: new Date(), updatedAt: new Date(), attempts: 0,
+    id,
+    tenantId,
+    status: "queued",
+    progress: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    attempts: 0,
     idempotencyKey,
   };
   jobs.set(id, job);
@@ -231,14 +253,22 @@ export function getJob(id: string): JobInfo | null {
   return jobs.get(id) || null;
 }
 
-export async function getJobWithPersistence(id: string, tenantId?: string): Promise<JobInfo | null> {
+export async function getJobWithPersistence(
+  id: string,
+  tenantId?: string,
+): Promise<JobInfo | null> {
   await ensureInitialized();
   const inMemory = jobs.get(id);
-  if (inMemory && (!tenantId || inMemory.tenantId === tenantId)) return inMemory;
-  return fetchJobFromPostgres(id);
+  if (inMemory && (!tenantId || inMemory.tenantId === tenantId))
+    return inMemory;
+  return fetchJobFromPostgres(id, tenantId);
 }
 
-export async function updateJobStatus(id: string, status: JobStatus, progress?: number): Promise<void> {
+export async function updateJobStatus(
+  id: string,
+  status: JobStatus,
+  progress?: number,
+): Promise<void> {
   const job = jobs.get(id);
   if (job) {
     job.status = status;
@@ -252,7 +282,10 @@ export async function updateJobStatus(id: string, status: JobStatus, progress?: 
 export async function completeJob(id: string, result: any): Promise<void> {
   const job = jobs.get(id);
   if (job) {
-    job.status = "completed"; job.progress = 100; job.result = result; job.updatedAt = new Date();
+    job.status = "completed";
+    job.progress = 100;
+    job.result = result;
+    job.updatedAt = new Date();
     jobs.set(id, job);
     await jobRepository.complete(id, job.tenantId, result);
   }
@@ -261,7 +294,10 @@ export async function completeJob(id: string, result: any): Promise<void> {
 export async function failJob(id: string, error: string): Promise<void> {
   const job = jobs.get(id);
   if (job) {
-    job.status = "failed"; job.error = error; job.updatedAt = new Date(); job.attempts = (job.attempts || 0) + 1;
+    job.status = "failed";
+    job.error = error;
+    job.updatedAt = new Date();
+    job.attempts = (job.attempts || 0) + 1;
     jobs.set(id, job);
     await jobRepository.fail(id, job.tenantId, error);
   }
@@ -280,11 +316,20 @@ export function computeIdempotencyKey(params: Record<string, unknown>): string {
   return createHash("sha256").update(canonical).digest("hex");
 }
 
-export function findOrCreateJob(id: string, tenantId: string, idempotencyKey: string): JobInfo {
+export function findOrCreateJob(
+  id: string,
+  tenantId: string,
+  idempotencyKey: string,
+): JobInfo {
   const existingId = jobsByIdempotencyKey.get(idempotencyKey);
   if (existingId) {
     const existing = jobs.get(existingId);
-    if (existing && existing.status !== "completed" && existing.status !== "failed") return existing;
+    if (
+      existing &&
+      existing.status !== "completed" &&
+      existing.status !== "failed"
+    )
+      return existing;
     jobsByIdempotencyKey.delete(idempotencyKey);
   }
   return createJob(id, tenantId, idempotencyKey);

@@ -52,8 +52,8 @@ AFTER INSERT OR UPDATE OR DELETE ON public.constants_catalog
 FOR EACH ROW EXECUTE FUNCTION public.proc_audit_log();
 
 -- 3. ÍNDICES DE PERFORMANCE NO HISTÓRICO BT
--- Índice composto para histórico por usuário e data
-CREATE INDEX IF NOT EXISTS idx_bt_history_user_date ON public.bt_export_history (user_id, created_at DESC);
+-- user_id ainda não existia nesta fase da cadeia; manter a migration replay-safe.
+-- O índice por identidade/tenant é introduzido mais adiante quando a coluna passa a existir.
 
 -- 4. ÍNDICES NO JOBS
 CREATE INDEX IF NOT EXISTS idx_jobs_status_created ON public.jobs (status, created_at DESC);

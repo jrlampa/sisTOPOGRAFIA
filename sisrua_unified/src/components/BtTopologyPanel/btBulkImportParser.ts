@@ -4,7 +4,6 @@ import { nextId } from "./BtTopologyPanelUtils";
 // Pre-compiled regex for O(1) matching during loop
 const DIGITS_REGEX = /\d+/;
 const CLEAN_NUMBER_REGEX = /[^0-9]/g;
-const WORKBOOK_CLEAN_REGEX = /[^0-9,.-]/g;
 const WHITESPACE_REGEX = /\s+/g;
 const BOM_REGEX = /^\uFEFF/;
 const LINE_BREAK_REGEX = /\r\n?/g;

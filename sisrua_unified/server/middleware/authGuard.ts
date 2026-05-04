@@ -1,6 +1,6 @@
 /**
  * server/middleware/authGuard.ts
- * 
+ *
  * Middleware de autorização para proteger rotas críticas.
  * Suporta Bearer token via header Authorization.
  */
@@ -8,22 +8,39 @@
 import { Request, Response, NextFunction } from "express";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
+import {
+  isLikelyJwt,
+  isSupabaseAuthConfigured,
+  verifySupabaseAccessToken,
+} from "../services/supabaseJwtService.js";
 
 /**
  * Middleware que protege rotas críticas com Bearer token (ADMIN_TOKEN)
  * Se ADMIN_TOKEN não está configurado, a rota fica aberta com aviso.
- * 
+ *
  * Uso:
  * app.use("/api/admin", requireAdminToken, adminRoutes);
  */
 export const requireAdminToken = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   const token = req.headers.authorization?.replace(/^Bearer\s+/i, "");
 
   if (!config.ADMIN_TOKEN) {
+    if (config.NODE_ENV === "production") {
+      logger.error("[AuthGuard] ADMIN_TOKEN missing in production", {
+        path: req.path,
+        ip: req.ip,
+      });
+      return res.status(503).json({
+        error: "Service unavailable",
+        code: "SECURITY_MISCONFIGURATION",
+        message: "Protected endpoint is not configured",
+      });
+    }
+
     logger.warn("[AuthGuard] ADMIN_TOKEN not configured - endpoint is open", {
       path: req.path,
       ip: req.ip,
@@ -55,16 +72,31 @@ export const requireAdminToken = (
 export const requireMetricsToken = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.replace(/^Bearer\s+/i, "");
 
   if (!config.METRICS_TOKEN) {
-    logger.warn("[AuthGuard] METRICS_TOKEN not configured - metrics endpoint is open", {
-      path: req.path,
-      ip: req.ip,
-    });
+    if (config.NODE_ENV === "production") {
+      logger.error("[AuthGuard] METRICS_TOKEN missing in production", {
+        path: req.path,
+        ip: req.ip,
+      });
+      return res.status(503).json({
+        error: "Service unavailable",
+        code: "SECURITY_MISCONFIGURATION",
+        message: "Metrics endpoint is not configured",
+      });
+    }
+
+    logger.warn(
+      "[AuthGuard] METRICS_TOKEN not configured - metrics endpoint is open",
+      {
+        path: req.path,
+        ip: req.ip,
+      },
+    );
     return next();
   }
 
@@ -98,7 +130,7 @@ export const requireMetricsToken = (
 export const extractUserFromToken = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   const token = req.headers.authorization?.replace(/^Bearer\s+/i, "");
 
@@ -113,15 +145,58 @@ export const extractUserFromToken = (
 };
 
 /**
+ * Verifica JWTs do Supabase quando presentes e popula o contexto confiável.
+ * Tokens não-JWT continuam disponíveis para fluxos legados baseados em bearer fixo.
+ */
+export const attachSupabaseUserIfPresent = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const token = req.headers.authorization?.replace(/^Bearer\s+/i, "").trim();
+
+  if (!token || !isLikelyJwt(token) || !isSupabaseAuthConfigured()) {
+    return next();
+  }
+
+  try {
+    const verifiedUser = await verifySupabaseAccessToken(token);
+    if (!verifiedUser) {
+      return next();
+    }
+
+    res.locals.authenticated = true;
+    res.locals.token = token;
+    res.locals.userId = verifiedUser.userId;
+    res.locals.userEmail = verifiedUser.email;
+    res.locals.authenticatedUser = verifiedUser;
+    return next();
+  } catch (error) {
+    logger.warn("[AuthGuard] Invalid Supabase bearer token", {
+      path: req.path,
+      ip: req.ip,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return res.status(401).json({
+      error: "Unauthorized",
+      code: "INVALID_TOKEN",
+      message: "Supabase session is invalid or expired",
+    });
+  }
+};
+
+/**
  * Middleware que permite skipping de auth em development/test
  */
 export const skipAuthInDev = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   if (config.NODE_ENV !== "production") {
-    logger.debug("[AuthGuard] Skipping auth in non-production", { env: config.NODE_ENV });
+    logger.debug("[AuthGuard] Skipping auth in non-production", {
+      env: config.NODE_ENV,
+    });
     return next();
   }
 
