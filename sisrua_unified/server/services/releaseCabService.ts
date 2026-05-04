@@ -76,7 +76,7 @@ export interface ChangeRequest {
 
 // ─── Dados em memória (catálogo pré-semeado) ─────────────────────────────────
 
-const releases: ReleaseRecord[] = [
+const INITIAL_RELEASES: ReleaseRecord[] = [
   {
     id: "rel-0.9.0",
     version: "0.9.0",
@@ -97,6 +97,11 @@ const releases: ReleaseRecord[] = [
     createdAt: "2026-04-20T10:00:00.000Z",
   },
 ];
+
+const releases: ReleaseRecord[] = INITIAL_RELEASES.map((release) => ({
+  ...release,
+  approvals: [...release.approvals],
+}));
 
 const changeRequests: ChangeRequest[] = [];
 
@@ -311,4 +316,15 @@ export class ReleaseCabService {
   static getFrozenWindows(): typeof FROZEN_WINDOWS_UTC {
     return [...FROZEN_WINDOWS_UTC];
   }
+}
+
+export function resetReleaseCabState(): void {
+  releases.length = 0;
+  releases.push(
+    ...INITIAL_RELEASES.map((release) => ({
+      ...release,
+      approvals: [...release.approvals],
+    })),
+  );
+  changeRequests.length = 0;
 }

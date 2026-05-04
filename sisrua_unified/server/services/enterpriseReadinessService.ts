@@ -7,8 +7,6 @@
  * - 123: Suporte a Implantação On-Premise / Híbrida (modo isolado para clientes com alta restrição)
  */
 
-import * as https from "https";
-import * as http from "http";
 import { logger } from "../utils/logger.js";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -57,6 +55,8 @@ export interface ProxyConfig {
   httpsProxy: string | null;
   noProxy: string[];
 }
+
+type ChecklistSnapshot = Pick<OnboardingChecklistItem, "id" | "verified" | "verificationNote">;
 
 // ─── Configuração de proxy lida do ambiente ───────────────────────────────────
 
@@ -213,6 +213,12 @@ const ONBOARDING_CHECKLIST: OnboardingChecklistItem[] = [
   },
 ];
 
+const ONBOARDING_CHECKLIST_BASELINE: ChecklistSnapshot[] = ONBOARDING_CHECKLIST.map((item) => ({
+  id: item.id,
+  verified: item.verified,
+  verificationNote: item.verificationNote,
+}));
+
 // ─── Modos de implantação ─────────────────────────────────────────────────────
 
 const DEPLOYMENT_MODES: DeploymentMode[] = [
@@ -346,35 +352,45 @@ export class EnterpriseReadinessService {
         : "Gerar secret forte: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
     });
 
-    // Verificação de conectividade (DNS básico)
-    const dnsCheck = await EnterpriseReadinessService._checkDns("8.8.8.8");
+    // Verificação de modo de rede restrita sem depender de egress externo.
+    const deploymentMode = process.env.DEPLOYMENT_MODE;
+    const offlineMode = (process.env.OFFLINE_MODE ?? "false").toLowerCase() === "true";
+    const externalApis = (process.env.ALLOW_EXTERNAL_APIS ?? "false").toLowerCase() === "true";
+    const restrictiveNetworkReady =
+      deploymentMode === "on_premise" || offlineMode || !externalApis;
     checks.push({
       id: "hrd-dns-001",
-      name: "Conectividade de Rede Básica",
+      name: "Compatibilidade com Rede Corporativa Restritiva",
       category: "dns",
-      description: "Verifica se há conectividade de rede básica.",
-      status: dnsCheck ? "ok" : "aviso",
-      detail: dnsCheck
-        ? "Conectividade de rede disponível."
-        : "Sem conectividade de rede externa. Em modo on-premise, isso é esperado.",
-      recommendation: dnsCheck
+      description: "Valida operação em rede restritiva (on-premise/offline ou sem dependência obrigatória de APIs externas).",
+      status: restrictiveNetworkReady ? "ok" : "aviso",
+      detail: restrictiveNetworkReady
+        ? "Modo restritivo declarado (on-premise/offline ou sem APIs externas obrigatórias)."
+        : "Nenhum indicativo de modo restritivo. Ambientes corporativos podem exigir OFFLINE_MODE=true ou DEPLOYMENT_MODE=on_premise.",
+      recommendation: restrictiveNetworkReady
         ? null
-        : "Para modo on-premise, configurar DEPLOYMENT_MODE=on_premise nas variáveis de ambiente.",
+        : "Definir DEPLOYMENT_MODE=on_premise ou OFFLINE_MODE=true para ambientes sem egress externo.",
+    });
+
+    // Verificação de postura de antivírus/EDR corporativo.
+    const avProfile = process.env.ANTIVIRUS_PROFILE ?? "";
+    const avExclusions = process.env.ANTIVIRUS_EXCLUSIONS_OK ?? "";
+    const antivirusReady = avProfile.length > 0 || avExclusions.toLowerCase() === "true";
+    checks.push({
+      id: "hrd-av-001",
+      name: "Postura de Antivírus/EDR Corporativo",
+      category: "antivirus",
+      description: "Valida se há perfil de AV/EDR declarado e exclusões operacionais necessárias para build/runtime.",
+      status: antivirusReady ? "ok" : "aviso",
+      detail: antivirusReady
+        ? `Perfil declarado (${avProfile || "custom"}) com compatibilidade operacional.`
+        : "Nenhum perfil de AV/EDR informado. Em ambientes com antivírus agressivo, builds e workers podem sofrer bloqueio.",
+      recommendation: antivirusReady
+        ? null
+        : "Definir ANTIVIRUS_PROFILE e validar exclusões de diretórios temporários/artefatos (ANTIVIRUS_EXCLUSIONS_OK=true).",
     });
 
     return checks;
-  }
-
-  /** Verifica conectividade básica de rede (sem resolver DNS, apenas TCP). */
-  private static _checkDns(host: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      const req = http.get(
-        { host, port: 80, path: "/", timeout: 3000 },
-        () => resolve(true),
-      );
-      req.on("timeout", () => { req.destroy(); resolve(false); });
-      req.on("error", () => resolve(false));
-    });
   }
 
   // ── 122: Homologação Enterprise ────────────────────────────────────────────
@@ -484,5 +500,14 @@ export class EnterpriseReadinessService {
       confidence: indicators.length > 0 ? "media" : "baixa",
       indicators,
     };
+  }
+}
+
+export function resetEnterpriseReadinessChecklist(): void {
+  for (const item of ONBOARDING_CHECKLIST) {
+    const baseline = ONBOARDING_CHECKLIST_BASELINE.find((b) => b.id === item.id);
+    if (!baseline) continue;
+    item.verified = baseline.verified;
+    item.verificationNote = baseline.verificationNote;
   }
 }

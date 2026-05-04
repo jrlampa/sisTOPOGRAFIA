@@ -64,6 +64,17 @@ describe('createMaintenanceWindow', () => {
       createdBy: 'admin',
     })).toThrow('startAt deve ser anterior a endAt');
   });
+
+  it('lança erro quando startAt/endAt não são informados', () => {
+    expect(() => createMaintenanceWindow({
+      name: 'Sem datas',
+      description: '',
+      affectedSystems: [],
+      startAt: '',
+      endAt: '',
+      createdBy: 'admin',
+    })).toThrow('startAt e endAt são obrigatórios');
+  });
 });
 
 describe('listMaintenanceWindows', () => {
@@ -130,6 +141,14 @@ describe('cancelMaintenanceWindow', () => {
   it('retorna false para id inexistente', () => {
     expect(cancelMaintenanceWindow('nope')).toBe(false);
   });
+
+  it('retorna false para janela concluída', () => {
+    const w = createMaintenanceWindow({ name: 'W2', description: '', affectedSystems: [], startAt: FUTURE_START, endAt: FUTURE_END, createdBy: 'a' });
+    const ref = getMaintenanceWindow(w.id);
+    expect(ref).not.toBeNull();
+    (ref as any).status = 'completed';
+    expect(cancelMaintenanceWindow(w.id)).toBe(false);
+  });
 });
 
 // ─── Requisições de Mudança ────────────────────────────────────────────────
@@ -160,6 +179,10 @@ describe('createChangeRequest', () => {
 
   it('lança erro para justificativa vazia', () => {
     expect(() => makeChange({ justification: '' })).toThrow('justification é obrigatório');
+  });
+
+  it('lança erro para requestedBy vazio', () => {
+    expect(() => makeChange({ requestedBy: '' })).toThrow('requestedBy é obrigatório');
   });
 
   it('lança erro para plano de rollback vazio', () => {
@@ -219,6 +242,11 @@ describe('approveChangeRequest', () => {
     approveChangeRequest(c.id, 'manager');
     expect(() => approveChangeRequest(c.id, 'manager')).toThrow('status');
   });
+
+  it('lança erro para approvedBy vazio', () => {
+    const c = makeChange();
+    expect(() => approveChangeRequest(c.id, '   ')).toThrow('approvedBy é obrigatório');
+  });
 });
 
 describe('rejectChangeRequest', () => {
@@ -234,6 +262,11 @@ describe('rejectChangeRequest', () => {
     rejectChangeRequest(c.id, 'manager');
     expect(() => rejectChangeRequest(c.id, 'manager')).toThrow('status');
   });
+
+  it('lança erro para rejectedBy vazio', () => {
+    const c = makeChange();
+    expect(() => rejectChangeRequest(c.id, '')).toThrow('rejectedBy é obrigatório');
+  });
 });
 
 describe('completeChangeRequest', () => {
@@ -247,5 +280,9 @@ describe('completeChangeRequest', () => {
   it('lança erro para requisição pendente', () => {
     const c = makeChange();
     expect(() => completeChangeRequest(c.id)).toThrow('aprovadas');
+  });
+
+  it('lança erro para requisição inexistente', () => {
+    expect(() => completeChangeRequest('nao-existe')).toThrow('não encontrada');
   });
 });

@@ -36,6 +36,7 @@ function isAuditRequestAuthorized(req: Request): boolean {
 const ExportQuerySchema = z.object({
   since: z.string().datetime({ offset: true }).optional(),
   until: z.string().datetime({ offset: true }).optional(),
+  before_event_time: z.string().datetime({ offset: true }).optional(),
   tenant_id: z.string().uuid().optional(),
   table_name: z.string().max(64).optional(),
   action: z.enum(["INSERT", "UPDATE", "DELETE"]).optional(),
@@ -132,7 +133,16 @@ router.get("/export", async (req: Request, res: Response) => {
     });
   }
 
-  const { since, until, tenant_id, table_name, action, limit, format } =
+  const {
+    since,
+    until,
+    before_event_time,
+    tenant_id,
+    table_name,
+    action,
+    limit,
+    format,
+  } =
     parsed.data;
 
   const sql = getDb();
@@ -157,6 +167,10 @@ router.get("/export", async (req: Request, res: Response) => {
       conditions.push(`event_time <= $${paramIdx++}`);
       params.push(until);
     }
+    if (before_event_time) {
+      conditions.push(`event_time < $${paramIdx++}`);
+      params.push(before_event_time);
+    }
     if (tenant_id) {
       conditions.push(`tenant_id = $${paramIdx++}`);
       params.push(tenant_id);
@@ -175,7 +189,25 @@ router.get("/export", async (req: Request, res: Response) => {
     params.push(limit);
 
     const rows = (await sql.unsafe(
-      `SELECT * FROM public.v_audit_siem_export
+      `SELECT
+         event_id,
+         event_time,
+         resource_type,
+         resource_id,
+         event_action,
+         actor_user_id,
+         actor_ip,
+         actor_user_agent,
+         actor_device,
+         actor_geo_country,
+         actor_geo_region,
+         actor_session_id,
+         tenant_id,
+         tenant_name,
+         data_before,
+         data_after,
+         cef_message
+       FROM public.v_audit_siem_export
        ${where}
        ORDER BY event_time DESC
        LIMIT $${paramIdx}`,
@@ -185,7 +217,14 @@ router.get("/export", async (req: Request, res: Response) => {
     logger.info("[AuditRoutes] SIEM export", {
       format,
       rowCount: rows.length,
-      filters: { since, until, tenant_id, table_name, action },
+      filters: {
+        since,
+        until,
+        before_event_time,
+        tenant_id,
+        table_name,
+        action,
+      },
     });
 
     if (format === "ndjson") {

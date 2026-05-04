@@ -349,3 +349,7 @@ export class ServiceDeskService {
     };
   }
 }
+
+export function clearServiceDeskState(): void {
+  tickets.length = 0;
+}

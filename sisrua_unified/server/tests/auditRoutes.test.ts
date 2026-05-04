@@ -190,11 +190,12 @@ describe("GET /export — happy paths", () => {
     expect(res.body.events).toEqual([]);
   });
 
-  it("applies filters: since, until, tenant_id, table_name, action", async () => {
+  it("applies filters: since, until, before_event_time, tenant_id, table_name, action", async () => {
     mockUnsafe.mockResolvedValue([]);
     const res = await request(app)
       .get(
         "/export?since=2026-01-01T00:00:00.000%2B00:00&until=2026-12-31T23:59:59.000%2B00:00" +
+          "&before_event_time=2026-12-31T23:00:00.000%2B00:00" +
           "&tenant_id=11111111-1111-4111-8111-111111111111" +
           "&table_name=users&action=INSERT&limit=50",
       )
@@ -204,6 +205,7 @@ describe("GET /export — happy paths", () => {
     const sqlCall = mockUnsafe.mock.calls[0];
     const sqlStr = sqlCall[0] as string;
     expect(sqlStr).toContain("WHERE");
+    expect(sqlStr).toContain("event_time <");
   });
 
   it("returns 500 on DB error", async () => {
