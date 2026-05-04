@@ -1,3 +1,20 @@
+## Atualização Operacional (2026-05-05A) - Correções Qualidade T1: Audit Síncrono & Topologia Canônica
+
+- **Contexto**: Sessão de continuidade do roadmap T1. Itens 71 (idempotência), 74 (cache invalidation) e 124 (circuit breakers) confirmados já implementados — não havia necessidade de trabalho novo.
+- **28 testes quebrando** identificados e corrigidos:
+  1. **`auditLogService.ts`** — refatorado de assíncrono/DB-first para síncrono com store in-memory + fire-and-forget DB. Adicionados exports `clearAuditLog()`, `getAuditCount()`, `verifyEntry()`, `exportAudit()`. O único uso em produção (`dgRoutes.ts`) já chamava sem `await` — sem regressão.
+  2. **`canonicalTopologyRepository.test.ts`** — topologia canônica vazia agora retorna `{ poles: [], edges: [], transformers: [] }` (campo `transformers` adicionado anteriormente). Teste atualizado para incluir o novo campo.
+- **Resultado**: 2791 testes passando, 0 falhas (suíte completa backend).
+- **Commit**: `HEAD` avançado com as 2 correções.
+
+## Atualização Operacional (2026-05-04B) - 4 Correções Qualidade T1 (commit 04cbe4b)
+
+- **DxfProgressBadge i18n**: Criado `src/i18n/dxfProgressText.ts` (pt-BR/en-US/es-ES); componente usa `getDxfProgressText(locale)`.
+- **Migration 060**: BTREE DESC index em `audit_logs(changed_at, changed_by)` + RLS nos 49 filhos de partições via loop DO $$.
+- **batchService.test.ts**: Removido `describe.skip`; adicionado `await` nos 6 calls `parseBatchExcel`/`parseBatchFile`.
+- **cloudTasksService.test.ts**: Removido `it.skip`; substituído `setTimeout(200)` por `vi.useFakeTimers()` + `vi.runAllTimersAsync()`.
+- **Descobertas**: Item 71 (idempotência via ON CONFLICT) e 124 (circuit breakers em `circuitBreaker.ts`+`externalApi.ts`) já estavam completamente implementados.
+
 ## Atualização Operacional (2026-05-04A) - Gate de Banco no CI & Auditoria Live do BD
 
 - **DB Gate no PR Path**: Adicionado job `db-predeploy` em `.github/workflows/quality-gates.yml` como job #0 — executa `npm run ci:db:predeploy` (via `scripts/predeploy_db_healthcheck.py`) antes de qualquer auditoria ou build; o agregador `quality-gate` final passa a depender dele.

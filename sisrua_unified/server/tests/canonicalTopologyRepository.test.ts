@@ -270,7 +270,7 @@ describe("PostgresCanonicalTopologyRepository", () => {
       expect(result.source).toBe("canonical");
       expect(result.poleCount).toBe(0);
       expect(result.edgeCount).toBe(0);
-      expect(result.topology).toEqual({ poles: [], edges: [] });
+      expect(result.topology).toEqual({ poles: [], edges: [], transformers: [] });
     });
 
     it("mescla postes BT e MT do legado pelo mesmo id", async () => {

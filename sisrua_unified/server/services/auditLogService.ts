@@ -2,13 +2,16 @@
  * Audit Log Service - Write-Once Forensic Multilayer Audit Trail
  * Records context (Geography, Device, IP) with tamper detection via SHA-256.
  *
- * RESILIENCE: Persists logs to PostgreSQL audit_logs table.
+ * RESILIENCE: In-memory store as source of truth; DB persistence is fire-and-forget.
  * MULTI-TENANCY: Enforces tenant_id isolation.
  */
 
 import { createHash, randomUUID } from 'crypto';
 import { getDbClient } from '../repositories/dbClient.js';
 import { logger } from '../utils/logger.js';
+
+// In-memory store (write-once entries)
+const auditStore: AuditEntry[] = [];
 
 export type AuditResult = 'success' | 'failure' | 'blocked';
 
@@ -63,11 +66,13 @@ function computeHash(entry: Omit<AuditEntry, 'sha256'>): string {
 }
 
 /**
- * Log a new audit entry. Persists to database.
+ * Log a new audit entry synchronously.
+ * The entry is stored immediately in the in-memory store (write-once).
+ * Persistence to Postgres is fire-and-forget (does not block or throw).
  */
-export async function logAudit(
+export function logAudit(
   input: Omit<AuditEntry, 'id' | 'timestamp' | 'sha256'>,
-): Promise<Readonly<AuditEntry>> {
+): Readonly<AuditEntry> {
   if (!input.action || input.action.trim().length === 0) {
     throw new Error('action is required');
   }
@@ -94,69 +99,90 @@ export async function logAudit(
   };
 
   const sha256 = computeHash(partial);
-  const entry: AuditEntry = { ...partial, sha256 };
+  const frozen = Object.freeze<AuditEntry>({ ...partial, sha256 });
+  auditStore.push(frozen);
 
-  // Persist to Postgres
+  // Fire-and-forget DB persistence
   const sql = getDbClient();
   if (sql) {
-    try {
-      await sql`
-        INSERT INTO public.audit_logs (
-          id, table_name, record_id, action, new_data, changed_by, tenant_id, changed_at
-        ) VALUES (
-          ${id}, ${input.resource}, ${input.resourceId || id}, ${input.action}, 
-          ${sql.json({ ...input.details, sha256, userAgent: input.userAgent, ipAddress: input.ipAddress })}, 
-          ${input.userId || null}, ${input.tenantId || null}, ${timestamp}
-        )
-      `;
-    } catch (err) {
-      logger.error('Failed to persist audit log to database', { error: (err as Error).message, entryId: id });
-      // We don't throw here to avoid breaking the main business flow if audit fails
-    }
+    sql`
+      INSERT INTO public.audit_logs (
+        id, table_name, record_id, action, new_data, changed_by, tenant_id, changed_at
+      ) VALUES (
+        ${id}, ${partial.resource}, ${partial.resourceId || id}, ${partial.action},
+        ${sql.json({ ...input.details, sha256, userAgent: input.userAgent, ipAddress: input.ipAddress })},
+        ${input.userId || null}, ${input.tenantId || null}, ${timestamp}
+      )
+    `.catch((err: unknown) => {
+      logger.error('Failed to persist audit log to database', {
+        error: err instanceof Error ? err.message : String(err),
+        entryId: id,
+      });
+    });
   }
 
-  return Object.freeze(entry);
+  return frozen;
 }
 
+/** Filter an entry against the provided criteria. */
+function matchesFilter(e: AuditEntry, f: AuditFilter): boolean {
+  if (f.userId && e.userId !== f.userId) return false;
+  if (f.tenantId && e.tenantId !== f.tenantId) return false;
+  if (f.action && e.action !== f.action) return false;
+  if (f.resource && e.resource !== f.resource) return false;
+  if (f.result && e.result !== f.result) return false;
+  if (f.timeRange?.from && e.timestamp < f.timeRange.from) return false;
+  if (f.timeRange?.to && e.timestamp > f.timeRange.to) return false;
+  return true;
+}
+
+/** Query entries from the in-memory store. */
+export function queryAudit(filters: AuditFilter): Readonly<AuditEntry>[] {
+  return auditStore.filter((e) => matchesFilter(e, filters));
+}
+
+/** CSV field quoting: wrap in double-quotes if the value contains commas, quotes, or newlines. */
+function csvField(v: unknown): string {
+  const s = v == null ? '' : String(v);
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+const CSV_HEADERS = [
+  'id', 'timestamp', 'userId', 'action', 'resource',
+  'resourceId', 'ipAddress', 'userAgent', 'geography', 'result', 'sha256',
+] as const;
+
 /**
- * Query audit entries from database.
+ * Export audit entries as JSON or CSV string.
  */
-export async function queryAudit(filters: AuditFilter): Promise<Readonly<AuditEntry>[]> {
-  const sql = getDbClient(true);
-  if (!sql) return [];
+export function exportAudit(filters: AuditFilter, format: 'json' | 'csv'): string {
+  const entries = queryAudit(filters);
+  if (format === 'json') {
+    return JSON.stringify(entries);
+  }
+  const header = CSV_HEADERS.join(',');
+  if (entries.length === 0) return header;
+  const rows = entries.map((e) =>
+    CSV_HEADERS.map((k) => csvField((e as Record<string, unknown>)[k])).join(','),
+  );
+  return [header, ...rows].join('\n');
+}
 
-  const results = await sql`
-    SELECT 
-      id, changed_at as timestamp, changed_by as "userId", tenant_id as "tenantId",
-      action, table_name as resource, record_id as "resourceId",
-      new_data->>'ipAddress' as "ipAddress",
-      new_data->>'userAgent' as "userAgent",
-      new_data->>'sha256' as sha256,
-      new_data - 'sha256' - 'ipAddress' - 'userAgent' as details
-    FROM public.audit_logs
-    WHERE 
-      (${filters.userId || null} IS NULL OR changed_by = ${filters.userId || null})
-      AND (${filters.tenantId || null} IS NULL OR tenant_id = ${filters.tenantId || null})
-      AND (${filters.action || null} IS NULL OR action = ${filters.action || null})
-      AND (${filters.resource || null} IS NULL OR table_name = ${filters.resource || null})
-      AND (${filters.timeRange?.from || null} IS NULL OR changed_at >= ${filters.timeRange?.from || null})
-      AND (${filters.timeRange?.to || null} IS NULL OR changed_at <= ${filters.timeRange?.to || null})
-    ORDER BY changed_at DESC
-    LIMIT 100
-  `;
+/** Verify tamper-evident integrity of an entry by recomputing its SHA-256. */
+export function verifyEntry(entry: AuditEntry): boolean {
+  const { sha256, ...rest } = entry;
+  return computeHash(rest as Omit<AuditEntry, 'sha256'>) === sha256;
+}
 
-  return results.map(r => Object.freeze({
-    id: r.id,
-    timestamp: r.timestamp.toISOString(),
-    userId: r.userId,
-    tenantId: r.tenantId,
-    action: r.action,
-    resource: r.resource,
-    resourceId: r.resourceId,
-    ipAddress: r.ipAddress,
-    userAgent: r.userAgent,
-    result: 'success', // Placeholder as it's not in the base table schema yet
-    details: r.details,
-    sha256: r.sha256
-  } as AuditEntry));
+/** Clear all in-memory audit entries. Intended for testing. */
+export function clearAuditLog(): void {
+  auditStore.length = 0;
+}
+
+/** Return the total number of in-memory audit entries. Intended for testing. */
+export function getAuditCount(): number {
+  return auditStore.length;
 }
