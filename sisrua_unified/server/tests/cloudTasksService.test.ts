@@ -85,7 +85,8 @@ describe('cloudTasksService (Postgres queue)', () => {
     expect(unsafeMock).toHaveBeenCalledTimes(2);
   });
 
-  it.skip('uses injected DXF engine in local fallback mode', async () => {
+  it('uses injected DXF engine in local fallback mode', async () => {
+    vi.useFakeTimers();
     process.env = {
       ...originalEnv,
       NODE_ENV: 'test',
@@ -117,7 +118,8 @@ describe('cloudTasksService (Postgres queue)', () => {
       downloadUrl: 'https://example.com/downloads/file.dxf'
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await vi.runAllTimersAsync();
+    vi.useRealTimers();
 
     expect(fakeGenerate).toHaveBeenCalledWith(expect.objectContaining({
       lat: 1,

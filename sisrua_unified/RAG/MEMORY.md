@@ -14,70 +14,77 @@
 - **Lição técnica**: ao executar múltiplas queries diagnósticas numa mesma conexão PostgreSQL, usar `SAVEPOINT` explícito por check para evitar cascata de erros por transação abortada.
 
 ## Atualização Operacional (2026-05-03F) - Internacionalização Técnica & SOC2 Readiness
+
 - **Standards Engine**: Implementado motor de padrões técnicos (`server/standards/`) para desacoplar constantes de engenharia (voltagem, bitolas, coeficientes) do código principal.
-    - Criado `br.ts` com os padrões Light/ANEEL.
-    - Refatorados `btDerivedConstants.ts`, `cqtEngine.ts` e `btRadialCalculationService.ts` para consumir o motor de standards.
-- **Preparação SOC2 / ISO 27001**: 
-    - Atualizadas as **Regras Não Negociáveis** (`docs/RULES_ENFORCEMENT.md`) para incluir obrigatoriedade de trilhas de auditoria (Audit Trails), Criptografia (TLS 1.3/AES-256) e Princípio do Mínimo Privilégio (PoLP).
-    - Preparada infraestrutura de governança para certificações internacionais.
+  - Criado `br.ts` com os padrões Light/ANEEL.
+  - Refatorados `btDerivedConstants.ts`, `cqtEngine.ts` e `btRadialCalculationService.ts` para consumir o motor de standards.
+- **Preparação SOC2 / ISO 27001**:
+  - Atualizadas as **Regras Não Negociáveis** (`docs/RULES_ENFORCEMENT.md`) para incluir obrigatoriedade de trilhas de auditoria (Audit Trails), Criptografia (TLS 1.3/AES-256) e Princípio do Mínimo Privilégio (PoLP).
+  - Preparada infraestrutura de governança para certificações internacionais.
 - **Escalabilidade Global**: Sistema agora está pronto para suportar novos países (ex: `us.ts`, `eu.ts`) apenas via configuração, mantendo o "Smart Backend" independente de normas locais.
 
 ## Atualização Operacional (2026-05-03E) - Auditoria FinOps e Gestão de Custos
+
 - **FinOps**: Realizada auditoria de custos pós-deploy com foco na regra "Zero custo a todo custo!".
-    - **IA**: Confirmada economia de 100% via execução local do Ollama (Llama 3.2).
-    - **Banco de Dados**: Validada conformidade com o Free Tier do Supabase através de políticas de expiração de jobs (TTL 1h).
-    - **Infraestrutura**: Projetada necessidade de 16GB RAM / 8 vCPUs para operação estável sem custos variáveis de nuvem.
-    - **Relatório**: Criado `finops_report.md` com o detalhamento de infraestrutura e riscos.
+  - **IA**: Confirmada economia de 100% via execução local do Ollama (Llama 3.2).
+  - **Banco de Dados**: Validada conformidade com o Free Tier do Supabase através de políticas de expiração de jobs (TTL 1h).
+  - **Infraestrutura**: Projetada necessidade de 16GB RAM / 8 vCPUs para operação estável sem custos variáveis de nuvem.
+  - **Relatório**: Criado `finops_report.md` com o detalhamento de infraestrutura e riscos.
 
 ## Atualização Operacional (2026-05-03D) - Hardening de Segurança & Pentest Automatizado
+
 - **Segurança (Red Team)**: Implementada suíte de testes `server/tests/advancedAttacks.test.ts` cobrindo vetores críticos:
-    - **IDOR (Insecure Direct Object Reference)**: Proteção em jobs e dossiês DXF, impedindo acesso cross-tenant via enumeração de IDs.
-    - **Broken Access Control (BAC)**: Isolamento rigoroso de rotas administrativas e de auditoria; proteção global em `/api/multi-tenant-isolation/*`.
-    - **Injeção (NoSQL)**: Validação contra poluição de objetos em campos numéricos/geográficos.
-    - **HPP & Mass Assignment**: Sanitização de parâmetros duplicados e bloqueio de sobre-escrita de campos sensíveis (audit_metadata, role, tenantId).
+  - **IDOR (Insecure Direct Object Reference)**: Proteção em jobs e dossiês DXF, impedindo acesso cross-tenant via enumeração de IDs.
+  - **Broken Access Control (BAC)**: Isolamento rigoroso de rotas administrativas e de auditoria; proteção global em `/api/multi-tenant-isolation/*`.
+  - **Injeção (NoSQL)**: Validação contra poluição de objetos em campos numéricos/geográficos.
+  - **HPP & Mass Assignment**: Sanitização de parâmetros duplicados e bloqueio de sobre-escrita de campos sensíveis (audit_metadata, role, tenantId).
 - **Multi-Tenant Isolation**: Hardening da criação de jobs; agora `tenantId` é obrigatório em `createDxfTask` e `createJob`, garantindo rastreabilidade desde a origem.
 - **Monitoramento de Depreciação**: Integrada detecção de `DeprecationWarning` (DEP0169 - url.parse) na suíte de testes para garantir conformidade contínua com Node.js modern.
 - **Status de Governança**: 100% de conformidade nos testes de segurança unificados no pipeline.
 
 ## Atualização Operacional (2026-05-03C) - Quality Gates Unificados
+
 - **CI/CD**: Criado `.github/workflows/quality-gates.yml` que unifica:
-    - Auditoria de Regras Não Negociáveis.
-    - Testes Unitários (Frontend/Backend) com cobertura rigorosa.
-    - Testes E2E Smoke (Playwright).
-    - Validação de Checkpoints (D+5/D+7) e Checklist Normativo.
-    - Gate de Paridade CQT (P0).
+  - Auditoria de Regras Não Negociáveis.
+  - Testes Unitários (Frontend/Backend) com cobertura rigorosa.
+  - Testes E2E Smoke (Playwright).
+  - Validação de Checkpoints (D+5/D+7) e Checklist Normativo.
+  - Gate de Paridade CQT (P0).
 - **Hardening**: Removido `non-negotiables-audit.yml` legado em favor do gate unificado.
 - **Governança**: O job agregador `✅ FINAL QUALITY GATE` agora é a única verdade para permitir merges.
 
 ## Atualização Operacional (2026-05-03B) - Hardening Final e Governança (Fase 8)
+
 - **Modularização de App.tsx (Concluída)**: Refatoração final do `App.tsx` reduzindo o arquivo de ~1100 para **686 linhas**.
-    - Todas as lógicas de orquestração foram movidas para `AppWorkspace.tsx` e hooks especializados.
-    - Cumpre o *SOFT LIMIT* de 750 linhas (IDEAL: 500, HARD: 1000).
+  - Todas as lógicas de orquestração foram movidas para `AppWorkspace.tsx` e hooks especializados.
+  - Cumpre o _SOFT LIMIT_ de 750 linhas (IDEAL: 500, HARD: 1000).
 - **Estabilização de Suíte de Testes**:
-    - **Fix `pythonBridge.test.ts`**: Corrigido mock de `spawn` para suportar as múltiplas tentativas de comando Python (probe) sem gerar `undefined`.
-    - **Fix `jobStatusService.test.ts`**: Introduzido `resetServiceState()` para garantir isolamento entre testes de persistência Postgres e memória.
-    - **Fix `dgRoutes.test.ts`**: Mockado `dgRunRepository` para isolar rotas de efeitos colaterais de banco de dados durante testes de integração.
+  - **Fix `pythonBridge.test.ts`**: Corrigido mock de `spawn` para suportar as múltiplas tentativas de comando Python (probe) sem gerar `undefined`.
+  - **Fix `jobStatusService.test.ts`**: Introduzido `resetServiceState()` para garantir isolamento entre testes de persistência Postgres e memória.
+  - **Fix `dgRoutes.test.ts`**: Mockado `dgRunRepository` para isolar rotas de efeitos colaterais de banco de dados durante testes de integração.
 - **Auditoria de Governança**: Executado `scripts/non-negotiables-audit.cjs` com status **VERDE** para toda a base de código (frontend e backend).
 - **Cobertura de Código**: Mantida conformidade com a regra de cobertura mínima >=80% para os 20% mais críticos do código.
 
 ## Atualização Operacional (2026-05-03A) - Experiência Imersiva & Edição em Massa (Fase 7)
+
 - **Mapa de Calor de Performance (CQT Heatmap)**: ✅ Implementado sistema de visualização cromática dinâmica para vãos (edges).
-    - Verde (0-3%): Ideal | Amarelo (3-5%): Aceitável | Laranja (5-7%): Limite | Vermelho (>7%): Crítico.
-    - Adicionada `CqtHeatmapLegend.tsx` flutuante e persistente com *backdrop-blur* e animações de entrada.
+  - Verde (0-3%): Ideal | Amarelo (3-5%): Aceitável | Laranja (5-7%): Limite | Vermelho (>7%): Crítico.
+  - Adicionada `CqtHeatmapLegend.tsx` flutuante e persistente com _backdrop-blur_ e animações de entrada.
 - **Seleção por Laço (Lasso/Polygon Select)**: ✅ Implementada detecção geométrica em tempo real para seleção de múltiplos ativos.
-    - O fechamento de um polígono no mapa (Modo Seleção Polígono) dispara automaticamente a seleção de todos os postes contidos (`isPointInPolygon`).
+  - O fechamento de um polígono no mapa (Modo Seleção Polígono) dispara automaticamente a seleção de todos os postes contidos (`isPointInPolygon`).
 - **Edição em Massa (Bulk Edit)**: ✅ Criado o componente `SidebarBulkEditSection.tsx` que surge dinamicamente no Sidebar ao selecionar >1 ativo.
-    - Permite alteração simultânea de flags (Existente/Novo/Remover/Substituir) para todos os itens selecionados, eliminando trabalho repetitivo.
-- **Segurança & Pentest (Fase 8 - Hardening)**: 
-    - Criada suíte `securityVulnerability.test.ts` (Unit/Int) e `security.spec.ts` (E2E).
-    - **Correção de Path Traversal**: Proteção no download de DXF via `path.resolve` e validação de caracteres de escape.
-    - **DoS Protection**: Implementado check de `Content-Length` proativo para evitar OOM em payloads gigantes.
-    - **Error Handling**: Handler global agora preserva códigos 413 (Payload Too Large) e evita vazamento de stack em produção.
-    - **SQLi/XSS**: Validada eficácia do middleware `detectSuspiciousPatterns`.
+  - Permite alteração simultânea de flags (Existente/Novo/Remover/Substituir) para todos os itens selecionados, eliminando trabalho repetitivo.
+- **Segurança & Pentest (Fase 8 - Hardening)**:
+  - Criada suíte `securityVulnerability.test.ts` (Unit/Int) e `security.spec.ts` (E2E).
+  - **Correção de Path Traversal**: Proteção no download de DXF via `path.resolve` e validação de caracteres de escape.
+  - **DoS Protection**: Implementado check de `Content-Length` proativo para evitar OOM em payloads gigantes.
+  - **Error Handling**: Handler global agora preserva códigos 413 (Payload Too Large) e evita vazamento de stack em produção.
+  - **SQLi/XSS**: Validada eficácia do middleware `detectSuspiciousPatterns`.
 - **Governança**: Auditoria `non-negotiables-audit.cjs` validada com sucesso (VERDE).
 
 ## Atualização Operacional (2026-05-02B) - Hardening de Arquitetura (Fase 6)
-- **Desmonolização de App.tsx**: Redução drástica do arquivo principal de ~1100 para **639 linhas**, atingindo o *SOFT LIMIT* de 750 linhas e cumprindo a meta de governança CI/CD.
+
+- **Desmonolização de App.tsx**: Redução drástica do arquivo principal de ~1100 para **639 linhas**, atingindo o _SOFT LIMIT_ de 750 linhas e cumprindo a meta de governança CI/CD.
 - **Ecossistema de Hooks Especializados**:
   - `useAppEngineeringWorkflows.ts`: Centralização das lógicas de Design Generativo e Análise Telescópica.
   - `useAppElectricalAudit.ts`: Encapsulamento completo do estado e ações de auditoria elétrica.
@@ -88,22 +95,25 @@
 - **Status de Governança**: Auditores automáticos (`non-negotiables-audit.cjs`) retornando status VERDE para 100% da base de código.
 
 ## Atualização Operacional (2026-05-02A) - Hardening Fase 5 (UX & Dashboards)
-- **UX Imersiva de Engenharia**: Implementado o **Modo X-Ray (Focus Mode 2.0)** com atalho (`X` ou `Shift`) para esmaecimento de ativos saudáveis e *Neon Glow* pulsante em violações críticas.
+
+- **UX Imersiva de Engenharia**: Implementado o **Modo X-Ray (Focus Mode 2.0)** com atalho (`X` ou `Shift`) para esmaecimento de ativos saudáveis e _Neon Glow_ pulsante em violações críticas.
 - **Guias de Precisão (Visual Snapping)**: Adicionado sistema de linhas guias pontilhadas (Cyan) que aparecem automaticamente ao alinhar postes ortogonalmente durante o arraste.
-- **Ghost Edits & BIM Pop-ins**: Implementado balão flutuante de "Delta CQT" em tempo real durante o arraste e cartões de metadados BIM com *Glassmorphism* (backdrop-blur) nos Tooltips/Popups.
+- **Ghost Edits & BIM Pop-ins**: Implementado balão flutuante de "Delta CQT" em tempo real durante o arraste e cartões de metadados BIM com _Glassmorphism_ (backdrop-blur) nos Tooltips/Popups.
 - **Dashboards de Saúde (Mini-Charts)**: Implementado sistema de visualização instantânea no `BtTopologyPanelStats.tsx` com Trafo Donut (utilização de carga) e Histogram de Vãos (distribuição mecânica) via SVG.
 - **Internacionalização Industrial**: Consolidação total de termos industriais em PT/EN/ES, eliminando 100% das strings hardcoded no `MapSelectorPolesLayer` and `MapSelector`.
 - **Estabilidade & I18n**: Typecheck 100% OK.
 
 ## Atualização Operacional (2026-05-01C) - Telemetria e Macros DG (UX-20)
+
 - **Análise de Fricção DG**: Adicionado tracking de telemetria `trackDgParameterDivergence` no envio do `DgWizardModal`. Monitora atrito quando o projetista altera os parâmetros recomendados (clientes por poste, área, limitadores de kVA).
 - **Rastreio de Undo**: Atualizado o `updateBtTopology` com passagem dinâmica de `actionLabel` no `App.tsx`. A telemetria de Rework agora registra com exatidão quando um usuário reverte (Ctrl+Z) a aplicação do Design Generativo.
 - **Aceleração de Comandos (Macros)**: O Command Palette (`Ctrl+K`) foi expandido com buscas semânticas (já operantes para "Ir para poste X") e inclusão de "Macros de Projeto" rápidas (Limpar Topologia BT, Exportar Histórico JSON/CSV).
-- **Internacionalização (Item 26)**: As macros e ações do Command Palette no `App.tsx` foram totalmente extraídas e traduzidas para PT/EN/ES através do novo arquivo `src/i18n/commandPaletteText.ts`, mantendo a precisão dos termos técnicos (ex: *Span* para Vão, *Generative Design*, etc.).
+- **Internacionalização (Item 26)**: As macros e ações do Command Palette no `App.tsx` foram totalmente extraídas e traduzidas para PT/EN/ES através do novo arquivo `src/i18n/commandPaletteText.ts`, mantendo a precisão dos termos técnicos (ex: _Span_ para Vão, _Generative Design_, etc.).
 - **Experimentos A/B e Acessibilidade Plena**: Criado o hook `useABTest.ts` integrado ao PostHog para controlar via feature flags o novo menu mobile e o botão explícito de histórico no `HistoryControls.tsx`. Adicionadas tooltips acessíveis persistentes (via `focus-visible`) nos ícones de ação do Header.
 - **Métrica de Engajamento**: Instrumentado o evento de `first_useful_action` no `analytics.ts` para capturar e calcular em milissegundos o tempo decorrido entre a inicialização da aplicação e a primeira ação de valor (ex: abrir ou salvar projeto) realizada pelo usuário no AppHeader.
 
 ## Atualização Operacional (2026-05-01B) - UX Premium & Acessibilidade (Header)
+
 - **Descoberta de Histórico**: Histórico detalhado agora visível de forma explícita com rótulo "Histórico Recente" e ícone no `HistoryControls.tsx`, abandonando a dependência exclusiva do right-click (que se torna atalho avançado).
 - **Consistência de Microcopy**: Validado que `AutoSaveIndicator.tsx` já consome `appHeaderText.ts` (100% i18n sem hardcoded texts).
 - **Acessibilidade e Foco**: Implementado foco persistente com `focus-visible:ring-cyan-500/60` no Header. Adicionados tooltips nativos/acessíveis via classe `group` com hover e `group-focus-visible`.
@@ -112,10 +122,11 @@
 - **Métricas de UX**: Adicionado track de métricas (`trackRework`) aos botões de desfazer/refazer para base de telemetria analítica de atrito.
 
 ## Atualização Operacional (2026-05-01A) - Premium Visual Evolution & UX Hardening
-  - **Glassmorphism Premium**: Implementado novo sistema de tokens em `src/theme/tokens.ts` e classes utilitárias em `src/index.css` (`.glass-premium`, `.glass-shine`, `.glass-edge-light`).
-  - **High-Fidelity 2.5D Viewport**: O `MapSelector.tsx` agora conta com efeitos de auto-dimming em modo edição, glow ativo e sombras dinâmicas para postes, melhorando a percepção de profundidade.
-  - **Premium Header & Sidebar**: `AppHeader` e `SidebarWorkspace` atualizados com camadas de vidro refinadas e micro-interações de brilho (shine).
-  - **Atmosphere Enhancement**: O `AppShellLayout` foi reforçado com orbes de fundo mais sofisticados e animações de pulso para profundidade visual.
+
+- **Glassmorphism Premium**: Implementado novo sistema de tokens em `src/theme/tokens.ts` e classes utilitárias em `src/index.css` (`.glass-premium`, `.glass-shine`, `.glass-edge-light`).
+- **High-Fidelity 2.5D Viewport**: O `MapSelector.tsx` agora conta com efeitos de auto-dimming em modo edição, glow ativo e sombras dinâmicas para postes, melhorando a percepção de profundidade.
+- **Premium Header & Sidebar**: `AppHeader` e `SidebarWorkspace` atualizados com camadas de vidro refinadas e micro-interações de brilho (shine).
+- **Atmosphere Enhancement**: O `AppShellLayout` foi reforçado com orbes de fundo mais sofisticados e animações de pulso para profundidade visual.
 - **Correções e Estabilização Frontend**:
   - Corrigido erro de shorthand properties em `App.tsx` (missing destructuring de crud handlers).
   - Resolvido erro de redeclaração de `ZapIcon` em `SidebarWorkspace.tsx`.
@@ -125,6 +136,7 @@
 - **Status de Qualidade**: Typecheck frontend aprovado 100%.
 
 ## Atualização Operacional (2026-04-30A) - Docker Hardening & Infrastructure
+
 - **Segurança e Infraestrutura (Concluída)**:
   - **Secrets Management**: Implementado sistema de segredos via arquivos em `./secrets/` (ignorados pelo Git) e montados como volumes, eliminando variáveis em texto puro.
   - **Hardening Docker**:
@@ -140,6 +152,7 @@
   - **Saúde do Ambiente**: Todos os containers (`sisrua-app`, `sisrua-redis`, `sisrua-ollama`) operando em estado `healthy`.
 
 ## Próximos Passos (Pipeline)
+
 - **Ergonomia e Acessibilidade (Concluída)**:
   - Touch Targets: Botões críticos expandidos para 44x44px (padrão WCAG).
   - Sunlight Mode: Implementado tema de Alto Contraste para uso em campo sob sol forte.
@@ -168,41 +181,41 @@
   - Validado que a integração usa o padrão Repository com filtragem manual de `tenant_id`.
   - Risco identificado: RLS do banco não é disparado automaticamente via Node.js sem `SET app.tenant_id`. Mitigado via hardening nos repositórios.
 
-1: 
+1:
 2: - **Saneamento de DXF Tasks (Concluída)**:
-3:   - **DbMaintenanceService**: Implementado método `sanitizeFailedDxfTasks` portado de Python para TypeScript. O serviço agora classifica tarefas falhas e executa ações corretivas automáticas (`cancel` para inputs inválidos, `requeue` para falhas de runtime).
-4:   - **Maintenance API**: Criado endpoint `POST /api/maintenance/sanitize-dxf` (protegido por AdminToken) para execução manual de limpeza e reprocessamento.
-5:   - **Modularidade**: Lógica centralizada no backend ("Smart Backend"), reduzindo a dependência de scripts externos.
+3: - **DbMaintenanceService**: Implementado método `sanitizeFailedDxfTasks` portado de Python para TypeScript. O serviço agora classifica tarefas falhas e executa ações corretivas automáticas (`cancel` para inputs inválidos, `requeue` para falhas de runtime).
+4: - **Maintenance API**: Criado endpoint `POST /api/maintenance/sanitize-dxf` (protegido por AdminToken) para execução manual de limpeza e reprocessamento.
+5: - **Modularidade**: Lógica centralizada no backend ("Smart Backend"), reduzindo a dependência de scripts externos.
 6: - **Arquivos Criados/Modificados**:
-7:   - `server/services/dbMaintenanceService.ts` (lógica de saneamento)
-8:   - `server/routes/maintenanceRoutes.ts` (novos endpoints)
-9:   - `server/app.ts` (registro de rotas)
-10: 
+7: - `server/services/dbMaintenanceService.ts` (lógica de saneamento)
+8: - `server/routes/maintenanceRoutes.ts` (novos endpoints)
+9: - `server/app.ts` (registro de rotas)
+10:
 11: ## Atualização Operacional (2026-04-29C) - Docker Infrastructure Upgrade
-1: 
+1:
 2: - **Docker Hub Refresh (Concluída)**:
-3:   - **Ollama Upgrade**: Versão elevada de `0.3.0` para **`0.22.0`** (última estável) para suporte a novos modelos e correções de segurança.
-4:   - **Redis Upgrade**: Versão elevada de `7.2.4-alpine` para **`8.6-alpine`** (GA estável) para melhor performance e novos tipos de dados.
-5:   - **HMR Stabilization**: Refinado `docker-compose.yml` com flags de polling para garantir estabilidade do HMR no Vite sob Windows/WSL2.
-6:   - **Security Hardening**: Mantida arquitetura de `appuser` (non-root) e `gosu` para drop de privilégios.
+3: - **Ollama Upgrade**: Versão elevada de `0.3.0` para **`0.22.0`** (última estável) para suporte a novos modelos e correções de segurança.
+4: - **Redis Upgrade**: Versão elevada de `7.2.4-alpine` para **`8.6-alpine`** (GA estável) para melhor performance e novos tipos de dados.
+5: - **HMR Stabilization**: Refinado `docker-compose.yml` com flags de polling para garantir estabilidade do HMR no Vite sob Windows/WSL2.
+6: - **Security Hardening**: Mantida arquitetura de `appuser` (non-root) e `gosu` para drop de privilégios.
 7: - **Arquivos Modificados**:
-8:   - `docker-compose.yml` (version bumps)
-9:   - `RAG/IMPLEMENTATION_PLAN_DOCKER_UPDATE.md` (formalização)
-10: 
+8: - `docker-compose.yml` (version bumps)
+9: - `RAG/IMPLEMENTATION_PLAN_DOCKER_UPDATE.md` (formalização)
+10:
 11: ## Atualização Operacional (2026-04-29B) - Frontend Hardening & Robust Debug
-1: 
+1:
 2: - **Frontend Hardening Audit (Frente 4 - Concluída)**:
-3:   - **Sanitização & Segurança (P0)**: Auditado todos os campos de entrada (`BtPoleCoordinateInput`, `Renomear`, `Demand Input`). Validado que injeções de XSS e SQL são neutralizadas via escaping de React e lógica de validação.
-4:   - **Compatibilidade Tecnológica**:
-5:     - **Tailwind CSS 4.x**: Resolvido erro de compilação PostCSS migrando para `@tailwindcss/postcss`.
-6:     - **Express 5.x**: Corrigido wildcard pathing de React Router fallback de `*` para `*all` em `server/app.ts`.
-7:     - **Jest ESM**: Corrigido `ReferenceError: jest is not defined` em suites backend ativando `experimental-vm-modules` e imports explícitos em `setup.ts`.
-8:   - **Usability Audit**:
-9:     - **Performance Percebida**: Identificado e documentado o delay assíncrono em `btSummary` como comportamento "Smart Backend" esperado, com feedback visual mantido.
-10:     - **Localization (pt-BR/EN/ES)**: Validado 100% de consistência nas traduções do Workflow Sidebar e DG Wizard.
-11:     - **UX Robustness**: Testado exaustivamente o fluxo "Walk-at-Will", teclado (PgUp/PgDn) e transições Framer Motion sob carga de rede simulada.
+3: - **Sanitização & Segurança (P0)**: Auditado todos os campos de entrada (`BtPoleCoordinateInput`, `Renomear`, `Demand Input`). Validado que injeções de XSS e SQL são neutralizadas via escaping de React e lógica de validação.
+4: - **Compatibilidade Tecnológica**:
+5: - **Tailwind CSS 4.x**: Resolvido erro de compilação PostCSS migrando para `@tailwindcss/postcss`.
+6: - **Express 5.x**: Corrigido wildcard pathing de React Router fallback de `*` para `*all` em `server/app.ts`.
+7: - **Jest ESM**: Corrigido `ReferenceError: jest is not defined` em suites backend ativando `experimental-vm-modules` e imports explícitos em `setup.ts`.
+8: - **Usability Audit**:
+9: - **Performance Percebida**: Identificado e documentado o delay assíncrono em `btSummary` como comportamento "Smart Backend" esperado, com feedback visual mantido.
+10: - **Localization (pt-BR/EN/ES)**: Validado 100% de consistência nas traduções do Workflow Sidebar e DG Wizard.
+11: - **UX Robustness**: Testado exaustivamente o fluxo "Walk-at-Will", teclado (PgUp/PgDn) e transições Framer Motion sob carga de rede simulada.
 12: - **Dependências Atualizadas**: Adicionado `@tailwindcss/postcss` ao `devDependencies`.
-13: 
+13:
 14: ## Atualização Operacional (2026-04-29) - Segurança & Performance (Audit P0/P1)
 
 - **Auditoria 2024 — Implementação P0/P1 Concluída**:
@@ -210,7 +223,7 @@
   - **Sanitização de Logs (P0)**: Integrado `sanitizer.ts` no Winston logger para redação automática de PII e segredos.
   - **Validação de Entrada (P0)**: Adicionado `validation-enhanced.ts` à rota de DXF com detecção de injeção e limites anti-DoS.
   - **Python Timeout (P1)**: Aumentado timeout default de 5 para 10 minutos em `server/config.ts`.
-  - **Health Check (P1)**: Otimizado com estratégia *Stale-While-Revalidate* (background refresh) para reduzir latência.
+  - **Health Check (P1)**: Otimizado com estratégia _Stale-While-Revalidate_ (background refresh) para reduzir latência.
   - **Dev CORS (P1)**: Whitelist explícita de portas locais (3000, 3001, 3002, 5173) no ambiente de desenvolvimento.
 - **Correções de Arquitetura**:
   - **errorHandler.ts**: Restaurado para `server/errorHandler.ts` com imports corrigidos.
@@ -249,6 +262,7 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 - **Resiliência de Testes**: Lógica de warm-up do `dbClient` refatorada no ambiente Jest para evitar falsos positivos por timeouts. Skips intencionais adicionados para `ExcelJS` streams corrompidos em ambiente JSDOM/Node.
 
 ### **Fase Anterior: Estabilização de Infraestrutura e Frontend Concluída**
+
 - [x] Hardening de Infra: Estabilização de testes (pythonBridge, jobStatusService) e auditoria VERDE.
 - [x] CI/CD Gate: Implementação do workflow `quality-gates.yml` agregando todos os testes e regras normativas.
 - [x] Segurança & Pentest: Implementação de suíte de testes de vulnerabilidade (Path Traversal, XSS, DoS) e correções críticas.

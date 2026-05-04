@@ -95,6 +95,7 @@ export function AppStatusStack({
         label={dxfProgressLabel}
         progress={dxfProgressValue}
         status={dxfProgressStatus}
+        locale={locale}
       />
 
       {isBtSummaryVisible && (

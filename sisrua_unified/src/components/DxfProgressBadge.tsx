@@ -1,11 +1,22 @@
+import type { AppLocale } from "../types";
+import { getDxfProgressText } from "../i18n/dxfProgressText";
+
 type Props = {
   visible: boolean;
   label: string;
   progress: number;
   status: string | null;
+  locale: AppLocale;
 };
 
-export function DxfProgressBadge({ visible, label, progress, status }: Props) {
+export function DxfProgressBadge({
+  visible,
+  label,
+  progress,
+  status,
+  locale,
+}: Props) {
+  const t = getDxfProgressText(locale);
   if (!visible) {
     return null;
   }
@@ -33,7 +44,7 @@ export function DxfProgressBadge({ visible, label, progress, status }: Props) {
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-700 dark:text-cyan-300">
-            Processamento DXF
+            {t.sectionLabel}
           </div>
           <div className="mt-0.5 text-sm font-semibold leading-snug">
             {label}
@@ -56,13 +67,13 @@ export function DxfProgressBadge({ visible, label, progress, status }: Props) {
 
       {!isCompleted && status !== "failed" && (
         <p className="mt-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-          Você pode continuar navegando no mapa enquanto o arquivo é gerado.
+          {t.continueNavigation}
         </p>
       )}
 
       {status === "failed" && (
         <p className="mt-2 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
-          Falha ao gerar o arquivo. Verifique os dados e tente novamente.
+          {t.failedMessage}
         </p>
       )}
     </div>

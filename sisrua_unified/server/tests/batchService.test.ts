@@ -158,7 +158,7 @@ describe('BatchService', () => {
     });
   });
 
-  describe.skip('parseBatchExcel', () => {
+  describe('parseBatchExcel', () => {
     async function makeXlsxBuffer(rows: Array<Record<string, string>>): Promise<Buffer> {
       const wb = new ExcelJS.Workbook();
       const ws = wb.addWorksheet("Sheet1");
@@ -188,7 +188,7 @@ describe('BatchService', () => {
 
     it('should return empty array for Excel with no data rows', async () => {
       const buf = await makeXlsxBuffer([]);
-      const results = parseBatchExcel(buf);
+      const results = await parseBatchExcel(buf);
       expect(results).toHaveLength(0);
     });
 
@@ -197,13 +197,13 @@ describe('BatchService', () => {
         { name: 'A', lat: '-23.1', lon: '-46.1', radius: '100', mode: 'circle' },
         { name: 'B', lat: '-23.2', lon: '-46.2', radius: '200', mode: 'polygon' },
       ]);
-      const results = parseBatchExcel(buf);
+      const results = await parseBatchExcel(buf);
       expect(results[0].line).toBe(2);
       expect(results[1].line).toBe(3);
     });
   });
 
-  describe.skip('parseBatchFile', () => {
+  describe('parseBatchFile', () => {
     async function makeXlsxBuffer(rows: Array<Record<string, string>>): Promise<Buffer> {
       const wb = new ExcelJS.Workbook();
       const ws = wb.addWorksheet("Sheet1");
@@ -241,13 +241,13 @@ describe('BatchService', () => {
     });
 
     it('should route xls mimetype to parseBatchExcel', async () => {
-      const buf = makeXlsxBuffer([{ name: 'Loc', lat: '-23.5505', lon: '-46.6333', radius: '500', mode: 'circle' }]);
+      const buf = await makeXlsxBuffer([{ name: 'Loc', lat: '-23.5505', lon: '-46.6333', radius: '500', mode: 'circle' }]);
       const results = await parseBatchFile(buf, 'application/vnd.ms-excel');
       expect(results).toHaveLength(1);
     });
 
     it('should fallback to parseBatchExcel for unknown mimetype (valid xlsx buf)', async () => {
-      const buf = makeXlsxBuffer([{ name: 'Loc', lat: '-23.5505', lon: '-46.6333', radius: '500', mode: 'circle' }]);
+      const buf = await makeXlsxBuffer([{ name: 'Loc', lat: '-23.5505', lon: '-46.6333', radius: '500', mode: 'circle' }]);
       const results = await parseBatchFile(buf, 'application/octet-stream');
       expect(Array.isArray(results)).toBe(true);
     });
