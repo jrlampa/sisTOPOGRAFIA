@@ -1,3 +1,14 @@
+## Atualização Operacional (2026-05-05B) - Item 118 T1: Change Management & Maintenance Windows
+
+- **Contexto**: Continuidade da sessão 2026-05-05A. Item 118 era o único item T1 genuinamente não implementado após survey de 200+ services.
+- **Implementado**:
+  - `server/services/changeManagementService.ts`: store in-memory de `MaintenanceWindow` + `ChangeRequest`; lifecycle completo: pending → approved/rejected → completed; `isInMaintenanceWindow()` como guard de deploy; `clearChangeManagementState()` para testes.
+  - `server/routes/changeManagementRoutes.ts`: 10 endpoints REST sob `/api/change-management` com Zod validation.
+  - `server/tests/changeManagementService.test.ts`: 31 testes cobrindo todos os cenários (janelas passadas/futuras/ativas, erros de validação, transições de estado).
+- **Integrado**: rota registrada em `server/app.ts` sob `requireAdminToken`.
+- **Roadmap**: Tabela double-check "2026-05-05A" adicionada ao `docs/STRATEGIC_ROADMAP_2026.md` cobrindo 40+ itens T1 confirmados (14A, 15-18, 20, 22-24, 28-29, 32, 34, 38-41, 48-54, 68, 71, 74-77, 97-98, 111-119, 124).
+- **Resultado**: 31/31 testes novos passando; sem erros TypeScript.
+
 ## Atualização Operacional (2026-05-05A) - Correções Qualidade T1: Audit Síncrono & Topologia Canônica
 
 - **Contexto**: Sessão de continuidade do roadmap T1. Itens 71 (idempotência), 74 (cache invalidation) e 124 (circuit breakers) confirmados já implementados — não havia necessidade de trabalho novo.
