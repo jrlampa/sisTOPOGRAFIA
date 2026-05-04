@@ -20,8 +20,7 @@ const TEXTS: Record<AppLocale, DxfProgressText> = {
     sectionLabel: "DXF Processing",
     continueNavigation:
       "You can keep navigating the map while the file is being generated.",
-    failedMessage:
-      "Failed to generate the file. Check the data and try again.",
+    failedMessage: "Failed to generate the file. Check the data and try again.",
     closeAriaLabel: "Close DXF notification",
   },
   "es-ES": {
