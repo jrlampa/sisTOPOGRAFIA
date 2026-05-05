@@ -1,4 +1,4 @@
-# Dependencies
+# ─── Dependências (gerenciadas dentro do container) ──────────────────────────
 node_modules
 .npm
 .venv
@@ -9,17 +9,17 @@ __pycache__
 *.pyo
 *.pyd
 
-# Build output
+# ─── Artefatos de build (reconstruídos dentro do container) ──────────────────
 dist
 .next
 build
 
-# Version control
+# ─── Controle de versão ───────────────────────────────────────────────────────
 .git
 .gitignore
 .gitattributes
 
-# Environment files
+# ─── Arquivos de ambiente (segurança — nunca entram na imagem) ────────────────
 .env
 .env.local
 .env.*.local
@@ -27,14 +27,14 @@ build
 .env.supabase
 secrets/
 
-# Development
+# ─── Ferramentas de desenvolvimento ──────────────────────────────────────────
 .vscode
 .idea
 *.swp
 *.swo
 .DS_Store
 
-# Test & Coverage
+# ─── Testes e cobertura ───────────────────────────────────────────────────────
 .pytest_cache
 coverage
 .coverage
@@ -43,7 +43,7 @@ test-results
 playwright-report
 .lighthouseci
 
-# Artifacts & Cache
+# ─── Artefatos e cache ────────────────────────────────────────────────────────
 logs/*.log
 public/dxf/*.dxf
 public/dxf/*.zip
@@ -56,28 +56,33 @@ artifacts
 scratch
 download
 
-# Generated files
+# ─── Arquivos gerados ─────────────────────────────────────────────────────────
 *_memorial_descritivo_*.pdf
 npm-debug.log
 DB_LOG.log
 metadata.json
 
-# Docker files (don't copy into image)
+# ─── Arquivos Docker (não copiar para dentro da imagem) ───────────────────────
 docker-compose.yml
 docker-compose.*.yml
 Dockerfile*
 .dockerignore
 
-# Documentation (optional, keep if needed)
+# ─── Documentação (não necessária em runtime) ─────────────────────────────────
 *.md
 README*
 CHANGELOG*
 ARCHITECTURE*
 
-# Config files
-tsconfig*
-vite.config*
-playwright.config*
+# ─── Configs de teste e CI (não necessárias no container) ────────────────────
+playwright.config.*
+vitest.*.config.*
+lighthouserc.json
+pytest.ini
+jest.config.*
+
+# NOTA: tsconfig*.json e vite.config.* NÃO são excluídos.
+# Eles são necessários para `tsc` e `vite build` no estágio node-build.
 vite-env.d.ts
 README_LOCAL.md
 .bandit
