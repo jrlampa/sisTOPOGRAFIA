@@ -17,6 +17,7 @@ import type {
   DgMtRouterInput,
   DgMtRouterResult,
   DgMtRouterEdge,
+  DgMtTopologyDraft,
 } from "./dgTypes.js";
 import {
   latLonToUtm,
@@ -392,9 +393,16 @@ export function partitionNetwork(
 
 // ─── Skill DG: MT Router (grafo viário + menor caminho) ─────────────────────
 
+/** Threshold padrão de fusão de nós adjacentes (0.5 m em UTM). */
+const DEFAULT_NODE_MERGE_THRESHOLD_M = 0.5;
+
 interface MtGraphNode {
   id: string;
   point: { x: number; y: number };
+  /** true se o nó foi injetado a partir de um poste existente do projeto. */
+  isExistingPole?: boolean;
+  /** ID original do poste existente (se aplicável). */
+  existingPoleId?: string;
 }
 
 interface MtGraphEdge {
@@ -411,17 +419,48 @@ function mtNodeId(lat: number, lon: number): string {
   return `${lat.toFixed(7)},${lon.toFixed(7)}`;
 }
 
-function buildRoadGraph(input: DgMtRouterInput): {
+function parseNodeId(nodeId: string): { lat: number; lon: number } | null {
+  const parts = nodeId.split(",");
+  if (parts.length !== 2) return null;
+  const lat = parseFloat(parts[0]);
+  const lon = parseFloat(parts[1]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  return { lat, lon };
+}
+
+function buildRoadGraph(
+  input: DgMtRouterInput,
+  mergeThresholdMeters: number,
+): {
   nodes: Map<string, MtGraphNode>;
   adjacency: Map<string, MtGraphEdge[]>;
 } {
   const nodes = new Map<string, MtGraphNode>();
   const adjacency = new Map<string, MtGraphEdge[]>();
 
+  /**
+   * Retorna o ID de um nó existente próximo dentro do threshold de fusão,
+   * ou null se não houver nenhum. Complexidade O(N) — aceitável para grafos
+   * viários de projetos (<= alguns milhares de nós).
+   */
+  const findNearbyNode = (utm: { x: number; y: number }): string | null => {
+    if (mergeThresholdMeters <= 0) return null;
+    for (const node of nodes.values()) {
+      if (mtDistance(utm, node.point) <= mergeThresholdMeters) {
+        return node.id;
+      }
+    }
+    return null;
+  };
+
   const addNode = (lat: number, lon: number): string => {
+    const utm = latLonToUtm(lat, lon);
+    // Fuzzy snap: reutiliza nó existente se estiver dentro do threshold
+    const nearby = findNearbyNode(utm);
+    if (nearby) return nearby;
     const id = mtNodeId(lat, lon);
     if (!nodes.has(id)) {
-      nodes.set(id, { id, point: latLonToUtm(lat, lon) });
+      nodes.set(id, { id, point: utm });
       adjacency.set(id, []);
     }
     return id;
@@ -434,11 +473,11 @@ function buildRoadGraph(input: DgMtRouterInput): {
     if (!fromNode || !toNode) return;
     const lengthMeters = mtDistance(fromNode.point, toNode.point);
     if (lengthMeters <= 0) return;
-
     adjacency.get(from)?.push({ from, to, lengthMeters });
     adjacency.get(to)?.push({ from: to, to: from, lengthMeters });
   };
 
+  // Corredores viários
   for (const corridor of input.roadCorridors) {
     if (corridor.centerPoints.length < 2) continue;
     let previous: string | null = null;
@@ -446,6 +485,24 @@ function buildRoadGraph(input: DgMtRouterInput): {
       const current = addNode(point.lat, point.lon);
       if (previous) addEdge(previous, current);
       previous = current;
+    }
+  }
+
+  // Postes existentes: injetados como nós prioritários no grafo
+  for (const pole of input.existingPoles ?? []) {
+    const utm = latLonToUtm(pole.position.lat, pole.position.lon);
+    const nearby = findNearbyNode(utm);
+    if (nearby) {
+      // Promove o nó existente a "existingPole"
+      const node = nodes.get(nearby);
+      if (node && !node.isExistingPole) {
+        node.isExistingPole = true;
+        node.existingPoleId = pole.id;
+      }
+    } else {
+      const id = mtNodeId(pole.position.lat, pole.position.lon);
+      nodes.set(id, { id, point: utm, isExistingPole: true, existingPoleId: pole.id });
+      adjacency.set(id, []);
     }
   }
 
@@ -529,8 +586,50 @@ function uniqueEdgeKey(a: string, b: string): string {
   return a < b ? `${a}→${b}` : `${b}→${a}`;
 }
 
+/** Constrói o rascunho de topologia MT a partir do conjunto de edges calculados. */
+function buildMtTopologyDraft(
+  edges: DgMtRouterEdge[],
+  nodes: Map<string, MtGraphNode>,
+): DgMtTopologyDraft {
+  const poleMap = new Map<string, DgMtTopologyDraft["poles"][number]>();
+
+  for (const edge of edges) {
+    for (const nodeId of [edge.fromNodeId, edge.toNodeId]) {
+      if (poleMap.has(nodeId)) continue;
+      const node = nodes.get(nodeId);
+      const parsed = parseNodeId(nodeId);
+      if (!parsed) continue;
+      const isExisting = node?.isExistingPole ?? false;
+      const existingId = node?.existingPoleId;
+      poleMap.set(nodeId, {
+        id: existingId ?? `mt-rtr-${nodeId}`,
+        lat: parsed.lat,
+        lng: parsed.lon,
+        title: isExisting ? (existingId ?? "Poste existente") : `MT-${nodeId.slice(0, 12)}`,
+        structureType: edge.structureType,
+        nodeChangeFlag: isExisting ? "existing" : "new",
+      });
+    }
+  }
+
+  const draftEdges = edges.map((edge, i) => ({
+    id: `mt-rtr-edge-${i}`,
+    fromPoleId: nodes.get(edge.fromNodeId)?.existingPoleId ?? `mt-rtr-${edge.fromNodeId}`,
+    toPoleId: nodes.get(edge.toNodeId)?.existingPoleId ?? `mt-rtr-${edge.toNodeId}`,
+    lengthMeters: edge.lengthMeters,
+    conductorId: edge.conductorId,
+    structureType: edge.structureType,
+  }));
+
+  return { poles: [...poleMap.values()], edges: draftEdges };
+}
+
 export function planMtRouter(input: DgMtRouterInput): DgMtRouterResult {
   const maxSnapDistanceMeters = input.maxSnapDistanceMeters ?? 150;
+  const mergeThreshold = input.nodeMergeThresholdMeters ?? DEFAULT_NODE_MERGE_THRESHOLD_M;
+  const conductorId = input.networkProfile?.conductorId;
+  const structureType = input.networkProfile?.structureType;
+
   if (!input.terminals.length) {
     return {
       feasible: false,
@@ -542,7 +641,7 @@ export function planMtRouter(input: DgMtRouterInput): DgMtRouterResult {
     };
   }
 
-  const { nodes, adjacency } = buildRoadGraph(input);
+  const { nodes, adjacency } = buildRoadGraph(input, mergeThreshold);
   if (nodes.size === 0) {
     return {
       feasible: false,
@@ -592,10 +691,18 @@ export function planMtRouter(input: DgMtRouterInput): DgMtRouterResult {
       if (!fromNode || !toNode) continue;
       const key = uniqueEdgeKey(fromNodeId, toNodeId);
       if (!uniqueEdges.has(key)) {
+        const fromLatLon = parseNodeId(fromNodeId) ?? undefined;
+        const toLatLon = parseNodeId(toNodeId) ?? undefined;
         uniqueEdges.set(key, {
           fromNodeId,
           toNodeId,
+          fromLatLon,
+          toLatLon,
           lengthMeters: mtDistance(fromNode.point, toNode.point),
+          conductorId,
+          structureType,
+          isExistingPoleFrom: fromNode.isExistingPole,
+          isExistingPoleTo: toNode.isExistingPole,
         });
       }
     }
@@ -603,6 +710,8 @@ export function planMtRouter(input: DgMtRouterInput): DgMtRouterResult {
 
   const edges = [...uniqueEdges.values()];
   const totalLengthMeters = edges.reduce((sum, edge) => sum + edge.lengthMeters, 0);
+  const mtTopologyDraft =
+    edges.length > 0 ? buildMtTopologyDraft(edges, nodes) : undefined;
 
   return {
     feasible: paths.length > 0,
@@ -615,5 +724,6 @@ export function planMtRouter(input: DgMtRouterInput): DgMtRouterResult {
     totalLengthMeters,
     edges,
     paths,
+    mtTopologyDraft,
   };
 }

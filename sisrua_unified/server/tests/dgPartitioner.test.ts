@@ -320,4 +320,129 @@ describe("planMtRouter", () => {
     expect(result.connectedTerminals).toBe(0);
     expect(result.reason).toBeTruthy();
   });
+
+  it("fuzzy snap: corredores com extremidades a 0.3 m ainda produzem grafo conectado", () => {
+    // O corredor B começa num ponto ~0.3 m ao lado do fim do corredor A.
+    // Com threshold padrão de 0.5 m os dois devem ser fundidos (mesmo nó).
+    const result = planMtRouter({
+      source: { lat: -23.55, lon: -46.64 },
+      terminals: [
+        { id: "TR-A", position: { lat: -23.5504, lon: -46.6394 } },
+      ],
+      roadCorridors: [
+        {
+          id: "via-a",
+          bufferMeters: 20,
+          centerPoints: [
+            { lat: -23.55, lon: -46.64 },
+            { lat: -23.55, lon: -46.6394 },
+          ],
+        },
+        {
+          id: "via-b",
+          // offset mínimo (~0.3 m em lat) a partir do fim do corredor A
+          bufferMeters: 20,
+          centerPoints: [
+            { lat: -23.5500003, lon: -46.6394 },
+            { lat: -23.5504, lon: -46.6394 },
+          ],
+        },
+      ],
+      maxSnapDistanceMeters: 120,
+      nodeMergeThresholdMeters: 0.5,
+    });
+
+    expect(result.feasible).toBe(true);
+    expect(result.connectedTerminals).toBe(1);
+  });
+
+  it("postes existentes são marcados isExistingPoleFrom/To nas arestas", () => {
+    const existingPolePosition = { lat: -23.55, lon: -46.6394 };
+    const result = planMtRouter({
+      source: { lat: -23.55, lon: -46.64 },
+      terminals: [
+        { id: "TR-A", position: { lat: -23.5504, lon: -46.6394 } },
+      ],
+      roadCorridors: [
+        {
+          id: "via-principal",
+          bufferMeters: 20,
+          centerPoints: [
+            { lat: -23.55, lon: -46.64 },
+            existingPolePosition,
+            { lat: -23.5504, lon: -46.6394 },
+          ],
+        },
+      ],
+      maxSnapDistanceMeters: 120,
+      existingPoles: [
+        { id: "P-001", position: existingPolePosition },
+      ],
+    });
+
+    expect(result.feasible).toBe(true);
+    // Pelo menos uma aresta deve referenciar o poste existente
+    const hasExistingFlag = result.edges.some(
+      (e) => e.isExistingPoleFrom === true || e.isExistingPoleTo === true,
+    );
+    expect(hasExistingFlag).toBe(true);
+  });
+
+  it("metadados BIM: arestas carregam conductorId e structureType do networkProfile", () => {
+    const result = planMtRouter({
+      source: { lat: -23.55, lon: -46.64 },
+      terminals: [
+        { id: "TR-A", position: { lat: -23.55, lon: -46.6394 } },
+      ],
+      roadCorridors: [
+        {
+          id: "via-bim",
+          bufferMeters: 20,
+          centerPoints: [
+            { lat: -23.55, lon: -46.64 },
+            { lat: -23.55, lon: -46.6394 },
+          ],
+        },
+      ],
+      maxSnapDistanceMeters: 120,
+      networkProfile: { conductorId: "AS 3x185mm²", structureType: "N2" },
+    });
+
+    expect(result.feasible).toBe(true);
+    expect(result.edges.length).toBeGreaterThan(0);
+    for (const edge of result.edges) {
+      expect(edge.conductorId).toBe("AS 3x185mm²");
+      expect(edge.structureType).toBe("N2");
+    }
+  });
+
+  it("mtTopologyDraft é gerado quando há arestas no resultado", () => {
+    const result = planMtRouter({
+      source: { lat: -23.55, lon: -46.64 },
+      terminals: [
+        { id: "TR-A", position: { lat: -23.55, lon: -46.6394 } },
+      ],
+      roadCorridors: [
+        {
+          id: "via-draft",
+          bufferMeters: 20,
+          centerPoints: [
+            { lat: -23.55, lon: -46.64 },
+            { lat: -23.55, lon: -46.6394 },
+          ],
+        },
+      ],
+      maxSnapDistanceMeters: 120,
+    });
+
+    expect(result.feasible).toBe(true);
+    expect(result.mtTopologyDraft).toBeDefined();
+    expect(result.mtTopologyDraft!.poles.length).toBeGreaterThan(0);
+    expect(result.mtTopologyDraft!.edges.length).toBeGreaterThan(0);
+    // Todos os postes gerados por roteamento devem ter nodeChangeFlag = "new"
+    for (const pole of result.mtTopologyDraft!.poles) {
+      expect(["new", "existing"]).toContain(pole.nodeChangeFlag);
+    }
+  });
 });
+

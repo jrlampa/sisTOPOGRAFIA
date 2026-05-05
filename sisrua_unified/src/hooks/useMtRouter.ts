@@ -5,10 +5,11 @@
  *   – seleção interativa de source e terminais no mapa
  *   – upload KMZ para pré-preenchimento automático
  *   – chamada POST /api/dg/mt-router
- *   – resultado e estado de loading/erro
+ *   – resultado, estado de loading/erro e aplicação ao projeto
  */
 
 import { useState, useCallback, useRef } from "react";
+import type { MtTopology, MtPoleNode, MtEdge } from "../types";
 
 // ─── Tipos espelhados do servidor (dgTypes.ts / kmzPreprocessingService.ts) ────
 
@@ -30,6 +31,20 @@ export interface MtRoadCorridor {
   bufferMeters: number;
 }
 
+/** Padrão de rede MT aplicado aos vãos e postes gerados. */
+export interface MtNetworkProfile {
+  conductorId: string;   // ex: "AS 3x95mm²"
+  structureType: string; // ex: "N1"
+}
+
+/** Lista predefinida de perfis de rede MT disponíveis. */
+export const MT_NETWORK_PROFILES: MtNetworkProfile[] = [
+  { conductorId: "AS 3x95mm²",  structureType: "N1" },
+  { conductorId: "AS 3x185mm²", structureType: "N2" },
+  { conductorId: "XLPE 3x95mm²",  structureType: "N1" },
+  { conductorId: "XLPE 3x185mm²", structureType: "N2" },
+];
+
 export interface MtRouterPath {
   terminalId: string;
   reachable: boolean;
@@ -42,6 +57,10 @@ export interface MtRouterEdge {
   toNodeId: string;
   distanceMeters: number;
   latLon: [MtLatLon, MtLatLon];
+  conductorId?: string;
+  structureType?: string;
+  isExistingPoleFrom?: boolean;
+  isExistingPoleTo?: boolean;
 }
 
 export interface MtRouterResult {
@@ -52,6 +71,7 @@ export interface MtRouterResult {
   edges: MtRouterEdge[];
   totalEdgeLengthMeters: number;
   unreachableTerminals: string[];
+  mtTopologyDraft?: MtTopology;
 }
 
 export interface KmzParseResult {
@@ -68,25 +88,17 @@ export type MtSelectionMode = "idle" | "picking_source" | "picking_terminals";
 // ─── Estado do hook ────────────────────────────────────────────────────────────
 
 export interface MtRouterState {
-  /** Modo de seleção atual */
   selectionMode: MtSelectionMode;
-  /** Ponto de origem MT selecionado */
   source: MtLatLon | null;
-  /** Lista de terminais */
   terminals: MtTerminal[];
-  /** Corredores viários (do KMZ ou preenchidos manualmente) */
   roadCorridors: MtRoadCorridor[];
-  /** Distância máxima de snap para a malha viária */
   maxSnapDistanceMeters: number;
-  /** Resultado do último cálculo */
+  networkProfile: MtNetworkProfile;
   result: MtRouterResult | null;
-  /** true enquanto aguarda resposta da API */
   isCalculating: boolean;
-  /** true enquanto processa upload KMZ */
   isParsingKmz: boolean;
-  /** Mensagem de erro */
+  isApplying: boolean;
   error: string | null;
-  /** Avisos não fatais do parsing KMZ */
   kmzWarnings: string[];
 }
 
@@ -96,12 +108,99 @@ const INITIAL_STATE: MtRouterState = {
   terminals: [],
   roadCorridors: [],
   maxSnapDistanceMeters: 100,
+  networkProfile: MT_NETWORK_PROFILES[0],
   result: null,
   isCalculating: false,
   isParsingKmz: false,
+  isApplying: false,
   error: null,
   kmzWarnings: [],
 };
+
+// ─── Helpers internos ─────────────────────────────────────────────────────────
+
+/** Parseia um nodeId `"lat,lon"` em { lat, lon }. Retorna null se inválido. */
+function parseNodeLatLon(nodeId: string): MtLatLon | null {
+  const parts = nodeId.split(",");
+  if (parts.length !== 2) return null;
+  const lat = parseFloat(parts[0]);
+  const lon = parseFloat(parts[1]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  return { lat, lon };
+}
+
+/**
+ * Adapta a resposta bruta da API (com nodeIds como chave lat/lon) para o
+ * formato de frontend com `latLon` explícito e paths mapeados.
+ */
+function adaptApiResponse(
+  raw: Record<string, unknown>,
+  source: MtLatLon,
+): MtRouterResult {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawEdges = (raw.edges as any[]) ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawPaths = (raw.paths as any[]) ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawDraft = raw.mtTopologyDraft as any;
+
+  const edges: MtRouterEdge[] = rawEdges.map((e) => {
+    const from: MtLatLon = e.fromLatLon ?? parseNodeLatLon(e.fromNodeId) ?? source;
+    const to: MtLatLon = e.toLatLon ?? parseNodeLatLon(e.toNodeId) ?? source;
+    return {
+      fromNodeId: e.fromNodeId,
+      toNodeId: e.toNodeId,
+      distanceMeters: e.lengthMeters ?? 0,
+      latLon: [from, to],
+      conductorId: e.conductorId,
+      structureType: e.structureType,
+      isExistingPoleFrom: e.isExistingPoleFrom,
+      isExistingPoleTo: e.isExistingPoleTo,
+    };
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allTerminalIds: string[] = rawPaths.map((p: any) => p.terminalId);
+  const paths: MtRouterPath[] = rawPaths.map((p) => ({
+    terminalId: p.terminalId,
+    reachable: true,
+    routeNodeIds: p.nodeIds ?? [],
+    totalDistanceMeters: p.lengthMeters ?? 0,
+  }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const unreachable: string[] = (raw.unreachableTerminals as string[]) ?? [];
+
+  // mtTopologyDraft: converter do formato servidor para MtTopology do frontend
+  let mtTopologyDraft: MtTopology | undefined;
+  if (rawDraft) {
+    const poles: MtPoleNode[] = (rawDraft.poles ?? []).map((p: any) => ({
+      id: p.id,
+      lat: p.lat,
+      lng: p.lng,
+      title: p.title,
+      mtStructures: p.structureType ? { n1: p.structureType } : undefined,
+      nodeChangeFlag: p.nodeChangeFlag ?? "new",
+    }));
+    const mtEdges: MtEdge[] = (rawDraft.edges ?? []).map((e: any) => ({
+      id: e.id,
+      fromPoleId: e.fromPoleId,
+      toPoleId: e.toPoleId,
+      lengthMeters: e.lengthMeters,
+    }));
+    mtTopologyDraft = { poles, edges: mtEdges };
+  }
+
+  return {
+    feasible: Boolean(raw.feasible),
+    source,
+    connectedTerminals: typeof raw.connectedTerminals === "number" ? raw.connectedTerminals : paths.length,
+    paths,
+    edges,
+    totalEdgeLengthMeters: typeof raw.totalLengthMeters === "number" ? raw.totalLengthMeters : edges.reduce((s, e) => s + e.distanceMeters, 0),
+    unreachableTerminals: unreachable,
+    mtTopologyDraft,
+  };
+}
 
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 
@@ -110,7 +209,6 @@ export function useMtRouter() {
   const stateRef = useRef<MtRouterState>(INITIAL_STATE);
   const terminalCounterRef = useRef(0);
 
-  /** Atualiza estado e mantém stateRef sincronizado. */
   const patch = useCallback((updater: (s: MtRouterState) => MtRouterState) => {
     setStateRaw((prev) => {
       const next = updater(prev);
@@ -126,36 +224,25 @@ export function useMtRouter() {
   }, [patch]);
 
   const setSource = useCallback((pos: MtLatLon) => {
-    patch((s) => ({
-      ...s,
-      source: pos,
-      selectionMode: "idle",
-      result: null,
-      error: null,
-    }));
+    patch((s) => ({ ...s, source: pos, selectionMode: "idle", result: null, error: null }));
   }, [patch]);
 
   const addTerminal = useCallback((pos: MtLatLon) => {
     terminalCounterRef.current += 1;
     const id = `t${terminalCounterRef.current}`;
-    patch((s) => ({
-      ...s,
-      terminals: [...s.terminals, { id, position: pos }],
-      result: null,
-      error: null,
-    }));
+    patch((s) => ({ ...s, terminals: [...s.terminals, { id, position: pos }], result: null, error: null }));
   }, [patch]);
 
   const removeTerminal = useCallback((id: string) => {
-    patch((s) => ({
-      ...s,
-      terminals: s.terminals.filter((t) => t.id !== id),
-      result: null,
-    }));
+    patch((s) => ({ ...s, terminals: s.terminals.filter((t) => t.id !== id), result: null }));
   }, [patch]);
 
   const setMaxSnapDistance = useCallback((meters: number) => {
     patch((s) => ({ ...s, maxSnapDistanceMeters: meters, result: null }));
+  }, [patch]);
+
+  const setNetworkProfile = useCallback((profile: MtNetworkProfile) => {
+    patch((s) => ({ ...s, networkProfile: profile, result: null }));
   }, [patch]);
 
   const reset = useCallback(() => {
@@ -165,10 +252,6 @@ export function useMtRouter() {
 
   // ── Clique no mapa ──────────────────────────────────────────────────────────
 
-  /**
-   * Trata clique no mapa de acordo com o modo de seleção ativo.
-   * Deve ser chamado pelo componente de mapa quando usuário clicar.
-   */
   const handleMapClick = useCallback(
     (pos: MtLatLon) => {
       patch((s) => {
@@ -178,12 +261,7 @@ export function useMtRouter() {
         if (s.selectionMode === "picking_terminals") {
           terminalCounterRef.current += 1;
           const id = `t${terminalCounterRef.current}`;
-          return {
-            ...s,
-            terminals: [...s.terminals, { id, position: pos }],
-            result: null,
-            error: null,
-          };
+          return { ...s, terminals: [...s.terminals, { id, position: pos }], result: null, error: null };
         }
         return s;
       });
@@ -220,11 +298,7 @@ export function useMtRouter() {
         error: null,
       }));
     } catch (err) {
-      patch((s) => ({
-        ...s,
-        isParsingKmz: false,
-        error: (err as Error).message,
-      }));
+      patch((s) => ({ ...s, isParsingKmz: false, error: (err as Error).message }));
     }
   }, [patch]);
 
@@ -241,10 +315,7 @@ export function useMtRouter() {
       return;
     }
     if (s.roadCorridors.length === 0) {
-      patch((prev) => ({
-        ...prev,
-        error: "Importe corredores viários via KMZ ou adicione manualmente.",
-      }));
+      patch((prev) => ({ ...prev, error: "Importe corredores viários via KMZ ou adicione manualmente." }));
       return;
     }
 
@@ -255,6 +326,7 @@ export function useMtRouter() {
       terminals: s.terminals.map((t) => ({ id: t.id, position: t.position })),
       roadCorridors: s.roadCorridors,
       maxSnapDistanceMeters: s.maxSnapDistanceMeters,
+      networkProfile: s.networkProfile,
     };
 
     try {
@@ -268,7 +340,7 @@ export function useMtRouter() {
       if (!resp.ok && resp.status !== 422) {
         throw new Error(body.error ?? `HTTP ${resp.status}`);
       }
-      const result = body as MtRouterResult;
+      const result = adaptApiResponse(body, s.source);
       patch((prev) => ({
         ...prev,
         result,
@@ -279,13 +351,37 @@ export function useMtRouter() {
             : null,
       }));
     } catch (err) {
-      patch((prev) => ({
-        ...prev,
-        isCalculating: false,
-        error: (err as Error).message,
-      }));
+      patch((prev) => ({ ...prev, isCalculating: false, error: (err as Error).message }));
     }
   }, [patch]);
+
+  // ── Aplicar ao projeto (persistência) ──────────────────────────────────────
+
+  /**
+   * Mescla o rascunho de topologia MT do resultado ao projeto atual.
+   * @param onApply Callback que recebe a topologia parcial (postes + vãos)
+   *                gerada pelo MT Router para ser fundida ao estado global.
+   */
+  const applyToProject = useCallback(
+    (onApply: (draft: MtTopology) => void) => {
+      const s = stateRef.current;
+      if (!s.result?.mtTopologyDraft) {
+        patch((prev) => ({
+          ...prev,
+          error: "Nenhum resultado disponível para aplicar. Execute o cálculo primeiro.",
+        }));
+        return;
+      }
+      patch((prev) => ({ ...prev, isApplying: true, error: null }));
+      try {
+        onApply(s.result.mtTopologyDraft);
+        patch((prev) => ({ ...prev, isApplying: false }));
+      } catch (err) {
+        patch((prev) => ({ ...prev, isApplying: false, error: (err as Error).message }));
+      }
+    },
+    [patch],
+  );
 
   return {
     state,
@@ -294,9 +390,11 @@ export function useMtRouter() {
     addTerminal,
     removeTerminal,
     setMaxSnapDistance,
+    setNetworkProfile,
     handleMapClick,
     uploadKmz,
     calculate,
+    applyToProject,
     reset,
   };
 }

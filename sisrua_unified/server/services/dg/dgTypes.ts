@@ -358,12 +358,36 @@ export interface DgMtTerminalInput {
   position: DgLatLon;
 }
 
+/** Padrão de rede MT aplicado aos vãos gerados (BIM metadata). */
+export interface DgMtNetworkProfile {
+  /** Identificador do condutor MT (ex: "AS 3x95mm²", "XLPE 3x185mm²"). */
+  conductorId: string;
+  /** Tipo de estrutura padrão (ex: "N1", "N2", "D1"). */
+  structureType: string;
+}
+
+/** Poste existente fornecido para snap prioritário. */
+export interface DgMtExistingPole {
+  id: string;
+  position: DgLatLon;
+}
+
 export interface DgMtRouterInput {
   source: DgLatLon;
   terminals: DgMtTerminalInput[];
   roadCorridors: DgRoadCorridor[];
   /** Distância máxima para snap em nó viário (m). Padrão: 150m. */
   maxSnapDistanceMeters?: number;
+  /**
+   * Threshold de fusão de nós ao construir o grafo (m). Padrão: 0.5m.
+   * Evita grafo desconectado quando ruas quase se tocam mas não compartilham
+   * coordenadas exatas no KMZ.
+   */
+  nodeMergeThresholdMeters?: number;
+  /** Padrão de rede MT para metadados BIM dos vãos gerados. */
+  networkProfile?: DgMtNetworkProfile;
+  /** Postes existentes no projeto — snap prioritário sobre nós virtuais. */
+  existingPoles?: DgMtExistingPole[];
 }
 
 export interface DgMtRouterPath {
@@ -375,7 +399,39 @@ export interface DgMtRouterPath {
 export interface DgMtRouterEdge {
   fromNodeId: string;
   toNodeId: string;
+  /** Coordenadas lat/lon dos extremos, preenchidas pela rota da API. */
+  fromLatLon?: DgLatLon;
+  toLatLon?: DgLatLon;
   lengthMeters: number;
+  /** ID do condutor MT do perfil de rede aplicado. */
+  conductorId?: string;
+  /** Tipo de estrutura BIM do perfil de rede aplicado. */
+  structureType?: string;
+  /** true se o nó de origem era um poste existente do projeto. */
+  isExistingPoleFrom?: boolean;
+  /** true se o nó de destino era um poste existente do projeto. */
+  isExistingPoleTo?: boolean;
+}
+
+/** Rascunho de topologia MT para persistência imediata via "Aplicar". */
+export interface DgMtTopologyDraft {
+  poles: {
+    id: string;
+    lat: number;
+    lng: number;
+    title: string;
+    structureType?: string;
+    /** "existing" para postes reutilizados, "new" para nós virtuais criados. */
+    nodeChangeFlag: "new" | "existing";
+  }[];
+  edges: {
+    id: string;
+    fromPoleId: string;
+    toPoleId: string;
+    lengthMeters: number;
+    conductorId?: string;
+    structureType?: string;
+  }[];
 }
 
 export interface DgMtRouterResult {
@@ -386,4 +442,6 @@ export interface DgMtRouterResult {
   totalLengthMeters: number;
   edges: DgMtRouterEdge[];
   paths: DgMtRouterPath[];
+  /** Rascunho de topologia MT pronto para ser mesclado ao projeto. */
+  mtTopologyDraft?: DgMtTopologyDraft;
 }

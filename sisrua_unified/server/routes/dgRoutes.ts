@@ -123,6 +123,15 @@ const mtRouterBodySchema = z.object({
   })).min(1),
   roadCorridors: z.array(corridorSchema).min(1),
   maxSnapDistanceMeters: z.number().positive().max(1000).optional(),
+  nodeMergeThresholdMeters: z.number().nonnegative().max(10).optional(),
+  networkProfile: z.object({
+    conductorId: z.string().min(1),
+    structureType: z.string().min(1),
+  }).optional(),
+  existingPoles: z.array(z.object({
+    id: z.string().min(1),
+    position: latLonSchema,
+  })).optional(),
 });
 
 const decisionBodySchema = z.object({
