@@ -158,6 +158,7 @@ import onPremiseRoutes from "./routes/onPremiseRoutes.js";
 import modelRetrocompatRoutes from "./routes/modelRetrocompatRoutes.js";
 import gridLegibilityRoutes from "./routes/gridLegibilityRoutes.js";
 import chaosRoutes from "./routes/chaosRoutes.js";
+import formulaVersioningRoutes from "./routes/formulaVersioningRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import {
   initDbClient,
@@ -607,6 +608,7 @@ app.use("/api/on-premise", requireAdminToken, onPremiseRoutes);
 app.use("/api/model-retrocompat", requireAdminToken, modelRetrocompatRoutes);
 app.use("/api/grid-legibility", requireAdminToken, gridLegibilityRoutes);
 app.use("/api/chaos", requireAdminToken, chaosRoutes);
+app.use("/api/formula-versions", formulaVersioningRoutes);
 
 // Static files
 app.use(express.static(frontendDistDirectory));
