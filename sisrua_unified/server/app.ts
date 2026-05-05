@@ -151,6 +151,11 @@ import portalStakeholderRoutes from "./routes/portalStakeholderRoutes.js";
 import provenienciaForenseRoutes from "./routes/provenienciaForenseRoutes.js";
 import assinaturaNuvemRoutes from "./routes/assinaturaNuvemRoutes.js";
 import gisHardeningRoutes from "./routes/gisHardeningRoutes.js";
+import corporateHardeningRoutes from "./routes/corporateHardeningRoutes.js";
+import enterpriseOnboardingRoutes from "./routes/enterpriseOnboardingRoutes.js";
+import onPremiseRoutes from "./routes/onPremiseRoutes.js";
+import modelRetrocompatRoutes from "./routes/modelRetrocompatRoutes.js";
+import gridLegibilityRoutes from "./routes/gridLegibilityRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import {
   initDbClient,
@@ -565,6 +570,11 @@ app.use("/api/portal-stakeholder", portalStakeholderRoutes);
 app.use("/api/proveniencia-forense", requireAdminToken, provenienciaForenseRoutes);
 app.use("/api/assinatura-nuvem", assinaturaNuvemRoutes);
 app.use("/api/gis-hardening", requireAdminToken, gisHardeningRoutes);
+app.use("/api/corporate-hardening", requireAdminToken, corporateHardeningRoutes);
+app.use("/api/enterprise-onboarding", requireAdminToken, enterpriseOnboardingRoutes);
+app.use("/api/on-premise", requireAdminToken, onPremiseRoutes);
+app.use("/api/model-retrocompat", requireAdminToken, modelRetrocompatRoutes);
+app.use("/api/grid-legibility", requireAdminToken, gridLegibilityRoutes);
 
 // Static files
 app.use(express.static(frontendDistDirectory));
