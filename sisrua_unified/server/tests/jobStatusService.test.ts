@@ -36,12 +36,14 @@ vi.mock("../repositories/jobRepository.js", () => ({
 
 // Mock postgres driver to support both function call (template literal) and .unsafe()
 const unsafeMock = vi.fn();
+type MockSqlClient = ReturnType<typeof vi.fn> & {
+  unsafe: typeof unsafeMock;
+  end: ReturnType<typeof vi.fn>;
+};
 const sqlClientMock = vi.fn(() => ({
   then: (resolve: any) => resolve([]), // Support for `await sql`SELECT 1``
-}));
-// @ts-ignore
+})) as MockSqlClient;
 sqlClientMock.unsafe = unsafeMock;
-// @ts-ignore
 sqlClientMock.end = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("postgres", () => ({

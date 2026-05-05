@@ -288,11 +288,6 @@ function buildEdgeMap(edges: BtRadialEdge[]): Map<string, BtRadialEdge> {
   return map;
 }
 
-function buildEdgeId(from: string, to: string, edges: BtRadialEdge[]): string {
-  const edge = edges.find((e) => e.fromNodeId === from && e.toNodeId === to);
-  return edge ? `${edge.fromNodeId}->${edge.toNodeId}` : `${from}->${to}`;
-}
-
 /**
  * Escolhe o melhor condutor (maior ampacity) que cabe no orçamento restante.
  * Se nenhum cabe, retorna o menor disponível (fallback).

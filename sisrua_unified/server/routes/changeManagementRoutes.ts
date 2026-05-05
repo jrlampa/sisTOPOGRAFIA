@@ -85,7 +85,7 @@ router.get('/windows/:id', (req, res) => {
 // POST /api/change-management/windows
 router.post('/windows', (req, res) => {
   const parsed = CreateWindowSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos', detail: parsed.error.errors });
+  if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos', detail: parsed.error.issues });
   try {
     const w = createMaintenanceWindow(parsed.data);
     res.status(201).json(w);
@@ -131,7 +131,7 @@ router.get('/changes/:id', (req, res) => {
 // POST /api/change-management/changes
 router.post('/changes', (req, res) => {
   const parsed = CreateChangeSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos', detail: parsed.error.errors });
+  if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos', detail: parsed.error.issues });
   try {
     const c = createChangeRequest(parsed.data);
     res.status(201).json(c);
@@ -143,7 +143,7 @@ router.post('/changes', (req, res) => {
 // POST /api/change-management/changes/:id/approve
 router.post('/changes/:id/approve', (req, res) => {
   const parsed = ApproveRejectSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos', detail: parsed.error.errors });
+  if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos', detail: parsed.error.issues });
   try {
     const c = approveChangeRequest(req.params.id, parsed.data.actor);
     res.json(c);
@@ -155,7 +155,7 @@ router.post('/changes/:id/approve', (req, res) => {
 // POST /api/change-management/changes/:id/reject
 router.post('/changes/:id/reject', (req, res) => {
   const parsed = ApproveRejectSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos', detail: parsed.error.errors });
+  if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos', detail: parsed.error.issues });
   try {
     const c = rejectChangeRequest(req.params.id, parsed.data.actor);
     res.json(c);

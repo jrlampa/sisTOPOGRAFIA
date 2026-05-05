@@ -59,8 +59,35 @@ export interface MtRouterEdge {
   latLon: [MtLatLon, MtLatLon];
   conductorId?: string;
   structureType?: string;
+  spanLimited?: boolean;
+  segmentIndex?: number;
+  segmentCount?: number;
   isExistingPoleFrom?: boolean;
   isExistingPoleTo?: boolean;
+}
+
+export interface MtPoleDiagnostic {
+  poleId: string;
+  nodeId: string;
+  lat: number;
+  lng: number;
+  title: string;
+  degree: number;
+  deflectionAngleDegrees: number;
+  resultantLoadDan: number;
+  nominalLoadDan: number;
+  severity: "normal" | "warning" | "critical";
+  supportStructureType: string;
+  hasTransformerMount: boolean;
+  requiresReinforcement: boolean;
+  message?: string;
+}
+
+export interface MtCqtReadiness {
+  ready: boolean;
+  conductorId?: string;
+  pendingInputs: string[];
+  note: string;
 }
 
 export interface MtRouterResult {
@@ -71,6 +98,9 @@ export interface MtRouterResult {
   edges: MtRouterEdge[];
   totalEdgeLengthMeters: number;
   unreachableTerminals: string[];
+  poleDiagnostics: MtPoleDiagnostic[];
+  engineeringWarnings: string[];
+  mtCqtReadiness: MtCqtReadiness;
   mtTopologyDraft?: MtTopology;
 }
 
@@ -94,6 +124,7 @@ export interface MtRouterState {
   roadCorridors: MtRoadCorridor[];
   maxSnapDistanceMeters: number;
   networkProfile: MtNetworkProfile;
+  mtCqtParams: { voltageKv: number; cqtLimitFraction: number };
   result: MtRouterResult | null;
   isCalculating: boolean;
   isParsingKmz: boolean;
@@ -102,6 +133,16 @@ export interface MtRouterState {
   kmzWarnings: string[];
 }
 
+const DEFAULT_MT_CQT_PARAMS = {
+  voltageKv: 13.2,
+  cqtLimitFraction: 0.0182,
+};
+
+const MIN_MT_VOLTAGE_KV = 0.1;
+const MAX_MT_VOLTAGE_KV = 500;
+const MIN_MT_CQT_LIMIT_FRACTION = 0.0001;
+const MAX_MT_CQT_LIMIT_FRACTION = 1;
+
 const INITIAL_STATE: MtRouterState = {
   selectionMode: "idle",
   source: null,
@@ -109,6 +150,7 @@ const INITIAL_STATE: MtRouterState = {
   roadCorridors: [],
   maxSnapDistanceMeters: 100,
   networkProfile: MT_NETWORK_PROFILES[0],
+  mtCqtParams: DEFAULT_MT_CQT_PARAMS,
   result: null,
   isCalculating: false,
   isParsingKmz: false,
@@ -127,6 +169,34 @@ function parseNodeLatLon(nodeId: string): MtLatLon | null {
   const lon = parseFloat(parts[1]);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
   return { lat, lon };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function sanitizeMtCqtParams(params: {
+  voltageKv: number;
+  cqtLimitFraction: number;
+}): {
+  voltageKv: number;
+  cqtLimitFraction: number;
+} {
+  const voltageKvRaw = Number(params.voltageKv);
+  const cqtLimitFractionRaw = Number(params.cqtLimitFraction);
+
+  const voltageKv = Number.isFinite(voltageKvRaw)
+    ? clamp(voltageKvRaw, MIN_MT_VOLTAGE_KV, MAX_MT_VOLTAGE_KV)
+    : DEFAULT_MT_CQT_PARAMS.voltageKv;
+  const cqtLimitFraction = Number.isFinite(cqtLimitFractionRaw)
+    ? clamp(
+        cqtLimitFractionRaw,
+        MIN_MT_CQT_LIMIT_FRACTION,
+        MAX_MT_CQT_LIMIT_FRACTION,
+      )
+    : DEFAULT_MT_CQT_PARAMS.cqtLimitFraction;
+
+  return { voltageKv, cqtLimitFraction };
 }
 
 /**
@@ -155,6 +225,11 @@ function adaptApiResponse(
       latLon: [from, to],
       conductorId: e.conductorId,
       structureType: e.structureType,
+      spanLimited: Boolean(e.spanLimited),
+      segmentIndex:
+        typeof e.segmentIndex === "number" ? e.segmentIndex : undefined,
+      segmentCount:
+        typeof e.segmentCount === "number" ? e.segmentCount : undefined,
       isExistingPoleFrom: e.isExistingPoleFrom,
       isExistingPoleTo: e.isExistingPoleTo,
     };
@@ -168,6 +243,18 @@ function adaptApiResponse(
   }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const unreachable: string[] = (raw.unreachableTerminals as string[]) ?? [];
+  const engineeringWarnings: string[] =
+    (raw.engineeringWarnings as string[]) ?? [];
+  const poleDiagnostics: MtPoleDiagnostic[] =
+    (raw.poleDiagnostics as MtPoleDiagnostic[]) ?? [];
+  const mtCqtReadiness: MtCqtReadiness = {
+    ready: Boolean((raw.mtCqtReadiness as any)?.ready),
+    conductorId: (raw.mtCqtReadiness as any)?.conductorId,
+    pendingInputs: (raw.mtCqtReadiness as any)?.pendingInputs ?? [],
+    note:
+      (raw.mtCqtReadiness as any)?.note ??
+      "Smart-Draft prepara a topologia para o futuro cálculo MT/CQT.",
+  };
 
   // mtTopologyDraft: converter do formato servidor para MtTopology do frontend
   let mtTopologyDraft: MtTopology | undefined;
@@ -177,7 +264,9 @@ function adaptApiResponse(
       lat: p.lat,
       lng: p.lng,
       title: p.title,
-      mtStructures: p.structureType ? { n1: p.structureType } : undefined,
+      mtStructures:
+        p.mtStructures ??
+        (p.structureType ? { n1: p.structureType } : undefined),
       nodeChangeFlag: p.nodeChangeFlag ?? "new",
     }));
     const mtEdges: MtEdge[] = (rawDraft.edges ?? []).map((e: any) => ({
@@ -203,6 +292,9 @@ function adaptApiResponse(
         ? raw.totalLengthMeters
         : edges.reduce((s, e) => s + e.distanceMeters, 0),
     unreachableTerminals: unreachable,
+    poleDiagnostics,
+    engineeringWarnings,
+    mtCqtReadiness,
     mtTopologyDraft,
   };
 }
@@ -279,6 +371,17 @@ export function useMtRouter() {
   const setNetworkProfile = useCallback(
     (profile: MtNetworkProfile) => {
       patch((s) => ({ ...s, networkProfile: profile, result: null }));
+    },
+    [patch],
+  );
+
+  const setMtCqtParams = useCallback(
+    (params: { voltageKv: number; cqtLimitFraction: number }) => {
+      patch((s) => ({
+        ...s,
+        mtCqtParams: sanitizeMtCqtParams(params),
+        result: null,
+      }));
     },
     [patch],
   );
@@ -396,6 +499,7 @@ export function useMtRouter() {
       roadCorridors: s.roadCorridors,
       maxSnapDistanceMeters: s.maxSnapDistanceMeters,
       networkProfile: s.networkProfile,
+      mtCqtParams: sanitizeMtCqtParams(s.mtCqtParams),
     };
 
     try {
@@ -469,6 +573,7 @@ export function useMtRouter() {
     removeTerminal,
     setMaxSnapDistance,
     setNetworkProfile,
+    setMtCqtParams,
     handleMapClick,
     uploadKmz,
     calculate,

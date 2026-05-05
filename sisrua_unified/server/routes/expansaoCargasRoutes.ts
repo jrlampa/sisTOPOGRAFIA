@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { ExpansaoCargasService, type TipoCarga } from "../services/expansaoCargasService.js";
+import { ExpansaoCargasService } from "../services/expansaoCargasService.js";
 
 const router = Router();
 

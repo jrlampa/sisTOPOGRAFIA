@@ -39,14 +39,6 @@ export interface CorporateHardeningReport {
 
 const APPROVED_TLS_VERSIONS = ["TLSv1.2", "TLSv1.3"];
 
-const APPROVED_CIPHER_SUITES = [
-  "TLS_AES_256_GCM_SHA384",
-  "TLS_CHACHA20_POLY1305_SHA256",
-  "TLS_AES_128_GCM_SHA256",
-  "ECDHE-RSA-AES256-GCM-SHA384",
-  "ECDHE-RSA-AES128-GCM-SHA256",
-];
-
 // Valores de timeout que indicam interferência de inspeção TLS profunda
 const INSPECTION_TIMEOUT_THRESHOLD_MS = 5000;
 

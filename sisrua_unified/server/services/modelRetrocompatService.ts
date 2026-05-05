@@ -297,7 +297,7 @@ export function checkCompatibility(
     );
   }
 
-  const compatible = missingCapabilities.length === 0 && model.status !== "removed";
+  const compatible = missingCapabilities.length === 0;
 
   return {
     compatible,

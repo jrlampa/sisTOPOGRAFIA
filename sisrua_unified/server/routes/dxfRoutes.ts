@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { randomUUID } from "node:crypto";
 import multer from "multer";
 import { z } from "zod";
 import { createDxfTask } from "../services/cloudTasksService.js";
@@ -45,10 +46,17 @@ const router = Router();
 // Servir arquivos DXF gerados (Mover para o topo)
 router.get("/downloads/:filename", (req: Request, res: Response) => {
   const { filename } = req.params;
-  
+
   // Basic sanitization: block any path separators or null bytes
-  if (filename.includes("/") || filename.includes("\\") || filename.includes("\0")) {
-    logger.warn("Tentativa de Path Traversal bloqueada", { filename, ip: req.ip });
+  if (
+    filename.includes("/") ||
+    filename.includes("\\") ||
+    filename.includes("\0")
+  ) {
+    logger.warn("Tentativa de Path Traversal bloqueada", {
+      filename,
+      ip: req.ip,
+    });
     return res.status(400).json({ error: "Nome de arquivo inválido" });
   }
 
@@ -57,7 +65,11 @@ router.get("/downloads/:filename", (req: Request, res: Response) => {
 
   // Ensure the resolved path is still inside the dxfDirectory
   if (!filePath.startsWith(dxfDirectory)) {
-    logger.warn("Tentativa de escape de diretório detectada", { filename, filePath, ip: req.ip });
+    logger.warn("Tentativa de escape de diretório detectada", {
+      filename,
+      filePath,
+      ip: req.ip,
+    });
     return res.status(403).json({ error: "Acesso negado" });
   }
 
@@ -471,7 +483,9 @@ router.post(
           radius,
           mode: resolvedMode,
           polygon:
-            typeof polygon === "string" ? polygon : JSON.stringify(polygon || []),
+            typeof polygon === "string"
+              ? polygon
+              : JSON.stringify(polygon || []),
           layers: layers || {},
           projection: projection || "local",
           contourRenderMode: resolvedContourRenderMode,
@@ -672,13 +686,13 @@ router.get(
     try {
       const raw = Number(req.query["limit"] ?? 50);
       const limit = Number.isFinite(raw) ? raw : 50;
-      
+
       const userTenantId = res.locals.tenantId;
       const userRole = res.locals.userRole;
 
       // Se não for admin, filtra pelo tenantId
       const tenantToFilter = userRole === "admin" ? undefined : userTenantId;
-      
+
       const jobs = await listRecentJobs(limit, tenantToFilter);
       return res.json({ total: jobs.length, jobs });
     } catch (err) {

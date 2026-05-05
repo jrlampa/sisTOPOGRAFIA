@@ -98,12 +98,8 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "redis-cli",
-          "--no-auth-warning",
-          "-a",
-          "$$(cat /run/secrets/redis_password)",
-          "ping",
+          "CMD-SHELL",
+          "redis-cli --no-auth-warning -a \"$$(cat /run/secrets/redis_password)\" ping",
         ]
       interval: 10s
       timeout: 3s

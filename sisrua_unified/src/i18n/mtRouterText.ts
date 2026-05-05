@@ -28,7 +28,13 @@ type MtRouterText = {
   resultSegments: string;
   resultSegmentedTitle: string;
   resultUnreachable: string;
+  resultEngineering: string;
+  resultCriticalPoles: string;
+  resultCqtReady: string;
   resultExistingPole: string;
+  labelCqtParams: string;
+  labelVoltageKv: string;
+  labelCqtLimitPct: string;
   errorNoSource: string;
   errorNoTerminals: string;
   errorNoCorridors: string;
@@ -66,7 +72,13 @@ const TEXTS: Record<AppLocale, MtRouterText> = {
     resultSegments: "Segmentos de rota",
     resultSegmentedTitle: "Distância por perna",
     resultUnreachable: "Terminais não alcançados",
+    resultEngineering: "Alertas de engenharia",
+    resultCriticalPoles: "Postes críticos",
+    resultCqtReady: "Preparação MT/CQT",
     resultExistingPole: "poste existente",
+    labelCqtParams: "Parâmetros CQT",
+    labelVoltageKv: "Tensão de linha (kV)",
+    labelCqtLimitPct: "Limite CQT (%)",
     errorNoSource: "Defina o ponto de origem da MT.",
     errorNoTerminals: "Adicione pelo menos um terminal.",
     errorNoCorridors:
@@ -105,7 +117,13 @@ const TEXTS: Record<AppLocale, MtRouterText> = {
     resultSegments: "Route segments",
     resultSegmentedTitle: "Distance per leg",
     resultUnreachable: "Unreachable terminals",
+    resultEngineering: "Engineering alerts",
+    resultCriticalPoles: "Critical poles",
+    resultCqtReady: "MT/CQT readiness",
     resultExistingPole: "existing pole",
+    labelCqtParams: "CQT Parameters",
+    labelVoltageKv: "Line voltage (kV)",
+    labelCqtLimitPct: "CQT limit (%)",
     errorNoSource: "Define the MT source point.",
     errorNoTerminals: "Add at least one terminal.",
     errorNoCorridors: "Import road corridors via KMZ or add manually.",
@@ -142,7 +160,13 @@ const TEXTS: Record<AppLocale, MtRouterText> = {
     resultSegments: "Segmentos de ruta",
     resultSegmentedTitle: "Distancia por tramo",
     resultUnreachable: "Terminales no alcanzados",
+    resultEngineering: "Alertas de ingeniería",
+    resultCriticalPoles: "Postes críticos",
+    resultCqtReady: "Preparación MT/CQT",
     resultExistingPole: "poste existente",
+    labelCqtParams: "Parámetros CQT",
+    labelVoltageKv: "Tensión de línea (kV)",
+    labelCqtLimitPct: "Límite CQT (%)",
     errorNoSource: "Define el punto de origen MT.",
     errorNoTerminals: "Agrega al menos un terminal.",
     errorNoCorridors:

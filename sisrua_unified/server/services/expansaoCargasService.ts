@@ -12,8 +12,6 @@
  *   - Limite de carregamento do transformador: 80% da potência nominal (operação segura)
  */
 
-import { randomUUID } from "crypto";
-
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 /** Limite operacional de carregamento do trafo (norma CEMIG / Light). */

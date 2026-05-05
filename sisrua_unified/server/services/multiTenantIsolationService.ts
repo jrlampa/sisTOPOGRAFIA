@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "crypto";
+import { createHash } from "crypto";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
 

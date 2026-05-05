@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from "child_process";
+import { spawn } from "child_process";
 import path from "path";
 import { logger } from "./utils/logger.js";
 import { config } from "./config.js";
@@ -80,7 +80,10 @@ const REQUIRED_PYTHON_MODULES = [
 ] as const;
 
 const PYTHON_ENV_PROBE_TTL_MS = 5 * 60 * 1_000;
-const pythonEnvProbeCache = new Map<string, { at: number; result: PythonEnvProbeResult }>();
+const pythonEnvProbeCache = new Map<
+  string,
+  { at: number; result: PythonEnvProbeResult }
+>();
 
 function buildPythonEnvProbeCode(): string {
   const modules = JSON.stringify(REQUIRED_PYTHON_MODULES);
@@ -96,7 +99,9 @@ function buildPythonEnvProbeCode(): string {
  * Probes the Python environment asynchronously.
  * Optimized to avoid event-loop blocking (Audit P1).
  */
-async function probePythonEnvironment(command: string): Promise<PythonEnvProbeResult> {
+async function probePythonEnvironment(
+  command: string,
+): Promise<PythonEnvProbeResult> {
   const now = Date.now();
   const cached = pythonEnvProbeCache.get(command);
   if (cached && now - cached.at <= PYTHON_ENV_PROBE_TTL_MS) {
@@ -112,42 +117,56 @@ async function probePythonEnvironment(command: string): Promise<PythonEnvProbeRe
     let stderr = "";
 
     const timeout = setTimeout(() => {
-        if (check && typeof check.kill === 'function') {
-            check.kill();
-        }
-        reject(new Error(`Python env probe timed out for '${command}'`));
+      if (check && typeof check.kill === "function") {
+        check.kill();
+      }
+      reject(new Error(`Python env probe timed out for '${command}'`));
     }, 10000);
 
-    check.stdout.on("data", (data) => { stdout += data; });
-    check.stderr.on("data", (data) => { stderr += data; });
+    check.stdout.on("data", (data) => {
+      stdout += data;
+    });
+    check.stderr.on("data", (data) => {
+      stderr += data;
+    });
 
     check.on("close", (code) => {
-        clearTimeout(timeout);
-        if (code !== 0) {
-            return reject(new Error(`Python env probe exited with code ${code} for '${command}'. stderr=${stderr.trim()}`));
-        }
+      clearTimeout(timeout);
+      if (code !== 0) {
+        return reject(
+          new Error(
+            `Python env probe exited with code ${code} for '${command}'. stderr=${stderr.trim()}`,
+          ),
+        );
+      }
 
-        try {
-            const parsed = JSON.parse(stdout.trim());
-            const result: PythonEnvProbeResult = {
-                command,
-                executable: String(parsed.executable || ""),
-                version: String(parsed.version || ""),
-                missingModules: Array.isArray(parsed.missingModules)
-                  ? parsed.missingModules.map((item) => String(item))
-                  : [],
-                pyEnginePathPresent: Boolean(parsed.pyEnginePathPresent),
-            };
-            pythonEnvProbeCache.set(command, { at: now, result });
-            resolve(result);
-        } catch (e) {
-            reject(new Error(`Python env probe returned invalid JSON for '${command}': ${stdout.trim()}`));
-        }
+      try {
+        const parsed = JSON.parse(stdout.trim());
+        const result: PythonEnvProbeResult = {
+          command,
+          executable: String(parsed.executable || ""),
+          version: String(parsed.version || ""),
+          missingModules: Array.isArray(parsed.missingModules)
+            ? parsed.missingModules.map((item: unknown) => String(item))
+            : [],
+          pyEnginePathPresent: Boolean(parsed.pyEnginePathPresent),
+        };
+        pythonEnvProbeCache.set(command, { at: now, result });
+        resolve(result);
+      } catch (_e) {
+        reject(
+          new Error(
+            `Python env probe returned invalid JSON for '${command}': ${stdout.trim()}`,
+          ),
+        );
+      }
     });
 
     check.on("error", (err) => {
-        clearTimeout(timeout);
-        reject(new Error(`Python env probe failed for '${command}': ${err.message}`));
+      clearTimeout(timeout);
+      reject(
+        new Error(`Python env probe failed for '${command}': ${err.message}`),
+      );
     });
   });
 }
@@ -361,7 +380,7 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
               createError.internal(
                 `Python script '${selectedCommand}' completed successfully but without output stdout. Stderr: ${stderrData}`,
                 undefined,
-                ErrorCode.DXF_GENERATION_FAILED
+                ErrorCode.DXF_GENERATION_FAILED,
               ),
             );
             return;
@@ -393,7 +412,7 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
           createError.internal(
             `Python script '${selectedCommand}' failed with code ${code}`,
             new Error(errorDetail),
-            ErrorCode.DXF_GENERATION_FAILED
+            ErrorCode.DXF_GENERATION_FAILED,
           ),
         );
       });
@@ -422,7 +441,7 @@ export const generateDxf = (options: DxfOptions): Promise<string> => {
           createError.internal(
             `Failed to spawn python process using '${selectedCommand}'`,
             err,
-            ErrorCode.DXF_GENERATION_FAILED
+            ErrorCode.DXF_GENERATION_FAILED,
           ),
         );
       });

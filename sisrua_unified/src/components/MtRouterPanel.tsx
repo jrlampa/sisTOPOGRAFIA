@@ -48,6 +48,10 @@ export interface MtRouterPanelProps {
   onRemoveTerminal: (id: string) => void;
   onSetMaxSnapDistance: (m: number) => void;
   onSetNetworkProfile: (profile: MtNetworkProfile) => void;
+  onSetMtCqtParams: (params: {
+    voltageKv: number;
+    cqtLimitFraction: number;
+  }) => void;
   onUploadKmz: (file: File) => void;
   onCalculate: () => void;
   onApply: () => void;
@@ -83,7 +87,13 @@ function ModeButton({
   );
 }
 
-function TerminalRow({ terminal, onRemove }: { terminal: MtTerminal; onRemove: () => void }) {
+function TerminalRow({
+  terminal,
+  onRemove,
+}: {
+  terminal: MtTerminal;
+  onRemove: () => void;
+}) {
   return (
     <div className="flex items-center justify-between py-0.5 text-xs text-zinc-600 dark:text-zinc-300">
       <span className="flex items-center gap-1">
@@ -115,6 +125,10 @@ function ResultCard({
   onApply: () => void;
   isApplying: boolean;
 }) {
+  const criticalPoles = result.poleDiagnostics.filter(
+    (pole) => pole.severity !== "normal",
+  );
+
   return (
     <div
       className={`rounded-xl border p-3 space-y-2 ${
@@ -126,7 +140,10 @@ function ResultCard({
       {/* ── Status ── */}
       <div className="flex items-center gap-2">
         {result.feasible ? (
-          <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400" />
+          <CheckCircle2
+            size={14}
+            className="text-emerald-600 dark:text-emerald-400"
+          />
         ) : (
           <XCircle size={14} className="text-red-600 dark:text-red-400" />
         )}
@@ -143,17 +160,23 @@ function ResultCard({
 
       {/* ── Métricas totais ── */}
       <div className="grid grid-cols-2 gap-1 text-xs">
-        <div className="text-zinc-500 dark:text-zinc-400">{t.resultTerminals}</div>
+        <div className="text-zinc-500 dark:text-zinc-400">
+          {t.resultTerminals}
+        </div>
         <div className="font-bold text-zinc-800 dark:text-zinc-200 text-right">
           {result.connectedTerminals}
         </div>
 
-        <div className="text-zinc-500 dark:text-zinc-400">{t.resultTotalLength}</div>
+        <div className="text-zinc-500 dark:text-zinc-400">
+          {t.resultTotalLength}
+        </div>
         <div className="font-bold text-zinc-800 dark:text-zinc-200 text-right">
           {(result.totalEdgeLengthMeters / 1000).toFixed(2)} km
         </div>
 
-        <div className="text-zinc-500 dark:text-zinc-400">{t.resultSegments}</div>
+        <div className="text-zinc-500 dark:text-zinc-400">
+          {t.resultSegments}
+        </div>
         <div className="font-bold text-zinc-800 dark:text-zinc-200 text-right">
           {result.edges.length}
         </div>
@@ -166,7 +189,10 @@ function ResultCard({
             {t.resultSegmentedTitle}
           </div>
           {result.paths.map((path) => (
-            <div key={path.terminalId} className="flex items-center justify-between text-[11px]">
+            <div
+              key={path.terminalId}
+              className="flex items-center justify-between text-[11px]"
+            >
               <span className="flex items-center gap-1 text-zinc-600 dark:text-zinc-400">
                 <ChevronRight size={9} className="text-cyan-500 shrink-0" />
                 <span className="font-mono">{path.terminalId}</span>
@@ -188,12 +214,53 @@ function ResultCard({
             {t.resultUnreachable}
           </div>
           {result.unreachableTerminals.map((id) => (
-            <div key={id} className="text-[11px] text-amber-800 dark:text-amber-300 font-mono">
+            <div
+              key={id}
+              className="text-[11px] text-amber-800 dark:text-amber-300 font-mono"
+            >
               • {id}
             </div>
           ))}
         </div>
       )}
+
+      {(result.engineeringWarnings.length > 0 || criticalPoles.length > 0) && (
+        <div className="rounded-lg border border-orange-200/60 bg-orange-50/70 p-2 dark:border-orange-800/30 dark:bg-orange-950/20">
+          <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-300">
+            {t.resultEngineering}
+          </div>
+          {criticalPoles.length > 0 && (
+            <div className="mb-2 text-[11px] text-orange-900 dark:text-orange-200">
+              <span className="font-black">{t.resultCriticalPoles}:</span>{" "}
+              {criticalPoles.length}
+            </div>
+          )}
+          <div className="space-y-1">
+            {result.engineeringWarnings.slice(0, 5).map((warning, index) => (
+              <div
+                key={`${warning}-${index}`}
+                className="text-[11px] text-orange-900 dark:text-orange-200"
+              >
+                • {warning}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-lg border border-sky-200/60 bg-sky-50/70 p-2 dark:border-sky-800/30 dark:bg-sky-950/20">
+        <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-sky-700 dark:text-sky-300">
+          {t.resultCqtReady}
+        </div>
+        <div className="text-[11px] text-sky-900 dark:text-sky-200">
+          {result.mtCqtReadiness.note}
+        </div>
+        {result.mtCqtReadiness.pendingInputs.length > 0 && (
+          <div className="mt-1 text-[10px] text-sky-800/80 dark:text-sky-200/80">
+            Inputs pendentes: {result.mtCqtReadiness.pendingInputs.join(", ")}
+          </div>
+        )}
+      </div>
 
       {/* ── Botão Aplicar ── */}
       {result.feasible && result.mtTopologyDraft && (
@@ -233,6 +300,7 @@ const MtRouterPanel: React.FC<MtRouterPanelProps> = ({
   onRemoveTerminal,
   onSetMaxSnapDistance,
   onSetNetworkProfile,
+  onSetMtCqtParams,
   onUploadKmz,
   onCalculate,
   onApply,
@@ -322,7 +390,9 @@ const MtRouterPanel: React.FC<MtRouterPanelProps> = ({
             active={state.selectionMode === "picking_source"}
             onClick={() =>
               onSetSelectionMode(
-                state.selectionMode === "picking_source" ? "idle" : "picking_source",
+                state.selectionMode === "picking_source"
+                  ? "idle"
+                  : "picking_source",
               )
             }
             title={t.hintPickSource}
@@ -334,7 +404,9 @@ const MtRouterPanel: React.FC<MtRouterPanelProps> = ({
             active={state.selectionMode === "picking_terminals"}
             onClick={() =>
               onSetSelectionMode(
-                state.selectionMode === "picking_terminals" ? "idle" : "picking_terminals",
+                state.selectionMode === "picking_terminals"
+                  ? "idle"
+                  : "picking_terminals",
               )
             }
             title={t.hintPickTerminals}
@@ -347,7 +419,9 @@ const MtRouterPanel: React.FC<MtRouterPanelProps> = ({
         {state.selectionMode !== "idle" && (
           <div className="rounded-lg bg-blue-50 border border-blue-200/60 px-2 py-1.5 dark:bg-blue-950/20 dark:border-blue-800/30">
             <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300">
-              {state.selectionMode === "picking_source" ? t.hintPickSource : t.hintPickTerminals}
+              {state.selectionMode === "picking_source"
+                ? t.hintPickSource
+                : t.hintPickTerminals}
             </span>
           </div>
         )}
@@ -384,7 +458,11 @@ const MtRouterPanel: React.FC<MtRouterPanelProps> = ({
         ) : (
           <div className="max-h-28 overflow-y-auto space-y-0.5 rounded-lg bg-zinc-50 p-1.5 dark:bg-zinc-800/50">
             {state.terminals.map((t_) => (
-              <TerminalRow key={t_.id} terminal={t_} onRemove={() => onRemoveTerminal(t_.id)} />
+              <TerminalRow
+                key={t_.id}
+                terminal={t_}
+                onRemove={() => onRemoveTerminal(t_.id)}
+              />
             ))}
           </div>
         )}
@@ -392,7 +470,9 @@ const MtRouterPanel: React.FC<MtRouterPanelProps> = ({
 
       {/* ── Corredores ── */}
       <div className="flex items-center justify-between text-[11px]">
-        <span className="text-zinc-500 dark:text-zinc-400">{t.labelCorridors}</span>
+        <span className="text-zinc-500 dark:text-zinc-400">
+          {t.labelCorridors}
+        </span>
         <span
           className={`font-bold ${
             state.roadCorridors.length > 0
@@ -437,18 +517,72 @@ const MtRouterPanel: React.FC<MtRouterPanelProps> = ({
           className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
         >
           {MT_NETWORK_PROFILES.map((p) => (
-            <option key={`${p.conductorId}||${p.structureType}`} value={`${p.conductorId}||${p.structureType}`}>
+            <option
+              key={`${p.conductorId}||${p.structureType}`}
+              value={`${p.conductorId}||${p.structureType}`}
+            >
               {p.conductorId} — Estrutura {p.structureType}
             </option>
           ))}
         </select>
       </div>
 
+      {/* ── Parâmetros CQT MT ── */}
+      <div>
+        <div className="text-[10px] uppercase font-black tracking-widest text-zinc-400 mb-1.5">
+          {t.labelCqtParams}
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] text-zinc-500 dark:text-zinc-400">
+              {t.labelVoltageKv}
+            </label>
+            <input
+              type="number"
+              min={0.1}
+              max={500}
+              step={0.1}
+              value={state.mtCqtParams.voltageKv}
+              onChange={(e) =>
+                onSetMtCqtParams({
+                  ...state.mtCqtParams,
+                  voltageKv: Number(e.target.value),
+                })
+              }
+              aria-label={t.labelVoltageKv}
+              className="mt-0.5 w-full rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-sky-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-zinc-500 dark:text-zinc-400">
+              {t.labelCqtLimitPct}
+            </label>
+            <input
+              type="number"
+              min={0.01}
+              max={100}
+              step={0.01}
+              value={+(state.mtCqtParams.cqtLimitFraction * 100).toFixed(4)}
+              onChange={(e) =>
+                onSetMtCqtParams({
+                  ...state.mtCqtParams,
+                  cqtLimitFraction: Number(e.target.value) / 100,
+                })
+              }
+              aria-label={t.labelCqtLimitPct}
+              className="mt-0.5 w-full rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-sky-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* ── Erro ── */}
       {state.error && (
         <div className="flex items-start gap-1.5 rounded-lg bg-red-50 border border-red-200/60 px-2 py-1.5 dark:bg-red-950/10 dark:border-red-800/30">
           <XCircle size={11} className="text-red-500 mt-0.5 shrink-0" />
-          <span className="text-[11px] text-red-700 dark:text-red-400">{state.error}</span>
+          <span className="text-[11px] text-red-700 dark:text-red-400">
+            {state.error}
+          </span>
         </div>
       )}
 

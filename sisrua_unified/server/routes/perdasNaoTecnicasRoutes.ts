@@ -3,7 +3,6 @@ import { z } from "zod";
 import {
   PerdasNaoTecnicasService,
   type CategoriaPerda,
-  type StatusMonitoramento,
 } from "../services/perdasNaoTecnicasService.js";
 
 const router = Router();

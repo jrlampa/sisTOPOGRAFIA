@@ -9,7 +9,6 @@ import { Request, Response, NextFunction } from "express";
 import { body, query, param } from "express-validator";
 import { createHash } from 'crypto';
 import { logger } from "../utils/logger.js";
-import { ErrorCode } from "../errorHandler.js";
 
 /**
  * Valida complexidade de geometria para evitar DoS
@@ -202,7 +201,7 @@ export const validatorsExpanded = {
       .isString()
       .trim()
       .isLength({ min: 1, max: 255 })
-      .matches(/^[a-zA-Z0-9._\-\s]+$/)
+      .matches(/^[a-zA-Z0-9._\s-]+$/)
       .withMessage("Invalid filename (alphanumeric, dots, dashes, spaces only)"),
 
     body("size")
@@ -213,7 +212,7 @@ export const validatorsExpanded = {
     body("mimetype")
       .optional()
       .isString()
-      .matches(/^[a-z]+\/[a-z0-9+.\-]+$/)
+      .matches(/^[a-z]+\/[a-z0-9+.-]+$/)
       .withMessage("Invalid MIME type"),
   ],
 

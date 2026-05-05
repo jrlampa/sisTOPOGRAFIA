@@ -5,13 +5,10 @@ import app from "./app.js";
 import { OllamaService } from "./services/ollamaService.js";
 import {
   startFirestoreMonitoring,
-  stopFirestoreMonitoring,
 } from "./services/firestoreService.js";
 import {
   initializeDxfCleanup,
-  stopDxfCleanup,
 } from "./services/dxfCleanupService.js";
-import { stopTaskWorker } from "./services/cloudTasksService.js";
 import { constantsService } from "./services/constantsService.js";
 import { maintenanceService } from "./services/maintenanceService.js";
 import { logger } from "./utils/logger.js";

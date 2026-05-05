@@ -7,7 +7,6 @@ import { z } from "zod";
 import {
   BcpDrService,
   RegiaoCloud,
-  TipoIncidente,
 } from "../services/bcpDrService.js";
 
 const router = Router();

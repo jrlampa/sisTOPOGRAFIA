@@ -15,6 +15,13 @@ import { metricsService } from "../services/metricsService.js";
 
 export type SqlClient = ReturnType<typeof postgres>;
 
+interface PostgresClientWithStats extends SqlClient {
+  stats?: {
+    max?: number;
+    idle?: number;
+  };
+}
+
 // Singleton – lazily initialized on first use.
 let _client: SqlClient | null = null;
 let _available = false;
@@ -103,9 +110,7 @@ export async function pingDb(): Promise<boolean> {
     await _client`SELECT 1`;
     _available = true;
 
-    // Report pool stats (postgres.js provides a simple stats object)
-    // @ts-ignore - stats is available on the postgres client
-    const stats = (_client as any).stats;
+    const stats = (_client as PostgresClientWithStats).stats;
     if (stats) {
       metricsService.recordDbPoolState({
         size: stats.max || 0,

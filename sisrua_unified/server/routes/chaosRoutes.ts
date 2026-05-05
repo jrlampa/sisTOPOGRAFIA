@@ -102,12 +102,22 @@ router.get("/experiments", (req: Request, res: Response): void => {
   const statusRaw = req.query["status"] as string | undefined;
   const targetTypeRaw = req.query["targetType"] as string | undefined;
   const tagRaw = req.query["tag"] as string | undefined;
+  type ExperimentFilters = NonNullable<
+    Parameters<typeof listChaosExperiments>[0]
+  >;
+  const filters: ExperimentFilters = {};
 
-  const experiments = listChaosExperiments({
-    status: statusRaw as Parameters<typeof listChaosExperiments>[0]["status"],
-    targetType: targetTypeRaw as Parameters<typeof listChaosExperiments>[0]["targetType"],
-    tag: tagRaw,
-  });
+  if (statusRaw) {
+    filters.status = statusRaw as ExperimentFilters["status"];
+  }
+  if (targetTypeRaw) {
+    filters.targetType = targetTypeRaw as ExperimentFilters["targetType"];
+  }
+  if (tagRaw) {
+    filters.tag = tagRaw;
+  }
+
+  const experiments = listChaosExperiments(filters);
   res.json(experiments);
 });
 

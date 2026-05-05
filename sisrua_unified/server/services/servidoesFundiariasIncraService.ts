@@ -9,7 +9,7 @@
  *  - Decreto nº 9.311/2018 — Georreferenciamento de imóveis rurais
  */
 
-import { createHash, randomUUID } from "crypto";
+import { createHash } from "crypto";
 
 export type TipoServidao =
   | "passagem"

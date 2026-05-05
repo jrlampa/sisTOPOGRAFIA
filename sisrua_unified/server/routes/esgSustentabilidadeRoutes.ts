@@ -4,7 +4,7 @@
 
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { EsgSustentabilidadeService, DIMENSAO_INDICADOR } from "../services/esgSustentabilidadeService.js";
+import { EsgSustentabilidadeService } from "../services/esgSustentabilidadeService.js";
 
 const router = Router();
 

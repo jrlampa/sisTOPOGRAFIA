@@ -6,7 +6,7 @@
  */
 
 import { Request, Response, NextFunction } from "express";
-import { ZodTypeAny, ZodError } from "zod";
+import { ZodTypeAny } from "zod";
 import { logger } from "../utils/logger.js";
 
 /**

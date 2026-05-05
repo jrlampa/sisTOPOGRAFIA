@@ -10,7 +10,7 @@
  * - ANEEL PRODIST Módulo 1 (2023) — Introdução
  */
 
-import { createHash, randomUUID } from "crypto";
+import { createHash } from "crypto";
 
 // ---------------------------------------------------------------------------
 // Tipos e interfaces

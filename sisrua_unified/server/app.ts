@@ -9,7 +9,6 @@ import helmet from "helmet";
 
 import { config } from "./config.js";
 import { OllamaService } from "./services/ollamaService.js";
-import { constantsService } from "./services/constantsService.js";
 import { logger } from "./utils/logger.js";
 import { requestContext } from "./utils/requestContext.js";
 import {
@@ -35,7 +34,6 @@ import {
 // ─── Health Check Cache ────────────────────────────────────────────────
 let lastHealthResponse: any = null;
 let lastHealthTimestamp = 0;
-const HEALTH_CACHE_TTL = 10000; // 10 seconds
 
 let cachedDbStatus = "disabled";
 let lastDbCheckTime = 0;
@@ -247,7 +245,7 @@ if (isProduction) {
             "Content-Type, Authorization, x-request-id",
           );
         }
-      } catch (err) {
+      } catch (_err) {
         // Invalid origin URL
       }
     }

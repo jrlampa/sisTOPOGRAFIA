@@ -95,10 +95,6 @@ let contadorAtivo = 0;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function vplFluxos(fluxos: { ano: number; valor: number }[], taxa: number): number {
-  return fluxos.reduce((sum, f) => sum + f.valor / Math.pow(1 + taxa, f.ano), 0);
-}
-
 function calcularResultado(analise: AnaliseLcc): ResultadoLcc {
   const taxa = analise.taxaDesconto;
   const n = analise.horizonte;

@@ -90,7 +90,16 @@ function checkExclusionZones(candidateUtm: DgPoint, exclusionPolygons: DgExclusi
 }
 
 const SIDEWALK_OFFSET_BY_CLASS: Record<OsmHighwayClass, number> = {
-  residential: 3, tertiary: 5, secondary: 7, primary: 9, trunk: 12, unknown: 0
+  motorway: 0,
+  service: 0,
+  track: 0,
+  path: 0,
+  residential: 3,
+  tertiary: 5,
+  secondary: 7,
+  primary: 9,
+  trunk: 12,
+  unknown: 0,
 };
 
 function checkRoadCorridor(candidateUtm: DgPoint, roadCorridors: DgRoadCorridor[]): DgConstraintViolation[] {

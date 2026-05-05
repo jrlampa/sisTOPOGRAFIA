@@ -13,8 +13,6 @@
  *   - NEOENERGIA / COELBA: padrão de projeto MT/BT nordeste
  */
 
-import { randomUUID } from "crypto";
-
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 export type TipoRede = "bt" | "mt" | "bt_mt";

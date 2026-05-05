@@ -101,6 +101,7 @@ export const requireMetricsToken = (
   }
 
   if (!authHeader) {
+    res.set("WWW-Authenticate", 'Bearer realm="metrics"');
     return res.status(401).json({
       error: "Unauthorized",
       code: "UNAUTHORIZED",

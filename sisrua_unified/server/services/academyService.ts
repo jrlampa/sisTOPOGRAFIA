@@ -3,7 +3,7 @@
  * Tutoriais interativos e trilhas de certificação técnica integradas.
  */
 
-import { createHash, randomUUID } from "crypto";
+import { createHash } from "crypto";
 
 export type NivelDificuldade = "basico" | "intermediario" | "avancado" | "especialista";
 export type TipoConteudo = "video" | "texto" | "quiz" | "simulacao" | "pratica_guiada";

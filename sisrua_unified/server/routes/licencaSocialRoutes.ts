@@ -1,18 +1,10 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { LicencaSocialService, type TipoConsulta } from "../services/licencaSocialService.js";
+import { LicencaSocialService } from "../services/licencaSocialService.js";
 
 const router = Router();
 
 // ─── Schemas de validação ────────────────────────────────────────────────────
-
-const tiposConsulta: TipoConsulta[] = [
-  "audiencia_publica",
-  "consulta_publica",
-  "reuniao_comunitaria",
-  "pesquisa_percepcao",
-  "oficina_participativa",
-];
 
 const criarSchema = z.object({
   nome: z.string().min(2),

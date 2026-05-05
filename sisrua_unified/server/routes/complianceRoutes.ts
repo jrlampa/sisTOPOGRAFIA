@@ -5,16 +5,11 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { EmagCertService, SecaoEmag } from "../services/emagCertService.js";
-import { AneelProvenanceService, TipoArtefato } from "../services/aneelProvenanceService.js";
+import { AneelProvenanceService } from "../services/aneelProvenanceService.js";
 
 const router = Router();
 
 // ─── eMAG 3.1 ────────────────────────────────────────────────────────────────
-
-const SecaoSchema = z.enum([
-  "1_marcacao", "2_comportamento", "3_conteudo",
-  "4_apresentacao", "5_multimidia", "6_formulario",
-]);
 
 const InspecaoSchema = z.object({
   titulo: z.string().min(1),

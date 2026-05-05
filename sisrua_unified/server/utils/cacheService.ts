@@ -5,8 +5,6 @@
  * Fulfills Audit P2 requirement for production-ready caching.
  */
 
-import { logger } from "./logger.js";
-
 type CacheEntry<T> = {
   value: T;
   expiresAt: number;

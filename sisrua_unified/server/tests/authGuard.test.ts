@@ -73,4 +73,25 @@ describe("authGuard hardening", () => {
       expect.objectContaining({ code: "SECURITY_MISCONFIGURATION" }),
     );
   });
+
+  it("sets metrics bearer challenge when auth header is absent", () => {
+    mockConfig.METRICS_TOKEN = "metrics-secret";
+
+    const req: any = { headers: {}, path: "/metrics", ip: "127.0.0.1" };
+    const res: any = {
+      set: vi.fn().mockReturnThis(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
+    };
+    const next = vi.fn();
+
+    requireMetricsToken(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.set).toHaveBeenCalledWith(
+      "WWW-Authenticate",
+      'Bearer realm="metrics"',
+    );
+    expect(res.status).toHaveBeenCalledWith(401);
+  });
 });

@@ -47,7 +47,10 @@ const DEFAULT_SNAP_DISTANCE_M = 150;
 
 // ─── Distância euclidiana UTM ────────────────────────────────────────────────
 
-function dist(a: { x: number; y: number }, b: { x: number; y: number }): number {
+function dist(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
@@ -84,7 +87,9 @@ function computeEdgeCost(
       : 1.0;
   const sensitiveMult = isSensitiveArea ? profile.sensitiveCrossing : 1.0;
   const existingBonus = hasExistingPole ? profile.existingPoleBonus : 1.0;
-  return lengthMeters * highwayMult * sensitiveMult * existingBonus + fixedPenalty;
+  return (
+    lengthMeters * highwayMult * sensitiveMult * existingBonus + fixedPenalty
+  );
 }
 
 // ─── Construção do grafo ponderado ───────────────────────────────────────────
@@ -126,7 +131,9 @@ function buildLcpGraph(
     if (seg.centerPoints.length < 2) continue;
     const isSensitive = seg.isSensitiveArea ?? false;
     const fixedPenalty = seg.fixedPenalty ?? 0;
-    const highwayClass = (seg.highwayClass ?? seg.highwayClass) as LcpHighwayClass | undefined;
+    const highwayClass = (seg.highwayClass ?? seg.highwayClass) as
+      | LcpHighwayClass
+      | undefined;
 
     let prev: string | null = null;
     for (const pt of seg.centerPoints) {
@@ -135,10 +142,12 @@ function buildLcpGraph(
         const fromNode = nodes.get(prev)!;
         const toNode = nodes.get(cur)!;
         const lengthMeters = dist(fromNode.point, toNode.point);
-        if (lengthMeters <= 0) { prev = cur; continue; }
+        if (lengthMeters <= 0) {
+          prev = cur;
+          continue;
+        }
 
-        const hasExisting =
-          fromNode.isExistingPole || toNode.isExistingPole;
+        const hasExisting = fromNode.isExistingPole || toNode.isExistingPole;
         const wCost = computeEdgeCost(
           lengthMeters,
           profile,
@@ -228,7 +237,10 @@ function dijkstra(
     let best = Number.POSITIVE_INFINITY;
     for (const n of queue) {
       const d = distMap.get(n) ?? Number.POSITIVE_INFINITY;
-      if (d < best) { best = d; u = n; }
+      if (d < best) {
+        best = d;
+        u = n;
+      }
     }
     if (!u) break;
     queue.delete(u);
@@ -255,7 +267,6 @@ function reconstructPath(
   target: string,
   nodes: Map<string, LcpGraphNode>,
   dijkstra: DijkstraResult,
-  profile: LcpCostProfile,
 ): LcpPathSegment[] | null {
   const segments: LcpPathSegment[] = [];
   let current = target;
@@ -299,7 +310,8 @@ function findClosest(
   let best: { nodeId: string; distanceMeters: number } | null = null;
   for (const n of nodes.values()) {
     const d = dist(pt, n.point);
-    if (!best || d < best.distanceMeters) best = { nodeId: n.id, distanceMeters: d };
+    if (!best || d < best.distanceMeters)
+      best = { nodeId: n.id, distanceMeters: d };
   }
   return best;
 }
@@ -307,10 +319,10 @@ function findClosest(
 // ─── API pública ─────────────────────────────────────────────────────────────
 
 export function computeLcpRoutes(input: LcpInput): LcpResult {
-  const profile =
-    input.costProfile ?? LCP_COST_PROFILES["URBAN_STANDARD"]!;
+  const profile = input.costProfile ?? LCP_COST_PROFILES["URBAN_STANDARD"]!;
   const maxSnap = input.maxSnapDistanceMeters ?? DEFAULT_SNAP_DISTANCE_M;
-  const mergeThreshold = input.nodeMergeThresholdMeters ?? DEFAULT_MERGE_THRESHOLD_M;
+  const mergeThreshold =
+    input.nodeMergeThresholdMeters ?? DEFAULT_MERGE_THRESHOLD_M;
 
   if (!input.terminals.length) {
     return {
@@ -393,7 +405,11 @@ export function computeLcpRoutes(input: LcpInput): LcpResult {
   const uniqueEdges = new Map<string, LcpEdge>();
 
   for (const terminal of input.terminals) {
-    const termSnap = findClosest(nodes, terminal.position.lat, terminal.position.lon);
+    const termSnap = findClosest(
+      nodes,
+      terminal.position.lat,
+      terminal.position.lon,
+    );
     if (!termSnap || termSnap.distanceMeters > maxSnap) {
       unreachable.push(terminal.id);
       continue;
@@ -405,7 +421,7 @@ export function computeLcpRoutes(input: LcpInput): LcpResult {
       continue;
     }
 
-    const segments = reconstructPath(termSnap.nodeId, nodes, dijk, profile);
+    const segments = reconstructPath(termSnap.nodeId, nodes, dijk);
     if (!segments) {
       unreachable.push(terminal.id);
       continue;

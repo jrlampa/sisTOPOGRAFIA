@@ -27,6 +27,7 @@ export type DossierStatus =
 /** Vista auditável de um job — sem dados sensíveis do payload completo. */
 export interface JobDossierEntry {
   taskId: string;
+  tenantId?: string;
   status: DossierStatus;
   attempts: number;
   idempotencyKey?: string;
@@ -130,6 +131,7 @@ function mapRow(row: Record<string, unknown>): JobDossierEntry {
   const p = row.payload as Record<string, unknown> | null;
   return {
     taskId: String(row.task_id),
+    tenantId: row.tenant_id != null ? String(row.tenant_id) : undefined,
     status: String(row.status) as DossierStatus,
     attempts: Number(row.attempts ?? 0),
     idempotencyKey:
@@ -160,7 +162,7 @@ function mapRow(row: Record<string, unknown>): JobDossierEntry {
 }
 
 const DOSSIER_SELECT = `
-  SELECT task_id, status, attempts, idempotency_key, artifact_sha256,
+  SELECT task_id, tenant_id, status, attempts, idempotency_key, artifact_sha256,
          error, created_at, updated_at, started_at, finished_at, payload
   FROM dxf_tasks
 `;
@@ -332,14 +334,18 @@ export async function getJobDossier(
  */
 export async function listRecentJobs(
   limit = 50,
+  tenantId?: string,
 ): Promise<JobDossierEntry[]> {
   await initConnection();
   if (!available || !sqlClient) return [];
 
   const safeLimit = Math.min(Math.max(1, Math.trunc(limit)), 200);
+  const query = tenantId
+    ? `${DOSSIER_SELECT} WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT $2`
+    : `${DOSSIER_SELECT} ORDER BY created_at DESC LIMIT $1`;
   const rows = (await sqlClient.unsafe(
-    `${DOSSIER_SELECT} ORDER BY created_at DESC LIMIT $1`,
-    [safeLimit],
+    query,
+    tenantId ? [tenantId, safeLimit] : [safeLimit],
   )) as Record<string, unknown>[];
 
   return rows.map(mapRow);

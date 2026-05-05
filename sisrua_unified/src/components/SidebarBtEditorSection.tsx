@@ -119,6 +119,10 @@ export interface SidebarBtEditorSectionProps {
   onMtRouterRemoveTerminal?: (id: string) => void;
   onMtRouterSetMaxSnapDistance?: (m: number) => void;
   onMtRouterSetNetworkProfile?: (profile: MtNetworkProfile) => void;
+  onMtRouterSetMtCqtParams?: (params: {
+    voltageKv: number;
+    cqtLimitFraction: number;
+  }) => void;
   onMtRouterUploadKmz?: (file: File) => void;
   onMtRouterCalculate?: () => void;
   onMtRouterApplyProject?: () => void;
@@ -186,6 +190,7 @@ export function SidebarBtEditorSection({
   onMtRouterRemoveTerminal,
   onMtRouterSetMaxSnapDistance,
   onMtRouterSetNetworkProfile,
+  onMtRouterSetMtCqtParams,
   onMtRouterUploadKmz,
   onMtRouterCalculate,
   onMtRouterApplyProject,
@@ -500,6 +505,7 @@ export function SidebarBtEditorSection({
             onSetNetworkProfile={
               onMtRouterSetNetworkProfile ?? (() => undefined)
             }
+            onSetMtCqtParams={onMtRouterSetMtCqtParams ?? (() => undefined)}
             onUploadKmz={onMtRouterUploadKmz ?? (() => undefined)}
             onCalculate={onMtRouterCalculate}
             onApply={onMtRouterApplyProject ?? (() => undefined)}

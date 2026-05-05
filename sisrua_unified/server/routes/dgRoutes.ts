@@ -164,11 +164,25 @@ const mtRouterBodySchema = z.object({
       }),
     )
     .optional(),
+  mtCqtParams: z
+    .object({
+      voltageKv: z.number().positive().max(500).default(13.2),
+      cqtLimitFraction: z.number().positive().max(1).default(0.0182),
+    })
+    .optional(),
 });
 
 const lcpHighwayClassSchema = z.enum([
-  "motorway", "trunk", "primary", "secondary", "tertiary",
-  "residential", "service", "track", "path", "unknown",
+  "motorway",
+  "trunk",
+  "primary",
+  "secondary",
+  "tertiary",
+  "residential",
+  "service",
+  "track",
+  "path",
+  "unknown",
 ]);
 
 const lcpRoadSegmentSchema = z.object({
@@ -183,7 +197,7 @@ const lcpRoadSegmentSchema = z.object({
 const lcpCostProfileSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
-  highwayMultiplier: z.record(z.number().positive()).optional(),
+  highwayMultiplier: z.record(z.string(), z.number().positive()).default({}),
   existingPoleBonus: z.number().positive().max(1.5),
   sensitiveCrossing: z.number().positive(),
   baseCostPerMeter: z.number().positive(),
@@ -191,18 +205,26 @@ const lcpCostProfileSchema = z.object({
 
 const lcpBodySchema = z.object({
   source: latLonSchema,
-  terminals: z.array(z.object({
-    id: z.string().min(1),
-    position: latLonSchema,
-    demandKva: z.number().nonnegative().optional(),
-  })).min(1),
+  terminals: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        position: latLonSchema,
+        demandKva: z.number().nonnegative().optional(),
+      }),
+    )
+    .min(1),
   roadSegments: z.array(lcpRoadSegmentSchema).min(1),
   costProfile: lcpCostProfileSchema.optional(),
   costProfileId: z.string().optional(),
-  existingPoles: z.array(z.object({
-    id: z.string().min(1),
-    position: latLonSchema,
-  })).optional(),
+  existingPoles: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        position: latLonSchema,
+      }),
+    )
+    .optional(),
   maxSnapDistanceMeters: z.number().positive().max(1000).optional(),
   nodeMergeThresholdMeters: z.number().nonnegative().max(10).optional(),
   runId: z.string().optional(),
@@ -223,12 +245,10 @@ router.post(
   async (req: Request, res: Response) => {
     const parsed = optimizeBodySchema.safeParse(req.body);
     if (!parsed.success)
-      return res
-        .status(400)
-        .json({
-          error: "Parâmetros inválidos",
-          details: parsed.error.flatten(),
-        });
+      return res.status(400).json({
+        error: "Parâmetros inválidos",
+        details: parsed.error.flatten(),
+      });
     try {
       const output = await runDgOptimization({
         ...parsed.data,
@@ -251,12 +271,10 @@ router.post(
   async (req: Request, res: Response) => {
     const parsed = mtRouterBodySchema.safeParse(req.body);
     if (!parsed.success) {
-      return res
-        .status(400)
-        .json({
-          error: "Parâmetros inválidos",
-          details: parsed.error.flatten(),
-        });
+      return res.status(400).json({
+        error: "Parâmetros inválidos",
+        details: parsed.error.flatten(),
+      });
     }
     try {
       const result = planMtRouter(parsed.data);
@@ -336,7 +354,7 @@ router.post(
         details: { ...parsed.data, tenantId: res.locals.tenantId },
       });
       return res.status(200).json({ success: true });
-    } catch (err) {
+    } catch (_err) {
       return res.status(500).json({ error: "Erro ao registrar auditoria." });
     }
   },
@@ -359,7 +377,7 @@ router.post(
         details: { ...parsed.data, tenantId: res.locals.tenantId },
       });
       return res.status(200).json({ success: true });
-    } catch (err) {
+    } catch (_err) {
       return res.status(500).json({ error: "Erro ao registrar auditoria." });
     }
   },
@@ -373,7 +391,7 @@ router.get(
       const limit = Math.min(Math.max(Number(req.query.limit ?? 20), 1), 100);
       const runs = await listDgRuns(limit, res.locals.tenantId);
       return res.status(200).json({ total: runs.length, limit, runs });
-    } catch (err) {
+    } catch (_err) {
       return res.status(500).json({ error: "Erro ao listar runs DG." });
     }
   },
@@ -387,7 +405,7 @@ router.get(
       const limit = Math.min(Math.max(Number(req.query.limit ?? 100), 1), 200);
       const rates = await listDgDiscardRates(limit, res.locals.tenantId);
       return res.status(200).json({ total: rates.length, limit, rows: rates });
-    } catch (err) {
+    } catch (_err) {
       return res
         .status(500)
         .json({ error: "Erro ao listar taxas de descarte DG." });
@@ -404,7 +422,7 @@ router.get(
       if (!run)
         return res.status(404).json({ error: "Run DG não encontrada." });
       return res.status(200).json(run);
-    } catch (err) {
+    } catch (_err) {
       return res.status(500).json({ error: "Erro ao consultar run." });
     }
   },
@@ -425,15 +443,13 @@ router.get(
       const filtered = feasibleOnly
         ? scenarios.filter((s) => s.feasible)
         : scenarios;
-      return res
-        .status(200)
-        .json({
-          runId: req.params.id,
-          total: scenarios.length,
-          returned: filtered.length,
-          scenarios: filtered,
-        });
-    } catch (err) {
+      return res.status(200).json({
+        runId: req.params.id,
+        total: scenarios.length,
+        returned: filtered.length,
+        scenarios: filtered,
+      });
+    } catch (_err) {
       return res.status(500).json({ error: "Erro ao consultar cenários." });
     }
   },
@@ -451,7 +467,7 @@ router.get(
       if (!recommendation)
         return res.status(404).json({ error: "Recomendação não encontrada." });
       return res.status(200).json({ runId: req.params.id, recommendation });
-    } catch (err) {
+    } catch (_err) {
       return res.status(500).json({ error: "Erro ao consultar recomendação." });
     }
   },
@@ -523,7 +539,7 @@ router.post(
     try {
       const result = await validateBufferZone(req.body);
       res.status(200).json({ success: true, data: result });
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({ error: "Erro na validação de buffer." });
     }
   },
@@ -537,7 +553,7 @@ router.post(
     try {
       const result = await validateMultiplePoints(req.body);
       res.status(200).json({ success: true, data: result });
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({ error: "Erro na validação batch." });
     }
   },

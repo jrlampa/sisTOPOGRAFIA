@@ -58,7 +58,7 @@ router.post("/metrics", (req, res) => {
   if (!parsed.success) {
     res.status(400).json({
       error: "profileId e totalRows (inteiro positivo) são obrigatórios.",
-      details: parsed.error.errors,
+      details: parsed.error.issues,
     });
     return;
   }
@@ -81,7 +81,7 @@ router.post("/suggest", (req, res) => {
   if (!parsed.success) {
     res.status(400).json({
       error: "totalRows e context ('office' | 'field' | 'noc' | 'presentation') são obrigatórios.",
-      details: parsed.error.errors,
+      details: parsed.error.issues,
     });
     return;
   }

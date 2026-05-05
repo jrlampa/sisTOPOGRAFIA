@@ -113,7 +113,7 @@ export class ArtifactHardeningService {
     }
 
     // Encoding suspeito (null bytes, caracteres de controle inesperados)
-    const nullBytes = (conteudo.match(/\x00/g) || []).length;
+    const nullBytes = conteudo.split("\0").length - 1;
     if (nullBytes > 10) {
       riscos.push({
         tipo: "encoding_suspeito",
@@ -140,7 +140,7 @@ export class ArtifactHardeningService {
     return texto
       .replace(/(<script[\s>].*?<\/script>)/gis, "[REMOVIDO]")
       .replace(/(javascript\s*:)/gi, "javascript_blocked:")
-      .replace(/\x00/g, "")
+      .replaceAll("\0", "")
       .slice(0, 10_000);
   }
 

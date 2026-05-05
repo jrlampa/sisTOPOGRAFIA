@@ -19,7 +19,7 @@
  *   - Relatório de orçamento com hashIntegridade SHA-256
  */
 
-import { createHash, randomUUID } from "crypto";
+import { createHash } from "crypto";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 

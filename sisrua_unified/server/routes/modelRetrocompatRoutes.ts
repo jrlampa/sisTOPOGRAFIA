@@ -100,7 +100,7 @@ const compatibilitySchema = z.object({
 router.post("/check-compatibility", (req, res) => {
   const parsed = compatibilitySchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "modelId e promptTemplateId são obrigatórios.", details: parsed.error.errors });
+    res.status(400).json({ error: "modelId e promptTemplateId são obrigatórios.", details: parsed.error.issues });
     return;
   }
   const result = checkCompatibility(parsed.data.modelId, parsed.data.promptTemplateId);

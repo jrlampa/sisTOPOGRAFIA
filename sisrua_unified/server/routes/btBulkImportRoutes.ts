@@ -11,7 +11,6 @@
 
 import { Router, Request, Response } from "express";
 import multer from "multer";
-import { z } from "zod";
 import { parseBatchExcel } from "../services/batchService.js";
 import { logger } from "../utils/logger.js";
 
@@ -21,13 +20,6 @@ const router = Router();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
-});
-
-// Schema for Excel parsing response
-const excelParseResponseSchema = z.object({
-  success: z.boolean(),
-  data: z.string().optional(), // Tab-delimited text
-  error: z.string().optional(),
 });
 
 /**
@@ -59,7 +51,7 @@ router.post(
         });
       }
 
-      const { originalname, mimetype, buffer } = req.file;
+      const { originalname, buffer } = req.file;
 
       // Validate file extension
       const validExtensions = [".xlsx", ".xlsm", ".xlsb"];

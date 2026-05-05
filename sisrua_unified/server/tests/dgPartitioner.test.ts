@@ -468,4 +468,122 @@ describe("planMtRouter", () => {
       expect(["new", "existing"]).toContain(pole.nodeChangeFlag);
     }
   });
+
+  it("injeta poste intermediário quando o vão excede 40 m", () => {
+    const result = planMtRouter({
+      source: { lat: -23.55, lon: -46.64 },
+      terminals: [{ id: "TR-LONG", position: { lat: -23.55, lon: -46.6394 } }],
+      roadCorridors: [
+        {
+          id: "via-longa",
+          bufferMeters: 20,
+          centerPoints: [
+            { lat: -23.55, lon: -46.64 },
+            { lat: -23.55, lon: -46.6394 },
+          ],
+        },
+      ],
+      maxSnapDistanceMeters: 120,
+    });
+
+    expect(result.feasible).toBe(true);
+    expect(result.edges.length).toBeGreaterThan(1);
+    expect(result.edges.every((edge) => edge.lengthMeters <= 40.1)).toBe(true);
+    expect(result.edges.some((edge) => edge.spanLimited)).toBe(true);
+    expect(
+      result.engineeringWarnings.some((warning) =>
+        warning.includes("poste intermediário automático"),
+      ),
+    ).toBe(true);
+  });
+
+  it("classifica poste de esquina e adiciona montagem de trafo no terminal", () => {
+    const result = planMtRouter({
+      source: { lat: -23.55, lon: -46.64 },
+      terminals: [
+        { id: "TR-CORNER", position: { lat: -23.5496, lon: -46.6394 } },
+      ],
+      roadCorridors: [
+        {
+          id: "via-horizontal",
+          bufferMeters: 20,
+          centerPoints: [
+            { lat: -23.55, lon: -46.64 },
+            { lat: -23.55, lon: -46.6394 },
+          ],
+        },
+        {
+          id: "via-vertical",
+          bufferMeters: 20,
+          centerPoints: [
+            { lat: -23.55, lon: -46.6394 },
+            { lat: -23.5496, lon: -46.6394 },
+          ],
+        },
+      ],
+      maxSnapDistanceMeters: 120,
+      networkProfile: { conductorId: "AS 3x95mm²", structureType: "N1" },
+    });
+
+    expect(result.feasible).toBe(true);
+    const transformerPole = result.mtTopologyDraft?.poles.find(
+      (pole) => pole.mtStructures?.n1 === "H1",
+    );
+    expect(transformerPole).toBeDefined();
+
+    const criticalPole = result.poleDiagnostics.find(
+      (pole) =>
+        pole.supportStructureType === "N3" && pole.severity !== "normal",
+    );
+    expect(criticalPole).toBeDefined();
+    expect(criticalPole?.deflectionAngleDegrees).toBeGreaterThan(30);
+    expect(criticalPole?.resultantLoadDan).toBeGreaterThan(600);
+  });
+
+  it("reflete mtCqtParams customizados na nota do CQT readiness", () => {
+    const result = planMtRouter({
+      source: { lat: -23.55, lon: -46.64 },
+      terminals: [{ id: "TR-A", position: { lat: -23.5495, lon: -46.64 } }],
+      roadCorridors: [
+        {
+          id: "via-a",
+          bufferMeters: 20,
+          centerPoints: [
+            { lat: -23.55, lon: -46.64 },
+            { lat: -23.5495, lon: -46.64 },
+          ],
+        },
+      ],
+      maxSnapDistanceMeters: 120,
+      networkProfile: { conductorId: "AS 3x95mm²", structureType: "N1" },
+      mtCqtParams: { voltageKv: 34.5, cqtLimitFraction: 0.025 },
+    });
+
+    expect(result.mtCqtReadiness.note).toContain("34.5 kV");
+    expect(result.mtCqtReadiness.note).toContain("2.50%");
+    expect(result.mtCqtReadiness.pendingInputs).not.toContain(
+      "sourceNominalVoltageKv",
+    );
+  });
+
+  it("usa presets padrão 13,2 kV / 1,82% quando mtCqtParams é omitido", () => {
+    const result = planMtRouter({
+      source: { lat: -23.55, lon: -46.64 },
+      terminals: [{ id: "TR-B", position: { lat: -23.5495, lon: -46.64 } }],
+      roadCorridors: [
+        {
+          id: "via-b",
+          bufferMeters: 20,
+          centerPoints: [
+            { lat: -23.55, lon: -46.64 },
+            { lat: -23.5495, lon: -46.64 },
+          ],
+        },
+      ],
+      maxSnapDistanceMeters: 120,
+    });
+
+    expect(result.mtCqtReadiness.note).toContain("13.2 kV");
+    expect(result.mtCqtReadiness.note).toContain("1.82%");
+  });
 });

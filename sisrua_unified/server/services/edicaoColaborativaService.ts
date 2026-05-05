@@ -3,8 +3,6 @@
  * Suporte para edição simultânea geoespacial multicanal.
  */
 
-import { randomUUID } from "crypto";
-
 export type PapelParticipante = "editor" | "revisor" | "observador";
 type StatusParticipante = "ativo" | "inativo" | "expulso";
 type StatusSessao = "aberta" | "bloqueada" | "encerrada";

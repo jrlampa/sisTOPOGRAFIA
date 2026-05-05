@@ -10,7 +10,13 @@
  */
 
 import React from "react";
-import { Pane, Polyline, CircleMarker, Tooltip, useMapEvents } from "react-leaflet";
+import {
+  Pane,
+  Polyline,
+  CircleMarker,
+  Tooltip,
+  useMapEvents,
+} from "react-leaflet";
 import type { MtRouterState, MtLatLon } from "../../hooks/useMtRouter";
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -23,10 +29,12 @@ export interface MapMtRouterOverlayProps {
 // ─── Constantes visuais ────────────────────────────────────────────────────────
 
 const MT_SOURCE_COLOR = "#2563eb"; // blue-600
-const MT_SOURCE_FILL = "#bfdbfe";  // blue-200
+const MT_SOURCE_FILL = "#bfdbfe"; // blue-200
 const MT_TERMINAL_COLOR = "#06b6d4"; // cyan-500
 const MT_TERMINAL_FILL = "#cffafe"; // cyan-100
-const MT_ROUTE_COLOR = "#00d4ff";   // neon cyan
+const MT_ROUTE_COLOR = "#00d4ff"; // neon cyan
+const MT_DIAGNOSTIC_WARNING = "#f97316";
+const MT_DIAGNOSTIC_CRITICAL = "#dc2626";
 const MT_ROUTE_WEIGHT_DRAFT = 2;
 const MT_ROUTE_WEIGHT_RESULT = 3.5;
 const MT_ROUTE_DASH_DRAFT = "6 4";
@@ -34,7 +42,11 @@ const MT_PANE_Z = 460;
 
 // ─── Subcomponente: listener de cliques ───────────────────────────────────────
 
-function MapClickListener({ onMapClick }: { onMapClick: (pos: MtLatLon) => void }) {
+function MapClickListener({
+  onMapClick,
+}: {
+  onMapClick: (pos: MtLatLon) => void;
+}) {
   useMapEvents({
     click(e) {
       onMapClick({ lat: e.latlng.lat, lon: e.latlng.lng });
@@ -45,9 +57,13 @@ function MapClickListener({ onMapClick }: { onMapClick: (pos: MtLatLon) => void 
 
 // ─── Componente principal ──────────────────────────────────────────────────────
 
-const MapMtRouterOverlay: React.FC<MapMtRouterOverlayProps> = ({ state, onMapClick }) => {
+const MapMtRouterOverlay: React.FC<MapMtRouterOverlayProps> = ({
+  state,
+  onMapClick,
+}) => {
   const isSelecting =
-    state.selectionMode === "picking_source" || state.selectionMode === "picking_terminals";
+    state.selectionMode === "picking_source" ||
+    state.selectionMode === "picking_terminals";
 
   const hasResult = state.result !== null && state.result.feasible;
 
@@ -77,11 +93,47 @@ const MapMtRouterOverlay: React.FC<MapMtRouterOverlayProps> = ({ state, onMapCli
                 }}
               >
                 <Tooltip sticky>
-                  <span className="text-xs">{edge.distanceMeters.toFixed(0)} m</span>
+                  <span className="text-xs">
+                    {edge.distanceMeters.toFixed(0)} m
+                    {edge.spanLimited && edge.segmentCount
+                      ? ` • vão ajustado ${edge.segmentIndex}/${edge.segmentCount}`
+                      : ""}
+                  </span>
                 </Tooltip>
               </Polyline>
             );
           })}
+
+        {hasResult &&
+          state
+            .result!.poleDiagnostics.filter(
+              (pole) => pole.severity !== "normal",
+            )
+            .map((pole) => {
+              const isCritical = pole.severity === "critical";
+              return (
+                <CircleMarker
+                  key={`mt-pole-diagnostic-${pole.poleId}`}
+                  center={[pole.lat, pole.lng]}
+                  radius={7}
+                  pathOptions={{
+                    color: isCritical
+                      ? MT_DIAGNOSTIC_CRITICAL
+                      : MT_DIAGNOSTIC_WARNING,
+                    fillColor: isCritical ? "#fecaca" : "#fdba74",
+                    fillOpacity: 0.9,
+                    weight: 2,
+                  }}
+                >
+                  <Tooltip direction="top" offset={[0, -8]}>
+                    <span className="text-xs font-bold">
+                      {pole.title}: {pole.resultantLoadDan.toFixed(0)} daN
+                      {pole.message ? ` • ${pole.message}` : ""}
+                    </span>
+                  </Tooltip>
+                </CircleMarker>
+              );
+            })}
 
         {/* ── Linhas provisórias: origem → terminais sem rota calculada ── */}
         {!hasResult &&

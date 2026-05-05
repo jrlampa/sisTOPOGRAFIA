@@ -47,6 +47,10 @@ export interface DgExclusionPolygon {
 
 /** Classe de via OSM para heurística de calçada. */
 export type OsmHighwayClass =
+  | "motorway"
+  | "service"
+  | "track"
+  | "path"
   | "residential"
   | "tertiary"
   | "secondary"
@@ -59,6 +63,7 @@ export interface DgRoadCorridor {
   id: string;
   centerPoints: DgLatLon[];
   bufferMeters: number;
+  label?: string;
   /**
    * Classe OSM da via. Quando informado, aplica heurística de calçada:
    * candidato deve estar a pelo menos `sidewalkOffsetMeters(highwayClass)`
@@ -72,7 +77,9 @@ export interface DgRoadCorridor {
  * Faixa: 15 kVA até 300 kVA.
  * Fonte: TRAFOS_Z_BASELINE em cqtLookupTables.ts + prática de mercado.
  */
-export const COMMERCIAL_TRAFO_KVA = [15, 30, 45, 75, 112.5, 150, 225, 300] as const;
+export const COMMERCIAL_TRAFO_KVA = [
+  15, 30, 45, 75, 112.5, 150, 225, 300,
+] as const;
 export type CommercialTrafoKva = (typeof COMMERCIAL_TRAFO_KVA)[number];
 
 /** Parâmetros configuráveis do DG. */
@@ -164,7 +171,9 @@ export const DEFAULT_DG_PARAMS: DgParams = {
  * Respeita `trafoMaxKva` (atalho) antes de `faixaKvaTrafoPermitida`.
  * Garante que a lista esteja ordenada e contenha apenas kVAs positivos.
  */
-export function resolveTrafoFaixa(params: Pick<DgParams, "faixaKvaTrafoPermitida" | "trafoMaxKva">): number[] {
+export function resolveTrafoFaixa(
+  params: Pick<DgParams, "faixaKvaTrafoPermitida" | "trafoMaxKva">,
+): number[] {
   if (params.trafoMaxKva != null && params.trafoMaxKva > 0) {
     return [...COMMERCIAL_TRAFO_KVA].filter((k) => k <= params.trafoMaxKva!);
   }
@@ -372,6 +381,16 @@ export interface DgMtExistingPole {
   position: DgLatLon;
 }
 
+export interface DgMtCqtParams {
+  /** Tensão de linha nominal da MT (kV). Padrão de mercado: 13,2 kV. */
+  voltageKv: number;
+  /**
+   * Limite de queda de tensão CQT na MT como fração (0–1).
+   * Padrão regulatório: 1,82% → 0,0182.
+   */
+  cqtLimitFraction: number;
+}
+
 export interface DgMtRouterInput {
   source: DgLatLon;
   terminals: DgMtTerminalInput[];
@@ -388,6 +407,11 @@ export interface DgMtRouterInput {
   networkProfile?: DgMtNetworkProfile;
   /** Postes existentes no projeto — snap prioritário sobre nós virtuais. */
   existingPoles?: DgMtExistingPole[];
+  /**
+   * Parâmetros configuráveis para verificação CQT na MT.
+   * Quando omitido, usa os presets: 13,2 kV e 1,82%.
+   */
+  mtCqtParams?: DgMtCqtParams;
 }
 
 export interface DgMtRouterPath {
@@ -407,10 +431,40 @@ export interface DgMtRouterEdge {
   conductorId?: string;
   /** Tipo de estrutura BIM do perfil de rede aplicado. */
   structureType?: string;
+  /** true quando o trecho foi automaticamente subdividido por limite de vão. */
+  spanLimited?: boolean;
+  /** Índice 1-based do subtrecho gerado por subdivisão automática. */
+  segmentIndex?: number;
+  /** Total de subtrechos originados do mesmo vão lógico. */
+  segmentCount?: number;
   /** true se o nó de origem era um poste existente do projeto. */
   isExistingPoleFrom?: boolean;
   /** true se o nó de destino era um poste existente do projeto. */
   isExistingPoleTo?: boolean;
+}
+
+export interface DgMtPoleDiagnostic {
+  poleId: string;
+  nodeId: string;
+  lat: number;
+  lng: number;
+  title: string;
+  degree: number;
+  deflectionAngleDegrees: number;
+  resultantLoadDan: number;
+  nominalLoadDan: number;
+  severity: "normal" | "warning" | "critical";
+  supportStructureType: string;
+  hasTransformerMount: boolean;
+  requiresReinforcement: boolean;
+  message?: string;
+}
+
+export interface DgMtCqtReadiness {
+  ready: boolean;
+  conductorId?: string;
+  pendingInputs: string[];
+  note: string;
 }
 
 /** Rascunho de topologia MT para persistência imediata via "Aplicar". */
@@ -421,6 +475,12 @@ export interface DgMtTopologyDraft {
     lng: number;
     title: string;
     structureType?: string;
+    mtStructures?: {
+      n1?: string;
+      n2?: string;
+      n3?: string;
+      n4?: string;
+    };
     /** "existing" para postes reutilizados, "new" para nós virtuais criados. */
     nodeChangeFlag: "new" | "existing";
   }[];
@@ -442,6 +502,10 @@ export interface DgMtRouterResult {
   totalLengthMeters: number;
   edges: DgMtRouterEdge[];
   paths: DgMtRouterPath[];
+  unreachableTerminals: string[];
+  poleDiagnostics: DgMtPoleDiagnostic[];
+  engineeringWarnings: string[];
+  mtCqtReadiness: DgMtCqtReadiness;
   /** Rascunho de topologia MT pronto para ser mesclado ao projeto. */
   mtTopologyDraft?: DgMtTopologyDraft;
 }
