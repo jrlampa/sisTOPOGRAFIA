@@ -156,14 +156,16 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      chunkSizeWarningLimit: 500,
+      // Large route-level chunks (App/Admin/ExcelJS) are expected and lazy-loaded.
+      chunkSizeWarningLimit: 1000,
       minify: "esbuild",
       target: "esnext",
       rollupOptions: {
         output: {
           manualChunks(id) {
             const isSrcPath = (segment: string) =>
-              id.includes(`/src/${segment}/`) || id.includes(`\\src\\${segment}\\`);
+              id.includes(`/src/${segment}/`) ||
+              id.includes(`\\src\\${segment}\\`);
 
             if (
               id.includes("node_modules/react/") ||
@@ -192,28 +194,38 @@ export default defineConfig(({ mode }) => {
             ) {
               return "recharts";
             }
-            if (id.includes("node_modules/exceljs/")) {
-              return "exceljs";
-            }
-            if (id.includes("node_modules/posthog-js/")) {
-              return "analytics";
-            }
             if (id.includes("node_modules/jszip/")) {
               return "jszip";
             }
-            if (id.includes("BtUnifiedInfraTab") || id.includes("BtUnifiedElectricalTab") || id.includes("BtUnifiedCommercialTab")) {
+            if (
+              id.includes("BtUnifiedInfraTab") ||
+              id.includes("BtUnifiedElectricalTab") ||
+              id.includes("BtUnifiedCommercialTab")
+            ) {
               return "feature-bt-tabs";
             }
-            if (isSrcPath("components/BtTopologyPanel") || id.includes("SidebarBtEditorSection")) {
+            if (
+              isSrcPath("components/BtTopologyPanel") ||
+              id.includes("SidebarBtEditorSection")
+            ) {
               return "feature-bt-core";
             }
-            if (isSrcPath("components/MapLayers") || id.includes("MapSelector")) {
+            if (
+              isSrcPath("components/MapLayers") ||
+              id.includes("MapSelector")
+            ) {
               return "feature-map";
             }
-            if (isSrcPath("components/settings") || id.includes("SettingsModal")) {
+            if (
+              isSrcPath("components/settings") ||
+              id.includes("SettingsModal")
+            ) {
               return "feature-settings";
             }
-            if (id.includes("AdminPageSectionRenderers") || id.includes("AdminPagePrimitives")) {
+            if (
+              id.includes("AdminPageSectionRenderers") ||
+              id.includes("AdminPagePrimitives")
+            ) {
               return "feature-admin-renderers";
             }
             if (id.includes("AdminPage") || isSrcPath("components/admin")) {

@@ -13,6 +13,7 @@ import type {
 import type {
   MtRouterState,
   MtSelectionMode,
+  MtNetworkProfile,
 } from "../hooks/useMtRouter";
 import type {
   AppSettings,
@@ -117,8 +118,10 @@ export interface SidebarBtEditorSectionProps {
   onMtRouterSetSelectionMode?: (mode: MtSelectionMode) => void;
   onMtRouterRemoveTerminal?: (id: string) => void;
   onMtRouterSetMaxSnapDistance?: (m: number) => void;
+  onMtRouterSetNetworkProfile?: (profile: MtNetworkProfile) => void;
   onMtRouterUploadKmz?: (file: File) => void;
   onMtRouterCalculate?: () => void;
+  onMtRouterApplyProject?: () => void;
   onMtRouterReset?: () => void;
   // Hoisted selection state
   selectedPoleId?: string;
@@ -182,8 +185,10 @@ export function SidebarBtEditorSection({
   onMtRouterSetSelectionMode,
   onMtRouterRemoveTerminal,
   onMtRouterSetMaxSnapDistance,
+  onMtRouterSetNetworkProfile,
   onMtRouterUploadKmz,
   onMtRouterCalculate,
+  onMtRouterApplyProject,
   onMtRouterReset,
   selectedPoleId = "",
   selectedPoleIds = [],
@@ -489,9 +494,15 @@ export function SidebarBtEditorSection({
             state={mtRouterState}
             onSetSelectionMode={onMtRouterSetSelectionMode ?? (() => undefined)}
             onRemoveTerminal={onMtRouterRemoveTerminal ?? (() => undefined)}
-            onSetMaxSnapDistance={onMtRouterSetMaxSnapDistance ?? (() => undefined)}
+            onSetMaxSnapDistance={
+              onMtRouterSetMaxSnapDistance ?? (() => undefined)
+            }
+            onSetNetworkProfile={
+              onMtRouterSetNetworkProfile ?? (() => undefined)
+            }
             onUploadKmz={onMtRouterUploadKmz ?? (() => undefined)}
             onCalculate={onMtRouterCalculate}
+            onApply={onMtRouterApplyProject ?? (() => undefined)}
             onReset={onMtRouterReset ?? (() => undefined)}
           />
         </>

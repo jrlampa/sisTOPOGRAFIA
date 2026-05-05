@@ -21,7 +21,7 @@ import { lazyWithRetry } from "./utils/lazyWithRetry";
 // ─── Lazy imports ─────────────────────────────────────────────────────────
 
 const LandingPage = lazy(() =>
-  lazyWithRetry(() => import("./pages/LandingPage")),
+  lazyWithRetry(() => import("./components/LandingDraftPage")),
 );
 const DashboardPage = lazy(() =>
   lazyWithRetry(() => import("./pages/DashboardPage")),

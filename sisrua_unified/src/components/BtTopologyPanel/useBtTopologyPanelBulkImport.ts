@@ -64,34 +64,37 @@ export const useBtTopologyPanelBulkImport = ({
     }
 
     try {
-      const ExcelJS = await import("exceljs");
-      const buffer = await file.arrayBuffer();
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.load(buffer);
+      // Use backend API to parse Excel (removes ExcelJS from frontend bundle)
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const worksheet =
-        workbook.getWorksheet("RAMAL") || workbook.getWorksheet(1);
-
-      if (!worksheet) return;
-
-      let raw = "";
-      worksheet.eachRow({ includeEmpty: true }, (row) => {
-        const rowValues: string[] = [];
-        // exceljs col numbers are 1-indexed
-        const rowCount = row.cellCount;
-        for (let i = 1; i <= rowCount; i++) {
-          const cell = row.getCell(i);
-          rowValues.push(cell.text ? cell.text.trim() : "");
-        }
-        raw += rowValues.join("\t") + "\n";
+      const response = await fetch("/api/bt/parse-bulk-excel", {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin",
       });
 
-      const sanitizedRaw = sanitizeWorkbookText(raw);
+      if (!response.ok) {
+        const errorData = await response.json();
+        setBulkRamalFeedback(
+          errorData.error || "Falha ao processar arquivo Excel.",
+        );
+        return;
+      }
+
+      const { success, data, error } = await response.json();
+
+      if (!success || !data) {
+        setBulkRamalFeedback(error || "Falha ao processar arquivo Excel.");
+        return;
+      }
+
+      const sanitizedRaw = sanitizeWorkbookText(data);
       setBulkRamalText(sanitizedRaw);
       applyBulkRamalInsertFromRaw(sanitizedRaw);
     } catch (err) {
-      console.error("Falha ao ler arquivo Excel", err);
-      setBulkRamalFeedback("Falha ao ler arquivo Excel.");
+      console.error("Falha ao enviar arquivo Excel para processamento", err);
+      setBulkRamalFeedback("Falha ao processar arquivo Excel.");
     }
   };
 

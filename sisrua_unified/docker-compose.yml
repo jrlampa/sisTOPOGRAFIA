@@ -42,8 +42,8 @@ services:
       # NO_PROXY=localhost,127.0.0.1,ollama,redis
       # NODE_TLS_MIN_VERSION=TLSv1.2
       # NODE_EXTRA_CA_CERTS=/run/secrets/corporate_ca.pem
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=false
+      - WATCHPACK_POLLING=false
     secrets:
       - redis_password
     volumes:
@@ -67,8 +67,8 @@ services:
           cpus: "2.0"
           memory: 4G
         reservations:
-          cpus: "0.5"
-          memory: 1G
+          cpus: "1.0"
+          memory: 2G
 
   redis:
     image: redis:8.6-alpine

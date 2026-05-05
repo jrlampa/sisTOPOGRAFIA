@@ -104,7 +104,10 @@ describe("findBestCutEdge", () => {
       id: p.id,
       positionUtm: latLonToUtm(p.position.lat, p.position.lon),
     }));
-    const trafoUtm = { x: polesUtm[0].positionUtm.x, y: polesUtm[0].positionUtm.y };
+    const trafoUtm = {
+      x: polesUtm[0].positionUtm.x,
+      y: polesUtm[0].positionUtm.y,
+    };
     const mst = buildMst("TR", polesUtm, trafoUtm);
     const demandByPole = new Map(poles.map((p) => [p.id, p.demandKva]));
     const totalDemand = 100;
@@ -120,10 +123,30 @@ describe("findBestCutEdge", () => {
 
   it("retorna null quando anti-isolamento bloqueia todos os cortes (90% em 1 poste)", () => {
     const poles: DgPoleInput[] = [
-      { id: "P1", position: { lat: -23.549, lon: -46.638 }, demandKva: 90, clients: 1 },
-      { id: "P2", position: { lat: -23.5492, lon: -46.638 }, demandKva: 3, clients: 1 },
-      { id: "P3", position: { lat: -23.5494, lon: -46.638 }, demandKva: 3, clients: 1 },
-      { id: "P4", position: { lat: -23.5496, lon: -46.638 }, demandKva: 4, clients: 1 },
+      {
+        id: "P1",
+        position: { lat: -23.549, lon: -46.638 },
+        demandKva: 90,
+        clients: 1,
+      },
+      {
+        id: "P2",
+        position: { lat: -23.5492, lon: -46.638 },
+        demandKva: 3,
+        clients: 1,
+      },
+      {
+        id: "P3",
+        position: { lat: -23.5494, lon: -46.638 },
+        demandKva: 3,
+        clients: 1,
+      },
+      {
+        id: "P4",
+        position: { lat: -23.5496, lon: -46.638 },
+        demandKva: 4,
+        clients: 1,
+      },
     ];
     const polesUtm = poles.map((p) => ({
       id: p.id,
@@ -198,7 +221,11 @@ describe("applyEccentricityDrag", () => {
 describe("partitionNetwork", () => {
   it("retorna 1 partição quando rede cabe num único trafo de 112.5 kVA (limite forçado)", () => {
     const poles = makePoles(8, 10); // total 80 kVA < 112.5
-    const result = partitionNetwork(poles, { ...DEFAULT_DG_PARAMS, trafoMaxKva: 112.5, cqtLimitFraction: 1.0 });
+    const result = partitionNetwork(poles, {
+      ...DEFAULT_DG_PARAMS,
+      trafoMaxKva: 112.5,
+      cqtLimitFraction: 1.0,
+    });
     expect(result.totalPartitions).toBe(1);
     expect(result.partitions[0].poles).toHaveLength(8);
     expect(result.cutEdgeIds).toHaveLength(0);
@@ -207,7 +234,11 @@ describe("partitionNetwork", () => {
   it("particiona em 2+ quando demanda excede 112.5 kVA (limite forçado)", () => {
     // 20 postes × 8 kVA = 160 kVA > 112.5 kVA
     const poles = makePoles(20, 8);
-    const result = partitionNetwork(poles, { ...DEFAULT_DG_PARAMS, trafoMaxKva: 112.5, cqtLimitFraction: 1.0 });
+    const result = partitionNetwork(poles, {
+      ...DEFAULT_DG_PARAMS,
+      trafoMaxKva: 112.5,
+      cqtLimitFraction: 1.0,
+    });
     expect(result.totalPartitions).toBeGreaterThanOrEqual(2);
     expect(result.cutEdgeIds.length).toBeGreaterThanOrEqual(1);
     for (const p of result.partitions) {
@@ -217,7 +248,10 @@ describe("partitionNetwork", () => {
 
   it("retorna 1 partição para 160 kVA quando o catálogo permite até 300 kVA", () => {
     const poles = makePoles(20, 8); // 160 kVA
-    const result = partitionNetwork(poles, { ...DEFAULT_DG_PARAMS, cqtLimitFraction: 1.0 }); // Catalogo vai até 300
+    const result = partitionNetwork(poles, {
+      ...DEFAULT_DG_PARAMS,
+      cqtLimitFraction: 1.0,
+    }); // Catalogo vai até 300
     expect(result.totalPartitions).toBe(1);
     expect(result.partitions[0].selectedKva).toBe(225); // Próximo acima de 160/0.95=168
   });
@@ -326,9 +360,7 @@ describe("planMtRouter", () => {
     // Com threshold padrão de 0.5 m os dois devem ser fundidos (mesmo nó).
     const result = planMtRouter({
       source: { lat: -23.55, lon: -46.64 },
-      terminals: [
-        { id: "TR-A", position: { lat: -23.5504, lon: -46.6394 } },
-      ],
+      terminals: [{ id: "TR-A", position: { lat: -23.5504, lon: -46.6394 } }],
       roadCorridors: [
         {
           id: "via-a",
@@ -360,9 +392,7 @@ describe("planMtRouter", () => {
     const existingPolePosition = { lat: -23.55, lon: -46.6394 };
     const result = planMtRouter({
       source: { lat: -23.55, lon: -46.64 },
-      terminals: [
-        { id: "TR-A", position: { lat: -23.5504, lon: -46.6394 } },
-      ],
+      terminals: [{ id: "TR-A", position: { lat: -23.5504, lon: -46.6394 } }],
       roadCorridors: [
         {
           id: "via-principal",
@@ -375,9 +405,7 @@ describe("planMtRouter", () => {
         },
       ],
       maxSnapDistanceMeters: 120,
-      existingPoles: [
-        { id: "P-001", position: existingPolePosition },
-      ],
+      existingPoles: [{ id: "P-001", position: existingPolePosition }],
     });
 
     expect(result.feasible).toBe(true);
@@ -391,9 +419,7 @@ describe("planMtRouter", () => {
   it("metadados BIM: arestas carregam conductorId e structureType do networkProfile", () => {
     const result = planMtRouter({
       source: { lat: -23.55, lon: -46.64 },
-      terminals: [
-        { id: "TR-A", position: { lat: -23.55, lon: -46.6394 } },
-      ],
+      terminals: [{ id: "TR-A", position: { lat: -23.55, lon: -46.6394 } }],
       roadCorridors: [
         {
           id: "via-bim",
@@ -419,9 +445,7 @@ describe("planMtRouter", () => {
   it("mtTopologyDraft é gerado quando há arestas no resultado", () => {
     const result = planMtRouter({
       source: { lat: -23.55, lon: -46.64 },
-      terminals: [
-        { id: "TR-A", position: { lat: -23.55, lon: -46.6394 } },
-      ],
+      terminals: [{ id: "TR-A", position: { lat: -23.55, lon: -46.6394 } }],
       roadCorridors: [
         {
           id: "via-draft",
@@ -445,4 +469,3 @@ describe("planMtRouter", () => {
     }
   });
 });
-

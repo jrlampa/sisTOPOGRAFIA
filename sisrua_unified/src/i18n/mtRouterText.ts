@@ -145,7 +145,8 @@ const TEXTS: Record<AppLocale, MtRouterText> = {
     resultExistingPole: "poste existente",
     errorNoSource: "Define el punto de origen MT.",
     errorNoTerminals: "Agrega al menos un terminal.",
-    errorNoCorridors: "Importa corredores viales vía KMZ o agrégalos manualmente.",
+    errorNoCorridors:
+      "Importa corredores viales vía KMZ o agrégalos manualmente.",
     errorNoResult:
       "Sin resultado disponible para aplicar. Ejecuta el cálculo primero.",
     errorUnreachable:

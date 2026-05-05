@@ -65,6 +65,7 @@ import constantsRoutes from "./routes/constantsRoutes.js";
 import btHistoryRoutes from "./routes/btHistoryRoutes.js";
 import btDerivedRoutes from "./routes/btDerivedRoutes.js";
 import btCalculationRoutes from "./routes/btCalculationRoutes.js";
+import btBulkImportRoutes from "./routes/btBulkImportRoutes.js";
 import dgRoutes from "./routes/dgRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import firestoreRoutes from "./routes/firestoreRoutes.js";
@@ -482,6 +483,7 @@ app.use("/api/constants", constantsRoutes);
 app.use("/api/bt-history", btHistoryRoutes);
 app.use("/api/bt-derived", btDerivedRoutes);
 app.use("/api/bt-calculation", btCalculationRoutes);
+app.use("/api/bt", btBulkImportRoutes);
 app.use("/api/dg", dgRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/firestore", firestoreRoutes);
@@ -497,7 +499,11 @@ app.use("/api/admin", requireAdminToken, adminRoutes);
 app.use("/api/data-retention", dataRetentionRoutes);
 app.use("/api/capacity-planning", capacityPlanningRoutes);
 app.use("/api/vuln-management", requireAdminToken, vulnManagementRoutes);
-app.use("/api/info-classification", requireAdminToken, infoClassificationRoutes);
+app.use(
+  "/api/info-classification",
+  requireAdminToken,
+  infoClassificationRoutes,
+);
 app.use("/api/holding", holdingRoutes);
 app.use("/api/finops", finOpsRoutes);
 app.use("/api/ops", opsRoutes);
@@ -523,7 +529,11 @@ app.use("/api/supply-chain", supplyChainRoutes);
 app.use("/api/predictive-observability", predictiveObservabilityRoutes);
 app.use("/api/encryption-at-rest", requireAdminToken, encryptionAtRestRoutes);
 app.use("/api/audit-cold-storage", requireAdminToken, auditColdStorageRoutes);
-app.use("/api/environment-promotion", requireAdminToken, environmentPromotionRoutes);
+app.use(
+  "/api/environment-promotion",
+  requireAdminToken,
+  environmentPromotionRoutes,
+);
 app.use("/api/tenant-audit-export", requireAdminToken, tenantAuditExportRoutes);
 app.use("/api/maintenance", requireAdminToken, maintenanceRoutes);
 app.use("/api/zero-trust", requireAdminToken, zeroTrustRoutes);
@@ -532,9 +542,17 @@ app.use("/api/pentest", requireAdminToken, pentestRoutes);
 app.use("/api/bcp-dr", requireAdminToken, bcpDrRoutes);
 app.use("/api/compliance", requireAdminToken, complianceRoutes);
 app.use("/api/identity-lifecycle", requireAdminToken, identityLifecycleRoutes);
-app.use("/api/multi-tenant-isolation", requireAdminToken, multiTenantIsolationRoutes);
+app.use(
+  "/api/multi-tenant-isolation",
+  requireAdminToken,
+  multiTenantIsolationRoutes,
+);
 app.use("/api/job-idempotency", requireAdminToken, jobIdempotencyRoutes);
-app.use("/api/operational-runbook", requireAdminToken, operationalRunbookRoutes);
+app.use(
+  "/api/operational-runbook",
+  requireAdminToken,
+  operationalRunbookRoutes,
+);
 app.use("/api/sinapi", sinapiRoutes);
 app.use("/api/bdi-roi", bdiRoiRoutes);
 app.use("/api/lcc", lccRoutes);
@@ -567,11 +585,23 @@ app.use("/api/tele-engenharia-ar", teleEngenhariaArRoutes);
 app.use("/api/acervo-ged", acervoGedRoutes);
 app.use("/api/hybrid-cloud", hybridCloudRoutes);
 app.use("/api/portal-stakeholder", portalStakeholderRoutes);
-app.use("/api/proveniencia-forense", requireAdminToken, provenienciaForenseRoutes);
+app.use(
+  "/api/proveniencia-forense",
+  requireAdminToken,
+  provenienciaForenseRoutes,
+);
 app.use("/api/assinatura-nuvem", assinaturaNuvemRoutes);
 app.use("/api/gis-hardening", requireAdminToken, gisHardeningRoutes);
-app.use("/api/corporate-hardening", requireAdminToken, corporateHardeningRoutes);
-app.use("/api/enterprise-onboarding", requireAdminToken, enterpriseOnboardingRoutes);
+app.use(
+  "/api/corporate-hardening",
+  requireAdminToken,
+  corporateHardeningRoutes,
+);
+app.use(
+  "/api/enterprise-onboarding",
+  requireAdminToken,
+  enterpriseOnboardingRoutes,
+);
 app.use("/api/on-premise", requireAdminToken, onPremiseRoutes);
 app.use("/api/model-retrocompat", requireAdminToken, modelRetrocompatRoutes);
 app.use("/api/grid-legibility", requireAdminToken, gridLegibilityRoutes);

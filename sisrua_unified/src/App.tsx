@@ -375,11 +375,20 @@ function App() {
     setSelectionMode: setMtRouterSelectionMode,
     removeTerminal: removeMtRouterTerminal,
     setMaxSnapDistance: setMtRouterMaxSnapDistance,
+    setNetworkProfile: setMtRouterNetworkProfile,
     handleMapClick: handleMtRouterMapClick,
     uploadKmz: uploadMtRouterKmz,
     calculate: calculateMtRouter,
+    applyToProject: applyMtRouterToProject,
     reset: resetMtRouter,
   } = useMtRouter();
+
+  const handleMtRouterApplyProject = React.useCallback(() => {
+    applyMtRouterToProject((draft) => {
+      updateMtTopology(draft);
+      showToast("Topologia MT aplicada ao projeto.", "success");
+    });
+  }, [applyMtRouterToProject, showToast, updateMtTopology]);
 
   const {
     isAnalyzing: isBtTelescopicAnalyzing,
@@ -846,8 +855,10 @@ function App() {
         onMtRouterSetSelectionMode: setMtRouterSelectionMode,
         onMtRouterRemoveTerminal: removeMtRouterTerminal,
         onMtRouterSetMaxSnapDistance: setMtRouterMaxSnapDistance,
+        onMtRouterSetNetworkProfile: setMtRouterNetworkProfile,
         onMtRouterUploadKmz: uploadMtRouterKmz,
         onMtRouterCalculate: calculateMtRouter,
+        onMtRouterApplyProject: handleMtRouterApplyProject,
         onMtRouterReset: resetMtRouter,
       }}
       mtTopology={mtTopology}

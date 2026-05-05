@@ -17,11 +17,11 @@ export const BRAZIL_STANDARD: EngineeringStandard = {
   },
   conductors: {
     lowTempLimits: [
-      "13 AL - DX",
-      "13 AL - TX",
-      "13 AL - QX",
-      "21 AL - QX",
-      "53 AL - QX",
+      "13 Al - DX",
+      "13 Al - TX",
+      "13 Al - QX",
+      "21 Al - QX",
+      "53 Al - QX",
     ],
     ramalWeights: {
       "5 CC": 66,
