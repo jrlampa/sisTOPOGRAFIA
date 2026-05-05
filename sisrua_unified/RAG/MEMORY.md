@@ -502,3 +502,34 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 - **Validação executada**:
   - `npx jest server/tests/dgPartitioner.test.ts server/tests/dgRealKmz.integration.test.ts server/tests/dgCqt.integration.test.ts --runInBand` (46 testes passando).
   - **CQT (Voltage Drop)**: Validado que o motor radial oficial é chamado durante o particionamento. Em cenários reais (Av. Padre Decaminada), o CQT médio é de ~2.27%. Em linhas longas de 2km, o motor aciona o particionamento (4 sub-redes) para garantir CQT de ~2.84% (limite ANEEL 8%).
+
+## Atualização Operacional (2026-05-07A) — T3.73: Versionamento Semântico de Fórmulas
+
+**Commit:** b295504 eat(t3): item 73 — versionamento semântico de fórmulas de cálculo
+
+### Implementação
+- **Serviço:** server/services/formulaVersioningService.ts
+  - Tipos: FormulaCategory, VersionStatus, FormulaVersion, FormulaDefinition, FormulaDiff
+  - Funções: computeDefinitionHash, listFormulas, getFormulaById, getActiveVersion,
+    getVersionHistory, diffVersions, egisterFormulaVersion, getDeprecationReport, esetCatalog
+  - Catálogo inicial: 5 fórmulas (QT_SEGMENTO_BT, RESISTENCIA_CORRIGIDA, LIMITE_CQT_ANEEL,
+    TENSAO_PISO_OPERACIONAL, K8_QT_MT_TRAFO), cada uma com histórico versionado
+  - Hash djb2 para rastreabilidade/auditoria regulatória (sem dependência de crypto assíncrono)
+- **Rotas:** server/routes/formulaVersioningRoutes.ts — /api/formula-versions
+  - GET / — lista fórmulas com versão ativa
+  - GET /deprecation-report — relatório de versões depreciadas
+  - GET /:id — detalhe + histórico
+  - GET /:id/active — versão ativa
+  - GET /:id/diff?v1=&v2= — diff entre versões com flag isBreaking
+  - POST /:id (requireAdminToken) — registra nova versão
+- **Registro:** server/app.ts — pp.use("/api/formula-versions", formulaVersioningRoutes)
+
+### Testes
+- server/tests/formulaVersioningService.test.ts — 29 testes todos passando
+- Suite completa: **3016/3016** tests passando (219 arquivos)
+
+### Destaques técnicos
+- Versionamento semântico (semver) + auto-depreciação de versão ativa ao registrar nova versão ctive
+- Auditoria de fórmulas regulatórias: ANEEL PRODIST Módulo 8, ABNT NBR 5410, Light S.A.
+- Diff com detecção automática de mudanças isBreaking (alteração em expression ou constants = breaking)
+- Middleware de autenticação via uthGuard.ts (equireAdminToken)
