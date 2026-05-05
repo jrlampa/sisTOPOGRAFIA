@@ -9,6 +9,8 @@
  * GET  /api/dg/runs/:id/scenarios   – lista cenários de uma run
  * GET  /api/dg/runs/:id/recommendation – retorna apenas a recomendação
  * GET  /api/dg/discard-rates        – estatísticas de descarte
+ * POST /api/dg/lcp                  – motor Least-Cost Path (LCP) ponderado
+ * GET  /api/dg/lcp/profiles         – lista perfis de custo disponíveis
  */
 
 import { Router, Request, Response } from "express";
@@ -24,6 +26,8 @@ import {
   getDgRunRecommendation,
 } from "../services/dgOptimizationService.js";
 import { planMtRouter } from "../services/dg/dgPartitioner.js";
+import { computeLcpRoutes } from "../services/dg/lcpService.js";
+import { LCP_COST_PROFILES } from "../services/dg/lcpTypes.js";
 import { parseKmzToMtRouterInput } from "../services/dg/kmzPreprocessingService.js";
 import { logAudit } from "../services/auditLogService.js";
 import { permissionHandler } from "../middleware/permissionHandler.js";
@@ -162,6 +166,48 @@ const mtRouterBodySchema = z.object({
     .optional(),
 });
 
+const lcpHighwayClassSchema = z.enum([
+  "motorway", "trunk", "primary", "secondary", "tertiary",
+  "residential", "service", "track", "path", "unknown",
+]);
+
+const lcpRoadSegmentSchema = z.object({
+  id: z.string().min(1),
+  centerPoints: z.array(latLonSchema).min(2),
+  bufferMeters: z.number().positive().optional().default(5),
+  highwayClass: lcpHighwayClassSchema.optional(),
+  isSensitiveArea: z.boolean().optional(),
+  fixedPenalty: z.number().nonnegative().optional(),
+});
+
+const lcpCostProfileSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  highwayMultiplier: z.record(z.number().positive()).optional(),
+  existingPoleBonus: z.number().positive().max(1.5),
+  sensitiveCrossing: z.number().positive(),
+  baseCostPerMeter: z.number().positive(),
+});
+
+const lcpBodySchema = z.object({
+  source: latLonSchema,
+  terminals: z.array(z.object({
+    id: z.string().min(1),
+    position: latLonSchema,
+    demandKva: z.number().nonnegative().optional(),
+  })).min(1),
+  roadSegments: z.array(lcpRoadSegmentSchema).min(1),
+  costProfile: lcpCostProfileSchema.optional(),
+  costProfileId: z.string().optional(),
+  existingPoles: z.array(z.object({
+    id: z.string().min(1),
+    position: latLonSchema,
+  })).optional(),
+  maxSnapDistanceMeters: z.number().positive().max(1000).optional(),
+  nodeMergeThresholdMeters: z.number().nonnegative().max(10).optional(),
+  runId: z.string().optional(),
+});
+
 const decisionBodySchema = z.object({
   runId: z.string().uuid(),
   scenarioId: z.string().min(1).optional(),
@@ -217,6 +263,54 @@ router.post(
       return res.status(result.feasible ? 200 : 422).json(result);
     } catch (err) {
       logger.error("DG mt-router error", {
+        message: (err as Error).message,
+        stack: (err as Error).stack,
+      });
+      return res.status(500).json({ error: (err as Error).message });
+    }
+  },
+);
+
+// ─── LCP – Least-Cost Path ────────────────────────────────────────────────────
+
+router.get(
+  "/lcp/profiles",
+  permissionHandler("READ_DESIGN_GENERATIVO"),
+  (_req: Request, res: Response) => {
+    return res.status(200).json(Object.values(LCP_COST_PROFILES));
+  },
+);
+
+router.post(
+  "/lcp",
+  permissionHandler("WRITE_DESIGN_GENERATIVO"),
+  async (req: Request, res: Response) => {
+    const parsed = lcpBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Parâmetros inválidos",
+        details: parsed.error.flatten(),
+      });
+    }
+    try {
+      const body = parsed.data;
+      // Resolve perfil: inline > por ID > padrão
+      const profile =
+        body.costProfile ??
+        (body.costProfileId
+          ? LCP_COST_PROFILES[body.costProfileId]
+          : undefined);
+      const result = computeLcpRoutes({
+        ...body,
+        roadSegments: body.roadSegments.map((s) => ({
+          ...s,
+          bufferMeters: s.bufferMeters ?? 5,
+        })),
+        costProfile: profile,
+      });
+      return res.status(result.feasible ? 200 : 422).json(result);
+    } catch (err) {
+      logger.error("DG lcp error", {
         message: (err as Error).message,
         stack: (err as Error).stack,
       });

@@ -486,6 +486,17 @@ Legenda:
 | 122. Pacote de Homologação Enterprise (Onboarding)             | ✅ Implementado | `server/services/enterpriseOnboardingService.ts` + `server/routes/enterpriseOnboardingRoutes.ts` (14 testes)  |
 | 123. Suporte a Implantação On-Premise / Híbrida                | ✅ Implementado | `server/services/onPremiseService.ts` + `server/routes/onPremiseRoutes.ts` (16 testes)                        |
 
+## ✅ Double Check de Pontos Implementados (2026-T2 Sprint)
+
+| Ponto                                                          | Status          | Evidência                                                                                                                                                               |
+| -------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T2.59 — Motor LCP (Least-Cost Path sobre rede viária)          | ✅ Implementado | `server/services/dg/lcpTypes.ts` + `server/services/dg/lcpService.ts` + `server/routes/dgRoutes.ts` (GET `/api/dg/lcp/profiles`, POST `/api/dg/lcp`); 11 testes        |
+|                                                                |                 | Frontend: `src/hooks/useLcp.ts` + `src/components/LcpPanel.tsx` + `src/i18n/lcpText.ts` (3 locales: pt-BR, en-US, es-ES)                                               |
+|                                                                |                 | Algoritmo: Dijkstra ponderado; custo = `lengthMeters × highwayMult × sensitiveMult × existingBonus + fixedPenalty`; 4 perfis: URBAN_STANDARD, RURAL_STANDARD, CORRIDOR_PREFERRED, MINIMIZE_CROSSINGS |
+| T2.19 — Plataforma de Chaos Engineering                        | ✅ Implementado | `server/services/chaosEngineeringService.ts` + `server/routes/chaosRoutes.ts` (`/api/chaos/*`); 16 testes                                                               |
+|                                                                |                 | Tipos de falha: latency, error_rate, resource_exhaustion, network_partition, payload_corruption, timeout                                                                |
+|                                                                |                 | Features: criação/listagem/execução/cancelamento de experimentos; relatório de resiliência (score 0-100, avg recovery time, top targets); rollback automático por SLO   |
+
 ---
 
 ## 🏁 Workflow de Encerramento
