@@ -476,6 +476,16 @@ Legenda:
 | 120. Trilha de Evidências para Licitações                      | ✅ Implementado | `server/services/licitacoesService.ts`                                                                        |
 | 124. Circuit Breakers para Integrações Externas                | ✅ Implementado | `server/utils/circuitBreaker.ts` + `server/utils/externalApi.ts` (`fetchWithCircuitBreaker`)                  |
 
+## ✅ Double Check de Pontos Implementados (2026-05-06A)
+
+| Ponto                                                          | Status          | Evidência                                                                                                     |
+| -------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------- |
+| 14B. Retrocompatibilidade de Modelos e Prompts                 | ✅ Implementado | `server/services/modelRetrocompatService.ts` + `server/routes/modelRetrocompatRoutes.ts` (22 testes)          |
+| 27. Foco em Legibilidade de Grid                               | ✅ Implementado | `server/services/gridLegibilityService.ts` + `server/routes/gridLegibilityRoutes.ts` (18 testes)              |
+| 121. Hardening para Ambiente Corporativo Restritivo            | ✅ Implementado | `server/services/corporateHardeningService.ts` + `server/routes/corporateHardeningRoutes.ts` (18 testes)      |
+| 122. Pacote de Homologação Enterprise (Onboarding)             | ✅ Implementado | `server/services/enterpriseOnboardingService.ts` + `server/routes/enterpriseOnboardingRoutes.ts` (14 testes)  |
+| 123. Suporte a Implantação On-Premise / Híbrida                | ✅ Implementado | `server/services/onPremiseService.ts` + `server/routes/onPremiseRoutes.ts` (16 testes)                        |
+
 ---
 
 ## 🏁 Workflow de Encerramento

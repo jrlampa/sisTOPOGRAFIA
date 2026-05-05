@@ -1,3 +1,16 @@
+## Atualização Operacional (2026-05-06A) - Itens T1: 14B, 27, 121, 122, 123 — Enterprise Deployment + Retrocompat + Grid
+
+- **Contexto**: Continuidade após MT Router Phase 2 (commit `bf583c5`). 5 itens T1 restantes do STRATEGIC_ROADMAP_2026 implementados.
+- **Implementado**:
+  - `server/services/corporateHardeningService.ts` (121): 7 verificações proxy/TLS/AV/headers, score 0-100, status green/yellow/red. 18 testes.
+  - `server/services/enterpriseOnboardingService.ts` (122): catálogo de 10 portas/domínios + 7 requisitos de ambiente; validação do Node.js atual; pacote de onboarding exportável. 14 testes.
+  - `server/services/onPremiseService.ts` (123): detecção cloud/hybrid/on-premise por heurística e env; `getIsolatedConfig()` por modo; relatório de gaps para on-premise. 16 testes.
+  - `server/services/modelRetrocompatService.ts` (14B): catálogo de 6 modelos Ollama (stable/deprecated/removed/experimental); 3 templates de prompt; `checkCompatibility()` com missingCapabilities + warnings; alertas de depreciação com daysUntilRemoval. 22 testes.
+  - `server/services/gridLegibilityService.ts` (27): 4 perfis (compact/comfortable/spacious/industrial); `calculateLegibilityMetrics()` com rowsVisible/accessibilityScore/recommendations; `suggestProfile()` por contexto. 18 testes.
+  - 5 routes registradas em `server/app.ts` sob `requireAdminToken`.
+- **Resultado**: 88 testes novos; 2863→2951 testes; 216 arquivos de teste, 0 falhas.
+- **Commit**: `e548513` em branch `dev`.
+
 ## Atualização Operacional (2026-05-05B) - Item 118 T1: Change Management & Maintenance Windows
 
 - **Contexto**: Continuidade da sessão 2026-05-05A. Item 118 era o único item T1 genuinamente não implementado após survey de 200+ services.
