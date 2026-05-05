@@ -197,3 +197,49 @@ describe("dgRoutes", () => {
   });
 });
 
+// ─── POST /mt-router/parse-kmz ────────────────────────────────────────────────
+
+describe("DG MT Router – POST /api/dg/mt-router/parse-kmz", () => {
+  const KMZ_BASE = "/api/dg/mt-router/parse-kmz";
+
+  const minimalKml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+  <name>SOURCE</name>
+  <Point><coordinates>-46.638,-23.548,0</coordinates></Point>
+</Placemark>
+<Placemark>
+  <name>Trafo-01</name>
+  <Point><coordinates>-46.640,-23.550,0</coordinates></Point>
+</Placemark>
+<Placemark>
+  <name>Via A</name>
+  <LineString><coordinates>-46.638,-23.548,0 -46.640,-23.550,0</coordinates></LineString>
+</Placemark>
+</Document>
+</kml>`;
+
+  it("400 quando nenhum arquivo é enviado", async () => {
+    const res = await request(app)
+      .post(KMZ_BASE)
+      .set("x-user-id", "test-user");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it("200 com KML válido – retorna source, terminals, roadCorridors", async () => {
+    const buf = Buffer.from(minimalKml, "utf-8");
+    const res = await request(app)
+      .post(KMZ_BASE)
+      .set("x-user-id", "test-user")
+      .attach("file", buf, { filename: "test.kml", contentType: "application/vnd.google-earth.kml+xml" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.source).toEqual({ lat: -23.548, lon: -46.638 });
+    expect(res.body.terminals).toHaveLength(1);
+    expect(res.body.terminals[0].name).toBe("Trafo-01");
+    expect(res.body.roadCorridors).toHaveLength(1);
+    expect(Array.isArray(res.body.warnings)).toBe(true);
+  });
+});

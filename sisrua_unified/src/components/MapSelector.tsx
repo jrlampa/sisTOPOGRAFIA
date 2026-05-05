@@ -17,6 +17,7 @@ import MapSelectorTransformersLayer from "./MapLayers/MapSelectorTransformersLay
 import MapSelectorMtEdgesLayer from "./MapLayers/MapSelectorMtEdgesLayer";
 import MapSelectorMtPolesLayer from "./MapLayers/MapSelectorMtPolesLayer";
 import MapSelectorDgOverlay from "./MapLayers/MapSelectorDgOverlay";
+import MapMtRouterOverlay from "./MapLayers/MapMtRouterOverlay";
 import {
   BtEditorMode,
   BtRamalEntry,
@@ -35,6 +36,7 @@ import {
 } from "../types.map";
 import { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
 import { DgScenario } from "../hooks/useDgOptimization";
+import type { MtRouterState, MtLatLon } from "../hooks/useMtRouter";
 import { DefaultIcon } from "./MapSelectorStyles";
 import { applyOrthoSnap, applyRoadSnap } from "../utils/smartSnapping";
 
@@ -226,6 +228,9 @@ interface MapSelectorProps {
   dgScenario?: DgScenario | null;
   /** Ativa o Ghost Mode (esmaece a rede original) para contraste visual do cenário DG. */
   dgGhostMode?: boolean;
+  /** Estado do MT Router para overlay interativo no mapa. */
+  mtRouterState?: MtRouterState | null;
+  onMtRouterMapClick?: (pos: MtLatLon) => void;
   onBoxSelect?: (bounds: L.LatLngBounds) => void;
   osmData?: OsmElement[] | null;
   locale: AppLocale;
@@ -293,6 +298,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onMtSetEdgeChangeFlag,
   dgScenario,
   dgGhostMode = false,
+  mtRouterState,
+  onMtRouterMapClick,
   onBoxSelect,
   osmData,
   locale,
@@ -762,6 +769,14 @@ const MapSelector: React.FC<MapSelectorProps> = ({
             paneName={dgOverlayPaneName}
             scenario={dgScenario}
             polesById={polesById}
+          />
+        )}
+
+        {/* Sobreposição MT Router – seleção interativa e resultado de rota */}
+        {mtRouterState && (
+          <MapMtRouterOverlay
+            state={mtRouterState}
+            onMapClick={onMtRouterMapClick ?? (() => undefined)}
           />
         )}
       </MapContainer>

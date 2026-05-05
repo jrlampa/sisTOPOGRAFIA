@@ -17,6 +17,7 @@ import { useBtCriticalConfirmations } from "./hooks/useBtCriticalConfirmations";
 import { useBtTelescopicAnalysis } from "./hooks/useBtTelescopicAnalysis";
 import { useMapUrlState } from "./hooks/useMapUrlState";
 import { useDgOptimization } from "./hooks/useDgOptimization";
+import { useMtRouter } from "./hooks/useMtRouter";
 import { useAppOrchestrator } from "./hooks/useAppOrchestrator";
 import { useAppGlobalHotkeys } from "./hooks/useAppGlobalHotkeys";
 import { useAppCommandPalette } from "./hooks/useAppCommandPalette";
@@ -370,6 +371,17 @@ function App() {
   } = useDgOptimization();
 
   const {
+    state: mtRouterState,
+    setSelectionMode: setMtRouterSelectionMode,
+    removeTerminal: removeMtRouterTerminal,
+    setMaxSnapDistance: setMtRouterMaxSnapDistance,
+    handleMapClick: handleMtRouterMapClick,
+    uploadKmz: uploadMtRouterKmz,
+    calculate: calculateMtRouter,
+    reset: resetMtRouter,
+  } = useMtRouter();
+
+  const {
     isAnalyzing: isBtTelescopicAnalyzing,
     suggestions: btTelescopicSuggestions,
     triggerAnalysis: triggerBtTelescopicAnalysis,
@@ -548,6 +560,8 @@ function App() {
       handleBoxSelect,
       locale: settings.locale,
       theme: settings.theme,
+      mtRouterState,
+      onMtRouterMapClick: handleMtRouterMapClick,
     }),
     [
       center,
@@ -606,6 +620,8 @@ function App() {
       dgActiveScenario,
       isPreviewActive,
       handleBoxSelect,
+      mtRouterState,
+      handleMtRouterMapClick,
     ],
   );
 
@@ -824,7 +840,16 @@ function App() {
       handleDownloadGeoJSON={handleDownloadGeoJSON}
       isSidebarDockedForRamalModal={isSidebarDockedForRamalModal}
       sidebarSelectionControlsProps={sidebarSelectionControlsProps}
-      sidebarBtEditorSectionProps={sidebarBtEditorSectionProps}
+      sidebarBtEditorSectionProps={{
+        ...sidebarBtEditorSectionProps,
+        mtRouterState,
+        onMtRouterSetSelectionMode: setMtRouterSelectionMode,
+        onMtRouterRemoveTerminal: removeMtRouterTerminal,
+        onMtRouterSetMaxSnapDistance: setMtRouterMaxSnapDistance,
+        onMtRouterUploadKmz: uploadMtRouterKmz,
+        onMtRouterCalculate: calculateMtRouter,
+        onMtRouterReset: resetMtRouter,
+      }}
       mtTopology={mtTopology}
       updateMtTopology={updateMtTopology}
       hasBtPoles={hasBtPoles}

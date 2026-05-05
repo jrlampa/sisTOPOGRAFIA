@@ -5,10 +5,15 @@ import {
   getValidationInputClassName,
 } from "./FormFieldFeedback";
 import { DgOptimizationPanel } from "./DgOptimizationPanel";
+import MtRouterPanel from "./MtRouterPanel";
 import type {
   DgOptimizationOutput,
   DgScenario,
 } from "../hooks/useDgOptimization";
+import type {
+  MtRouterState,
+  MtSelectionMode,
+} from "../hooks/useMtRouter";
 import type {
   AppSettings,
   BtEditorMode,
@@ -107,6 +112,14 @@ export interface SidebarBtEditorSectionProps {
   onSetDgActiveAltIndex?: (index: number) => void;
   dgIsPreviewActive?: boolean;
   onSetDgIsPreviewActive?: (active: boolean) => void;
+  // MT Router (Phase 2)
+  mtRouterState?: MtRouterState;
+  onMtRouterSetSelectionMode?: (mode: MtSelectionMode) => void;
+  onMtRouterRemoveTerminal?: (id: string) => void;
+  onMtRouterSetMaxSnapDistance?: (m: number) => void;
+  onMtRouterUploadKmz?: (file: File) => void;
+  onMtRouterCalculate?: () => void;
+  onMtRouterReset?: () => void;
   // Hoisted selection state
   selectedPoleId?: string;
   selectedPoleIds?: string[];
@@ -165,6 +178,13 @@ export function SidebarBtEditorSection({
   onSetDgActiveAltIndex,
   dgIsPreviewActive = true,
   onSetDgIsPreviewActive,
+  mtRouterState,
+  onMtRouterSetSelectionMode,
+  onMtRouterRemoveTerminal,
+  onMtRouterSetMaxSnapDistance,
+  onMtRouterUploadKmz,
+  onMtRouterCalculate,
+  onMtRouterReset,
   selectedPoleId = "",
   selectedPoleIds = [],
   selectedEdgeId = "",
@@ -457,6 +477,22 @@ export function SidebarBtEditorSection({
             onAcceptTrafoOnly={onAcceptDgTrafoOnly ?? (() => undefined)}
             onDiscard={onClearDgResult ?? (() => undefined)}
             onRemediateCqt={handleRemediateCqt}
+          />
+        </>
+      )}
+
+      {/* MT Router – roteamento de rede MT sobre malha viária */}
+      {mtRouterState && onMtRouterCalculate && (
+        <>
+          <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
+          <MtRouterPanel
+            state={mtRouterState}
+            onSetSelectionMode={onMtRouterSetSelectionMode ?? (() => undefined)}
+            onRemoveTerminal={onMtRouterRemoveTerminal ?? (() => undefined)}
+            onSetMaxSnapDistance={onMtRouterSetMaxSnapDistance ?? (() => undefined)}
+            onUploadKmz={onMtRouterUploadKmz ?? (() => undefined)}
+            onCalculate={onMtRouterCalculate}
+            onReset={onMtRouterReset ?? (() => undefined)}
           />
         </>
       )}

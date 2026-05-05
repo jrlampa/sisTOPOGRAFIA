@@ -12,6 +12,7 @@
  */
 
 import { Router, Request, Response } from "express";
+import multer from "multer";
 import { z } from "zod";
 import { logger } from "../utils/logger.js";
 import {
@@ -23,6 +24,7 @@ import {
   getDgRunRecommendation,
 } from "../services/dgOptimizationService.js";
 import { planMtRouter } from "../services/dg/dgPartitioner.js";
+import { parseKmzToMtRouterInput } from "../services/dg/kmzPreprocessingService.js";
 import { logAudit } from "../services/auditLogService.js";
 import { permissionHandler } from "../middleware/permissionHandler.js";
 import { schemaValidator } from "../middleware/schemaValidator.js";
@@ -234,6 +236,52 @@ router.get("/runs/:id/recommendation", permissionHandler("READ_DESIGN_GENERATIVO
       return res.status(500).json({ error: "Erro ao consultar recomendação." });
     }
   });
+
+// ─── KMZ upload (memória, máx 10 MB) ─────────────────────────────────────────
+
+const kmzUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [
+      "application/vnd.google-earth.kmz",
+      "application/vnd.google-earth.kml+xml",
+      "application/zip",
+      "application/octet-stream",
+      "text/xml",
+      "application/xml",
+    ];
+    if (allowed.includes(file.mimetype) || file.originalname.match(/\.(kmz|kml)$/i)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Formato de arquivo inválido. Envie um arquivo .kmz ou .kml."));
+    }
+  },
+});
+
+/**
+ * POST /api/dg/mt-router/parse-kmz
+ *
+ * Recebe upload multipart de um arquivo .kmz ou .kml e retorna os componentes
+ * de entrada do MT Router: source, terminals e roadCorridors.
+ */
+router.post(
+  "/mt-router/parse-kmz",
+  permissionHandler("WRITE_DESIGN_GENERATIVO"),
+  kmzUpload.single("file"),
+  async (req: Request, res: Response) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "Arquivo .kmz/.kml não enviado. Use o campo 'file'." });
+    }
+    try {
+      const result = await parseKmzToMtRouterInput(req.file.buffer, req.file.mimetype);
+      return res.status(200).json(result);
+    } catch (err) {
+      logger.error("DG parse-kmz error", { message: (err as Error).message });
+      return res.status(422).json({ error: (err as Error).message });
+    }
+  },
+);
 
 router.post("/validate-buffer-zone", permissionHandler("READ_DESIGN_GENERATIVO"), schemaValidator(validateBufferZoneRequestSchema), async (req: Request, res: Response) => {
   try {
