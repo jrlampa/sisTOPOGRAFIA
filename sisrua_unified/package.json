@@ -59,7 +59,7 @@
     "cqt:workbook-audit:check": "python scripts/audit_cqt_workbook.py --check",
     "security:audit": "npm audit --omit=dev --audit-level=critical",
     "security:policy-gate": "npm run security:audit",
-    "security:sbom:node": "node -e \"require('fs').mkdirSync('artifacts', {recursive: true})\" && npm sbom --sbom-format cyclonedx --json > artifacts/sbom-node.json",
+    "security:sbom:node": "node scripts/ci/generate-sbom-node.mjs",
     "security:audit:fix": "npm audit fix",
     "security:check": "npm run security:audit && echo '\n--- Security audit complete ---'",
     "ci:checkpoint-gate": "node scripts/ci/enforce-checkpoints-timeline.mjs",

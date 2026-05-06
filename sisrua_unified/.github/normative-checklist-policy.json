@@ -51,7 +51,7 @@
       "requiredScripts": ["ci:e2e:flake-check"],
       "evidencePaths": [
         "scripts/ci/analyze-playwright-flakiness.mjs",
-        ".github/workflows/pr-frontend.yml"
+        "../.github/workflows/quality-gates.yml"
       ]
     },
     {
