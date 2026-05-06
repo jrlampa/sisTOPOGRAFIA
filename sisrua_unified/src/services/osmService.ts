@@ -1,8 +1,7 @@
-import { OverpassResponse, OsmElement } from '../types';
-import Logger from '../utils/logger';
-import { API_BASE_URL } from '../config/api';
-
-const IS_DEV = import.meta.env.DEV;
+import { OverpassResponse, OsmElement } from "../types";
+import Logger from "../utils/logger";
+import { API_BASE_URL } from "../config/api";
+import { buildApiHeaders } from "./apiClient";
 
 type OverpassResponseWithStats = OverpassResponse & {
   _stats?: OsmStats;
@@ -14,6 +13,9 @@ export interface OsmStats {
   totalNature: number;
   avgHeight: number;
   maxHeight: number;
+  estimatedDemandKw?: number;
+  density?: "Baixa" | "Média" | "Alta";
+  densityValue?: number;
 }
 
 export interface OsmFetchResult {
@@ -21,20 +23,46 @@ export interface OsmFetchResult {
   stats: OsmStats | null;
 }
 
-export const fetchOsmData = async (lat: number, lng: number, radius: number): Promise<OsmFetchResult> => {
+export const fetchOsmData = async (
+  lat: number,
+  lng: number,
+  radius: number,
+): Promise<OsmFetchResult> => {
   try {
-    Logger.debug(`Fetching OSM data for lat: ${lat}, lng: ${lng}, radius: ${radius}m`);
+    Logger.debug(
+      `Fetching OSM data for lat: ${lat}, lng: ${lng}, radius: ${radius}m`,
+    );
     const response = await fetch(`${API_BASE_URL}/osm`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ lat, lng, radius })
+      method: "POST",
+      headers: buildApiHeaders(),
+      body: JSON.stringify({ lat, lng, radius }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || `OSM proxy error: HTTP ${response.status}`);
+      let errorMessage = `OSM proxy error: HTTP ${response.status}`;
+
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const payload = (await response.json()) as {
+          error?: string;
+          message?: string;
+          code?: string;
+        };
+
+        if (payload.code === "OVERPASS_UNAVAILABLE") {
+          errorMessage =
+            "Overpass indisponível no momento (limite/rede). Tente novamente em alguns minutos.";
+        } else {
+          errorMessage = payload.message || payload.error || errorMessage;
+        }
+      } else {
+        const errorText = await response.text();
+        if (errorText) {
+          errorMessage = errorText;
+        }
+      }
+
+      throw new Error(errorMessage);
     }
 
     const data: OverpassResponseWithStats = await response.json();
@@ -43,26 +71,10 @@ export const fetchOsmData = async (lat: number, lng: number, radius: number): Pr
   } catch (error) {
     Logger.error("Failed to fetch OSM data", error);
 
-    if (!IS_DEV) {
-      throw new Error(`OSM data unavailable: Cannot reach Overpass API for coordinates (${lat.toFixed(6)}, ${lng.toFixed(6)}). Ensure network connectivity and that API rate limits are not exceeded.`);
+    if (error instanceof Error && error.message) {
+      throw error;
     }
 
-    Logger.info("Falling back to mock OSM data for testing");
-    try {
-      const mockResponse = await fetch(`${API_BASE_URL}/osm/mock`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat, lng, radius })
-      });
-      if (mockResponse.ok) {
-        const mockData: OverpassResponseWithStats = await mockResponse.json();
-        Logger.info(`Using mock data with ${mockData.elements.length} elements`);
-        return { elements: mockData.elements, stats: mockData._stats ?? null };
-      }
-    } catch (mockError) {
-      Logger.error("Mock fallback also failed", mockError);
-    }
-
-    throw new Error(`OSM data unavailable: Cannot reach Overpass API for coordinates (${lat.toFixed(6)}, ${lng.toFixed(6)}). Ensure network connectivity and that API rate limits are not exceeded.`);
+    throw new Error("OSM indisponível no momento. Tente novamente em alguns minutos.");
   }
 };

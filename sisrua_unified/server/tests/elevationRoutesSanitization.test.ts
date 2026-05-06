@@ -1,9 +1,10 @@
+import { vi } from "vitest";
 import express from 'express';
 import request from 'supertest';
 
-const getElevationProfileMock = jest.fn();
+const getElevationProfileMock = vi.fn();
 
-jest.mock('../services/elevationService', () => ({
+vi.mock('../services/elevationService', () => ({
   ElevationService: {
     getElevationProfile: getElevationProfileMock,
   },
@@ -11,8 +12,8 @@ jest.mock('../services/elevationService', () => ({
 
 describe('elevationRoutes error sanitization', () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it('returns generic 500 without leaking internal details on /profile', async () => {
@@ -37,3 +38,4 @@ describe('elevationRoutes error sanitization', () => {
     expect(JSON.stringify(response.body)).not.toContain('timeout');
   });
 });
+

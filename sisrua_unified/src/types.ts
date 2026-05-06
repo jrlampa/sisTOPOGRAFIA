@@ -1,3 +1,5 @@
+import type { CanonicalNetworkTopology } from "./types.canonical.js";
+
 export interface GeoLocation {
   lat: number;
   lng: number;
@@ -61,6 +63,8 @@ export interface AnalysisStats {
   totalNature: number;
   avgHeight: number;
   maxHeight: number;
+  density?: "Baixa" | "Média" | "Alta";
+  densityValue?: number;
 }
 
 export interface TerrainPoint {
@@ -101,10 +105,14 @@ export interface LayerConfig {
   dimensions: boolean;
   grid: boolean;
   btNetwork: boolean;
+  mtNetwork: boolean;
+  electricalAudit: boolean;
+  cqtHeatmap: boolean;
+  disablePopups: boolean;
 }
 
 export type ProjectionType = "local" | "utm";
-export type AppTheme = "light" | "dark";
+export type AppTheme = "light" | "dark" | "sunlight";
 export type MapProvider = "vector" | "satellite";
 export type SimplificationLevel = "off" | "low" | "medium" | "high";
 export type ContourRenderMode = "spline" | "polyline";
@@ -115,9 +123,16 @@ export type BtEditorMode =
   | "add-pole"
   | "add-transformer"
   | "add-edge";
+
+export type MtEditorMode =
+  | "none"
+  | "mt-add-pole"
+  | "mt-add-edge"
+  | "mt-move-pole";
 export type BtNetworkScenario = "asis" | "projeto" | "proj1" | "proj2";
 export type BtTransformerCalculationMode = "automatic" | "manual";
 export type BtCqtScenario = "atual" | "proj1" | "proj2";
+export type BtQtPontoCalculationMethod = "impedance_modulus" | "power_factor";
 
 export interface BtCqtDmdiInputs {
   clandestinoEnabled: boolean;
@@ -128,6 +143,8 @@ export interface BtCqtDmdiInputs {
 
 export interface BtCqtComputationInputs {
   scenario: BtCqtScenario;
+  qtPontoCalculationMethod?: BtQtPontoCalculationMethod;
+  powerFactor?: number;
   dmdi?: BtCqtDmdiInputs;
   geral?: {
     pontoRamal: string;
@@ -161,11 +178,42 @@ export interface BtRamalEntry {
   conductorName: string;
 }
 
+export type BtRamalConditionNote =
+  | "deteriorado"
+  | "emendas"
+  | "sem_isolamento"
+  | "ramal_longo"
+  | "cruzamento"
+  | "outro";
+
 export interface BtPoleRamalEntry {
   id: string;
   quantity: number;
   ramalType?: string;
+  notes?: string;
 }
+
+export interface BtPoleSpec {
+  heightM?: number;
+  nominalEffortDan?: number;
+  material?: "CC" | "DT" | "MAD" | "FIB" | "FER"; // Light Field Abbreviations
+}
+
+export interface BtPoleBtStructures {
+  si1?: string;
+  si2?: string;
+  si3?: string;
+  si4?: string;
+}
+
+export type BtPoleConditionStatus =
+  | "bom_estado"
+  | "projetado"
+  | "desaprumado"
+  | "trincado"
+  | "condenado";
+
+export type BtDataSource = "imported" | "manual" | "dg_calculated";
 
 export interface BtPoleNode {
   id: string;
@@ -173,9 +221,18 @@ export interface BtPoleNode {
   lng: number;
   title: string;
   ramais?: BtPoleRamalEntry[];
+  poleSpec?: BtPoleSpec;
+  conditionStatus?: BtPoleConditionStatus;
+  equipmentNotes?: string;
+  generalNotes?: string;
   verified?: boolean;
+  btStructures?: BtPoleBtStructures;
   nodeChangeFlag?: "existing" | "new" | "remove" | "replace";
   circuitBreakPoint?: boolean;
+  hasVehicleAccess?: boolean;
+  manualDragDistanceMeters?: number;
+  equipmentType?: string;
+  dataSource?: BtDataSource;
 }
 
 export interface BtTransformerReading {
@@ -198,10 +255,13 @@ export interface BtTransformer {
   title: string;
   projectPowerKva?: number;
   monthlyBillBrl: number;
-  demandKw: number;
+  demandKva?: number;
+  /** @deprecated Use demandKva. */
+  demandKw?: number;
   readings: BtTransformerReading[];
   verified?: boolean;
   transformerChangeFlag?: "existing" | "new" | "remove" | "replace";
+  dataSource?: BtDataSource;
 }
 
 export interface BtEdge {
@@ -212,6 +272,7 @@ export interface BtEdge {
   // Optional electrical length used only for CQT calculations (not map geometry).
   cqtLengthMeters?: number;
   conductors: BtRamalEntry[];
+  mtConductors?: BtRamalEntry[];
   replacementFromConductors?: BtRamalEntry[];
   verified?: boolean;
   removeOnExecution?: boolean;
@@ -252,13 +313,28 @@ export interface BtExportHistoryEntry extends BtExportSummary {
   projectType: BtProjectType;
 }
 
+export type DgDecisionMode = "all" | "trafo_only" | "discard";
+
+export interface DgDecisionHistoryEntry {
+  decidedAt: string;
+  runId: string;
+  scenarioId?: string;
+  mode: DgDecisionMode;
+  score?: number;
+  notes?: string;
+}
+
+export type AppLocale = "pt-BR" | "en-US" | "es-ES";
+
 export interface AppSettings {
   enableAI: boolean;
+  exportMemorialPdfWithDxf: boolean;
   simplificationLevel: SimplificationLevel;
   orthogonalize: boolean;
   contourRenderMode: ContourRenderMode;
   layers: LayerConfig;
   projection: ProjectionType;
+  locale: AppLocale;
   theme: AppTheme;
   mapProvider: MapProvider;
   projectMetadata: ProjectMetadata;
@@ -267,10 +343,58 @@ export interface AppSettings {
   btNetworkScenario?: BtNetworkScenario;
   btEditorMode?: BtEditorMode;
   btTransformerCalculationMode?: BtTransformerCalculationMode;
+  btQtPontoCalculationMethod?: BtQtPontoCalculationMethod;
+  btCqtPowerFactor?: number;
   clandestinoAreaM2?: number;
+  mtEditorMode?: MtEditorMode;
+  uiDensity?: "compact" | "comfortable";
+  enableFocusMode?: boolean;
 }
 
 export type SelectionMode = "circle" | "polygon" | "measure";
+
+// ─── Estruturas MT (Média Tensão) ─────────────────────────────────────────────
+
+export interface MtPoleStructures {
+  n1?: string;
+  n2?: string;
+  n3?: string;
+  n4?: string;
+}
+
+export interface MtPoleNode {
+  id: string;
+  lat: number;
+  lng: number;
+  title: string;
+  mtStructures?: MtPoleStructures;
+  verified?: boolean;
+  nodeChangeFlag?: "existing" | "new" | "remove" | "replace";
+  dataSource?: BtDataSource;
+}
+
+export interface MtEdge {
+  id: string;
+  fromPoleId: string;
+  toPoleId: string;
+  lengthMeters?: number;
+  conductors?: BtRamalEntry[];
+  verified?: boolean;
+  edgeChangeFlag?: "existing" | "new" | "remove" | "replace";
+}
+
+export interface MtTopology {
+  poles: MtPoleNode[];
+  edges: MtEdge[];
+}
+
+export interface CanonicalTopologyStateMeta {
+  source: "legacy-derived" | "canonical-hydrated" | "empty";
+  divergenceWarnings: string[];
+  lastSynchronizedAt: string;
+}
+
+// ─── Estado Global ─────────────────────────────────────────────────────────────
 
 export interface GlobalState {
   center: GeoLocation;
@@ -279,7 +403,11 @@ export interface GlobalState {
   polygon: GeoLocation[];
   measurePath: GeoLocation[];
   settings: AppSettings;
-  btTopology?: BtTopology;
+  btTopology: BtTopology;
   btExportSummary?: BtExportSummary | null;
-  btExportHistory?: BtExportHistoryEntry[];
+  btExportHistory: BtExportHistoryEntry[];
+  dgDecisionHistory?: DgDecisionHistoryEntry[];
+  mtTopology: MtTopology;
+  canonicalTopology?: CanonicalNetworkTopology;
+  canonicalTopologyMeta?: CanonicalTopologyStateMeta;
 }

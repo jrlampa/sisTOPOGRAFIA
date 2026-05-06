@@ -1,9 +1,10 @@
+import { vi } from "vitest";
 describe('config TRUST_PROXY parsing', () => {
   const originalEnv = process.env;
 
   afterEach(() => {
     process.env = originalEnv;
-    jest.resetModules();
+    vi.resetModules();
   });
 
   it('defaults to false in development when TRUST_PROXY is undefined', async () => {
@@ -61,3 +62,4 @@ describe('config TRUST_PROXY parsing', () => {
     expect(config.trustProxy).toBe('loopback, linklocal, uniquelocal');
   });
 });
+

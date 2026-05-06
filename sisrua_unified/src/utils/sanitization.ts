@@ -1,7 +1,7 @@
 /**
  * Data Sanitization Utilities
  * Enforces strict input validation and XSS/SQL injection prevention
- * 
+ *
  * Regra não negociável: Todos os inputs de usuário devem ser sanitizados
  */
 
@@ -12,22 +12,26 @@
  * @returns Sanitized string
  */
 export function sanitizeString(input: string, maxLength = 255): string {
-  if (typeof input !== 'string') {
-    throw new Error('Input must be a string');
+  if (typeof input !== "string") {
+    throw new Error("Input must be a string");
   }
 
   const sanitized = input
     .trim()
     .substring(0, maxLength)
     // Remove script tags and event handlers
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-    .replace(/javascript:/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "")
+    .replace(/javascript:/gi, "")
     // Escape HTML entities
-    .replace(/[<>]/g, char => ({
-      '<': '&lt;',
-      '>': '&gt;',
-    }[char] || char));
+    .replace(
+      /[<>]/g,
+      (char) =>
+        ({
+          "<": "&lt;",
+          ">": "&gt;",
+        })[char] || char,
+    );
 
   return sanitized;
 }
@@ -39,7 +43,7 @@ export function sanitizeString(input: string, maxLength = 255): string {
  * @returns true if valid
  */
 export function validateCoordinates(lat: number, lng: number): boolean {
-  if (typeof lat !== 'number' || typeof lng !== 'number') {
+  if (typeof lat !== "number" || typeof lng !== "number") {
     return false;
   }
 
@@ -60,14 +64,14 @@ export function validateCoordinates(lat: number, lng: number): boolean {
  * @returns Safe filename
  */
 export function sanitizeFileName(filename: string): string {
-  if (typeof filename !== 'string') {
-    throw new Error('Filename must be a string');
+  if (typeof filename !== "string") {
+    throw new Error("Filename must be a string");
   }
 
   return filename
-    .replace(/\.\./g, '') // Prevent directory traversal
-    .replace(/[<>:"/\\|?*]/g, '') // Remove invalid characters
-    .replace(/^\.+/, '') // Remove leading dots
+    .replace(/\.\./g, "") // Prevent directory traversal
+    .replace(/[<>:"/\\|?*]/g, "") // Remove invalid characters
+    .replace(/^\.+/, "") // Remove leading dots
     .substring(0, 255); // Limit length
 }
 
@@ -78,11 +82,15 @@ export function sanitizeFileName(filename: string): string {
  * @param max Maximum allowed value
  * @returns Validated number or throws
  */
-export function sanitizeNumber(input: any, min = -Infinity, max = Infinity): number {
+export function sanitizeNumber(
+  input: any,
+  min = -Infinity,
+  max = Infinity,
+): number {
   const num = Number(input);
 
   if (Number.isNaN(num)) {
-    throw new Error('Input is not a valid number');
+    throw new Error("Input is not a valid number");
   }
 
   if (num < min || num > max) {
@@ -99,11 +107,11 @@ export function sanitizeNumber(input: any, min = -Infinity, max = Infinity): num
  * @returns Escaped string
  */
 export function escapeSqlString(input: string): string {
-  if (typeof input !== 'string') {
-    throw new Error('Input must be a string');
+  if (typeof input !== "string") {
+    throw new Error("Input must be a string");
   }
 
-  return input.replace(/'/g, "''").replace(/\\/g, '\\\\');
+  return input.replace(/'/g, "''").replace(/\\/g, "\\\\");
 }
 
 /**
@@ -151,8 +159,8 @@ export function validateAndParseJson<T>(jsonString: string): T {
   try {
     const parsed = JSON.parse(jsonString);
     return parsed as T;
-  } catch (error) {
-    throw new Error('Invalid JSON provided');
+  } catch {
+    throw new Error("Invalid JSON provided");
   }
 }
 
@@ -161,19 +169,21 @@ export function validateAndParseJson<T>(jsonString: string): T {
  * @param obj Object to sanitize
  * @returns Sanitized object
  */
-export function sanitizeObject<T extends Record<string, any>>(obj: T): Partial<T> {
+export function sanitizeObject<T extends Record<string, any>>(
+  obj: T,
+): Partial<T> {
   const sanitized: Partial<T> = {};
 
   for (const [key, value] of Object.entries(obj)) {
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       (sanitized as any)[key] = sanitizeString(value);
-    } else if (typeof value === 'number') {
+    } else if (typeof value === "number") {
       (sanitized as any)[key] = sanitizeNumber(value);
     } else if (Array.isArray(value)) {
-      (sanitized as any)[key] = value.map(v => 
-        typeof v === 'string' ? sanitizeString(v) : v
+      (sanitized as any)[key] = value.map((v) =>
+        typeof v === "string" ? sanitizeString(v) : v,
       );
-    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+    } else if (value && typeof value === "object" && !Array.isArray(value)) {
       (sanitized as any)[key] = sanitizeObject(value);
     } else {
       (sanitized as any)[key] = value;

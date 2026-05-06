@@ -5,7 +5,10 @@ import type { BtPoleNode, GlobalState } from '../types';
 
 type Params = {
   appState: GlobalState;
-  setAppState: (state: GlobalState, addToHistory: boolean) => void;
+  setAppState: (
+    state: GlobalState | ((prev: GlobalState) => GlobalState),
+    addToHistory: boolean,
+  ) => void;
   clearData: () => void;
   clearPendingBtEdge: () => void;
   showToast: (message: string, type: 'success' | 'error' | 'info') => void;
@@ -21,6 +24,7 @@ export function useProjectDataWorkflow({
   const btTopology = appState.btTopology ?? { poles: [], transformers: [], edges: [] };
 
   const { importKml } = useKmlImport({
+    locale: appState.settings.locale,
     onImportSuccess: (result, filename) => {
       if (result.type === 'polygon') {
         setAppState({

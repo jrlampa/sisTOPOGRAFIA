@@ -104,25 +104,29 @@ cur.execute("""
 SELECT EXISTS (
   SELECT 1 FROM information_schema.tables 
   WHERE table_schema = 'private' AND table_name = 'maintenance_log'
-)
+) as table_exists
 """)
-exists = cur.fetchone()[0]
+row = cur.fetchone()
+exists = row['table_exists'] if row else False
 print(f"  {'✅' if exists else '❌'} private.maintenance_log")
 
 print("\n" + "=" * 80)
 print("CRON JOBS AGORA AGENDADOS (de 024)")
 print("=" * 80)
-cur.execute("""
-SELECT jobname, schedule FROM cron.job 
-WHERE jobname IN (
-  'vacuum_analyze_jobs_daily',
-  'refresh_materialized_views_hourly',
-  'archive_old_audit_logs_nightly'
-) 
-ORDER BY jobname
-""")
-for row in cur.fetchall():
-    print(f"  ✅ {row['jobname']:<40} schedule={row['schedule']}")
+try:
+    cur.execute("""
+    SELECT jobname, schedule FROM cron.job 
+    WHERE jobname IN (
+      'vacuum_analyze_jobs_daily',
+      'refresh_materialized_views_hourly',
+      'archive_old_audit_logs_nightly'
+    ) 
+    ORDER BY jobname
+    """)
+    for row in cur.fetchall():
+        print(f"  ✅ {row['jobname']:<40} schedule={row['schedule']}")
+except Exception as e:
+    print(f"  ⚠️  cron.job não acessível ou extensão pg_cron não instalada nesta instância: {e}")
 
 cur.close()
 conn.close()

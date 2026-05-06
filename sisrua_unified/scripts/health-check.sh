@@ -165,14 +165,6 @@ if [[ -f ".env" ]]; then
     else
         check_warn ".env (OFFLINE_MODE não definido)"
     fi
-    
-    if grep -q "GROQ_API_KEY.*gsk_" ".env" 2>/dev/null; then
-        check_pass ".env (GROQ configurada)"
-    elif grep -q "GROQ_API_KEY" ".env" 2>/dev/null; then
-        check_warn ".env (GROQ_KEY parece inválida)"
-    else
-        check_warn ".env (GROQ não configurada - opcional)"
-    fi
 else
     check_warn ".env não encontrado - copie de .env.example"
 fi

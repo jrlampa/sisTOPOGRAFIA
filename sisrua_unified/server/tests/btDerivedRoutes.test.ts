@@ -1,20 +1,20 @@
 import request from "supertest";
 import express from "express";
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 // Mock logger before route import
-jest.mock("../utils/logger", () => ({
+vi.mock("../utils/logger", () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 // Mock btDerivedService so route tests remain pure contract tests
-const computeMock = jest.fn();
-jest.mock("../services/btDerivedService", () => ({
+const computeMock = vi.fn();
+vi.mock("../services/btDerivedService", () => ({
   computeBtDerivedState: computeMock,
 }));
 
@@ -82,7 +82,7 @@ describe("POST /api/bt/derived – happy path", () => {
     await request(app).post("/api/bt/derived").send(minimalBody());
     expect(computeMock).toHaveBeenCalledTimes(1);
     const [topology, projectType, clandestinoAreaM2] = (
-      computeMock as jest.MockedFunction<typeof computeMock>
+      computeMock as vi.MockedFunction<typeof computeMock>
     ).mock.calls[0];
     expect(projectType).toBe("geral");
     expect(clandestinoAreaM2).toBe(0);
@@ -92,7 +92,7 @@ describe("POST /api/bt/derived – happy path", () => {
   it("defaults clandestinoAreaM2 to 0 when not provided", async () => {
     await request(app).post("/api/bt/derived").send(minimalBody());
     const [, , clandestinoAreaM2] = (
-      computeMock as jest.MockedFunction<typeof computeMock>
+      computeMock as vi.MockedFunction<typeof computeMock>
     ).mock.calls[0];
     expect(clandestinoAreaM2).toBe(0);
   });
@@ -101,7 +101,7 @@ describe("POST /api/bt/derived – happy path", () => {
     const body = { ...minimalBody(), clandestinoAreaM2: 120 };
     await request(app).post("/api/bt/derived").send(body);
     const [, , clandestinoAreaM2] = (
-      computeMock as jest.MockedFunction<typeof computeMock>
+      computeMock as vi.MockedFunction<typeof computeMock>
     ).mock.calls[0];
     expect(clandestinoAreaM2).toBe(120);
   });
@@ -193,3 +193,4 @@ describe("POST /api/bt/derived – internal error", () => {
     expect(res.body).toHaveProperty("error");
   });
 });
+

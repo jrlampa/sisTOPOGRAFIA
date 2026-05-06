@@ -37,7 +37,8 @@ const btTransformerSchema = z
   .object({
     id: z.string().min(1),
     poleId: z.string().optional(),
-    demandKw: z.coerce.number().default(0),
+    demandKva: z.coerce.number().optional(),
+    demandKw: z.coerce.number().optional(),
     projectPowerKva: z.coerce.number().optional(),
     readings: z.array(btTransformerReadingSchema).default([]),
   })
@@ -85,8 +86,21 @@ router.post("/derived", (req: Request, res: Response) => {
     }
 
     const { topology, projectType, clandestinoAreaM2 } = validation.data;
+    const normalizedTopology = {
+      ...topology,
+      transformers: topology.transformers.map((transformer) => {
+        const normalizedDemandKva =
+          transformer.demandKva ?? transformer.demandKw ?? 0;
+
+        return {
+          ...transformer,
+          demandKva: normalizedDemandKva,
+          demandKw: normalizedDemandKva,
+        };
+      }),
+    };
     const payload = computeBtDerivedState(
-      topology,
+      normalizedTopology,
       projectType,
       clandestinoAreaM2,
     );

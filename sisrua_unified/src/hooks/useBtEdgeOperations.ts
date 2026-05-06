@@ -12,19 +12,12 @@
  */
 
 import { useState } from "react";
-import {
-  GlobalState,
-  GeoLocation,
-  BtTopology,
-  BtEdge,
-  AppSettings,
-} from "../types";
+import { GlobalState, GeoLocation, BtEdge } from "../types";
 import { ToastType } from "../components/Toast";
 import {
   EMPTY_BT_TOPOLOGY,
   DEFAULT_EDGE_CONDUCTOR,
   BtEdgeChangeFlag,
-  getEdgeChangeFlag,
   normalizeBtEdge,
   distanceMeters,
   nextSequentialId,
@@ -36,9 +29,17 @@ import {
 
 type Params = {
   appState: GlobalState;
-  setAppState: (state: GlobalState, addToHistory: boolean) => void;
-  showToast: (message: string, type: ToastType) => void;
+  setAppState: (
+    state: GlobalState | ((prev: GlobalState) => GlobalState),
+    addToHistory: boolean,
+  ) => void;
+  showToast: (
+    message: string, 
+    type: ToastType,
+    action?: { label: string; onClick: () => void }
+  ) => void;
   findNearestPole: (location: GeoLocation, maxDistanceMeters?: number) => any;
+  undo: () => void;
 };
 
 export function useBtEdgeOperations({
@@ -46,9 +47,9 @@ export function useBtEdgeOperations({
   setAppState,
   showToast,
   findNearestPole,
+  undo,
 }: Params) {
   const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
-  const settings: AppSettings = appState.settings;
 
   // ── UI state for edge operations ───────────────────────────────────────────
   const [pendingBtEdgeStartPoleId, setPendingBtEdgeStartPoleId] = useState<
@@ -113,12 +114,12 @@ export function useBtEdgeOperations({
     );
 
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
+          ...prev.btTopology,
           edges: [
-            ...btTopology.edges,
+            ...prev.btTopology.edges,
             {
               id: edgeId,
               fromPoleId: fromPole.id,
@@ -131,7 +132,7 @@ export function useBtEdgeOperations({
             },
           ],
         },
-      },
+      }),
       true,
     );
 
@@ -139,21 +140,25 @@ export function useBtEdgeOperations({
     showToast(
       `Condutor ${edgeId} criado (${lengthMeters}m). Nova origem: ${nearestPole.id}`,
       "success",
+      { label: "Desfazer", onClick: undo }
     );
   };
 
   const handleBtDeleteEdge = (edgeId: string) => {
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
-          edges: btTopology.edges.filter((e) => e.id !== edgeId),
+          ...prev.btTopology,
+          edges: prev.btTopology.edges.filter((e) => e.id !== edgeId),
         },
-      },
+      }),
       true,
     );
-    showToast(`Condutor ${edgeId} removido`, "info");
+    showToast(`Condutor ${edgeId} removido`, "info", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleBtSetEdgeChangeFlag = (
@@ -161,11 +166,11 @@ export function useBtEdgeOperations({
     edgeChangeFlag: BtEdgeChangeFlag,
   ) => {
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
-          edges: btTopology.edges.map((edge) => {
+          ...prev.btTopology,
+          edges: prev.btTopology.edges.map((edge) => {
             if (edge.id !== edgeId) {
               return edge;
             }
@@ -176,7 +181,7 @@ export function useBtEdgeOperations({
             });
           }),
         },
-      },
+      }),
       true,
     );
 
@@ -189,7 +194,10 @@ export function useBtEdgeOperations({
             ? "SUBSTITUIÇÃO"
             : "EXISTENTE";
 
-    showToast(`Trecho ${edgeId} marcado como ${statusLabel}.`, "info");
+    showToast(`Trecho ${edgeId} marcado como ${statusLabel}.`, "info", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleBtToggleEdgeRemoval = (
@@ -207,11 +215,11 @@ export function useBtEdgeOperations({
     conductors: BtEdge["conductors"],
   ) => {
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
-          edges: btTopology.edges.map((edge) =>
+          ...prev.btTopology,
+          edges: prev.btTopology.edges.map((edge) =>
             edge.id !== edgeId
               ? edge
               : normalizeBtEdge({
@@ -220,7 +228,7 @@ export function useBtEdgeOperations({
                 }),
           ),
         },
-      },
+      }),
       true,
     );
   };
@@ -263,7 +271,10 @@ export function useBtEdgeOperations({
       },
       true,
     );
-    showToast(`+1 ${selectedConductor} no trecho ${edgeId}.`, "success");
+    showToast(`+1 ${selectedConductor} no trecho ${edgeId}.`, "success", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleBtQuickRemoveEdgeConductor = (
@@ -315,7 +326,10 @@ export function useBtEdgeOperations({
       },
       true,
     );
-    showToast(`-1 ${selectedConductor} no trecho ${edgeId}.`, "success");
+    showToast(`-1 ${selectedConductor} no trecho ${edgeId}.`, "success", {
+      label: "Desfazer",
+      onClick: undo,
+    });
   };
 
   const handleBtSetEdgeLengthMeters = (
@@ -327,11 +341,11 @@ export function useBtEdgeOperations({
       : 0;
 
     setAppState(
-      {
-        ...appState,
+      (prev) => ({
+        ...prev,
         btTopology: {
-          ...btTopology,
-          edges: btTopology.edges.map((edge) =>
+          ...prev.btTopology,
+          edges: prev.btTopology.edges.map((edge) =>
             edge.id === edgeId
               ? {
                   ...edge,
@@ -340,12 +354,13 @@ export function useBtEdgeOperations({
               : edge,
           ),
         },
-      },
+      }),
       true,
     );
     showToast(
       `Metragem CQT do trecho ${edgeId} atualizada para ${sanitized.toFixed(2)} m.`,
       "success",
+      { label: "Desfazer", onClick: undo }
     );
   };
 

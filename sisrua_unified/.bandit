@@ -1,0 +1,15 @@
+# Roadmap Item 15: Supply Chain Security & Integridade
+# Configuração do Bandit para SAST Python (Static Application Security Testing)
+# Execução: bandit -c .bandit -r py_engine/ -f json -o artifacts/bandit-report.json
+
+# Exclusões justificadas (falsos positivos confirmados na revisão de segurança)
+skips:
+  - B404  # subprocess é usado com argumentos fixos validados (py_engine/controller.py)
+
+exclude_dirs:
+  - .git
+  - node_modules
+  - dist
+  - __pycache__
+  - py_engine/tests
+  - py_engine/.venv

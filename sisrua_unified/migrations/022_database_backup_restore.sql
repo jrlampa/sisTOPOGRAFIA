@@ -121,9 +121,9 @@ BEGIN
   RETURNING id INTO v_manifest_id;
 
   INSERT INTO backup.user_roles_snapshot (_backup_id, _backed_up_at,
-    id, user_id, role, assigned_at, assigned_by, reason, deleted_at)
+      user_id, role, assigned_at, assigned_by, reason, deleted_at)
   SELECT v_manifest_id, now(),
-    id, user_id, role, assigned_at, assigned_by, reason, deleted_at
+      user_id, role, assigned_at, assigned_by, reason, deleted_at
   FROM public.user_roles
   WHERE deleted_at IS NULL;
 

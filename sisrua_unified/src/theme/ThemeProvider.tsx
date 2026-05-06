@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useMemo } from 'react';
-import type { AppTheme } from '../types';
-import { THEME_TOKENS } from './tokens';
+import React, { createContext, useContext, useEffect, useMemo } from "react";
+import type { AppTheme } from "../types";
+import { THEME_TOKENS } from "./tokens";
 
 type ThemeContextValue = {
   theme: AppTheme;
@@ -8,7 +8,7 @@ type ThemeContextValue = {
 };
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: 'dark',
+  theme: "dark",
   isDark: true,
 });
 
@@ -18,7 +18,7 @@ type ThemeProviderProps = {
 };
 
 export function ThemeProvider({ theme, children }: ThemeProviderProps) {
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
 
   useEffect(() => {
     const root = document.documentElement;
@@ -26,8 +26,8 @@ export function ThemeProvider({ theme, children }: ThemeProviderProps) {
     const tokens = THEME_TOKENS[theme];
 
     root.dataset.theme = theme;
-    root.style.colorScheme = isDark ? 'dark' : 'light';
-    body?.setAttribute('data-theme', theme);
+    root.style.colorScheme = isDark ? "dark" : "light";
+    body?.setAttribute("data-theme", theme);
 
     for (const [name, value] of Object.entries(tokens)) {
       root.style.setProperty(name, value);
@@ -36,9 +36,12 @@ export function ThemeProvider({ theme, children }: ThemeProviderProps) {
 
   const value = useMemo(() => ({ theme, isDark }), [theme, isDark]);
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook co-located with ThemeProvider by design
 export function useTheme(): ThemeContextValue {
   return useContext(ThemeContext);
 }

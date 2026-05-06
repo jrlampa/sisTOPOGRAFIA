@@ -1,20 +1,12 @@
-import { TrafosZRow } from "../services/cqtEngine.js";
+import {
+  TrafosZRow,
+  CaboLookupRow,
+  DisjuntorLookupRow,
+} from "../services/cqtEngine.js";
 import { config } from "../config.js";
 import { constantsService } from "../services/constantsService.js";
 
-export interface CaboLookupRow {
-  name: string;
-  ampacity: number;
-  resistance: number;
-  reactance: number;
-  alpha: number;
-  divisorR: number;
-}
-
-export interface DisjuntorLookupRow {
-  ib: number;
-  disjuntor: number;
-}
+export type { CaboLookupRow, DisjuntorLookupRow };
 
 export const TRAFOS_Z_BASELINE: TrafosZRow[] = [
   { trafoKva: 30, qtFactor: 0.035 },
@@ -42,17 +34,21 @@ export const getTrafosZByScenario = (
 };
 
 export const CABOS_BASELINE: CaboLookupRow[] = [
+  // ─── Cabos Armados Al (XLPE, Tlim = 90 °C) ──────────────────────────────────
+  // DIVISOR_R = 1 + α_Al × (90−20) = 1 + 0,00403 × 70 = 1,2821
+  // Exceção: 25 Al-Arm tem DIVISOR_R = 1,2418 conforme planilha DB
+  // Fonte: aba DB de CQTsimplificado_v0.9.xlsx (Apr/2026)
   {
     name: "25 Al - Arm",
-    ampacity: 0,
+    ampacity: 95,
     resistance: 1.5693,
     reactance: 0.1039,
     alpha: 0.00403,
-    divisorR: 1.2821,
+    divisorR: 1.2418,
   },
   {
     name: "50 Al - Arm",
-    ampacity: 0,
+    ampacity: 150,
     resistance: 0.8388,
     reactance: 0.1039,
     alpha: 0.00403,
@@ -68,7 +64,7 @@ export const CABOS_BASELINE: CaboLookupRow[] = [
   },
   {
     name: "150 Al - Arm",
-    ampacity: 0,
+    ampacity: 300,
     resistance: 0.266,
     reactance: 0.096,
     alpha: 0.00403,
@@ -82,44 +78,21 @@ export const CABOS_BASELINE: CaboLookupRow[] = [
     alpha: 0.00403,
     divisorR: 1.2821,
   },
+  // ─── Cabos Al Nu ──────────────────────────────────────────────────────────────
   {
     name: "25 Al",
-    ampacity: 0,
+    ampacity: 90,
     resistance: 1.5693,
     reactance: 0.109,
     alpha: 0.00403,
     divisorR: 1.2821,
   },
   {
-    name: "35 Cu",
-    ampacity: 0,
-    resistance: 0.6887,
-    reactance: 0.1048,
-    alpha: 0.00393,
-    divisorR: 1.2821,
-  },
-  {
-    name: "70 Cu",
-    ampacity: 0,
-    resistance: 0.3523,
-    reactance: 0.1024,
-    alpha: 0.00393,
-    divisorR: 1.2821,
-  },
-  {
     name: "95 Al",
-    ampacity: 0,
+    ampacity: 225,
     resistance: 0.4195,
     reactance: 0.0958,
     alpha: 0.00403,
-    divisorR: 1.2821,
-  },
-  {
-    name: "120 Cu",
-    ampacity: 0,
-    resistance: 0.2023,
-    reactance: 0.0971,
-    alpha: 0.00393,
     divisorR: 1.2821,
   },
   {
@@ -130,38 +103,66 @@ export const CABOS_BASELINE: CaboLookupRow[] = [
     alpha: 0.00403,
     divisorR: 1.2821,
   },
+  // ─── Cabos Cu Nu (XLPE, Tlim = 90 °C) ───────────────────────────────────────
+  // DIVISOR_R = 1 + α_Cu × (90−20) = 1 + 0,00393 × 70 = 1,2751
+  {
+    name: "35 Cu",
+    ampacity: 140,
+    resistance: 0.6887,
+    reactance: 0.1048,
+    alpha: 0.00393,
+    divisorR: 1.2751,
+  },
+  {
+    name: "70 Cu",
+    ampacity: 240,
+    resistance: 0.3523,
+    reactance: 0.1024,
+    alpha: 0.00393,
+    divisorR: 1.2751,
+  },
+  {
+    name: "120 Cu",
+    ampacity: 340,
+    resistance: 0.2023,
+    reactance: 0.0971,
+    alpha: 0.00393,
+    divisorR: 1.2751,
+  },
   {
     name: "240 Cu",
     ampacity: 430,
     resistance: 0.1035,
     reactance: 0.0897,
     alpha: 0.00393,
-    divisorR: 1.2821,
+    divisorR: 1.2751,
   },
   {
     name: "500 Cu",
-    ampacity: 0,
+    ampacity: 700,
     resistance: 0.0568,
     reactance: 0.0849,
     alpha: 0.00393,
-    divisorR: 1.2821,
+    divisorR: 1.2751,
   },
+  // ─── Cabos Concêntricos Cu (XLPE, Tlim = 90 °C) ──────────────────────────────
   {
     name: "10 Cu_CONC_bi",
     ampacity: 63,
     resistance: 2.3801,
     reactance: 0.101,
-    alpha: 0.00403,
-    divisorR: 1.2821,
+    alpha: 0.00393,
+    divisorR: 1.2751,
   },
   {
     name: "10 Cu_CONC_Tri",
     ampacity: 63,
     resistance: 2.3801,
     reactance: 0.101,
-    alpha: 0.00403,
-    divisorR: 1.2821,
+    alpha: 0.00393,
+    divisorR: 1.2751,
   },
+  // ─── Cabos Concêntricos Al (XLPE, Tlim = 90 °C) ──────────────────────────────
   {
     name: "16 Al_CONC_bi",
     ampacity: 63,
@@ -174,17 +175,19 @@ export const CABOS_BASELINE: CaboLookupRow[] = [
     name: "16 Al_CONC_Tri",
     ampacity: 63,
     resistance: 2.4978,
-    reactance: 0.085,
+    reactance: 0.085, // DB contém 0.85 (erro de entrada); mantido 0.085
     alpha: 0.00403,
     divisorR: 1.2821,
   },
+  // ─── Cabos Multiplexados Al (PVC, Tlim = 70 °C) ───────────────────────────────
+  // DIVISOR_R = 1 + α_Al × (70−20) = 1 + 0,00403 × 50 = 1,2015
   {
     name: "13 Al - DX",
     ampacity: 63,
     resistance: 2.6655,
     reactance: 0.1022,
     alpha: 0.00403,
-    divisorR: 1.2821,
+    divisorR: 1.2015,
   },
   {
     name: "13 Al - TX",
@@ -192,7 +195,7 @@ export const CABOS_BASELINE: CaboLookupRow[] = [
     resistance: 2.6655,
     reactance: 0.1158,
     alpha: 0.00403,
-    divisorR: 1.2821,
+    divisorR: 1.2015,
   },
   {
     name: "13 Al - QX",
@@ -200,7 +203,7 @@ export const CABOS_BASELINE: CaboLookupRow[] = [
     resistance: 2.6655,
     reactance: 0.1384,
     alpha: 0.00403,
-    divisorR: 1.2821,
+    divisorR: 1.2015,
   },
   {
     name: "21 Al - QX",
@@ -208,7 +211,7 @@ export const CABOS_BASELINE: CaboLookupRow[] = [
     resistance: 1.677,
     reactance: 0.135,
     alpha: 0.00403,
-    divisorR: 1.2821,
+    divisorR: 1.2015,
   },
   {
     name: "53 Al - QX",
@@ -216,8 +219,9 @@ export const CABOS_BASELINE: CaboLookupRow[] = [
     resistance: 0.6641,
     reactance: 0.1311,
     alpha: 0.00403,
-    divisorR: 1.2821,
+    divisorR: 1.2015,
   },
+  // ─── Cabos Multiplexados Al XLPE (Tlim = 90 °C) ──────────────────────────────
   {
     name: "70 Al - MX",
     ampacity: 202,
@@ -229,10 +233,10 @@ export const CABOS_BASELINE: CaboLookupRow[] = [
   {
     name: "185 Al - MX",
     ampacity: 355,
-    resistance: 0.2404,
+    resistance: 0.2149,
     reactance: 0.1178,
     alpha: 0.00403,
-    divisorR: 1.4368,
+    divisorR: 1.2821,
   },
   {
     name: "240 Al - MX",

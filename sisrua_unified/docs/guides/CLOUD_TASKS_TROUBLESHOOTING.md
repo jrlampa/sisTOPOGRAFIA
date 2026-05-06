@@ -5,6 +5,7 @@
 ### Issue: "5 NOT_FOUND: Requested entity was not found"
 
 **Symptoms:**
+
 - DXF generation returns HTTP 500 error
 - Logs show "Failed to create Cloud Task"
 - Error message: "5 NOT_FOUND: Requested entity was not found"
@@ -15,12 +16,14 @@ The Cloud Tasks queue (`sisrua-queue`) does not exist in the specified GCP proje
 **Solution:**
 
 #### Option 1: Run the Setup Script (Recommended)
+
 ```bash
 cd sisrua_unified
 ./scripts/setup-cloud-tasks-queue.sh
 ```
 
 #### Option 2: Create Queue Manually
+
 ```bash
 gcloud tasks queues create sisrua-queue \
   --location=southamerica-east1 \
@@ -30,9 +33,11 @@ gcloud tasks queues create sisrua-queue \
 ```
 
 #### Option 3: Wait for Next Deployment
+
 The queue will be automatically created during the next deployment via GitHub Actions.
 
 **Verification:**
+
 ```bash
 # Check if queue exists
 gcloud tasks queues describe sisrua-queue \
@@ -50,6 +55,7 @@ gcloud tasks queues list \
 ### Issue: "Permission Denied" when Creating Tasks
 
 **Symptoms:**
+
 - Error: "Permission 'cloudtasks.tasks.create' denied"
 - DXF generation fails with 500 error
 
@@ -74,6 +80,7 @@ gcloud projects add-iam-policy-binding sisrua-producao \
 ### Issue: "OIDC Authentication Failed" for Webhook
 
 **Symptoms:**
+
 - Tasks are created but webhook fails
 - Error: "Unauthorized" or "OIDC token validation failed"
 
@@ -97,6 +104,7 @@ gcloud run services add-iam-policy-binding sisrua-app \
 ### Issue: Environment Variables Not Set
 
 **Symptoms:**
+
 - Application can't find queue configuration
 - Logs show "not-set" for GCP_PROJECT or queue variables
 
@@ -114,6 +122,7 @@ gcloud run services update sisrua-app \
 ```
 
 **Verification:**
+
 ```bash
 # Check current environment variables
 gcloud run services describe sisrua-app \
@@ -127,6 +136,7 @@ gcloud run services describe sisrua-app \
 ### Issue: Development Mode Not Working
 
 **Symptoms:**
+
 - Tasks are being created even in local development
 - Or: Tasks are not being created when they should be
 
@@ -134,20 +144,22 @@ gcloud run services describe sisrua-app \
 The `GCP_PROJECT` environment variable determines the mode. If set, the app runs in production mode and tries to use Cloud Tasks.
 
 **Solution for Local Development:**
+
 1. Don't set `GCP_PROJECT` in your local `.env` file
 2. Or set `NODE_ENV=development`
 
 **In Local .env:**
+
 ```bash
 # For local development - do NOT set GCP_PROJECT
 NODE_ENV=development
 PORT=8080
-GROQ_API_KEY=your-key-here
 # GCP_PROJECT=   <-- Leave commented out for local dev
 ```
 
 **Verification:**
 Check logs for:
+
 - Development mode: "Development mode: Generating DXF directly (no Cloud Tasks)"
 - Production mode: "Creating Cloud Task for DXF generation"
 
@@ -156,6 +168,7 @@ Check logs for:
 ## Monitoring and Debugging
 
 ### Check Cloud Run Logs
+
 ```bash
 # Real-time logs
 gcloud run services logs read sisrua-app \
@@ -171,6 +184,7 @@ gcloud logging read "resource.type=cloud_run_revision AND resource.labels.servic
 ```
 
 ### Check Cloud Tasks Queue Status
+
 ```bash
 # Queue statistics
 gcloud tasks queues describe sisrua-queue \
@@ -185,6 +199,7 @@ gcloud tasks list \
 ```
 
 ### Test DXF Generation Locally
+
 ```bash
 # Start the server
 npm run dev
@@ -207,21 +222,25 @@ curl -X POST http://localhost:8080/api/dxf \
 Use this checklist to ensure everything is configured correctly:
 
 - [ ] Cloud Tasks queue exists in GCP
+
   ```bash
   gcloud tasks queues describe sisrua-queue --location=southamerica-east1
   ```
 
 - [ ] Service account has Cloud Tasks Enqueuer role
+
   ```bash
   gcloud projects get-iam-policy sisrua-producao --flatten="bindings[].members" --filter="bindings.role:roles/cloudtasks.enqueuer"
   ```
 
 - [ ] Service account has Cloud Run Invoker role
+
   ```bash
   gcloud run services get-iam-policy sisrua-app --region=southamerica-east1
   ```
 
 - [ ] Environment variables are set in Cloud Run
+
   ```bash
   gcloud run services describe sisrua-app --region=southamerica-east1 --format="value(spec.template.spec.containers[0].env)"
   ```
@@ -236,6 +255,7 @@ Use this checklist to ensure everything is configured correctly:
 ## Quick Reference
 
 ### Environment Variables Required
+
 ```bash
 GCP_PROJECT=sisrua-producao
 CLOUD_TASKS_LOCATION=southamerica-east1
@@ -245,10 +265,12 @@ NODE_ENV=production
 ```
 
 ### Required GCP Roles
+
 - `roles/cloudtasks.enqueuer` - To create tasks
 - `roles/run.invoker` - To call the webhook
 
 ### Useful Commands
+
 ```bash
 # Create queue
 ./scripts/setup-cloud-tasks-queue.sh

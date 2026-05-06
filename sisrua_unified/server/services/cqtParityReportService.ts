@@ -178,7 +178,9 @@ const mergeExpectedByScenario = (
         const normalizedIncoming: Partial<Record<string, CqtCellExpectation>> = {};
         if (incoming) {
             for (const [cell, value] of Object.entries(incoming)) {
-                normalizedIncoming[cell] = normalizeExpectedCell(value);
+                if (value !== undefined) {
+                    normalizedIncoming[cell] = normalizeExpectedCell(value);
+                }
             }
         }
 
@@ -229,6 +231,7 @@ export const buildCqtParityReport = (
     const pending: string[] = [];
 
     for (const [cell, expected] of Object.entries(expectedCells)) {
+        if (!expected) continue;
         const expectedValue = expected.value;
         const expectedError = expected.error;
         if (expectedValue === null || expectedError === null) {

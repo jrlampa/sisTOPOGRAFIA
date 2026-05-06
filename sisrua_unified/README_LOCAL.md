@@ -7,12 +7,14 @@ Guia rápido para uso local do Sis RUA sem Docker, focado em testes manuais e va
 ### 1. Instalação Automática
 
 **Windows (PowerShell):**
+
 ```powershell
 cd sisrua_unified
 npm run setup:local
 ```
 
 **Linux/Mac:**
+
 ```bash
 cd sisrua_unified
 npm run setup:local:bash
@@ -30,17 +32,18 @@ Acesse: http://localhost:3000
 
 ## 📋 Pré-Requisitos
 
-| Componente | Versão Mínima | Download |
-|------------|---------------|----------|
-| Node.js | 22.x | https://nodejs.org |
-| Python | 3.9+ | https://python.org |
-| Git | Opcional | https://git-scm.com |
+| Componente | Versão Mínima | Download            |
+| ---------- | ------------- | ------------------- |
+| Node.js    | 22.x          | https://nodejs.org  |
+| Python     | 3.9+          | https://python.org  |
+| Git        | Opcional      | https://git-scm.com |
 
 ---
 
 ## 🎯 Modos de Operação
 
 ### Modo Desenvolvimento (Nativo)
+
 ```bash
 npm run dev          # Frontend + Backend simultâneos
 npm run server       # Apenas backend (porta 3001)
@@ -48,6 +51,7 @@ npm run client       # Apenas frontend (porta 3000)
 ```
 
 ### Modo Docker (Alternativo)
+
 ```bash
 docker compose up    # Tudo em containers
 ```
@@ -78,23 +82,20 @@ USE_DB_CONSTANTS_CONFIG=false
 # Token de proteção para refresh operacional em runtime
 # Recomendado em staging/produção.
 CONSTANTS_REFRESH_TOKEN=change-me
-
-# GROQ AI (opcional, para busca inteligente)
-GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxx
 ```
-
-**Obtenha GROQ_API_KEY gratuita:** https://console.groq.com/keys
 
 ---
 
 ## 🧪 Testes Rápidos
 
 ### Teste 1: Health Check
+
 ```bash
 curl http://localhost:3001/health
 ```
 
 **Esperado:**
+
 ```json
 {
   "status": "online",
@@ -103,6 +104,7 @@ curl http://localhost:3001/health
 ```
 
 ### Teste 2: Geração Demo (Offline)
+
 ```bash
 python py_engine/create_demo_dxf.py --output teste.dxf
 ```
@@ -142,6 +144,7 @@ curl "http://localhost:3001/api/constants/refresh-events?limit=5" \
 **Esperado:** lista `events` com `httpStatus`, `actor`, `durationMs` e `createdAt`.
 
 ### Teste 3: Geração Via API (Com OSM)
+
 ```bash
 curl -X POST http://localhost:3001/api/dxf \
   -H "Content-Type: application/json" \
@@ -173,6 +176,7 @@ sisrua_unified/
 ## 🔧 Troubleshooting
 
 ### Python não encontrado
+
 ```bash
 # Windows
 set PYTHON_COMMAND=python
@@ -182,18 +186,21 @@ export PYTHON_COMMAND=python3
 ```
 
 ### Erro "module not found"
+
 ```bash
 # Reinstalar dependências Python
 pip install -r py_engine/requirements.txt
 ```
 
 ### Porta em uso
+
 ```bash
 # Alterar porta no .env
 PORT=3002
 ```
 
 ### CORS error
+
 - Verifique se `NODE_ENV=development`
 - Confirme que backend está rodando na porta correta
 
@@ -215,6 +222,7 @@ PORT=3002
 ```
 
 **Características modo local:**
+
 - ✅ Sem dependência de GCP/Firestore
 - ✅ Job queue em memória (sem Redis)
 - ✅ Cache local em filesystem
@@ -224,14 +232,14 @@ PORT=3002
 
 ## 🎓 Comandos Úteis
 
-| Comando | Descrição |
-|---------|-----------|
-| `npm run dev` | Inicia tudo (frontend + backend) |
-| `npm run build` | Build de produção |
-| `npm run test:frontend` | Testes unitários frontend |
-| `npm run test:backend` | Testes unitários backend |
-| `npm run security:check` | Auditoria de segurança |
-| `npm run docker:dev` | Modo Docker |
+| Comando                  | Descrição                        |
+| ------------------------ | -------------------------------- |
+| `npm run dev`            | Inicia tudo (frontend + backend) |
+| `npm run build`          | Build de produção                |
+| `npm run test:frontend`  | Testes unitários frontend        |
+| `npm run test:backend`   | Testes unitários backend         |
+| `npm run security:check` | Auditoria de segurança           |
+| `npm run docker:dev`     | Modo Docker                      |
 
 ---
 

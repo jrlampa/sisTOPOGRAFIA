@@ -1,35 +1,36 @@
+import { vi } from "vitest";
 import express from 'express';
 import request from 'supertest';
 
-const createDxfTaskMock = jest.fn();
-const createCacheKeyMock = jest.fn();
-const getCachedFilenameMock = jest.fn();
-const deleteCachedFilenameMock = jest.fn();
-const attachCqtSnapshotToBtContextMock = jest.fn((value) => value);
-const recordDxfRequestMock = jest.fn();
+const createDxfTaskMock = vi.fn();
+const createCacheKeyMock = vi.fn();
+const getCachedFilenameMock = vi.fn();
+const deleteCachedFilenameMock = vi.fn();
+const attachCqtSnapshotToBtContextMock = vi.fn((value) => value);
+const recordDxfRequestMock = vi.fn();
 
-jest.mock('../services/cloudTasksService', () => ({
+vi.mock('../services/cloudTasksService', () => ({
   createDxfTask: (...args: unknown[]) => createDxfTaskMock(...args),
 }));
 
-jest.mock('../services/cacheService', () => ({
+vi.mock('../services/cacheService', () => ({
   createCacheKey: (...args: unknown[]) => createCacheKeyMock(...args),
   getCachedFilename: (...args: unknown[]) => getCachedFilenameMock(...args),
   deleteCachedFilename: (...args: unknown[]) => deleteCachedFilenameMock(...args),
 }));
 
-jest.mock('../services/cqtContextService', () => ({
+vi.mock('../services/cqtContextService', () => ({
   attachCqtSnapshotToBtContext: (...args: unknown[]) => attachCqtSnapshotToBtContextMock(...args),
 }));
 
-jest.mock('../services/metricsService', () => ({
+vi.mock('../services/metricsService', () => ({
   metricsService: {
     recordDxfRequest: (...args: unknown[]) => recordDxfRequestMock(...args),
   },
 }));
 
 // Allow all RBAC checks to pass through so this test focuses on DXF directory consistency.
-jest.mock('../middleware/permissionHandler', () => ({
+vi.mock('../middleware/permissionHandler', () => ({
   requirePermission: () => (_req: unknown, _res: unknown, next: () => void) => next(),
 }));
 
@@ -38,8 +39,8 @@ describe('DXF directory consistency', () => {
 
   afterEach(() => {
     process.env = originalEnv;
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it('uses the same resolved DXF directory for queue output when DXF_DIRECTORY is customized', async () => {
@@ -72,5 +73,12 @@ describe('DXF directory consistency', () => {
 
     expect(payload.outputFile.startsWith(expectedDir)).toBe(true);
     expect(payload.outputFile.endsWith(payload.filename)).toBe(true);
+    expect((payload as any).requestMeta).toEqual(
+      expect.objectContaining({
+        endpoint: 'POST /api/dxf/',
+        source: 'POST /api/dxf/',
+      }),
+    );
   });
 });
+

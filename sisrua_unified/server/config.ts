@@ -6,6 +6,23 @@
  * rather than a silent wrong-value bug discovered at runtime.
  */
 import { z } from "zod";
+import fs from "node:fs";
+
+/**
+ * Helper to read a secret from an environment variable or a file (Docker Secrets support).
+ * If NAME_FILE exists, it reads from that file. Otherwise, it uses NAME.
+ */
+function readSecret(name: string): string | undefined {
+  const filePath = process.env[`${name}_FILE`];
+  if (filePath && fs.existsSync(filePath)) {
+    try {
+      return fs.readFileSync(filePath, "utf8").trim();
+    } catch (err) {
+      console.error(`[sisrua] Failed to read secret from ${filePath}:`, err);
+    }
+  }
+  return process.env[name];
+}
 
 const EnvSchema = z.object({
   // ── Server ───────────────────────────────────────────────────────────────
@@ -19,9 +36,24 @@ const EnvSchema = z.object({
   BODY_LIMIT: z.string().default("1mb"),
   APP_VERSION: z.string().default("1.2.0"),
 
+  // ── AI & Engineering ──────────────────────────────────────────────────────
+  REDIS_PASSWORD: z.string().optional(),
+
   // ── Ollama ────────────────────────────────────────────────────────────────
   OLLAMA_MODEL: z.string().default("llama3.2"),
   OLLAMA_HOST: z.string().default("http://localhost:11434"),
+  /** Enforce zero-cost AI policy by restricting Ollama host to local endpoints unless explicitly allowed. */
+  OLLAMA_ENFORCE_ZERO_COST: z.string().optional(),
+  /** Comma-separated fallback models for compatibility when primary model is unavailable. */
+  OLLAMA_FALLBACK_MODELS: z.string().optional(),
+  /** Optional comma-separated remote host allowlist when zero-cost policy needs explicit exceptions. */
+  OLLAMA_ALLOWED_REMOTE_HOSTS: z.string().optional(),
+  /** Minimum Ollama runtime version required for enterprise governance checks. */
+  OLLAMA_MIN_VERSION: z.string().default("0.0.0"),
+  /** UTC maintenance window in HH:MM-HH:MM format used to authorize controlled updates. */
+  OLLAMA_UPDATE_MAINTENANCE_WINDOW_UTC: z.string().default("02:00-04:00"),
+  /** Enable/disable periodic governance checks for Ollama runtime updates. */
+  OLLAMA_UPDATE_CHECK_ENABLED: z.string().optional(),
   /** How long (ms) to wait after spawning the Ollama process before proceeding */
   OLLAMA_STARTUP_WAIT_MS: z.coerce.number().default(3_000),
   /** Timeout (ms) for the Ollama health-check HTTP request */
@@ -30,7 +62,7 @@ const EnvSchema = z.object({
   // ── Python engine ─────────────────────────────────────────────────────────
   PYTHON_COMMAND: z.string().optional(),
   /** Maximum runtime for python DXF generation process before force-failing (ms). */
-  PYTHON_PROCESS_TIMEOUT_MS: z.coerce.number().positive().default(300_000),
+  PYTHON_PROCESS_TIMEOUT_MS: z.coerce.number().positive().default(600_000),
   /** Number of DXF queue workers running in parallel. */
   DXF_WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(8).default(2),
   DOCKER_ENV: z.string().optional(),
@@ -63,13 +95,38 @@ const EnvSchema = z.object({
   // ── Firestore / GCP ───────────────────────────────────────────────────────
   /** Explicit opt-in/out. Defaults to true in production, false elsewhere. */
   USE_FIRESTORE: z.string().optional(),
+  /** Explicit opt-in/out for Cloud Tasks integration. */
+  USE_CLOUD_TASKS: z.string().optional(),
   GCP_PROJECT: z.string().optional(),
 
   // ── Supabase / Postgres jobs persistence ─────────────────────────────────
   /** Connection URL used for Supabase/Postgres persistence when enabled. */
   DATABASE_URL: z.string().optional(),
+  /** Alias accepted for compatibility with Supabase-focused env files. */
+  SUPABASE_DB_URL: z.string().optional(),
+  /** Supabase project URL used for Auth/OAuth and JWT verification. */
+  SUPABASE_URL: z.string().url().optional(),
+  /** Service-role key used only on the backend for secure onboarding checks. */
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  /** Optional explicit audience for Supabase access-token verification. */
+  SUPABASE_JWT_AUDIENCE: z.string().optional(),
+  /** Email of the platform superadmin — bypasses domain check and always gets admin role. */
+  SUPABASE_SUPERADMIN_EMAIL: z.string().email().optional(),
+  /** Corporate domain allowed to self-register with automatic access. */
+  SUPABASE_ALLOWED_EMAIL_DOMAIN: z.string().default("im3brasil.com.br"),
+  /** Role granted to confirmed self-signup users from the allowed domain. */
+  SUPABASE_ALLOWED_DOMAIN_ROLE: z
+    .enum(["admin", "technician", "viewer"])
+    .default("admin"),
+  /** Default tenant assigned during self-service onboarding. */
+  DEFAULT_TENANT_ID: z
+    .string()
+    .uuid()
+    .default("00000000-0000-0000-0000-000000000001"),
   /** Explicit opt-in/out for Supabase jobs persistence. Defaults to true when DATABASE_URL exists. */
   USE_SUPABASE_JOBS: z.string().optional(),
+  /** Explicit opt-in/out for DB cleanup jobs in maintenance service. */
+  MAINTENANCE_DB_CLEANUP_ENABLED: z.string().optional(),
 
   // ── Constants catalog (DB-backed lookup tables) ────────────────────────────
   /** Enable reading CQT lookup tables (cabos/trafos/disjuntores) from DB. Defaults to false. */
@@ -85,8 +142,20 @@ const EnvSchema = z.object({
   /** Enable the new radial BT calculation engine. Defaults to false. */
   BT_RADIAL_ENABLED: z.string().optional(),
 
+  // ── Canonical Topology (Poste-Driven migration) ────────────────────────
+  /**
+   * Habilita leitura prioritária das tabelas canonical_poles/canonical_edges
+   * em vez dos payloads legados de dxf_tasks.
+   * Defaults to false (legado).
+   */
+  CANONICAL_TOPOLOGY_READ: z.string().optional(),
+
   // ── CORS ──────────────────────────────────────────────────────────────────
-  /** Comma-separated list of allowed production origins for CORS (e.g. https://app.example.com) */
+  /**
+   * Origens permitidas em produção (CSV). Ex: https://app.sisrua.com.br
+   * Obrigatório em produção; opcional em desenvolvimento.
+   * NÃO use '*' — bloqueado por política de segurança (OWASP A05).
+   */
   CORS_ORIGIN: z.string().optional(),
   /** Public backend URL used to build download links (e.g. https://api.example.com). */
   APP_PUBLIC_URL: z.string().url().optional(),
@@ -105,6 +174,13 @@ const EnvSchema = z.object({
    * for internal-network Prometheus scrapers that are NOT publicly exposed).
    */
   METRICS_TOKEN: z.string().optional(),
+  /**
+   * Token Bearer para proteger os endpoints de /api/admin.
+   * Regra unificada dos endpoints críticos: se token estiver configurado,
+   * todas as requisições devem enviar Authorization: Bearer <ADMIN_TOKEN>.
+   * Se ausente, o acesso fica permissivo (sem variação por ambiente).
+   */
+  ADMIN_TOKEN: z.string().optional(),
 });
 
 type RawConfig = z.infer<typeof EnvSchema>;
@@ -137,6 +213,20 @@ function parseTrustProxyValue(
   return value.trim();
 }
 
+function normalizeDatabaseUrl(
+  primary: string | undefined,
+  alias: string | undefined,
+): string | undefined {
+  const raw = (primary ?? alias)?.trim();
+  if (!raw) {
+    return undefined;
+  }
+
+  // Remove surrounding quotes often introduced by copy/paste in .env files.
+  const unquoted = raw.replace(/^['"]|['"]$/g, "").trim();
+  return unquoted.length > 0 ? unquoted : undefined;
+}
+
 function loadConfig() {
   const result = EnvSchema.safeParse(process.env);
 
@@ -148,16 +238,31 @@ function loadConfig() {
 
   const raw: RawConfig = result.data;
 
+  // Use readSecret for sensitive values
+  const redisPassword = readSecret("REDIS_PASSWORD");
+
+  const databaseUrl = normalizeDatabaseUrl(
+    raw.DATABASE_URL,
+    raw.SUPABASE_DB_URL,
+  );
+
   // Derived values — computed once at startup, never recalculated.
   const useSupabaseJobs: boolean =
     raw.USE_SUPABASE_JOBS !== undefined
       ? raw.USE_SUPABASE_JOBS === "true"
-      : !!raw.DATABASE_URL;
+      : !!databaseUrl;
+
+  const maintenanceDbCleanupEnabled: boolean =
+    raw.MAINTENANCE_DB_CLEANUP_ENABLED !== undefined
+      ? raw.MAINTENANCE_DB_CLEANUP_ENABLED === "true"
+      : useSupabaseJobs || raw.USE_DB_CONSTANTS_CONFIG === "true";
 
   const useFirestore: boolean =
     raw.USE_FIRESTORE !== undefined
       ? raw.USE_FIRESTORE === "true"
       : raw.NODE_ENV === "production" && !useSupabaseJobs;
+  const useCloudTasks: boolean =
+    raw.USE_CLOUD_TASKS !== undefined ? raw.USE_CLOUD_TASKS === "true" : false;
 
   const isDocker: boolean = raw.DOCKER_ENV === "true";
 
@@ -166,18 +271,48 @@ function loadConfig() {
     raw.USE_DB_CONSTANTS_CLANDESTINO === "true";
   const useDbConstantsConfig: boolean = raw.USE_DB_CONSTANTS_CONFIG === "true";
   const btRadialEnabled: boolean = raw.BT_RADIAL_ENABLED === "true";
+  const canonicalTopologyRead: boolean = raw.CANONICAL_TOPOLOGY_READ === "true";
   const trustProxy = parseTrustProxyValue(raw.TRUST_PROXY, raw.NODE_ENV);
+  const ollamaEnforceZeroCost: boolean =
+    raw.OLLAMA_ENFORCE_ZERO_COST !== undefined
+      ? raw.OLLAMA_ENFORCE_ZERO_COST === "true"
+      : true;
+  const ollamaFallbackModels: readonly string[] = (
+    raw.OLLAMA_FALLBACK_MODELS ?? ""
+  )
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+  const ollamaAllowedRemoteHosts: readonly string[] = (
+    raw.OLLAMA_ALLOWED_REMOTE_HOSTS ?? ""
+  )
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0);
+  const ollamaUpdateCheckEnabled: boolean =
+    raw.OLLAMA_UPDATE_CHECK_ENABLED !== undefined
+      ? raw.OLLAMA_UPDATE_CHECK_ENABLED === "true"
+      : true;
 
   return {
     ...raw,
+    REDIS_PASSWORD: redisPassword,
+    DATABASE_URL: databaseUrl,
     useFirestore,
+    useCloudTasks,
     useSupabaseJobs,
+    maintenanceDbCleanupEnabled,
     isDocker,
     useDbConstantsCqt,
     useDbConstantsClandestino,
     useDbConstantsConfig,
     btRadialEnabled,
+    canonicalTopologyRead,
     trustProxy,
+    ollamaEnforceZeroCost,
+    ollamaFallbackModels,
+    ollamaAllowedRemoteHosts,
+    ollamaUpdateCheckEnabled,
   } as const;
 }
 

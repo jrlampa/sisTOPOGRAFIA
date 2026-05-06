@@ -1,114 +1,134 @@
-# Multi-stage Dockerfile for SIS RUA Unified Application
-# Optimized for Cloud Run deployment with security best practices
+# syntax=docker/dockerfile:1.7
+# ─────────────────────────────────────────────────────────────────────────────
+# SIS RUA Unified — Dockerfile de Produção (Multi-Stage + BuildKit Optimized)
+# ─────────────────────────────────────────────────────────────────────────────
+# Stages:
+#   base-build  – Alpine + ferramentas de compilação nativa (compartilhado)
+#   py-deps     – venv Python isolado (invalida apenas ao mudar requirements)
+#   node-build  – compilação TS + Vite; prune devDeps ao final
+#   runner      – imagem de runtime mínima (sem devDeps, sem build tools)
+#
+# Benefícios vs versão anterior:
+#   • BuildKit cache mounts (apk / pip / npm): rebuilds muito mais rápidos
+#   • node_modules copiados do builder (0 npm installs no runner)
+#   • su-exec no lugar do gosu (binário 10× menor)
+#   • COPY --chown elimina layer de chown separado
+#   • Estágio py-deps independente: Python só reconstruído se requirements mudar
+# ─────────────────────────────────────────────────────────────────────────────
 
-# Stage 1: Build (Frontend + Backend + Python)
-# Using ubuntu:24.04 to match production stage Python version (3.12)
-FROM ubuntu:24.04 AS builder
+ARG NODE_VERSION=22
+ARG ALPINE_VERSION=3.21
+
+# ── Stage 1: ferramentas de compilação nativa ─────────────────────────────────
+FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION} AS base-build
+
+# Cache APK persistido no host pelo BuildKit (não incluído na camada da imagem)
+RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
+    apk add --update-cache \
+        python3 \
+        python3-dev \
+        py3-pip \
+        build-base \
+        gdal-dev \
+        geos-dev \
+        proj-dev
+
+# ── Stage 2: dependências Python (invalida só quando requirements.txt muda) ───
+FROM base-build AS py-deps
+
+COPY py_engine/requirements.txt /tmp/requirements.txt
+
+RUN python3 -m venv /opt/venv
+
+# Cache pip armazenado no host; wheels não são baixados em rebuilds
+RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
+    /opt/venv/bin/pip install --upgrade pip setuptools wheel && \
+    /opt/venv/bin/pip install -r /tmp/requirements.txt
+
+# ── Stage 3: build Node.js + TypeScript ──────────────────────────────────────
+FROM base-build AS node-build
+
 WORKDIR /app
 
-# Environment variables for non-interactive installs
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install Node.js 22, Python, and build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    curl \
-    gnupg \
-    python3 \
-    python3-pip \
-    python3-venv \
-    build-essential && \
-    # Add NodeSource repository for Node.js 22
-    mkdir -p /etc/apt/keyrings && \
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" > /etc/apt/sources.list.d/nodesource.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends nodejs && \
-    rm -rf /var/lib/apt/lists/*
-
-# Copy dependency files first for better layer caching
+# Instalar dependências npm — cache mount evita re-download quando lock não muda
 COPY package*.json ./
-RUN npm ci --prefer-offline --no-audit
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    npm ci --legacy-peer-deps --prefer-offline --no-audit
 
-# Copy source and build both frontend and backend
 COPY . .
-RUN npm run build
 
-# Build backend separately to ensure it's compiled
-RUN npx tsc -p tsconfig.server.json
+# Build frontend (Vite) e backend (tsc)
+RUN npm run build && \
+    npx tsc -p tsconfig.server.json
 
-# Setup Python venv in builder to reuse in production
-COPY py_engine/requirements.txt ./py_engine/
-RUN python3 -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
-    /opt/venv/bin/pip install --no-cache-dir -r py_engine/requirements.txt
+# Remover devDependencies — node_modules resultante vai direto para o runner
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    npm prune --omit=dev --legacy-peer-deps
 
-# Note: Don't clean up build-essential here - it's needed for package compilation
-# The builder stage artifacts won't be in the final image anyway
+# ── Stage 4: runner (imagem final mínima) ─────────────────────────────────────
+FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION} AS runner
 
-# Stage 2: Production runner (Python + Node.js)
-FROM ubuntu:24.04
 WORKDIR /app
 
-# Security: Run as non-root user
-RUN useradd -m -u 10000 appuser
-
-# Environment variables
 ENV NODE_ENV=production \
     PORT=8080 \
-    DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHON_COMMAND=python3 \
-    DOCKER_ENV=true
+    DOCKER_ENV=true \
+    PATH="/opt/venv/bin:$PATH"
 
-# Install Node.js and Python runtime (single installation)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+# Runtime: Python3 (interpetador), su-exec (drop-privilege), curl (healthcheck)
+# su-exec é ~10× menor que gosu e cumpre o mesmo papel
+RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
+    apk add --update-cache \
+        python3 \
+        su-exec \
         ca-certificates \
-        curl \
-        gnupg \
-        python3 && \
-    # Add NodeSource repository for Node.js 22
-    mkdir -p /etc/apt/keyrings && \
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" > /etc/apt/sources.list.d/nodesource.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends nodejs && \
-    # Cleanup
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+        curl
 
-# Install Node.js production dependencies
-COPY package*.json ./
-RUN npm ci --only=production --prefer-offline --no-audit && \
-    npm cache clean --force
+# Usuário não-root com UID fixo (paridade dev ↔ prod)
+RUN addgroup -g 10000 appuser && \
+    adduser -D -u 10000 -G appuser appuser
 
-# Copy pre-built Python venv from builder (avoids duplicate pip install)
-COPY --from=builder /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+# ── Artefatos do build ───────────────────────────────────────────────────────
+# Python venv (apenas do estágio py-deps — sem build-base no runner)
+COPY --from=py-deps  /opt/venv                /opt/venv
 
-# Verify Python dependencies are installed (use venv Python explicitly)
-RUN /opt/venv/bin/python3 -c "import osmnx, ezdxf, geopandas; print('✅ Python dependencies verified')"
+# Código compilado + dependências de produção (já pruned)
+COPY --from=node-build --chown=appuser:appuser /app/dist         ./dist
+COPY --from=node-build --chown=appuser:appuser /app/node_modules ./node_modules
+COPY --from=node-build --chown=appuser:appuser /app/py_engine    ./py_engine
+COPY --from=node-build --chown=appuser:appuser /app/public       ./public
 
-# Copy application files
-COPY py_engine ./py_engine
-COPY public ./public
-COPY --from=builder /app/dist ./dist
+COPY --chown=appuser:appuser package.json          ./package.json
+COPY --chown=appuser:appuser docker-entrypoint.sh  ./docker-entrypoint.sh
 
-# Create directories for runtime data
-RUN mkdir -p /app/public/dxf /app/cache && \
-    chown -R appuser:appuser /app
+# Diretórios de runtime (volumes montados em produção)
+RUN mkdir -p /app/public/dxf /app/cache /app/logs && \
+    chown -R appuser:appuser /app/public/dxf /app/cache /app/logs && \
+    chmod +x /app/docker-entrypoint.sh
 
-# Switch to non-root user
-USER appuser
+# Verificação de dependências Python (falha o build se pacote estiver faltando)
+RUN /opt/venv/bin/python3 -c "
+import sys, importlib.util
+required = [
+    'osmnx','geopandas','shapely','pyproj','rasterio','networkx',
+    'ezdxf','numpy','pandas','scipy','matplotlib',
+    'psycopg2','openpyxl','requests','srtm','pydantic','psutil',
+]
+missing = [m for m in required if importlib.util.find_spec(m) is None]
+if missing:
+    print('CRITICAL: missing Python deps:', missing); sys.exit(1)
+print('ALL Python dependencies OK')
+"
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+# ENTRYPOINT: ajusta ownership de volumes em runtime e faz exec para appuser
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
-# Expose port
 EXPOSE 8080
 
-# FIXED: Correct path to compiled server code (dist/server/server/index.js)
-CMD ["node", "dist/server/server/index.js"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD curl -fsS "http://localhost:${PORT}/health" || exit 1
+
+CMD ["node", "dist/server/index.js"]

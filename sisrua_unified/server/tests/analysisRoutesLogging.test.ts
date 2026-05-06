@@ -1,20 +1,26 @@
-import express from 'express';
-import request from 'supertest';
+import { vi } from "vitest";
+import express from "express";
+import request from "supertest";
 
-const isAvailableMock = jest.fn();
-const analyzeAreaMock = jest.fn();
-const loggerErrorMock = jest.fn();
-const loggerInfoMock = jest.fn();
-const loggerWarnMock = jest.fn();
+const isAvailableMock = vi.fn();
+const analyzeAreaMock = vi.fn();
+const getRuntimeStatusMock = vi.fn();
+const getGovernanceStatusMock = vi.fn();
+const loggerErrorMock = vi.fn();
+const loggerInfoMock = vi.fn();
+const loggerWarnMock = vi.fn();
 
-jest.mock('../services/ollamaService', () => ({
+vi.mock("../services/ollamaService.js", () => ({
   OllamaService: {
     isAvailable: (...args: unknown[]) => isAvailableMock(...args),
+    getRuntimeStatus: (...args: unknown[]) => getRuntimeStatusMock(...args),
+    getGovernanceStatus: (...args: unknown[]) =>
+      getGovernanceStatusMock(...args),
     analyzeArea: (...args: unknown[]) => analyzeAreaMock(...args),
   },
 }));
 
-jest.mock('../utils/logger', () => ({
+vi.mock("../utils/logger.js", () => ({
   logger: {
     error: (...args: unknown[]) => loggerErrorMock(...args),
     info: (...args: unknown[]) => loggerInfoMock(...args),
@@ -22,30 +28,37 @@ jest.mock('../utils/logger', () => ({
   },
 }));
 
-describe('analysisRoutes logging hardening', () => {
+describe("analysisRoutes logging hardening", () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.resetAllMocks();
   });
 
-  it('logs only request metadata with truncated preview on analysis errors', async () => {
+  it("logs only request metadata with truncated preview on analysis errors", async () => {
+    getRuntimeStatusMock.mockResolvedValue({
+      available: true,
+      selectedModel: "llama3.2",
+      configuredModel: "llama3.2",
+      zeroCostCompliant: true,
+    });
     isAvailableMock.mockResolvedValue(true);
-    analyzeAreaMock.mockRejectedValueOnce(new Error('internal error'));
+    analyzeAreaMock.mockRejectedValueOnce(new Error("internal error"));
 
-    const { default: analysisRoutes } = await import('../routes/analysisRoutes');
+    const { default: analysisRoutes } =
+      await import("../routes/analysisRoutes.js");
     const app = express();
     app.use(express.json());
-    app.use('/api/analysis', analysisRoutes);
+    app.use("/api/analysis", analysisRoutes);
 
-    const largeValue = 'x'.repeat(1500);
+    const largeValue = "x".repeat(1500);
     const response = await request(app)
-      .post('/api/analysis')
+      .post("/api/analysis")
       .send({
-        locationName: 'Area Teste',
+        locationName: "Area Teste",
         stats: {
           buildings: 10,
           privatePayload: largeValue,
-          apiToken: 'super-secret-token',
+          apiToken: "super-secret-token",
         },
       });
 
@@ -68,11 +81,190 @@ describe('analysisRoutes logging hardening', () => {
     expect(logPayload.body).toBeUndefined();
     expect(logPayload.request).toBeDefined();
     expect(logPayload.request?.hasBody).toBe(true);
-    expect(logPayload.request?.bodyType).toBe('object');
-    expect(logPayload.request?.topLevelKeys).toEqual(expect.arrayContaining(['stats', 'locationName']));
+    expect(logPayload.request?.bodyType).toBe("object");
+    expect(logPayload.request?.topLevelKeys).toEqual(
+      expect.arrayContaining(["stats", "locationName"]),
+    );
     expect(logPayload.request?.serializedSize).toBeGreaterThan(200);
     expect(logPayload.request?.bodyPreview.length).toBeLessThanOrEqual(200);
     expect(logPayload.request?.bodyPreviewTruncated).toBe(true);
-    expect(logPayload.request?.bodyPreview).not.toContain('x'.repeat(500));
+    expect(logPayload.request?.bodyPreview).not.toContain("x".repeat(500));
+  });
+
+  it("returns runtime diagnostics with degraded status when Ollama is unavailable", async () => {
+    getRuntimeStatusMock.mockResolvedValue({
+      available: false,
+      host: "http://remote-ollama.example",
+      configuredModel: "llama3.2",
+      selectedModel: "llama3.2",
+      availableModels: [],
+      zeroCostEnforced: true,
+      zeroCostCompliant: false,
+      fallbackModels: [],
+      compatibility: {
+        configuredModelAvailable: false,
+        fallbackModelUsed: false,
+      },
+      warnings: ["Host do Ollama fora da política zero-custo."],
+    });
+
+    const { default: analysisRoutes } = await import("../routes/analysisRoutes.js");
+    const app = express();
+    app.use("/api/analysis", analysisRoutes);
+
+    const response = await request(app).get("/api/analysis/runtime");
+
+    expect(response.status).toBe(503);
+    expect(response.body).toMatchObject({
+      available: false,
+      zeroCostCompliant: false,
+      configuredModel: "llama3.2",
+    });
+  });
+
+  it("returns governance diagnostics for controlled Ollama updates", async () => {
+    getGovernanceStatusMock.mockResolvedValue({
+      runtime: {
+        available: true,
+        host: "http://localhost:11434",
+        configuredModel: "llama3.2",
+        selectedModel: "llama3.2",
+        availableModels: ["llama3.2"],
+        zeroCostEnforced: true,
+        zeroCostCompliant: true,
+        fallbackModels: ["llama3.1"],
+        compatibility: {
+          configuredModelAvailable: true,
+          fallbackModelUsed: false,
+        },
+        warnings: [],
+      },
+      version: {
+        current: "0.4.9",
+        minimum: "0.5.0",
+        compliant: false,
+        updateRecommended: true,
+        checkEnabled: true,
+      },
+      maintenanceWindow: {
+        configuredUtc: "02:00-04:00",
+        inWindow: true,
+        nowUtc: "2026-01-01T02:30:00.000Z",
+      },
+      updatePolicy: {
+        canAutoUpdate: true,
+        reason: "Governança de runtime aprovada para atualização controlada.",
+      },
+    });
+
+    const { default: analysisRoutes } = await import("../routes/analysisRoutes.js");
+    const app = express();
+    app.use("/api/analysis", analysisRoutes);
+
+    const response = await request(app).get("/api/analysis/runtime/governance");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      version: {
+        current: "0.4.9",
+        minimum: "0.5.0",
+        updateRecommended: true,
+      },
+      updatePolicy: {
+        canAutoUpdate: true,
+      },
+    });
   });
 });
+
+describe("analysisRoutes — rotas adicionais", () => {
+  afterEach(() => {
+    vi.resetModules();
+    vi.resetAllMocks();
+  });
+
+  async function buildApp() {
+    const { default: analysisRoutes } = await import("../routes/analysisRoutes.js");
+    const app = express();
+    app.use(express.json());
+    app.use("/api/analysis", analysisRoutes);
+    return app;
+  }
+
+  it("GET /runtime retorna 500 quando getRuntimeStatus lanca erro", async () => {
+    getRuntimeStatusMock.mockRejectedValueOnce(new Error("runtime crash"));
+    const app = await buildApp();
+    const res = await request(app).get("/api/analysis/runtime");
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe("Runtime status failed");
+  });
+
+  it("GET /runtime/governance retorna 500 quando getGovernanceStatus lanca erro", async () => {
+    getGovernanceStatusMock.mockRejectedValueOnce(new Error("gov crash"));
+    const app = await buildApp();
+    const res = await request(app).get("/api/analysis/runtime/governance");
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe("Governance status failed");
+  });
+
+  it("POST / retorna 400 para body invalido", async () => {
+    const app = await buildApp();
+    const res = await request(app)
+      .post("/api/analysis")
+      .send({ locationName: "x" }); // missing required stats
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid request");
+  });
+
+  it("POST / retorna 503 quando Ollama nao disponivel", async () => {
+    isAvailableMock.mockResolvedValueOnce(false);
+    getRuntimeStatusMock.mockResolvedValueOnce({
+      available: false,
+      host: "http://localhost:11434",
+      selectedModel: "llama3.2",
+      configuredModel: "llama3.2",
+      availableModels: [],
+      fallbackModels: [],
+      warnings: [],
+      zeroCostEnforced: true,
+      zeroCostCompliant: true,
+      compatibility: {
+        configuredModelAvailable: false,
+        fallbackModelUsed: false,
+      },
+    });
+    const app = await buildApp();
+    const res = await request(app)
+      .post("/api/analysis")
+      .send({ locationName: "Area", stats: { buildings: 5 } });
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe("Ollama not ready");
+  });
+
+  it("POST / retorna 200 quando analyzeArea bem-sucedido", async () => {
+    isAvailableMock.mockResolvedValueOnce(true);
+    getRuntimeStatusMock.mockResolvedValueOnce({
+      available: true,
+      host: "http://localhost:11434",
+      selectedModel: "llama3.2",
+      configuredModel: "llama3.2",
+      availableModels: ["llama3.2"],
+      fallbackModels: [],
+      warnings: [],
+      zeroCostEnforced: true,
+      zeroCostCompliant: true,
+      compatibility: {
+        configuredModelAvailable: true,
+        fallbackModelUsed: false,
+      },
+    });
+    analyzeAreaMock.mockResolvedValueOnce({ analysis: "tudo ok", model: "llama3.2" });
+    const app = await buildApp();
+    const res = await request(app)
+      .post("/api/analysis")
+      .send({ locationName: "Area", stats: { buildings: 5 } });
+    expect(res.status).toBe(200);
+    expect(res.body.analysis).toBe("tudo ok");
+  });
+});
+

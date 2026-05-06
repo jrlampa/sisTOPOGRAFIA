@@ -178,7 +178,6 @@ router.get("/stats", async (req: Request, res: Response) => {
 
     logger.info("Fetching elevation stats", { centerLat, centerLng, radiusM });
 
-    const steps = 10;
     const points: number[] = [];
     const gridSize = 5;
 

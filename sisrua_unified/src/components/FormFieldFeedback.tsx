@@ -24,11 +24,11 @@ const inputToneClasses: Record<
   },
   light: {
     default:
-      "border-slate-300 text-slate-800 placeholder-slate-400 focus:ring-blue-500/30",
+      "border-slate-300 text-slate-900 placeholder-slate-400 focus:ring-blue-500/30",
     success:
-      "border-emerald-500/60 text-slate-900 placeholder-emerald-300/70 focus:ring-emerald-500/30",
+      "border-emerald-600 text-emerald-900 placeholder-emerald-600/50 focus:ring-emerald-500/30",
     error:
-      "border-rose-500/60 text-slate-900 placeholder-rose-300/70 focus:ring-rose-500/30",
+      "border-rose-600 text-rose-900 placeholder-rose-600/50 focus:ring-rose-500/30",
   },
 };
 
@@ -64,6 +64,7 @@ const panelToneClasses: Record<
   },
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- utility co-located with FormFieldMessage component
 export function getValidationInputClassName(
   tone: InlineValidationState,
   palette: ValidationPalette = "dark",
@@ -71,6 +72,7 @@ export function getValidationInputClassName(
   return inputToneClasses[palette][tone];
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- utility co-located with FormFieldMessage component
 export function getValidationPanelClassName(
   tone: InlineValidationState,
   palette: ValidationPalette = "dark",
@@ -92,7 +94,7 @@ export function FormFieldMessage({
   return (
     <p
       id={id}
-      className={`text-[11px] leading-4 ${messageToneClasses[palette][tone]} ${className}`.trim()}
+      className={`text-sm leading-4 ${messageToneClasses[palette][tone]} ${className}`.trim()}
     >
       {message}
     </p>

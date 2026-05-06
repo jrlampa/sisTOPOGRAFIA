@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import express from 'express';
 import request from 'supertest';
 
@@ -9,25 +10,25 @@ const mockConfig = {
   NODE_ENV: 'test'
 };
 
-const getSyncMock = jest.fn();
-const statsMock = jest.fn();
-const warmUpMock = jest.fn();
-const recordRefreshEventMock = jest.fn();
-const getLastRefreshEventMock = jest.fn();
-const getRefreshEventsMock = jest.fn();
-const getRefreshStatsMock = jest.fn();
-const saveSnapshotMock = jest.fn();
-const listSnapshotsMock = jest.fn();
-const restoreSnapshotMock = jest.fn();
-const getDxfCleanupPolicySnapshotMock = jest.fn();
-const getRateLimitPolicySnapshotMock = jest.fn();
-const refreshRateLimitersFromCatalogMock = jest.fn();
+const getSyncMock = vi.fn();
+const statsMock = vi.fn();
+const warmUpMock = vi.fn();
+const recordRefreshEventMock = vi.fn();
+const getLastRefreshEventMock = vi.fn();
+const getRefreshEventsMock = vi.fn();
+const getRefreshStatsMock = vi.fn();
+const saveSnapshotMock = vi.fn();
+const listSnapshotsMock = vi.fn();
+const restoreSnapshotMock = vi.fn();
+const getDxfCleanupPolicySnapshotMock = vi.fn();
+const getRateLimitPolicySnapshotMock = vi.fn();
+const refreshRateLimitersFromCatalogMock = vi.fn();
 
-jest.mock('../config', () => ({
+vi.mock('../config', () => ({
   config: mockConfig
 }));
 
-jest.mock('../services/constantsService', () => ({
+vi.mock('../services/constantsService', () => ({
   constantsService: {
     getSync: getSyncMock,
     stats: statsMock,
@@ -42,17 +43,17 @@ jest.mock('../services/constantsService', () => ({
   }
 }));
 
-jest.mock('../services/dxfCleanupService', () => ({
+vi.mock('../services/dxfCleanupService', () => ({
   getDxfCleanupPolicySnapshot: getDxfCleanupPolicySnapshotMock
 }));
 
-jest.mock('../middleware/rateLimiter', () => ({
+vi.mock('../middleware/rateLimiter', () => ({
   getRateLimitPolicySnapshot: getRateLimitPolicySnapshotMock,
   refreshRateLimitersFromCatalog: refreshRateLimitersFromCatalogMock
 }));
 
 // Allow all RBAC checks to pass through so tests can focus on token-based auth and business logic.
-jest.mock('../middleware/permissionHandler', () => ({
+vi.mock('../middleware/permissionHandler', () => ({
   requirePermission: () => (_req: unknown, _res: unknown, next: () => void) => next(),
 }));
 
@@ -536,3 +537,4 @@ describe('constantsRoutes', () => {
     expect(restoreSnapshotMock).not.toHaveBeenCalled();
   });
 });
+

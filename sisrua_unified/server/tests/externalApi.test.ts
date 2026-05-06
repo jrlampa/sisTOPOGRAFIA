@@ -1,7 +1,8 @@
+import { vi } from "vitest";
 import { fetchWithRetry } from '../utils/externalApi';
 
 // Mock global fetch
-const mockFetch = jest.fn();
+const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 describe('externalApi: fetchWithRetry', () => {
@@ -92,3 +93,4 @@ describe('externalApi: fetchWithRetry', () => {
         expect(mockFetch).toHaveBeenCalledTimes(2);
     }, 10000);
 });
+

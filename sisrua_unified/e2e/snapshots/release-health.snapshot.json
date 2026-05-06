@@ -1,0 +1,15 @@
+{
+  "status": "online",
+  "service": "sisRUA Unified Backend",
+  "dependencyKeys": [
+    "database",
+    "externalApis",
+    "ollama"
+  ],
+  "configEnvironment": "test",
+  "constantsCatalogNamespaces": [],
+  "queueBackendType": "undefined",
+  "queueBackendAllowed": false,
+  "hasExternalApiSection": true,
+  "systemKeys": ["memory", "nodeVersion", "platform"]
+}

@@ -18,30 +18,40 @@ const DxfLegend: React.FC = () => {
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass rounded-2xl p-4 shadow-2xl"
+            className="rounded-3xl border-2 border-purple-500/10 bg-white p-6 shadow-sm dark:bg-zinc-950"
         >
-            <div className="flex items-center gap-2 mb-4">
-                <div className="p-1 px-2 rounded bg-purple-500/20 border border-purple-500/30">
-                    <Palette size={14} className="text-purple-400" />
+            <div className="flex items-center gap-2 mb-5">
+                <div className="rounded-xl bg-purple-500/10 p-2 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
+                    <Palette size={18} />
                 </div>
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Padrão de Cores DXF</h3>
+                <div className="flex flex-col">
+                    <h3 className="text-xs font-black text-purple-800/60 uppercase tracking-widest dark:text-purple-400/60">
+                      Standardization
+                    </h3>
+                    <span className="text-sm font-black text-purple-950 dark:text-purple-100 uppercase tracking-tight">Padrão de Cores DXF</span>
+                </div>
             </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                 {LEGEND_ITEMS.map((item, idx) => (
                     <motion.div
                         key={item.label}
                         initial={{ opacity: 0, x: -5 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.05 }}
-                        className="flex items-center gap-2 text-[9px] text-slate-400 group cursor-default"
+                        className="group flex items-center gap-3 cursor-default"
                     >
                         <div
-                            className="w-3 h-3 rounded-[3px] shadow-sm flex-shrink-0 border border-white/10 group-hover:scale-125 transition-transform"
+                            className="h-3 w-3 rounded-full shadow-lg ring-2 ring-white transition-transform group-hover:scale-125 dark:ring-zinc-900"
                             style={{ backgroundColor: item.color }}
                         />
-                        <div className="flex flex-col">
-                            <span className="font-bold text-slate-300 group-hover:text-white transition-colors uppercase">{item.label}</span>
-                            <span className="text-[7px] text-slate-500 font-medium">INDEX: {item.layer.toUpperCase()}</span>
+                        <div className="flex flex-col min-w-0">
+                            <span className="truncate text-xs font-bold text-slate-900 transition-colors group-hover:text-purple-600 dark:text-zinc-200 dark:group-hover:text-purple-400 uppercase">
+                              {item.label}
+                            </span>
+                            <span className="text-xs font-black uppercase tracking-tighter text-slate-400">
+                              L: {item.layer}
+                            </span>
                         </div>
                     </motion.div>
                 ))}

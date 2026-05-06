@@ -44,6 +44,27 @@ type BatchUploadProps = {
 
 const API_URL = API_BASE_URL;
 
+const buildIdentityHeaders = (): Record<string, string> => {
+  const fromStorage =
+    localStorage.getItem("sisrua_user_id") ||
+    localStorage.getItem("sisrua_userId") ||
+    localStorage.getItem("user_id") ||
+    localStorage.getItem("userId");
+  const fallbackUserId =
+    (import.meta.env.VITE_DEFAULT_USER_ID as string | undefined)?.trim() ||
+    "system-admin";
+  const userId = (fromStorage || fallbackUserId).trim();
+  const token = localStorage.getItem("sisrua_token");
+
+  const headers: Record<string, string> = {
+    "x-user-id": userId,
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 const parseBatchResponse = async (response: Response): Promise<unknown> => {
   const contentType = (
     response.headers.get("content-type") || ""
@@ -94,6 +115,10 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
   const [uploadValidation, setUploadValidation] =
     useState<InlineValidationResult>(validateBatchUploadFile(null));
   const itemsRef = useRef(items);
+  // Keep a ref to onError so the polling interval always calls the latest version
+  // without restarting when the parent re-renders with a new callback reference.
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   useEffect(() => {
     itemsRef.current = items;
@@ -131,6 +156,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
 
       const response = await fetch(`${API_URL}/dxf/batch`, {
         method: "POST",
+        headers: buildIdentityHeaders(),
         body: formData,
       });
 
@@ -203,7 +229,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
             }
 
             if (status.status === "failed") {
-              onError(`Batch DXF failed: ${item.name}`);
+              onErrorRef.current(`Batch DXF failed: ${item.name}`);
               return {
                 jobId: item.jobId,
                 status: "failed" as const,
@@ -222,7 +248,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
           } catch (error) {
             const message =
               error instanceof Error ? error.message : "DXF generation failed";
-            onError(`Batch DXF failed: ${item.name}`);
+            onErrorRef.current(`Batch DXF failed: ${item.name}`);
             return {
               jobId: item.jobId,
               status: "failed" as const,
@@ -251,7 +277,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
     }, 5000);
 
     return () => window.clearInterval(intervalId);
-  }, [pendingJobs.length]);
+  }, [pendingJobs.length, onErrorRef]);
 
   useEffect(() => {
     if (allCompleted) {
@@ -347,7 +373,7 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
             >
               <div className="flex flex-col">
                 <span className="font-semibold">{item.name}</span>
-                <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                <span className="text-xs uppercase tracking-wider text-slate-500">
                   {{
                     queued: "Na fila",
                     cached: "Em cache",
@@ -363,18 +389,18 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
                       onClick={() =>
                         triggerDownload(item.url as string, item.name)
                       }
-                      className="rounded-lg bg-emerald-500/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-200"
+                      className="rounded-lg bg-emerald-500/20 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-200"
                     >
                       Baixar
                     </button>
                   )}
                 {item.status === "queued" && (
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-xs text-slate-400">
                     {item.progress ?? 0}%
                   </span>
                 )}
                 {item.status === "failed" && (
-                  <span className="text-[10px] text-rose-300">
+                  <span className="text-xs text-rose-300">
                     {item.error || "Erro"}
                   </span>
                 )}

@@ -146,12 +146,6 @@ if [ -n "$PYTHON_COMMAND" ]; then
 else
     echo -e "${YELLOW}!${NC} PYTHON_COMMAND not set (will default to python3)"
 fi
-
-if [ -n "$GROQ_API_KEY" ]; then
-    echo -e "${GREEN}✓${NC} GROQ_API_KEY is configured"
-else
-    echo -e "${YELLOW}!${NC} GROQ_API_KEY not set (AI analysis will be disabled)"
-fi
 echo ""
 
 # Summary

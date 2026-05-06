@@ -22,14 +22,20 @@ CREATE OR REPLACE FUNCTION public.proc_audit_log_generic()
 RETURNS TRIGGER AS $$
 DECLARE
   v_pk TEXT;
+  v_record_id UUID;
 BEGIN
   -- Extrai a chave primária como texto independente do tipo
   IF (TG_OP = 'DELETE') THEN
     v_pk := (to_jsonb(OLD) ->> 'id');
+    v_record_id := CASE
+      WHEN v_pk ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+        THEN v_pk::uuid
+      ELSE gen_random_uuid()
+    END;
     INSERT INTO public.audit_logs (table_name, record_id, action, old_data, changed_by)
     VALUES (
       TG_TABLE_NAME,
-      COALESCE(v_pk::uuid, gen_random_uuid()),  -- fallback para non-UUID PKs
+      v_record_id,
       TG_OP,
       to_jsonb(OLD),
       auth.uid()
@@ -37,10 +43,15 @@ BEGIN
     RETURN OLD;
   ELSIF (TG_OP = 'UPDATE') THEN
     v_pk := (to_jsonb(NEW) ->> 'id');
+    v_record_id := CASE
+      WHEN v_pk ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+        THEN v_pk::uuid
+      ELSE gen_random_uuid()
+    END;
     INSERT INTO public.audit_logs (table_name, record_id, action, old_data, new_data, changed_by)
     VALUES (
       TG_TABLE_NAME,
-      COALESCE(v_pk::uuid, gen_random_uuid()),
+      v_record_id,
       TG_OP,
       to_jsonb(OLD),
       to_jsonb(NEW),
@@ -49,10 +60,15 @@ BEGIN
     RETURN NEW;
   ELSIF (TG_OP = 'INSERT') THEN
     v_pk := (to_jsonb(NEW) ->> 'id');
+    v_record_id := CASE
+      WHEN v_pk ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+        THEN v_pk::uuid
+      ELSE gen_random_uuid()
+    END;
     INSERT INTO public.audit_logs (table_name, record_id, action, new_data, changed_by)
     VALUES (
       TG_TABLE_NAME,
-      COALESCE(v_pk::uuid, gen_random_uuid()),
+      v_record_id,
       TG_OP,
       to_jsonb(NEW),
       auth.uid()

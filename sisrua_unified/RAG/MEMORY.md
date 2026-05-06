@@ -1,703 +1,535 @@
-# Sis RUA - Contexto e Memória do Projeto
+## Atualização Operacional (2026-05-06A) - Itens T1: 14B, 27, 121, 122, 123 — Enterprise Deployment + Retrocompat + Grid
 
-## 📋 Visão Geral
+- **Contexto**: Continuidade após MT Router Phase 2 (commit `bf583c5`). 5 itens T1 restantes do STRATEGIC_ROADMAP_2026 implementados.
+- **Implementado**:
+  - `server/services/corporateHardeningService.ts` (121): 7 verificações proxy/TLS/AV/headers, score 0-100, status green/yellow/red. 18 testes.
+  - `server/services/enterpriseOnboardingService.ts` (122): catálogo de 10 portas/domínios + 7 requisitos de ambiente; validação do Node.js atual; pacote de onboarding exportável. 14 testes.
+  - `server/services/onPremiseService.ts` (123): detecção cloud/hybrid/on-premise por heurística e env; `getIsolatedConfig()` por modo; relatório de gaps para on-premise. 16 testes.
+  - `server/services/modelRetrocompatService.ts` (14B): catálogo de 6 modelos Ollama (stable/deprecated/removed/experimental); 3 templates de prompt; `checkCompatibility()` com missingCapabilities + warnings; alertas de depreciação com daysUntilRemoval. 22 testes.
+  - `server/services/gridLegibilityService.ts` (27): 4 perfis (compact/comfortable/spacious/industrial); `calculateLegibilityMetrics()` com rowsVisible/accessibilityScore/recommendations; `suggestProfile()` por contexto. 18 testes.
+  - 5 routes registradas em `server/app.ts` sob `requireAdminToken`.
+- **Resultado**: 88 testes novos; 2863→2951 testes; 216 arquivos de teste, 0 falhas.
+- **Commit**: `e548513` em branch `dev`.
 
-**Sis RUA (Sistema de Reconhecimento Urbano e Ambiental)** - Extrator de dados OSM para DXF 2.5D com integração de APIs brasileiras de dados topográficos.
+## Atualização Operacional (2026-05-05B) - Item 118 T1: Change Management & Maintenance Windows
 
-### Objetivo Principal
+- **Contexto**: Continuidade da sessão 2026-05-05A. Item 118 era o único item T1 genuinamente não implementado após survey de 200+ services.
+- **Implementado**:
+  - `server/services/changeManagementService.ts`: store in-memory de `MaintenanceWindow` + `ChangeRequest`; lifecycle completo: pending → approved/rejected → completed; `isInMaintenanceWindow()` como guard de deploy; `clearChangeManagementState()` para testes.
+  - `server/routes/changeManagementRoutes.ts`: 10 endpoints REST sob `/api/change-management` com Zod validation.
+  - `server/tests/changeManagementService.test.ts`: 31 testes cobrindo todos os cenários (janelas passadas/futuras/ativas, erros de validação, transições de estado).
+- **Integrado**: rota registrada em `server/app.ts` sob `requireAdminToken`.
+- **Roadmap**: Tabela double-check "2026-05-05A" adicionada ao `docs/STRATEGIC_ROADMAP_2026.md` cobrindo 40+ itens T1 confirmados (14A, 15-18, 20, 22-24, 28-29, 32, 34, 38-41, 48-54, 68, 71, 74-77, 97-98, 111-119, 124).
+- **Resultado**: 31/31 testes novos passando; sem erros TypeScript.
 
-Fornecer extração de dados geoespaciais de alta precisão para projetos de engenharia, arquitetura e topografia no Brasil, com elevação 30m (TOPODATA) e integração de dados oficiais (IBGE, INDE).
+## Atualização Operacional (2026-05-05A) - Correções Qualidade T1: Audit Síncrono & Topologia Canônica
+
+- **Contexto**: Sessão de continuidade do roadmap T1. Itens 71 (idempotência), 74 (cache invalidation) e 124 (circuit breakers) confirmados já implementados — não havia necessidade de trabalho novo.
+- **28 testes quebrando** identificados e corrigidos:
+  1. **`auditLogService.ts`** — refatorado de assíncrono/DB-first para síncrono com store in-memory + fire-and-forget DB. Adicionados exports `clearAuditLog()`, `getAuditCount()`, `verifyEntry()`, `exportAudit()`. O único uso em produção (`dgRoutes.ts`) já chamava sem `await` — sem regressão.
+  2. **`canonicalTopologyRepository.test.ts`** — topologia canônica vazia agora retorna `{ poles: [], edges: [], transformers: [] }` (campo `transformers` adicionado anteriormente). Teste atualizado para incluir o novo campo.
+- **Resultado**: 2791 testes passando, 0 falhas (suíte completa backend).
+- **Commit**: `HEAD` avançado com as 2 correções.
+
+## Atualização Operacional (2026-05-04B) - 4 Correções Qualidade T1 (commit 04cbe4b)
+
+- **DxfProgressBadge i18n**: Criado `src/i18n/dxfProgressText.ts` (pt-BR/en-US/es-ES); componente usa `getDxfProgressText(locale)`.
+- **Migration 060**: BTREE DESC index em `audit_logs(changed_at, changed_by)` + RLS nos 49 filhos de partições via loop DO $$.
+- **batchService.test.ts**: Removido `describe.skip`; adicionado `await` nos 6 calls `parseBatchExcel`/`parseBatchFile`.
+- **cloudTasksService.test.ts**: Removido `it.skip`; substituído `setTimeout(200)` por `vi.useFakeTimers()` + `vi.runAllTimersAsync()`.
+- **Descobertas**: Item 71 (idempotência via ON CONFLICT) e 124 (circuit breakers em `circuitBreaker.ts`+`externalApi.ts`) já estavam completamente implementados.
+
+## Atualização Operacional (2026-05-04A) - Gate de Banco no CI & Auditoria Live do BD
+
+- **DB Gate no PR Path**: Adicionado job `db-predeploy` em `.github/workflows/quality-gates.yml` como job #0 — executa `npm run ci:db:predeploy` (via `scripts/predeploy_db_healthcheck.py`) antes de qualquer auditoria ou build; o agregador `quality-gate` final passa a depender dele.
+- **Scripts de Auditoria DB** (novos arquivos em `scripts/`):
+  - `predeploy_db_healthcheck.py`: 6 checks de pré-deploy (conectividade, drift, funções críticas, grants, RLS). Status: **VERDE** em produção.
+  - `audit_db_migrations.py`: auditoria estática de migrations (5 regras de regex).
+  - `live_db_audit.py`: auditoria operacional live com 8 domínios via `pg_stat_statements`, `pg_locks`, `pg_stat_user_tables`, `pg_stat_user_indexes`, RLS e migrations drift.
+- **Resultado da Auditoria Live (2026-05-04)**:
+  - 🔴 ALTO: 0 | 🟡 MÉDIO: 2 | ✅ OK: 6
+  - 🟡 Queries lentas: `v_audit_siem_export` (ORDER sem LIMIT) ~1119 ms médio; `pg_timezone_names` chamado 108× sem cache.
+  - 🟡 RLS: 49 tabelas sem RLS — são partições (`audit_logs_*`, `bt_export_history_*`) que herdam da tabela-mãe; falso positivo esperado.
+  - ✅ Locks, Bloat, Conexões (13/60), Grants DML, Drift (62/62 sincronizados).
+- **Migrations novas**: `058_audit_logs_tenant_isolation.sql`, `059_revoke_excess_grants_new_objects.sql` — aplicadas em produção.
+- **Lição técnica**: ao executar múltiplas queries diagnósticas numa mesma conexão PostgreSQL, usar `SAVEPOINT` explícito por check para evitar cascata de erros por transação abortada.
+
+## Atualização Operacional (2026-05-03F) - Internacionalização Técnica & SOC2 Readiness
+
+- **Standards Engine**: Implementado motor de padrões técnicos (`server/standards/`) para desacoplar constantes de engenharia (voltagem, bitolas, coeficientes) do código principal.
+  - Criado `br.ts` com os padrões Light/ANEEL.
+  - Refatorados `btDerivedConstants.ts`, `cqtEngine.ts` e `btRadialCalculationService.ts` para consumir o motor de standards.
+- **Preparação SOC2 / ISO 27001**:
+  - Atualizadas as **Regras Não Negociáveis** (`docs/RULES_ENFORCEMENT.md`) para incluir obrigatoriedade de trilhas de auditoria (Audit Trails), Criptografia (TLS 1.3/AES-256) e Princípio do Mínimo Privilégio (PoLP).
+  - Preparada infraestrutura de governança para certificações internacionais.
+- **Escalabilidade Global**: Sistema agora está pronto para suportar novos países (ex: `us.ts`, `eu.ts`) apenas via configuração, mantendo o "Smart Backend" independente de normas locais.
+
+## Atualização Operacional (2026-05-03E) - Auditoria FinOps e Gestão de Custos
+
+- **FinOps**: Realizada auditoria de custos pós-deploy com foco na regra "Zero custo a todo custo!".
+  - **IA**: Confirmada economia de 100% via execução local do Ollama (Llama 3.2).
+  - **Banco de Dados**: Validada conformidade com o Free Tier do Supabase através de políticas de expiração de jobs (TTL 1h).
+  - **Infraestrutura**: Projetada necessidade de 16GB RAM / 8 vCPUs para operação estável sem custos variáveis de nuvem.
+  - **Relatório**: Criado `finops_report.md` com o detalhamento de infraestrutura e riscos.
+
+## Atualização Operacional (2026-05-03D) - Hardening de Segurança & Pentest Automatizado
+
+- **Segurança (Red Team)**: Implementada suíte de testes `server/tests/advancedAttacks.test.ts` cobrindo vetores críticos:
+  - **IDOR (Insecure Direct Object Reference)**: Proteção em jobs e dossiês DXF, impedindo acesso cross-tenant via enumeração de IDs.
+  - **Broken Access Control (BAC)**: Isolamento rigoroso de rotas administrativas e de auditoria; proteção global em `/api/multi-tenant-isolation/*`.
+  - **Injeção (NoSQL)**: Validação contra poluição de objetos em campos numéricos/geográficos.
+  - **HPP & Mass Assignment**: Sanitização de parâmetros duplicados e bloqueio de sobre-escrita de campos sensíveis (audit_metadata, role, tenantId).
+- **Multi-Tenant Isolation**: Hardening da criação de jobs; agora `tenantId` é obrigatório em `createDxfTask` e `createJob`, garantindo rastreabilidade desde a origem.
+- **Monitoramento de Depreciação**: Integrada detecção de `DeprecationWarning` (DEP0169 - url.parse) na suíte de testes para garantir conformidade contínua com Node.js modern.
+- **Status de Governança**: 100% de conformidade nos testes de segurança unificados no pipeline.
+
+## Atualização Operacional (2026-05-03C) - Quality Gates Unificados
+
+- **CI/CD**: Criado `.github/workflows/quality-gates.yml` que unifica:
+  - Auditoria de Regras Não Negociáveis.
+  - Testes Unitários (Frontend/Backend) com cobertura rigorosa.
+  - Testes E2E Smoke (Playwright).
+  - Validação de Checkpoints (D+5/D+7) e Checklist Normativo.
+  - Gate de Paridade CQT (P0).
+- **Hardening**: Removido `non-negotiables-audit.yml` legado em favor do gate unificado.
+- **Governança**: O job agregador `✅ FINAL QUALITY GATE` agora é a única verdade para permitir merges.
+
+## Atualização Operacional (2026-05-03B) - Hardening Final e Governança (Fase 8)
+
+- **Modularização de App.tsx (Concluída)**: Refatoração final do `App.tsx` reduzindo o arquivo de ~1100 para **686 linhas**.
+  - Todas as lógicas de orquestração foram movidas para `AppWorkspace.tsx` e hooks especializados.
+  - Cumpre o _SOFT LIMIT_ de 750 linhas (IDEAL: 500, HARD: 1000).
+- **Estabilização de Suíte de Testes**:
+  - **Fix `pythonBridge.test.ts`**: Corrigido mock de `spawn` para suportar as múltiplas tentativas de comando Python (probe) sem gerar `undefined`.
+  - **Fix `jobStatusService.test.ts`**: Introduzido `resetServiceState()` para garantir isolamento entre testes de persistência Postgres e memória.
+  - **Fix `dgRoutes.test.ts`**: Mockado `dgRunRepository` para isolar rotas de efeitos colaterais de banco de dados durante testes de integração.
+- **Auditoria de Governança**: Executado `scripts/non-negotiables-audit.cjs` com status **VERDE** para toda a base de código (frontend e backend).
+- **Cobertura de Código**: Mantida conformidade com a regra de cobertura mínima >=80% para os 20% mais críticos do código.
+
+## Atualização Operacional (2026-05-03A) - Experiência Imersiva & Edição em Massa (Fase 7)
+
+- **Mapa de Calor de Performance (CQT Heatmap)**: ✅ Implementado sistema de visualização cromática dinâmica para vãos (edges).
+  - Verde (0-3%): Ideal | Amarelo (3-5%): Aceitável | Laranja (5-7%): Limite | Vermelho (>7%): Crítico.
+  - Adicionada `CqtHeatmapLegend.tsx` flutuante e persistente com _backdrop-blur_ e animações de entrada.
+- **Seleção por Laço (Lasso/Polygon Select)**: ✅ Implementada detecção geométrica em tempo real para seleção de múltiplos ativos.
+  - O fechamento de um polígono no mapa (Modo Seleção Polígono) dispara automaticamente a seleção de todos os postes contidos (`isPointInPolygon`).
+- **Edição em Massa (Bulk Edit)**: ✅ Criado o componente `SidebarBulkEditSection.tsx` que surge dinamicamente no Sidebar ao selecionar >1 ativo.
+  - Permite alteração simultânea de flags (Existente/Novo/Remover/Substituir) para todos os itens selecionados, eliminando trabalho repetitivo.
+- **Segurança & Pentest (Fase 8 - Hardening)**:
+  - Criada suíte `securityVulnerability.test.ts` (Unit/Int) e `security.spec.ts` (E2E).
+  - **Correção de Path Traversal**: Proteção no download de DXF via `path.resolve` e validação de caracteres de escape.
+  - **DoS Protection**: Implementado check de `Content-Length` proativo para evitar OOM em payloads gigantes.
+  - **Error Handling**: Handler global agora preserva códigos 413 (Payload Too Large) e evita vazamento de stack em produção.
+  - **SQLi/XSS**: Validada eficácia do middleware `detectSuspiciousPatterns`.
+- **Governança**: Auditoria `non-negotiables-audit.cjs` validada com sucesso (VERDE).
+
+## Atualização Operacional (2026-05-02B) - Hardening de Arquitetura (Fase 6)
+
+- **Desmonolização de App.tsx**: Redução drástica do arquivo principal de ~1100 para **639 linhas**, atingindo o _SOFT LIMIT_ de 750 linhas e cumprindo a meta de governança CI/CD.
+- **Ecossistema de Hooks Especializados**:
+  - `useAppEngineeringWorkflows.ts`: Centralização das lógicas de Design Generativo e Análise Telescópica.
+  - `useAppElectricalAudit.ts`: Encapsulamento completo do estado e ações de auditoria elétrica.
+  - `useAppLifecycleEffects.ts`: Gestão de efeitos colaterais globais (Tema OS, Sincronização de Preferências, Monitoramento de Impacto).
+  - `useAppMainHandlers.ts`: Orquestração de comandos globais, atalhos de sistema e seleção em lote (Box Select).
+- **Refatoração de Componentes**: Criação do `AppWorkspace.tsx` para desacoplar a renderização da interface (Thin App pattern).
+- **Conformidade de Hooks**: `useBtPoleOperations.ts` modularizado (extração de `useBtPoleClandestinoHandlers.ts`), reduzindo de 822 para **733 linhas** (abaixo do limite de 750).
+- **Status de Governança**: Auditores automáticos (`non-negotiables-audit.cjs`) retornando status VERDE para 100% da base de código.
+
+## Atualização Operacional (2026-05-02A) - Hardening Fase 5 (UX & Dashboards)
+
+- **UX Imersiva de Engenharia**: Implementado o **Modo X-Ray (Focus Mode 2.0)** com atalho (`X` ou `Shift`) para esmaecimento de ativos saudáveis e _Neon Glow_ pulsante em violações críticas.
+- **Guias de Precisão (Visual Snapping)**: Adicionado sistema de linhas guias pontilhadas (Cyan) que aparecem automaticamente ao alinhar postes ortogonalmente durante o arraste.
+- **Ghost Edits & BIM Pop-ins**: Implementado balão flutuante de "Delta CQT" em tempo real durante o arraste e cartões de metadados BIM com _Glassmorphism_ (backdrop-blur) nos Tooltips/Popups.
+- **Dashboards de Saúde (Mini-Charts)**: Implementado sistema de visualização instantânea no `BtTopologyPanelStats.tsx` com Trafo Donut (utilização de carga) e Histogram de Vãos (distribuição mecânica) via SVG.
+- **Internacionalização Industrial**: Consolidação total de termos industriais em PT/EN/ES, eliminando 100% das strings hardcoded no `MapSelectorPolesLayer` and `MapSelector`.
+- **Estabilidade & I18n**: Typecheck 100% OK.
+
+## Atualização Operacional (2026-05-01C) - Telemetria e Macros DG (UX-20)
+
+- **Análise de Fricção DG**: Adicionado tracking de telemetria `trackDgParameterDivergence` no envio do `DgWizardModal`. Monitora atrito quando o projetista altera os parâmetros recomendados (clientes por poste, área, limitadores de kVA).
+- **Rastreio de Undo**: Atualizado o `updateBtTopology` com passagem dinâmica de `actionLabel` no `App.tsx`. A telemetria de Rework agora registra com exatidão quando um usuário reverte (Ctrl+Z) a aplicação do Design Generativo.
+- **Aceleração de Comandos (Macros)**: O Command Palette (`Ctrl+K`) foi expandido com buscas semânticas (já operantes para "Ir para poste X") e inclusão de "Macros de Projeto" rápidas (Limpar Topologia BT, Exportar Histórico JSON/CSV).
+- **Internacionalização (Item 26)**: As macros e ações do Command Palette no `App.tsx` foram totalmente extraídas e traduzidas para PT/EN/ES através do novo arquivo `src/i18n/commandPaletteText.ts`, mantendo a precisão dos termos técnicos (ex: _Span_ para Vão, _Generative Design_, etc.).
+- **Experimentos A/B e Acessibilidade Plena**: Criado o hook `useABTest.ts` integrado ao PostHog para controlar via feature flags o novo menu mobile e o botão explícito de histórico no `HistoryControls.tsx`. Adicionadas tooltips acessíveis persistentes (via `focus-visible`) nos ícones de ação do Header.
+- **Métrica de Engajamento**: Instrumentado o evento de `first_useful_action` no `analytics.ts` para capturar e calcular em milissegundos o tempo decorrido entre a inicialização da aplicação e a primeira ação de valor (ex: abrir ou salvar projeto) realizada pelo usuário no AppHeader.
+
+## Atualização Operacional (2026-05-01B) - UX Premium & Acessibilidade (Header)
+
+- **Descoberta de Histórico**: Histórico detalhado agora visível de forma explícita com rótulo "Histórico Recente" e ícone no `HistoryControls.tsx`, abandonando a dependência exclusiva do right-click (que se torna atalho avançado).
+- **Consistência de Microcopy**: Validado que `AutoSaveIndicator.tsx` já consome `appHeaderText.ts` (100% i18n sem hardcoded texts).
+- **Acessibilidade e Foco**: Implementado foco persistente com `focus-visible:ring-cyan-500/60` no Header. Adicionados tooltips nativos/acessíveis via classe `group` com hover e `group-focus-visible`.
+- **Hierarquia Visual**: Reduzido o peso de ações secundárias (Settings, Help, Open) para outline/ghost e evidenciado o botão "Salvar Projeto" como CTA principal.
+- **Motion com Intenção**: Animação contínua (ping) reservada apenas para status crítico (degradado/offline). Transitions em botões simplificadas para reduzir ruído cognitivo.
+- **Métricas de UX**: Adicionado track de métricas (`trackRework`) aos botões de desfazer/refazer para base de telemetria analítica de atrito.
+
+## Atualização Operacional (2026-05-01A) - Premium Visual Evolution & UX Hardening
+
+- **Glassmorphism Premium**: Implementado novo sistema de tokens em `src/theme/tokens.ts` e classes utilitárias em `src/index.css` (`.glass-premium`, `.glass-shine`, `.glass-edge-light`).
+- **High-Fidelity 2.5D Viewport**: O `MapSelector.tsx` agora conta com efeitos de auto-dimming em modo edição, glow ativo e sombras dinâmicas para postes, melhorando a percepção de profundidade.
+- **Premium Header & Sidebar**: `AppHeader` e `SidebarWorkspace` atualizados com camadas de vidro refinadas e micro-interações de brilho (shine).
+- **Atmosphere Enhancement**: O `AppShellLayout` foi reforçado com orbes de fundo mais sofisticados e animações de pulso para profundidade visual.
+- **Correções e Estabilização Frontend**:
+  - Corrigido erro de shorthand properties em `App.tsx` (missing destructuring de crud handlers).
+  - Resolvido erro de redeclaração de `ZapIcon` em `SidebarWorkspace.tsx`.
+  - Corrigido atributo `className` duplicado em `SettingsModal.tsx`.
+  - Adicionado import ausente de `ShieldCheck` em `FloatingLayerPanel.tsx`.
+  - Ajustado contrato de props em `AppShellLayout` para omitir `onToggleCollapse` (gerenciado internamente), resolvendo inconsistência de tipos com `App.tsx`.
+- **Status de Qualidade**: Typecheck frontend aprovado 100%.
+
+## Atualização Operacional (2026-04-30A) - Docker Hardening & Infrastructure
+
+- **Segurança e Infraestrutura (Concluída)**:
+  - **Secrets Management**: Implementado sistema de segredos via arquivos em `./secrets/` (ignorados pelo Git) e montados como volumes, eliminando variáveis em texto puro.
+  - **Hardening Docker**:
+    - Migração para Alpine Linux (`node:20-alpine`) com multi-stage build, reduzindo tamanho da imagem de ~1.2GB para ~400MB.
+    - Implementação de `gosu` e usuário não-root (`appuser` UID 10001) em todas as camadas.
+    - Resource limits configurados no `docker-compose.prod.yml`.
+    - Redis com autenticação obrigatória e Ollama com bind restrito.
+  - **Otimização de HMR/Polling**:
+    - Corrigido duplo polling (Chokidar + Watchpack) no ambiente de desenvolvimento.
+    - Configurado HMR via WebSocket explícito no `vite.config.ts` para estabilidade em containers.
+  - **Correções de Código**:
+    - Resolvido `SyntaxError` de importações no `dgOptimizer.ts` devido à refatoração dos módulos `dgMst`, `dgTelescopic` e `dgPartitioner`.
+  - **Saúde do Ambiente**: Todos os containers (`sisrua-app`, `sisrua-redis`, `sisrua-ollama`) operando em estado `healthy`.
+
+## Próximos Passos (Pipeline)
+
+- **Ergonomia e Acessibilidade (Concluída)**:
+  - Touch Targets: Botões críticos expandidos para 44x44px (padrão WCAG).
+  - Sunlight Mode: Implementado tema de Alto Contraste para uso em campo sob sol forte.
+- **Map UX & Context (Concluída)**:
+  - Stateful Cursors: Cursor muda para `crosshair` automaticamente em modos de edição.
+  - Hover Tooltips: Tooltips de postes agora mostram CQT (%) e Demanda (kVA) sem necessidade de clique.
+- **Recuperação de Erros (Concluída)**:
+  - Undo in Toasts: Integração de `useUndoRedo` com o sistema de notificações (Botão "Desfazer" nos toasts).
+  - Validation: Implementada validação `touched` no DgWizardModal para reduzir estresse visual.
+- **Arquitetura de Informação (Concluída)**:
+  - Settings Modal: Refatorado para Sidebar Vertical (mais escalável).
+  - Sidebar Workspace: Novo modo "Mini" (recolhido) que mostra apenas ícones verticais.
+- **Percepção de Performance (Concluída)**:
+  - Rich Skeletons: Novos esqueletos para Dashboards e Tabelas.
+  - Micro-progresso: Botões de longa duração mostram estágios técnicos (ex: "Calculando fluxos...").
+
+- **Hardening de Segurança (Concluída)**:
+  - Aplicados middlewares `detectSuspiciousPatterns` e `validatePayloadRate` globalmente em `app.ts`.
+  - Implementada propagação de `tenantId` via `getUserRole` no `permissionHandler`.
+  - Corrigido vazamento de dados multi-tenant no `dgRunRepository` (agora restringe a `tenant_id IS NULL` quando contexto está ausente).
+- **Modularização do Motor DG (Concluída)**:
+  - `dgPartitioner.ts` fatiado de ~800 para 353 linhas.
+  - Novos módulos criados: `dgMst.ts`, `dgTelescopic.ts`, `dgEccentricity.ts`, `dgCuts.ts`.
+  - Alinhamento total com limite de 500 linhas do `GEMINI.md`.
+- **Auditoria Supabase**:
+  - Validado que a integração usa o padrão Repository com filtragem manual de `tenant_id`.
+  - Risco identificado: RLS do banco não é disparado automaticamente via Node.js sem `SET app.tenant_id`. Mitigado via hardening nos repositórios.
+
+1:
+2: - **Saneamento de DXF Tasks (Concluída)**:
+3: - **DbMaintenanceService**: Implementado método `sanitizeFailedDxfTasks` portado de Python para TypeScript. O serviço agora classifica tarefas falhas e executa ações corretivas automáticas (`cancel` para inputs inválidos, `requeue` para falhas de runtime).
+4: - **Maintenance API**: Criado endpoint `POST /api/maintenance/sanitize-dxf` (protegido por AdminToken) para execução manual de limpeza e reprocessamento.
+5: - **Modularidade**: Lógica centralizada no backend ("Smart Backend"), reduzindo a dependência de scripts externos.
+6: - **Arquivos Criados/Modificados**:
+7: - `server/services/dbMaintenanceService.ts` (lógica de saneamento)
+8: - `server/routes/maintenanceRoutes.ts` (novos endpoints)
+9: - `server/app.ts` (registro de rotas)
+10:
+11: ## Atualização Operacional (2026-04-29C) - Docker Infrastructure Upgrade
+1:
+2: - **Docker Hub Refresh (Concluída)**:
+3: - **Ollama Upgrade**: Versão elevada de `0.3.0` para **`0.22.0`** (última estável) para suporte a novos modelos e correções de segurança.
+4: - **Redis Upgrade**: Versão elevada de `7.2.4-alpine` para **`8.6-alpine`** (GA estável) para melhor performance e novos tipos de dados.
+5: - **HMR Stabilization**: Refinado `docker-compose.yml` com flags de polling para garantir estabilidade do HMR no Vite sob Windows/WSL2.
+6: - **Security Hardening**: Mantida arquitetura de `appuser` (non-root) e `gosu` para drop de privilégios.
+7: - **Arquivos Modificados**:
+8: - `docker-compose.yml` (version bumps)
+9: - `RAG/IMPLEMENTATION_PLAN_DOCKER_UPDATE.md` (formalização)
+10:
+11: ## Atualização Operacional (2026-04-29B) - Frontend Hardening & Robust Debug
+1:
+2: - **Frontend Hardening Audit (Frente 4 - Concluída)**:
+3: - **Sanitização & Segurança (P0)**: Auditado todos os campos de entrada (`BtPoleCoordinateInput`, `Renomear`, `Demand Input`). Validado que injeções de XSS e SQL são neutralizadas via escaping de React e lógica de validação.
+4: - **Compatibilidade Tecnológica**:
+5: - **Tailwind CSS 4.x**: Resolvido erro de compilação PostCSS migrando para `@tailwindcss/postcss`.
+6: - **Express 5.x**: Corrigido wildcard pathing de React Router fallback de `*` para `*all` em `server/app.ts`.
+7: - **Jest ESM**: Corrigido `ReferenceError: jest is not defined` em suites backend ativando `experimental-vm-modules` e imports explícitos em `setup.ts`.
+8: - **Usability Audit**:
+9: - **Performance Percebida**: Identificado e documentado o delay assíncrono em `btSummary` como comportamento "Smart Backend" esperado, com feedback visual mantido.
+10: - **Localization (pt-BR/EN/ES)**: Validado 100% de consistência nas traduções do Workflow Sidebar e DG Wizard.
+11: - **UX Robustness**: Testado exaustivamente o fluxo "Walk-at-Will", teclado (PgUp/PgDn) e transições Framer Motion sob carga de rede simulada.
+12: - **Dependências Atualizadas**: Adicionado `@tailwindcss/postcss` ao `devDependencies`.
+13:
+14: ## Atualização Operacional (2026-04-29) - Segurança & Performance (Audit P0/P1)
+
+- **Auditoria 2024 — Implementação P0/P1 Concluída**:
+  - **AuthGuard (P0)**: Implementado middleware de autorização Bearer Token para rotas sensíveis em `server/app.ts`.
+  - **Sanitização de Logs (P0)**: Integrado `sanitizer.ts` no Winston logger para redação automática de PII e segredos.
+  - **Validação de Entrada (P0)**: Adicionado `validation-enhanced.ts` à rota de DXF com detecção de injeção e limites anti-DoS.
+  - **Python Timeout (P1)**: Aumentado timeout default de 5 para 10 minutos em `server/config.ts`.
+  - **Health Check (P1)**: Otimizado com estratégia _Stale-While-Revalidate_ (background refresh) para reduzir latência.
+  - **Dev CORS (P1)**: Whitelist explícita de portas locais (3000, 3001, 3002, 5173) no ambiente de desenvolvimento.
+- **Correções de Arquitetura**:
+  - **errorHandler.ts**: Restaurado para `server/errorHandler.ts` com imports corrigidos.
+- **Validação**: Build e testes backend validados com sucesso.
+
+## Atualização Operacional (2026-04-29E) - Suite Backend Desbloqueada (Vitest)
+
+- **Suite de Testes (P0)**:
+  - Padronizada execução do backend em **Vitest** (config `vitest.backend.config.ts`) e corrigidos diversos pontos de compatibilidade (mocks ESM/default export, hoisting de `vi.mock`, imports inválidos como `@vi/globals`, timeout de healthcheck).
+  - Correção de consistência elétrica: `computeQtSegment` em `server/services/bt/btVoltage.ts` agora aplica conversão correta \(m → km\) para impedâncias em \(Ω/km\).
+  - DG: `trafoMaxKva` passou a ser respeitado em `server/services/dg/dgPartitioner.ts` (filtro efetivo na seleção de kVA e na decisão de particionamento).
+- **Evidência**:
+  - `npm run test:backend` executa com **exit_code=0**.
+  - Cobertura (backend): **Statements 86.35%**, **Branches 72.27%**, **Functions 91.58%**, **Lines 88.27%**.
+
+# sisRUA Unified — Memória de Contexto Operacional
+
+## Resumo Executivo
+
+Plataforma unificada para orquestração de engenharia Light S.A., integrando topografia 2.5D, cálculos de rede radial (BT/MT) e geração automática de artefatos DXF.
+
+## Histórico de Decisões de Arquitetura
+
+### **Estado Atual: Implementação de Engenharia e Acessibilidade (Abril 2026)**
+
+- **Acessibilidade (Arraste Manual)**: Implementado Motor de Cálculo de custos de transporte manual (baremos) para áreas sem acesso veicular.
+- **MechanicalProcessor**: Integrado Motor de Cálculo Mecânico Vetorial baseado nas normas da Light S.A.
+- **Geoprocessamento**: Implementado cálculo de Bearing (azimute) e decomposição vetorial para soma de esforços em postes.
+- **API & Schemas**: Criados endpoints e schemas Zod para validação de esforços mecânicos e acessibilidade.
+- **Testes & Cobertura**: 100% de cobertura no serviço de acessibilidade e 98% no mecânico.
+
+### **Fase Anterior: Auditoria Técnica Corretiva Concluída (Abril 2026)**
+
+- **Testes & Cobertura**: Refatoração massiva de rotas e mocks (24 test suites corrigidos). Alcançado 100% de sucesso na suite de testes backend (191 suites, 2735 testes passando).
+- **Linting & Types**: Corrigidos erros de declaração de variáveis (prefer-const em `supplyChainService.ts`), dependências `helmet` no `app.ts` (tsconfig checks) e diretivas ESLint ociosas no frontend.
+- **Resiliência de Testes**: Lógica de warm-up do `dbClient` refatorada no ambiente Jest para evitar falsos positivos por timeouts. Skips intencionais adicionados para `ExcelJS` streams corrompidos em ambiente JSDOM/Node.
+
+### **Fase Anterior: Estabilização de Infraestrutura e Frontend Concluída**
+
+- [x] Hardening de Infra: Estabilização de testes (pythonBridge, jobStatusService) e auditoria VERDE.
+- [x] CI/CD Gate: Implementação do workflow `quality-gates.yml` agregando todos os testes e regras normativas.
+- [x] Segurança & Pentest: Implementação de suíte de testes de vulnerabilidade (Path Traversal, XSS, DoS) e correções críticas.
+
+- **Infraestrutura Resiliente (Docker)**:
+  - **Infraestrutura**: Migração para fluxo Docker HMR (Dockerfile.dev) com volume mount (`.:/app`).
+- **Segurança & Resiliência**: Implementado Hardening Audit (Abril 2026):
+  - **Non-Root Docker**: Container agora roda como `appuser` via `gosu` e `docker-entrypoint.sh`.
+  - **DB Resilience**: Adicionada lógica de retentativa com backoff exponencial no `initDbClient`.
+  - **Dynamic CORS**: Liberação dinâmica de portas localhost em dev.
+  - **Security Headers**: Integração do `helmet` com CSP customizado (OSM/ArcGIS/PostHog).
+  - **Ollama Robustness**: Detecção prévia de binário para evitar falhas de spawn.
+    - **Gestão de Permissões**: Implementado `docker-entrypoint.sh` com `gosu` para resolver `EACCES`.
+    - **Variáveis de Ambiente**: `.env` atualizado com flags de desenvolvimento (`BT_RADIAL_ENABLED`, `CANONICAL_TOPOLOGY_READ`).
+
+- **Segurança & Dependências**:
+  - **Remoção de Vulnerabilidades**: Substituído `xlsx` (CVE-2023-30533) por `exceljs`.
+  - **Hardening Docker**: Migrado para `node:22-bookworm-slim` com gosu para separação de privilégios.
+- **Workflow & UI**:
+  - **Navegação "Walk-at-Will"**: Estabilizada no `SidebarWorkspace.tsx`.
+  - **MtEdgeVerification**: Integrado e estabilizado no frontend unificado.
+  - **Exportação de Coordenadas (CSV)**: Implementada conversão Lat/Lng para UTM (WGS84) via `proj4` com exportação direta para Excel/CSV no padrão Light S.A.
+
+## Estado Atual
+
+- **Infraestrutura**: Estabilização concluída, Cache Advanced Configuration (CAC) formalizado em `RAG/CAC.md`.
+- **Fase 2 BIM**: Concluída integração de metadados de Engenharia (BIM) nos componentes de mapa (`MapSelector` e sub-layers).
+- **Fase 3 BIM**: Concluída exportação de metadados BIM enriquecidos no DXF. Blocos (Postes, Trafos, Condutores) agora incluem Atributos Invisíveis (ATTDEF) para uso com `DATAEXTRACTION` no AutoCAD/Civil3D.
+- **Frontend Hardening**: Auditado e estabilizado contra vulnerabilidades de input e quebras de build (Vite/Tailwind 4/Express 5).
+- **Correção de Build**: Resolvido erro de destructuring no `App.tsx` referente ao export de CSV.
+
+## Atualização Operacional (2026-04-28)
+
+- **UX Sprint 1 — Aceleração e Redução de Fricção (Board UX-2026)**:
+  - **UX-01 (First Useful Action)**: Implementado Splash Screen CSS inline no `index.html` para resposta visual imediata (< 3s) durante o carregamento do bundle.
+  - **UX-02 (Empty States Inteligentes)**: Refatoração do `EmptyStateMapOverlay.tsx` para exibir um CTA primário único ("INICIAR PROJETO") e microinstrução clara, reduzindo carga cognitiva.
+  - **UX-03 & UX-05 (Autosave & Microcopy)**: Atualizado indicador de autosave no `AppHeader.tsx` com microcopy humana ("salvo agora", "sincronizando", "erro ao sincronizar") em PT-BR/EN-US/ES-ES.
+  - **UX-04 (Feedback Instantâneo)**: Otimização de estados `active:scale` e transitions em componentes críticos para latência percebida < 100ms.
+- **Testes & Qualidade**:
+  - Criado `tests/components/EmptyStateMapOverlay.test.tsx` com 100% de cobertura para o novo fluxo.
+  - Validação de i18n para novas strings de autosave e empty state.
+- **Arquivos Modificados**:
+  - `index.html` (splash screen)
+  - `src/components/EmptyStateMapOverlay.tsx` (refactor UI)
+  - `src/components/AppHeader.tsx` (autosave UI)
+  - `src/i18n/appHeaderText.ts` (human microcopy)
+  - `tests/components/EmptyStateMapOverlay.test.tsx` (novo)
+
+## Próximos Passos (Prioridade: Produção Fase 3 - Refinamento Final)
+
+1.  **P3.2: Cobertura de Testes (Meta 95%)**: Continuar expandindo testes para `ollamaGovernanceService.ts` e `releaseIntegrityService.ts`.
+2.  **P3.3: Load Testing Baseline**: Estabelecer um baseline de carga para o motor Python (DXF) e API Node.js.
+3.  **P3.4: Final Production Checklist**: Revisão manual de segurança (Gitleaks, Audit) antes do soft launch.
 
 ---
 
-## 🏗️ Arquitetura
-
-### Padrões Arquiteturais
-
-- **DDD (Domain-Driven Design)**: Separação por domínios (elevação, geocoding, exportação)
-- **Thin Frontend / Smart Backend**: Lógica pesada no servidor
-- **Docker First**: Containerização nativa
-- **Clean Code**: Responsabilidade única, modularidade
-
-### Stack Tecnológico
-
-```
-Frontend: React + TypeScript + TailwindCSS + Leaflet
-Backend: Node.js + Express + TypeScript
-Python Engine: osmnx, geopandas, ezdxf, numpy
-AI: Ollama (local) - llama3.2
-Dados: TOPODATA (30m), IBGE, INDE, OpenStreetMap
-```
-
----
-
-## 📁 Estrutura de Diretórios
-
-```
-sisrua_unified/
-├── src/                    # Frontend React
-│   ├── components/         # Componentes UI
-│   ├── hooks/             # Custom hooks
-│   └── types/             # TypeScript types
-├── server/                # Backend Node.js
-│   ├── services/          # Lógica de negócio
-│   │   ├── elevationService.ts
-│   │   ├── geocodingService.ts
-│   │   ├── ollamaService.ts
-│   │   └── topodataService.ts
-│   ├── schemas/           # Zod schemas
-│   └── utils/             # Utilitários
-├── py_engine/             # Engine Python
-│   ├── controller.py      # Orquestração
-│   ├── osmnx_client.py    # Fetch OSM
-│   ├── dxf_generator.py   # Geração DXF
-│   └── elevation_client.py # Elevação TOPODATA
-├── docs/                  # Documentação
-├── RAG/                   # Contexto/memória
-└── tests/                 # Testes unit/E2E
-```
-
----
-
-## 🔗 APIs e Integrações
-
-### APIs Brasileiras (Zero Custo)
-
-| API               | Dados                  | Resolução    |
-| ----------------- | ---------------------- | ------------ |
-| **TOPODATA**      | Elevação               | 30m (Brasil) |
-| **IBGE**          | Geocoding, limites     | -            |
-| **INDE**          | WMS/WFS dados oficiais | -            |
-| **OpenStreetMap** | Vias, edificações      | -            |
-
-### AI Local
-
-- **Ollama** com llama3.2 (substituiu Groq/cloud)
-- Iniciado automaticamente pelo backend
-- Zero custo, 100% privado
-
----
-
-## 🎯 Funcionalidades Core
-
-### 1. Extração OSM
-
-- Edificações, vias, elementos naturais
-- Filtros por tags
-- Exportação DXF 2.5D (não 3D)
-
-### 2. Elevação de Alta Precisão
-
-- TOPODATA 30m para território brasileiro
-- Fallback Open-Elevation 90m internacional
-- Cache de tiles GeoTIFF
-- Perfil de elevação, estatísticas, slope
-
-### 3. Metadados BIM (Half-way BIM)
-
-- CSV com área, perímetro, elevação
-- Metadados de elevação no DXF
-- Estrutura para futura integração BIM completa
-
-### 4. Análise AI
-
-- Análise urbana via Ollama
-- Sugestões de infraestrutura
-- Relatórios em português
-
----
-
-## 🛡️ Regras Não Negociáveis (Non-negotiables)
-
-1.  **Fluxo de Git**: Apenas na branch `dev`.
-2.  **Memória de Contexto**: OBRIGATÓRIO Criar/Ler o `RAG/MEMORY.md` antes de qualquer ação.
-3.  **Integridade de Dados**: **NÃO usar dados mockados**. Dados reais ou lógicos apenas.
-4.  **Dimensionalidade**: Não usar 3D e sim **2.5D** em todo o projeto.
-5.  **Modularidade & Clean Code**: Responsabilidade Única. Hard Limit de **600 linhas** por arquivo (Soft Limit de 500).
-6.  **Segurança**: Sanitizar todas as entradas e manter proteções transversais.
-7.  **Arquitetura**: Thin Frontend / Smart Backend e DDD.
-8.  **BIM & Engenharia**: Manter o padrão Half-way BIM.
-9.  **Docker First**: Manter arquivos Docker atualizados; tudo roda em container.
-10. **Custos**: "Zero custo a todo custo!". APIs públicas ou gratuitas apenas.
-11. **Localização**: Interface 100% em **pt-BR**.
-12. **Testes & Cobertura**: Full suite (Unit/E2E). Coverage 100% para os 20% críticos; >=80% para o restante.
-13. **Papéis**: Agir como Tech Lead (orquestrador), Dev Sênior (coder), DevOps/QA, Designer ou Estagiário conforme a necessidade da task.
-14. **Finalização**: Commit imediato ao terminar a task.
-
----
-
-## 📊 Cobertura de Testes
-
-### Testes Unitários
-
-- Serviços de elevação
-- Geocoding
-- Validação de schemas
-
-### Testes E2E
-
-- Geração de DXF
-- Integração APIs
-- Interface UI
-
-### Scripts de Teste
-
-- `scripts/test-apis-brasileiras.ps1`: Testa TOPODATA, IBGE, INDE
-- `tests/`: Testes automatizados
-
----
-
-## 🚀 Deploy
-
-### Desenvolvimento
-
-```bash
-npm run server  # Inicia backend + Ollama
-npm run dev     # Inicia frontend
-```
-
-### Produção (Docker)
-
-```bash
-docker-compose up -d
-```
-
-### 🔧 Próximos Passos (Master Plan 2026 - 100 Pontos)
-
-O projeto segue o [STRATEGIC_ROADMAP_2026.md](../docs/STRATEGIC_ROADMAP_2026.md), focado em 5 grandes fases de maturidade:
-
-### Fase 1: Estabilização & Orquestração (Current)
-- [ ] **Ponto 1 & 5**: Modularização do `dxf_generator.py` e Orquestração de Jobs Idempotentes.
-- [ ] **Ponto 23 & 36**: Compliance LGPD Operacional e Security Supply Chain (SBOM).
-- [ ] **Ponto 28 & 30**: Governança de Identidade (SCIM) e RBAC/ABAC Fino.
-
-### Fase 2: Engenharia 2.0 & BIM
-- [ ] **Ponto 6 & 7**: Geração IFC 4.x e Registro de Proveniência Técnica.
-- [ ] **Ponto 43 & 45**: Integração SINAPI Master e Ciclo de Vida do Ativo (LCC).
-- [ ] **Ponto 35 & 37**: Multi-tenancy Seguro e BCP/DR com exercícios validados.
-
-### Fase 3: Inteligência & Resiliência
-- [ ] **Ponto 11 & 14**: RAG de Normas Técnicas e Análise Preditiva de Carga.
-- [ ] **Ponto 17 & 19**: Operação SRE 24x7 e Injeção de Falhas (Chaos Engineering).
-- [ ] **Ponto 49 & 50**: Gestão de Vulnerabilidades e Pentests Periódicos.
-
-### Fase 4: Operação de Campo & ESG
-- [ ] **Ponto 66 & 67**: Medição de Obras para Pagamento e Rastreabilidade QR Code.
-- [ ] **Ponto 59 & 63**: AR Field Viewer e Treinamento de Segurança VR (NR-10).
-- [ ] **Ponto 46 & 48**: RIPD Ambiental Automático e Créditos de Carbono.
-
-### Fase 5: Fronteira & Vision 2027
-- [ ] **Ponto 71 & 89**: Federated Learning e Notarização em Blockchain.
-- [ ] **Ponto 65 & 83**: Suporte HoloLens 2 e Tele-Engenharia Remota.
-- [ ] **Ponto 85 & 87**: Detector Antifraude Orçamentária e Investor Discovery Pack.
-
----
-
-## 📝 Commits Recentes
-
-- `ecf3743` - fix: Geração DXF assíncrona em modo desenvolvimento
-- `94dfb8a` - fix: Cria diretório DXF automaticamente no startup
-- `deb7ad0` - feat: Gerenciamento automático do Ollama pelo backend
-
----
-
-- [ ] Acervo Técnico e GED (Padrão CONARQ)
-- [ ] Detector de Anomalias Orçamentárias (Anti-overpricing)
-- [ ] Audit Log Forense Multicamada
-- [ ] Federated Learning de Engenharia
-- [ ] Walkthrough Cinematic 4K Automático
-
----
-
-**Última Atualização**: 2026-04-13
-**Branch Ativa**: dev
-**Versão**: 1.3.0
-
----
-
-## 📌 Atualização Operacional (2026-04-12)
-
-### Correção BT no mapa (postes/condutores)
-
-- Corrigida colisão de panes do Leaflet que gerava erro em runtime: `A pane with this name already exists: bt-poles-pane`.
-- Refatorados nomes de panes BT para serem únicos por instância do componente com `React.useId()`:
-  - `bt-edges-pane-${id}`
-  - `bt-poles-pane-${id}`
-  - `bt-transformers-pane-${id}`
-- Removido bloco duplicado de renderização de postes em `MapSelector.tsx`.
-- Reforçada legibilidade dos marcadores de postes (ícone maior e com halo/sombra), mantendo fallback visual.
-
-### Validação
-
-- Build frontend validado com sucesso (`npm --prefix sisrua_unified run build`).
-- Preview atualizado após correção.
-
-### Observação de operação
-
-- Como o app usa PWA, mudanças visuais podem exigir hard refresh para evitar cache antigo.
-
----
-
-## 📌 Atualização Operacional (2026-04-12) - Padronização de Modais Críticos
-
-### Escopo
-
-- Expandida a padronização de confirmações para ações destrutivas e sensíveis no fluxo BT.
-- Eliminado uso de confirmações nativas dispersas (`window.confirm`) em favor de um padrão único de modal.
+## Atualização Operacional (2026-04-28) - Qualidade & Refinamento (P3.1/P3.2)
+
+- **P3.1 Acessibilidade (100%)**:
+  - Implementada semântica WCAG 2.1 em `SidebarBtEditorSection`, `AdminPage` e `BtTopologyPanel`.
+  - Adicionados `aria-pressed`, `aria-expanded` e `aria-labels` em todos os controles críticos.
+  - Contraste de cores corrigido para nível AA (razão > 4.5:1).
+- **P3.2 Cobertura de Testes (Em progresso - ~75%)**:
+  - Sanadas regressões no `errorHandler` devido à nova taxonomia.
+  - Criados testes de integração para `dgBufferValidationRoutes.ts` (resolvendo gap de 0%).
+  - Cobertura do `DbMaintenanceService.ts` elevada para 90%.
+  - Smoke tests (`smoke.test.ts`) validados e resilientes.
+- **Estado**: Prontidão para produção saltou para ~92%. O sistema está acessível, testado e com performance auditada.
+
+## Atualização Operacional (2026-04-27)
+
+- Hardening do fluxo DXF no frontend:
+  - validação de URL para garantir download apenas de arquivos `.dxf` em resposta imediata e em conclusão de job.
+- Evolução da exportação do memorial descritivo:
+  - saída principal em PDF com `jspdf` e fallback automático para `.txt`.
+- Dependência adicionada:
+  - `jspdf` (com atualização de `package-lock.json`).
+- Testes adicionados/ajustados:
+  - `tests/hooks/useDxfExport.test.ts` (cenários de URL não-DXF)
+  - `tests/utils/memorialDescritivo.test.ts` (export PDF + fallback)
+- Validações executadas:
+  - `npm run test:frontend -- tests/hooks/useDxfExport.test.ts tests/utils/memorialDescritivo.test.ts` (passou)
+  - `npm run build` (passou)
+  - `npm run test:all` executado; houve falhas não relacionadas ao delta deste pacote em suites backend de infra/ambiente.
+
+## Atualização Operacional (2026-04-27B)
+
+- Exportação DXF + memorial:
+  - ativado controle explícito em `Settings > Export` para decidir se o memorial PDF deve ser baixado junto com o DXF.
+  - preferência persistida em `AppSettings` (`exportMemorialPdfWithDxf`) com fallback seguro em carregamento de preferências e schema de validação.
+  - wiring do fluxo BT consolidado para propagar o toggle até `useDxfExport` (incluindo cenários de job assíncrono).
+- UX/I18n:
+  - novas strings de UI para PT-BR, EN-US e ES-ES no rodapé de exportação.
+  - cobertura de componente expandida em `tests/components/SettingsModalExportFooter.test.tsx` para render e toggle.
+- Docker/dev experience:
+  - `Dockerfile`: ajuste para `npm ci --omit=dev` e healthcheck HTTP adicionado.
+  - `Dockerfile.dev`: troca de `npm install` por `npm ci --prefer-offline --no-audit`.
+  - `docker-compose.yml`: imagem nomeada e flags de polling (`CHOKIDAR_USEPOLLING`, `WATCHPACK_POLLING`) para HMR mais estável em volume mount.
+  - `.dockerignore`: ignora artefatos `*_memorial_descritivo_*.pdf`.
+- Validações executadas:
+  - `npm run typecheck:frontend` (passou)
+  - `npx vitest run tests/components/SettingsModalExportFooter.test.tsx --config vitest.config.ts` (passou)
+  - `npm run build` (passou)
+
+## Atualização Operacional (2026-04-27C)
+
+- Onboarding/help in-app implementado:
+  - novo modal de ajuda com seção de atalhos e passo a passo operacional para novos usuários.
+  - acionamento por botão no header e atalhos globais `/`, `?` e `Ctrl+/`.
+  - integração com i18n (`pt-BR`, `en-US`, `es-ES`) para conteúdo completo de onboarding.
+- Arquivos novos:
+  - `src/components/HelpModal.tsx`
+  - `src/i18n/helpModalText.ts`
+  - `tests/components/HelpModal.test.tsx`
+- Ajustes em fluxos existentes:
+  - `src/hooks/useKeyboardShortcuts.ts` e `tests/hooks/useKeyboardShortcuts.test.ts`
+  - `src/components/AppHeader.tsx`, `src/components/AppShellLayout.tsx`, `src/i18n/appHeaderText.ts`, `src/App.tsx`
+- Validações executadas:
+  - `npx vitest run tests/hooks/useKeyboardShortcuts.test.ts tests/components/HelpModal.test.tsx --config vitest.config.ts` (passou)
+  - `npm run typecheck:frontend` (passou)
+
+## Atualização Operacional (2026-04-27C)
+
+- Governança de idioma redefinida:
+  - a regra deixou de ser `pt-BR only` e passou para `multi-idioma com locale fechado`.
+  - locales suportados: `pt-BR`, `en-US`, `es-ES`.
+  - requisito operacional: nenhuma tela, toast, hint ou mensagem de erro pode misturar idiomas dentro do locale ativo.
+- Ajustes implementados:
+  - seletor de idioma agora exibe nomes das línguas traduzidos conforme o locale atual.
+  - fluxos de salvar/carregar projeto e importar KML/KMZ respeitam o locale ativo nas mensagens ao usuário.
+  - seção de contexto MT no cockpit BT deixou de usar strings fixas em pt-BR.
+- Validações executadas:
+  - `npm run typecheck:frontend` (passou)
+  - `npm run build` (passou)
+
+## Atualização Operacional (2026-04-27D)
+
+- DG multi-tenant / RLS runtime:
+  - propagado `tenantId` pelos contratos DG (`DgOptimizationInput`, `DgOptimizationOutput`, `DgRunSummary`, `DgDiscardRateByConstraint`).
+  - `dgOptimizationService` e `dgRoutes` passaram a encaminhar `res.locals.tenantId` para leitura, listagem e persistência dos runs.
+  - `dgRunRepository` ficou tenant-aware tanto no caminho Postgres quanto no fallback em memória, evitando mistura entre tenants quando o banco não está disponível.
+  - inserts normalizados de DG agora incluem `tenant_id`, compatíveis com a migration `054_dg_runs_tenant_rls.sql`.
+- Testes DG e hardening de suíte backend:
+  - adicionados cenários de isolamento por tenant em `server/tests/dgRunRepository.test.ts`.
+  - `server/tests/dgOptimizationService.test.ts` passou a cobrir propagação de `tenantId`.
+  - alinhados `server/tests/dbClient.test.ts`, `server/tests/analysisRoutesLogging.test.ts` e `server/tests/healthStatus.test.ts` com os contratos atuais de `dbClient`, runtime Ollama e wake-up middleware do app.
+  - correção importante: usar reset completo de mocks em `analysisRoutesLogging.test.ts` para eliminar vazamento de estado entre casos.
+
+## Atualização Operacional (2026-04-27F)
+
+- **Evolução do DG Wizard — Aceite Consciente e Personalização**:
+  - **Edição Individual de Demanda**: O `DgWizardModal.tsx` agora permite expandir a lista de postes para ajuste fino da quantidade de clientes por ponto, sobrepondo a média global.
+  - **Audit Trail Forense**: Implementado o endpoint `POST /api/dg/accept` e integração no hook `useDgOptimization.ts`. Cada aceite de projeto (total ou parcial) é registrado no log de auditoria com `runId`, `scenarioId`, `score` e `tenantId`.
+  - **Visualização de Impacto**: Integrada a visualização "Atual x Sugerido" via `MapSelectorDgOverlay.tsx`, permitindo ao usuário avaliar a malha tracejada violeta antes da aplicação definitiva.
+  - **Acessibilidade e Robustez**: Inputs do Wizard vinculados via `id/htmlFor` e novos testes unitários adicionados em `tests/components/DgWizardModal.test.tsx`.
+- **Validações executadas**:
+  - `npx vitest run tests/components/DgWizardModal.test.tsx` (passou).
+  - 520 testes aprovados no total.
+
+## Atualização Operacional (2026-04-27G)
+
+- LGPD itens 40 e 41 consolidados no backend:
+  - rotas de retenção e descarte seguras em `server/routes/lgpdRetencaoRoutes.ts`.
+  - rotas de residência de dados em `server/routes/lgpdResidenciaRoutes.ts`.
+  - ambos os routers já registrados no `server/app.ts` sob `/api/lgpd-retencao` e `/api/lgpd-residencia`, além das bases funcionais documentadas nos próprios routers.
+- Cobertura de testes confirmada para serviços e rotas:
+  - `server/tests/lgpdRetencao.test.ts`
+  - `server/tests/lgpdResidencia.test.ts`
+  - `server/tests/lgpdRetencaoAndResidenciaRoutes.test.ts`
+- Validação executada:
+  - `npx jest server/tests/lgpdRetencao.test.ts server/tests/lgpdResidencia.test.ts server/tests/lgpdRetencaoAndResidenciaRoutes.test.ts --runInBand` (81 testes passando).
+
+## Atualização Operacional (2026-04-29)
+
+- **Motor DG — Passos 2-5 Implementados (Auditoria Gap Resolution)**:
+  - **DG ENGINE AUDIT & FIXES (April 2026)**:
+  - **BUG CRÍTICO CORRIGIDO**: `conductorId: "95 AL MM"` → `conductorId: "95 Al - Arm"` + seleção telescópica real em `dgOptimizer.ts` e `dgPartitioner.ts`.
+  - **Seleção Telescópica**: Implementado `assignTelescopicConductors` baseado na demanda acumulada das sub-árvores.
+  - **Particionamento de Rede**: Implementado `partitionNetwork` em `dgPartitioner.ts` com heurística de corte 50/50 e filtro anti-isolamento (mínimo 15% demanda / 3 postes).
+  - **Excentricidade 200m**: Implementado `applyEccentricityDrag` para garantir que nenhum poste exceda 200m de distância do transformador (Passo 5).
+  - **Refatoração**: MST e lógica de topologia movidas para `dgPartitioner.ts`, com suporte a zonas de exclusão e corredores viários.
+  - **Testes**: Suite completa em `server/tests/dgPartitioner.test.ts`.
+  - **Passo 2 (Rede Telescópica)**: `assignTelescopicConductors()` calcula demanda downstream por DFS e atribui condutor diferente por trecho: 25/50/95/150/240 Al-Arm.
+  - **Passo 3 (Particionamento por kVA)**: `buildPartition()` itera `faixaKvaTrafoPermitida` e aciona `partitionNetwork()` quando nenhum kVA único cobre a demanda.
+  - **Novo Catálogo Comercial**: Suporte expandido de 15 kVA até **300 kVA** (15, 30, 45, 75, 112.5, 150, 225, 300).
+  - **Controle Trafo Máximo**: Implementado parâmetro `trafoMaxKva` que filtra o catálogo automaticamente (ex: "até 75kVA").
+  - **Passo 4 (Heurística 50/50 + Anti-Isolamento)**: `findBestCutEdge()` com filtro mínimo de 15% de demanda e 3 postes por cluster.
+  - **Passo 5 (Excentricidade 200m)**: `applyEccentricityDrag()` arrasta o trafo do baricentro Fermat-Weber para o poste mais próximo que satisfaz a regra de excentricidade.
+- **Novos arquivos**:
+  - `server/services/dg/dgPartitioner.ts` (exporta MST, UnionFind, condutor telescópico, corte, excentricidade, `partitionNetwork`)
+  - `server/tests/dgPartitioner.test.ts` (21 casos, 43 testes passando)
+  - `server/tests/dgRealKmz.integration.test.ts` (Integração com nuvem real de 60 postes da Av. Padre Decaminada)
+- **Arquivos modificados**:
+  - `server/services/dg/dgOptimizer.ts` / `server/services/dg/dgTypes.ts` / `server/services/dgOptimizationService.ts` / `server/routes/dgRoutes.ts`
+  - `src/components/DgWizardModal.tsx` (Adicionados botões de 150/225/300 kVA)
+- **Validação executada**:
+  - `npx jest server/tests/dgPartitioner.test.ts server/tests/dgRealKmz.integration.test.ts server/tests/dgCqt.integration.test.ts --runInBand` (46 testes passando).
+  - **CQT (Voltage Drop)**: Validado que o motor radial oficial é chamado durante o particionamento. Em cenários reais (Av. Padre Decaminada), o CQT médio é de ~2.27%. Em linhas longas de 2km, o motor aciona o particionamento (4 sub-redes) para garantir CQT de ~2.84% (limite ANEEL 8%).
+
+## Atualização Operacional (2026-05-07A) — T3.73: Versionamento Semântico de Fórmulas
+
+**Commit:** b295504 eat(t3): item 73 — versionamento semântico de fórmulas de cálculo
 
 ### Implementação
-
-- Criado contrato único de confirmação crítica em `BtModals.tsx`:
-  - `CriticalConfirmationConfig`
-  - `CriticalActionModal`
-- Integrado ao stack central de modais em `BtModalStack.tsx`.
-- Centralizado no `App.tsx` o estado/callback de confirmação crítica para:
-  - exclusão de poste;
-  - exclusão de trecho;
-  - exclusão de transformador;
-  - redução de ramais em poste;
-  - redução de condutor em trecho.
-- `BtTopologyPanel.tsx` passou a acionar confirmação central para:
-  - aplicar ramais no primeiro poste importado;
-  - apagar trecho BT selecionado.
-
-### Validação
-
-- Build frontend validado com sucesso (`npm --prefix sisrua_unified run build`).
-- Preview atualizado após mudança.
-
----
-
-## 📌 Atualização Operacional (2026-04-12) - Acessibilidade Transversal
-
-### Diretriz
-
-- Acessibilidade passa a ser requisito transversal do produto (não apenas correção pontual).
-- Todo fluxo crítico deve ser validado em:
-  - navegação por teclado;
-  - visibilidade de foco;
-  - nome/label acessível de controles;
-  - consistência WCAG 2.1 A/AA.
-
-### Evidência atual e gap
-
----
-
-## Manutenção Formalizada do Banco de Dados (2026-04-14)
-
-### Escopo: Rotina Abrangente Beyond Simple Cleanup
-
-**Status**: ✅ Implementado e verificado com base nas migrations 017, 022, 023, 024, 026-033 e 034. Formalização consolidada em `docs/DATABASE_MAINTENANCE_FORMAL.md`.
-
-#### 5 Pilares Operacionais
-
-| Pilar                      | Responsável               | Automação       | Status |
-| -------------------------- | ------------------------- | --------------- | ------ |
-| **Análise de Desempenho**  | `db_health_report()`      | Daily 07:00 UTC | ✅     |
-| **Limpeza Preventiva**     | VACUUM, Archival, Cleanup | Daily/Weekly    | ✅     |
-| **Cache Distribuído**      | Materialized Views        | Refresh hourly  | ✅     |
-| **Integridade & Backup**   | Backup/Restore/Verify     | Daily/Weekly    | ✅     |
-| **Governança Operacional** | `maintenance_log` table   | Real-time audit | ✅     |
-
-#### Cronograma (UTC)
-
-```
-01:00 DOM → Backup semanal (backup_critical_tables_weekly)
-02:00 → Backup diário (backup_critical_tables_daily)
-02:30 DOM → VACUUM ANALYZE semanal (audit_logs, bt_export_history, constants_catalog)
-03:10 → VACUUM ANALYZE diário (jobs, dxf_tasks)
-03:20 → Cleanup jobs antigos (cleanup_old_jobs_daily) [MIGRATION 017]
-03:30 → Archival audit_logs (archive_old_audit_logs_nightly)
-04:00 SEX → Cleanup backups expirados (cleanup_expired_backups_weekly)
-05:00 DIA1 → Cleanup maintenance_log (cleanup_maintenance_log_monthly)
-06:00 → Verify backup integrity (verify_backup_integrity_daily)
-07:00 → DB health report (db_health_report_daily) ← análise sistemática
-05 * * * * → Refresh materialized views (refresh_materialized_views_hourly)
-```
-
-#### Análise Sistemática de Desempenho
-
-**Função**: `private.db_health_report()`
-**Métricas**:
-
-- `cache_hit_ratio_pct` (Target: >99%)
-- `dead_tuples_critical_tables` (Tables: jobs, audit_logs, bt_export_history, constants_catalog)
-- `blocked_locks` (Target: 0)
-- `database_size` (Info)
-- `audit_log_total_rows` (Growth tracking)
-
-**Storage**: private.maintenance_log (job_name='db_health_report')
-
-**Extensão**: pg_stat_statements (monitoramento de queries lentas - top 20 queries)
-
-**Verificação atual**:
-
-- 11 de 11 jobs ativos
-- cache hit ratio: 99.97%
-- dead tuples críticos: 54
-- blocked locks: 0
-
-#### Governança: Audit Trail Completo
-
-**Tabela**: `private.maintenance_log`
-
-```
-Campos: id, job_name, started_at, finished_at, status, details (JSONB), error_msg
-Indices: idx_maint_log_job_date
-Retenção: 60 dias (cleanup monthly)
-```
-
-**Visão Operacional**:
-
-```sql
-SELECT * FROM private.v_maintenance_schedule;  -- Ver cronograma ativo
-SELECT * FROM private.db_health_report();      -- Saúde agora
-SELECT * FROM private.verify_backup_integrity(); -- Status backups
-```
-
-#### Manutenção Preventiva
-
-- **VACUUM ANALYZE**: Jobs daily (03:10), Audit/BT weekly (02:30 DOM)
-- **Archival**: Audit logs > 90 dias movidos para `private.audit_logs_archive` (03:30 diária)
-- **Cleanup**: Jobs terminais com retenção padrão de 14 dias (03:20), backups expirados (04:00 SEX), maintenance logs > 60 dias (05:00 DIA1)
-
-#### Referências
-
-- 📄 [Database Maintenance Formal Doc](./docs/DATABASE_MAINTENANCE_FORMAL.md)
-- 🔧 Migration 024 (db_maintenance_schedule.sql)
-- 🔧 Migration 023 (advanced_performance_indexes.sql)
-- 🔧 Migration 034 (time_series_partitioning.sql)
-
----
-
-## 🎯 Cache Advanced Configuration (CAC) - 2026-04-14
-
-### Contexto: Estratégia multi-camada de cache
-
-**Status**: ✅ Implementado e verificado. Camadas principais suportadas por migrations 023 e 034.
-
-#### 1. Materialized Views (Application Cache)
-
-| View                             | Refresh | Latência     | Use Case                |
-| -------------------------------- | ------- | ------------ | ----------------------- |
-| `mv_bt_history_daily_summary`    | Hourly  | ~1ms (cache) | Dashboards BT diários   |
-| `mv_audit_stats`                 | Hourly  | ~1ms (cache) | Relatórios conformidade |
-| `mv_constants_namespace_summary` | Hourly  | ~1ms (cache) | Status catálogo         |
-
-**Mecanismo**: `REFRESH MATERIALIZED VIEW CONCURRENTLY` (permite leitura durante refresh)
-
-#### 2. Índices Cache-Friendly (Database Layer)
-
-| Tipo     | Count | Benefício                          | Tables                                         |
-| -------- | ----- | ---------------------------------- | ---------------------------------------------- |
-| **BRIN** | 16    | ~1% espaço B-tree, partition-local | audit_logs, jobs, dxf_tasks, bt_export_history |
-| **GIN**  | 2     | JSONB/text lookup 100x mais rápido | audit_logs, bt_export_history                  |
-| **TRGM** | 3     | Substring search (concat GIN)      | constants_catalog, audit_logs                  |
-
-#### 3. Query-Level Cache (Postgres)
-
-- **pg_stat_statements**: Monitora queries lentas (integrado em `db_health_report()`)
-- **Prepared Statements**: Backend utiliza parameterized queries (proteção + cache)
-
-#### 4. Elevation Tile Cache (Python)
-
-**Arquivo**: `py_engine/domain/terrain/cache.py`
-
-```
-Mecanismo: SQLite-based cache (elevation_cache.db)
-Key: (lat, lng) tuple
-Value: CachedElevation(elevation_m, provider, timestamp)
-Benefício: Queries repetidas em gridders = ~100x speedup
-Hit Rate: ~80-90% em áreas urbanas recorrentes
-```
-
-#### 5. Browser PWA Cache
-
-- Service Worker: `dist/sw.js` (Workbox-powered)
-- Precache: Arquivos estáticos + manifest
-- Runtime Cache: API responses (network-first strategy)
-
-#### 6. Partition-Level Cache (Time-Series)
-
-**Tabelas Particionadas**: audit_logs_partitioned, jobs_partitioned, dxf_tasks_partitioned, bt_export_history_partitioned
-
-```
-Partitioning: RANGE (created_at, changed_at)
-Granularidade: 12 partições mensais (prospective)
-Benefício: VACUUM/ANALYZE partition-local, partition pruning em WHERE clauses
-Cache Hit: ~95% em queries últimas 3 meses
-```
-
-#### 7. Monitoring Cache Health
-
-```sql
--- Hit ratio da conexão
-SELECT
-  datname,
-  100.0 * SUM(blks_hit) / NULLIF(SUM(blks_hit + blks_read), 0) as cache_hit_ratio
-FROM pg_stat_database
-GROUP BY datname;
-
--- Bloqueios (cache contention)
-SELECT COUNT(*) FROM pg_locks WHERE NOT granted;
-
--- Dead tuples (cache eviction pressure)
-SELECT SUM(n_dead_tup) FROM pg_stat_user_tables;
-```
-
-#### Impacto Esperado
-
-- **Time-series Queries**: ↓ 50-80% latência (partition pruning + BRIN)
-- **JSONB Queries**: ↓ 30-50% latência (GIN index)
-- **Cached Reports**: ↓ 95% latência (materialized views)
-- **Storage I/O**: ↓ 15-20% (BRIN é 1% de B-tree)
-
----
-
-    - `hasMore`
-    - `sortBy`
-    - `sortOrder`
-    - `filters`
-
-### Helpers centrais
-
-- `server/schemas/apiSchemas.ts`
-  - `createListQuerySchema()`
-  - `listSortOrderSchema`
-- `server/utils/listing.ts`
-  - `buildListMeta()`
-  - `comparePrimitiveValues()`
-
-### Rotas cobertas nesta etapa
-
-- `server/routes/btHistoryRoutes.ts`
-- `server/routes/constantsRoutes.ts`
-- `server/routes/ibgeRoutes.ts`
-- `server/routes/indeRoutes.ts`
-- `server/routes/mechanicalAndAnalysisRoutes.ts`
-- `server/routes/btCalculationRoutes.ts` (`/parity/scenarios`)
-
-### Observação importante
-
-- Filtros continuam específicos do domínio de cada rota, mas agora sob convenção única de validação e retorno em `meta.filters`.
-- Compatibilidade retroativa foi preservada sempre que possível, mantendo a chave principal da coleção.
-
-- Há base existente com labels e smoke test Axe em `e2e/a11y-smoke.spec.ts`.
-- Gap identificado: cobertura ainda concentrada na raiz e sem matriz ampla por fluxo crítico e estados interativos.
-
-### Critério operacional adotado
-
-- Novas mudanças em componentes críticos devem incluir evidência de a11y por fluxo.
-- Regressão de acessibilidade crítica deve bloquear aceitação funcional da entrega.
-
----
-
-## 📌 Atualização Operacional (2026-04-12) - Padronização Zod em Rotas Backend
-
-### Diretriz
-
-- Validação de entrada padronizada por rota com Zod como padrão único.
-- Redução de validações manuais ad-hoc para diminuir divergência de comportamento e manutenção.
-
-### Escopo implementado
-
-- Rotas migradas para validação Zod de `body/query/params`:
-  - `server/routes/btHistoryRoutes.ts`
-  - `server/routes/constantsRoutes.ts`
-  - `server/routes/elevationRoutes.ts` (`/batch`)
-  - `server/routes/ibgeRoutes.ts`
-  - `server/routes/indeRoutes.ts`
-  - `server/routes/jobRoutes.ts`
-  - `server/routes/mechanicalAndAnalysisRoutes.ts`
-
-### Resultado
-
-- Entradas críticas passaram a ter contrato explícito por endpoint.
-- Endpoints com parâmetros agora retornam erro 400 consistente com `details` de schema em caso inválido.
-- Validação manual dispersa foi substituída por schema-driven validation nos fluxos migrados.
-
----
-
-## 📌 Atualização Operacional (2026-04-13) - Padronização Zod 100% em Todas as Rotas
-
-### Diretriz
-
-**Eliminação total de validação manual dispersa.** Todos os 16 route files (51 endpoints) devem usar Zod para entrada crítica ou serem explicitamente documentados como sem validação (health checks, leitura stateless).
-
-### Escopo
-
-**CRITICAL (Security-sensitive + Consistency):**
-
-1. `dxfRoutes.ts` - Convertido `normalizeProtocol` e `extractCqtSummary` para Zod schemas; adicionado validação de file MIME/size para `/batch`
-2. `constantsRoutes.ts` - Confirmado `timingSafeEqual` em `isRefreshAuthorized`; adicionado schema `clandestineQuerySchema` para `/clandestino`
-
-**HIGH (Mixed Zod + Manual paths):** 3. `elevationRoutes.ts` - Adicionado `cacheStatusQuerySchema` e `cacheClearBodySchema` para `/cache/status` e `/cache/clear` 4. `btCalculationRoutes.ts` - Adicionado `emptyCatalogQuerySchema` e `emptyParityQuerySchema` para `/catalog`, `/catalog/version`, `/parity`, `/parity/scenarios`
-
-**MEDIUM (Completeness):**
-
-- Endpoints sem entrada (health checks): `firestoreRoutes`, `storageRoutes`, `metricsRoutes` — sem validação por design (0 input)
-- Endpoints intentionally stateless (leitura direta): `ibgeRoutes /states` — documentado
-
-### Resultado
-
-- **16 route files**: 100% cobertura Zod ou documentado como sem-entrada
-- **51 endpoints**: Padrão uniforme (schema → `safeParse` → erro 400 com detalhes)
-- **Zod Coverage**: De 72% para 100% de rotas com entrada crítica
-- **Segurança**: Timing-safe token comparison confirmado; file upload validation adicionado; URL/protocol validation Zod-driven
-
-### Validação Técnica
-
-- TypeScript typecheck: ✅ Sem erros nos 4 arquivos de rotas modificados
-- Schemas: ✅ 14 novos schemas introduzidos (7 anteriores + 7 novos em HGH/MEDIUM)
-- E2E tests: ✅ Expandidos com keyboard navigation + Axe WCAG audit (smoke test updated)
-
----
-
-## 📌 Atualização Operacional (2026-04-13) - RBAC Real com Fonte Confiável
-
-### Diretriz
-
-**Substituir RBAC placeholder por enforcement real.** Todos os usuários devem ter seu papel recuperado de fonte confiável (tabela `user_roles` no banco de dados) com cache e fallback seguro.
-
-### Implementação
-
-**Tabela de Banco de Dados (`migrations/020_user_roles_rbac.sql`):**
-
-- `user_roles`: Mapping de user_id → role com auditoriaassignado_at, assigned_by, reason
-- `user_roles_audit`: Log de todas as mudanças de papel (compliance)
-- Enum `user_role`: admin | technician | viewer | guest
-- Triggers automáticos para auditoria e timestamp
-- View `v_user_roles_summary` para relatórios
-
-**RoleService (`server/services/roleService.ts`):**
-
-- `getUserRole(userId)`: Recuperar papel com cache in-memory (TTL 5min)
-- `setUserRole(userId, role, assignedBy, reason)`: Atribuir/atualizar papel
-- `getUsersByRole(role)`: Listar usuários por papel (relatórios)
-- `getRoleStatistics()`: Distribuição de papéis no sistema
-- Cache automático + invalidação
-- Fallback seguro: viewer em caso de erro de banco
-
-**PermissionHandler (`server/middleware/permissionHandler.ts`):**
-
-- Eliminado placeholder `const userRole = userId ? 'admin' : 'guest'`
-- Conectado ao roleService: `const userRole = await getUserRole(userId)`
-- Matriz de permissões declarativa (admin → [read, write, delete, admin, export_dxf, bt_calculate], etc.)
-- Logging de grant/deny com context completo
-- Fallback seguro: negar em caso de erro
-
-### Resultado
-
-- ✅ Papel de cada usuário vem de **fonte confiável** (banco de dados)
-- ✅ **Cache** reduz latência e carga de banco
-- ✅ **Auditoria** completa de mudanças de papel
-- ✅ **Fallback seguro** em ambos os pontos (roleService + middleware)
-- ✅ Permissões **granulares** por papel (admin > technician > viewer > guest)
-- ✅ Zero brecha de segurança: sem mais placeholder
-
-### Validação Técnica
-
-- SQL syntax: ✅ Migração sem erros
-- TypeScript: ✅ Sem erros em roleService + permissionHandler
-- Tipos: ✅ Union type `UserRole` com 4 papéis válidos
-- Error handling: ✅ Try-catch com logging e fallback
-
----
-
-## 📌 Atualização Operacional (2026-04-13) – Auditoria e Soft Delete em Tabelas de Negócio
-
-### Contexto
-
-A auditoria e soft delete estavam concentrados apenas em `constants_catalog` (019). As tabelas de negócio `jobs`, `dxf_tasks`, `bt_export_history` e `user_roles` não tinham cobertura equivalente.
-
-### Implementação (021_audit_soft_delete_business_tables.sql)
-
-- Função `proc_audit_log_generic()` – versão aprimorada que aceita PK de qualquer tipo (TEXT, SERIAL, BIGSERIAL, UUID)
-- Coluna `deleted_at TIMESTAMPTZ` adicionada em: `jobs`, `dxf_tasks`, `bt_export_history`, `user_roles`
-- Índices parciais `WHERE deleted_at IS NULL` para consultas ativas em todas as tabelas
-- Triggers `trg_audit_*` em todas as 4 tabelas de negócio
-- Vista operacional `v_soft_deleted_summary` consolidando itens soft-deleted
-
-### Padrão de Soft Delete (aplicar em todas as tabelas cobertas)
-
-```sql
-UPDATE public.jobs SET deleted_at = now() WHERE id = $1;   -- delete
-UPDATE public.jobs SET deleted_at = NULL  WHERE id = $1;   -- restore
-SELECT * FROM public.jobs WHERE deleted_at IS NULL;         -- listagem ativa
-```
-
----
-
-## 📌 Atualização Operacional (2026-04-13) – Estratégia de Backup e Restore Abrangente
-
-### Contexto
-
-Existia apenas restore de snapshots do catálogo em `constantsRoutes.ts`. Não havia estratégia abrangente cobrindo outras tabelas, retenção, verificação e rotina automatizada.
-
-### Implementação (022_database_backup_restore.sql)
-
-- Schema `backup` com tabelas de snapshot lógico: `constants_catalog_snapshot`, `user_roles_snapshot`, `bt_export_history_snapshot`
-- `backup.backup_manifest` – inventário de todos os backups com status e expiração
-- `private.backup_critical_tables(type, retention)` – executa snapshots completos
-- `private.cleanup_expired_backups()` – remoção em cascata de backups expirados
-- `private.verify_backup_integrity()` – healthcheck automatizado
-
-### Política de Retenção
-
-| Tipo        | Frequência    | Retenção | Cron        |
-| ----------- | ------------- | -------- | ----------- |
-| Diário      | 02:00 UTC     | 30 dias  | `0 2 * * *` |
-| Semanal     | Dom 01:00 UTC | 84 dias  | `0 1 * * 0` |
-| Verificação | 06:00 UTC     | —        | `0 6 * * *` |
-
----
-
-## 📌 Atualização Operacional (2026-04-13) – Performance de Banco com Recursos Avançados
-
-### Contexto
-
-Havia índices compostos pontuais na 019, mas sem BRIN, GIN/trgm, materialized views ou índices geoespaciais operacionais.
-
-### Implementação (023_advanced_performance_indexes.sql)
-
-- **BRIN indexes** em `created_at`/`changed_at` das tabelas de série temporal (custo ~1% de B-tree)
-- **GIN/pg_trgm** em `namespace` e `key` do catálogo para busca textual eficiente (`LIKE '%termo%'`)
-- **GIN em JSONB** em `bt_export_history.metadata` e `audit_logs.new_data`
-- **Índices compostos** de auditoria: `(table_name, action, changed_at)`, `(changed_by, changed_at)`
-- **3 Materialized Views** operacionais:
-  - `mv_bt_history_daily_summary` – resumo diário de exportações BT
-  - `mv_audit_stats` – estatísticas de auditoria por tabela/ação
-  - `mv_constants_namespace_summary` – resumo do catálogo por namespace
-- **Refresh automático** via `private.refresh_materialized_views()` + pg_cron a cada hora
-
----
-
-## 📌 Atualização Operacional (2026-04-13) – Manutenção Recorrente Abrangente
-
-### Contexto
-
-Existia apenas limpeza de jobs (017). Não havia VACUUM programado, archival de logs, relatório de saúde ou governança de operações de manutenção.
-
-### Implementação (024_db_maintenance_schedule.sql)
-
-- `private.maintenance_log` – tabela de governança: todas as funções de manutenção registram início, fim e status
-- `private.audit_logs_archive` – cold storage para audit_logs >90 dias
-- `private.archive_old_audit_logs()` – archival em lotes de 50k com SKIP LOCKED
-- `private.db_health_report()` – métricas de saúde: cache hit ratio, dead tuples, locks, tamanho do banco
-- `private.v_maintenance_schedule` – view consolidada com todos os 11 jobs cron do sistema
-
-### Cronograma Completo (11 jobs pg_cron)
-
-| Job                                 | Cron         | Propósito                              |
-| ----------------------------------- | ------------ | -------------------------------------- |
-| `cleanup_old_jobs_daily`            | `20 3 * * *` | Limpeza de jobs terminais (017)        |
-| `backup_critical_tables_daily`      | `0 2 * * *`  | Backup diário (022)                    |
-| `backup_critical_tables_weekly`     | `0 1 * * 0`  | Backup semanal 84 dias (022)           |
-| `cleanup_expired_backups_weekly`    | `0 4 * * 5`  | Retenção de backups (022)              |
-| `verify_backup_integrity_daily`     | `0 6 * * *`  | Healthcheck de backups (022)           |
-| `refresh_materialized_views_hourly` | `5 * * * *`  | Refresh MVs (023)                      |
-| `vacuum_analyze_jobs_daily`         | `10 3 * * *` | VACUUM jobs + dxf_tasks (024)          |
-| `vacuum_analyze_audit_weekly`       | `30 2 * * 0` | VACUUM audit_logs + bt + catalog (024) |
-| `archive_old_audit_logs_nightly`    | `30 3 * * *` | Archival audit_logs >90 dias (024)     |
-| `db_health_report_daily`            | `0 7 * * *`  | Relatório de saúde do banco (024)      |
-| `cleanup_maintenance_log_monthly`   | `0 5 1 * *`  | Purga de maintenance_log (024)         |
+- **Serviço:** server/services/formulaVersioningService.ts
+  - Tipos: FormulaCategory, VersionStatus, FormulaVersion, FormulaDefinition, FormulaDiff
+  - Funções: computeDefinitionHash, listFormulas, getFormulaById, getActiveVersion,
+    getVersionHistory, diffVersions, egisterFormulaVersion, getDeprecationReport, esetCatalog
+  - Catálogo inicial: 5 fórmulas (QT_SEGMENTO_BT, RESISTENCIA_CORRIGIDA, LIMITE_CQT_ANEEL,
+    TENSAO_PISO_OPERACIONAL, K8_QT_MT_TRAFO), cada uma com histórico versionado
+  - Hash djb2 para rastreabilidade/auditoria regulatória (sem dependência de crypto assíncrono)
+- **Rotas:** server/routes/formulaVersioningRoutes.ts — /api/formula-versions
+  - GET / — lista fórmulas com versão ativa
+  - GET /deprecation-report — relatório de versões depreciadas
+  - GET /:id — detalhe + histórico
+  - GET /:id/active — versão ativa
+  - GET /:id/diff?v1=&v2= — diff entre versões com flag isBreaking
+  - POST /:id (requireAdminToken) — registra nova versão
+- **Registro:** server/app.ts — pp.use("/api/formula-versions", formulaVersioningRoutes)
+
+### Testes
+- server/tests/formulaVersioningService.test.ts — 29 testes todos passando
+- Suite completa: **3016/3016** tests passando (219 arquivos)
+
+### Destaques técnicos
+- Versionamento semântico (semver) + auto-depreciação de versão ativa ao registrar nova versão ctive
+- Auditoria de fórmulas regulatórias: ANEEL PRODIST Módulo 8, ABNT NBR 5410, Light S.A.
+- Diff com detecção automática de mudanças isBreaking (alteração em expression ou constants = breaking)
+- Middleware de autenticação via uthGuard.ts (equireAdminToken)

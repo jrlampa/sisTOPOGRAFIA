@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bt_mechanical_response.schema.json",
+  "title": "BtMechanicalResponse",
+  "description": "Output results for BT mechanical force calculation.",
+  "type": "object",
+  "required": ["nodeResults"],
+  "additionalProperties": false,
+  "properties": {
+    "nodeResults": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["nodeId", "resultantForceDaN", "resultantAngleDegrees", "overloaded"],
+        "properties": {
+          "nodeId": { "type": "string" },
+          "resultantForceDaN": { "type": "number" },
+          "resultantAngleDegrees": { "type": "number" },
+          "overloaded": { "type": "boolean" },
+          "incidentVectors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["toNodeId", "forceDaN", "angleDegrees"],
+              "properties": {
+                "toNodeId": { "type": "string" },
+                "forceDaN": { "type": "number" },
+                "angleDegrees": { "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

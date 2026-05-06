@@ -1,24 +1,25 @@
+import { vi } from "vitest";
 import express from 'express';
 import request from 'supertest';
 
-const getSyncMock = jest.fn();
+const getSyncMock = vi.fn();
 
-jest.mock('../utils/logger', () => ({
+vi.mock('../utils/logger', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   }
 }));
 
-jest.mock('../services/constantsService', () => ({
+vi.mock('../services/constantsService', () => ({
   constantsService: {
     getSync: (...args: unknown[]) => getSyncMock(...args),
   }
 }));
 
-jest.mock('../config', () => ({
+vi.mock('../config', () => ({
   config: {
     useDbConstantsConfig: true,
     RATE_LIMIT_GENERAL_WINDOW_MS: 60_000,
@@ -30,8 +31,8 @@ jest.mock('../config', () => ({
 
 describe('downloadsRateLimiter', () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it('blocks requests after configured downloads limit', async () => {
@@ -54,3 +55,4 @@ describe('downloadsRateLimiter', () => {
     expect(second.body).toEqual({ error: 'Too many download requests, please try again later.' });
   });
 });
+

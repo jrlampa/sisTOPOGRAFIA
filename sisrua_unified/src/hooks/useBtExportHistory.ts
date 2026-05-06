@@ -14,7 +14,10 @@ import { MAX_BT_EXPORT_HISTORY } from "../utils/btNormalization";
 
 type Params = {
   appState: GlobalState;
-  setAppState: (state: GlobalState, addToHistory: boolean) => void;
+  setAppState: (
+    state: GlobalState | ((prev: GlobalState) => GlobalState),
+    addToHistory: boolean,
+  ) => void;
   showToast: (message: string, type: ToastType) => void;
   projectType: "ramais" | "clandestino";
 };
@@ -191,6 +194,7 @@ export function useBtExportHistory({
 
     btHistoryHydratedRef.current = true;
     void loadBtHistoryPage(0, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appState]);
 
   useEffect(() => {

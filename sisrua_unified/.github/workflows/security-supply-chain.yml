@@ -1,0 +1,353 @@
+name: Segurança – Supply Chain (SBOM + SAST + Auditoria)
+
+# ──────────────────────────────────────────────────────────────────────────
+# Workflow de segurança da cadeia de suprimentos de software (supply chain).
+#
+# Jobs executados:
+#   1. npm-audit      – npm audit --audit-level=high  (BLOQUEADOR)
+#   2. sbom-nodejs    – Syft gera SBOM em formato CycloneDX JSON (informativo)
+#   3. python-audit   – pip-audit em py_engine/requirements.txt  (BLOQUEADOR)
+#   4. sast-semgrep   – Semgrep SAST: Python (--config auto) +
+#                       TypeScript (--config p/typescript)       (informativo)
+#   5. secret-scan    – Gitleaks para detecção de segredos         (BLOQUEADOR)
+#   6. security-gate  – Gate unificado: bloqueia em npm-audit, python-audit
+#                       e secret-scan
+#
+# Gatilhos:
+#   - Todo pull request para main, master ou dev
+#   - Agendamento semanal (toda segunda-feira às 02:00 UTC)
+#   - Dispatch manual
+#
+# Artefatos gerados:
+#   - sbom-cyclonedx-json   : SBOM da aplicação Node.js (CycloneDX JSON)
+#   - pip-audit-report      : Relatório JSON de vulnerabilidades Python
+#   - sast-semgrep-reports  : Relatórios JSON de achados SAST
+# ──────────────────────────────────────────────────────────────────────────
+
+on:
+  pull_request:
+    branches: [main, master, dev]
+
+  schedule:
+    # Toda segunda-feira às 02:00 UTC – varredura periódica de supply chain
+    - cron: "0 2 * * 1"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ====================================================================
+  # JOB 1 – AUDITORIA NPM (BLOQUEADOR)
+  # Falha se houver vulnerabilidades de severidade "critical".
+  # Vulnerabilidades sem patch publico em nivel menor ficam monitoradas
+  # por artefatos e backlog de seguranca sem travar entrega.
+  # ====================================================================
+  npm-audit:
+    name: Auditoria NPM (nível crítico)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Executar npm audit (nível crítico)
+        # Bloqueia o workflow somente em CVEs criticos
+        run: npm run security:audit
+
+  # ====================================================================
+  # JOB 2 – SBOM COM SYFT (INFORMATIVO)
+  # Gera Software Bill of Materials em formato CycloneDX JSON via Syft.
+  # Artefato retido por 30 dias para conformidade e auditoria.
+  # ====================================================================
+  sbom-nodejs:
+    name: Gerar SBOM (Syft – CycloneDX JSON)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Instalar dependências NPM
+        run: npm ci
+
+      - name: Instalar Syft (gerador de SBOM)
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+            | sh -s -- -b /usr/local/bin
+          syft version
+
+      - name: Gerar SBOM em formato CycloneDX JSON
+        run: |
+          # Analisa o diretório atual (incluindo node_modules catalogados)
+          syft . \
+            -o cyclonedx-json=sbom-nodejs.cyclonedx.json \
+            --quiet
+          echo "SBOM gerado com sucesso"
+          # Exibir contagem de componentes
+          python3 -c "
+          import json
+          with open('sbom-nodejs.cyclonedx.json') as f:
+              d = json.load(f)
+          comps = d.get('components', [])
+          print(f'Componentes catalogados no SBOM: {len(comps)}')
+          "
+
+      - name: Upload do SBOM como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx-json
+          path: sbom-nodejs.cyclonedx.json
+          # Retido por 30 dias para conformidade (ajuste conforme política)
+          retention-days: 30
+
+  # ====================================================================
+  # JOB 3 – AUDITORIA PYTHON COM pip-audit (BLOQUEADOR)
+  # Verifica vulnerabilidades em py_engine/requirements.txt.
+  # ====================================================================
+  python-audit:
+    name: Auditoria Python (pip-audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar pip-audit
+        run: pip install pip-audit
+
+      - name: Executar pip-audit em py_engine/requirements.txt
+        # Bloqueia o workflow se forem encontradas vulnerabilidades conhecidas
+        run: |
+          pip-audit \
+            --requirement py_engine/requirements.txt \
+            --format json \
+            --output pip-audit-report.json
+
+      - name: Exibir resumo do relatório pip-audit
+        # Executa mesmo se o passo anterior falhar, para mostrar detalhes
+        if: always()
+        run: |
+          if [ -f pip-audit-report.json ]; then
+            python3 -c "
+          import json, sys
+          with open('pip-audit-report.json') as f:
+              data = json.load(f)
+          deps = data.get('dependencies', [])
+          total = sum(len(d.get('vulns', [])) for d in deps)
+          print(f'=== Resumo pip-audit ===')
+          print(f'Dependencias analisadas : {len(deps)}')
+          print(f'Vulnerabilidades totais : {total}')
+          if total > 0:
+              print()
+              print('Detalhes:')
+              for dep in deps:
+                  for v in dep.get('vulns', []):
+                      desc = v.get('description', '(sem descricao)')[:120]
+                      print(f'  [{v[\"id\"]}] {dep[\"name\"]}=={dep[\"version\"]}: {desc}')
+          "
+          else
+            echo "Arquivo pip-audit-report.json nao encontrado"
+          fi
+
+      - name: Upload do relatório pip-audit
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pip-audit-report
+          path: pip-audit-report.json
+          retention-days: 30
+
+  # ====================================================================
+  # JOB 4 – SAST COM SEMGREP (INFORMATIVO)
+  # Análise estática de código:
+  #   - Python (py_engine/)  : --config auto  (regras da comunidade Semgrep)
+  #   - TypeScript (src/)    : --config p/typescript
+  #
+  # Achados NÃO bloqueiam o gate – use os artefatos para triagem.
+  # ====================================================================
+  sast-semgrep:
+    name: SAST – Semgrep (Python + TypeScript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar Semgrep
+        run: pip install semgrep
+
+      - name: SAST – Python (--config auto)
+        # continue-on-error: semgrep é informativo; achados não bloqueiam o gate
+        continue-on-error: true
+        run: |
+          semgrep \
+            --config auto \
+            py_engine/ \
+            --json \
+            --output semgrep-python.json \
+            --metrics off \
+            --quiet \
+            || true
+          echo "Semgrep Python concluido"
+
+      - name: SAST – TypeScript (--config p/typescript)
+        continue-on-error: true
+        run: |
+          semgrep \
+            --config p/typescript \
+            src/ \
+            --json \
+            --output semgrep-typescript.json \
+            --metrics off \
+            --quiet \
+            || true
+          echo "Semgrep TypeScript concluido"
+
+      - name: Exibir resumo dos achados SAST
+        if: always()
+        run: |
+          echo "=== Resumo SAST Semgrep ==="
+          for REPORT in semgrep-python.json semgrep-typescript.json; do
+            if [ -f "$REPORT" ]; then
+              COUNT=$(python3 -c "
+          import json
+          with open('$REPORT') as f:
+              d = json.load(f)
+          results = d.get('results', [])
+          print(len(results))
+          " 2>/dev/null || echo "N/A")
+              LANG=$(echo "$REPORT" | sed 's/semgrep-//;s/\.json//')
+              echo "  ${LANG}: ${COUNT} achado(s)"
+            else
+              echo "  $(echo $REPORT | sed 's/semgrep-//;s/\.json//'): relatorio nao gerado"
+            fi
+          done
+
+      - name: Upload dos relatórios SAST
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sast-semgrep-reports
+          path: |
+            semgrep-python.json
+            semgrep-typescript.json
+          retention-days: 30
+
+  # ====================================================================
+  # JOB 5 – GATE DE SEGURANÇA SUPPLY CHAIN
+  # JOB 5 – SECRET SCAN COM GITLEAKS (BLOQUEADOR)
+  # Detecta exposição acidental de segredos no histórico e no working tree.
+  # ====================================================================
+  secret-scan:
+    name: Secret Scan (Gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Executar Gitleaks
+        id: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
+
+      - name: Upload SARIF do Gitleaks
+        if: always() && hashFiles('results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+
+  # ====================================================================
+  # JOB 6 – GATE DE SEGURANÇA SUPPLY CHAIN
+  # BLOQUEADORES : npm-audit, python-audit, secret-scan
+  # INFORMATIVOS : sbom-nodejs, sast-semgrep (falha não bloqueia o gate)
+  # ====================================================================
+  security-gate:
+    name: Gate de Segurança Supply Chain
+    runs-on: ubuntu-latest
+    needs: [npm-audit, sbom-nodejs, python-audit, sast-semgrep, secret-scan]
+    if: always()
+
+    steps:
+      - name: Verificar resultados de todos os jobs de segurança
+        run: |
+          echo "=== Resultados dos Jobs de Segurança ==="
+          echo "  npm-audit     (BLOQUEADOR): ${{ needs.npm-audit.result }}"
+          echo "  python-audit  (BLOQUEADOR): ${{ needs.python-audit.result }}"
+          echo "  secret-scan   (BLOQUEADOR): ${{ needs.secret-scan.result }}"
+          echo "  sbom-nodejs   (informativo): ${{ needs.sbom-nodejs.result }}"
+          echo "  sast-semgrep  (informativo): ${{ needs.sast-semgrep.result }}"
+          echo "========================================"
+
+          FAILED=""
+
+          # Verificar jobs bloqueadores (npm-audit, python-audit e secret-scan)
+          for JOB in npm-audit python-audit secret-scan; do
+            RESULT=$(case $JOB in
+              npm-audit)    echo "${{ needs.npm-audit.result }}" ;;
+              python-audit) echo "${{ needs.python-audit.result }}" ;;
+              secret-scan)  echo "${{ needs.secret-scan.result }}" ;;
+            esac)
+            if [ "$RESULT" != "success" ] && [ "$RESULT" != "skipped" ]; then
+              FAILED="${FAILED} ${JOB}(${RESULT})"
+            fi
+          done
+
+          # Avisos informativos (não bloqueiam, mas são reportados)
+          if [ "${{ needs.sbom-nodejs.result }}" != "success" ] && \
+             [ "${{ needs.sbom-nodejs.result }}" != "skipped" ]; then
+            echo "AVISO: sbom-nodejs nao concluiu com sucesso (nao bloqueia o gate)"
+          fi
+          if [ "${{ needs.sast-semgrep.result }}" != "success" ] && \
+             [ "${{ needs.sast-semgrep.result }}" != "skipped" ]; then
+            echo "AVISO: sast-semgrep nao concluiu com sucesso (nao bloqueia o gate)"
+          fi
+
+          if [ -n "$FAILED" ]; then
+            echo ""
+            echo "FALHA: Jobs bloqueadores falharam:${FAILED}"
+            echo "Revise as vulnerabilidades reportadas antes de fazer merge."
+            exit 1
+          fi
+
+          echo ""
+          echo "Gate de segurança supply chain aprovado."
+          echo "Revise os artefatos de SBOM e SAST para achados informativos."

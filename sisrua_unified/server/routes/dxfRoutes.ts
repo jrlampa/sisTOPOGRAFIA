@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { randomUUID } from "node:crypto";
 import multer from "multer";
 import { z } from "zod";
 import { createDxfTask } from "../services/cloudTasksService.js";
@@ -14,16 +15,80 @@ import { dxfRateLimiter } from "../middleware/rateLimiter.js";
 import { metricsService } from "../services/metricsService.js";
 import { config } from "../config.js";
 import { attachCqtSnapshotToBtContext } from "../services/cqtContextService.js";
-import { parseBatchCsv, parseBatchFile } from "../services/batchService.js";
+import { parseBatchFile } from "../services/batchService.js";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 import { resolveDxfDirectory } from "../utils/dxfDirectory.js";
 import { requirePermission } from "../middleware/permissionHandler.js";
+import { validate } from "../middleware/validation.js";
+import {
+  detectSuspiciousPatterns,
+  validateGeometryComplexity,
+  validatorsExpanded,
+} from "../middleware/validation-enhanced.js";
+import {
+  validateBtTopology,
+  type TopologyInput,
+} from "../services/topologicalValidator.js";
+import {
+  getJobDossier,
+  listRecentJobs,
+  previewFailedTaskSanitation,
+  replayFailedTask,
+  sanitizeAndReprocessFailedTasks,
+} from "../services/jobDossierService.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
 const router = Router();
+
+// Servir arquivos DXF gerados (Mover para o topo)
+router.get("/downloads/:filename", (req: Request, res: Response) => {
+  const { filename } = req.params;
+
+  // Basic sanitization: block any path separators or null bytes
+  if (
+    filename.includes("/") ||
+    filename.includes("\\") ||
+    filename.includes("\0")
+  ) {
+    logger.warn("Tentativa de Path Traversal bloqueada", {
+      filename,
+      ip: req.ip,
+    });
+    return res.status(400).json({ error: "Nome de arquivo inválido" });
+  }
+
+  const dxfDirectory = resolveDxfDirectory();
+  const filePath = path.resolve(dxfDirectory, filename);
+
+  // Ensure the resolved path is still inside the dxfDirectory
+  if (!filePath.startsWith(dxfDirectory)) {
+    logger.warn("Tentativa de escape de diretório detectada", {
+      filename,
+      filePath,
+      ip: req.ip,
+    });
+    return res.status(403).json({ error: "Acesso negado" });
+  }
+
+  logger.info("Tentativa de download de DXF", { filename, filePath });
+
+  if (fs.existsSync(filePath)) {
+    // Forçar download binário
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Description", "File Transfer");
+    res.setHeader("Cache-Control", "no-cache, must-revalidate");
+    return res.sendFile(filePath);
+  } else {
+    logger.warn("Arquivo não encontrado para download", { filename, filePath });
+    return res
+      .status(404)
+      .json({ error: "Arquivo não encontrado ou expirado" });
+  }
+});
 
 // ─── Input Validation Schemas ────────────────────────────────────────────
 
@@ -90,6 +155,10 @@ const getFallbackBaseUrl = (): string => {
     return config.APP_PUBLIC_URL.replace(/\/+$/, "");
   }
 
+  if (config.isDocker && config.NODE_ENV === "development") {
+    return "http://localhost:3002";
+  }
+
   if (config.CORS_ORIGIN) {
     const firstOrigin = config.CORS_ORIGIN.split(",")
       .map((entry) => entry.trim())
@@ -131,6 +200,13 @@ const buildAllowedHosts = (): Set<string> => {
 };
 
 const ALLOWED_HOSTS = buildAllowedHosts();
+
+const failedTaskSanitationBodySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(500).optional(),
+    dryRun: z.coerce.boolean().optional(),
+  })
+  .strict();
 
 const normalizeProtocol = (value: unknown): "http" | "https" | null => {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -231,142 +307,223 @@ function extractCqtSummary(btContext: unknown): Record<string, unknown> | null {
   }
 }
 
+function buildDxfRequestSource(req: Request): {
+  endpoint: string;
+  requestId?: string;
+  source: string;
+  ip?: string;
+  userAgent?: string;
+  queuedAt: string;
+} {
+  const requestId =
+    typeof req.headers["x-request-id"] === "string"
+      ? req.headers["x-request-id"].trim()
+      : undefined;
+  const endpoint =
+    `${req.method.toUpperCase()} ${req.baseUrl || ""}${req.path || ""}`.trim();
+  const sourceHeader =
+    typeof req.headers["x-client-source"] === "string"
+      ? req.headers["x-client-source"].trim()
+      : "";
+
+  return {
+    endpoint,
+    ...(requestId ? { requestId } : {}),
+    source: sourceHeader.length > 0 ? sourceHeader : endpoint,
+    ...(typeof req.ip === "string" && req.ip.length > 0 ? { ip: req.ip } : {}),
+    ...(typeof req.headers["user-agent"] === "string"
+      ? { userAgent: req.headers["user-agent"] }
+      : {}),
+    queuedAt: new Date().toISOString(),
+  };
+}
+
 // DXF Generation Endpoint
-router.post("/", dxfRateLimiter, requirePermission("export_dxf"), async (req: Request, res: Response) => {
-  try {
-    const validation = dxfRequestSchema.safeParse(req.body);
-    if (!validation.success) {
-      logger.warn("DXF validation failed", {
-        issues: validation.error.issues,
-        ip: req.ip,
-      });
-      return res
-        .status(400)
-        .json({
+router.post(
+  "/",
+  dxfRateLimiter,
+  requirePermission("export_dxf"),
+  detectSuspiciousPatterns,
+  validateGeometryComplexity,
+  validate(validatorsExpanded.dxfRequest),
+  async (req: Request, res: Response) => {
+    try {
+      const requestSource = buildDxfRequestSource(req);
+      const validation = dxfRequestSchema.safeParse(req.body);
+      if (!validation.success) {
+        logger.warn("DXF validation failed", {
+          issues: validation.error.issues,
+          ip: req.ip,
+          requestSource,
+        });
+        return res.status(422).json({
           error: "Invalid request body",
           details: validation.error.issues,
         });
-    }
+      }
 
-    const {
-      lat,
-      lon,
-      radius,
-      mode,
-      polygon,
-      layers,
-      projection,
-      contourRenderMode,
-      btContext: validatedBtContext,
-    } = validation.data;
-    const btContext = attachCqtSnapshotToBtContext(
-      validatedBtContext ?? undefined,
-    );
-    const cqtSummary = extractCqtSummary(btContext);
-    const resolvedContourRenderMode =
-      contourRenderMode === "polyline" ? "polyline" : "spline";
-    const resolvedMode = mode || "circle";
-    const cacheKey = createCacheKey({
-      lat,
-      lon,
-      radius,
-      mode: resolvedMode,
-      contourRenderMode: resolvedContourRenderMode,
-      polygon: typeof polygon === "string" ? polygon : (polygon ?? null),
-      layers: layers ?? {},
-      btContext: btContext ?? null,
-    });
+      const {
+        lat,
+        lon,
+        radius,
+        mode,
+        polygon,
+        layers,
+        projection,
+        contourRenderMode,
+        btContext: validatedBtContext,
+        mtContext: validatedMtContext,
+      } = validation.data;
 
-    const cachedFilename = getCachedFilename(cacheKey);
-    if (cachedFilename) {
-      const dxfDirectory = resolveDxfDirectory();
-      const cachedFilePath = path.join(dxfDirectory, cachedFilename);
-      if (fs.existsSync(cachedFilePath)) {
-        const baseUrl = getBaseUrl(req);
-        const cachedUrl = `${baseUrl}/downloads/${cachedFilename}`;
-        logger.info("DXF cache hit", {
+      // ── Item 8 · Validação topológica em tempo real ─────────────────────────
+      const rawTopology = (
+        validatedBtContext as Record<string, unknown> | undefined | null
+      )?.topology as TopologyInput | undefined | null;
+      if (rawTopology && typeof rawTopology === "object") {
+        const topoResult = validateBtTopology(rawTopology);
+        if (!topoResult.valid) {
+          logger.warn("Topologia BT inválida — DXF rejeitado", {
+            errors: topoResult.errors,
+            ip: req.ip,
+          });
+          return res.status(422).json({
+            error: "Topologia BT inválida",
+            topologyErrors: topoResult.errors,
+            topologyWarnings: topoResult.warnings,
+          });
+        }
+        if (topoResult.warnings.length > 0) {
+          logger.info("Topologia BT com avisos (aceita)", {
+            warnings: topoResult.warnings,
+            ip: req.ip,
+          });
+        }
+      }
+      // ───────────────────────────────────────────────────────────────────────
+
+      const btContext = attachCqtSnapshotToBtContext(
+        validatedBtContext ?? undefined,
+      );
+      const cqtSummary = extractCqtSummary(btContext);
+      const resolvedContourRenderMode =
+        contourRenderMode === "polyline" ? "polyline" : "spline";
+      const resolvedMode = mode || "circle";
+      const cacheKey = createCacheKey({
+        lat,
+        lon,
+        radius,
+        mode: resolvedMode,
+        contourRenderMode: resolvedContourRenderMode,
+        polygon: typeof polygon === "string" ? polygon : (polygon ?? null),
+        layers: layers ?? {},
+        btContext: btContext ?? null,
+      });
+
+      const cachedFilename = getCachedFilename(cacheKey);
+      if (cachedFilename) {
+        const dxfDirectory = resolveDxfDirectory();
+        const cachedFilePath = path.join(dxfDirectory, cachedFilename);
+        if (fs.existsSync(cachedFilePath)) {
+          const baseUrl = getBaseUrl(req);
+          const cachedUrl = `${baseUrl}/api/dxf/downloads/${cachedFilename}`;
+          logger.info("DXF cache hit", {
+            cacheKey,
+            filename: cachedFilename,
+            ip: req.ip,
+          });
+          metricsService.recordDxfRequest("cache_hit");
+          return res.json({
+            status: "success",
+            message: "DXF Generated",
+            url: cachedUrl,
+            ...(cqtSummary && { cqtSummary }),
+          });
+        }
+        deleteCachedFilename(cacheKey);
+        logger.warn("DXF cache entry missing file", {
           cacheKey,
           filename: cachedFilename,
           ip: req.ip,
         });
-        metricsService.recordDxfRequest("cache_hit");
-        return res.json({
-          status: "success",
-          message: "DXF Generated",
-          url: cachedUrl,
-          ...(cqtSummary && { cqtSummary }),
-        });
+      } else {
+        logger.info("DXF cache miss", { cacheKey, ip: req.ip });
       }
-      deleteCachedFilename(cacheKey);
-      logger.warn("DXF cache entry missing file", {
+
+      const baseUrl = getBaseUrl(req);
+      const filename = `dxf_${Date.now()}_${crypto.randomUUID()}.dxf`;
+      const dxfDirectory = resolveDxfDirectory();
+      fs.mkdirSync(dxfDirectory, { recursive: true });
+      const outputFile = path.join(dxfDirectory, filename);
+      // Incluindo o prefixo da rota /api/dxf
+      const downloadUrl = `${baseUrl}/api/dxf/downloads/${filename}`;
+
+      logger.info("Queueing DXF generation", {
+        lat,
+        lon,
+        radius,
+        mode: resolvedMode,
+        projection: projection || "local",
+        contourRenderMode: resolvedContourRenderMode,
+        hasBtContext: !!btContext,
+        hasCqtSnapshot: !!(
+          btContext &&
+          typeof btContext === "object" &&
+          "cqtSnapshot" in btContext
+        ),
         cacheKey,
-        filename: cachedFilename,
+        requestSource,
+      });
+
+      const userTenantId = res.locals.tenantId;
+
+      const { taskId, alreadyCompleted } = await createDxfTask(
+        {
+          lat,
+          lon,
+          radius,
+          mode: resolvedMode,
+          polygon:
+            typeof polygon === "string"
+              ? polygon
+              : JSON.stringify(polygon || []),
+          layers: layers || {},
+          projection: projection || "local",
+          contourRenderMode: resolvedContourRenderMode,
+          btContext: btContext ?? null,
+          mtContext: validatedMtContext ?? null,
+          requestMeta: {
+            ...requestSource,
+            tenantId: userTenantId,
+          },
+          outputFile,
+          filename,
+          cacheKey,
+          downloadUrl,
+        },
+        userTenantId,
+      );
+
+      const responseStatus = alreadyCompleted ? "success" : "queued";
+      metricsService.recordDxfRequest("generated");
+      return res.status(alreadyCompleted ? 200 : 202).json({
+        status: responseStatus,
+        jobId: taskId,
+        ...(cqtSummary && { cqtSummary }),
+        ...(alreadyCompleted && {
+          url: downloadUrl,
+          message: "DXF generated immediately in development mode",
+        }),
+      });
+    } catch (err: unknown) {
+      logger.error("DXF generation error", {
+        error: err instanceof Error ? err.message : String(err),
         ip: req.ip,
       });
-    } else {
-      logger.info("DXF cache miss", { cacheKey, ip: req.ip });
+      metricsService.recordDxfRequest("failed");
+      return res.status(500).json({ error: "Generation failed" });
     }
-
-    const baseUrl = getBaseUrl(req);
-    const filename = `dxf_${Date.now()}_${crypto.randomUUID()}.dxf`;
-    const dxfDirectory = resolveDxfDirectory();
-    fs.mkdirSync(dxfDirectory, { recursive: true });
-    const outputFile = path.join(dxfDirectory, filename);
-    const downloadUrl = `${baseUrl}/downloads/${filename}`;
-
-    logger.info("Queueing DXF generation", {
-      lat,
-      lon,
-      radius,
-      mode: resolvedMode,
-      projection: projection || "local",
-      contourRenderMode: resolvedContourRenderMode,
-      hasBtContext: !!btContext,
-      hasCqtSnapshot: !!(
-        btContext &&
-        typeof btContext === "object" &&
-        "cqtSnapshot" in btContext
-      ),
-      cacheKey,
-    });
-
-    const { taskId, alreadyCompleted } = await createDxfTask({
-      lat,
-      lon,
-      radius,
-      mode: resolvedMode,
-      polygon:
-        typeof polygon === "string" ? polygon : JSON.stringify(polygon || []),
-      layers: layers || {},
-      projection: projection || "local",
-      contourRenderMode: resolvedContourRenderMode,
-      btContext: btContext ?? null,
-      outputFile,
-      filename,
-      cacheKey,
-      downloadUrl,
-    });
-
-    const responseStatus = alreadyCompleted ? "success" : "queued";
-    metricsService.recordDxfRequest("generated");
-    return res.status(alreadyCompleted ? 200 : 202).json({
-      status: responseStatus,
-      jobId: taskId,
-      ...(cqtSummary && { cqtSummary }),
-      ...(alreadyCompleted && {
-        url: downloadUrl,
-        message: "DXF generated immediately in development mode",
-      }),
-    });
-  } catch (err: unknown) {
-    logger.error("DXF generation error", {
-      error: err instanceof Error ? err.message : String(err),
-      ip: req.ip,
-    });
-    metricsService.recordDxfRequest("failed");
-    return res.status(500).json({ error: "Generation failed" });
-  }
-});
+  },
+);
 
 // Batch DXF Generation via File (CSV or Excel)
 router.post(
@@ -376,6 +533,8 @@ router.post(
   requirePermission("export_dxf"),
   async (req: Request, res: Response) => {
     try {
+      const requestSource = buildDxfRequestSource(req);
+      const userTenantId = res.locals.tenantId;
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
@@ -410,7 +569,7 @@ router.post(
         const dxfDirectory = resolveDxfDirectory();
         const outputFile = path.join(dxfDirectory, filename);
         const baseUrl = getBaseUrl(req);
-        const downloadUrl = `${baseUrl}/downloads/${filename}`;
+        const downloadUrl = `${baseUrl}/api/dxf/downloads/${filename}`;
 
         // Generate cache key for batch row (used for potential deduplication)
         const cacheKey = createCacheKey({
@@ -425,21 +584,29 @@ router.post(
         });
 
         try {
-          const { taskId } = await createDxfTask({
-            lat,
-            lon,
-            radius,
-            mode: mode || "circle",
-            polygon: "[]",
-            layers: {},
-            projection: "local",
-            contourRenderMode: "spline",
-            btContext: null,
-            outputFile,
-            filename,
-            downloadUrl,
-            cacheKey,
-          });
+          const { taskId } = await createDxfTask(
+            {
+              lat,
+              lon,
+              radius,
+              mode: mode || "circle",
+              polygon: "[]",
+              layers: {},
+              projection: "local",
+              contourRenderMode: "spline",
+              btContext: null,
+              requestMeta: {
+                ...requestSource,
+                source: `${requestSource.source}|batch:${name}`,
+                tenantId: userTenantId,
+              },
+              outputFile,
+              filename,
+              downloadUrl,
+              cacheKey,
+            },
+            userTenantId,
+          );
 
           results.push({ name, line, taskId, status: "queued" });
         } catch (err: any) {
@@ -459,6 +626,118 @@ router.post(
       logger.error("Batch DXF processing failed", { error: err.message });
       return res.status(500).json({ error: "Batch processing failed" });
     }
+  },
+);
+
+// GET /dxf/jobs/failed/sanitation-preview?limit=N — classifica failed por origem/causa
+router.get(
+  "/jobs/failed/sanitation-preview",
+  requirePermission("admin"),
+  async (req: Request, res: Response) => {
+    try {
+      const raw = Number(req.query["limit"] ?? 200);
+      const limit = Number.isFinite(raw) ? raw : 200;
+      const preview = await previewFailedTaskSanitation(limit);
+      return res.json(preview);
+    } catch (err) {
+      logger.error("Erro na prévia de saneação de tarefas com falha", {
+        error: err,
+      });
+      return res
+        .status(500)
+        .json({ error: "Falha ao gerar prévia de saneação" });
+    }
+  },
+);
+
+// POST /dxf/jobs/failed/sanitize-reprocess — saneia inválidos e reprocessa elegíveis
+router.post(
+  "/jobs/failed/sanitize-reprocess",
+  requirePermission("admin"),
+  async (req: Request, res: Response) => {
+    const parsed = failedTaskSanitationBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Payload inválido",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const limit = parsed.data.limit ?? 200;
+    const dryRun = parsed.data.dryRun ?? false;
+
+    if (dryRun) {
+      const preview = await previewFailedTaskSanitation(limit);
+      return res.json({ dryRun: true, ...preview });
+    }
+
+    const result = await sanitizeAndReprocessFailedTasks(limit);
+    return res.json(result);
+  },
+);
+
+// ─── Job Dossier — Item 3: Orquestração Confiável ────────────────────────────
+
+// GET /dxf/jobs?limit=N  — lista jobs recentes (admin ou técnico)
+router.get(
+  "/jobs",
+  requirePermission("export_dxf"),
+  async (req: Request, res: Response) => {
+    try {
+      const raw = Number(req.query["limit"] ?? 50);
+      const limit = Number.isFinite(raw) ? raw : 50;
+
+      const userTenantId = res.locals.tenantId;
+      const userRole = res.locals.userRole;
+
+      // Se não for admin, filtra pelo tenantId
+      const tenantToFilter = userRole === "admin" ? undefined : userTenantId;
+
+      const jobs = await listRecentJobs(limit, tenantToFilter);
+      return res.json({ total: jobs.length, jobs });
+    } catch (err) {
+      logger.error("Erro ao listar jobs recentes", { error: err });
+      return res.status(500).json({ error: "Falha ao listar jobs" });
+    }
+  },
+);
+
+// GET /dxf/jobs/:taskId  — dossiê completo de um job
+router.get(
+  "/jobs/:taskId",
+  requirePermission("export_dxf"),
+  async (req: Request, res: Response) => {
+    const { taskId } = req.params;
+    const dossier = await getJobDossier(taskId);
+    if (!dossier) {
+      return res.status(404).json({ error: "Tarefa não encontrada" });
+    }
+
+    // Security: IDOR protection — check if job belongs to the user's tenant
+    const userTenantId = res.locals.tenantId;
+    if (dossier.tenantId !== userTenantId && res.locals.userRole !== "admin") {
+      logger.warn("Tentativa de IDOR detectada em DXF Dossier", {
+        userId: res.locals.userId,
+        taskId,
+        dossierTenant: dossier.tenantId,
+        userTenant: userTenantId,
+      });
+      return res.status(404).json({ error: "Tarefa não encontrada" });
+    }
+
+    return res.json(dossier);
+  },
+);
+
+// POST /dxf/jobs/:taskId/replay  — replay controlado (somente admin)
+router.post(
+  "/jobs/:taskId/replay",
+  requirePermission("admin"),
+  async (req: Request, res: Response) => {
+    const { taskId } = req.params;
+    const result = await replayFailedTask(taskId);
+    const httpStatus = result.replayed ? 200 : 409;
+    return res.status(httpStatus).json(result);
   },
 );
 

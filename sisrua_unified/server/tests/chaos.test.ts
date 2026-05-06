@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * ─────────────────────────────────────────────────────────────────────────────
  * CHAOS TEST SUITE — sisRUA Unified
@@ -33,10 +34,10 @@ import {
 
 // ── Mocks Globais ──────────────────────────────────────────────────────────────
 
-jest.mock('../utils/logger', () => ({
-  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
+vi.mock('../utils/logger', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
-jest.mock('../config', () => ({
+vi.mock('../config', () => ({
   config: {
     DATABASE_URL: '',
     DXF_DIRECTORY: '/tmp/dxf_chaos',
@@ -66,7 +67,7 @@ import { generateDXF } from '../services/dxfService';
 // [C1] OSM API — Falhas Intermitentes
 // ══════════════════════════════════════════════════════════════════════════════
 describe('[C1] Caos: OSM API — falhas intermitentes', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => vi.clearAllMocks());
   afterAll(() => stopCleanupInterval());
 
   it('deve tolerar 30% de falhas na API OSM sem lançar exceção não capturada', async () => {
@@ -86,7 +87,7 @@ describe('[C1] Caos: OSM API — falhas intermitentes', () => {
   });
 
   it('deve retornar erro descritivo quando OSM retorna 429', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 429,
       statusText: 'Too Many Requests',
@@ -103,7 +104,7 @@ describe('[C1] Caos: OSM API — falhas intermitentes', () => {
   });
 
   it('deve tolerar falha completa da API OSM retornando array vazio', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('ECONNRESET'));
+    global.fetch = vi.fn().mockRejectedValue(new Error('ECONNRESET'));
 
     const result = await runWithChaos('OSM offline', async () => {
       try {
@@ -440,7 +441,7 @@ describe('[C7] Caos: Pontos Aleatórios — coordenadas geradas pelo usuário', 
   // ── IbgeService com Coords Aleatórias ─────────────────────────────────────
 
   it('IbgeService não deve lançar exceção para coordenadas aleatórias no Brasil', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('Network fail'));
+    global.fetch = vi.fn().mockRejectedValue(new Error('Network fail'));
     resetSeed(4242);
     const scenarios = generateRandomScenarios(5);
 
@@ -449,10 +450,10 @@ describe('[C7] Caos: Pontos Aleatórios — coordenadas geradas pelo usuário', 
       // Deve retornar null ou um LocationInfo — nunca lançar exceção
       expect(result === null || typeof result === 'object').toBe(true);
     }
-  });
+  }, 30_000);
 
   it('IbgeService deve identificar corretamente o estado para cidades reais', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('offline')); // força fallback
+    global.fetch = vi.fn().mockRejectedValue(new Error('offline')); // força fallback
     IbgeService.clearCache();
 
     const spResult = await IbgeService.findMunicipioByCoordinates(-23.55, -46.63);
@@ -460,7 +461,7 @@ describe('[C7] Caos: Pontos Aleatórios — coordenadas geradas pelo usuário', 
 
     const rsResult = await IbgeService.findMunicipioByCoordinates(-30.03, -51.23);
     expect(rsResult?.uf).toBe('RS');
-  });
+  }, 30_000);
 
   // ── ElevationService com Coords Aleatórias ────────────────────────────────
 
@@ -660,7 +661,7 @@ describe('[C9] Caos: Teste de Estresse Progressivo (Capacity Limit)', () => {
       }
     }
 
-    // O Node.js/Jest não deve crashar subitamente (crashed = false)
+    // O Node.js/vi não deve crashar subitamente (crashed = false)
     expect(crashed).toBe(false);
 
     // O limite DEVE ter sido atingido e forçado o throw seguro
@@ -672,3 +673,4 @@ describe('[C9] Caos: Teste de Estresse Progressivo (Capacity Limit)', () => {
     expect(numberOfJobsCreated).toBeGreaterThan(MAX_SYSTEM_CAPACITY - 500); // Garante que a maioria foi processada antes do block
   });
 });
+

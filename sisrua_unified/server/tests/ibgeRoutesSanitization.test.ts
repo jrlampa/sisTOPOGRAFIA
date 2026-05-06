@@ -1,23 +1,24 @@
+import { vi } from "vitest";
 import express from 'express';
 import request from 'supertest';
 
-const findMunicipioByCoordinatesMock = jest.fn();
-const getStatesMock = jest.fn();
-const getMunicipiosByStateMock = jest.fn();
+const findMunicipioByCoordinatesMock = vi.fn();
+const getStatesMock = vi.fn();
+const getMunicipiosByStateMock = vi.fn();
 
-jest.mock('../services/ibgeService', () => ({
+vi.mock('../services/ibgeService', () => ({
   IbgeService: {
     findMunicipioByCoordinates: findMunicipioByCoordinatesMock,
     getStates: (...args: unknown[]) => getStatesMock(...args),
     getMunicipiosByState: (...args: unknown[]) => getMunicipiosByStateMock(...args),
-    getMunicipalityBoundary: jest.fn(),
+    getMunicipalityBoundary: vi.fn(),
   },
 }));
 
 describe('ibgeRoutes error sanitization', () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it('returns generic 500 without leaking internal details on /location', async () => {
@@ -55,3 +56,4 @@ describe('ibgeRoutes error sanitization', () => {
     expect(response.body.meta.filters.search).toBe('rio');
   });
 });
+

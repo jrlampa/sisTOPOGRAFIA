@@ -1,9 +1,9 @@
 import postgres from "postgres";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { logger } from "../utils/logger.js";
-import { generateDxf } from "../pythonBridge.js";
 import {
   completeJob,
   createJob,
@@ -13,9 +13,12 @@ import {
 import { setCachedFilename } from "./cacheService.js";
 import { scheduleDxfDeletion } from "./dxfCleanupService.js";
 import { config } from "../config.js";
+import { writeProvenance } from "../utils/artifactProvenance.js";
+import { getDxfEngine, type DxfEngine } from "./dxfEngine.js";
 
 export interface DxfTaskPayload {
   taskId: string;
+  tenantId: string;
   lat: number;
   lon: number;
   radius: number;
@@ -25,6 +28,16 @@ export interface DxfTaskPayload {
   projection: string;
   contourRenderMode: "spline" | "polyline";
   btContext?: Record<string, unknown> | null;
+  mtContext?: Record<string, unknown> | null;
+  requestMeta?: {
+    endpoint?: string;
+    requestId?: string;
+    source?: string;
+    tenantId?: string; // Duplicate for meta context if needed
+    ip?: string;
+    userAgent?: string;
+    queuedAt?: string;
+  };
   outputFile: string;
   filename: string;
   cacheKey: string;
@@ -54,10 +67,62 @@ let queueInitialized = false;
 let workerStarted = false;
 let workerInterval: NodeJS.Timeout | null = null;
 let activeWorkers = 0;
+let activeDxfEngine: DxfEngine = getDxfEngine();
+
+const TOPOLOGY_ONLY_WARNING =
+  "Sem dados no servidor, DXF gerado com topologia.";
+
+function extractTopologyOnlyWarning(pythonOutput: string): string | undefined {
+  const normalizedOutput = pythonOutput.toLowerCase();
+  const hasNoOsmIndicator =
+    normalizedOutput.includes("nenhuma feição osm encontrada") ||
+    normalizedOutput.includes("nenhuma feicao osm encontrada") ||
+    normalizedOutput.includes("dxf será gerado apenas com a topologia bt") ||
+    normalizedOutput.includes("dxf sera gerado apenas com a topologia bt");
+
+  return hasNoOsmIndicator ? TOPOLOGY_ONLY_WARNING : undefined;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function validateDxfCoreInput(
+  payload: Pick<DxfTaskPayload, "lat" | "lon" | "radius">,
+): { valid: true } | { valid: false; fields: string[] } {
+  const fields: string[] = [];
+
+  if (!isFiniteNumber(payload.lat) || payload.lat < -90 || payload.lat > 90) {
+    fields.push("lat");
+  }
+  if (!isFiniteNumber(payload.lon) || payload.lon < -180 || payload.lon > 180) {
+    fields.push("lon");
+  }
+  if (!isFiniteNumber(payload.radius) || payload.radius < 10 || payload.radius > 5000) {
+    fields.push("radius");
+  }
+
+  if (fields.length > 0) {
+    return { valid: false, fields };
+  }
+
+  return { valid: true };
+}
+
+function buildPayloadSourceTag(payload: Partial<DxfTaskPayload>): string {
+  const meta = payload.requestMeta;
+  const source =
+    meta?.source?.trim() ||
+    meta?.endpoint?.trim() ||
+    "unknown_source";
+  const requestId = meta?.requestId?.trim();
+  return requestId ? `${source}#${requestId}` : source;
+}
 
 function persistBtContextSidecar(
   outputFile: string,
   btContext: Record<string, unknown> | null | undefined,
+  artifactSha256?: string,
 ): string | null {
   if (!btContext || Object.keys(btContext).length === 0) {
     return null;
@@ -68,11 +133,26 @@ function persistBtContextSidecar(
   const sidecarPath = `${base}_bt_context.json`;
   const payload = {
     generatedAt: new Date().toISOString(),
+    artifactSha256: artifactSha256 ?? null, // Roadmap #72: hash de proveniência
     btContext,
   };
 
   fs.writeFileSync(sidecarPath, JSON.stringify(payload, null, 2), "utf-8");
   return sidecarPath;
+}
+
+/**
+ * Computa SHA-256 do arquivo gerado para rastreabilidade de artefato.
+ * Roadmap Item 72: Assinatura de hash SHA-256 por artefato.
+ */
+function computeArtifactSha256(filePath: string): string | null {
+  try {
+    const buffer = fs.readFileSync(filePath);
+    return crypto.createHash("sha256").update(buffer).digest("hex");
+  } catch (err) {
+    logger.warn("Falha ao computar SHA-256 do artefato", { filePath, err });
+    return null;
+  }
 }
 
 async function initializeQueuePersistence(): Promise<void> {
@@ -140,6 +220,14 @@ async function processPayload(incomingPayload: any): Promise<void> {
       ? JSON.parse(incomingPayload)
       : incomingPayload;
 
+  const validation = validateDxfCoreInput(payload);
+  if (!validation.valid) {
+    const sourceTag = buildPayloadSourceTag(payload);
+    throw new Error(
+      `Invalid queued payload fields (${validation.fields.join(", ")}) before Python execution | source=${sourceTag}`,
+    );
+  }
+
   logger.info("[CloudTasksService] Processing payload", {
     taskId: payload.taskId,
     lat: payload.lat,
@@ -148,7 +236,7 @@ async function processPayload(incomingPayload: any): Promise<void> {
   });
   await updateJobStatus(payload.taskId, "processing", 15);
 
-  await generateDxf({
+  const pythonOutput = await activeDxfEngine.generate({
     lat: payload.lat,
     lon: payload.lon,
     radius: payload.radius,
@@ -158,12 +246,51 @@ async function processPayload(incomingPayload: any): Promise<void> {
     projection: payload.projection,
     contourRenderMode: payload.contourRenderMode,
     btContext: payload.btContext ?? null,
+    mtContext: payload.mtContext ?? null,
     outputFile: payload.outputFile,
   });
+  const warning = extractTopologyOnlyWarning(pythonOutput);
+
+  // Roadmap #72: SHA-256 do artefato DXF gerado para proveniência e integridade
+  const artifactSha256 = computeArtifactSha256(payload.outputFile);
+  if (artifactSha256) {
+    logger.info("SHA-256 do artefato DXF computado", {
+      taskId: payload.taskId,
+      sha256: artifactSha256,
+    });
+    if (postgresAvailable && sqlClient) {
+      await sqlClient
+        .unsafe(
+          `UPDATE dxf_tasks SET artifact_sha256 = $2 WHERE task_id = $1`,
+          [payload.taskId, artifactSha256],
+        )
+        .catch((err) =>
+          logger.warn("Falha ao persistir artifact_sha256", { err }),
+        );
+    }
+  }
+
+  // Roadmap #7: Proveniência Técnica dos Artefatos — sidecar .provenance.json
+  writeProvenance(payload.outputFile, {
+    taskId: payload.taskId,
+    lat: payload.lat,
+    lon: payload.lon,
+    radius: payload.radius,
+    mode: payload.mode,
+    projection: payload.projection,
+    generator: "sisTOPOGRAFIA/sisrua_unified/py_engine",
+    sha256: artifactSha256 ?? undefined,
+  }).catch((err) =>
+    logger.warn("Falha ao escrever sidecar de proveniência", {
+      taskId: payload.taskId,
+      err,
+    }),
+  );
 
   const btContextSidecarPath = persistBtContextSidecar(
     payload.outputFile,
     payload.btContext,
+    artifactSha256 ?? undefined,
   );
   const btContextUrl = btContextSidecarPath
     ? payload.downloadUrl.replace(/\.dxf$/i, "_bt_context.json")
@@ -178,7 +305,15 @@ async function processPayload(incomingPayload: any): Promise<void> {
     url: payload.downloadUrl,
     filename: payload.filename,
     btContextUrl,
+    ...(artifactSha256 ? { artifactSha256 } : {}),
+    ...(warning ? { warning } : {}),
   });
+}
+
+export function configureCloudTasksDependencies(dependencies?: {
+  dxfEngine?: DxfEngine;
+}): void {
+  activeDxfEngine = dependencies?.dxfEngine ?? getDxfEngine();
 }
 
 async function pickNextTask(): Promise<QueueRow | null> {
@@ -295,21 +430,34 @@ function startWorkerIfNeeded(): void {
   });
 }
 
-export function stopTaskWorker(): void {
+export async function stopTaskWorker(): Promise<void> {
   if (workerInterval) {
     clearInterval(workerInterval);
     workerInterval = null;
   }
   workerStarted = false;
 
+  // Roadmap Item P1.4 [T1]: Drain job queue before exit.
+  if (activeWorkers > 0) {
+    logger.info(`[Shutdown] Waiting for ${activeWorkers} active workers to finish...`);
+    // Simple polling for workers to finish (max 20 seconds of the 25s shutdown window)
+    let waitAttempts = 0;
+    while (activeWorkers > 0 && waitAttempts < 20) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      waitAttempts++;
+    }
+  }
+
   if (sqlClient) {
-    sqlClient.end({ timeout: 3 }).catch(() => undefined);
+    await sqlClient.end({ timeout: 3 }).catch(() => undefined);
     sqlClient = null;
   }
 
   activeWorkers = 0;
   postgresAvailable = false;
   queueInitialized = false;
+  activeDxfEngine = getDxfEngine();
+  logger.info("[Shutdown] DXF task worker stopped.");
 }
 
 /**
@@ -318,27 +466,65 @@ export function stopTaskWorker(): void {
  * Falls back to local async processing when DB is unavailable.
  */
 export async function createDxfTask(
-  payload: Omit<DxfTaskPayload, "taskId">,
+  payload: Omit<DxfTaskPayload, "taskId" | "tenantId">,
+  tenantId: string,
 ): Promise<TaskCreationResult> {
-  const taskId = uuidv4();
-  const fullPayload: DxfTaskPayload = {
-    taskId,
-    ...payload,
-  };
-
-  // Create the job as close as possible to queueing to avoid state races.
-  createJob(taskId);
-
   await initializeQueuePersistence();
   startWorkerIfNeeded();
 
+  // Item 71: Idempotency check — return existing non-failed task for same cacheKey
+  if (postgresAvailable && sqlClient) {
+    const existing = (await sqlClient.unsafe(
+      `SELECT task_id, status FROM dxf_tasks
+       WHERE idempotency_key = $1 AND status NOT IN ('failed')
+       LIMIT 1`,
+      [payload.cacheKey],
+    )) as Array<{ task_id: string; status: string }>;
+
+    if (existing.length > 0) {
+      const existingTaskId = existing[0].task_id;
+      logger.info("DXF task idempotency hit — returning existing task", {
+        existingTaskId,
+        status: existing[0].status,
+        cacheKey: payload.cacheKey,
+      });
+      return {
+        taskId: existingTaskId,
+        taskName: `pg-task-${existingTaskId}`,
+        alreadyCompleted: existing[0].status === "completed",
+      };
+    }
+  }
+
+  const taskId = randomUUID();
+  const validation = validateDxfCoreInput(payload as any);
+  if (!validation.valid) {
+    const sourceTag = buildPayloadSourceTag(payload);
+    logger.warn("DXF task rejected before queue (invalid core input)", {
+      fields: validation.fields,
+      source: sourceTag,
+      payloadPreview: {
+        lat: payload.lat,
+        lon: payload.lon,
+        radius: payload.radius,
+      },
+    });
+    throw new Error(
+      `Invalid DXF input fields: ${validation.fields.join(", ")} | source=${sourceTag}`,
+    );
+  }
+
+  const fullPayload: DxfTaskPayload = { taskId, tenantId, ...payload };
+
+  // Create the job as close as possible to queueing to avoid state races.
+  createJob(taskId, tenantId);
+
   if (postgresAvailable && sqlClient) {
     await sqlClient.unsafe(
-      `
-        insert into dxf_tasks (task_id, status, payload, attempts, updated_at)
-        values ($1, 'queued', $2, 0, now())
-      `,
-      [taskId, fullPayload],
+      `INSERT INTO dxf_tasks (task_id, status, payload, attempts, idempotency_key, updated_at, tenant_id)
+       VALUES ($1, 'queued', $2::jsonb, 0, $3, now(), $4)
+       ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL AND status NOT IN ('failed', 'cancelled') DO NOTHING`,
+      [taskId, JSON.stringify(fullPayload), payload.cacheKey, tenantId],
     );
 
     logger.info("DXF task queued in Supabase/Postgres", {

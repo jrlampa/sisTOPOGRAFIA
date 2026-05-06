@@ -15,11 +15,13 @@ Este documento fornece orientações para engenheiros de segurança de sistema s
 **Problema**: Scripts PowerShell podem ser bloqueados por antivírus devido ao seu uso comum em malware.
 
 **Arquivos Afetados**:
+
 - `start-dev.ps1` - Launcher de desenvolvimento
 - `scripts/verify_dxf_headless.ps1` - Verificação de DXF
 - `scripts/build_release.ps1` - Build de release
 
 **Comportamentos que Acionam Antivírus**:
+
 - Uso de `Stop-Process` para matar processos
 - Uso de `Get-NetTCPConnection` para verificar portas
 - Execução de comandos externos (`npm`, `docker`, `python`)
@@ -33,9 +35,11 @@ Este documento fornece orientações para engenheiros de segurança de sistema s
 **Problema**: O uso de `child_process.spawn()` no arquivo `pythonBridge.ts` pode ser interpretado como comportamento suspeito por alguns antivírus.
 
 **Arquivo Afetado**:
+
 - `server/pythonBridge.ts`
 
 **Comportamentos que Acionam Antivírus**:
+
 - `spawn()` para executar Python
 - Busca de arquivos `.exe` (referência a `sisrua_engine.exe`)
 - Passagem de argumentos via linha de comando
@@ -48,6 +52,7 @@ Este documento fornece orientações para engenheiros de segurança de sistema s
 **Problema**: A geração dinâmica de arquivos DXF e logs pode ser interpretada como comportamento de ransomware/malware.
 
 **Arquivos Afetados**:
+
 - Arquivos `.dxf` em `public/dxf/`
 - Arquivos de cache
 - Logs temporários
@@ -59,8 +64,9 @@ Este documento fornece orientações para engenheiros de segurança de sistema s
 **Problema**: A aplicação aceita conexões não autenticadas (configuração Cloud Run) e faz chamadas HTTP para APIs externas.
 
 **Comportamentos que Acionam Antivírus**:
+
 - Chamadas HTTP para OpenStreetMap (OSM)
-- Chamadas para API GROQ
+- Chamadas para Ollama AI local
 - Servidor web aceitando conexões não autenticadas
 - Comunicação com Redis (localhost:6379)
 
@@ -73,6 +79,7 @@ Este documento fornece orientações para engenheiros de segurança de sistema s
 ### 1. Segurança de Scripts PowerShell
 
 #### ✅ Assinatura de Execução
+
 ```powershell
 # Os scripts já incluem verificação de ExecutionPolicy
 # Em start-dev.ps1 (linha 2):
@@ -80,6 +87,7 @@ Este documento fornece orientações para engenheiros de segurança de sistema s
 ```
 
 **Recomendação para Usuários**:
+
 ```powershell
 # Permitir scripts assinados localmente
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
@@ -89,13 +97,17 @@ Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser
 ```
 
 #### ✅ Comentários Explicativos
+
 Todos os scripts PowerShell contêm:
+
 - Comentários claros sobre o propósito
 - Descrição de cada função
 - Avisos de segurança quando aplicável
 
 #### ✅ Validação de Entrada
+
 Scripts validam existência de comandos antes de executá-los:
+
 ```powershell
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
     Write-Host "❌ Node.js not found" -ForegroundColor Red
@@ -106,46 +118,59 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
 ### 2. Segurança do Python Bridge
 
 #### ✅ Validação de Paths
+
 ```typescript
 // pythonBridge.ts usa paths absolutos e validação
-const scriptPath = path.join(__dirname, '../py_engine/main.py');
+const scriptPath = path.join(__dirname, "../py_engine/main.py");
 if (!fs.existsSync(scriptPath)) {
-    reject(new Error('Python script not found'));
+  reject(new Error("Python script not found"));
 }
 ```
 
 #### ✅ Sanitização de Argumentos
+
 Todos os argumentos são convertidos para string e validados:
+
 ```typescript
 args.push(
-    '--lat', options.lat.toString(),  // Number -> String
-    '--lon', options.lon.toString(),
-    '--radius', options.radius.toString()
+  "--lat",
+  options.lat.toString(), // Number -> String
+  "--lon",
+  options.lon.toString(),
+  "--radius",
+  options.radius.toString(),
 );
 ```
 
 #### ✅ Logging de Segurança
+
 Todas as execuções são logadas com Winston:
+
 ```typescript
-logger.info('Spawning Python process for DXF generation', {
-    command,
-    args: args.join(' ')
+logger.info("Spawning Python process for DXF generation", {
+  command,
+  args: args.join(" "),
 });
 ```
 
 ### 3. Isolamento de Arquivos Gerados
 
 #### ✅ Diretórios Isolados
+
 Arquivos gerados ficam em diretórios específicos:
+
 - `public/dxf/` - Arquivos DXF gerados
 - `cache/` - Cache de requisições
 - `logs/` - Logs da aplicação
 
 #### ✅ Limpeza Automática
+
 Sistema implementa TTL (Time To Live) para arquivos temporários via cache service.
 
 #### ✅ Permissões Restritas
+
 Dockerfile usa usuário não-root:
+
 ```dockerfile
 RUN useradd -m -u 10000 appuser
 USER appuser
@@ -154,28 +179,34 @@ USER appuser
 ### 4. Segurança de Rede
 
 #### ✅ Rate Limiting
+
 Implementado via `express-rate-limit`:
+
 ```typescript
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 100 // Máximo de 100 requisições
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // Máximo de 100 requisições
 });
 ```
 
 #### ✅ CORS Configurado
+
 CORS configurado para permitir apenas origins específicas em produção.
 
 #### ✅ Validação de Input
+
 Zod schema para validação de todas as entradas:
+
 ```typescript
 const DxfRequestSchema = z.object({
-    lat: z.number().min(-90).max(90),
-    lon: z.number().min(-180).max(180),
-    radius: z.number().min(1).max(5000)
+  lat: z.number().min(-90).max(90),
+  lon: z.number().min(-180).max(180),
+  radius: z.number().min(1).max(5000),
 });
 ```
 
 #### ✅ Comunicação HTTPS
+
 Cloud Run força HTTPS em produção automaticamente.
 
 ---
@@ -187,6 +218,7 @@ Cloud Run força HTTPS em produção automaticamente.
 **Exclusões Recomendadas**:
 
 1. **Diretórios**:
+
    ```
    C:\Users\[usuario]\[caminho]\myworld\sisrua_unified\node_modules
    C:\Users\[usuario]\[caminho]\myworld\sisrua_unified\public\dxf
@@ -195,6 +227,7 @@ Cloud Run força HTTPS em produção automaticamente.
    ```
 
 2. **Processos**:
+
    ```
    node.exe
    python.exe
@@ -208,6 +241,7 @@ Cloud Run força HTTPS em produção automaticamente.
    ```
 
 **Comandos PowerShell (Executar como Administrador)**:
+
 ```powershell
 # Adicionar exclusão de diretório
 Add-MpPreference -ExclusionPath "C:\Users\[usuario]\[caminho]\myworld\sisrua_unified"
@@ -275,18 +309,21 @@ Add-MpPreference -ExclusionProcess "python.exe"
 ### Análise de Código
 
 1. **npm audit**
+
    ```bash
    npm audit
    npm audit fix
    ```
 
 2. **pip-audit** (Python)
+
    ```bash
    pip install pip-audit
    pip-audit
    ```
 
 3. **Snyk** (Multi-linguagem)
+
    ```bash
    npm install -g snyk
    snyk test
@@ -301,6 +338,7 @@ Add-MpPreference -ExclusionProcess "python.exe"
 ### Análise de Containers
 
 1. **Docker Scout**
+
    ```bash
    docker scout cves [image-name]
    ```
@@ -362,13 +400,13 @@ Add-MpPreference -ExclusionProcess "python.exe"
 
 ### KPIs (Key Performance Indicators)
 
-| Métrica | Meta | Frequência |
-|---------|------|------------|
-| Vulnerabilidades Críticas | 0 | Diária |
-| Vulnerabilidades Altas | < 5 | Semanal |
-| Dependências Desatualizadas | < 10% | Mensal |
-| Falsos Positivos de Antivírus | < 5/mês | Mensal |
-| Tempo de Resposta a Incidentes | < 4h | Por incidente |
+| Métrica                        | Meta    | Frequência    |
+| ------------------------------ | ------- | ------------- |
+| Vulnerabilidades Críticas      | 0       | Diária        |
+| Vulnerabilidades Altas         | < 5     | Semanal       |
+| Dependências Desatualizadas    | < 10%   | Mensal        |
+| Falsos Positivos de Antivírus  | < 5/mês | Mensal        |
+| Tempo de Resposta a Incidentes | < 4h    | Por incidente |
 
 ### Auditoria Regular
 
@@ -384,6 +422,7 @@ Add-MpPreference -ExclusionProcess "python.exe"
 ### Reportar Vulnerabilidade
 
 Para reportar uma vulnerabilidade de segurança:
+
 1. **NÃO** abra um issue público
 2. Envie email para: [security@sisrua.com] (a ser configurado)
 3. Inclua:
@@ -405,12 +444,12 @@ Para reportar uma vulnerabilidade de segurança:
 
 ### Resumo de Riscos
 
-| Categoria | Risco Atual | Risco com Mitigações | Status |
-|-----------|-------------|---------------------|--------|
-| Scripts PowerShell | 🟡 Médio | 🟢 Baixo | ✅ Mitigado |
-| Python Bridge | 🟡 Médio | 🟢 Baixo | ✅ Mitigado |
-| Geração de Arquivos | 🟢 Baixo | 🟢 Baixo | ✅ Seguro |
-| Comunicação de Rede | 🟢 Baixo | 🟢 Baixo | ✅ Seguro |
+| Categoria           | Risco Atual | Risco com Mitigações | Status      |
+| ------------------- | ----------- | -------------------- | ----------- |
+| Scripts PowerShell  | 🟡 Médio    | 🟢 Baixo             | ✅ Mitigado |
+| Python Bridge       | 🟡 Médio    | 🟢 Baixo             | ✅ Mitigado |
+| Geração de Arquivos | 🟢 Baixo    | 🟢 Baixo             | ✅ Seguro   |
+| Comunicação de Rede | 🟢 Baixo    | 🟢 Baixo             | ✅ Seguro   |
 
 ### Próximos Passos
 

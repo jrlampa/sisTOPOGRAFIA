@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * metricsService.test.ts
  * Tests for all Prometheus metric recording methods
@@ -5,7 +6,7 @@
 
 import { metricsService } from '../services/metricsService';
 
-jest.mock('../config', () => ({
+vi.mock('../config', () => ({
     config: { METRICS_PREFIX: 'sisrua_test' }
 }));
 
@@ -62,3 +63,4 @@ describe('metricsService', () => {
         expect(metricsService.contentType).toContain('text/plain');
     });
 });
+

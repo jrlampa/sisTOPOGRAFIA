@@ -1,5 +1,7 @@
-import { GeoLocation, TerrainGrid } from "../types";
+
 import { API_BASE_URL } from "../config/api";
+
+import { buildApiHeaders } from "./apiClient";
 
 const API_URL = API_BASE_URL;
 
@@ -19,6 +21,7 @@ type DxfJobResult = {
   url: string;
   filename?: string;
   btContextUrl?: string;
+  warning?: string;
 };
 
 type DxfJobStatus = {
@@ -160,7 +163,7 @@ export const generateDXF = async (
 
   const response = await fetch(`${API_URL}/dxf`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildApiHeaders(),
     body: JSON.stringify({
       lat,
       lon,
@@ -194,7 +197,9 @@ export const generateDXF = async (
 };
 
 export const getDxfJobStatus = async (jobId: string): Promise<DxfJobStatus> => {
-  const response = await fetch(`${API_URL}/jobs/${jobId}`);
+  const response = await fetch(`${API_URL}/jobs/${jobId}`, {
+    headers: buildApiHeaders(),
+  });
 
   const parsed = await parseApiBody(response);
 

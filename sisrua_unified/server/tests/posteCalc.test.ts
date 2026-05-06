@@ -4,7 +4,7 @@
  * Test cases derived from C:\myworld\EXCEL\LEGADO\CACUIA...xlsm Plan1 calculations
  */
 
-// describe, it, expect are provided by Jest
+// describe, it, expect are provided by vi
 import {
   calculatePosteAreas,
   calculateVentoPresn90,
@@ -206,3 +206,4 @@ describe("Mechanical Calc – CACUIA Parity", () => {
     expect(posteEscolhido?.modelo).toBe("DT 11m/600");
   });
 });
+

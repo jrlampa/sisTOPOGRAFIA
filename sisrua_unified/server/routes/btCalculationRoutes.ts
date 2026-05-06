@@ -18,6 +18,11 @@ import {
   BtRadialValidationError,
 } from "../services/btRadialCalculationService.js";
 import {
+  calculateBtMechanical,
+} from "../services/btMechanicalCalculationService.js";
+import { BtMechanicalValidationError } from "../services/bt/btMechanicalTypes.js";
+import { analyzeTelescopicPaths } from "../services/bt/btTelescopicAnalysis.js";
+import {
   getBtCatalog,
   getCatalogVersion,
 } from "../services/btCatalogService.js";
@@ -46,6 +51,9 @@ const nodeLoadSchema = z.object({
 const nodeSchema = z.object({
   id: z.string().min(1),
   load: nodeLoadSchema,
+  hasVehicleAccess: z.boolean().optional(),
+  manualDragDistanceMeters: z.number().nonnegative().optional(),
+  equipmentType: z.string().optional(),
 });
 
 const edgeSchema = z.object({
@@ -71,6 +79,35 @@ const btCalculateRequestSchema = z.object({
   temperatureC: z.number().positive().optional(),
   nominalVoltageV: z.number().positive().optional(),
   eta: z.number().positive().max(1.0).optional(),
+});
+
+// ─── Mechanical Calculation schemas ───────────────────────────────────────────
+
+const mechanicalConductorSchema = z.object({
+  conductorName: z.string().min(1),
+  quantity: z.number().nonnegative(),
+});
+
+const mechanicalNodeSchema = z.object({
+  id: z.string().min(1),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  title: z.string().optional(),
+  nominalCapacityDaN: z.number().nonnegative().optional(),
+});
+
+const mechanicalEdgeSchema = z.object({
+  id: z.string().min(1),
+  fromNodeId: z.string().min(1),
+  toNodeId: z.string().min(1),
+  conductors: z.array(mechanicalConductorSchema),
+});
+
+const btMechanicalRequestSchema = z.object({
+  nodes: z.array(mechanicalNodeSchema).min(1),
+  edges: z.array(mechanicalEdgeSchema),
+  windPressurePa: z.number().nonnegative().optional(),
+  safetyFactor: z.number().min(1).optional(),
 });
 
 // ─── Feature-flag middleware ──────────────────────────────────────────────────
@@ -245,5 +282,79 @@ router.get("/parity/scenarios", (req: Request, res: Response) => {
     }),
   });
 });
+
+/**
+ * POST /api/bt/calculate-mechanical
+ * Compute resulting mechanical forces on poles (2.5D vector summation).
+ */
+router.post(
+  "/calculate-mechanical",
+  requireBtRadialEnabled,
+  (req: Request, res: Response) => {
+    const validation = btMechanicalRequestSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Invalid request payload",
+        details: validation.error.issues.map(
+          (i) => `${i.path.join(".")}: ${i.message}`,
+        ),
+      });
+    }
+
+    try {
+      const result = calculateBtMechanical(validation.data);
+      return res.json(result);
+    } catch (err) {
+      if (err instanceof BtMechanicalValidationError) {
+        return res.status(422).json({
+          error: "Mechanical validation failed",
+          message: err.message,
+        });
+      }
+      logger.error("BT mechanical calculation error", { error: err });
+      return res.status(500).json({ error: "Internal mechanical calculation error" });
+    }
+  },
+);
+
+/**
+ * POST /api/bt/telescopic-analysis
+ * REDE NOVA Intelligence: identifica terminais com queda excessiva e
+ * sugere substituição telescópica de condutores (trafo → ponta).
+ */
+router.post(
+  "/telescopic-analysis",
+  requireBtRadialEnabled,
+  (req: Request, res: Response) => {
+    const validation = btCalculateRequestSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Payload inválido",
+        details: validation.error.issues.map(
+          (i) => `${i.path.join(".")}: ${i.message}`,
+        ),
+      });
+    }
+
+    try {
+      const radialOutput = calculateBtRadial(validation.data);
+      const telescopicOutput = analyzeTelescopicPaths(
+        validation.data,
+        radialOutput,
+      );
+      return res.json(telescopicOutput);
+    } catch (err) {
+      if (err instanceof BtRadialValidationError) {
+        return res.status(422).json({
+          error: "Falha na validação da topologia",
+          code: err.code,
+          message: err.message,
+        });
+      }
+      logger.error("Erro na análise telescópica BT", { error: err });
+      return res.status(500).json({ error: "Erro interno de cálculo" });
+    }
+  },
+);
 
 export default router;

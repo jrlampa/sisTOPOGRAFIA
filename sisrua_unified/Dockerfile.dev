@@ -1,0 +1,69 @@
+# syntax=docker/dockerfile:1.7
+# ─────────────────────────────────────────────────────────────────────────────
+# SIS RUA Unified — Dockerfile de Desenvolvimento (BuildKit Optimized)
+# ─────────────────────────────────────────────────────────────────────────────
+# O código-fonte é montado via volume em docker-compose (HMR automático).
+# Esta imagem só precisa das dependências — não copia source.
+#
+# BuildKit cache mounts: apk, pip e npm são cacheados no host entre rebuilds.
+# ─────────────────────────────────────────────────────────────────────────────
+
+ARG NODE_VERSION=22
+ARG ALPINE_VERSION=3.21
+
+FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION}
+
+WORKDIR /app
+
+# Ferramentas nativas necessárias para compilar extensões Python geoespaciais
+RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
+    apk add --update-cache \
+        python3 \
+        python3-dev \
+        py3-pip \
+        build-base \
+        gdal-dev \
+        geos-dev \
+        proj-dev \
+        curl \
+        su-exec
+
+# Usuário não-root (paridade com prod)
+RUN addgroup -g 10000 appuser && \
+    adduser -D -u 10000 -G appuser appuser
+
+# Venv Python — isolado do sistema Alpine
+RUN python3 -m venv /opt/venv
+
+# Dependências Python com cache mount (só re-instala se requirements.txt mudar)
+COPY py_engine/requirements.txt ./py_engine/requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
+    /opt/venv/bin/pip install --upgrade pip setuptools wheel && \
+    /opt/venv/bin/pip install -r ./py_engine/requirements.txt
+
+# Dependências npm com cache mount (só re-instala se package-lock.json mudar)
+COPY package*.json ./
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    npm ci --legacy-peer-deps --prefer-offline --no-audit
+
+# Diretórios de runtime (o volume montará o source em /app)
+RUN mkdir -p /app/public/dxf /app/cache /app/logs && \
+    chown -R appuser:appuser /app
+
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENV NODE_ENV=development \
+    PORT=3001 \
+    PYTHON_COMMAND=python3 \
+    DOCKER_ENV=true \
+    PATH="/opt/venv/bin:$PATH" \
+    WATCHPACK_POLLING=true \
+    SKIP_ENV_VALIDATION=true \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+EXPOSE 3000 3001
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["npm", "run", "dev"]

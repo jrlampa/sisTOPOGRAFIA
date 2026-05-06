@@ -46,6 +46,7 @@ export const DxfExportSchema = z.object({
 
 export const AppSettingsSchema = z.object({
   enableAI: z.boolean().default(true),
+  exportMemorialPdfWithDxf: z.boolean().default(false),
   simplificationLevel: z.enum(["low", "medium", "high"]).default("low"),
   orthogonalize: z.boolean().default(true),
   contourRenderMode: ContourRenderModeSchema.default("spline"),
@@ -63,6 +64,10 @@ export const AppSettingsSchema = z.object({
   btTransformerCalculationMode: z
     .enum(["automatic", "manual"])
     .default("automatic"),
+  btQtPontoCalculationMethod: z
+    .enum(["impedance_modulus", "power_factor"])
+    .default("impedance_modulus"),
+  btCqtPowerFactor: z.number().positive().max(1).default(0.92),
   clandestinoAreaM2: z.number().nonnegative().int().default(0),
 });
 

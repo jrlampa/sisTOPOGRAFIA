@@ -1,0 +1,119 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "next": "Siguiente",
+    "back": "Atrás",
+    "execute": "Ejecutar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Aviso",
+    "info": "Información"
+  },
+  "dgWizard": {
+    "title": "Asistente de Proyecto BT",
+    "steps": {
+      "DEMANDA": "Demanda",
+      "EXPANSAO": "Expansión",
+      "TECNICO": "Técnico",
+      "REVISAO": "Revisión"
+    },
+    "demanda": {
+      "title": "Carga del Cliente",
+      "description": "Defina la densidad de carga inicial.",
+      "labelClientesPorPoste": "Clientes por poste (medio)",
+      "labelDemandaMedia": "Demanda media por cliente (kVA)",
+      "adjustIndividual": "AJUSTAR POSTES INDIVIDUALMENTE ({{count}})",
+      "unitUnd": "UND",
+      "unitKva": "kVA"
+    },
+    "expansao": {
+      "title": "Ocupación y Expansión",
+      "description": "Parâmetros para áreas informales.",
+      "labelAreaClandestina": "Área Clandestina Adicional (m²)",
+      "unitM2": "m²",
+      "infoNote": "Se aplicará una carga normativa de 20W/m² en esta área, distribuida proporcionalmente entre los postes de la red."
+    },
+    "tecnico": {
+      "title": "Límites de Ingeniería",
+      "description": "Restricciones técnicas del dimensionamiento.",
+      "labelMaxSpan": "Vano Máximo (m)",
+      "labelFatorSimult": "Factor de Simultaneidad",
+      "labelTrafosPermitidos": "Transformadores Permitidos (kVA)"
+    },
+    "revisao": {
+      "title": "Resumen del Proyecto",
+      "description": "Revise antes de iniciar el procesamiento.",
+      "summaryCarga": "Carga Proyectada",
+      "summaryArea": "Área Clandestina",
+      "summaryVan": "Vano Máximo",
+      "summaryAjustes": "Ajustes Manuales",
+      "unitPostes": "POSTES",
+      "btnExecute": "EJECUTAR PROYECTO"
+    },
+    "validation": {
+      "minClientes": "Ingrese al menos 1 cliente por poste.",
+      "minDemanda": "La demanda media por cliente debe ser mayor que cero.",
+      "minTrafos": "Seleccione al menos un rango de kVA permitido."
+    }
+  },
+  "dgPanel": {
+    "title": "Diseño Generativo",
+    "addPolesNote": "Agregue al menos 1 poste para optimizar.",
+    "btnProjectWizard": "DISEÑAR RED (WIZARD)",
+    "btnOptimizeNetwork": "OPTIMIZAR RED",
+    "noSolution": "No se encontró ninguna solución viable.",
+    "candidatesEvaluated": "{{count}} candidatos evaluados",
+    "feasible": "Viables",
+    "previewActive": "Modo Preview Activo",
+    "previewInactive": "Activar Preview en Mapa",
+    "best": "Mejor",
+    "alt": "Alt. {{index}}",
+    "score": "Score DG",
+    "trafoSized": "Trafo Dimensionado",
+    "cqtMax": "CQT máx.",
+    "trafoUtilization": "Utilización trafo",
+    "cableTotal": "Cable total",
+    "discarded": "{{count}} descartados",
+    "comparisonTitle": "Comparativa Actual x Sugerida",
+    "trafoShift": "Reubicación del trafo",
+    "cableDelta": "Cable total (delta)",
+    "confirmApplication": "Confirmo aplicación consciente tras revisar la comparativa.",
+    "btnRelocateOnly": "SÓLO REUBICAR",
+    "btnNewTrafoOnly": "SÓLO NUEVO TRAFO",
+    "btnAcceptAll": "ACEPTAR TODO",
+    "activatePreviewNote": "Active el Modo Preview para habilitar la aplicación.",
+    "matrix": {
+      "scenario": "Escenario",
+      "cableTotal": "Cable (m)",
+      "cqtMax": "CQT Máx",
+      "score": "Score"
+    },
+    "progressStages": {
+      "generating": "Generando topología...",
+      "calculating": "Calculando flujos...",
+      "evaluating": "Evaluando CQT...",
+      "optimizing": "Optimizando escenarios...",
+      "finishing": "Finalizando..."
+    }
+  },
+  "dgConstraints": {
+    "MAX_SPAN_EXCEEDED": "Vano máximo excedido",
+    "INSIDE_EXCLUSION_ZONE": "Dentro de zona de exclusión",
+    "OUTSIDE_ROAD_CORRIDOR": "Fuera del corredor vial",
+    "CQT_LIMIT_EXCEEDED": "Límite CQT excedido",
+    "TRAFO_OVERLOAD": "Sobrecarga del trafo",
+    "NON_RADIAL_TOPOLOGY": "Topología no radial"
+  },
+  "dgTips": {
+    "MAX_SPAN_EXCEEDED": "Considere agregar un poste intermedio para reducir el vano.",
+    "INSIDE_EXCLUSION_ZONE": "Elimine postes de áreas restringidas ou ajuste as zonas de exclusão.",
+    "OUTSIDE_ROAD_CORRIDOR": "Alinee os postes mais próximos ao eixo da via.",
+    "CQT_LIMIT_EXCEEDED": "⚠️ Caída de tensión alta. Sugerencia: Aumente la sección del cable o reubique el transformador.",
+    "TRAFO_OVERLOAD": "La carga actual supera la capacidad del trafo. Use um trafo de maior kVA.",
+    "NON_RADIAL_TOPOLOGY": "La red debe estar conectada como un árbol (sin anillos)."
+  }
+  }
+

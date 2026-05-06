@@ -1,4 +1,5 @@
 import { logger } from './logger.js';
+import { getCircuitBreaker } from './circuitBreaker.js';
 
 interface RetryOptions {
     maxRetries?: number;
@@ -77,4 +78,28 @@ export async function fetchWithRetry(
     }
 
     throw lastError || new Error('All retries failed');
+}
+
+// ── Circuit-breaker wrapper ───────────────────────────────────────────────────
+
+/**
+ * Wraps `fetchWithRetry` with a named circuit breaker so repeated failures
+ * from a specific external source (e.g. 'TOPODATA', 'IBGE', 'INDE', 'OSM')
+ * stop hammering the upstream while the circuit is OPEN.
+ *
+ * @param sourceName  Logical name of the external source – used as CB key.
+ * @param url         Target URL (passed straight to fetchWithRetry).
+ * @param init        Optional fetch RequestInit.
+ * @param retryOpts   Optional retry options.
+ * @param fallback    Optional fallback executed when the circuit is OPEN.
+ */
+export async function fetchWithCircuitBreaker(
+    sourceName: string,
+    url: string | URL,
+    init?: RequestInit,
+    retryOpts?: RetryOptions,
+    fallback?: () => Response | Promise<Response>
+): Promise<Response> {
+    const cb = getCircuitBreaker(sourceName);
+    return cb.execute(() => fetchWithRetry(url, init, retryOpts), fallback);
 }

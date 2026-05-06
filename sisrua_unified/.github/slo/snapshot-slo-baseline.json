@@ -1,0 +1,15 @@
+{
+  "scope": "release-smoke snapshot reliability",
+  "version": 1,
+  "baseline": {
+    "materializationMsP95": 250,
+    "snapshotAvailability": 1.0,
+    "undueMissingSnapshotRate": 0.0
+  },
+  "thresholds": {
+    "maxMaterializationMsP95": 1500,
+    "minSnapshotAvailability": 0.99,
+    "maxUndueMissingSnapshotRate": 0.01
+  },
+  "notes": "Thresholds block release when snapshot latency or availability regress beyond tolerated limits."
+}

@@ -1,103 +1,91 @@
-# Node modules
+# ─── Dependências (gerenciadas dentro do container) ──────────────────────────
 node_modules
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Python
+.npm
+.venv
+venv
+ENV
 __pycache__
 *.pyc
 *.pyo
 *.pyd
-.Python
-*.so
-*.egg
-*.egg-info
-dist-python
-build-python
-.pytest_cache
-.coverage
-htmlcov
-.mypy_cache
-.dmypy.json
-dmypy.json
 
-# IDE and editors
-.vscode
-.idea
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Testing
-coverage
-.nyc_output
-test-results
-playwright-report
-
-# Build artifacts
+# ─── Artefatos de build (reconstruídos dentro do container) ──────────────────
 dist
+.next
 build
-*.tsbuildinfo
 
-# Environment files
-.env
-.env.local
-.env.*.local
-.env.development
-.env.test
-
-# Cache
-cache
-.cache
-
-# Logs
-logs
-*.log
-
-# Git
+# ─── Controle de versão ───────────────────────────────────────────────────────
 .git
 .gitignore
 .gitattributes
 
-# Documentation
-docs
-*.md
-!README.md
+# ─── Arquivos de ambiente (segurança — nunca entram na imagem) ────────────────
+.env
+.env.local
+.env.*.local
+.env.secrets
+.env.supabase
+secrets/
 
-# CI/CD
-.github
-.circleci
-.travis.yml
+# ─── Ferramentas de desenvolvimento ──────────────────────────────────────────
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
 
-# Other directories
-draft_ruas
-ruas
-ruas2
-sisrua_unified - Copia
-test_files
-
-# Runtime output / temporários
-tmp
-chaos_output.txt
+# ─── Testes e cobertura ───────────────────────────────────────────────────────
+.pytest_cache
+coverage
+.coverage
+htmlcov
+test-results
+playwright-report
 .lighthouseci
 
-# Artifacts (brain cache, RAG outputs gerados)
+# ─── Artefatos e cache ────────────────────────────────────────────────────────
+logs/*.log
+public/dxf/*.dxf
+public/dxf/*.zip
+cache/*
+!cache/.gitkeep
+tmp/*
+!tmp/.gitkeep
+_quarantine
 artifacts
+scratch
+download
 
-# Scripts de manutenção one-off (não necessários na imagem)
-apply_partitioning.py
-apply_perf_migrations.py
-check_migrations.py
-check_schema.py
-explore_schema.py
-report_performance_tuning.py
-verify_maintenance_formalized.py
-verify_perf_implementation.py
+# ─── Arquivos gerados ─────────────────────────────────────────────────────────
+*_memorial_descritivo_*.pdf
+npm-debug.log
+DB_LOG.log
+metadata.json
 
-# Temporary files
-tmp
-temp
-*.tmp
+# ─── Arquivos Docker (não copiar para dentro da imagem) ───────────────────────
+docker-compose.yml
+docker-compose.*.yml
+Dockerfile*
+.dockerignore
+
+# ─── Documentação (não necessária em runtime) ─────────────────────────────────
+*.md
+README*
+CHANGELOG*
+ARCHITECTURE*
+
+# ─── Configs de teste e CI (não necessárias no container) ────────────────────
+playwright.config.*
+vitest.*.config.*
+lighthouserc.json
+pytest.ini
+jest.config.*
+
+# NOTA: tsconfig*.json e vite.config.* NÃO são excluídos.
+# Eles são necessários para `tsc` e `vite build` no estágio node-build.
+vite-env.d.ts
+README_LOCAL.md
+.bandit
+.gitleaks.toml
+lighthouserc.json
+test-metrics.config.json

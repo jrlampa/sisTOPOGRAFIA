@@ -1,78 +1,168 @@
-name: Release - Deploy
+name: Release – Deploy
+
+# ──────────────────────────────────────────────────────────────────────────
+# Pipeline de release multi-estágio com gates de aprovação manual via
+# GitHub Environments e implantação Blue/Green no Cloud Run.
+#
+# Fluxo de promoção: dev → homolog → pre-prod → production
+#
+# Gates de aprovação:
+#   Configure "Required reviewers" em Settings > Environments para cada
+#   ambiente que deve exigir aprovação manual antes do deploy.
+#
+# Blue/Green por estágio:
+#   1. Nova revisão implantada com --no-traffic (instância azul)
+#   2. Health check via URL com tag (sem tráfego real)
+#   3. Tráfego migrado para 100% na nova revisão (verde)
+#   4. Em falha: rollback automático para a revisão anterior
+#
+# Serviços Cloud Run esperados por ambiente:
+#   dev      → sisrua-app-dev
+#   homolog  → sisrua-app-homolog
+#   pre-prod → sisrua-app-pre-prod
+#   prod     → sisrua-app
+# ──────────────────────────────────────────────────────────────────────────
 
 on:
   push:
     branches: [main, master]
+
   workflow_dispatch:
     inputs:
-      environment:
-        description: "Deployment environment"
+      target_environment:
+        description: >
+          Ambiente alvo para deploy manual
+          (somente o ambiente selecionado será implantado;
+          em push automático todos os estágios executam em sequência)
         required: true
-        default: "staging"
+        default: "production"
         type: choice
         options:
-          - staging
+          - dev
+          - homolog
+          - pre-prod
           - production
 
 env:
   GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
   GCP_REGION: southamerica-east1
+  # Nome base do serviço – sufixos são adicionados por ambiente
   SERVICE_NAME: sisrua-app
 
 jobs:
-  # ============================================
-  # PRE-DEPLOY CHECKS
-  # ============================================
+  # ====================================================================
+  # VERIFICAÇÕES PRÉ-DEPLOY
+  # ====================================================================
   pre-deploy-checks:
-    name: Pre-Deploy Verification
+    name: Verificações Pré-Deploy
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
-      - name: Checkout code
+      - name: Checkout do código
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
-      - name: Install dependencies
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependências
         run: npm ci
 
-      - name: Run all tests
-        run: npm run test:all
+      - name: Instalar dependências Python para gate de banco
+        run: pip install psycopg2-binary
+
+      - name: Validar secret DATABASE_URL para gate de banco
+        run: |
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL secret is required for pre-deploy DB checks"
+            exit 1
+          fi
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Gate de banco (drift/RLS/grants/funções críticas)
+        run: npm run ci:db:predeploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Executar testes unitários (backend + frontend)
+        run: npm run test:backend && npm run test:frontend
         env:
           NODE_ENV: test
           OFFLINE_MODE: true
 
-      - name: Security audit
+      - name: Validar Quality Gate (Cobertura e Débito Técnico)
+        run: npm run coverage:policy:strict
+        env:
+          NODE_ENV: test
+
+      - name: Instalar Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Executar smoke release crítico (contrato/auth/snapshot)
+        run: npm run test:e2e:release:smoke
+        env:
+          NODE_ENV: test
+          OFFLINE_MODE: true
+
+      - name: Analisar flakiness E2E (gate de confiabilidade)
+        run: npm run ci:e2e:flake-check
+
+      - name: Validar SLO de latência/disponibilidade de snapshot
+        run: npm run ci:e2e:snapshot-slo
+
+      - name: Validar checklist normativo executável com evidências
+        run: npm run ci:normative-checklist-gate
+
+      - name: Upload relatório de flakiness (pré-deploy)
+        uses: actions/upload-artifact@v4
+        if: ${{ always() && !env.ACT }}
+        with:
+          name: flakiness-report-pre-deploy
+          path: |
+            artifacts/ci/flakiness-report.json
+            artifacts/ci/flakiness-report.md
+            artifacts/ci/snapshot-slo-report.json
+            artifacts/ci/snapshot-slo-report.md
+            artifacts/ci/normative-checklist-report.json
+            artifacts/ci/normative-checklist-report.md
+          retention-days: 7
+
+      - name: Auditoria de segurança NPM
         run: npm run security:audit
 
-      - name: Build verification
+      - name: Verificação de build
         run: npm run build
 
-      - name: Release checklist verification
+      - name: Checklist de release
         run: |
-          echo "=== RELEASE CHECKLIST ==="
-          echo "✅ All tests passing"
-          echo "✅ Security audit clean"
-          echo "✅ Build successful"
-          echo "✅ Version updated (if needed)"
-          echo "========================"
+          echo "=== CHECKLIST DE RELEASE ==="
+          echo "Testes unitarios aprovados"
+          echo "Smoke release critico (contrato/auth/snapshot) aprovado"
+          echo "Auditoria de segurança limpa"
+          echo "Build bem-sucedido"
+          echo "Versao atualizada conforme necessario"
+          echo "=========================="
 
-  # ============================================
-  # BUILD & PUSH CONTAINER
-  # ============================================
+  # ====================================================================
+  # BUILD E PUSH DO CONTAINER
+  # ====================================================================
   build-and-push:
-    name: Build & Push Container
+    name: Build e Push do Container
     runs-on: ubuntu-latest
     needs: [pre-deploy-checks]
     timeout-minutes: 15
 
     steps:
-      - name: Checkout code
+      - name: Checkout do código
         uses: actions/checkout@v4
 
       - name: Setup Google Cloud SDK
@@ -81,91 +171,533 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT }}
           service_account_key: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Configure Docker for GCR
+      - name: Configurar Docker para GCR
         run: gcloud auth configure-docker
 
-      - name: Build container image
+      - name: Build da imagem container
         run: |
-          docker build -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
-          docker tag gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:${{ github.sha }} gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:latest
+          docker build \
+            -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            -t gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:latest \
+            .
 
-      - name: Push to Container Registry
+      - name: Push para o Container Registry
         run: |
           docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
           docker push gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:latest
 
-  # ============================================
-  # DEPLOY TO CLOUD RUN
-  # ============================================
-  deploy:
-    name: Deploy to Cloud Run
+  # ====================================================================
+  # ESTÁGIO 1 – DEPLOY DEV (Blue/Green)
+  # Gate de promoção: regras de proteção do GitHub Environment "dev"
+  # Serviço Cloud Run: sisrua-app-dev
+  # ====================================================================
+  deploy-dev:
+    name: "Deploy Blue/Green → dev"
     runs-on: ubuntu-latest
     needs: [build-and-push]
-    timeout-minutes: 10
-    environment: ${{ github.event.inputs.environment || 'staging' }}
+    timeout-minutes: 15
+    environment: dev
+    # Executa no push (pipeline completo) OU quando o alvo manual for "dev"
+    if: >-
+      github.event_name == 'push' ||
+      github.event.inputs.target_environment == 'dev'
+    env:
+      SVC: sisrua-app-dev
+      NODE_ENV_VALUE: development
 
     steps:
-      - name: Setup Google Cloud SDK
+      - name: Configurar Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT }}
           service_account_key: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Deploy to Cloud Run
+      - name: Capturar revisão ativa atual (candidata ao rollback)
+        id: revisao-atual
         run: |
-          gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --image gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
-            --region ${{ env.GCP_REGION }} \
+          # Usa latestReadyRevisionName como referência estável para rollback
+          REV=$(gcloud run services describe "${{ env.SVC }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --format 'value(status.latestReadyRevisionName)' \
+            2>/dev/null || true)
+          echo "revision=${REV}" >> "$GITHUB_OUTPUT"
+          echo "Revisao ativa em ${{ env.SVC }}: ${REV:-'(nenhuma – primeiro deploy)'}"
+
+      - name: "Blue/Green: implantar nova revisão SEM tráfego (instância azul)"
+        id: deploy-blue
+        run: |
+          # Tag usa primeiros 8 chars do SHA para ficar dentro do limite de 63 chars
+          TAG="blue-${GITHUB_SHA:0:8}"
+          gcloud run deploy "${{ env.SVC }}" \
+            --image "gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:${{ github.sha }}" \
+            --region "${{ env.GCP_REGION }}" \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=production" \
+            --no-traffic \
+            --tag "$TAG" \
+            --set-env-vars "NODE_ENV=${{ env.NODE_ENV_VALUE }}" \
             --set-env-vars "CLOUD_RUN_BASE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
             --set-env-vars "CLOUD_RUN_SERVICE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
             --set-env-vars "GCP_PROJECT=${{ secrets.GCP_PROJECT }}" \
-            --set-secrets "GROQ_API_KEY=groq-api-key:latest"
 
-      - name: Get service URL
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: "Blue/Green: health check na nova revisão (sem tráfego real)"
+        id: health-check
         run: |
-          echo "SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} --region ${{ env.GCP_REGION }} --format 'value(status.url)')" >> $GITHUB_ENV
+          TAG="${{ steps.deploy-blue.outputs.tag }}"
 
-  # ============================================
-  # SMOKE TESTS POST-DEPLOY
-  # ============================================
-  smoke-tests:
-    name: Post-Deploy Smoke Tests
+          # Buscar URL da revisão com tag (acessível mesmo sem tráfego direcionado)
+          TAGGED_URL=$(gcloud run services describe "${{ env.SVC }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --format json \
+            | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          tag = sys.argv[1]
+          for t in d.get('status', {}).get('traffic', []):
+              if t.get('tag') == tag:
+                  print(t.get('url', ''))
+                  break
+          " "$TAG" 2>/dev/null || true)
+
+          if [ -z "$TAGGED_URL" ]; then
+            echo "URL com tag nao encontrada; usando URL principal do servico"
+            TAGGED_URL=$(gcloud run services describe "${{ env.SVC }}" \
+              --region "${{ env.GCP_REGION }}" \
+              --format 'value(status.url)')
+          fi
+
+          echo "Verificando saude em: ${TAGGED_URL}/health"
+          for i in 1 2 3 4 5; do
+            if curl -sf --max-time 15 "${TAGGED_URL}/health"; then
+              echo "Health check aprovado na tentativa ${i}!"
+              exit 0
+            fi
+            echo "Tentativa ${i}/5 falhou – aguardando 15s..."
+            sleep 15
+          done
+          echo "ERRO: health check falhou apos 5 tentativas"
+          exit 1
+
+      - name: "Blue/Green: migrar 100% do tráfego para nova revisão (verde)"
+        if: success()
+        run: |
+          gcloud run services update-traffic "${{ env.SVC }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --to-tags="${{ steps.deploy-blue.outputs.tag }}=100"
+          echo "Trafego migrado com sucesso para tag '${{ steps.deploy-blue.outputs.tag }}' em ${{ env.SVC }}"
+
+      - name: "Blue/Green: rollback automático em caso de falha"
+        if: failure()
+        run: |
+          PREV="${{ steps.revisao-atual.outputs.revision }}"
+          if [ -n "$PREV" ]; then
+            echo "Iniciando rollback para revisao anterior: ${PREV}"
+            gcloud run services update-traffic "${{ env.SVC }}" \
+              --region "${{ env.GCP_REGION }}" \
+              --to-revisions="${PREV}=100"
+            echo "Rollback concluido em ${{ env.SVC }} – revisao ${PREV} atende 100% do trafego"
+          else
+            echo "Sem revisao anterior para rollback (primeiro deploy do servico)"
+          fi
+
+  # ====================================================================
+  # ESTÁGIO 2 – DEPLOY HOMOLOG (Blue/Green)
+  # Gate de promoção: regras de proteção do GitHub Environment "homolog"
+  # Serviço Cloud Run: sisrua-app-homolog
+  # ====================================================================
+  deploy-homolog:
+    name: "Deploy Blue/Green → homolog"
     runs-on: ubuntu-latest
-    needs: [deploy]
+    needs: [build-and-push, deploy-dev]
+    timeout-minutes: 15
+    environment: homolog
+    # Em push: executa após dev (success ou skipped)
+    # Em dispatch: executa apenas quando o alvo manual for "homolog"
+    if: >-
+      always() &&
+      needs.build-and-push.result == 'success' &&
+      (needs.deploy-dev.result == 'success' || needs.deploy-dev.result == 'skipped') &&
+      (github.event_name == 'push' || github.event.inputs.target_environment == 'homolog')
+    env:
+      SVC: sisrua-app-homolog
+      NODE_ENV_VALUE: staging
+
+    steps:
+      - name: Configurar Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Capturar revisão ativa atual (candidata ao rollback)
+        id: revisao-atual
+        run: |
+          REV=$(gcloud run services describe "${{ env.SVC }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --format 'value(status.latestReadyRevisionName)' \
+            2>/dev/null || true)
+          echo "revision=${REV}" >> "$GITHUB_OUTPUT"
+          echo "Revisao ativa em ${{ env.SVC }}: ${REV:-'(nenhuma – primeiro deploy)'}"
+
+      - name: "Blue/Green: implantar nova revisão SEM tráfego (instância azul)"
+        id: deploy-blue
+        run: |
+          TAG="blue-${GITHUB_SHA:0:8}"
+          gcloud run deploy "${{ env.SVC }}" \
+            --image "gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:${{ github.sha }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --no-traffic \
+            --tag "$TAG" \
+            --set-env-vars "NODE_ENV=${{ env.NODE_ENV_VALUE }}" \
+            --set-env-vars "CLOUD_RUN_BASE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
+            --set-env-vars "CLOUD_RUN_SERVICE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
+            --set-env-vars "GCP_PROJECT=${{ secrets.GCP_PROJECT }}" \
+
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: "Blue/Green: health check na nova revisão (sem tráfego real)"
+        id: health-check
+        run: |
+          TAG="${{ steps.deploy-blue.outputs.tag }}"
+          TAGGED_URL=$(gcloud run services describe "${{ env.SVC }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --format json \
+            | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          tag = sys.argv[1]
+          for t in d.get('status', {}).get('traffic', []):
+              if t.get('tag') == tag:
+                  print(t.get('url', ''))
+                  break
+          " "$TAG" 2>/dev/null || true)
+
+          if [ -z "$TAGGED_URL" ]; then
+            echo "URL com tag nao encontrada; usando URL principal do servico"
+            TAGGED_URL=$(gcloud run services describe "${{ env.SVC }}" \
+              --region "${{ env.GCP_REGION }}" \
+              --format 'value(status.url)')
+          fi
+
+          echo "Verificando saude em: ${TAGGED_URL}/health"
+          for i in 1 2 3 4 5; do
+            if curl -sf --max-time 15 "${TAGGED_URL}/health"; then
+              echo "Health check aprovado na tentativa ${i}!"
+              exit 0
+            fi
+            echo "Tentativa ${i}/5 falhou – aguardando 15s..."
+            sleep 15
+          done
+          echo "ERRO: health check falhou apos 5 tentativas"
+          exit 1
+
+      - name: "Blue/Green: migrar 100% do tráfego para nova revisão (verde)"
+        if: success()
+        run: |
+          gcloud run services update-traffic "${{ env.SVC }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --to-tags="${{ steps.deploy-blue.outputs.tag }}=100"
+          echo "Trafego migrado com sucesso para tag '${{ steps.deploy-blue.outputs.tag }}' em ${{ env.SVC }}"
+
+      - name: "Blue/Green: rollback automático em caso de falha"
+        if: failure()
+        run: |
+          PREV="${{ steps.revisao-atual.outputs.revision }}"
+          if [ -n "$PREV" ]; then
+            echo "Iniciando rollback para revisao anterior: ${PREV}"
+            gcloud run services update-traffic "${{ env.SVC }}" \
+              --region "${{ env.GCP_REGION }}" \
+              --to-revisions="${PREV}=100"
+            echo "Rollback concluido em ${{ env.SVC }} – revisao ${PREV} atende 100% do trafego"
+          else
+            echo "Sem revisao anterior para rollback (primeiro deploy do servico)"
+          fi
+
+  # ====================================================================
+  # ESTÁGIO 3 – DEPLOY PRE-PROD (Blue/Green)
+  # Gate de promoção: regras de proteção do GitHub Environment "pre-prod"
+  # Serviço Cloud Run: sisrua-app-pre-prod
+  # ====================================================================
+  deploy-pre-prod:
+    name: "Deploy Blue/Green → pre-prod"
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy-homolog]
+    timeout-minutes: 15
+    environment: pre-prod
+    # Em push: executa após homolog (success ou skipped)
+    # Em dispatch: executa apenas quando o alvo manual for "pre-prod"
+    if: >-
+      always() &&
+      needs.build-and-push.result == 'success' &&
+      (needs.deploy-homolog.result == 'success' || needs.deploy-homolog.result == 'skipped') &&
+      (github.event_name == 'push' || github.event.inputs.target_environment == 'pre-prod')
+    env:
+      SVC: sisrua-app-pre-prod
+      NODE_ENV_VALUE: staging
+
+    steps:
+      - name: Configurar Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Capturar revisão ativa atual (candidata ao rollback)
+        id: revisao-atual
+        run: |
+          REV=$(gcloud run services describe "${{ env.SVC }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --format 'value(status.latestReadyRevisionName)' \
+            2>/dev/null || true)
+          echo "revision=${REV}" >> "$GITHUB_OUTPUT"
+          echo "Revisao ativa em ${{ env.SVC }}: ${REV:-'(nenhuma – primeiro deploy)'}"
+
+      - name: "Blue/Green: implantar nova revisão SEM tráfego (instância azul)"
+        id: deploy-blue
+        run: |
+          TAG="blue-${GITHUB_SHA:0:8}"
+          gcloud run deploy "${{ env.SVC }}" \
+            --image "gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:${{ github.sha }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --no-traffic \
+            --tag "$TAG" \
+            --set-env-vars "NODE_ENV=${{ env.NODE_ENV_VALUE }}" \
+            --set-env-vars "CLOUD_RUN_BASE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
+            --set-env-vars "CLOUD_RUN_SERVICE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
+            --set-env-vars "GCP_PROJECT=${{ secrets.GCP_PROJECT }}" \
+
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: "Blue/Green: health check na nova revisão (sem tráfego real)"
+        id: health-check
+        run: |
+          TAG="${{ steps.deploy-blue.outputs.tag }}"
+          TAGGED_URL=$(gcloud run services describe "${{ env.SVC }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --format json \
+            | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          tag = sys.argv[1]
+          for t in d.get('status', {}).get('traffic', []):
+              if t.get('tag') == tag:
+                  print(t.get('url', ''))
+                  break
+          " "$TAG" 2>/dev/null || true)
+
+          if [ -z "$TAGGED_URL" ]; then
+            echo "URL com tag nao encontrada; usando URL principal do servico"
+            TAGGED_URL=$(gcloud run services describe "${{ env.SVC }}" \
+              --region "${{ env.GCP_REGION }}" \
+              --format 'value(status.url)')
+          fi
+
+          echo "Verificando saude em: ${TAGGED_URL}/health"
+          for i in 1 2 3 4 5; do
+            if curl -sf --max-time 15 "${TAGGED_URL}/health"; then
+              echo "Health check aprovado na tentativa ${i}!"
+              exit 0
+            fi
+            echo "Tentativa ${i}/5 falhou – aguardando 15s..."
+            sleep 15
+          done
+          echo "ERRO: health check falhou apos 5 tentativas"
+          exit 1
+
+      - name: "Blue/Green: migrar 100% do tráfego para nova revisão (verde)"
+        if: success()
+        run: |
+          gcloud run services update-traffic "${{ env.SVC }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --to-tags="${{ steps.deploy-blue.outputs.tag }}=100"
+          echo "Trafego migrado com sucesso para tag '${{ steps.deploy-blue.outputs.tag }}' em ${{ env.SVC }}"
+
+      - name: "Blue/Green: rollback automático em caso de falha"
+        if: failure()
+        run: |
+          PREV="${{ steps.revisao-atual.outputs.revision }}"
+          if [ -n "$PREV" ]; then
+            echo "Iniciando rollback para revisao anterior: ${PREV}"
+            gcloud run services update-traffic "${{ env.SVC }}" \
+              --region "${{ env.GCP_REGION }}" \
+              --to-revisions="${PREV}=100"
+            echo "Rollback concluido em ${{ env.SVC }} – revisao ${PREV} atende 100% do trafego"
+          else
+            echo "Sem revisao anterior para rollback (primeiro deploy do servico)"
+          fi
+
+  # ====================================================================
+  # ESTÁGIO 4 – DEPLOY PRODUCTION (Blue/Green)
+  # Gate de promoção: regras de proteção do GitHub Environment "production"
+  # Serviço Cloud Run: sisrua-app (sem sufixo – serviço de produção)
+  # ====================================================================
+  deploy-production:
+    name: "Deploy Blue/Green → production"
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy-pre-prod]
+    timeout-minutes: 15
+    environment: production
+    # Em push: executa após pre-prod (success ou skipped)
+    # Em dispatch: executa apenas quando o alvo manual for "production"
+    if: >-
+      always() &&
+      needs.build-and-push.result == 'success' &&
+      (needs.deploy-pre-prod.result == 'success' || needs.deploy-pre-prod.result == 'skipped') &&
+      (github.event_name == 'push' || github.event.inputs.target_environment == 'production')
+    env:
+      SVC: sisrua-app
+      NODE_ENV_VALUE: production
+
+    steps:
+      - name: Configurar Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Capturar revisão ativa atual (candidata ao rollback)
+        id: revisao-atual
+        run: |
+          REV=$(gcloud run services describe "${{ env.SVC }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --format 'value(status.latestReadyRevisionName)' \
+            2>/dev/null || true)
+          echo "revision=${REV}" >> "$GITHUB_OUTPUT"
+          echo "Revisao ativa em producao: ${REV:-'(nenhuma – primeiro deploy)'}"
+
+      - name: "Blue/Green: implantar nova revisão SEM tráfego (instância azul)"
+        id: deploy-blue
+        run: |
+          TAG="blue-${GITHUB_SHA:0:8}"
+          gcloud run deploy "${{ env.SVC }}" \
+            --image "gcr.io/${{ secrets.GCP_PROJECT }}/${{ env.SERVICE_NAME }}:${{ github.sha }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --no-traffic \
+            --tag "$TAG" \
+            --set-env-vars "NODE_ENV=${{ env.NODE_ENV_VALUE }}" \
+            --set-env-vars "CLOUD_RUN_BASE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
+            --set-env-vars "CLOUD_RUN_SERVICE_URL=${{ secrets.CLOUD_RUN_SERVICE_URL }}" \
+            --set-env-vars "GCP_PROJECT=${{ secrets.GCP_PROJECT }}" \
+
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: "Blue/Green: health check na nova revisão (sem tráfego real)"
+        id: health-check
+        run: |
+          TAG="${{ steps.deploy-blue.outputs.tag }}"
+          TAGGED_URL=$(gcloud run services describe "${{ env.SVC }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --format json \
+            | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          tag = sys.argv[1]
+          for t in d.get('status', {}).get('traffic', []):
+              if t.get('tag') == tag:
+                  print(t.get('url', ''))
+                  break
+          " "$TAG" 2>/dev/null || true)
+
+          if [ -z "$TAGGED_URL" ]; then
+            echo "URL com tag nao encontrada; usando URL principal do servico"
+            TAGGED_URL=$(gcloud run services describe "${{ env.SVC }}" \
+              --region "${{ env.GCP_REGION }}" \
+              --format 'value(status.url)')
+          fi
+
+          echo "Verificando saude em: ${TAGGED_URL}/health"
+          for i in 1 2 3 4 5; do
+            if curl -sf --max-time 15 "${TAGGED_URL}/health"; then
+              echo "Health check aprovado na tentativa ${i}!"
+              exit 0
+            fi
+            echo "Tentativa ${i}/5 falhou – aguardando 15s..."
+            sleep 15
+          done
+          echo "ERRO: health check falhou apos 5 tentativas"
+          exit 1
+
+      - name: "Blue/Green: migrar 100% do tráfego para nova revisão (verde)"
+        if: success()
+        run: |
+          gcloud run services update-traffic "${{ env.SVC }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --to-tags="${{ steps.deploy-blue.outputs.tag }}=100"
+          echo "Trafego migrado com sucesso para tag '${{ steps.deploy-blue.outputs.tag }}' em producao"
+
+      - name: "Blue/Green: rollback automático em caso de falha"
+        if: failure()
+        run: |
+          PREV="${{ steps.revisao-atual.outputs.revision }}"
+          if [ -n "$PREV" ]; then
+            echo "Iniciando rollback para revisao anterior: ${PREV}"
+            gcloud run services update-traffic "${{ env.SVC }}" \
+              --region "${{ env.GCP_REGION }}" \
+              --to-revisions="${PREV}=100"
+            echo "Rollback concluido em producao – revisao ${PREV} atende 100% do trafego"
+          else
+            echo "Sem revisao anterior para rollback (primeiro deploy do servico)"
+          fi
+
+  # ====================================================================
+  # SMOKE TESTS PÓS-DEPLOY (produção)
+  # ====================================================================
+  smoke-tests:
+    name: Smoke Tests Pós-Deploy (production)
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
     timeout-minutes: 10
 
     steps:
-      - name: Checkout code
+      - name: Checkout do código
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
-      - name: Install dependencies
+      - name: Instalar dependências
         run: npm ci
 
-      - name: Install Playwright
+      - name: Instalar Playwright (Chromium)
         run: npx playwright install --with-deps chromium
 
-      - name: Wait for service
-        run: |
-          echo "Waiting for service to be ready..."
-          sleep 30
-          curl -sf ${{ env.SERVICE_URL }}/health || (echo "Service not ready" && exit 1)
+      - name: Configurar Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Run smoke tests
+      - name: Obter URL do serviço de produção
+        run: |
+          URL=$(gcloud run services describe "${{ env.SERVICE_NAME }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --format 'value(status.url)')
+          echo "SERVICE_URL=${URL}" >> "$GITHUB_ENV"
+
+      - name: Aguardar serviço ficar pronto
+        run: |
+          echo "Aguardando o servico de producao ficar disponivel..."
+          sleep 30
+          curl -sf "${{ env.SERVICE_URL }}/health" || (echo "Servico nao disponivel" && exit 1)
+
+      - name: Executar smoke tests
         run: npm run test:e2e -- --grep "@smoke"
         env:
           BASE_URL: ${{ env.SERVICE_URL }}
           NODE_ENV: production
 
-      - name: Upload smoke test results
+      - name: Upload dos resultados dos smoke tests
         uses: actions/upload-artifact@v4
         if: ${{ always() && !env.ACT }}
         with:
@@ -175,9 +707,10 @@ jobs:
             test-results/
           retention-days: 7
 
-      - name: Notify success
+      - name: Notificar sucesso do deploy
         if: success()
         run: |
-          echo "🚀 Deployment successful!"
-          echo "Service URL: ${{ env.SERVICE_URL }}"
+          echo "Deploy em producao concluido com sucesso!"
+          echo "URL do servico: ${{ env.SERVICE_URL }}"
           echo "Commit: ${{ github.sha }}"
+          echo "Estágios concluídos: dev -> homolog -> pre-prod -> production"

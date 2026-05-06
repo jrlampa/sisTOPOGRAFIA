@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import express from 'express';
 import request from 'supertest';
 
@@ -8,14 +9,14 @@ const configMock = {
   CONSTANTS_REFRESH_TOKEN: 'admin-token',
 };
 
-jest.mock('../config', () => ({
+vi.mock('../config', () => ({
   config: configMock,
 }));
 
 describe('storageRoutes authorization', () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it('returns 401 in production without admin token', async () => {
@@ -42,3 +43,4 @@ describe('storageRoutes authorization', () => {
     expect(response.body.status).toBe('online');
   });
 });
+

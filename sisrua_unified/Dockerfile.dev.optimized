@@ -1,0 +1,58 @@
+# Development Dockerfile - OPTIMIZED (Alpine, no build overhead)
+FROM node:22-alpine
+WORKDIR /app
+
+# Non-root user with Alpine syntax
+RUN addgroup -g 10000 appuser && \
+    adduser -D -u 10000 -G appuser appuser
+
+# Runtime + build essentials (single install for efficiency)
+RUN apk add --no-cache \
+    python3 \
+    python3-dev \
+    py3-pip \
+    build-base \
+    curl \
+    gosu \
+    gdal-dev \
+    geos-dev \
+    proj-dev \
+    && rm -rf /var/cache/apk/*
+
+# Development environment (single source of truth for polling)
+ENV NODE_ENV=development \
+    PORT=3001 \
+    PYTHON_COMMAND=python3 \
+    DOCKER_ENV=true \
+    WATCHPACK_POLLING=true \
+    SKIP_ENV_VALIDATION=true \
+    PATH="/opt/venv/bin:$PATH"
+
+# Python dependencies with venv
+RUN python3 -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel
+
+COPY py_engine/requirements.txt ./py_engine/
+RUN /opt/venv/bin/pip install --no-cache-dir -r py_engine/requirements.txt
+
+# npm install (dev)
+COPY package*.json ./
+RUN npm ci --prefer-offline --legacy-peer-deps
+
+# Create app directories with ownership
+RUN mkdir -p /app/public/dxf /app/cache /app/logs && \
+    chown -R appuser:appuser /app
+
+# Copy entrypoint
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Expose ports
+EXPOSE 3000 3001
+
+# Health check for dev (optional but good practice)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD curl -f "http://localhost:${PORT}/health" || exit 1
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["npm", "run", "dev"]

@@ -1,17 +1,23 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
 import { generateDXF, getDxfJobStatus } from "../services/dxfService";
 import { SelectionMode, GeoLocation, LayerConfig } from "../types";
 import { validateDxfExportInputs } from "../utils/validation";
+import {
+  downloadMemorialDescritivo,
+  MemorialDownloadMetadata,
+} from "../utils/memorialDescritivo";
 
 type ContourRenderMode = "spline" | "polyline";
 
 const JOB_POLL_INTERVAL_MS = 2000;
 const MAX_JOB_POLL_ATTEMPTS = 180;
+const DXF_URL_PATTERN = /\.dxf(?:$|\?)/i;
 
 interface UseDxfExportProps {
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
+  onWarning?: (message: string) => void;
   onBtContextLoaded?: (payload: {
     btContextUrl: string;
     btContext: Record<string, unknown>;
@@ -23,12 +29,13 @@ interface BtContextPayload {
 }
 
 const btContextResponseSchema = z.object({
-  btContext: z.record(z.unknown()),
+  btContext: z.record(z.string(), z.unknown()),
 });
 
 export function useDxfExport({
   onSuccess,
   onError,
+  onWarning,
   onBtContextLoaded,
 }: UseDxfExportProps) {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -38,39 +45,66 @@ export function useDxfExport({
   const [downloadCenter, setDownloadCenter] = useState<GeoLocation | null>(
     null,
   );
+  const [queuedBtContext, setQueuedBtContext] =
+    useState<BtContextPayload | null>(null);
+  const [queuedMemorialMetadata, setQueuedMemorialMetadata] =
+    useState<MemorialDownloadMetadata | null>(null);
+  const [queuedShouldDownloadMemorial, setQueuedShouldDownloadMemorial] =
+    useState(false);
 
-  const triggerDownload = (url: string, center: GeoLocation) => {
-    const filename = `dxf_export_${center.lat.toFixed(4)}_${center.lng.toFixed(4)}.dxf`;
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
+  const triggerDownload = (url: string) => {
+    console.log("[DXF Export] Triggering download from URL:", url);
+    // Usar location.assign para disparar o download direto do browser
+    window.location.assign(url);
   };
 
-  const tryLoadBtContext = async (btContextUrl?: string) => {
-    if (!btContextUrl) {
-      return;
-    }
+  const tryLoadBtContext = useCallback(
+    async (btContextUrl?: string) => {
+      if (!btContextUrl) {
+        return null;
+      }
 
-    try {
-      const response = await fetch(btContextUrl);
-      if (!response.ok) {
+      try {
+        const response = await fetch(btContextUrl);
+        if (!response.ok) {
+          return null;
+        }
+
+        const rawPayload: unknown = await response.json();
+        const parsed = btContextResponseSchema.safeParse(rawPayload);
+        if (!parsed.success) {
+          return null;
+        }
+
+        onBtContextLoaded?.({ btContextUrl, btContext: parsed.data.btContext });
+        return parsed.data.btContext;
+      } catch {
+        // Silent fail: DXF download must not be blocked by optional BT metadata retrieval.
+        return null;
+      }
+    },
+    [onBtContextLoaded],
+  );
+
+  const tryDownloadMemorial = useCallback(
+    (
+      btContext: BtContextPayload | null | undefined,
+      metadata: MemorialDownloadMetadata | null | undefined,
+    ) => {
+      if (!btContext) {
         return;
       }
 
-      const rawPayload: unknown = await response.json();
-      const parsed = btContextResponseSchema.safeParse(rawPayload);
-      if (!parsed.success) {
-        return;
+      try {
+        downloadMemorialDescritivo(btContext, metadata ?? {});
+      } catch {
+        onWarning?.(
+          "DXF concluido, mas nao foi possivel gerar o memorial descritivo.",
+        );
       }
-
-      onBtContextLoaded?.({ btContextUrl, btContext: parsed.data.btContext });
-    } catch {
-      // Silent fail: DXF download must not be blocked by optional BT metadata retrieval.
-    }
-  };
+    },
+    [onWarning],
+  );
 
   const downloadDxf = async (
     center: GeoLocation,
@@ -80,7 +114,9 @@ export function useDxfExport({
     layers: LayerConfig,
     projection: "local" | "utm" = "utm",
     contourRenderMode: ContourRenderMode = "spline",
+    shouldDownloadMemorial = false,
     btContext?: BtContextPayload,
+    memorialMetadata?: MemorialDownloadMetadata,
   ) => {
     // Validate inputs before sending to backend
     if (
@@ -112,8 +148,23 @@ export function useDxfExport({
       }
 
       if ("url" in result && result.url) {
-        await tryLoadBtContext(result.btContextUrl);
-        triggerDownload(result.url, center);
+        if (!DXF_URL_PATTERN.test(result.url)) {
+          throw new Error(
+            "Resposta invalida do servidor: URL de download nao e DXF",
+          );
+        }
+
+        const loadedBtContext = await tryLoadBtContext(result.btContextUrl);
+        const memorialContext = loadedBtContext ?? btContext ?? null;
+        triggerDownload(result.url);
+        if (shouldDownloadMemorial) {
+          tryDownloadMemorial(memorialContext, {
+            ...memorialMetadata,
+            center,
+            radiusMeters: radius,
+            selectionMode,
+          });
+        }
         onSuccess("DXF Downloaded");
         setIsDownloading(false);
         setJobStatus("completed");
@@ -124,6 +175,14 @@ export function useDxfExport({
       if ("jobId" in result && result.jobId) {
         setDownloadCenter(center);
         setJobId(String(result.jobId));
+        setQueuedBtContext(btContext ?? null);
+        setQueuedShouldDownloadMemorial(shouldDownloadMemorial);
+        setQueuedMemorialMetadata({
+          ...memorialMetadata,
+          center,
+          radiusMeters: radius,
+          selectionMode,
+        });
         return true;
       }
 
@@ -133,6 +192,9 @@ export function useDxfExport({
         error instanceof Error ? error.message : "DXF generation failed";
       setIsDownloading(false);
       setJobStatus("failed");
+      setQueuedBtContext(null);
+      setQueuedShouldDownloadMemorial(false);
+      setQueuedMemorialMetadata(null);
       onError(`DXF Error: ${message}`);
       return false;
     }
@@ -154,6 +216,9 @@ export function useDxfExport({
         setIsDownloading(false);
         setJobStatus("failed");
         setDownloadCenter(null);
+        setQueuedBtContext(null);
+        setQueuedShouldDownloadMemorial(false);
+        setQueuedMemorialMetadata(null);
         return;
       }
 
@@ -175,12 +240,27 @@ export function useDxfExport({
           if (!url) {
             throw new Error("DXF job completed without a URL");
           }
+          if (!DXF_URL_PATTERN.test(url)) {
+            throw new Error("DXF job completed with non-DXF download URL");
+          }
 
-          const center = downloadCenter || { lat: 0, lng: 0, label: "" };
-          await tryLoadBtContext(statusResponse.result?.btContextUrl);
+          const warningMessage = statusResponse.result?.warning;
+          if (warningMessage && warningMessage.trim().length > 0) {
+            onWarning?.(warningMessage);
+          }
+
+          const loadedBtContext = await tryLoadBtContext(
+            statusResponse.result?.btContextUrl,
+          );
 
           if (!isActive) return;
-          triggerDownload(url, center);
+          triggerDownload(url);
+          if (queuedShouldDownloadMemorial) {
+            tryDownloadMemorial(
+              loadedBtContext ?? queuedBtContext,
+              queuedMemorialMetadata,
+            );
+          }
           onSuccess("DXF Downloaded");
           clearInterval(intervalId);
           setJobId(null);
@@ -188,6 +268,9 @@ export function useDxfExport({
           setJobProgress(100);
           setJobStatus("completed");
           setDownloadCenter(null);
+          setQueuedBtContext(null);
+          setQueuedShouldDownloadMemorial(false);
+          setQueuedMemorialMetadata(null);
           return;
         }
 
@@ -201,6 +284,9 @@ export function useDxfExport({
           setIsDownloading(false);
           setJobStatus("failed");
           setDownloadCenter(null);
+          setQueuedBtContext(null);
+          setQueuedShouldDownloadMemorial(false);
+          setQueuedMemorialMetadata(null);
         }
       } catch (error) {
         if (!isActive) {
@@ -214,6 +300,9 @@ export function useDxfExport({
         setIsDownloading(false);
         setJobStatus("failed");
         setDownloadCenter(null);
+        setQueuedBtContext(null);
+        setQueuedShouldDownloadMemorial(false);
+        setQueuedMemorialMetadata(null);
       }
     }, JOB_POLL_INTERVAL_MS);
 
@@ -221,7 +310,19 @@ export function useDxfExport({
       isActive = false;
       clearInterval(intervalId);
     };
-  }, [jobId, downloadCenter, onBtContextLoaded, onError, onSuccess]);
+  }, [
+    jobId,
+    downloadCenter,
+    queuedBtContext,
+    queuedShouldDownloadMemorial,
+    queuedMemorialMetadata,
+    tryLoadBtContext,
+    tryDownloadMemorial,
+    onBtContextLoaded,
+    onError,
+    onSuccess,
+    onWarning,
+  ]);
 
   return {
     downloadDxf,

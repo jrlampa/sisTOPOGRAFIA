@@ -138,7 +138,7 @@ interface CreateListQuerySchemaOptions<TSortBy extends string> {
 
 export function createListQuerySchema<
     TSortBy extends string,
-    TFilters extends z.ZodRawShape = {}
+    TFilters extends z.ZodRawShape = Record<never, never>
 >(
     options: CreateListQuerySchemaOptions<TSortBy>,
     filtersShape?: TFilters,
@@ -152,14 +152,15 @@ export function createListQuerySchema<
     } = options;
     const sortByValues = [...sortBy] as [TSortBy, ...TSortBy[]];
 
-    return z
-        .object({
-            limit: z.coerce.number().int().min(1).max(maxLimit).default(defaultLimit),
-            offset: z.coerce.number().int().min(0).default(0),
-            sortBy: z.enum(sortByValues).default(defaultSortBy),
-            sortOrder: listSortOrderSchema.default(defaultSortOrder),
-            ...(filtersShape ?? {}),
-        })
+    const base = z.object({
+        limit: z.coerce.number().int().min(1).max(maxLimit).default(defaultLimit),
+        offset: z.coerce.number().int().min(0).default(0),
+        sortBy: z.enum(sortByValues).default(defaultSortBy),
+        sortOrder: listSortOrderSchema.default(defaultSortOrder),
+    });
+
+    return base
+        .extend((filtersShape ?? {}) as TFilters)
         .strict();
 }
 

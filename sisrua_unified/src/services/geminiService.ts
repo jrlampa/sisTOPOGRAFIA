@@ -1,6 +1,7 @@
 import { GeoLocation } from '../types';
 import Logger from '../utils/logger';
 import { API_BASE_URL } from '../config/api';
+import { buildApiHeaders } from './apiClient';
 
 const API_URL = API_BASE_URL;
 
@@ -44,7 +45,7 @@ export const findLocationWithGemini = async (query: string, enableAI: boolean): 
     Logger.debug(`Searching for location: ${query}`);
     const response = await fetch(`${API_URL}/search`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildApiHeaders(),
       body: JSON.stringify({ query })
     });
     if (!response.ok) return null;
@@ -62,7 +63,7 @@ export const analyzeArea = async (stats: any, locationName: string, enableAI: bo
     Logger.debug(`Analyzing area: ${locationName}`);
     const response = await fetch(`${API_URL}/analyze`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildApiHeaders(),
       body: JSON.stringify({ stats, locationName })
     });
 

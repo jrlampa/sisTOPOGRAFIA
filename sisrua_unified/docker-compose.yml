@@ -1,75 +1,154 @@
-# SIS RUA Unified - Docker Compose for Local Development
-# Simplifies onboarding and eliminates manual setup of Python/Node
+# SIS RUA Unified - Docker Compose for Development (SECURITY HARDENED)
+# Optimizado para HMR e Segurança Máxima em ambiente local.
 #
-# Usage:
-#   docker compose up          # Start app only
-#   docker compose --profile with-redis up  # Start app + Redis (optional)
-#   docker compose up -d       # Start in background
-#   docker compose down        # Stop and remove containers
-#   docker compose logs -f app # View app logs
+# SECURITY MEASURES:
+# 1. Network: All host ports bound to 127.0.0.1 (Localhost only)
+# 2. Secrets: Using Docker Secrets pattern (_FILE) for REDIS_PASSWORD
+# 3. Resources: CPU and Memory limits enforced for all services
+# 4. Healthchecks: Automatic failure detection for app, redis, and ollama
+# 5. Versions: Pinned image tags (no :latest)
 
 services:
-  # Main Application (Frontend + Backend + Python Engine)
   app:
+    image: sisrua-unified:dev
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: sisrua-app
     ports:
-      - "8080:8080"  # Backend API and frontend
+      - "127.0.0.1:8080:3000" # Frontend (Vite) - LOCALHOST ONLY
+      - "127.0.0.1:3002:3001" # Backend API - LOCALHOST ONLY
     environment:
-      - NODE_ENV=production
-      - PORT=8080
+      - NODE_ENV=development
+      - PORT=3001
       - PYTHON_COMMAND=python3
       - DOCKER_ENV=true
-      - GROQ_API_KEY=${GROQ_API_KEY:-}
-      - GCP_PROJECT=${GCP_PROJECT:-sisrua-dev}
-      - CLOUD_TASKS_LOCATION=${CLOUD_TASKS_LOCATION:-southamerica-east1}
-      - CLOUD_TASKS_QUEUE=${CLOUD_TASKS_QUEUE:-sisrua-queue}
-      - CLOUD_RUN_BASE_URL=http://localhost:8080
+      - APP_PUBLIC_URL=http://localhost:3002
+      - CORS_ORIGIN=http://localhost:8080,http://localhost:3000,http://127.0.0.1:8080,http://127.0.0.1:3000
+      - USE_FIRESTORE=false
+      - USE_CLOUD_TASKS=false
+      - REDIS_PASSWORD_FILE=/run/secrets/redis_password
+      - OLLAMA_HOST=http://ollama:11434
+      - LLM_ENDPOINT=http://ollama:11434
+      # ── On-Premise / Hybrid deployment (Item 123) ──────────────────
+      - DEPLOYMENT_MODE=cloud  # cloud | hybrid | on-premise
+      # TILE_SERVER_URL=  # Set for local tile server in on-premise mode
+      # ── Corporate Hardening (Item 121) ─────────────────────────────
+      - HELMET_ENABLED=true
+      - CSRF_PROTECTION=true
+      - HTTP_TIMEOUT_MS=10000
+      # HTTP_PROXY=       # Set in corporate proxy environments
+      # HTTPS_PROXY=      # Set in corporate proxy environments
+      # NO_PROXY=localhost,127.0.0.1,ollama,redis
+      # NODE_TLS_MIN_VERSION=TLSv1.2
+      # NODE_EXTRA_CA_CERTS=/run/secrets/corporate_ca.pem
+      - CHOKIDAR_USEPOLLING=false
+      - WATCHPACK_POLLING=false
+    secrets:
+      - redis_password
     volumes:
-      # Persist generated DXF files
+      # Monta o código fonte para HMR (RW necessário em dev)
+      - .:/app
+      - /app/node_modules
       - dxf-output:/app/public/dxf
-      # Persist cache
       - cache-data:/app/cache
+      - logs-data:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
     restart: unless-stopped
     networks:
       - sisrua-network
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          cpus: "1.0"
+          memory: 2G
 
-  # Optional: Redis for local async job queue simulation
-  # NOTE: NOT REQUIRED for production - Google Cloud Tasks is used instead
-  # Enable with: docker-compose --profile with-redis up
   redis:
-    image: redis:7-alpine
+    image: redis:8.6-alpine
     container_name: sisrua-redis
+    command: >
+      sh -c "redis-server --requirepass $$(cat /run/secrets/redis_password) --bind 0.0.0.0"
+    secrets:
+      - redis_password
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379" # Debug only - LOCALHOST ONLY
     volumes:
       - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     restart: unless-stopped
     networks:
       - sisrua-network
-    profiles:
-      - with-redis
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli --no-auth-warning -a \"$$(cat /run/secrets/redis_password)\" ping",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  ollama:
+    image: ollama/ollama:0.22.0
+    container_name: sisrua-ollama
+    ports:
+      - "127.0.0.1:11435:11434" # Debug only - LOCALHOST ONLY
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - sisrua-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 8G
+        reservations:
+          cpus: "1.0"
+          memory: 2G
+      # Descomente abaixo se tiver GPU NVIDIA disponível no host
+      # reservations:
+      #   devices:
+      #     - driver: nvidia
+      #       count: 1
+      #       capabilities: [gpu]
+
+secrets:
+  redis_password:
+    file: ./secrets/redis_password.txt
 
 volumes:
   dxf-output:
     name: sisrua_dxf_output
   cache-data:
     name: sisrua_cache
+  logs-data:
+    name: sisrua_logs
   redis-data:
     name: sisrua_redis_data
+  ollama-data:
+    name: sisrua_ollama_data
 
 networks:
   sisrua-network:

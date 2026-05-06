@@ -5,6 +5,7 @@ import { metricsService } from './metricsService.js';
 type CacheEntry = {
     filename: string;
     expiresAt: number;
+    tags?: string[];
 };
 
 type DxfCachePayload = {
@@ -159,5 +160,49 @@ export {
     setCachedFilename,
     deleteCachedFilename,
     stopCacheCleanup,
-    clearCache
+    clearCache,
+    invalidateCacheByPattern,
+    invalidateCacheByTag,
+    tagCacheEntry,
+    onRoleChange
+};
+
+const invalidateCacheByPattern = (pattern: string | RegExp): number => {
+    const regex = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
+    let count = 0;
+    for (const key of cacheStore.keys()) {
+        if (regex.test(key)) {
+            cacheStore.delete(key);
+            metricsService.recordCacheOperation('delete');
+            count++;
+        }
+    }
+    if (count > 0) reportCacheSize();
+    return count;
+};
+
+const invalidateCacheByTag = (tag: string): number => {
+    let count = 0;
+    for (const [key, entry] of cacheStore.entries()) {
+        if (entry.tags?.includes(tag)) {
+            cacheStore.delete(key);
+            metricsService.recordCacheOperation('delete');
+            count++;
+        }
+    }
+    if (count > 0) reportCacheSize();
+    return count;
+};
+
+const tagCacheEntry = (key: string, tags: string[]): void => {
+    const entry = cacheStore.get(key);
+    if (!entry) return;
+    const existing = entry.tags ?? [];
+    entry.tags = Array.from(new Set([...existing, ...tags]));
+    cacheStore.set(key, entry);
+};
+
+const onRoleChange = (userId: string): void => {
+    invalidateCacheByTag(`user:${userId}`);
+    invalidateCacheByPattern(`user_${userId}`);
 };

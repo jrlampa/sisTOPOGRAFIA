@@ -11,7 +11,10 @@ import { DEFAULT_LOCATION } from "../constants";
 
 interface UseMapStateParams {
   appState: GlobalState;
-  setAppState: (nextState: GlobalState, commit?: boolean) => void;
+  setAppState: (
+    nextState: GlobalState | ((prev: GlobalState) => GlobalState),
+    commit?: boolean,
+  ) => void;
   clearData: () => void;
   loadElevationProfile: (start: GeoLocation, end: GeoLocation) => Promise<void>;
   clearProfile: () => void;
@@ -24,10 +27,14 @@ export function useMapState({
   loadElevationProfile,
   clearProfile,
 }: UseMapStateParams) {
-  const [toast, setToast] = useState<{
-    message: string;
-    type: ToastType;
-  } | null>(null);
+  const [toasts, setToasts] = useState<
+    Array<{
+      id: string;
+      message: string;
+      type: ToastType;
+      action?: { label: string; onClick: () => void };
+    }>
+  >([]);
   const [showSettings, setShowSettings] = useState(false);
   const [sessionDraft, setSessionDraft] = useState<GlobalState | null>(null);
   const latestAppStateRef = useRef(appState);
@@ -45,12 +52,26 @@ export function useMapState({
     }
   }, []);
 
-  const showToast = (message: string, type: ToastType) => {
-    setToast({ message, type });
+  const showToast = (
+    message: string,
+    type: ToastType,
+    action?: { label: string; onClick: () => void },
+  ) => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setToasts((prev) => {
+      // Keep max 3 toasts; drop the oldest if needed
+      const next = [...prev, { id, message, type, action }];
+      return next.length > 3 ? next.slice(next.length - 3) : next;
+    });
   };
 
-  const closeToast = () => {
-    setToast(null);
+  const closeToast = (id?: string) => {
+    if (id) {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    } else {
+      // Legacy: close all (backward compat for callers without id)
+      setToasts([]);
+    }
   };
 
   const openSettings = () => {
@@ -78,24 +99,29 @@ export function useMapState({
   };
 
   const updateSettings = (newSettings: AppSettings) => {
-    setAppState({ ...appState, settings: newSettings }, true);
+    setAppState((prev) => ({ ...prev, settings: newSettings }), true);
   };
 
   const handleMapClick = (newCenter: GeoLocation) => {
-    setAppState({ ...appState, center: newCenter }, true);
+    setAppState((prev) => ({ ...prev, center: newCenter }), true);
     clearData();
   };
 
   const handleSelectionModeChange = (mode: SelectionMode) => {
     setAppState(
-      { ...appState, selectionMode: mode, polygon: [], measurePath: [] },
+      (prev) => ({
+        ...prev,
+        selectionMode: mode,
+        polygon: [],
+        measurePath: [],
+      }),
       true,
     );
   };
 
   const handleMeasurePathChange = async (path: [number, number][]) => {
     const geoPath = path.map((point) => ({ lat: point[0], lng: point[1] }));
-    setAppState({ ...appState, measurePath: geoPath }, false);
+    setAppState((prev) => ({ ...prev, measurePath: geoPath }), false);
 
     if (geoPath.length === 2) {
       await loadElevationProfile(geoPath[0], geoPath[1]);
@@ -106,16 +132,16 @@ export function useMapState({
   };
 
   const handleRadiusChange = (nextRadius: number) => {
-    setAppState({ ...appState, radius: nextRadius }, false);
+    setAppState((prev) => ({ ...prev, radius: nextRadius }), false);
   };
 
   const handleClearPolygon = () => {
-    setAppState({ ...appState, polygon: [] }, true);
+    setAppState((prev) => ({ ...prev, polygon: [] }), true);
   };
 
   const handlePolygonChange = (points: [number, number][]) => {
     const geoPoints = points.map((point) => ({ lat: point[0], lng: point[1] }));
-    setAppState({ ...appState, polygon: geoPoints }, true);
+    setAppState((prev) => ({ ...prev, polygon: geoPoints }), true);
   };
 
   // Set center to current geolocation on mount (only when center is the default placeholder)
@@ -127,16 +153,15 @@ export function useMapState({
     if (isDefaultCenter && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const latest = latestAppStateRef.current;
           setAppState(
-            {
-              ...latest,
+            (prev) => ({
+              ...prev,
               center: {
                 lat: position.coords.latitude,
                 lng: position.coords.longitude,
                 label: "Current Location",
               },
-            },
+            }),
             false,
           );
         },
@@ -163,8 +188,10 @@ export function useMapState({
   );
 
   return {
-    toast,
+    toasts,
     closeToast,
+    /** @deprecated use toasts[] instead */
+    toast: toasts[toasts.length - 1] ?? null,
     showToast,
     showSettings,
     openSettings,

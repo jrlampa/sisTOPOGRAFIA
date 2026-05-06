@@ -1,27 +1,45 @@
-import type { AppSettings, BtCqtComputationInputs, BtNetworkScenario, BtTopology } from '../types';
+import type {
+  AppSettings,
+  BtCqtComputationInputs,
+  BtNetworkScenario,
+  BtTopology,
+} from "../types";
 import {
   calculateAccumulatedDemandByPole,
   calculateClandestinoDemandKvaByAreaAndClients,
   type BtPoleAccumulatedDemand,
-} from './btCalculations';
+} from "./btCalculations";
 import {
   CLANDESTINO_RAMAL_TYPE,
   getEdgeChangeFlag,
   getPoleChangeFlag,
   getTransformerChangeFlag,
-} from './btNormalization';
+} from "./btNormalization";
 
-const inferBranchSide = (rawLabel: string): 'ESQUERDO' | 'DIREITO' | undefined => {
-  const label = rawLabel.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-  if (label.includes('ESQ') || label.includes('ESQUER')) {
-    return 'ESQUERDO';
+const inferBranchSide = (
+  rawLabel: string,
+): "ESQUERDO" | "DIREITO" | undefined => {
+  const label = rawLabel
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
+  if (label.includes("ESQ") || label.includes("ESQUER")) {
+    return "ESQUERDO";
   }
 
-  if (label.includes('DIR') || label.includes('DIREIT')) {
-    return 'DIREITO';
+  if (label.includes("DIR") || label.includes("DIREIT")) {
+    return "DIREITO";
   }
 
   return undefined;
+};
+
+const getTransformerDemandKva = (transformer: {
+  demandKva?: number;
+  demandKw?: number;
+}): number => {
+  const rawDemand = transformer.demandKva ?? transformer.demandKw ?? 0;
+  return Number.isFinite(rawDemand) ? rawDemand : 0;
 };
 
 interface BuildBtDxfContextParams {
@@ -30,6 +48,7 @@ interface BuildBtDxfContextParams {
   btNetworkScenario: BtNetworkScenario;
   includeTopology: boolean;
   accumulatedByPole?: BtPoleAccumulatedDemand[];
+  dgResults?: Record<string, unknown>;
 }
 
 export function buildBtDxfContext({
@@ -38,17 +57,21 @@ export function buildBtDxfContext({
   btNetworkScenario,
   includeTopology,
   accumulatedByPole,
+  dgResults,
 }: BuildBtDxfContextParams) {
-  const btAccumulated = accumulatedByPole ?? calculateAccumulatedDemandByPole(
-    btTopology,
-    settings.projectType ?? 'ramais',
-    settings.clandestinoAreaM2 ?? 0
-  );
+  const btAccumulated =
+    accumulatedByPole ??
+    calculateAccumulatedDemandByPole(
+      btTopology,
+      settings.projectType ?? "ramais",
+      settings.clandestinoAreaM2 ?? 0,
+    );
 
   const totalClientsX = btTopology.poles.reduce((sum, pole) => {
     const poleClients = (pole.ramais ?? []).reduce((poleSum, ramal) => {
-      const isClandestino = (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE;
-      if ((settings.projectType ?? 'ramais') === 'clandestino') {
+      const isClandestino =
+        (ramal.ramalType ?? CLANDESTINO_RAMAL_TYPE) === CLANDESTINO_RAMAL_TYPE;
+      if ((settings.projectType ?? "ramais") === "clandestino") {
         return isClandestino ? poleSum + ramal.quantity : poleSum;
       }
 
@@ -58,18 +81,26 @@ export function buildBtDxfContext({
     return sum + poleClients;
   }, 0);
 
-  const aa24DemandBase = btTopology.transformers.reduce((sum, transformer) => sum + (transformer.demandKw ?? 0), 0);
+  const aa24DemandBase = btTopology.transformers.reduce(
+    (sum, transformer) => sum + getTransformerDemandKva(transformer),
+    0,
+  );
   const ab35LookupDmdi = calculateClandestinoDemandKvaByAreaAndClients(
     settings.clandestinoAreaM2 ?? 0,
-    totalClientsX
+    totalClientsX,
   );
 
-  const cqtScenario = btNetworkScenario === 'proj1' || btNetworkScenario === 'proj2' ? btNetworkScenario : 'atual';
-  const accumulatedByPoleMap = new Map(btAccumulated.map((item) => [item.poleId, item.accumulatedDemandKva]));
+  const cqtScenario =
+    btNetworkScenario === "proj1" || btNetworkScenario === "proj2"
+      ? btNetworkScenario
+      : "atual";
+  const accumulatedByPoleMap = new Map(
+    btAccumulated.map((item) => [item.poleId, item.accumulatedDemandKva]),
+  );
   const polesById = new Map(btTopology.poles.map((pole) => [pole.id, pole]));
 
   const cqtBranches = btTopology.edges
-    .filter((edge) => getEdgeChangeFlag(edge) !== 'remove')
+    .filter((edge) => getEdgeChangeFlag(edge) !== "remove")
     .map((edge) => {
       const conductorName = edge.conductors[0]?.conductorName;
       if (!conductorName) {
@@ -79,8 +110,8 @@ export function buildBtDxfContext({
       const fromAccumulatedKva = accumulatedByPoleMap.get(edge.fromPoleId) ?? 0;
       const toAccumulatedKva = accumulatedByPoleMap.get(edge.toPoleId) ?? 0;
       const acumuladaKva = Math.max(fromAccumulatedKva, toAccumulatedKva, 0);
-      const fromPoleTitle = polesById.get(edge.fromPoleId)?.title ?? '';
-      const toPoleTitle = polesById.get(edge.toPoleId)?.title ?? '';
+      const fromPoleTitle = polesById.get(edge.fromPoleId)?.title ?? "";
+      const toPoleTitle = polesById.get(edge.toPoleId)?.title ?? "";
       const inferredSide =
         inferBranchSide(edge.id) ??
         inferBranchSide(fromPoleTitle) ??
@@ -90,7 +121,7 @@ export function buildBtDxfContext({
         trechoId: edge.id,
         ponto: edge.toPoleId,
         lado: inferredSide,
-        fase: 'TRI' as const,
+        fase: "TRI" as const,
         acumuladaKva,
         eta: 1,
         tensaoTrifasicaV: 127,
@@ -103,14 +134,20 @@ export function buildBtDxfContext({
 
   const cqtComputationInputs: BtCqtComputationInputs = {
     scenario: cqtScenario,
+    qtPontoCalculationMethod:
+      settings.btQtPontoCalculationMethod ?? "impedance_modulus",
+    powerFactor: settings.btCqtPowerFactor ?? 0.92,
     dmdi: {
-      clandestinoEnabled: (settings.projectType ?? 'ramais') === 'clandestino',
+      clandestinoEnabled: (settings.projectType ?? "ramais") === "clandestino",
       aa24DemandBase,
       sumClientsX: totalClientsX,
       ab35LookupDmdi,
     },
     db: {
-      trAtual: btTopology.transformers.reduce((sum, transformer) => sum + (transformer.projectPowerKva ?? 0), 0),
+      trAtual: btTopology.transformers.reduce(
+        (sum, transformer) => sum + (transformer.projectPowerKva ?? 0),
+        0,
+      ),
       demAtual: aa24DemandBase,
       qtMt: 0,
     },
@@ -118,18 +155,21 @@ export function buildBtDxfContext({
   };
 
   return {
-    projectType: settings.projectType ?? 'ramais',
+    projectType: settings.projectType ?? "ramais",
     btNetworkScenario,
     clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
     totalTransformers: btTopology.transformers.length,
     totalPoles: btTopology.poles.length,
     totalEdges: btTopology.edges.length,
-    verifiedTransformers: btTopology.transformers.filter((item) => item.verified).length,
+    verifiedTransformers: btTopology.transformers.filter(
+      (item) => item.verified,
+    ).length,
     verifiedPoles: btTopology.poles.filter((item) => item.verified).length,
     verifiedEdges: btTopology.edges.filter((item) => item.verified).length,
     accumulatedByPole: btAccumulated,
     criticalPole: btAccumulated[0] ?? null,
     cqtComputationInputs,
+    dgResults,
     topology: includeTopology
       ? {
           poles: btTopology.poles.map((pole) => ({
@@ -140,21 +180,40 @@ export function buildBtDxfContext({
             nodeChangeFlag: getPoleChangeFlag(pole),
             circuitBreakPoint: pole.circuitBreakPoint ?? false,
             verified: pole.verified ?? false,
+            equipmentNotes: pole.equipmentNotes?.trim() || undefined,
+            generalNotes: pole.generalNotes?.trim() || undefined,
+            btStructures: pole.btStructures
+              ? {
+                  si1: pole.btStructures.si1?.trim() || undefined,
+                  si2: pole.btStructures.si2?.trim() || undefined,
+                  si3: pole.btStructures.si3?.trim() || undefined,
+                  si4: pole.btStructures.si4?.trim() || undefined,
+                }
+              : undefined,
+            conditionStatus: pole.conditionStatus,
+            poleSpec: pole.poleSpec
+              ? {
+                  heightM: pole.poleSpec.heightM,
+                  nominalEffortDan: pole.poleSpec.nominalEffortDan,
+                }
+              : undefined,
             ramais: (pole.ramais ?? []).map((ramal) => ({
               id: ramal.id,
               quantity: ramal.quantity,
-              ramalType: ramal.ramalType ?? '',
+              ramalType: ramal.ramalType ?? "",
+              notes: ramal.notes?.trim() || undefined,
             })),
           })),
           transformers: btTopology.transformers.map((transformer) => ({
             id: transformer.id,
-            poleId: transformer.poleId ?? '',
+            poleId: transformer.poleId ?? "",
             lat: transformer.lat,
             lng: transformer.lng,
             title: transformer.title,
             transformerChangeFlag: getTransformerChangeFlag(transformer),
             projectPowerKva: transformer.projectPowerKva ?? 0,
-            demandKw: transformer.demandKw,
+            demandKva: getTransformerDemandKva(transformer),
+            demandKw: getTransformerDemandKva(transformer),
             verified: transformer.verified ?? false,
           })),
           edges: btTopology.edges.map((edge) => ({
@@ -164,8 +223,10 @@ export function buildBtDxfContext({
             lengthMeters: edge.lengthMeters ?? 0,
             verified: edge.verified ?? false,
             edgeChangeFlag: getEdgeChangeFlag(edge),
-            removeOnExecution: getEdgeChangeFlag(edge) === 'remove',
-            replacementFromConductors: (edge.replacementFromConductors ?? []).map((conductor) => ({
+            removeOnExecution: getEdgeChangeFlag(edge) === "remove",
+            replacementFromConductors: (
+              edge.replacementFromConductors ?? []
+            ).map((conductor) => ({
               id: conductor.id,
               quantity: conductor.quantity,
               conductorName: conductor.conductorName,

@@ -1,4 +1,5 @@
 import type { AppSettings, LayerConfig } from "../types";
+import { normalizeAppLocale } from "../i18n/appLocale";
 import {
   CURRENT_STORAGE_VERSION,
   SETTINGS_STORAGE_KEY,
@@ -11,8 +12,13 @@ type FloatingLayerPanelUiState = {
   searchQuery: string;
 };
 
+type SidebarUiState = {
+  isCollapsed: boolean;
+};
+
 type PersistedUiState = {
   floatingLayerPanel?: Partial<FloatingLayerPanelUiState>;
+  sidebar?: Partial<SidebarUiState>;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -86,6 +92,18 @@ export const loadPersistedAppSettings = (
   const projectMetadata = isRecord(parsed.projectMetadata)
     ? parsed.projectMetadata
     : {};
+  const locale = normalizeAppLocale(
+    typeof parsed.locale === "string" ? parsed.locale : fallback.locale,
+  );
+  const exportMemorialPdfWithDxf =
+    typeof parsed.exportMemorialPdfWithDxf === "boolean"
+      ? parsed.exportMemorialPdfWithDxf
+      : fallback.exportMemorialPdfWithDxf;
+  const uiDensity = 
+    parsed.uiDensity === "compact" || parsed.uiDensity === "comfortable"
+      ? parsed.uiDensity
+      : fallback.uiDensity;
+
   const mergedLayers = {
     ...fallback.layers,
     ...layers,
@@ -94,6 +112,9 @@ export const loadPersistedAppSettings = (
   return {
     ...fallback,
     ...parsed,
+    exportMemorialPdfWithDxf,
+    uiDensity,
+    locale,
     layers: mergedLayers,
     projectMetadata: {
       ...fallback.projectMetadata,
@@ -127,6 +148,28 @@ export const persistFloatingLayerPanelUiState = (
   const nextState: PersistedUiState = {
     ...(parsed && isRecord(parsed) ? parsed : {}),
     floatingLayerPanel: state,
+  };
+
+  writeJson(UI_STATE_STORAGE_KEY, nextState);
+};
+
+export const loadSidebarUiState = (): SidebarUiState => {
+  const parsed = readJson<PersistedUiState>(UI_STATE_STORAGE_KEY);
+  const sidebarState = parsed?.sidebar;
+
+  return {
+    isCollapsed:
+      typeof sidebarState?.isCollapsed === "boolean"
+        ? sidebarState.isCollapsed
+        : false,
+  };
+};
+
+export const persistSidebarUiState = (state: SidebarUiState): void => {
+  const parsed = readJson<PersistedUiState>(UI_STATE_STORAGE_KEY);
+  const nextState: PersistedUiState = {
+    ...(parsed && isRecord(parsed) ? parsed : {}),
+    sidebar: state,
   };
 
   writeJson(UI_STATE_STORAGE_KEY, nextState);

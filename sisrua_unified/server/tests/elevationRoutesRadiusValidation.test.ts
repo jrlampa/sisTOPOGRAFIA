@@ -1,26 +1,27 @@
+import { vi } from "vitest";
 import express from 'express';
 import request from 'supertest';
 
-jest.mock('../services/elevationService', () => ({
+vi.mock('../services/elevationService', () => ({
   ElevationService: {
-    getElevationAt: jest.fn(),
-    getElevationProfile: jest.fn(),
+    getElevationAt: vi.fn(),
+    getElevationProfile: vi.fn(),
   },
 }));
 
-jest.mock('../services/topodataService', () => ({
+vi.mock('../services/topodataService', () => ({
   TopodataService: {
-    isWithinBrazil: jest.fn(() => true),
-    getCacheStats: jest.fn(() => ({ hits: 0, misses: 0 })),
-    clearCache: jest.fn(),
-    getElevation: jest.fn(),
+    isWithinBrazil: vi.fn(() => true),
+    getCacheStats: vi.fn(() => ({ hits: 0, misses: 0 })),
+    clearCache: vi.fn(),
+    getElevation: vi.fn(),
   },
 }));
 
 describe('elevationRoutes stats radius validation', () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it('returns 400 for out-of-range radius on /stats', async () => {
@@ -36,3 +37,4 @@ describe('elevationRoutes stats radius validation', () => {
     expect(response.body.error).toContain('Invalid radius');
   });
 });
+

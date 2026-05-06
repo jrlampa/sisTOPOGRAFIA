@@ -1,0 +1,25 @@
+Schema for 'dxf_tasks' table:
+  id                        integer                   Nullable: NO
+  task_id                   text                      Nullable: NO
+  status                    text                      Nullable: NO
+  payload                   jsonb                     Nullable: NO
+  attempts                  integer                   Nullable: NO
+  created_at                timestamp with time zone  Nullable: NO
+  updated_at                timestamp with time zone  Nullable: NO
+  started_at                timestamp with time zone  Nullable: YES
+  finished_at               timestamp with time zone  Nullable: YES
+  error                     text                      Nullable: YES
+  deleted_at                timestamp with time zone  Nullable: YES
+  idempotency_key           text                      Nullable: YES
+  artifact_sha256           text                      Nullable: YES
+  tenant_id                 uuid                      Nullable: YES
+
+Indexes for 'dxf_tasks' table:
+  dxf_tasks_pkey            CREATE UNIQUE INDEX dxf_tasks_pkey ON public.dxf_tasks USING btree (id)
+  dxf_tasks_task_id_key     CREATE UNIQUE INDEX dxf_tasks_task_id_key ON public.dxf_tasks USING btree (task_id)
+  idx_dxf_tasks_status      CREATE INDEX idx_dxf_tasks_status ON public.dxf_tasks USING btree (status, created_at)
+  idx_dxf_tasks_active      CREATE INDEX idx_dxf_tasks_active ON public.dxf_tasks USING btree (status, created_at DESC) WHERE (deleted_at IS NULL)
+  idx_dxf_tasks_status_created_active CREATE INDEX idx_dxf_tasks_status_created_active ON public.dxf_tasks USING btree (status, created_at DESC) WHERE (deleted_at IS NULL)
+  idx_brin_dxf_tasks_created_at CREATE INDEX idx_brin_dxf_tasks_created_at ON public.dxf_tasks USING brin (created_at) WITH (pages_per_range='32')
+  uq_dxf_tasks_idempotency_key CREATE UNIQUE INDEX uq_dxf_tasks_idempotency_key ON public.dxf_tasks USING btree (idempotency_key) WHERE ((idempotency_key IS NOT NULL) AND (status <> ALL (ARRAY['failed'::text, 'cancelled'::text])))
+  idx_dxf_tasks_tenant_id   CREATE INDEX idx_dxf_tasks_tenant_id ON public.dxf_tasks USING btree (tenant_id)

@@ -3,6 +3,7 @@
 ## Pre-Release Verification
 
 ### 1. Quality Gates (Automated - CI/CD)
+
 - [ ] Backend tests passing (npm run test:backend)
 - [ ] Frontend tests passing (npm run test:frontend)
 - [ ] E2E smoke tests passing (npm run test:e2e -- --grep "@smoke")
@@ -12,6 +13,7 @@
 - [ ] Build successful (npm run build)
 
 ### 2. Manual Verification
+
 - [ ] Version updated in package.json (se necessário)
 - [ ] CHANGELOG.md atualizado com mudanças
 - [ ] Variáveis de ambiente verificadas:
@@ -19,9 +21,19 @@
   - [ ] CLOUD_TASKS_OIDC_AUDIENCE
   - [ ] CORS_ORIGINS
   - [ ] GCP_PROJECT
-  - [ ] GROQ_API_KEY (secret configurado)
+  - [ ] Secrets do GCP configurados (DATABASE_URL, ADMIN_TOKEN)
+
+### 2.1 D+7 - Gate Final GO Parcial (Evidência Única)
+
+- [ ] Artefato único D+7 atualizado: `.github/d7-go-parcial-evidence.json`
+- [ ] Decisão final preenchida (`GO_PARCIAL` ou `NO_GO`)
+- [ ] Links de execução preenchidos (quality gate + release + checklist normativo)
+- [ ] Resultados de testes críticos preenchidos (backend, frontend, e2eSmoke, snapshotSlo)
+- [ ] Risco residual preenchido com status e mitigação
+- [ ] Assinaturas dos owners preenchidas (Tech Lead, QA, DevOps)
 
 ### 3. Security Review
+
 - [ ] CORS restrito em produção (não aceita `*`)
 - [ ] Trust proxy habilitado
 - [ ] Rate limiting ativo
@@ -29,6 +41,7 @@
 - [ ] Sem secrets hardcoded no código
 
 ### 4. Infrastructure
+
 - [ ] Cloud Tasks queue existe
 - [ ] Firestore habilitado
 - [ ] Service Account com permissões corretas:
@@ -37,6 +50,7 @@
 - [ ] Container Registry acessível
 
 ### 5. Post-Deploy Verification
+
 - [ ] Health check retorna 200 (`/health`)
 - [ ] Endpoint de tasks retorna 401 sem token (OIDC funcionando)
 - [ ] CORS bloqueia origens não autorizadas
@@ -46,11 +60,11 @@
 
 ## Approval Signatures
 
-| Role | Name | Date | Signature |
-|------|------|------|-----------|
-| Tech Lead | | | |
-| QA | | | |
-| DevOps | | | |
+| Role      | Name | Date | Signature |
+| --------- | ---- | ---- | --------- |
+| Tech Lead |      |      |           |
+| QA        |      |      |           |
+| DevOps    |      |      |           |
 
 ## Release Notes Template
 
@@ -58,20 +72,28 @@
 ## [Versão] - YYYY-MM-DD
 
 ### Added
+
 - Feature X
 - Feature Y
 
 ### Changed
+
 - Improvement Z
 
 ### Fixed
+
 - Bug W
 
 ### Security
+
 - Security enhancement V
 ```
 
 ## Rollback Procedure
+
+Runbook consolidado por cenarios criticos:
+
+- `docs/runbooks/CRITICAL_ROLLBACK_SCENARIOS.md`
 
 1. Identificar versão anterior estável no Container Registry
 2. Executar deploy com imagem anterior:

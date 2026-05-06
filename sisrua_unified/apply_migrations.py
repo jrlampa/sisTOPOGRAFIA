@@ -125,7 +125,7 @@ try:
         try:
             cur.execute(sql)
             cur.execute(
-                "INSERT INTO _migrations (filename) VALUES (%s)",
+                "INSERT INTO _migrations (filename) VALUES (%s) ON CONFLICT (filename) DO NOTHING",
                 (migration_file.name,),
             )
             conn.commit()

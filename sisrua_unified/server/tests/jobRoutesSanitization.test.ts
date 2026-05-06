@@ -1,20 +1,31 @@
+import { vi } from "vitest";
 import express from 'express';
 import request from 'supertest';
 
-const getJobMock = jest.fn();
+// Mock permissionHandler to bypass authorization
+vi.mock('../middleware/permissionHandler', () => ({
+  requirePermission: () => (req: any, res: any, next: any) => {
+      res.locals.userId = 'test-user';
+      res.locals.userRole = 'admin';
+      res.locals.tenantId = 'test-tenant';
+      next();
+  },
+}));
 
-jest.mock('../services/jobStatusService', () => ({
-  getJob: getJobMock,
+const getJobWithPersistenceMock = vi.fn();
+
+vi.mock('../services/jobStatusService', () => ({
+  getJobWithPersistence: getJobWithPersistenceMock,
 }));
 
 describe('jobRoutes error sanitization', () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it('returns generic 500 without details leakage on job lookup failure', async () => {
-    getJobMock.mockImplementationOnce(() => {
+    getJobWithPersistenceMock.mockImplementationOnce(() => {
       throw new Error('database host 172.20.0.3 refused connection');
     });
 

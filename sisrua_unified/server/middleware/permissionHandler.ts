@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { logger } from "../utils/logger.js";
 import { createError } from "../errorHandler.js";
+import { config } from "../config.js";
 import { getUserRole, type UserRole } from "../services/roleService.js";
 
 export type Permission =
@@ -9,43 +10,82 @@ export type Permission =
   | "delete"
   | "admin"
   | "export_dxf"
-  | "bt_calculate";
+  | "bt_calculate"
+  | "read_dg"
+  | "write_dg";
 
 /**
  * Permission matrix: Role -> Permissions
  * Define quais permissões cada papel tem
  */
 const permissionsMatrix: Record<UserRole, Permission[]> = {
-  admin: ["read", "write", "delete", "admin", "export_dxf", "bt_calculate"],
-  technician: ["read", "write", "export_dxf", "bt_calculate"],
-  viewer: ["read"],
+  admin: [
+    "read",
+    "write",
+    "delete",
+    "admin",
+    "export_dxf",
+    "bt_calculate",
+    "read_dg",
+    "write_dg",
+  ],
+  technician: [
+    "read",
+    "write",
+    "export_dxf",
+    "bt_calculate",
+    "read_dg",
+    "write_dg",
+  ],
+  viewer: ["read", "read_dg"],
   guest: [],
 };
 
 /**
  * Middleware para controle de permissões granular (RBAC).
- * Recupera papel do usuário do banco de dados e valida permissão contra matriz.
- *
- * Fluxo:
- * 1. Extrair userId de headers/locals
- * 2. Consultar roleService para obter papel do usuário (com cache)
- * 3. Resolver permissões baseadas no papel
- * 4. Validar permissão solicitada
- * 5. Log de sucesso/falha
  */
 export const requirePermission = (requiredPermission: Permission) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const userId = (req.headers["x-user-id"] as string) || res.locals.userId;
+    const localUserId =
+      typeof res.locals.userId === "string" ? res.locals.userId.trim() : "";
+    const headerUserId =
+      typeof req.headers["x-user-id"] === "string"
+        ? req.headers["x-user-id"].trim()
+        : "";
+    const canTrustHeaderIdentity = config.NODE_ENV !== "production";
+    const userId =
+      localUserId || (canTrustHeaderIdentity ? headerUserId : "") || undefined;
     const requestId = res.locals.requestId;
 
-    try {
-      // Recuperar papel do usuário de fonte confiável (banco de dados com cache)
-      const userRole = await getUserRole(userId);
+    if (localUserId && headerUserId && localUserId !== headerUserId) {
+      logger.warn("User identity mismatch between trusted context and header", {
+        requestId,
+        path: req.path,
+        localUserId,
+        headerUserId,
+      });
+    }
 
-      // Resolver permissões para este papel
+    if (!localUserId && headerUserId && !canTrustHeaderIdentity) {
+      logger.warn("Ignoring client-provided x-user-id in production", {
+        requestId,
+        path: req.path,
+        headerUserId,
+      });
+    }
+
+    try {
+      const userContext = await getUserRole(userId);
+      const userRole = userContext.role;
+      const tenantId = userContext.tenantId;
+
+      // Propaga o tenantId para os repositórios através do res.locals
+      res.locals.userId = userId;
+      res.locals.userRole = userRole;
+      res.locals.tenantId = tenantId;
+
       const userPermissions = permissionsMatrix[userRole] || [];
 
-      // Validar se o usuário possui a permissão requerida
       const hasPermission =
         userPermissions.includes(requiredPermission) ||
         userPermissions.includes("admin");
@@ -60,7 +100,6 @@ export const requirePermission = (requiredPermission: Permission) => {
         return next();
       }
 
-      // Permissão negada
       logger.warn("Permission denied", {
         userId,
         userRole,
@@ -68,15 +107,9 @@ export const requirePermission = (requiredPermission: Permission) => {
         requestId,
         path: req.path,
       });
-
       return next(
         createError.authorization(
           `Missing required permission: ${requiredPermission}`,
-          {
-            required: requiredPermission,
-            provided: userRole,
-            userPermissions,
-          },
         ),
       );
     } catch (err: unknown) {
@@ -86,13 +119,22 @@ export const requirePermission = (requiredPermission: Permission) => {
         requestId,
         error: err instanceof Error ? err.message : String(err),
       });
-
-      // Fallback seguro: negar em caso de erro interno
-      return next(
-        createError.authorization("Permission check failed", {
-          reason: "internal_error",
-        }),
-      );
+      return next(createError.authorization("Permission check failed"));
     }
   };
+};
+
+/**
+ * Alias de compatibilidade: aceita uma lista de permissões customizadas (strings).
+ * Correção: mapeia permissões de negócio DG reais se informadas.
+ */
+export const permissionHandler = (permissions: string | string[]) => {
+  const list = Array.isArray(permissions) ? permissions : [permissions];
+  // Tenta encontrar uma permissão DG correspondente
+  if (list.includes("READ_DESIGN_GENERATIVO"))
+    return requirePermission("read_dg");
+  if (list.includes("WRITE_DESIGN_GENERATIVO"))
+    return requirePermission("write_dg");
+
+  return requirePermission("read");
 };

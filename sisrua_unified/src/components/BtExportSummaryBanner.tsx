@@ -2,6 +2,26 @@ import { Download, X } from "lucide-react";
 import { usePagination, PaginationControls } from "../hooks/usePagination";
 import type { BtExportSummary, BtExportHistoryEntry } from "../types";
 
+// CQT severity thresholds (PRODIST / ANEEL reference values, %)
+const CQT_WARN_THRESHOLD = 5;
+const CQT_CRITICAL_THRESHOLD = 8;
+
+function cqtSeverityClass(value: number | null | undefined): string {
+  if (value == null) return "text-slate-500";
+  if (value >= CQT_CRITICAL_THRESHOLD)
+    return "font-bold text-red-600 dark:text-red-400";
+  if (value >= CQT_WARN_THRESHOLD)
+    return "font-bold text-amber-600 dark:text-amber-400";
+  return "font-bold text-emerald-600 dark:text-emerald-400";
+}
+
+function cqtSeverityBadge(value: number | null | undefined): string {
+  if (value == null) return "";
+  if (value >= CQT_CRITICAL_THRESHOLD) return "🔴";
+  if (value >= CQT_WARN_THRESHOLD) return "🟡";
+  return "🟢";
+}
+
 interface BtExportSummaryBannerProps {
   latestBtExport: BtExportSummary | BtExportHistoryEntry | null;
   btExportHistory: BtExportHistoryEntry[];
@@ -47,27 +67,27 @@ export function BtExportSummaryBanner({
   }
 
   return (
-    <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-cyan-500/30 bg-slate-950/95 px-4 py-3 text-xs text-cyan-100 shadow-xl">
+    <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-cyan-500/30 bg-white/95 dark:bg-slate-950/95 px-4 py-3 text-xs text-slate-800 dark:text-cyan-100 shadow-xl backdrop-blur-md w-[calc(100vw-2rem)] max-w-[56rem]">
       <div className="flex items-center justify-between gap-4">
-        <div className="font-semibold uppercase tracking-wide text-cyan-300">
+        <div className="font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-300">
           Resumo BT Exportado
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={exportBtHistoryJson}
-            className="inline-flex items-center gap-1 rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/10"
+            className="inline-flex items-center gap-1 rounded border border-cyan-500/40 px-2 py-0.5 text-xs uppercase tracking-wide text-cyan-700 dark:text-cyan-200 hover:bg-cyan-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
           >
             <Download size={10} /> JSON
           </button>
           <button
             onClick={exportBtHistoryCsv}
-            className="inline-flex items-center gap-1 rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/10"
+            className="inline-flex items-center gap-1 rounded border border-cyan-500/40 px-2 py-0.5 text-xs uppercase tracking-wide text-cyan-700 dark:text-cyan-200 hover:bg-cyan-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
           >
             <Download size={10} /> CSV
           </button>
           <button
             onClick={clearBtExportHistory}
-            className="rounded border border-cyan-500/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/10"
+            className="rounded border border-cyan-500/40 px-2 py-0.5 text-xs uppercase tracking-wide text-cyan-700 dark:text-cyan-200 hover:bg-cyan-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
           >
             Limpar
           </button>
@@ -76,7 +96,7 @@ export function BtExportSummaryBanner({
               onClick={onClose}
               aria-label="Fechar resumo BT exportado"
               title="Fechar"
-              className="inline-flex h-6 w-6 items-center justify-center rounded border border-cyan-500/40 text-cyan-200 hover:bg-cyan-500/10"
+              className="inline-flex h-6 w-6 items-center justify-center rounded border border-cyan-500/40 text-cyan-700 dark:text-cyan-200 hover:bg-cyan-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
             >
               <X size={12} />
             </button>
@@ -94,7 +114,7 @@ export function BtExportSummaryBanner({
           {((latestBtExport.totalPoles ?? 0) > 0 ||
             (latestBtExport.totalEdges ?? 0) > 0 ||
             (latestBtExport.totalTransformers ?? 0) > 0) && (
-            <div className="mt-1 text-cyan-100/90">
+            <div className="mt-1 text-slate-700 dark:text-cyan-100/90">
               Verificação Atual: Postes {latestBtExport.verifiedPoles ?? 0}/
               {latestBtExport.totalPoles ?? 0} | Condutores{" "}
               {latestBtExport.verifiedEdges ?? 0}/
@@ -104,23 +124,63 @@ export function BtExportSummaryBanner({
             </div>
           )}
           {latestBtExport.cqt && (
-            <div className="mt-1 text-cyan-100/90">
-              CQT {latestBtExport.cqt.scenario?.toUpperCase() ?? "-"}: DMDI{" "}
-              {latestBtExport.cqt.dmdi?.toFixed(3) ?? "-"} | P31{" "}
-              {latestBtExport.cqt.p31?.toFixed(3) ?? "-"} | P32{" "}
-              {latestBtExport.cqt.p32?.toFixed(3) ?? "-"} | K10{" "}
-              {latestBtExport.cqt.k10QtMttr?.toFixed(6) ?? "-"}
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-700 dark:text-cyan-100/90">
+              <span className="font-semibold uppercase tracking-wide">
+                CQT {latestBtExport.cqt.scenario?.toUpperCase() ?? "-"}
+              </span>
+              <span>
+                DMDI{" "}
+                <span className={cqtSeverityClass(latestBtExport.cqt.dmdi)}>
+                  {cqtSeverityBadge(latestBtExport.cqt.dmdi)}{" "}
+                  {latestBtExport.cqt.dmdi?.toFixed(3) ?? "-"}
+                </span>
+              </span>
+              <span>
+                P31{" "}
+                <span className={cqtSeverityClass(latestBtExport.cqt.p31)}>
+                  {cqtSeverityBadge(latestBtExport.cqt.p31)}{" "}
+                  {latestBtExport.cqt.p31?.toFixed(3) ?? "-"}
+                </span>
+              </span>
+              <span>
+                P32{" "}
+                <span className={cqtSeverityClass(latestBtExport.cqt.p32)}>
+                  {cqtSeverityBadge(latestBtExport.cqt.p32)}{" "}
+                  {latestBtExport.cqt.p32?.toFixed(3) ?? "-"}
+                </span>
+              </span>
+              <span>
+                K10{" "}
+                <span className="font-medium">
+                  {latestBtExport.cqt.k10QtMttr?.toFixed(6) ?? "-"}
+                </span>
+              </span>
               {typeof latestBtExport.cqt.parityPassed === "number" &&
-              typeof latestBtExport.cqt.parityFailed === "number"
-                ? ` | Paridade ${latestBtExport.cqt.parityPassed} OK / ${latestBtExport.cqt.parityFailed} falhas`
-                : ""}
+                typeof latestBtExport.cqt.parityFailed === "number" && (
+                  <span>
+                    Paridade{" "}
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                      {latestBtExport.cqt.parityPassed} OK
+                    </span>
+                    {" / "}
+                    <span
+                      className={
+                        latestBtExport.cqt.parityFailed > 0
+                          ? "text-red-600 dark:text-red-400 font-bold"
+                          : ""
+                      }
+                    >
+                      {latestBtExport.cqt.parityFailed} falhas
+                    </span>
+                  </span>
+                )}
             </div>
           )}
           <a
             href={latestBtExport.btContextUrl}
             target="_blank"
             rel="noreferrer"
-            className="mt-2 inline-block text-cyan-300 underline underline-offset-2 hover:text-cyan-200"
+            className="mt-2 inline-block text-cyan-700 dark:text-cyan-300 underline underline-offset-2 hover:text-cyan-600 dark:hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 rounded"
           >
             Abrir metadata BT (JSON)
           </a>
@@ -130,14 +190,14 @@ export function BtExportSummaryBanner({
       {btExportHistory.length > 0 && (
         <div className="mt-3 border-t border-cyan-500/20 pt-2">
           <div className="mb-1 flex items-center justify-between gap-2">
-            <div className="font-semibold uppercase tracking-wide text-cyan-300">
+            <div className="font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-300">
               Histórico ({historyPagination.totalItems}/
               {btHistoryTotal > 0
                 ? btHistoryTotal
                 : historyPagination.totalItems}
               )
             </div>
-            <div className="flex items-center gap-2 text-[10px]">
+            <div className="flex items-center gap-2 text-xs">
               <select
                 value={historyProjectTypeFilter}
                 onChange={(event) =>
@@ -147,7 +207,7 @@ export function BtExportSummaryBanner({
                 }
                 aria-label="Filtro de tipo de projeto do histórico BT"
                 title="Filtrar histórico por tipo de projeto"
-                className="rounded border border-cyan-500/30 bg-slate-900 px-1 py-0.5 text-cyan-100"
+                className="rounded border border-cyan-500/30 bg-white dark:bg-slate-900 px-1 py-0.5 text-slate-800 dark:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
               >
                 <option value="all">Todos os tipos</option>
                 <option value="ramais">Ramais</option>
@@ -162,7 +222,7 @@ export function BtExportSummaryBanner({
                 }
                 aria-label="Filtro de cenário CQT do histórico BT"
                 title="Filtrar histórico por cenário CQT"
-                className="rounded border border-cyan-500/30 bg-slate-900 px-1 py-0.5 text-cyan-100"
+                className="rounded border border-cyan-500/30 bg-white dark:bg-slate-900 px-1 py-0.5 text-slate-800 dark:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
               >
                 <option value="all">CQT: todos</option>
                 <option value="atual">CQT atual</option>
@@ -174,7 +234,7 @@ export function BtExportSummaryBanner({
           {historyPagination.items.map((entry, index) => (
             <div
               key={`${entry.exportedAt}-${entry.criticalPoleId}-${index}`}
-              className="text-[11px] text-cyan-100/90"
+              className="text-sm text-slate-700 dark:text-cyan-100/90"
             >
               {new Date(entry.exportedAt).toLocaleString("pt-BR")} |{" "}
               {entry.projectType.toUpperCase()} | {entry.criticalPoleId} |{" "}
@@ -199,7 +259,7 @@ export function BtExportSummaryBanner({
             <button
               onClick={onLoadMoreBtHistory}
               disabled={btHistoryLoading}
-              className="mt-2 w-full rounded border border-cyan-500/40 px-2 py-1 text-[10px] uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-2 w-full rounded border border-cyan-500/40 px-2 py-1 text-xs uppercase tracking-wide text-cyan-700 dark:text-cyan-200 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
             >
               {btHistoryLoading ? "Carregando..." : "Carregar mais do servidor"}
             </button>

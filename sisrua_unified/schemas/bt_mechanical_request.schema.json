@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "bt_mechanical_request.schema.json",
+  "title": "BtMechanicalRequest",
+  "description": "Input payload for BT mechanical force calculation.",
+  "type": "object",
+  "required": ["nodes", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "lat", "lng"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+          "lng": { "type": "number", "minimum": -180, "maximum": 180 },
+          "title": { "type": "string" },
+          "nominalCapacityDaN": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "fromNodeId", "toNodeId", "conductors"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "fromNodeId": { "type": "string", "minLength": 1 },
+          "toNodeId": { "type": "string", "minLength": 1 },
+          "conductors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["conductorName", "quantity"],
+              "properties": {
+                "conductorName": { "type": "string", "minLength": 1 },
+                "quantity": { "type": "number", "minimum": 0 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "windPressurePa": { "type": "number", "minimum": 0 },
+    "safetyFactor": { "type": "number", "minimum": 1 }
+  }
+}

@@ -1,302 +1,345 @@
-name: Quality Gates - PR
+name: Quality Gates – sisRUA Full Pipeline
 
 on:
-  pull_request:
-    branches: [main, master, dev]
   push:
-    branches: [main, master]
+    branches: [dev]
+  pull_request:
+    branches: [dev, main, master]
+
+concurrency:
+  group: quality-gates-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  # ============================================
-  # BACKEND TESTS
-  # ============================================
-  test-backend:
-    name: Backend Tests
+  # 0. DB Pre-deploy Gate (Drift/RLS/Grants)
+  db-predeploy:
+    name: DB Pre-deploy Gate
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 22
           cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run backend tests
-        run: npm run test:backend
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: npm ci --prefer-offline --no-audit
+      - name: Install Python dependency for DB gate
+        run: pip install psycopg2-binary
+      - name: Validate DATABASE_URL secret
+        run: |
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL secret is required for DB pre-deploy checks"
+            exit 1
+          fi
         env:
-          NODE_ENV: test
-          OFFLINE_MODE: true
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Run DB pre-deploy gate
+        run: npm run ci:db:predeploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Upload coverage
+  # 1. Audit & Rules
+  audit:
+    name: Non-Negotiables Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+      - run: npm ci --prefer-offline --no-audit
+      - name: Enforcement Rule Check
+        run: npm run ci:non-negotiables
+
+  # 2. Lint & Typecheck
+  lint:
+    name: Lint & Typecheck (Full)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+      - run: npm ci --prefer-offline --no-audit
+      - name: Lint Frontend
+        run: npm run lint:frontend
+      - name: Lint Backend
+        run: npm run lint:backend
+      - name: Typecheck Frontend
+        run: npm run typecheck:frontend
+      - name: Typecheck Backend
+        run: npm run typecheck:backend
+
+  # 3. Backend Tests
+  test-backend:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+      - run: npm ci --prefer-offline --no-audit
+      - name: Run Backend Tests
+        run: npm run test:backend
+      - name: Upload Coverage
         uses: actions/upload-artifact@v4
-        if: ${{ always() && !env.ACT }}
         with:
           name: backend-coverage
           path: coverage/backend/
-          retention-days: 7
+          retention-days: 1
 
-  # ============================================
-  # FRONTEND TESTS
-  # ============================================
+  # 4. Frontend Tests
   test-frontend:
-    name: Frontend Tests
+    name: Frontend Unit Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 22
           cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run frontend tests
+      - run: npm ci --prefer-offline --no-audit
+      - name: Run Frontend Tests
         run: npm run test:frontend
-        env:
-          NODE_ENV: test
-
-      - name: Run frontend risk-focused tests
+      - name: Run Frontend Risk Tests
         run: npm run test:frontend:risk
-        env:
-          NODE_ENV: test
-
-      - name: Upload coverage
+      - name: Upload Coverage
         uses: actions/upload-artifact@v4
-        if: ${{ always() && !env.ACT }}
         with:
-          name: frontend-coverage
-          path: coverage/
-          retention-days: 7
+          name: frontend-risk-coverage
+          path: coverage/frontend-risk/
+          retention-days: 1
 
-  # ============================================
-  # LINT & TYPE CHECK
-  # ============================================
-  lint:
-    name: Lint & Type Check
+  # 4.1 Integration Tests
+  test-integration:
+    name: Integration Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 22
           cache: "npm"
+      - run: npm ci --prefer-offline --no-audit
+      - name: Run Integration Tests
+        run: npm run test:integration
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run ESLint
-        run: npm run lint
-
-      - name: Type check
-        run: npx tsc --noEmit
-
-  # ============================================
-  # SECURITY AUDIT
-  # ============================================
+  # 5. Security & SBOM
   security:
-    name: Security Audit
+    name: Security & Compliance
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 22
           cache: "npm"
+      - run: npm ci --prefer-offline --no-audit
+      - name: Security Audit (NPM)
+        run: npm run security:policy-gate
+      - name: SBOM Generation
+        run: npm run security:sbom:node
 
-      - name: Run security audit
-        run: npm run security:audit
-        continue-on-error: false
-
-  # ============================================
-  # BUILD VERIFICATION
-  # ============================================
+  # 6. Build Verification
   build:
     name: Build Verification
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [lint, test-backend, test-frontend]
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 22
           cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build application
+      - run: npm ci --prefer-offline --no-audit
+      - name: Full Build
         run: npm run build
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        if: ${{ !env.ACT }}
-        with:
-          name: build-output
-          path: dist/
-          retention-days: 7
-
-  # ============================================
-  # CQT PARITY P0 GATE
-  # ============================================
+  # 7. Parity Check (P0)
   parity-p0:
-    name: CQT Parity P0 Gate
+    name: CQT Parity Check
     runs-on: ubuntu-latest
-    if: ${{ !github.event.act }}
-    timeout-minutes: 5
-    needs: [test-backend]
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 22
           cache: "npm"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install pandas openpyxl
+      - run: npm ci --prefer-offline --no-audit
+      - name: CQT Parity Strict Check
+        run: npm run cqt:parity-check:strict
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run CQT parity P0 check
-        run: |
-          if [[ -d /var/run/act ]]; then
-            echo "Skipping strict workbook audit in local act emulation"
-            npm run cqt:parity-check:strict || true
-          else
-            npm run cqt:parity-check:strict
-          fi
-        env:
-          NODE_ENV: test
-          OFFLINE_MODE: true
-
-  # ============================================
-  # E2E SMOKE TESTS
-  # ============================================
+  # 8. E2E Smoke
   e2e-smoke:
     name: E2E Smoke Tests
     runs-on: ubuntu-latest
-    if: ${{ !github.event.act }}
-    timeout-minutes: 15
-    needs: [build]
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 22
           cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
+      - run: npm ci --prefer-offline --no-audit
       - name: Install Playwright
-        run: |
-          if [[ -d /var/run/act ]]; then
-            echo "Skipping Playwright browser install in local act emulation"
-          else
-            npx playwright install --with-deps chromium
-          fi
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E Smoke
+        run: npm run test:e2e -- --grep @smoke
 
-      - name: Run E2E smoke tests
-        run: |
-          if [[ -d /var/run/act ]]; then
-            echo "Skipping E2E smoke tests in local act emulation"
-          else
-            npm run test:e2e -- --grep "@smoke"
-          fi
-        env:
-          NODE_ENV: test
-          OFFLINE_MODE: true
-
-      - name: Upload E2E artifacts
-        uses: actions/upload-artifact@v4
-        if: ${{ always() && !env.ACT }}
+  # 8.1 Unified QA Regression Gate
+  qa-regression:
+    name: QA Regression Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          name: e2e-report
-          path: |
-            playwright-report/
-            test-results/
-          retention-days: 7
+          node-version: 22
+          cache: "npm"
+      - run: npm ci --prefer-offline --no-audit
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Run Unified QA Regression
+        run: npm run test:qa:regression
 
-  # ============================================
-  # QUALITY GATE SUMMARY
-  # ============================================
-  quality-gate:
-    name: Quality Gate
+  # 9. D7 Go Parcial Gate
+  d7-go-parcial:
+    name: D7 Go Parcial Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+      - run: npm ci --prefer-offline --no-audit
+      - name: Enforce D7 Evidence
+        run: npm run ci:d7-go-parcial-gate
+
+  # 10. Checkpoints Validation
+  checkpoints:
+    name: Checkpoints Integrity
     runs-on: ubuntu-latest
     needs:
-      [lint, security, test-backend, test-frontend, parity-p0, build, e2e-smoke]
-    if: always()
-
+      [
+        test-backend,
+        test-frontend,
+        test-integration,
+        lint,
+        security,
+        build,
+        parity-p0,
+        e2e-smoke,
+        qa-regression,
+      ]
     steps:
-      - name: Check all jobs passed
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+      - run: npm ci --prefer-offline --no-audit
+      - name: Validate Timeline & Quality Gates
+        run: node scripts/ci/enforce-checkpoints-timeline.mjs
+
+  # 11. Coverage Policy
+  coverage-gate:
+    name: Coverage Policy Enforcement
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+      - run: npm ci --prefer-offline --no-audit
+      - name: Download Backend Coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-coverage
+          path: coverage/backend
+      - name: Download Frontend Risk Coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-risk-coverage
+          path: coverage/frontend-risk
+      - name: Check Coverage Policy
+        run: npm run coverage:policy:strict
+
+  # 12. FINAL AGGREGATOR GATE
+  quality-gate:
+    name: ✅ FINAL QUALITY GATE
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - db-predeploy
+      - audit
+      - lint
+      - test-backend
+      - test-frontend
+      - test-integration
+      - security
+      - build
+      - parity-p0
+      - e2e-smoke
+      - qa-regression
+      - d7-go-parcial
+      - checkpoints
+      - coverage-gate
+    steps:
+      - name: Aggregated Status Check
         run: |
-          echo "Backend Tests: ${{ needs.test-backend.result }}"
-          echo "Frontend Tests: ${{ needs.test-frontend.result }}"
+          echo "DB Pre-deploy: ${{ needs.db-predeploy.result }}"
+          echo "Audit: ${{ needs.audit.result }}"
           echo "Lint: ${{ needs.lint.result }}"
+          echo "Test Backend: ${{ needs.test-backend.result }}"
+          echo "Test Frontend: ${{ needs.test-frontend.result }}"
+          echo "Test Integration: ${{ needs.test-integration.result }}"
           echo "Security: ${{ needs.security.result }}"
-          echo "CQT Parity P0: ${{ needs.parity-p0.result }}"
           echo "Build: ${{ needs.build.result }}"
+          echo "Parity: ${{ needs.parity-p0.result }}"
           echo "E2E Smoke: ${{ needs.e2e-smoke.result }}"
+          echo "QA Regression: ${{ needs.qa-regression.result }}"
+          echo "D7 Go: ${{ needs.d7-go-parcial.result }}"
+          echo "Checkpoints: ${{ needs.checkpoints.result }}"
+          echo "Coverage Gate: ${{ needs.coverage-gate.result }}"
 
-          is_ok_result() {
-            local job_name="$1"
-            local result="$2"
-
-            if [[ "$result" == "success" ]]; then
-              return 0
+          FAILED=""
+          for JOB in db-predeploy audit lint test-backend test-frontend test-integration security build parity-p0 e2e-smoke qa-regression d7-go-parcial checkpoints coverage-gate; do
+            RESULT=$(
+              case $JOB in
+                db-predeploy) echo "${{ needs.db-predeploy.result }}" ;;
+                audit) echo "${{ needs.audit.result }}" ;;
+                lint) echo "${{ needs.lint.result }}" ;;
+                test-backend) echo "${{ needs.test-backend.result }}" ;;
+                test-frontend) echo "${{ needs.test-frontend.result }}" ;;
+                test-integration) echo "${{ needs.test-integration.result }}" ;;
+                security) echo "${{ needs.security.result }}" ;;
+                build) echo "${{ needs.build.result }}" ;;
+                parity-p0) echo "${{ needs.parity-p0.result }}" ;;
+                e2e-smoke) echo "${{ needs.e2e-smoke.result }}" ;;
+                qa-regression) echo "${{ needs.qa-regression.result }}" ;;
+                d7-go-parcial) echo "${{ needs.d7-go-parcial.result }}" ;;
+                checkpoints) echo "${{ needs.checkpoints.result }}" ;;
+                coverage-gate) echo "${{ needs.coverage-gate.result }}" ;;
+              esac
+            )
+            if [ "$RESULT" != "success" ]; then
+              FAILED="$FAILED $JOB($RESULT)"
             fi
+          done
 
-            # Parity and E2E may be intentionally skipped in local emulation.
-            if [[ "$result" == "skipped" ]] && \
-              { [[ "$job_name" == "parity-p0" ]] || [[ "$job_name" == "e2e-smoke" ]]; }; then
-              return 0
-            fi
-
-            return 1
-          }
-
-          if ! is_ok_result "test-backend" "${{ needs.test-backend.result }}" || \
-             ! is_ok_result "test-frontend" "${{ needs.test-frontend.result }}" || \
-             ! is_ok_result "lint" "${{ needs.lint.result }}" || \
-             ! is_ok_result "security" "${{ needs.security.result }}" || \
-             ! is_ok_result "parity-p0" "${{ needs.parity-p0.result }}" || \
-             ! is_ok_result "build" "${{ needs.build.result }}" || \
-             ! is_ok_result "e2e-smoke" "${{ needs.e2e-smoke.result }}"; then
-            echo "❌ Quality gate FAILED"
+          if [ -n "$FAILED" ]; then
+            echo "❌ Quality Gate Failed: $FAILED"
             exit 1
           fi
-
-          echo "✅ Quality gate PASSED"
+          echo "✅ All Quality Gates Passed"

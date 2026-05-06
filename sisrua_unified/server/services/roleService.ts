@@ -1,52 +1,50 @@
-import postgres from "postgres";
 import { logger } from "../utils/logger.js";
-import { config } from "../config.js";
+import { getDbClient } from "../repositories/dbClient.js";
+import { onRoleChange } from "./cacheService.js";
 
 export type UserRole = "admin" | "technician" | "viewer" | "guest";
+
+export interface UserContext {
+  role: UserRole;
+  tenantId: string | null;
+}
 
 interface UserRoleRecord {
   user_id: string;
   role: UserRole;
+  tenant_id: string | null;
   assigned_at: string;
   last_updated: string;
 }
 
-// Initialize database connection
-const sql = postgres({
-  host: config.DB_HOST,
-  port: config.DB_PORT,
-  database: config.DB_NAME,
-  username: config.DB_USER,
-  password: config.DB_PASSWORD,
-  ssl: config.DB_SSL !== "false",
-  max: 5,
-  connection: {
-    timeout: 10000,
-  },
-});
+interface UserRoleUpsertResult {
+  user_id: string;
+  role: UserRole;
+}
 
 /**
- * RBAC Service
- * - Recupera papéis de usuário do banco de dados
- * - Implementa cache in-memory para performance
- * - Fornece interface confiável para permission handler
+ * Serviço RBAC — Gestão de papéis de usuários.
+ *
+ * - Recupera papéis de usuário do banco de dados via pool compartilhado (dbClient).
+ * - Implementa cache in-memory com TTL para reduzir latência.
+ * - Fornece interface confiável para o permissionHandler e o painel admin.
  */
 
 // Cache in-memory com TTL (5 minutos por padrão)
-const roleCache = new Map<string, { role: UserRole; expiresAt: number }>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const roleCache = new Map<string, { context: UserContext; expiresAt: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 /**
- * Recupera o papel de um usuário do banco de dados
- * @param userId - ID do usuário
- * @returns UserRole do usuário ou 'guest' se não encontrado
+ * Recupera o contexto de um usuário (papel e tenant) do banco de dados.
+ * Retorna 'guest' para IDs inválidos e 'viewer' com tenant nulo quando o DB não está disponível.
  */
 export async function getUserRole(
   userId: string | undefined,
-): Promise<UserRole> {
-  // Usuários sem ID são sempre guests
+): Promise<UserContext> {
+  const defaultContext: UserContext = { role: "viewer", tenantId: null };
+
   if (!userId || typeof userId !== "string" || userId.trim().length === 0) {
-    return "guest";
+    return { role: "guest", tenantId: null };
   }
 
   const normalizedUserId = userId.trim();
@@ -54,103 +52,129 @@ export async function getUserRole(
   // Verificar cache
   const cached = roleCache.get(normalizedUserId);
   if (cached && cached.expiresAt > Date.now()) {
-    logger.debug("User role cache hit", { userId: normalizedUserId });
-    return cached.role;
+    logger.debug("User context cache hit", { userId: normalizedUserId });
+    return cached.context;
   }
 
   try {
-    const rows = await sql<UserRoleRecord[]>`
-            SELECT user_id, role FROM user_roles WHERE user_id = ${normalizedUserId}
-        `;
+    const sql = getDbClient();
+    if (!sql) {
+      logger.debug("DB não disponível, contexto padrão: viewer", {
+        userId: normalizedUserId,
+      });
+      return defaultContext;
+    }
+    const rows = await sql<any[]>`
+      SELECT role, tenant_id
+      FROM user_roles
+      WHERE user_id = ${normalizedUserId}
+        AND deleted_at IS NULL
+      LIMIT 1
+    `;
 
     if (rows && rows.length > 0) {
-      const userRole = rows[0].role as UserRole;
+      const context: UserContext = {
+        role: rows[0].role as UserRole,
+        tenantId: rows[0].tenant_id ?? null,
+      };
 
-      // Cache o resultado
       roleCache.set(normalizedUserId, {
-        role: userRole,
+        context,
         expiresAt: Date.now() + CACHE_TTL_MS,
       });
 
-      logger.debug("User role retrieved from database", {
+      logger.debug("Contexto de usuário recuperado do banco", {
         userId: normalizedUserId,
-        role: userRole,
+        role: context.role,
+        tenantId: context.tenantId,
       });
 
-      return userRole;
+      return context;
     }
 
-    // Usuário não registrado no banco = viewer (read-only)
-    // Não fazer cache para usuários não encontrados (deixar descoberta dinâmica)
-    logger.debug("User role not found in database, defaulting to viewer", {
+    logger.debug("Contexto de usuário não encontrado, padrão: viewer", {
       userId: normalizedUserId,
     });
 
-    return "viewer";
+    return defaultContext;
   } catch (err: unknown) {
-    logger.error("Failed to retrieve user role", {
+    logger.error("Falha ao recuperar contexto de usuário", {
       userId: normalizedUserId,
       error: err instanceof Error ? err.message : String(err),
     });
 
-    // Fallback seguro: viewer em caso de erro de banco
-    return "viewer";
+    return defaultContext;
   }
 }
 
-/**
- * Limpar cache de papéis de usuário (para teste ou invalidação manual)
- */
+/** Limpa todo o cache de papéis de usuário. */
 export function clearRoleCache(): void {
   roleCache.clear();
-  logger.info("User role cache cleared");
+  logger.info("Cache de papéis de usuário limpo");
 }
 
-/**
- * Limpar cache específico de um usuário
- */
+/** Limpa o cache de um usuário específico. */
 export function clearUserRoleCache(userId: string): void {
   roleCache.delete(userId.trim());
-  logger.debug("User role cache cleared for user", { userId });
+  logger.debug("Cache de papel limpo para usuário", { userId });
 }
 
 /**
- * Atribuir ou atualizar papel de um usuário
- * @param userId - ID do usuário
- * @param role - Novo papel
- * @param assignedBy - Quem fez a atribuição (para auditoria)
- * @param reason - Motivo da mudança
+ * Atribui ou atualiza o papel de um usuário (upsert).
  */
 export async function setUserRole(
   userId: string,
   role: UserRole,
   assignedBy: string,
   reason?: string,
+  tenantId?: string | null,
 ): Promise<boolean> {
   if (!userId || userId.trim().length === 0) {
-    logger.warn("Invalid userId for setUserRole");
+    logger.warn("userId inválido em setUserRole");
+    return false;
+  }
+  if (!assignedBy || assignedBy.trim().length === 0) {
+    logger.warn("assignedBy inválido em setUserRole");
     return false;
   }
 
   const normalizedUserId = userId.trim();
+  const normalizedAssignedBy = assignedBy.trim();
 
   try {
-    const rows = await sql<UserRoleRecord[]>`
-            INSERT INTO user_roles (user_id, role, assigned_by, reason)
-            VALUES (${normalizedUserId}, ${role}, ${assignedBy.trim()}, ${reason || null})
-            ON CONFLICT (user_id) DO UPDATE
-            SET role = ${role}, assigned_by = ${assignedBy.trim()}, reason = ${reason || null}
-            RETURNING user_id, role
-        `;
+    const sql = getDbClient();
+    if (!sql) {
+      logger.warn("DB não disponível, não é possível atribuir papel");
+      return false;
+    }
+    const rows = await sql<UserRoleUpsertResult[]>`
+      INSERT INTO user_roles (user_id, role, tenant_id, assigned_by, reason)
+      VALUES (${normalizedUserId}, ${role}, ${tenantId ?? null}, ${normalizedAssignedBy}, ${reason ?? null})
+      ON CONFLICT (user_id) DO UPDATE
+        SET role        = ${role},
+            tenant_id   = COALESCE(EXCLUDED.tenant_id, user_roles.tenant_id),
+            assigned_by = ${normalizedAssignedBy},
+            reason      = ${reason ?? null}
+      RETURNING user_id, role
+    `;
 
     if (rows && rows.length > 0) {
-      // Invalidar cache do usuário
       clearUserRoleCache(normalizedUserId);
 
-      logger.info("User role updated", {
+      // Invalidação proativa de cache sensível a permissões após mudança de papel.
+      try {
+        onRoleChange(normalizedUserId);
+      } catch (cacheErr: unknown) {
+        logger.warn("Falha ao invalidar cache após mudança de papel", {
+          userId: normalizedUserId,
+          error: cacheErr instanceof Error ? cacheErr.message : String(cacheErr),
+        });
+      }
+
+      logger.info("Papel de usuário atualizado", {
         userId: normalizedUserId,
         newRole: role,
-        assignedBy,
+        assignedBy: normalizedAssignedBy,
         reason,
       });
 
@@ -159,7 +183,7 @@ export async function setUserRole(
 
     return false;
   } catch (err: unknown) {
-    logger.error("Failed to set user role", {
+    logger.error("Falha ao atribuir papel de usuário", {
       userId: normalizedUserId,
       role,
       error: err instanceof Error ? err.message : String(err),
@@ -170,23 +194,25 @@ export async function setUserRole(
 }
 
 /**
- * Obter todos os usuários com um papel específico (para relatórios)
- * @param role - UserRole a filtrar
+ * Obtém todos os usuários com um papel específico.
  */
 export async function getUsersByRole(
   role: UserRole,
 ): Promise<UserRoleRecord[]> {
   try {
+    const sql = getDbClient();
+    if (!sql) return [];
     const rows = await sql<UserRoleRecord[]>`
-            SELECT user_id, role, assigned_at, last_updated
-            FROM user_roles
-            WHERE role = ${role}
-            ORDER BY last_updated DESC
-        `;
+      SELECT user_id, role, tenant_id, assigned_at, last_updated
+      FROM user_roles
+      WHERE role = ${role}
+        AND deleted_at IS NULL
+      ORDER BY last_updated DESC
+    `;
 
-    return rows || [];
+    return rows ?? [];
   } catch (err: unknown) {
-    logger.error("Failed to retrieve users by role", {
+    logger.error("Falha ao listar usuários por papel", {
       role,
       error: err instanceof Error ? err.message : String(err),
     });
@@ -196,36 +222,38 @@ export async function getUsersByRole(
 }
 
 /**
- * Obter estatísticas de distribuição de papéis
+ * Obtém estatísticas de distribuição de papéis.
  */
 export async function getRoleStatistics(): Promise<Record<UserRole, number>> {
+  const empty: Record<UserRole, number> = {
+    admin: 0,
+    technician: 0,
+    viewer: 0,
+    guest: 0,
+  };
   try {
-    const rows = await sql<{ role: UserRole; count: number }[]>`
-            SELECT role, COUNT(*) as count
-            FROM user_roles
-            WHERE role <> 'guest'::user_role
-            GROUP BY role
-        `;
-
-    const stats: Record<UserRole, number> = {
-      admin: 0,
-      technician: 0,
-      viewer: 0,
-      guest: 0,
-    };
+    const sql = getDbClient();
+    if (!sql) return empty;
+    const rows = await sql<{ role: UserRole; count: string }[]>`
+      SELECT role, COUNT(*) AS count
+      FROM user_roles
+      WHERE role <> 'guest'::user_role
+        AND deleted_at IS NULL
+      GROUP BY role
+    `;
 
     if (rows) {
       for (const row of rows) {
-        stats[row.role] = row.count;
+        empty[row.role] = Number(row.count);
       }
     }
 
-    return stats;
+    return empty;
   } catch (err: unknown) {
-    logger.error("Failed to retrieve role statistics", {
+    logger.error("Falha ao recuperar estatísticas de papéis", {
       error: err instanceof Error ? err.message : String(err),
     });
 
-    return { admin: 0, technician: 0, viewer: 0, guest: 0 };
+    return empty;
   }
 }

@@ -81,6 +81,19 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: "0.0.0.0",
+      // Habilita HTML5 history mode para React Router BrowserRouter
+      historyApiFallback: true,
+      hmr: {
+        protocol: "ws",
+        host: "localhost",
+        port: 3000,
+      },
+      watch: {
+        usePolling: true,
+        interval: 1000,
+        binaryInterval: 1000,
+        ignored: ["**/node_modules/**", "**/.git/**", "**/.cache/**"],
+      },
       proxy: {
         "/api": {
           target: "http://localhost:3001",
@@ -143,16 +156,81 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      chunkSizeWarningLimit: 500,
+      // Large route-level chunks (App/Admin/ExcelJS) are expected and lazy-loaded.
+      chunkSizeWarningLimit: 1000,
       minify: "esbuild",
       target: "esnext",
       rollupOptions: {
         output: {
-          manualChunks: {
-            leaflet: ["leaflet", "react-leaflet", "proj4"],
-            motion: ["framer-motion"],
-            icons: ["lucide-react"],
-            recharts: ["recharts"],
+          manualChunks(id) {
+            const isSrcPath = (segment: string) =>
+              id.includes(`/src/${segment}/`) ||
+              id.includes(`\\src\\${segment}\\`);
+
+            if (
+              id.includes("node_modules/react/") ||
+              id.includes("node_modules/react-dom/") ||
+              id.includes("node_modules/scheduler/")
+            ) {
+              return "vendor-react";
+            }
+            if (
+              id.includes("node_modules/leaflet/") ||
+              id.includes("node_modules/react-leaflet/") ||
+              id.includes("node_modules/proj4/")
+            ) {
+              return "leaflet";
+            }
+            if (id.includes("node_modules/framer-motion/")) {
+              return "motion";
+            }
+            if (id.includes("node_modules/lucide-react/")) {
+              return "icons";
+            }
+            if (
+              id.includes("node_modules/recharts/") ||
+              id.includes("node_modules/d3") ||
+              id.includes("node_modules/victory-vendor/")
+            ) {
+              return "recharts";
+            }
+            if (id.includes("node_modules/jszip/")) {
+              return "jszip";
+            }
+            if (
+              id.includes("BtUnifiedInfraTab") ||
+              id.includes("BtUnifiedElectricalTab") ||
+              id.includes("BtUnifiedCommercialTab")
+            ) {
+              return "feature-bt-tabs";
+            }
+            if (
+              isSrcPath("components/BtTopologyPanel") ||
+              id.includes("SidebarBtEditorSection")
+            ) {
+              return "feature-bt-core";
+            }
+            if (
+              isSrcPath("components/MapLayers") ||
+              id.includes("MapSelector")
+            ) {
+              return "feature-map";
+            }
+            if (
+              isSrcPath("components/settings") ||
+              id.includes("SettingsModal")
+            ) {
+              return "feature-settings";
+            }
+            if (
+              id.includes("AdminPageSectionRenderers") ||
+              id.includes("AdminPagePrimitives")
+            ) {
+              return "feature-admin-renderers";
+            }
+            if (id.includes("AdminPage") || isSrcPath("components/admin")) {
+              return "feature-admin";
+            }
           },
         },
       },

@@ -21,6 +21,9 @@ export interface BtRadialNodeLoad {
 export interface BtRadialNode {
     id: string;
     load: BtRadialNodeLoad;
+    hasVehicleAccess?: boolean;
+    manualDragDistanceMeters?: number;
+    equipmentType?: string;
 }
 
 export interface BtRadialEdge {
@@ -85,6 +88,8 @@ export interface BtRadialConsistencyAlert {
     severity: 'error' | 'warn';
 }
 
+import { BtAccessibilityOutput } from './btAccessibilityTypes.js';
+
 export interface BtRadialCalculationOutput {
     qtTrafo: number;
     nodeResults: BtRadialNodeResult[];
@@ -92,6 +97,7 @@ export interface BtRadialCalculationOutput {
     worstCase: BtRadialWorstCase;
     totalDemandKva: number;
     consistencyAlerts: BtRadialConsistencyAlert[];
+    accessibilityResults?: BtAccessibilityOutput;
 }
 
 // ─── Internal tree type ───────────────────────────────────────────────────────
@@ -100,6 +106,27 @@ export interface TreeNode {
     id: string;
     load: BtRadialNodeLoad;
     children: Array<{ treeNode: TreeNode; edge: BtRadialEdge }>;
+}
+
+// ─── Telescopic analysis types (REDE NOVA intelligence) ──────────────────────
+
+export interface TelescopicPathEdge {
+    edgeId: string;
+    suggestedConductorId: string;
+    lengthM: number;
+}
+
+export interface TelescopicSuggestion {
+    terminalNodeId: string;
+    pathEdges: TelescopicPathEdge[];
+    projectedVoltageEndV: number;
+    saturationPct: number;
+    requiresTransformerUpgrade: boolean;
+}
+
+export interface TelescopicAnalysisOutput {
+    suggestions: TelescopicSuggestion[];
+    lmaxByConductor: Record<string, number>;
 }
 
 // ─── Validation error (E1-H1) ────────────────────────────────────────────────

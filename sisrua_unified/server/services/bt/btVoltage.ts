@@ -53,7 +53,12 @@ export function computeQtSegment(
     });
     const impedance = Math.sqrt(rCorr ** 2 + conductor.reactance ** 2); // Ω/km
     const phaseFactor = phase === 'MONO' ? 2 : 1;
-    return (phaseFactor * accumulatedDemandKva * impedance * lengthMeters) / phaseVoltageV ** 2;
+    const lengthKm = lengthMeters / 1000;
+    // Ω/km × km → Ω
+    return (
+        (phaseFactor * accumulatedDemandKva * impedance * lengthKm) /
+        (phaseVoltageV ** 2)
+    );
 }
 
 // ─── Top-down propagation ─────────────────────────────────────────────────────
@@ -103,6 +108,8 @@ export function propagateQt(
                     ctx.phaseVoltageV,
                     ramal.lengthMeters,
                 );
+            } else {
+                console.warn(`[BT] Conductor not found for ramal: ${ramal.conductorId}`);
             }
         }
 

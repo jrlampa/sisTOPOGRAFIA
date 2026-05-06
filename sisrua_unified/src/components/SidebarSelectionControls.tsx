@@ -7,8 +7,11 @@ import {
 import { MAX_RADIUS, MIN_RADIUS } from "../constants";
 import type { GeoLocation, SelectionMode } from "../types";
 import { getSearchQueryFeedback } from "../utils/validation";
+import type { AppLocale } from "../types";
+import { getSidebarSelectionText } from "../i18n/sidebarSelectionText";
 
 type Props = {
+  locale: AppLocale;
   center: GeoLocation;
   searchQuery: string;
   setSearchQuery: (value: string) => void;
@@ -25,6 +28,7 @@ type Props = {
 };
 
 export function SidebarSelectionControls({
+  locale,
   center,
   searchQuery,
   setSearchQuery,
@@ -40,29 +44,30 @@ export function SidebarSelectionControls({
   isPolygonValid,
 }: Props) {
   const searchValidation = getSearchQueryFeedback(searchQuery);
+  const t = getSidebarSelectionText(locale);
 
   return (
     <>
       {/* Search Card */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
-            Area Alvo
+          <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300">
+            {t.targetArea}
           </label>
         </div>
         <form onSubmit={handleSearch} className="space-y-2">
           <div className="relative group">
             <input
               type="text"
-              placeholder="Cidade, Endereco ou Coordenadas (UTM)"
-              aria-label="Search area"
+              placeholder={t.searchPlaceholder}
+              aria-label={t.targetArea}
               aria-describedby="area-alvo-feedback"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-xl py-3 pl-12 pr-20 text-sm focus:outline-none focus:ring-2 transition-all shadow-inner text-slate-800 dark:text-slate-200 placeholder:text-slate-500 ${getValidationInputClassName(searchValidation.state)}`}
+              className={`w-full rounded-2xl border border-sky-200 bg-white py-3 pl-12 pr-20 text-sm text-slate-900 shadow-[inset_0_1px_2px_rgba(15,23,42,0.04)] transition-all placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500 ${getValidationInputClassName(searchValidation.state)}`}
             />
             <Search
-              className="absolute left-4 top-3.5 text-slate-400 dark:text-slate-600 group-focus-within:text-blue-500 transition-colors"
+              className="absolute left-4 top-3.5 text-slate-400 transition-colors group-focus-within:text-cyan-500 dark:text-slate-500"
               size={18}
             />
             <AnimatePresence>
@@ -73,12 +78,12 @@ export function SidebarSelectionControls({
                   exit={{ opacity: 0, scale: 0.8 }}
                   type="submit"
                   disabled={isSearching || searchValidation.state === "error"}
-                  className="absolute right-2 top-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 shadow-lg shadow-blue-500/20"
+                  className="absolute right-2 top-2 rounded-xl border border-cyan-200 bg-cyan-500 px-3 py-1.5 text-xs font-black text-white transition-all hover:bg-cyan-600 disabled:opacity-50 dark:border-cyan-300/20 dark:bg-cyan-600 dark:hover:bg-cyan-500"
                 >
                   {isSearching ? (
                     <Loader2 className="animate-spin" size={12} />
                   ) : (
-                    "BUSCAR"
+                    t.btnSearch
                   )}
                 </motion.button>
               )}
@@ -94,14 +99,14 @@ export function SidebarSelectionControls({
         {center.label && (
           <motion.div
             layoutId="location-badge"
-            className="flex items-center gap-3 text-xs text-blue-400 bg-blue-500/5 p-3 rounded-xl border border-blue-500/10"
+            className="flex items-center gap-3 rounded-2xl border border-cyan-200 bg-cyan-50/80 p-3 text-xs text-cyan-900 dark:border-cyan-400/25 dark:bg-cyan-950/35 dark:text-cyan-200"
           >
-            <div className="p-1.5 bg-blue-500/10 rounded-lg">
+            <div className="rounded-xl bg-cyan-100 p-1.5 dark:bg-cyan-900/60">
               <MapIcon size={14} />
             </div>
             <div className="flex flex-col min-w-0">
               <span className="font-bold truncate">{center.label}</span>
-              <span className="text-[10px] text-slate-400 font-mono italic">
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono italic">
                 {center.lat.toPrecision(7)}, {center.lng.toPrecision(7)}
               </span>
             </div>
@@ -109,33 +114,33 @@ export function SidebarSelectionControls({
         )}
       </div>
 
-      <div className="h-px bg-white/5 mx-2"></div>
+      <div className="mx-1 h-px bg-slate-200 dark:bg-white/10"></div>
 
       {/* Control Section */}
       <div className="space-y-6">
         <div className="flex flex-col gap-1.5">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
-              Modo de Selecao
+              <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300">
+              {t.selectionMode}
             </label>
           </div>
-          <div className="flex p-1 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-xl border border-slate-200 dark:border-white/5 shadow-sm">
+          <div className="flex rounded-2xl border border-sky-200 bg-sky-50/70 p-1 shadow-[0_12px_24px_rgba(148,163,184,0.14)] dark:border-white/10 dark:bg-white/5 dark:shadow-none">
             <button
               onClick={() => onSelectionModeChange("circle")}
-              className={`flex-1 text-[10px] font-bold py-2 rounded-lg transition-all ${selectionMode === "circle" ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-md border border-slate-200 dark:border-white/5" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}`}
+              className={`flex-1 rounded-xl py-2 text-xs font-black transition-all ${selectionMode === "circle" ? "bg-cyan-100 text-cyan-700 shadow-sm ring-1 ring-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-100 dark:ring-cyan-400/25" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"}`}
             >
-              RAIO
+              {t.modeRadius}
             </button>
             <button
               onClick={() => onSelectionModeChange("polygon")}
-              className={`flex-1 text-[10px] font-bold py-2 rounded-lg transition-all ${selectionMode === "polygon" ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-md border border-slate-200 dark:border-white/5" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}`}
+              className={`flex-1 rounded-xl py-2 text-xs font-black transition-all ${selectionMode === "polygon" ? "bg-cyan-100 text-cyan-700 shadow-sm ring-1 ring-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-100 dark:ring-cyan-400/25" : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"}`}
             >
-              POLIGONO
+              {t.modePolygon}
             </button>
             <button
               onClick={() => onSelectionModeChange("measure")}
-              className={`flex-none px-3 py-2 rounded-lg transition-all ${selectionMode === "measure" ? "bg-emerald-500 dark:bg-emerald-600 text-white shadow-md shadow-emerald-500/20" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}`}
-              title="Modo Perfil"
+              className={`flex-none rounded-xl px-3 py-2 transition-all ${selectionMode === "measure" ? "bg-cyan-100 text-cyan-700 shadow-sm ring-1 ring-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-100 dark:ring-cyan-400/25" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"}`}
+              title={t.modeProfileTitle}
             >
               <TrendingUp size={14} />
             </button>
@@ -149,20 +154,22 @@ export function SidebarSelectionControls({
             className="space-y-4"
           >
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
-                Raio da Regiao
+              <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300">
+                {t.regionRadius}
               </label>
-              <div className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-white/5 px-2.5 py-1 rounded-lg shadow-sm">
-                <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
+              <div className="rounded-xl border border-sky-200 bg-white px-2.5 py-1 shadow-sm dark:border-white/10 dark:bg-white/5">
+                <span className="text-xs font-mono font-bold text-cyan-700 dark:text-cyan-300">
                   {radius}
                 </span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1">METROS</span>
+                <span className="ml-1 text-xs text-slate-500 dark:text-slate-400">
+                  {t.meters}
+                </span>
               </div>
             </div>
             <div className="relative pt-1">
               <input
                 type="range"
-                aria-label="Raio da regiao"
+                aria-label="Raio da região"
                 min={MIN_RADIUS}
                 max={MAX_RADIUS}
                 step={10}
@@ -170,9 +177,9 @@ export function SidebarSelectionControls({
                 onMouseDown={saveSnapshot}
                 onTouchStart={saveSnapshot}
                 onChange={(e) => onRadiusChange(parseInt(e.target.value, 10))}
-                className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-600 dark:hover:accent-blue-400 shadow-inner"
+                className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-600 hover:accent-cyan-500 dark:hover:accent-cyan-400 shadow-inner"
               />
-              <div className="flex justify-between mt-2 text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+              <div className="flex justify-between mt-2 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
                 <span>{MIN_RADIUS}m</span>
                 <span>{MAX_RADIUS}m</span>
               </div>
@@ -181,7 +188,7 @@ export function SidebarSelectionControls({
         )}
       </div>
 
-      <div className="h-px bg-white/5 mx-2"></div>
+      <div className="mx-1 h-px bg-slate-200 dark:bg-white/10"></div>
 
       {/* Action Button */}
       <div>
@@ -194,21 +201,21 @@ export function SidebarSelectionControls({
           }
           className={`group w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-black text-xs tracking-widest uppercase transition-all shadow-xl ${
             isProcessing || (selectionMode === "polygon" && !isPolygonValid)
-              ? "bg-slate-200/50 dark:bg-slate-800/50 backdrop-blur-md text-slate-400 dark:text-slate-600 cursor-not-allowed border border-slate-300/50 dark:border-white/5"
-              : "bg-gradient-to-r from-blue-600 to-indigo-600 shadow-blue-500/20 text-white hover:shadow-blue-500/40"
+              ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-600"
+              : "border border-blue-400/20 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white shadow-[0_18px_36px_rgba(79,70,229,0.28)] hover:brightness-110 dark:border-cyan-200/20"
           }`}
         >
           {isProcessing ? (
             <>
               <Loader2 className="animate-spin" size={18} />
-              PROCESSANDO...
+              {t.btnProcessing}
             </>
           ) : (
             <>
-              <div className="p-1 rounded bg-white/10 group-hover:rotate-12 transition-transform">
+              <div className="rounded bg-white/10 p-1 transition-transform group-hover:rotate-12">
                 <TrendingUp size={16} />
               </div>
-              ANALISAR REGIAO
+              {t.btnAnalyzeRegion}
             </>
           )}
         </motion.button>
@@ -218,8 +225,8 @@ export function SidebarSelectionControls({
             tone={isPolygonValid ? "default" : "error"}
             message={
               isPolygonValid
-                ? "Poligono pronto para análise."
-                : "Desenhe ao menos 3 pontos válidos para habilitar a análise da área."
+                ? t.polygonReady
+                : t.polygonInvalid
             }
           />
         )}

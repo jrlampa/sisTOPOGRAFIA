@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { isPointInPolygon } from '../utils/btNormalization';
 import type { BtTopology } from '../types';
 import { findTransformerConflictsWithoutSectioning } from '../utils/btCalculations';
 import type { ToastType } from '../components/Toast';
@@ -24,6 +25,10 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
   const [btEdgeFlyToTarget, setBtEdgeFlyToTarget] = useState<FlyToTarget | null>(null);
   const [btPoleFlyToTarget, setBtPoleFlyToTarget] = useState<FlyToTarget | null>(null);
   const [btTransformerFlyToTarget, setBtTransformerFlyToTarget] = useState<FlyToTarget | null>(null);
+  const [selectedPoleId, setSelectedPoleId] = useState<string>("");
+  const [selectedPoleIds, setSelectedPoleIds] = useState<string[]>([]);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string>("");
+  const [selectedTransformerId, setSelectedTransformerId] = useState<string>("");
   const lastTransformerConflictSignatureRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -34,8 +39,8 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
     }
 
     const signature = conflictGroups
-      .map((group) => group.transformerIds.join(','))
-      .sort((a, b) => a.localeCompare(b))
+      .map((group: any) => group.transformerIds.join(','))
+      .sort((a: string, b: string) => a.localeCompare(b))
       .join('|');
 
     if (signature === lastTransformerConflictSignatureRef.current) {
@@ -46,7 +51,7 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
 
     const firstConflict = conflictGroups[0];
     const transformerLabels = firstConflict.transformerIds
-      .map((transformerId) => btTopology.transformers.find((item) => item.id === transformerId)?.title ?? transformerId)
+      .map((transformerId: string) => btTopology.transformers.find((item) => item.id === transformerId)?.title ?? transformerId)
       .join(', ');
     const extraConflictLabel = conflictGroups.length > 1
       ? ` Há mais ${conflictGroups.length - 1} rede(s) BT em conflito.`
@@ -70,13 +75,32 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
       return;
     }
 
+    setSelectedEdgeId(edgeId);
     setBtEdgeFlyToTarget(buildFlyToTarget((fromPole.lat + toPole.lat) / 2, (fromPole.lng + toPole.lng) / 2));
   };
 
-  const handleBtSelectedPoleChange = (poleId: string) => {
+  const handleBtSelectedPoleChange = (poleId: string, isShiftSelect?: boolean) => {
     const pole = btTopology.poles.find((candidate) => candidate.id === poleId);
     if (!pole) {
       return;
+    }
+
+    if (isShiftSelect) {
+      setSelectedPoleIds((prev) => {
+        const next = prev.includes(poleId)
+          ? prev.filter((id) => id !== poleId)
+          : [...prev, poleId];
+        
+        if (next.length === 1) {
+          setSelectedPoleId(next[0]);
+        } else {
+          setSelectedPoleId("");
+        }
+        return next;
+      });
+    } else {
+      setSelectedPoleIds([poleId]);
+      setSelectedPoleId(poleId);
     }
 
     setBtPoleFlyToTarget(buildFlyToTarget(pole.lat, pole.lng));
@@ -88,15 +112,39 @@ export function useBtNavigationState({ btTopology, showToast }: UseBtNavigationS
       return;
     }
 
+    setSelectedTransformerId(transformerId);
     setBtTransformerFlyToTarget(buildFlyToTarget(transformer.lat, transformer.lng));
+  };
+
+  const handleSelectAllInPolygon = (polygon: Array<{ lat: number; lng: number }>) => {
+    const insidePoles = btTopology.poles.filter(pole => isPointInPolygon(pole, polygon));
+    const ids = insidePoles.map(p => p.id);
+    setSelectedPoleIds(ids);
+    if (ids.length > 0) {
+      showToast(`${ids.length} ativos selecionados via laço.`, "info");
+      if (ids.length === 1) {
+        setSelectedPoleId(ids[0]);
+      } else {
+        setSelectedPoleId("");
+      }
+    }
   };
 
   return {
     btEdgeFlyToTarget,
     btPoleFlyToTarget,
     btTransformerFlyToTarget,
+    selectedPoleId,
+    selectedPoleIds,
+    selectedEdgeId,
+    selectedTransformerId,
     handleBtSelectedEdgeChange,
     handleBtSelectedPoleChange,
     handleBtSelectedTransformerChange,
+    handleSelectAllInPolygon,
+    setSelectedPoleId,
+    setSelectedPoleIds,
+    setSelectedEdgeId,
+    setSelectedTransformerId,
   };
 }

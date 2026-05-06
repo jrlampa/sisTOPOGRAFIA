@@ -1,56 +1,58 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GlobalState, BtTopology } from "../types";
 import type {
   BtPoleAccumulatedDemand,
   BtTransformerEstimatedDemand,
   BtSectioningImpact,
   BtClandestinoDisplay,
-  BtTransformerDerived,
-  BtDerivedSummary,
 } from "../services/btDerivedService";
 import { fetchBtDerivedState } from "../services/btDerivedService";
-import {
-  CURRENT_TO_DEMAND_CONVERSION,
-  DEFAULT_TEMPERATURE_FACTOR,
-  EMPTY_BT_TOPOLOGY,
-} from "../constants/btPhysicalConstants";
-import {
-  LEGACY_ID_ENTROPY,
-  ENTITY_ID_PREFIXES,
-} from "../constants/magicNumbers";
-
-interface UseBtDerivedStateParams {
-  appState: GlobalState;
-  setAppState: (nextState: GlobalState, commit: boolean) => void;
-}
+import type { BtTransformerDerived } from "../services/btDerivedService";
 
 const EMPTY_SECTIONING_IMPACT: BtSectioningImpact = {
   unservedPoleIds: [],
   unservedClients: 0,
-  estimatedDemandKw: 0,
+  estimatedDemandKva: 0,
   loadCenter: null,
   suggestedPoleId: null,
 };
 
 const EMPTY_CLANDESTINO_DISPLAY: BtClandestinoDisplay = {
-  demandKw: 0,
+  demandKva: null,
   areaMin: 0,
   areaMax: 0,
-  demandKva: null,
+  baseDemandKva: null,
   diversificationFactor: null,
   finalDemandKva: 0,
 };
 
-export function useBtDerivedState({
-  appState,
-  setAppState,
-}: UseBtDerivedStateParams) {
+type Params = {
+  appState: GlobalState;
+  setAppState: (
+    state: GlobalState | ((prev: GlobalState) => GlobalState),
+    addToHistory: boolean,
+  ) => void;
+};
+
+export function useBtDerivedState({ appState }: Params) {
+  const btTopology = appState.btTopology;
+  const settings = appState.settings;
+
+  const [isCalculating, setIsCalculating] = useState(false);
   const [btAccumulatedByPole, setBtAccumulatedByPole] = useState<
     BtPoleAccumulatedDemand[]
   >([]);
   const [btEstimatedByTransformer, setBtEstimatedByTransformer] = useState<
     BtTransformerEstimatedDemand[]
   >([]);
+  const [btSummary, setBtSummary] = useState({
+    poles: 0,
+    transformers: 0,
+    edges: 0,
+    totalLengthMeters: 0,
+    transformerDemandKva: 0,
+  });
+  const [btPointDemandKva, setBtPointDemandKva] = useState(0);
   const [btSectioningImpact, setBtSectioningImpact] =
     useState<BtSectioningImpact>(EMPTY_SECTIONING_IMPACT);
   const [btClandestinoDisplay, setBtClandestinoDisplay] =
@@ -58,190 +60,75 @@ export function useBtDerivedState({
   const [btTransformersDerived, setBtTransformersDerived] = useState<
     BtTransformerDerived[]
   >([]);
-  const [btSummary, setBtSummary] = useState<BtDerivedSummary>({
-    poles: 0,
-    transformers: 0,
-    edges: 0,
-    totalLengthMeters: 0,
-    transformerDemandKw: 0,
-  });
-  const [btPointDemandKva, setBtPointDemandKva] = useState(0);
-
-  // Keep a ref so the transformer-sync effect always spreads the latest appState
-  // without needing it as a reactive dependency (avoids firing on every state change).
-  const appStateRef = useRef(appState);
-  appStateRef.current = appState;
-
-  const btTopology = appState.btTopology ?? EMPTY_BT_TOPOLOGY;
-  const settings = appState.settings;
 
   useEffect(() => {
     let active = true;
+    setIsCalculating(true);
 
-    fetchBtDerivedState({
-      topology: btTopology as BtTopology,
-      projectType: settings.projectType ?? "ramais",
-      clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
-    })
-      .then((payload) => {
-        if (!active) {
-          return;
-        }
-        setBtAccumulatedByPole(payload.accumulatedByPole);
-        setBtEstimatedByTransformer(payload.estimatedByTransformer);
-        setBtSummary(payload.summary);
-        setBtPointDemandKva(payload.pointDemandKva);
-        setBtSectioningImpact(
-          payload.sectioningImpact ?? EMPTY_SECTIONING_IMPACT,
-        );
-        setBtClandestinoDisplay(
-          payload.clandestinoDisplay ?? EMPTY_CLANDESTINO_DISPLAY,
-        );
-        setBtTransformersDerived(payload.transformersDerived ?? []);
+    // Debounce: aguarda 300ms de inatividade na topologia antes de disparar o motor de cálculo
+    const timer = setTimeout(() => {
+      fetchBtDerivedState({
+        topology: btTopology as BtTopology,
+        projectType: settings.projectType ?? "ramais",
+        clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
       })
-      .catch(() => {
-        // On error, keep previous values (no silent local fallback).
-      });
+        .then((payload) => {
+          if (!active) {
+            return;
+          }
+          setBtAccumulatedByPole(payload.accumulatedByPole);
+          setBtEstimatedByTransformer(payload.estimatedByTransformer);
+          setBtSummary(payload.summary);
+          setBtPointDemandKva(payload.pointDemandKva);
+          setBtSectioningImpact(
+            payload.sectioningImpact ?? EMPTY_SECTIONING_IMPACT,
+          );
+          setBtClandestinoDisplay(
+            payload.clandestinoDisplay ?? EMPTY_CLANDESTINO_DISPLAY,
+          );
+          setBtTransformersDerived(payload.transformersDerived ?? []);
+          setIsCalculating(false);
+        })
+        .catch(() => {
+          setIsCalculating(false);
+        });
+    }, 300);
 
     return () => {
       active = false;
+      clearTimeout(timer);
     };
   }, [btTopology, settings.projectType, settings.clandestinoAreaM2]);
 
-  const btTransformerDebugById = useMemo(
-    () =>
-      Object.fromEntries(
-        btEstimatedByTransformer.map((entry) => [
-          entry.transformerId,
-          {
-            assignedClients: entry.assignedClients,
-            estimatedDemandKw: entry.estimatedDemandKw,
-          },
-        ]),
-      ) as Record<
-        string,
-        { assignedClients: number; estimatedDemandKw: number }
-      >,
-    [btEstimatedByTransformer],
-  );
-
-  const btCriticalPoleId = btAccumulatedByPole[0]?.poleId ?? null;
-
-  useEffect(() => {
-    if (
-      (settings.btTransformerCalculationMode ?? "automatic") !== "automatic"
-    ) {
-      return;
-    }
-
-    if (btTopology.transformers.length === 0) {
-      return;
-    }
-
-    const estimatedByTransformerId = new Map(
-      btEstimatedByTransformer.map((entry) => [
-        entry.transformerId,
-        entry.estimatedDemandKw,
-      ]),
-    );
-
-    let hasChanges = false;
-    const nextTransformers = btTopology.transformers.map((transformer) => {
-      const rawEstimatedDemandKw = Number(
-        (estimatedByTransformerId.get(transformer.id) ?? 0).toFixed(2),
-      );
-      const fallbackDemandKw = Number((transformer.demandKw ?? 0).toFixed(2));
-      // Keep previous demand when estimate is zero/non-finite to avoid wiping valid values.
-      const estimatedDemandKw =
-        Number.isFinite(rawEstimatedDemandKw) && rawEstimatedDemandKw > 0
-          ? rawEstimatedDemandKw
-          : fallbackDemandKw;
-      const hasReadings = transformer.readings.length > 0;
-      const isAutoReading =
-        hasReadings &&
-        transformer.readings.every(
-          (reading) => reading.autoCalculated === true,
-        );
-
-      if (hasReadings && !isAutoReading) {
-        return transformer;
-      }
-
-      if (!isAutoReading) {
-        if (Math.abs((transformer.demandKw ?? 0) - estimatedDemandKw) < 0.01) {
-          return transformer;
-        }
-
-        hasChanges = true;
-        return {
-          ...transformer,
-          demandKw: estimatedDemandKw,
-        };
-      }
-
-      const baseReading = transformer.readings[0] ?? {
-        id: `${ENTITY_ID_PREFIXES.REGULATOR}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`,
-        currentMaxA: 0,
-        temperatureFactor: DEFAULT_TEMPERATURE_FACTOR,
-        autoCalculated: true,
+  const btTransformerDebugById = useMemo(() => {
+    const map: Record<
+      string,
+      { assignedClients: number; estimatedDemandKva: number }
+    > = {};
+    for (const item of btEstimatedByTransformer) {
+      map[item.transformerId] = {
+        assignedClients: item.assignedClients,
+        estimatedDemandKva: item.estimatedDemandKva,
       };
-      const temperatureFactor =
-        (baseReading.temperatureFactor ?? DEFAULT_TEMPERATURE_FACTOR) > 0
-          ? (baseReading.temperatureFactor ?? DEFAULT_TEMPERATURE_FACTOR)
-          : DEFAULT_TEMPERATURE_FACTOR;
-      const inferredCurrent =
-        Math.round(
-          (estimatedDemandKw /
-            (CURRENT_TO_DEMAND_CONVERSION * temperatureFactor)) *
-            100,
-        ) / 100;
-
-      const previousCurrent = baseReading.currentMaxA ?? 0;
-      const previousDemand = transformer.demandKw ?? 0;
-      if (
-        Math.abs(previousCurrent - inferredCurrent) < 0.01 &&
-        Math.abs(previousDemand - estimatedDemandKw) < 0.01
-      ) {
-        return transformer;
-      }
-
-      hasChanges = true;
-      return {
-        ...transformer,
-        demandKw: estimatedDemandKw,
-        readings: [
-          {
-            ...baseReading,
-            currentMaxA: inferredCurrent,
-            temperatureFactor,
-            autoCalculated: true,
-          },
-        ],
-      };
-    });
-
-    if (!hasChanges) {
-      return;
     }
+    return map;
+  }, [btEstimatedByTransformer]);
 
-    setAppState(
-      {
-        ...appStateRef.current,
-        btTopology: {
-          ...btTopology,
-          transformers: nextTransformers,
-        } as BtTopology,
-      },
-      false,
+  const btCriticalPoleId = useMemo(() => {
+    // Find the pole with the highest dvAccumPercent
+    if (btAccumulatedByPole.length === 0) return null;
+    const sorted = [...btAccumulatedByPole].sort(
+      (a, b) => (b.dvAccumPercent ?? 0) - (a.dvAccumPercent ?? 0),
     );
-  }, [
-    btEstimatedByTransformer,
-    btTopology,
-    setAppState,
-    settings.btTransformerCalculationMode,
-  ]);
+    // Only consider it critical if it's over 7%
+    if (sorted[0].dvAccumPercent && sorted[0].dvAccumPercent > 7) {
+      return sorted[0].poleId;
+    }
+    return null;
+  }, [btAccumulatedByPole]);
 
   return {
+    isCalculating,
     btAccumulatedByPole,
     btEstimatedByTransformer,
     btTransformerDebugById,

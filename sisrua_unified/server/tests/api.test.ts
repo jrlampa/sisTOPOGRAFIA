@@ -1,10 +1,11 @@
+import { vi } from "vitest";
 import request from 'supertest';
 import express from 'express';
 import cors from 'cors';
 
 // Mock the pythonBridge module before importing the app
-jest.mock('../pythonBridge', () => ({
-  generateDXF: jest.fn()
+vi.mock('../pythonBridge', () => ({
+  generateDXF: vi.fn()
 }));
 
 describe('API Endpoints', () => {
@@ -91,3 +92,4 @@ describe('API Endpoints', () => {
     });
   });
 });
+

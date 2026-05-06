@@ -92,7 +92,7 @@ export const swaggerPaths = {
       }
     }
   },
-  '/api/batch/dxf': {
+  '/api/dxf/batch': {
     post: {
       summary: 'Batch DXF generation via CSV',
       requestBody: {
@@ -102,9 +102,9 @@ export const swaggerPaths = {
             schema: {
               type: 'object',
               properties: {
-                file: { type: 'string', format: 'binary' }
+                csv: { type: 'string', format: 'binary' }
               },
-              required: ['file']
+              required: ['csv']
             }
           }
         }

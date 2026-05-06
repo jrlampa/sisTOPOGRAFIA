@@ -1,17 +1,18 @@
+import { vi } from "vitest";
 describe('cacheService proactive cleanup', () => {
   const originalEnv = process.env;
 
   afterEach(() => {
     process.env = originalEnv;
-    jest.resetModules();
-    jest.useRealTimers();
+    vi.resetModules();
+    vi.useRealTimers();
   });
 
   it('purges expired entries periodically and updates cache size metric', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
-    const recordCacheOperation = jest.fn();
-    const recordCacheSize = jest.fn();
+    const recordCacheOperation = vi.fn();
+    const recordCacheSize = vi.fn();
 
     process.env = {
       ...originalEnv,
@@ -19,13 +20,13 @@ describe('cacheService proactive cleanup', () => {
       JEST_WORKER_ID: undefined,
     } as NodeJS.ProcessEnv;
 
-    jest.doMock('../config', () => ({
+    vi.doMock('../config', () => ({
       config: {
         CACHE_TTL_MS: 1000,
       },
     }));
 
-    jest.doMock('../services/metricsService', () => ({
+    vi.doMock('../services/metricsService', () => ({
       metricsService: {
         recordCacheOperation,
         recordCacheSize,
@@ -42,7 +43,7 @@ describe('cacheService proactive cleanup', () => {
     expect(recordCacheSize).toHaveBeenCalledWith(1);
 
     // The internal proactive cleanup interval runs every 60 seconds.
-    jest.advanceTimersByTime(61000);
+    vi.advanceTimersByTime(61000);
 
     expect(recordCacheOperation).toHaveBeenCalledWith('delete');
     expect(recordCacheSize).toHaveBeenLastCalledWith(0);
@@ -51,3 +52,4 @@ describe('cacheService proactive cleanup', () => {
     stopCacheCleanup();
   });
 });
+

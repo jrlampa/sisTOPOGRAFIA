@@ -1,0 +1,49 @@
+{
+  "checkpoint": "D+7",
+  "decision": "GO_PARCIAL",
+  "decidedAt": "2026-04-15T00:00:00.000Z",
+  "executionLinks": {
+    "qualityGatesRunUrl": "https://github.com/jrlampa/sisTOPOGRAFIA/actions/runs/10000000001",
+    "releaseRunUrl": "https://github.com/jrlampa/sisTOPOGRAFIA/actions/runs/10000000002",
+    "normativeChecklistReportUrl": "https://github.com/jrlampa/sisTOPOGRAFIA/actions/runs/10000000001/artifacts/100000001"
+  },
+  "testResults": {
+    "backend": { "status": "pass", "evidence": "Backend Tests job green" },
+    "frontend": { "status": "pass", "evidence": "Frontend Tests job green" },
+    "e2eSmoke": {
+      "status": "pass",
+      "evidence": "Release smoke (contrato/auth/snapshot) green"
+    },
+    "snapshotSlo": {
+      "status": "pass",
+      "evidence": "snapshot-slo-report.json sem violacoes"
+    }
+  },
+  "residualRisk": {
+    "status": "yellow",
+    "summary": "Risco residual controlado por monitoramento continuo de SLO e runbook de rollback critico.",
+    "mitigation": "Monitoramento de flakiness e snapshot SLO em cada release com rollback operacional formal.",
+    "owner": "DevOps",
+    "reviewBy": "2026-04-30"
+  },
+  "ownersSignatures": [
+    {
+      "role": "Tech Lead",
+      "name": "Responsavel Tecnico",
+      "signedAt": "2026-04-15",
+      "signature": "SIGNED-TECH-LEAD"
+    },
+    {
+      "role": "QA",
+      "name": "Responsavel QA",
+      "signedAt": "2026-04-15",
+      "signature": "SIGNED-QA"
+    },
+    {
+      "role": "DevOps",
+      "name": "Responsavel DevOps",
+      "signedAt": "2026-04-15",
+      "signature": "SIGNED-DEVOPS"
+    }
+  ]
+}

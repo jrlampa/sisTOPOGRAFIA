@@ -1,136 +1,127 @@
-import React from "react";
+import React, { useState, useMemo, useId, useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
-  Marker,
-  Pane,
-  Circle,
-  CircleMarker,
   useMapEvents,
-  GeoJSON,
-  Polygon,
   Polyline,
-  Popup,
-  Tooltip,
+  Marker,
+  Circle,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { GeoJsonObject, FeatureCollection } from "geojson";
+import { GeoJsonObject } from "geojson";
+import SelectionManager from "./MapSelectorSelectionManager";
+import MapSelectorEdgesLayer from "./MapSelectorEdgesLayer";
+import MapSelectorPolesLayer from "./MapLayers/MapSelectorPolesLayer";
+import MapSelectorTransformersLayer from "./MapLayers/MapSelectorTransformersLayer";
+import MapSelectorMtEdgesLayer from "./MapLayers/MapSelectorMtEdgesLayer";
+import MapSelectorMtPolesLayer from "./MapLayers/MapSelectorMtPolesLayer";
+import MapSelectorDgOverlay from "./MapLayers/MapSelectorDgOverlay";
+import MapMtRouterOverlay from "./MapLayers/MapMtRouterOverlay";
 import {
   BtEditorMode,
-  BtEdge,
-  BtPoleNode,
   BtRamalEntry,
-  BtTopology,
-  BtTransformer,
+  MtEditorMode,
   SelectionMode,
   GeoLocation,
+  AppLocale,
+  LayerConfig,
+  OsmElement,
+  AppTheme,
 } from "../types";
-import type { BtPoleAccumulatedDemand } from "../services/btDerivedService";
-import { Minus, Plus, Trash2, Triangle } from "lucide-react";
 import {
-  LEGACY_ID_ENTROPY,
-  ENTITY_ID_PREFIXES,
-} from "../constants/magicNumbers";
+  MapBtPole,
+  MapBtTopology,
+  MapMtTopology,
+} from "../types.map";
+import { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
+import { DgScenario } from "../hooks/useDgOptimization";
+import type { MtRouterState, MtLatLon } from "../hooks/useMtRouter";
+import { DefaultIcon } from "./MapSelectorStyles";
+import { applyOrthoSnap, applyRoadSnap } from "../utils/smartSnapping";
 
-const CONDUCTOR_OPTIONS = [
-  "70 Al - MX",
-  "185 Al - MX",
-  "240 Al - MX",
-  "25 Al - Arm",
-  "50 Al - Arm",
-  "95 Al - Arm",
-  "150 Al - Arm",
-  "240 Al - Arm",
-  "25 Al",
-  "35 Cu",
-  "70 Cu",
-  "95 Al",
-  "120 Cu",
-  "240 Al",
-  "240 Cu",
-  "500 Cu",
-  "10 Cu_CONC_bi",
-  "10 Cu_CONC_Tri",
-  "16 Al_CONC_bi",
-  "16 Al_CONC_Tri",
-  "13 Al - DX",
-  "13 Al - TX",
-  "13 Al - QX",
-  "21 Al - QX",
-  "53 Al - QX",
-  "6 AWG",
-  "2 AWG",
-  "1/0 AWG",
-  "3/0 AWG",
-  "4/0 AWG",
-];
-
-const EDGE_HIT_AREA_WEIGHT = 28;
-const LEAFLET_ICON_BASE_URL = import.meta.env.BASE_URL;
-const POPUP_SELECT_CLASS =
-  "w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[11px] text-slate-700";
-const POPUP_TOOLBAR_CLASS = "mt-1.5 flex items-center gap-2";
-const POPUP_FLAG_GRID_CLASS = "mt-1.5 grid grid-cols-2 gap-1.5";
-
-const getFlagButtonClass = (
-  isActive: boolean,
-  variant: "existing" | "new" | "replace" | "remove",
-) => {
-  const baseClass =
-    "h-6 rounded border bg-white text-[10px] font-bold transition-colors";
-
-  if (variant === "new") {
-    return `${baseClass} border-green-500 text-green-700 ${isActive ? "bg-green-100" : "hover:bg-green-50"}`;
-  }
-
-  if (variant === "replace") {
-    return `${baseClass} border-yellow-400 text-yellow-700 ${isActive ? "bg-yellow-100" : "hover:bg-yellow-50"}`;
-  }
-
-  if (variant === "remove") {
-    return `${baseClass} border-red-500 text-red-700 ${isActive ? "bg-red-100" : "hover:bg-red-50"}`;
-  }
-
-  return `${baseClass} border-fuchsia-500 text-fuchsia-700 ${isActive ? "bg-fuchsia-100" : "hover:bg-fuchsia-50"}`;
-};
-
-const getIconActionButtonClass = (
-  variant: "danger" | "sky" | "slate" | "violet",
-  active = false,
-) => {
-  const baseClass =
-    "inline-flex h-6 w-7 items-center justify-center rounded border transition-colors";
-
-  if (variant === "danger") {
-    return `${baseClass} border-red-500 text-red-500 ${active ? "bg-red-100" : "bg-red-500/10 hover:bg-red-100"}`;
-  }
-
-  if (variant === "sky") {
-    return `${baseClass} border-sky-500 text-sky-600 bg-sky-500/10 hover:bg-sky-100`;
-  }
-
-  if (variant === "violet") {
-    return `${baseClass} ${active ? "border-violet-700 text-violet-700 bg-violet-100" : "border-slate-500 text-slate-600 bg-slate-100 hover:bg-slate-200"}`;
-  }
-
-  return `${baseClass} border-slate-500 text-slate-700 bg-slate-100 hover:bg-slate-200`;
-};
-
-// Fix for default marker icon in React Leaflet
-// We need to set the marker icon paths because Leaflet doesn't handle them well in bundled apps.
-// Using public/ static resources to avoid external CDN dependency and improve CSP compliance.
-const DefaultIcon = L.icon({
-  iconRetinaUrl: `${LEAFLET_ICON_BASE_URL}marker-icon-2x.png`,
-  iconUrl: `${LEAFLET_ICON_BASE_URL}marker-icon.png`,
-  shadowUrl: `${LEAFLET_ICON_BASE_URL}marker-shadow.png`,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
+// Initialize Leaflet Default Icon fix
 L.Marker.prototype.options.icon = DefaultIcon;
+
+// ─── Subcomponentes Internos para UX Dinâmica ─────────────────────────────────
+
+/**
+ * Rastreador de mouse para capturar coordenadas em tempo real no mapa.
+ */
+function MapMouseTracker({
+  onMouseMove,
+}: {
+  onMouseMove: (pos: L.LatLng) => void;
+}) {
+  useMapEvents({
+    mousemove(e) {
+      onMouseMove(e.latlng);
+    },
+  });
+  return null;
+}
+
+/**
+ * Renderiza um "Vão Fantasma" (Ghost Edge) ao iniciar uma nova conexão.
+ */
+function GhostEdge({
+  startPole,
+  mousePos,
+}: {
+  startPole: MapBtPole;
+  mousePos: L.LatLng;
+}) {
+  const distance = L.latLng(startPole.lat, startPole.lng).distanceTo(mousePos);
+  const color =
+    distance > 40 ? "#ef4444" : distance > 30 ? "#f59e0b" : "#3b82f6";
+
+  return (
+    <>
+      <Polyline
+        positions={[
+          [startPole.lat, startPole.lng],
+          [mousePos.lat, mousePos.lng],
+        ]}
+        pathOptions={{ color, weight: 2, dashArray: "5 10", opacity: 0.6 }}
+      />
+      <Marker
+        position={[
+          (startPole.lat + mousePos.lat) / 2,
+          (startPole.lng + mousePos.lng) / 2,
+        ]}
+        icon={L.divIcon({
+          className: "ghost-edge-label",
+          html: `<div class="px-2 py-0.5 rounded-full bg-white/90 border border-slate-200 shadow-md text-[10px] font-black whitespace-nowrap" style="color: ${color}; transform: translateY(-10px);">${distance.toFixed(1)}m</div>`,
+          iconSize: [0, 0],
+        })}
+        interactive={false}
+      />
+      <Circle
+        center={[startPole.lat, startPole.lng]}
+        radius={30}
+        pathOptions={{
+          color: "#3b82f6",
+          weight: 1,
+          fillOpacity: 0.02,
+          interactive: false,
+        }}
+      />
+      <Circle
+        center={[startPole.lat, startPole.lng]}
+        radius={40}
+        pathOptions={{
+          color: "#f59e0b",
+          weight: 1,
+          fillOpacity: 0.01,
+          dashArray: "5 5",
+          interactive: false,
+        }}
+      />
+    </>
+  );
+}
+
+// ─── Componente Principal ─────────────────────────────────────────────────────
 
 interface MapSelectorProps {
   center: { lat: number; lng: number; label?: string };
@@ -146,9 +137,10 @@ interface MapSelectorProps {
     label?: string;
   }) => void;
   onPolygonChange: (points: [number, number][]) => void;
-  measurePath?: [number, number][]; // optional for now
+  measurePath?: [number, number][];
   onMeasurePathChange?: (path: [number, number][]) => void;
-  btTopology?: BtTopology;
+  btMarkerTopology?: MapBtTopology;
+  btPopupTopology?: MapBtTopology;
   btEditorMode?: BtEditorMode;
   pendingBtEdgeStartPoleId?: string | null;
   onBtMapClick?: (location: {
@@ -156,6 +148,10 @@ interface MapSelectorProps {
     lng: number;
     label?: string;
   }) => void;
+  onBtContextAction?: (
+    action: "add-edge" | "add-transformer" | "add-pole",
+    location: GeoLocation,
+  ) => void;
   onBtDeletePole?: (id: string) => void;
   onBtDeleteEdge?: (id: string) => void;
   onBtSetEdgeChangeFlag?: (
@@ -197,337 +193,50 @@ interface MapSelectorProps {
     lat: number,
     lng: number,
   ) => void;
+  onBtSelectPole?: (poleId: string, isShiftSelect?: boolean) => void;
   criticalPoleId?: string | null;
   accumulatedByPole?: BtPoleAccumulatedDemand[];
+  loadCenterPoleId?: string | null;
   onKmlDrop?: (file: File) => void;
   mapStyle?: string;
   onMapStyleChange?: (style: string) => void;
   showAnalysis?: boolean;
   geojson?: GeoJsonObject | null;
+  keyboardPanEnabled?: boolean;
+  mtMarkerTopology?: MapMtTopology;
+  mtPopupTopology?: MapMtTopology;
+  mtEditorMode?: MtEditorMode;
+  onMtMapClick?: (location: GeoLocation) => void;
+  onMtContextAction?: (
+    action: "add-pole" | "add-edge",
+    location: GeoLocation,
+  ) => void;
+  onMtDeletePole?: (id: string) => void;
+  onMtDeleteEdge?: (id: string) => void;
+  onMtRenamePole?: (poleId: string, title: string) => void;
+  onMtSetPoleVerified?: (poleId: string, verified: boolean) => void;
+  onMtDragPole?: (poleId: string, lat: number, lng: number) => void;
+  onMtSetPoleChangeFlag?: (
+    poleId: string,
+    flag: "existing" | "new" | "remove" | "replace",
+  ) => void;
+  onMtSetEdgeChangeFlag?: (
+    edgeId: string,
+    flag: "existing" | "new" | "remove" | "replace",
+  ) => void;
+  /** Cenário DG ativo para sobreposição visual no mapa. */
+  dgScenario?: DgScenario | null;
+  /** Ativa o Ghost Mode (esmaece a rede original) para contraste visual do cenário DG. */
+  dgGhostMode?: boolean;
+  /** Estado do MT Router para overlay interativo no mapa. */
+  mtRouterState?: MtRouterState | null;
+  onMtRouterMapClick?: (pos: MtLatLon) => void;
+  onBoxSelect?: (bounds: L.LatLngBounds) => void;
+  osmData?: OsmElement[] | null;
+  locale: AppLocale;
+  layerConfig?: LayerConfig;
+  theme?: AppTheme;
 }
-
-type BtEdgeChangeFlag = NonNullable<BtEdge["edgeChangeFlag"]>;
-type BtPoleChangeFlag = NonNullable<BtPoleNode["nodeChangeFlag"]>;
-type BtTransformerChangeFlag = NonNullable<
-  BtTransformer["transformerChangeFlag"]
->;
-
-const getEdgeChangeFlag = (edge: BtEdge): BtEdgeChangeFlag => {
-  if (edge.edgeChangeFlag) {
-    return edge.edgeChangeFlag;
-  }
-
-  return edge.removeOnExecution ? "remove" : "existing";
-};
-
-const getEdgeVisualConfig = (edge: BtEdge) => {
-  const flag = getEdgeChangeFlag(edge);
-
-  if (flag === "new") {
-    return { color: "#22c55e", dashArray: "8 6", weight: 3 };
-  }
-
-  if (flag === "remove") {
-    return { color: "#ef4444", dashArray: "8 6", weight: 3 };
-  }
-
-  if (flag === "replace") {
-    return {
-      color: "#facc15",
-      dashArray: undefined as string | undefined,
-      weight: 3,
-    };
-  }
-
-  return {
-    color: "#d946ef",
-    dashArray: undefined as string | undefined,
-    weight: 3,
-  };
-};
-
-const getPoleChangeFlag = (pole: BtPoleNode): BtPoleChangeFlag =>
-  pole.nodeChangeFlag ?? "existing";
-const getTransformerChangeFlag = (
-  transformer: BtTransformer,
-): BtTransformerChangeFlag => transformer.transformerChangeFlag ?? "existing";
-
-const getFlagColor = (
-  flag: "existing" | "new" | "remove" | "replace",
-  fallback: string,
-) => {
-  if (flag === "new") return "#22c55e";
-  if (flag === "remove") return "#ef4444";
-  if (flag === "replace") return "#facc15";
-  return fallback;
-};
-
-interface SelectionManagerProps {
-  center: GeoLocation;
-  flyToEdgeTarget?: { lat: number; lng: number; token: number } | null;
-  flyToPoleTarget?: { lat: number; lng: number; token: number } | null;
-  flyToTransformerTarget?: { lat: number; lng: number; token: number } | null;
-  radius: number;
-  selectionMode: SelectionMode;
-  polygonPoints: Array<[number, number]>;
-  onLocationChange: (location: GeoLocation) => void;
-  onPolygonChange: (points: Array<[number, number]>) => void;
-  measurePath?: Array<[number, number]>;
-  onMeasurePathChange?: (path: Array<[number, number]>) => void;
-  btEditorMode?: BtEditorMode;
-  onBtMapClick?: (location: GeoLocation) => void;
-}
-
-const SelectionManager = ({
-  center,
-  flyToEdgeTarget,
-  flyToPoleTarget,
-  flyToTransformerTarget,
-  radius,
-  selectionMode,
-  polygonPoints,
-  onLocationChange,
-  onPolygonChange,
-  measurePath = [],
-  onMeasurePathChange,
-  btEditorMode = "none",
-  onBtMapClick,
-}: SelectionManagerProps) => {
-  const middlePanActiveRef = React.useRef(false);
-  const middlePanMovedRef = React.useRef(false);
-  const suppressNextClickRef = React.useRef(false);
-  const middlePanLastPointRef = React.useRef<L.Point | null>(null);
-
-  const map = useMapEvents({
-    click(e) {
-      if (suppressNextClickRef.current) {
-        suppressNextClickRef.current = false;
-        return;
-      }
-
-      if (
-        btEditorMode !== "none" &&
-        btEditorMode !== "move-pole" &&
-        onBtMapClick
-      ) {
-        onBtMapClick({
-          lat: e.latlng.lat,
-          lng: e.latlng.lng,
-          label: `BT (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
-        });
-        return;
-      }
-
-      if (selectionMode === "circle") {
-        onLocationChange({
-          lat: e.latlng.lat,
-          lng: e.latlng.lng,
-          label: `Selecionado (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`,
-        });
-      } else if (selectionMode === "polygon") {
-        onPolygonChange([...polygonPoints, [e.latlng.lat, e.latlng.lng]]);
-      } else if (selectionMode === "measure" && onMeasurePathChange) {
-        // Measure mode uses 2 points
-        if (measurePath.length >= 2) {
-          onMeasurePathChange([[e.latlng.lat, e.latlng.lng]]);
-        } else {
-          onMeasurePathChange([...measurePath, [e.latlng.lat, e.latlng.lng]]);
-        }
-      }
-    },
-    mousedown(e) {
-      if (e.originalEvent.button !== 1) {
-        return;
-      }
-
-      e.originalEvent.preventDefault();
-      middlePanActiveRef.current = true;
-      middlePanMovedRef.current = false;
-      middlePanLastPointRef.current = e.containerPoint;
-    },
-    mousemove(e) {
-      if (!middlePanActiveRef.current || !middlePanLastPointRef.current) {
-        return;
-      }
-
-      e.originalEvent.preventDefault();
-      const dx = e.containerPoint.x - middlePanLastPointRef.current.x;
-      const dy = e.containerPoint.y - middlePanLastPointRef.current.y;
-
-      if (dx !== 0 || dy !== 0) {
-        middlePanMovedRef.current = true;
-        map.panBy([-dx, -dy], { animate: false });
-        middlePanLastPointRef.current = e.containerPoint;
-      }
-    },
-    mouseup(e) {
-      if (e.originalEvent.button !== 1) {
-        return;
-      }
-
-      e.originalEvent.preventDefault();
-      middlePanActiveRef.current = false;
-      middlePanLastPointRef.current = null;
-
-      if (middlePanMovedRef.current) {
-        suppressNextClickRef.current = true;
-        middlePanMovedRef.current = false;
-      }
-    },
-  });
-
-  const flyToCenter = (target: { lat: number; lng: number }) => {
-    const next = L.latLng(target.lat, target.lng);
-    const current = map.getCenter();
-    const distance = current.distanceTo(next);
-    const zoom = map.getZoom();
-
-    if (distance < 1) {
-      map.setView(next, zoom, { animate: false });
-      return;
-    }
-
-    const duration = distance > 5000 ? 1.8 : distance > 1000 ? 1.3 : 0.9;
-    map.flyTo(next, zoom, { duration, easeLinearity: 0.2, noMoveStart: true });
-  };
-
-  // Fly to center when it changes
-  React.useEffect(() => {
-    flyToCenter(center);
-  }, [center.lat, center.lng, map]);
-
-  React.useEffect(() => {
-    if (!flyToEdgeTarget) {
-      return;
-    }
-
-    const next = L.latLng(flyToEdgeTarget.lat, flyToEdgeTarget.lng);
-    const current = map.getCenter();
-    const distance = current.distanceTo(next);
-    const zoom = map.getZoom();
-
-    if (distance < 1) {
-      map.setView(next, zoom, { animate: false });
-      return;
-    }
-
-    const duration = distance > 5000 ? 1.8 : distance > 1000 ? 1.3 : 0.9;
-    map.flyTo(next, zoom, { duration, easeLinearity: 0.2, noMoveStart: true });
-  }, [flyToEdgeTarget?.token, map]);
-
-  React.useEffect(() => {
-    if (!flyToPoleTarget) {
-      return;
-    }
-
-    const next = L.latLng(flyToPoleTarget.lat, flyToPoleTarget.lng);
-    const current = map.getCenter();
-    const distance = current.distanceTo(next);
-    const zoom = map.getZoom();
-
-    if (distance < 1) {
-      map.setView(next, zoom, { animate: false });
-      return;
-    }
-
-    const duration = distance > 5000 ? 1.8 : distance > 1000 ? 1.3 : 0.9;
-    map.flyTo(next, zoom, { duration, easeLinearity: 0.2, noMoveStart: true });
-  }, [flyToPoleTarget?.token, map]);
-
-  React.useEffect(() => {
-    if (!flyToTransformerTarget) {
-      return;
-    }
-
-    const next = L.latLng(
-      flyToTransformerTarget.lat,
-      flyToTransformerTarget.lng,
-    );
-    const current = map.getCenter();
-    const distance = current.distanceTo(next);
-    const zoom = map.getZoom();
-
-    if (distance < 1) {
-      map.setView(next, zoom, { animate: false });
-      return;
-    }
-
-    const duration = distance > 5000 ? 1.8 : distance > 1000 ? 1.3 : 0.9;
-    map.flyTo(next, zoom, { duration, easeLinearity: 0.2, noMoveStart: true });
-  }, [flyToTransformerTarget?.token, map]);
-
-  // Fix map size on mount and when window resizes
-  React.useEffect(() => {
-    const handleResize = () => {
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 100);
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-
-    return () => window.removeEventListener("resize", handleResize);
-  }, [map]);
-
-  return (
-    <>
-      {selectionMode === "circle" && (
-        <>
-          <Marker position={[center.lat, center.lng]} />
-          <Circle
-            center={[center.lat, center.lng]}
-            radius={radius}
-            pathOptions={{
-              fillColor: "#3b82f6",
-              fillOpacity: 0.1,
-              color: "#60a5fa",
-              weight: 1,
-              dashArray: "5, 5",
-            }}
-          />
-        </>
-      )}
-      {selectionMode === "polygon" && polygonPoints.length > 0 && (
-        <>
-          {polygonPoints.map((point: [number, number], i: number) => (
-            <Marker key={i} position={point} />
-          ))}
-          {polygonPoints.length > 1 && (
-            <Polyline
-              positions={polygonPoints}
-              pathOptions={{ color: "#a78bfa", weight: 2, dashArray: "5, 5" }}
-            />
-          )}
-          {polygonPoints.length > 2 && (
-            <Polygon
-              positions={polygonPoints}
-              pathOptions={{
-                fillColor: "#8b5cf6",
-                fillOpacity: 0.2,
-                color: "#a78bfa",
-                weight: 2,
-              }}
-            />
-          )}
-        </>
-      )}
-      {selectionMode === "measure" && measurePath.length > 0 && (
-        <>
-          {measurePath.map((point: [number, number], i: number) => (
-            <Marker key={`measure-${i}`} position={point} />
-          ))}
-          {measurePath.length > 1 && (
-            <Polyline
-              positions={measurePath}
-              pathOptions={{ color: "orange", weight: 4, opacity: 0.8 }}
-            />
-          )}
-        </>
-      )}
-    </>
-  );
-};
 
 const MapSelector: React.FC<MapSelectorProps> = ({
   center,
@@ -541,10 +250,12 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onPolygonChange,
   measurePath,
   onMeasurePathChange,
-  btTopology,
+  btMarkerTopology,
+  btPopupTopology,
   btEditorMode = "none",
   pendingBtEdgeStartPoleId,
   onBtMapClick,
+  onBtContextAction,
   onBtDeletePole,
   onBtDeleteEdge,
   onBtSetEdgeChangeFlag,
@@ -558,41 +269,93 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onBtSetEdgeReplacementFromConductors,
   onBtRenamePole,
   onBtRenameTransformer,
-  onBtSetPoleVerified,
+  onBtSetPoleVerified: _onBtSetPoleVerified,
   onBtSetPoleChangeFlag,
   onBtTogglePoleCircuitBreak,
   onBtSetTransformerChangeFlag,
   onBtDragPole,
   onBtDragTransformer,
+  onBtSelectPole,
   criticalPoleId,
   accumulatedByPole = [],
+  loadCenterPoleId,
   onKmlDrop,
   mapStyle = "dark",
-  onMapStyleChange,
-  showAnalysis = false,
-  geojson,
+  onMapStyleChange: _onMapStyleChange,
+  showAnalysis: _showAnalysis = false,
+  keyboardPanEnabled = false,
+  mtMarkerTopology,
+  mtPopupTopology,
+  mtEditorMode = "none",
+  onMtMapClick,
+  onMtContextAction,
+  onMtDeletePole,
+  onMtDeleteEdge,
+  onMtRenamePole,
+  onMtSetPoleVerified,
+  onMtDragPole,
+  onMtSetPoleChangeFlag,
+  onMtSetEdgeChangeFlag,
+  dgScenario,
+  dgGhostMode = false,
+  mtRouterState,
+  onMtRouterMapClick,
+  onBoxSelect,
+  osmData,
+  locale,
+  layerConfig,
+  theme,
 }) => {
-  const topology = btTopology ?? { poles: [], transformers: [], edges: [] };
-  const paneIdSuffix = React.useId().replace(/:/g, "-");
+  const [draggedPole, setDraggedPole] = useState<{
+    id: string;
+    lat: number;
+    lng: number;
+    snapId?: string;
+  } | null>(null);
+  const [mousePos, setMousePos] = useState<L.LatLng | null>(null);
+  const [isXRayMode, setIsXRayMode] = useState(false);
+
+  // UX: Atalho de teclado para X-Ray Mode (X ou Shift)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase();
+      if (k === "shift" || k === "x") setIsXRayMode(true);
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase();
+      if (k === "shift" || k === "x") setIsXRayMode(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
+  const topology = btMarkerTopology ?? {
+    poles: [],
+    transformers: [],
+    edges: [],
+  };
+  const popupTopology = btPopupTopology ?? topology;
+  const paneIdSuffix = useId().replace(/:/g, "-");
   const btEdgesPaneName = `bt-edges-pane-${paneIdSuffix}`;
   const btPolesPaneName = `bt-poles-pane-${paneIdSuffix}`;
   const btTransformersPaneName = `bt-transformers-pane-${paneIdSuffix}`;
+  const mtEdgesPaneName = `mt-edges-pane-${paneIdSuffix}`;
+  const mtPolesPaneName = `mt-poles-pane-${paneIdSuffix}`;
+  const dgOverlayPaneName = `dg-overlay-pane-${paneIdSuffix}`;
 
-  const polesById = React.useMemo(() => {
+  const polesById = useMemo(() => {
     return new Map(topology.poles.map((pole) => [pole.id, pole]));
   }, [topology.poles]);
 
-  const accumulatedByPoleMap = React.useMemo(() => {
+  const accumulatedByPoleMap = useMemo(() => {
     return new Map(accumulatedByPole.map((entry) => [entry.poleId, entry]));
   }, [accumulatedByPole]);
 
-  const [edgeConductorSelection, setEdgeConductorSelection] = React.useState<
-    Record<string, string>
-  >({});
-  const [edgeReplacementFromSelection, setEdgeReplacementFromSelection] =
-    React.useState<Record<string, string>>({});
-
-  const poleHasTransformer = React.useMemo(() => {
+  const poleHasTransformer = useMemo(() => {
     const byPole = new Map<string, boolean>();
     const distanceThresholdMeters = 6;
 
@@ -615,71 +378,18 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     return byPole;
   }, [topology.poles, topology.transformers]);
 
-  const makePoleIcon = (poleId: string, verified: boolean) => {
-    const hasTransformer = !!poleHasTransformer.get(poleId);
-    const isCritical = poleId === criticalPoleId;
-    const isPending = poleId === pendingBtEdgeStartPoleId;
-    const pole = topology.poles.find((item) => item.id === poleId);
-    const poleFlag = pole ? getPoleChangeFlag(pole) : "existing";
-
-    if (hasTransformer) {
-      const bg = getFlagColor(poleFlag, verified ? "#15803d" : "#7c3aed");
-      const size = isCritical ? 22 : isPending ? 20 : 18;
-      return L.divIcon({
-        className: "bt-pole-transformer-icon",
-        html: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="filter: drop-shadow(0 0 2px rgba(15, 23, 42, 0.45));"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
-      });
-    }
-
-    let bg = "#2563eb";
-    let size = 16;
-    if (isCritical) {
-      bg = "#ef4444";
-      size = 20;
-    } else if (isPending) {
-      bg = "#f59e0b";
-      size = 18;
-    } else {
-      bg = getFlagColor(poleFlag, verified ? "#16a34a" : "#2563eb");
-    }
-    return L.divIcon({
-      className: "bt-pole-icon",
-      html: `<div style="background:${bg};border:2px solid #ffffff;width:${size}px;height:${size}px;border-radius:9999px;box-shadow:0 0 0 2px ${bg}50, 0 1px 4px rgba(15, 23, 42, 0.45);"></div>`,
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
-    });
-  };
-
-  const makeTransformerIcon = (
-    verified: boolean,
-    transformerFlag: BtTransformerChangeFlag,
-  ) => {
-    const bg = getFlagColor(transformerFlag, verified ? "#15803d" : "#7c3aed");
-    return L.divIcon({
-      className: "bt-transformer-icon",
-      html: `<svg width="14" height="14" viewBox="0 0 24 24"><path d="M12 21L2 3h20L12 21Z" fill="${bg}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/></svg>`,
-      iconSize: [14, 14],
-      iconAnchor: [7, 7],
-    });
-  };
-
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-
     if (onKmlDrop && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       onKmlDrop(e.dataTransfer.files[0]);
     }
   };
 
-  const tileConfig = React.useMemo(() => {
+  const tileConfig = useMemo(() => {
     if (mapStyle === "satellite") {
       return {
         key: "satellite",
@@ -699,63 +409,238 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     };
   }, [mapStyle]);
 
-  const getRemovalMarkersForEdge = React.useCallback(
-    (from: { lat: number; lng: number }, to: { lat: number; lng: number }) => {
-      const start = L.latLng(from.lat, from.lng);
-      const end = L.latLng(to.lat, to.lng);
-      const distanceMeters = Math.max(start.distanceTo(end), 1);
-      const markerCount = Math.max(
-        3,
-        Math.min(12, Math.floor(distanceMeters / 6)),
-      );
-      const points: Array<[number, number]> = [];
+  const isEditing = btEditorMode !== "none" || mtEditorMode !== "none";
+  const isBtEditing = btEditorMode !== "none";
+  const cursorClass = isEditing ? "map-cursor-active" : "";
+  const dimClass = isBtEditing ? "map-bt-editing" : "";
+  const ghostClass = dgGhostMode ? "map-dg-ghost-mode" : "";
+  const xrayClass = isXRayMode ? "map-xray-mode" : "";
+  const themeClass = `map-theme-${theme || "dark"}`;
 
-      for (let index = 1; index <= markerCount; index += 1) {
-        const t = index / (markerCount + 1);
-        points.push([
-          from.lat + (to.lat - from.lat) * t,
-          from.lng + (to.lng - from.lng) * t,
-        ]);
+  const handleBtDragRealtime = (id: string, lat: number, lng: number) => {
+    if (lat === 0) {
+      setDraggedPole(null);
+      return;
+    }
+
+    // 1. Tenta Snap para o eixo da rua (OSM)
+    let snapResult = applyRoadSnap(lat, lng, osmData || []);
+
+    // 2. Se não deu snap na rua, tenta snap ortogonal nos vizinhos
+    if (!snapResult.type) {
+      const pole = polesById.get(id);
+      if (pole) {
+        const neighbors = topology.edges
+          .filter((e) => e.fromPoleId === id || e.toPoleId === id)
+          .map((e) => {
+            const neighborId = e.fromPoleId === id ? e.toPoleId : e.fromPoleId;
+            const p = polesById.get(neighborId);
+            return p ? { id: p.id, lat: p.lat, lng: p.lng } : null;
+          })
+          .filter((p): p is NonNullable<typeof p> => !!p);
+
+        snapResult = applyOrthoSnap(lat, lng, neighbors);
       }
+    }
 
-      return points;
-    },
-    [],
-  );
+    setDraggedPole({
+      id,
+      lat: snapResult.lat,
+      lng: snapResult.lng,
+      snapId: snapResult.snapId,
+    });
+  };
 
   return (
     <div
-      className="relative z-0 h-full min-h-[400px] w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-100 shadow-2xl"
+      className={`relative z-0 h-full min-h-[400px] w-full overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-100/5 shadow-2xl glass-premium ${cursorClass} ${dimClass} ${ghostClass} ${xrayClass} ${themeClass}`}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
+      <style>{`
+        .map-cursor-active .leaflet-container {
+          cursor: crosshair !important;
+        }
+
+        /* Sunlight Mode: High Contrast for field use */
+        .map-theme-sunlight .leaflet-tile-pane {
+          filter: contrast(1.5) brightness(1.2) grayscale(100%) !important;
+          opacity: 1 !important;
+        }
+        .map-theme-sunlight .leaflet-overlay-pane svg path {
+          stroke-width: 3.5 !important;
+          filter: none !important;
+          opacity: 1 !important;
+        }
+        .map-theme-sunlight .leaflet-marker-pane .leaflet-marker-icon {
+          filter: none !important;
+          opacity: 1 !important;
+        }
+        .map-theme-sunlight.map-bt-editing .leaflet-tile-pane {
+          filter: contrast(2) brightness(1.5) grayscale(100%) !important;
+          opacity: 0.4 !important;
+        }
+        .map-theme-sunlight .bim-pop-in-tooltip > div {
+          background: #ffff00 !important;
+          color: #000000 !important;
+          border: 2px solid #000000 !important;
+          backdrop-filter: none !important;
+        }
+        .map-theme-sunlight .bim-pop-in-tooltip span {
+          color: #000000 !important;
+        }
+
+        /* Auto-dimming: quando em modo edição BT, camadas base perdem saturação
+           para que a rede BT (postes/vãos) seja o foco visual dominante. */
+        .map-bt-editing .leaflet-tile-pane {
+          filter: saturate(0.25) brightness(1.1) contrast(0.9);
+          transition: filter 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .map-bt-editing .leaflet-overlay-pane svg path:not([data-layer="bt"]) {
+          opacity: 0.2;
+          transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Indicador visual de modo ativo */
+        .map-bt-editing::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 1rem;
+          border: 3px solid rgba(56, 189, 248, 0.4);
+          pointer-events: none;
+          z-index: 500;
+          box-shadow: 
+            inset 0 0 30px rgba(56, 189, 248, 0.1),
+            0 0 15px rgba(56, 189, 248, 0.2);
+          transition: all 0.6s ease;
+          animation: map-active-glow 3s infinite alternate;
+        }
+
+        @keyframes map-active-glow {
+          from { border-color: rgba(56, 189, 248, 0.3); box-shadow: inset 0 0 20px rgba(56, 189, 248, 0.05); }
+          to { border-color: rgba(56, 189, 248, 0.6); box-shadow: inset 0 0 40px rgba(56, 189, 248, 0.2); }
+        }
+
+        /* Ghost Mode: Esmaece camadas BT/MT para dar destaque visual ao DG (Frente 3) */
+        .map-dg-ghost-mode .leaflet-tile-pane {
+          filter: grayscale(80%) opacity(0.5) contrast(0.8);
+          transition: filter 0.6s ease;
+        }
+        .map-dg-ghost-mode .leaflet-overlay-pane svg path:not(.dg-overlay-path) {
+          opacity: 0.15;
+          filter: grayscale(100%);
+          transition: all 0.6s ease;
+        }
+        .map-dg-ghost-mode .leaflet-marker-pane .leaflet-marker-icon:not(.dg-marker) {
+          opacity: 0.3;
+          filter: grayscale(100%);
+          transition: all 0.6s ease;
+        }
+
+        /* X-Ray Mode: Focus Mode 2.0 */
+        .map-xray-mode .leaflet-tile-pane {
+          filter: grayscale(100%) brightness(0.2) contrast(1.2) blur(1px);
+          opacity: 0.1;
+          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .map-xray-mode .leaflet-overlay-pane svg path:not([data-violation="true"]) {
+          opacity: 0.05;
+          filter: grayscale(100%);
+          transition: all 0.5s ease;
+        }
+        .map-xray-mode .leaflet-marker-pane .leaflet-marker-icon:not([data-violation="true"]) {
+          opacity: 0.1;
+          filter: grayscale(100%) blur(2px);
+          transition: all 0.5s ease;
+        }
+        .map-xray-mode [data-violation="true"] {
+          filter: 
+            drop-shadow(0 0 10px #ef4444) 
+            drop-shadow(0 0 20px #ef4444)
+            brightness(1.5);
+          opacity: 1 !important;
+          z-index: 1000 !important;
+          animation: violation-neon-pulse 1.5s infinite alternate;
+        }
+        @keyframes violation-neon-pulse {
+          from { filter: drop-shadow(0 0 10px #ef4444) brightness(1.2); }
+          to { filter: drop-shadow(0 0 25px #ef4444) drop-shadow(0 0 40px #ef4444) brightness(1.8); }
+        }
+
+        /* Snapping Guides */
+        .snapping-guide-line {
+          filter: drop-shadow(0 0 3px rgba(34, 211, 238, 0.8));
+          stroke-dasharray: 4, 8;
+          animation: guide-pulse 2s infinite ease-in-out;
+        }
+        @keyframes guide-pulse {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 1; }
+        }
+
+        .leaflet-container {
+          background: transparent !important;
+          transition: filter 0.5s ease;
+        }
+        
+        /* High-fidelity 2.5D Elevation shadow simulation */
+        .leaflet-marker-pane .bt-pole-icon {
+          filter: drop-shadow(2px 4px 3px rgba(0,0,0,0.3));
+          transition: filter 0.3s ease;
+        }
+        .leaflet-marker-pane .bt-pole-icon:hover {
+          filter: drop-shadow(3px 6px 5px rgba(0,0,0,0.4)) brightness(1.1);
+        }
+      `}</style>
       <MapContainer
         center={[center.lat, center.lng]}
         zoom={15}
         scrollWheelZoom={true}
         maxZoom={24}
         className="h-full min-h-[400px] w-full"
-        whenReady={() => {
-          // Map ready
-        }}
+        preferCanvas={true}
       >
+        <MapMouseTracker onMouseMove={setMousePos} />
+
+        {/* Vão Fantasma (Ghost Edge) em modo de adição de trecho */}
+        {pendingBtEdgeStartPoleId &&
+          mousePos &&
+          polesById.has(pendingBtEdgeStartPoleId) && (
+            <GhostEdge
+              startPole={polesById.get(pendingBtEdgeStartPoleId)!}
+              mousePos={mousePos}
+            />
+          )}
+
+        {/* Snapping Guides Visual Confirmation */}
+        {draggedPole?.snapId && polesById.has(draggedPole.snapId) && (
+          <Polyline
+            positions={[
+              [draggedPole.lat, draggedPole.lng],
+              [
+                polesById.get(draggedPole.snapId)!.lat,
+                polesById.get(draggedPole.snapId)!.lng,
+              ],
+            ]}
+            pathOptions={{
+              color: "#22d3ee",
+              weight: 2,
+              className: "snapping-guide-line",
+            }}
+          />
+        )}
+
         <TileLayer
           key={tileConfig.key}
           attribution={tileConfig.attribution}
           url={tileConfig.url}
+          referrerPolicy="strict-origin-when-cross-origin"
           maxZoom={24}
           maxNativeZoom={tileConfig.maxNativeZoom}
-          eventHandlers={{
-            tileerror: ((error: L.TileErrorEvent) => {
-              // Tile load error (expected for some tiles)
-            }) as L.TileErrorEventHandlerFn,
-            tileload: () => {
-              // Tile loaded successfully
-            },
-          }}
         />
 
         <SelectionManager
+          locale={locale}
           center={center}
           flyToEdgeTarget={flyToEdgeTarget}
           flyToPoleTarget={flyToPoleTarget}
@@ -769,887 +654,132 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onMeasurePathChange={onMeasurePathChange}
           btEditorMode={btEditorMode}
           onBtMapClick={onBtMapClick}
+          onBtContextAction={onBtContextAction}
+          mtEditorMode={mtEditorMode}
+          onMtMapClick={onMtMapClick}
+          onMtContextAction={onMtContextAction}
+          keyboardPanEnabled={keyboardPanEnabled}
+          onBoxSelect={onBoxSelect}
         />
 
-        <Pane name={btEdgesPaneName} style={{ zIndex: 420 }}>
-          {(topology.edges || []).map((edge) => {
-            const from = polesById.get(edge.fromPoleId);
-            const to = polesById.get(edge.toPoleId);
-            if (!from || !to) {
-              return null;
-            }
+        <MapSelectorEdgesLayer
+          paneName={btEdgesPaneName}
+          topology={topology}
+          popupTopology={popupTopology}
+          polesById={polesById}
+          onBtDeleteEdge={onBtDeleteEdge}
+          onBtSetEdgeChangeFlag={onBtSetEdgeChangeFlag}
+          onBtQuickAddEdgeConductor={onBtQuickAddEdgeConductor}
+          onBtQuickRemoveEdgeConductor={onBtQuickRemoveEdgeConductor}
+          onBtSetEdgeLengthMeters={onBtSetEdgeLengthMeters}
+          onBtSetEdgeReplacementFromConductors={
+            onBtSetEdgeReplacementFromConductors
+          }
+          accumulatedByPoleMap={accumulatedByPoleMap}
+          locale={locale}
+          layerConfig={layerConfig}
+          draggedPole={draggedPole}
+        />
 
-            const edgeChangeFlag = getEdgeChangeFlag(edge);
-            const edgeVisual = getEdgeVisualConfig(edge);
-            const edgeFlagLabel =
-              edgeChangeFlag === "remove"
-                ? "Remoção"
-                : edgeChangeFlag === "new"
-                  ? "Novo"
-                  : edgeChangeFlag === "replace"
-                    ? "Substituição"
-                    : "Existente";
+        <MapSelectorPolesLayer
+          paneName={btPolesPaneName}
+          poles={topology.poles}
+          popupPoles={popupTopology.poles}
+          btEditorMode={btEditorMode}
+          criticalPoleId={criticalPoleId ?? null}
+          pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId ?? null}
+          loadCenterPoleId={loadCenterPoleId ?? null}
+          poleHasTransformer={poleHasTransformer}
+          accumulatedByPoleMap={accumulatedByPoleMap}
+          leafPoleIds={(() => {
+            const parentPoleIds = new Set<string>();
+            topology.edges.forEach((edge) => {
+              const edgeFlag =
+                edge.edgeChangeFlag ??
+                (edge.removeOnExecution ? "remove" : "existing");
+              if (edgeFlag !== "remove") parentPoleIds.add(edge.fromPoleId);
+            });
+            const leaves = new Set<string>();
+            topology.poles.forEach((p) => {
+              if (!parentPoleIds.has(p.id)) leaves.add(p.id);
+            });
+            return leaves;
+          })()}
+          onBtMapClick={onBtMapClick}
+          onBtDragPole={onBtDragPole}
+          onBtDragPoleRealtime={handleBtDragRealtime}
+          onBtRenamePole={onBtRenamePole}
+          onBtSetPoleChangeFlag={onBtSetPoleChangeFlag}
+          onBtTogglePoleCircuitBreak={onBtTogglePoleCircuitBreak}
+          onBtDeletePole={onBtDeletePole}
+          onBtToggleTransformerOnPole={onBtToggleTransformerOnPole}
+          onBtQuickAddPoleRamal={onBtQuickAddPoleRamal}
+          onBtQuickRemovePoleRamal={onBtQuickRemovePoleRamal}
+          onBtSelectPole={onBtSelectPole}
+          draggedPole={draggedPole}
+          locale={locale}
+          layerConfig={layerConfig}
+        />
 
-            const selectedConductor =
-              edgeConductorSelection[edge.id] ??
-              edge.conductors[edge.conductors.length - 1]?.conductorName ??
-              CONDUCTOR_OPTIONS[0];
-            const selectedReplacementFromConductor =
-              edgeReplacementFromSelection[edge.id] ??
-              edge.replacementFromConductors?.[
-                edge.replacementFromConductors.length - 1
-              ]?.conductorName ??
-              CONDUCTOR_OPTIONS[0];
+        <MapSelectorTransformersLayer
+          paneName={btTransformersPaneName}
+          transformers={topology.transformers}
+          btEditorMode={btEditorMode}
+          polesById={polesById}
+          onBtMapClick={onBtMapClick}
+          onBtDragTransformer={onBtDragTransformer}
+          onBtRenameTransformer={onBtRenameTransformer}
+          onBtSetTransformerChangeFlag={onBtSetTransformerChangeFlag}
+          onBtDeleteTransformer={onBtDeleteTransformer}
+          locale={locale}
+          layerConfig={layerConfig}
+        />
 
-            const edgePopup = (
-              <Popup>
-                <div className="text-xs">
-                  <div>
-                    <strong>{edge.id}</strong>
-                  </div>
-                  <div className="mt-0.5 text-slate-700">
-                    {from.title} {"<->"} {to.title}
-                  </div>
-                  <div className="mt-1 text-slate-700">
-                    Flag: <strong>{edgeFlagLabel}</strong>
-                  </div>
-                  <div className="mt-1 text-slate-700">Condutor</div>
-                  <div className="mt-0.5">
-                    <select
-                      value={selectedConductor}
-                      aria-label={`Condutor do trecho ${edge.id}`}
-                      title={`Condutor do trecho ${edge.id}`}
-                      onChange={(e) => {
-                        const conductorName = e.target.value;
-                        setEdgeConductorSelection((current) => ({
-                          ...current,
-                          [edge.id]: conductorName,
-                        }));
-                      }}
-                      className={POPUP_SELECT_CLASS}
-                    >
-                      {CONDUCTOR_OPTIONS.map((name) => (
-                        <option key={name} value={name}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="mt-1.5 text-slate-700">
-                    Metragem:{" "}
-                    {typeof (edge.cqtLengthMeters ?? edge.lengthMeters) ===
-                    "number"
-                      ? `${edge.cqtLengthMeters ?? edge.lengthMeters} m`
-                      : "-"}
-                  </div>
-                  {onBtSetEdgeLengthMeters && (
-                    <div className="mt-1">
-                      <label className="mb-0.5 block text-slate-700">
-                        Ajustar metragem CQT (m)
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        defaultValue={
-                          typeof (edge.cqtLengthMeters ?? edge.lengthMeters) ===
-                          "number"
-                            ? Number(edge.cqtLengthMeters ?? edge.lengthMeters)
-                            : 0
-                        }
-                        onBlur={(e) => {
-                          const parsed = Number(e.target.value);
-                          if (!Number.isFinite(parsed) || parsed < 0) {
-                            e.target.value = String(
-                              Number(
-                                edge.cqtLengthMeters ?? edge.lengthMeters ?? 0,
-                              ),
-                            );
-                            return;
-                          }
-                          onBtSetEdgeLengthMeters(edge.id, parsed);
-                        }}
-                        className="w-full rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[11px] text-slate-700"
-                        title={`Metragem CQT do trecho ${edge.id}`}
-                      />
-                    </div>
-                  )}
-                  {edgeChangeFlag === "replace" && (
-                    <>
-                      <div className="mt-1.5 text-slate-700">
-                        Condutor que sai
-                      </div>
-                      <div className="mt-0.5">
-                        <select
-                          value={selectedReplacementFromConductor}
-                          aria-label={`Condutor de saída do trecho ${edge.id}`}
-                          title={`Condutor de saída do trecho ${edge.id}`}
-                          onChange={(e) => {
-                            const conductorName = e.target.value;
-                            setEdgeReplacementFromSelection((current) => ({
-                              ...current,
-                              [edge.id]: conductorName,
-                            }));
-                          }}
-                          className={POPUP_SELECT_CLASS}
-                        >
-                          {CONDUCTOR_OPTIONS.map((name) => (
-                            <option key={name} value={name}>
-                              {name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      {onBtSetEdgeReplacementFromConductors && (
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onBtSetEdgeReplacementFromConductors(edge.id, [
-                              {
-                                id: `${ENTITY_ID_PREFIXES.CONDUCTOR_REPLACEMENT}${Date.now()}${Math.floor(Math.random() * LEGACY_ID_ENTROPY)}`,
-                                quantity: 1,
-                                conductorName: selectedReplacementFromConductor,
-                              },
-                            ]);
-                          }}
-                          className="mt-1.5 h-6 w-full rounded border border-amber-500 bg-amber-50 text-[11px] font-bold text-amber-800 transition-colors hover:bg-amber-100"
-                        >
-                          Definir condutor que sai
-                        </button>
-                      )}
-                    </>
-                  )}
-                  {edge.conductors.length > 0 ? (
-                    <div className="mt-0.5 text-slate-700">
-                      {edge.conductors.map((entry) => (
-                        <div key={entry.id}>
-                          {entry.quantity} x {entry.conductorName}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="mt-0.5 text-slate-500">
-                      Sem condutor informado
-                    </div>
-                  )}
-                  {edgeChangeFlag === "replace" && (
-                    <div className="mt-0.5 text-amber-900">
-                      {(edge.replacementFromConductors ?? []).length > 0 ? (
-                        (edge.replacementFromConductors ?? []).map((entry) => (
-                          <div key={entry.id}>
-                            Sai: {entry.quantity} x {entry.conductorName}
-                          </div>
-                        ))
-                      ) : (
-                        <div>Sem condutor de saída definido</div>
-                      )}
-                    </div>
-                  )}
-                  <div
-                    className={`mt-0.5 font-semibold ${edge.verified ? "text-green-600" : "text-amber-600"}`}
-                  >
-                    {edge.verified ? "✓ Verificado" : "○ Não verificado"}
-                  </div>
-                  {onBtSetEdgeChangeFlag && (
-                    <div className={POPUP_FLAG_GRID_CLASS}>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onBtSetEdgeChangeFlag(edge.id, "existing");
-                        }}
-                        className={getFlagButtonClass(
-                          edgeChangeFlag === "existing",
-                          "existing",
-                        )}
-                      >
-                        Existente
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onBtSetEdgeChangeFlag(edge.id, "new");
-                        }}
-                        className={getFlagButtonClass(
-                          edgeChangeFlag === "new",
-                          "new",
-                        )}
-                      >
-                        Novo
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onBtSetEdgeChangeFlag(edge.id, "replace");
-                        }}
-                        className={getFlagButtonClass(
-                          edgeChangeFlag === "replace",
-                          "replace",
-                        )}
-                      >
-                        Substituição
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onBtSetEdgeChangeFlag(edge.id, "remove");
-                        }}
-                        className={getFlagButtonClass(
-                          edgeChangeFlag === "remove",
-                          "remove",
-                        )}
-                      >
-                        Remoção
-                      </button>
-                    </div>
-                  )}
-                  <div className={POPUP_TOOLBAR_CLASS}>
-                    {onBtDeleteEdge && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onBtDeleteEdge(edge.id);
-                        }}
-                        title="Deletar trecho"
-                        aria-label="Deletar trecho"
-                        className={getIconActionButtonClass("danger")}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    )}
-                    {onBtQuickAddEdgeConductor && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onBtQuickAddEdgeConductor(edge.id, selectedConductor);
-                        }}
-                        title="Informar condutor"
-                        aria-label="Informar condutor"
-                        className={getIconActionButtonClass("sky")}
-                      >
-                        <Plus size={12} />
-                      </button>
-                    )}
-                    {onBtQuickRemoveEdgeConductor && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onBtQuickRemoveEdgeConductor(
-                            edge.id,
-                            selectedConductor,
-                          );
-                        }}
-                        title="Retirar condutor"
-                        aria-label="Retirar condutor"
-                        className={getIconActionButtonClass("slate")}
-                      >
-                        <Minus size={12} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </Popup>
-            );
+        {mtMarkerTopology && (
+          <>
+            <MapSelectorMtEdgesLayer
+              paneName={mtEdgesPaneName}
+              topology={mtMarkerTopology}
+              popupTopology={mtPopupTopology ?? mtMarkerTopology}
+              polesById={new Map(mtMarkerTopology.poles.map((p) => [p.id, p]))}
+              onMtDeleteEdge={onMtDeleteEdge}
+              onMtSetEdgeChangeFlag={onMtSetEdgeChangeFlag}
+              locale={locale}
+            />
+            <MapSelectorMtPolesLayer
+              paneName={mtPolesPaneName}
+              poles={mtMarkerTopology.poles}
+              popupPoles={(mtPopupTopology ?? mtMarkerTopology).poles}
+              mtEditorMode={mtEditorMode}
+              onMtMapClick={onMtMapClick}
+              onMtDragPole={onMtDragPole}
+              onMtRenamePole={onMtRenamePole}
+              onMtSetPoleChangeFlag={onMtSetPoleChangeFlag}
+              onMtDeletePole={onMtDeletePole}
+              onMtSetPoleVerified={onMtSetPoleVerified}
+              locale={locale}
+              layerConfig={layerConfig}
+            />
+          </>
+        )}
 
-            return (
-              <React.Fragment key={edge.id}>
-                <Polyline
-                  positions={[
-                    [from.lat, from.lng],
-                    [to.lat, to.lng],
-                  ]}
-                  pathOptions={{
-                    color: "#000000",
-                    weight: EDGE_HIT_AREA_WEIGHT,
-                    opacity: 0.01,
-                    lineCap: "round",
-                    lineJoin: "round",
-                  }}
-                >
-                  {edgePopup}
-                </Polyline>
-                <Polyline
-                  positions={[
-                    [from.lat, from.lng],
-                    [to.lat, to.lng],
-                  ]}
-                  pathOptions={{
-                    color: "#ffffff",
-                    weight: edgeVisual.weight + 3,
-                    opacity: 0.72,
-                    dashArray: edgeVisual.dashArray,
-                    interactive: false,
-                    lineCap: "round",
-                    lineJoin: "round",
-                  }}
-                />
-                <Polyline
-                  positions={[
-                    [from.lat, from.lng],
-                    [to.lat, to.lng],
-                  ]}
-                  pathOptions={{
-                    color: edgeVisual.color,
-                    weight: edgeVisual.weight,
-                    opacity: 0.98,
-                    dashArray: edgeVisual.dashArray,
-                    interactive: false,
-                    lineCap: "round",
-                    lineJoin: "round",
-                  }}
-                />
-                {edgeChangeFlag === "remove" && (
-                  <>
-                    {getRemovalMarkersForEdge(from, to).map(
-                      (position, markerIndex) => (
-                        <Marker
-                          key={`${edge.id}-removal-x-${markerIndex}`}
-                          position={position}
-                          icon={L.divIcon({
-                            className: "bt-edge-remove-label",
-                            html: '<div class="bt-edge-remove-glyph">X</div>',
-                            iconSize: [12, 12],
-                            iconAnchor: [6, 6],
-                          })}
-                          interactive={false}
-                        />
-                      ),
-                    )}
-                  </>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </Pane>
+        {/* Sobreposição DG – exibida quando há cenário ativo */}
+        {dgScenario && (
+          <MapSelectorDgOverlay
+            paneName={dgOverlayPaneName}
+            scenario={dgScenario}
+            polesById={polesById}
+          />
+        )}
 
-        <Pane name={btPolesPaneName} style={{ zIndex: 470 }}>
-          {(topology.poles || []).map((pole) => (
-            <React.Fragment
-              key={`${pole.id}-${pole.verified ? "v" : "u"}-${pole.id === criticalPoleId ? "c" : "n"}-${pole.id === pendingBtEdgeStartPoleId ? "p" : "x"}-${poleHasTransformer.get(pole.id) ? "t" : "nt"}`}
-            >
-              <CircleMarker
-                center={[pole.lat, pole.lng]}
-                radius={
-                  pole.id === criticalPoleId
-                    ? 9
-                    : pole.id === pendingBtEdgeStartPoleId
-                      ? 8
-                      : 7
-                }
-                pathOptions={{
-                  color: "#ffffff",
-                  weight: 2,
-                  opacity: 1,
-                  fillColor: getFlagColor(
-                    getPoleChangeFlag(pole),
-                    pole.verified ? "#16a34a" : "#2563eb",
-                  ),
-                  fillOpacity: 0.95,
-                }}
-                interactive={false}
-              />
-              <Marker
-                position={[pole.lat, pole.lng]}
-                icon={makePoleIcon(pole.id, !!pole.verified)}
-                zIndexOffset={1200}
-                draggable={
-                  btEditorMode !== "add-edge" &&
-                  btEditorMode !== "add-transformer"
-                }
-                eventHandlers={{
-                  click: () => {
-                    if (
-                      (btEditorMode === "add-edge" ||
-                        btEditorMode === "add-transformer") &&
-                      onBtMapClick
-                    ) {
-                      onBtMapClick({
-                        lat: pole.lat,
-                        lng: pole.lng,
-                        label: pole.title,
-                      });
-                    }
-                  },
-                  dragend: (e) => {
-                    const { lat, lng } = (e.target as L.Marker).getLatLng();
-                    onBtDragPole?.(pole.id, lat, lng);
-                  },
-                }}
-              >
-                <Tooltip
-                  permanent
-                  direction="top"
-                  offset={[0, -8]}
-                  opacity={0.85}
-                >
-                  <span className="text-[10px] font-semibold">
-                    {pole.title}
-                  </span>
-                </Tooltip>
-                <Popup>
-                  <div className="text-xs">
-                    {(() => {
-                      const poleAccumulated = accumulatedByPoleMap.get(pole.id);
-                      const cqtClass =
-                        poleAccumulated?.cqtStatus === "CRÍTICO"
-                          ? "text-red-600"
-                          : poleAccumulated?.cqtStatus === "ATENÇÃO"
-                            ? "text-amber-600"
-                            : "text-emerald-700";
-
-                      return (
-                        <>
-                          <strong>{pole.title}</strong>
-                          <div>{pole.id}</div>
-                          {onBtRenamePole && (
-                            <input
-                              type="text"
-                              value={pole.title}
-                              title={`Nome do poste ${pole.id}`}
-                              placeholder="Nome do poste"
-                              onChange={(e) =>
-                                onBtRenamePole(pole.id, e.target.value)
-                              }
-                              className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
-                            />
-                          )}
-                          {pole.id === criticalPoleId && (
-                            <div className="mt-0.5 font-bold text-red-500">
-                              ⚠ Ponto crítico
-                            </div>
-                          )}
-                          {poleAccumulated && (
-                            <div className="mt-1 text-slate-700">
-                              <div>
-                                CLT acum.: {poleAccumulated.accumulatedClients}
-                              </div>
-                              <div>
-                                Demanda acum.:{" "}
-                                {poleAccumulated.accumulatedDemandKva.toFixed(
-                                  2,
-                                )}{" "}
-                                kVA
-                              </div>
-                              {(typeof poleAccumulated.voltageV === "number" ||
-                                typeof poleAccumulated.dvAccumPercent ===
-                                  "number") && (
-                                <div
-                                  className={`mt-0.5 font-semibold ${cqtClass}`}
-                                >
-                                  Tensão:{" "}
-                                  {typeof poleAccumulated.voltageV === "number"
-                                    ? poleAccumulated.voltageV.toFixed(2)
-                                    : "-"}{" "}
-                                  V{" | "}
-                                  dV:{" "}
-                                  {typeof poleAccumulated.dvAccumPercent ===
-                                  "number"
-                                    ? poleAccumulated.dvAccumPercent.toFixed(2)
-                                    : "-"}
-                                  %
-                                  {poleAccumulated.cqtStatus
-                                    ? ` | ${poleAccumulated.cqtStatus}`
-                                    : ""}
-                                </div>
-                              )}
-                              {(typeof poleAccumulated.worstRamalVoltageV ===
-                                "number" ||
-                                typeof poleAccumulated.worstRamalDvPercent ===
-                                  "number") && (
-                                <div
-                                  className={`mt-0.5 font-semibold ${cqtClass}`}
-                                >
-                                  Ramal:{" "}
-                                  {typeof poleAccumulated.worstRamalVoltageV ===
-                                  "number"
-                                    ? poleAccumulated.worstRamalVoltageV.toFixed(
-                                        2,
-                                      )
-                                    : "-"}{" "}
-                                  V{" | "}
-                                  dV:{" "}
-                                  {typeof poleAccumulated.worstRamalDvPercent ===
-                                  "number"
-                                    ? poleAccumulated.worstRamalDvPercent.toFixed(
-                                        2,
-                                      )
-                                    : "-"}
-                                  %
-                                  {poleAccumulated.worstRamalStatus
-                                    ? ` | ${poleAccumulated.worstRamalStatus}`
-                                    : ""}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          <div
-                            className={`mt-0.5 font-semibold ${pole.verified ? "text-green-600" : "text-amber-600"}`}
-                          >
-                            {pole.verified
-                              ? "✓ Verificado"
-                              : "○ Não verificado"}
-                          </div>
-                          <div className="mt-0.5 text-slate-700">
-                            Flag:{" "}
-                            <strong>
-                              {getPoleChangeFlag(pole) === "new"
-                                ? "Novo"
-                                : getPoleChangeFlag(pole) === "remove"
-                                  ? "Remoção"
-                                  : getPoleChangeFlag(pole) === "replace"
-                                    ? "Substituição"
-                                    : "Existente"}
-                            </strong>
-                          </div>
-                          {(pole.circuitBreakPoint ?? false) && (
-                            <div className="mt-0.5 font-bold text-sky-700">
-                              Separação física ativa: circuito interrompido
-                              neste poste.
-                            </div>
-                          )}
-                          {onBtSetPoleChangeFlag && (
-                            <div className={POPUP_FLAG_GRID_CLASS}>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  onBtSetPoleChangeFlag(pole.id, "existing");
-                                }}
-                                className={getFlagButtonClass(
-                                  getPoleChangeFlag(pole) === "existing",
-                                  "existing",
-                                )}
-                              >
-                                Existente
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  onBtSetPoleChangeFlag(pole.id, "new");
-                                }}
-                                className={getFlagButtonClass(
-                                  getPoleChangeFlag(pole) === "new",
-                                  "new",
-                                )}
-                              >
-                                Novo
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  onBtSetPoleChangeFlag(pole.id, "replace");
-                                }}
-                                className={getFlagButtonClass(
-                                  getPoleChangeFlag(pole) === "replace",
-                                  "replace",
-                                )}
-                              >
-                                Substituição
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  onBtSetPoleChangeFlag(pole.id, "remove");
-                                }}
-                                className={getFlagButtonClass(
-                                  getPoleChangeFlag(pole) === "remove",
-                                  "remove",
-                                )}
-                              >
-                                Remoção
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  onBtTogglePoleCircuitBreak?.(
-                                    pole.id,
-                                    !(pole.circuitBreakPoint ?? false),
-                                  );
-                                }}
-                                title="Separa fisicamente o circuito neste poste"
-                                className={`h-6 rounded border text-[10px] font-bold tracking-[-0.2px] ${pole.circuitBreakPoint ? "border-sky-400 bg-sky-100 font-mono text-sky-700" : "border-slate-400 bg-white font-mono text-slate-600 hover:bg-slate-50"}`}
-                              >
-                                -| |-
-                              </button>
-                            </div>
-                          )}
-                          <div className={POPUP_TOOLBAR_CLASS}>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onBtDeletePole?.(pole.id);
-                              }}
-                              className={getIconActionButtonClass("danger")}
-                              title="Deletar poste"
-                              aria-label="Deletar poste"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onBtToggleTransformerOnPole?.(pole.id);
-                              }}
-                              title={
-                                poleHasTransformer.get(pole.id)
-                                  ? "Remover transformador do poste"
-                                  : "Adicionar transformador ao poste"
-                              }
-                              aria-label={
-                                poleHasTransformer.get(pole.id)
-                                  ? "Remover transformador do poste"
-                                  : "Adicionar transformador ao poste"
-                              }
-                              className={getIconActionButtonClass(
-                                "violet",
-                                poleHasTransformer.get(pole.id) ?? false,
-                              )}
-                            >
-                              <Triangle
-                                size={12}
-                                className="rotate-180 fill-current"
-                              />
-                            </button>
-                            {onBtQuickAddPoleRamal && (
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  onBtQuickAddPoleRamal(pole.id);
-                                }}
-                                title="Informar ramais"
-                                aria-label="Informar ramais"
-                                className={getIconActionButtonClass("sky")}
-                              >
-                                <Plus size={12} />
-                              </button>
-                            )}
-                            {onBtQuickRemovePoleRamal && (
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  onBtQuickRemovePoleRamal(pole.id);
-                                }}
-                                title="Reduzir ramais"
-                                aria-label="Reduzir ramais"
-                                className={getIconActionButtonClass("slate")}
-                              >
-                                <Minus size={12} />
-                              </button>
-                            )}
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                </Popup>
-              </Marker>
-            </React.Fragment>
-          ))}
-        </Pane>
-
-        <Pane name={btTransformersPaneName} style={{ zIndex: 480 }}>
-          {(topology.transformers || []).map((transformer) => (
-            <Marker
-              key={`${transformer.id}-${transformer.verified ? "v" : "u"}`}
-              position={[transformer.lat, transformer.lng]}
-              icon={makeTransformerIcon(
-                !!transformer.verified,
-                getTransformerChangeFlag(transformer),
-              )}
-              zIndexOffset={1400}
-              draggable={false}
-              eventHandlers={{
-                click: () => {
-                  if (
-                    (btEditorMode === "add-edge" ||
-                      btEditorMode === "add-transformer") &&
-                    onBtMapClick
-                  ) {
-                    const linkedPole = transformer.poleId
-                      ? polesById.get(transformer.poleId)
-                      : null;
-                    if (linkedPole) {
-                      onBtMapClick({
-                        lat: linkedPole.lat,
-                        lng: linkedPole.lng,
-                        label: linkedPole.title,
-                      });
-                      return;
-                    }
-
-                    onBtMapClick({
-                      lat: transformer.lat,
-                      lng: transformer.lng,
-                      label: transformer.title,
-                    });
-                  }
-                },
-                dragend: (e) => {
-                  const { lat, lng } = (e.target as L.Marker).getLatLng();
-                  onBtDragTransformer?.(transformer.id, lat, lng);
-                },
-              }}
-            >
-              <Tooltip
-                permanent
-                direction="bottom"
-                offset={[0, 8]}
-                opacity={0.85}
-              >
-                <span className="text-[10px] font-semibold">
-                  {transformer.title}
-                </span>
-              </Tooltip>
-              <Popup>
-                <div className="text-xs">
-                  <strong>{transformer.title}</strong>
-                  <div>{transformer.id}</div>
-                  {onBtRenameTransformer && (
-                    <input
-                      type="text"
-                      value={transformer.title}
-                      onChange={(e) =>
-                        onBtRenameTransformer(transformer.id, e.target.value)
-                      }
-                      title="Nome do transformador"
-                      className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800"
-                    />
-                  )}
-                  <div>Demanda: {transformer.demandKw} kW</div>
-                  <div
-                    className={`mt-0.5 font-semibold ${transformer.verified ? "text-green-600" : "text-amber-600"}`}
-                  >
-                    {transformer.verified ? "✓ Verificado" : "○ Não verificado"}
-                  </div>
-                  <div className="mt-0.5 text-slate-700">
-                    Flag:{" "}
-                    <strong>
-                      {getTransformerChangeFlag(transformer) === "new"
-                        ? "Novo"
-                        : getTransformerChangeFlag(transformer) === "remove"
-                          ? "Remoção"
-                          : getTransformerChangeFlag(transformer) === "replace"
-                            ? "Substituição"
-                            : "Existente"}
-                    </strong>
-                  </div>
-                  {onBtSetTransformerChangeFlag && (
-                    <div className={POPUP_FLAG_GRID_CLASS}>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onBtSetTransformerChangeFlag(
-                            transformer.id,
-                            "existing",
-                          );
-                        }}
-                        className={getFlagButtonClass(
-                          getTransformerChangeFlag(transformer) === "existing",
-                          "existing",
-                        )}
-                      >
-                        Existente
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onBtSetTransformerChangeFlag(transformer.id, "new");
-                        }}
-                        className={getFlagButtonClass(
-                          getTransformerChangeFlag(transformer) === "new",
-                          "new",
-                        )}
-                      >
-                        Novo
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onBtSetTransformerChangeFlag(
-                            transformer.id,
-                            "replace",
-                          );
-                        }}
-                        className={getFlagButtonClass(
-                          getTransformerChangeFlag(transformer) === "replace",
-                          "replace",
-                        )}
-                      >
-                        Substituição
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onBtSetTransformerChangeFlag(
-                            transformer.id,
-                            "remove",
-                          );
-                        }}
-                        className={getFlagButtonClass(
-                          getTransformerChangeFlag(transformer) === "remove",
-                          "remove",
-                        )}
-                      >
-                        Remoção
-                      </button>
-                    </div>
-                  )}
-                  {onBtDeleteTransformer && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBtDeleteTransformer(transformer.id);
-                      }}
-                      className="mt-1 inline-flex h-6 items-center rounded border border-red-500 bg-red-500/10 px-2 text-[11px] text-red-500 transition-colors hover:bg-red-100"
-                    >
-                      Deletar trafo
-                    </button>
-                  )}
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </Pane>
-
-        {geojson && <GeoJSON data={geojson} />}
+        {/* Sobreposição MT Router – seleção interativa e resultado de rota */}
+        {mtRouterState && (
+          <MapMtRouterOverlay
+            state={mtRouterState}
+            onMapClick={onMtRouterMapClick ?? (() => undefined)}
+          />
+        )}
       </MapContainer>
-
-      {/* Overlay Controls could go here */}
-      <div className="absolute bottom-4 left-4 z-[400] bg-slate-900/80 backdrop-blur text-xs p-2 rounded text-slate-400 border border-slate-700">
-        {btEditorMode !== "none"
-          ? btEditorMode === "add-pole"
-            ? "Editor BT: clique para inserir poste"
-            : btEditorMode === "add-transformer"
-              ? "Editor BT: clique para inserir transformador"
-              : pendingBtEdgeStartPoleId
-                ? `Editor BT: selecione destino (origem ${pendingBtEdgeStartPoleId})`
-                : "Editor BT: selecione poste de origem"
-          : selectionMode === "circle"
-            ? "Clique para definir o centro"
-            : selectionMode === "measure"
-              ? "Clique em dois pontos para o perfil"
-              : "Clique para adicionar pontos ao polígono"}
-      </div>
     </div>
   );
 };

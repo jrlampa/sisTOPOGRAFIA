@@ -23,16 +23,19 @@ npm run dev
 ```
 
 **Verificações:**
+
 - [ ] Frontend inicia sem erros (porta 3000)
 - [ ] Backend inicia sem erros (porta 3001)
 - [ ] Nenhum erro no console
 
 **Teste de API:**
+
 ```bash
 curl http://localhost:3001/health
 ```
 
 **Esperado:**
+
 ```json
 {
   "status": "online",
@@ -54,6 +57,7 @@ curl http://localhost:3001/api/firestore/status | jq
 ```
 
 **Esperado:**
+
 - `firestore.status.enabled: false`
 - `mode: memory`
 - Python: available
@@ -71,6 +75,7 @@ python py_engine/create_demo_dxf.py --output test_demo.dxf
 ```
 
 **Verificações:**
+
 - [ ] Arquivo `test_demo.dxf` criado
 - [ ] Tamanho > 0 bytes
 - [ ] Abre no AutoCAD/LibreCAD sem erros
@@ -80,18 +85,21 @@ python py_engine/create_demo_dxf.py --output test_demo.dxf
 **Pré-requisito:** Conexão com internet para buscar OSM.
 
 **Passos:**
+
 1. Abra http://localhost:3000
 2. Clique no mapa para selecionar área
 3. Defina raio (ex: 500m)
 4. Clique em "Generate DXF"
 
 **Verificações:**
+
 - [ ] Job criado (status: queued)
 - [ ] Progresso atualiza (0% → 100%)
 - [ ] Download automático do .dxf
 - [ ] Arquivo abre corretamente em CAD
 
 **Teste via curl:**
+
 ```bash
 curl -X POST http://localhost:3001/api/dxf \
   -H "Content-Type: application/json" \
@@ -107,6 +115,7 @@ curl -X POST http://localhost:3001/api/dxf \
 ```
 
 **Esperado:**
+
 ```json
 {
   "status": "success",
@@ -118,32 +127,36 @@ curl -X POST http://localhost:3001/api/dxf \
 
 ## 🔍 Modo 3: Busca de Localização
 
-### 3.1 Busca com GROQ AI (Se configurado)
+### 3.1 Busca com Ollama AI (Se serviço ativo)
 
-**Pré-requisito:** `GROQ_API_KEY` no `.env`
+**Pré-requisito:** Ollama rodando localmente (`http://localhost:11434`)
 
 **Passos:**
+
 1. Na interface, digite: "Avenida Paulista, São Paulo"
 2. Clique em "Search"
 
 **Verificações:**
+
 - [ ] Resultado retornado com coordenadas
 - [ ] Mapa centraliza na localização
 - [ ] UTM calculado corretamente
 
 **Teste via curl:**
+
 ```bash
 curl -X POST http://localhost:3001/api/search \
   -H "Content-Type: application/json" \
   -d '{"query": "Avenida Paulista, São Paulo"}'
 ```
 
-### 3.2 Busca sem GROQ (Fallback)
+### 3.2 Busca sem Ollama (Fallback)
 
-**Pré-requisito:** Remover `GROQ_API_KEY` do `.env` e reiniciar.
+**Pré-requisito:** Ollama não rodando ou indisponível.
 
 **Verificações:**
-- [ ] Mensagem informativa sobre API não configurada
+
+- [ ] Mensagem informativa sobre serviço não disponível
 - [ ] Sistema continua funcionando
 
 ---
@@ -153,6 +166,7 @@ curl -X POST http://localhost:3001/api/search \
 ### 4.1 Upload KML Válido
 
 **Preparação:** Crie um arquivo `test.kml`:
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
@@ -166,10 +180,12 @@ curl -X POST http://localhost:3001/api/search \
 ```
 
 **Passos:**
+
 1. Interface > "Import KML"
 2. Selecione o arquivo
 
 **Verificações:**
+
 - [ ] Polígono/ponto exibido no mapa
 - [ ] Sistema permite gerar DXF a partir do KML
 
@@ -184,6 +200,7 @@ docker compose up
 ```
 
 **Verificações:**
+
 - [ ] Container inicia sem erros
 - [ ] http://localhost:8080 acessível
 - [ ] Geração de DXF funciona
@@ -206,6 +223,7 @@ wait
 ```
 
 **Verificações:**
+
 - [ ] Todas as requisições completam
 - [ ] Nenhum crash
 - [ ] Jobs processados corretamente
@@ -215,24 +233,29 @@ wait
 **Cenários:**
 
 1. **Coordenadas inválidas:**
+
 ```bash
 curl -X POST http://localhost:3001/api/dxf \
   -H "Content-Type: application/json" \
   -d '{"lat": 999, "lon": 999, "radius": 500}'
 ```
+
 **Esperado:** Erro 400 com mensagem clara
 
 2. **Raio muito grande:**
+
 ```bash
 curl -X POST http://localhost:3001/api/dxf \
   -H "Content-Type: application/json" \
   -d '{"lat": -23.55052, "lon": -46.63331, "radius": 50000}'
 ```
+
 **Esperado:** Erro ou warning sobre limite
 
 ### 6.3 Cache
 
 **Teste de cache:**
+
 ```bash
 # Primeira requisição (lenta)
 time curl -X POST http://localhost:3001/api/dxf \
@@ -246,6 +269,7 @@ time curl -X POST http://localhost:3001/api/dxf \
 ```
 
 **Verificações:**
+
 - [ ] Segunda requisição retorna "cached"
 - [ ] Tempo de resposta menor
 
@@ -256,29 +280,33 @@ time curl -X POST http://localhost:3001/api/dxf \
 Marcar todos antes de release:
 
 ### Funcionalidades Core
+
 - [ ] Setup local completa em < 5 minutos
 - [ ] `npm run dev` funciona sem erros
 - [ ] Health check retorna "online"
 - [ ] Geração demo DXF funciona (sem internet)
 - [ ] Geração OSM→DXF funciona (com internet)
-- [ ] Busca AI funciona (com GROQ_API_KEY)
+- [ ] Busca AI funciona (com Ollama ativo)
 - [ ] Importação KML funciona
 - [ ] Download de DXF funciona
 
 ### Robustez
-- [ ] Sistema funciona sem GROQ_API_KEY
+
+- [ ] Sistema funciona sem Ollama (modo offline)
 - [ ] Sistema funciona sem Firestore/GCP
 - [ ] Tratamento de erros adequado
 - [ ] Logs informativos em todos os cenários
 - [ ] Nenhum crash em uso normal
 
 ### Performance
+
 - [ ] Primeira geração < 30 segundos
 - [ ] Cache hit < 2 segundos
 - [ ] UI responsiva durante processamento
 - [ ] Memória estável (sem leaks)
 
 ### UX
+
 - [ ] Mensagens de erro claras
 - [ ] Feedback visual durante processamento
 - [ ] Progresso mostrado corretamente
@@ -289,7 +317,9 @@ Marcar todos antes de release:
 ## 🐛 Troubleshooting
 
 ### Problema: Python não encontrado
+
 **Solução:**
+
 ```bash
 # Windows
 set PYTHON_COMMAND=python
@@ -299,18 +329,24 @@ export PYTHON_COMMAND=python3
 ```
 
 ### Problema: Erro de CORS
+
 **Verificar:**
+
 - Backend está rodando na porta correta
 - `NODE_ENV=development` no .env
 
 ### Problema: DXF não abre no CAD
+
 **Verificar:**
+
 - Arquivo não está vazio
 - Formato é DXF R2018 ou compatível
 - Testar com LibreCAD (gratuito) antes do AutoCAD
 
 ### Problema: OSM timeout
+
 **Solução:**
+
 - Reduzir raio da área
 - Verificar conexão com internet
 - Verificar status do serviço OSM
@@ -319,9 +355,9 @@ export PYTHON_COMMAND=python3
 
 ## 📝 Registro de Testes
 
-| Data | Versão | Tester | Resultado | Observações |
-|------|--------|--------|-----------|-------------|
-| | | | ⬜ Pass / ⬜ Fail | |
+| Data | Versão | Tester | Resultado         | Observações |
+| ---- | ------ | ------ | ----------------- | ----------- |
+|      |        |        | ⬜ Pass / ⬜ Fail |             |
 
 ---
 

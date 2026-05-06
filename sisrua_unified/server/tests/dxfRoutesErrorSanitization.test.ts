@@ -1,42 +1,43 @@
+import { vi } from "vitest";
 import express from 'express';
 import request from 'supertest';
 
-const createDxfTaskMock = jest.fn();
-const createCacheKeyMock = jest.fn();
-const getCachedFilenameMock = jest.fn();
-const deleteCachedFilenameMock = jest.fn();
-const attachCqtSnapshotToBtContextMock = jest.fn((value) => value);
-const recordDxfRequestMock = jest.fn();
+const createDxfTaskMock = vi.fn();
+const createCacheKeyMock = vi.fn();
+const getCachedFilenameMock = vi.fn();
+const deleteCachedFilenameMock = vi.fn();
+const attachCqtSnapshotToBtContextMock = vi.fn((value) => value);
+const recordDxfRequestMock = vi.fn();
 
-jest.mock('../services/cloudTasksService', () => ({
+vi.mock('../services/cloudTasksService', () => ({
   createDxfTask: (...args: unknown[]) => createDxfTaskMock(...args),
 }));
 
-jest.mock('../services/cacheService', () => ({
+vi.mock('../services/cacheService', () => ({
   createCacheKey: (...args: unknown[]) => createCacheKeyMock(...args),
   getCachedFilename: (...args: unknown[]) => getCachedFilenameMock(...args),
   deleteCachedFilename: (...args: unknown[]) => deleteCachedFilenameMock(...args),
 }));
 
-jest.mock('../services/cqtContextService', () => ({
+vi.mock('../services/cqtContextService', () => ({
   attachCqtSnapshotToBtContext: (...args: unknown[]) => attachCqtSnapshotToBtContextMock(...args),
 }));
 
-jest.mock('../services/metricsService', () => ({
+vi.mock('../services/metricsService', () => ({
   metricsService: {
     recordDxfRequest: (...args: unknown[]) => recordDxfRequestMock(...args),
   },
 }));
 
 // Allow all permissions so this test exercises error-sanitization logic, not auth.
-jest.mock('../middleware/permissionHandler', () => ({
+vi.mock('../middleware/permissionHandler', () => ({
   requirePermission: () => (_req: unknown, _res: unknown, next: () => void) => next(),
 }));
 
 describe('dxfRoutes error sanitization', () => {
   afterEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it('returns generic 500 without leaking internal exception details', async () => {
@@ -59,3 +60,4 @@ describe('dxfRoutes error sanitization', () => {
     expect(JSON.stringify(response.body)).not.toContain('10.1.2.3');
   });
 });
+

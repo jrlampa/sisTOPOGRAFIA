@@ -4,6 +4,8 @@ Este documento estabelece a visão técnica, os pontos de melhoria prioritários
 
 ## 🛡️ Regras Não Negociáveis (Non-negotiables)
 
+![1776210246658](image/STRATEGIC_ROADMAP_2026/1776210246658.png)
+
 > [!IMPORTANT]
 > Estas regras são obrigatórias e devem ser seguidas sem exceção em cada interação de desenvolvimento.
 
@@ -13,7 +15,7 @@ Este documento estabelece a visão técnica, os pontos de melhoria prioritários
 - **Dimensionalidade**: Não usar 3D e sim **2.5D** em todo o projeto.
 - **Arquitetura & Design**:
   - **Modularidade**: Responsabilidade Única (Separação de Responsabilidades).
-  - **Clean Code**: Otimização do código e legibilidade.
+  - **Clean Code**: Otimização do código — _"mais resultado em menos linhas"_.
   - **Thin Frontend / Smart Backend**: Lógica pesada no servidor.
   - **DDD**: Arquitetura orientada a Domain-Driven Design.
 - **Segurança & Dados**:
@@ -23,20 +25,27 @@ Este documento estabelece a visão técnica, os pontos de melhoria prioritários
   - **Half-way BIM**: Manter e evoluir a estrutura de metadados BIM.
 - **DevOps**:
   - **Docker First**: Manter e utilizar `Dockerfile`, `docker-compose.yml`, `.dockerignore` e `.gitignore` sempre atualizados.
-- **Custos**: "Zero custo a todo custo!". Uso primário de APIs públicas ou gratuitas; referências externas não podem gerar custos monetários.
-- **Padrões de Interface**: Interface UI/UX / GUI deve estar 100% em **pt-BR**.
-- **Limites de Código**: Sempre que um arquivo/código superar **500 linhas**, considere modularizar (**Hard Limit de 600 linhas**).
+- **Supabase First**: Usar Supabase sempre que possível (auth, banco, storage, edge functions, realtime).
+- **Versionamento**: Versão única definida em `VERSION` e propagada para `package.json`, `metadata.json`, artefatos e headers de resposta — nenhum componente pode ter versão desalinhada.
+  **Clen workspace & repo**: Manter repo e workspace limpo de arquivos temporários de uso único.
+- **Custos**: "Zero custo a todo custo!". Uso primário de APIs públicas ou gratuitas; qualquer referência externa não pode gerar custos monetários.
+- **Padrões de Interface**: Interface UI/UX / GUI pode operar em `pt-BR`, `en-US` e `es-ES`, desde que o locale ativo permaneça linguisticamente consistente do início ao fim da experiência.
+- **Estilo Canônico de Interface**: O estilo visual aprovado e vigente é **canônico** (default global obrigatório). Qualquer mudança global de estilo só pode ocorrer com autorização **expressa** do solicitante. Variações de estilo só podem existir como opção configurável pelo usuário no menu **Configurações**.
+- **Limites de Código**: Sempre que um arquivo/código superar **500 linhas**, considere modularizar:
+  - **IDEAL**: 500 linhas
+  - **SOFT LIMIT**: 750 linhas
+  - **HARD LIMIT ABSOLUTO**: 1000 linhas (somente quando modularização for tecnicamente inviável)
 - **Testes & Cobertura**:
   - Executar todos os testes sempre que julgar necessário.
-  - Full suite de testes (Unitários & E2E).
+  - Full suite de testes (unit tests & E2E).
   - **Meta de Cobertura**: 100% para os 20% do código que representam 80% do impacto; cobertura mínima >=80% para os demais.
 - **Papéis (Agir de acordo)**:
   - **Tech Lead**: Orquestrador.
   - **Dev Fullstack Sênior**: Principal coder.
-  - **DevOps/QA**: Testes e infraestrutura.
+    ![1776681927051](image/STRATEGIC_ROADMAP_2026/1776681927051.png)![1776681928399](image/STRATEGIC_ROADMAP_2026/1776681928399.png)![1776681929658](image/STRATEGIC_ROADMAP_2026/1776681929658.png)![1776681931459](image/STRATEGIC_ROADMAP_2026/1776681931459.png)![1776681937140](image/STRATEGIC_ROADMAP_2026/1776681937140.png)![1776681938988](image/STRATEGIC_ROADMAP_2026/1776681938988.png)![1776682815634](image/STRATEGIC_ROADMAP_2026/1776682815634.png)![1776682820362](image/STRATEGIC_ROADMAP_2026/1776682820362.png)![1776684167199](image/STRATEGIC_ROADMAP_2026/1776684167199.png)![1776684962763](image/STRATEGIC_ROADMAP_2026/1776684962763.png)- **DevOps/QA**: Testes e infraestrutura.
   - **UI/UX Designer**: Criação de interfaces.
   - **Estagiário**: Criatividade fora da caixa.
-- **Finalização**: Ao terminar uma task, realize o **commit** imediatamente.
+- **Finalização**: Ao terminar uma task: (1) executar suite de testes, (2) verificar cobertura, (3) realizar o **commit** na branch `dev`, (4) atualizar o `RAG/MEMORY.md`.
 
 ---
 
@@ -72,6 +81,7 @@ Itens prioritários deste tier:
 - **Base operacional detalhada**: 71, 72, 74, 75, 76, 77, 90, 91, 93, 96, 97, 98, 99
 - **Governança operacional enterprise**: 111, 112, 113, 114, 115, 116, 117, 118, 119, 120
 - **Readiness corporativo**: 121, 122, 123, 124, 125, 126, 127, 128, 129, 130
+- **IA operacional zero-custo & retrocompatibilidade**: 14A, 14B
 
 Resultado esperado:
 
@@ -145,6 +155,7 @@ Antes de iniciar qualquer item novo, classificar explicitamente:
 - **Expansão Regulatória/Escala**
 - **Diferenciação Comercial**
 - **Innovation Lab / Prova de Valor**
+- **Operação de IA zero-custo e retrocompatibilidade**
 
 Cada item priorizado para execução deve ter, no backlog operacional:
 
@@ -153,6 +164,14 @@ Cada item priorizado para execução deve ter, no backlog operacional:
 - dependências explícitas
 - indicador de sucesso
 - evidência de aceite
+
+### Aditivo Operacional de Execução (DG)
+
+Para implementação faseada de Design Generativo sem reescrever este roadmap, usar em paralelo:
+
+- `docs/DG_IMPLEMENTATION_ADDENDUM_2026.md`
+
+Este aditivo consolida a ordem de execução em 3 frentes (Banco de Dados, Backend, Frontend) e a estratégia de branch de experimentação antes do promotion para `dev`.
 
 ---
 
@@ -187,6 +206,8 @@ Legenda:
 12. **[T3] Agentic Troubleshooting**: Sistema neural para análise de logs Docker e sugestões de auto-healing consultivo.
 13. **[T3] Auto-Documentação Dinâmica (AS-BUILT DOC)**: Manutenção automática de `ARCHITECTURE.md` e `MEMORY.md`.
 14. **[T3] Análise Preditiva de Carga Local**: Sugestões de dimensionamento elétrico baseadas em modelos treinados localmente.
+    14A. **[T1] Governança de Runtime Ollama Zero-Custo**: Verificação periódica de saúde e versão do Ollama, atualização controlada com janela de manutenção, rollback automático para versão estável e bloqueio de qualquer mudança que introduza custo monetário não aprovado.
+    14B. **[T1] Retrocompatibilidade de Modelos e Prompts**: Matriz de compatibilidade por versão de modelo, testes de regressão de prompts e respostas críticas, fallback para modelo local homologado e política de depreciação gradual sem quebrar fluxos existentes.
 
 ### 🛡️ 4. DevOps, SRE & Resiliência
 
@@ -369,11 +390,120 @@ Legenda:
 
 ---
 
+## ✅ Double Check de Pontos já Implementados (2026-04-14)
+
+| Ponto                                                       | Status          | Evidência                                                                             |
+| ----------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------- |
+| 90. SRE Runbooks para queda de conexão de APIs              | ✅ Implementado | `docs/sre/RUNBOOKS.md` (RB-01: perda de conexão com APIs externas)                    |
+| 91. Policy Gates para dependências vulneráveis (SBOM Check) | ✅ Implementado | `.github/workflows/security-supply-chain.yml` + `package.json` (`security:sbom:node`) |
+| 93. Log de Auditoria exportável em SIEM                     | ✅ Implementado | `server/routes/auditRoutes.ts` + `migrations/038_audit_context_siem.sql`              |
+| 96. Monitoramento de SLA de APIs de terceiros               | ✅ Implementado | `server/services/metricsService.ts` + `server/utils/externalApi.ts`                   |
+| 99. Self-healing automático de workers Python OOM           | ✅ Implementado | `server/pythonBridge.ts` (tratamento explícito de OOM com retry)                      |
+
+## ✅ Double Check de Pontos Implementados (2026-04-16)
+
+| Ponto                                             | Status          | Evidência                                                                                                                                                                                  |
+| ------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1. Modularização de Monólitos Python              | ✅ Implementado | `py_engine/dxf_generator.py` (shim) + `py_engine/dxf/core/{geometria,bt_topologia,apresentacao}.py`                                                                                        |
+| 2. Abstração de Repositório (DAL)                 | ✅ Implementado | `server/repositories/jobRepository.ts` + `server/repositories/dxfTaskRepository.ts`                                                                                                        |
+| 4. Contratos Schema-First                         | ✅ Implementado | `schemas/{dxf_request,dxf_response,bt_calculate_request,bt_calculate_response}.schema.json` + `server/utils/schemaValidator.ts`                                                            |
+| 7. Proveniência Técnica dos Artefatos             | ✅ Implementado | `server/utils/artifactProvenance.ts` + integrado em `server/services/cloudTasksService.ts`                                                                                                 |
+| 8. Validador Topológico em Tempo Real             | ✅ Implementado | `server/services/topologicalValidator.ts` + integrado em `server/routes/dxfRoutes.ts` (guarda pré-geração, HTTP 422)                                                                       |
+| 9. Paridade CQT Full (Light S.A.)                 | ✅ Implementado | `server/services/{btParityService,cqtParityReportService,cqtRuntimeSnapshotService}.ts` + testes `server/tests/{btParityService,cqtParityReportService,cqtRuntimeSnapshotService}.test.ts` |
+| 10. Snapshots de Domínio (Digital Twin)           | ✅ Implementado | `server/services/domainSnapshotService.ts`                                                                                                                                                 |
+| 30. RBAC/ABAC Fino e Contextual                   | ✅ Implementado | `server/services/abacPolicyService.ts` + `server/middleware/permissionHandler.ts`                                                                                                          |
+| 31. Recertificação de Acesso                      | ✅ Implementado | `server/services/accessRecertificationService.ts`                                                                                                                                          |
+| 72. Assinatura de Hash SHA-256 por Artefato       | ✅ Implementado | `server/services/cloudTasksService.ts` (`computeArtifactSha256`) + `server/utils/artifactProvenance.ts`                                                                                    |
+| 3. Orquestração Confiável de Jobs (Job Dossier)   | ✅ Implementado | `server/services/jobDossierService.ts` + endpoints `GET /dxf/jobs`, `GET /dxf/jobs/:taskId`, `POST /dxf/jobs/:taskId/replay`                                                               |
+| 5. Injeção de Dependências & Inversão de Controle | ✅ Implementado | `server/services/dxfEngine.ts` + `server/services/cloudTasksService.ts` (`configureCloudTasksDependencies`) + teste isolado `server/tests/cloudTasksService.test.ts`                       |
+
+| Ponto                                               | Status          | Evidência                                                                                          |
+| --------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------- |
+| 35. Painel de Autoatendimento Administrativo        | ✅ Implementado | `server/routes/adminRoutes.ts` + `src/components/AdminPage.tsx` + rota `/admin` em `src/index.tsx` |
+| 37. Configuração de Retenção de Dados               | ✅ Implementado | `server/routes/dataRetentionRoutes.ts` + `server/services/dataRetentionService.ts`                 |
+| 115. Feature Flags por Tenant/Region                | ✅ Implementado | `server/services/tenantFeatureFlagService.ts` + `server/routes/featureFlagRoutes.ts`               |
+| 125. Observabilidade de Negócio (KPIs Operacionais) | ✅ Implementado | `server/services/businessKpiService.ts` + `server/routes/businessKpiRoutes.ts`                     |
+| 126. Gestão de Capacidade & Capacity Planning       | ✅ Implementado | `server/services/capacityPlanningService.ts` + `server/routes/capacityPlanningRoutes.ts`           |
+| 127. Gestão de Vulnerabilidades (CVSS SLA)          | ✅ Implementado | `server/services/vulnManagementService.ts` + `server/routes/vulnManagementRoutes.ts`               |
+| 128. Classificação da Informação & Segregação       | ✅ Implementado | `server/services/infoClassificationService.ts` + `server/routes/infoClassificationRoutes.ts`       |
+| 129. Modelo Multiempresa & Holding                  | ✅ Implementado | `server/services/holdingService.ts` + `server/routes/holdingRoutes.ts`                             |
+| 130. FinOps: Controle de Custo Operacional          | ✅ Implementado | `server/services/finOpsService.ts` + `server/routes/finOpsRoutes.ts`                               |
+
+## ✅ Double Check de Pontos Implementados (2026-05-05A)
+
+| Ponto                                                          | Status          | Evidência                                                                                                     |
+| -------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------- |
+| 14A. Governança de Runtime Ollama Zero-Custo                   | ✅ Implementado | `server/services/ollamaGovernanceService.ts` + `server/routes/ollamaGovernanceRoutes.ts`                      |
+| 15. Supply Chain Security & Integridade                        | ✅ Implementado | `server/services/supplyChainService.ts` + `server/routes/supplyChainRoutes.ts`                                |
+| 16. Integridade de Release                                     | ✅ Implementado | `server/services/releaseIntegrityService.ts` + `server/routes/releaseIntegrityRoutes.ts`                      |
+| 17. SRE/Operação 24x7 com SLOs                                 | ✅ Implementado | `server/services/sloService.ts` + `server/routes/sreRoutes.ts`                                                |
+| 18. Observabilidade Preditiva                                  | ✅ Implementado | `server/services/predictiveObservabilityService.ts` + `server/routes/predictiveObservabilityRoutes.ts`        |
+| 20. Ambientes Enterprise com Promotion Controlado              | ✅ Implementado | `server/services/environmentPromotionService.ts` + `server/routes/environmentPromotionRoutes.ts`              |
+| 22. Zero Trust Inter-service                                   | ✅ Implementado | `server/services/zeroTrustService.ts` + `server/routes/zeroTrustRoutes.ts`                                    |
+| 23. Blue/Green Deployment                                      | ✅ Implementado | `server/services/blueGreenService.ts` + `server/routes/blueGreenRoutes.ts`                                    |
+| 24. Conformidade WCAG 2.1 & eMAG 3.1                           | ✅ Implementado | `server/services/emagCertService.ts` (emissão de dossier de acessibilidade)                                   |
+| 28. Identity Lifecycle (JML + SCIM)                            | ✅ Implementado | `server/services/identityLifecycleService.ts` (JML events + ScimUser interface) + `server/routes/identityLifecycleRoutes.ts` |
+| 29. Provisionamento & SCIM                                     | ✅ Implementado | `server/services/identityLifecycleService.ts` (ScimUser, SCIM schemas, `mapToScimUser`) + endpoints SCIM em `identityLifecycleRoutes.ts` |
+| 32. Isolamento Multi-tenant Robusto                            | ✅ Implementado | `server/services/multiTenantIsolationService.ts` + `server/routes/multiTenantIsolationRoutes.ts`              |
+| 34. Trilha de Auditoria Exportável (Tenant Level)              | ✅ Implementado | `server/services/tenantAuditExportService.ts` + `server/routes/tenantAuditExportRoutes.ts`                    |
+| 38. LGPD End-to-End (RIPD Automatizado)                        | ✅ Implementado | `server/services/lgpdFlowService.ts` + `server/routes/lgpdRoutes.ts`                                          |
+| 39. Playbook de Incidentes Regulatórios                        | ✅ Implementado | `server/services/lgpdIncidentPlaybookService.ts` (fluxos ANPD)                                                |
+| 40. Retenção, Classificação e Descarte                         | ✅ Implementado | `server/services/lgpdRetencaoService.ts` + `server/routes/lgpdRetencaoRoutes.ts`                              |
+| 41. Residência de Dados Brasil                                 | ✅ Implementado | `server/services/lgpdResidenciaService.ts` + `server/routes/lgpdResidenciaRoutes.ts`                          |
+| 48. Gestão Formal de Vulnerabilidades (VMP)                    | ✅ Implementado | `server/services/vulnManagementService.ts` + `server/routes/vulnManagementRoutes.ts`                          |
+| 49. Pentests Recorrentes e Ofensivos                           | ✅ Implementado | `server/services/pentestService.ts` + `server/routes/pentestRoutes.ts`                                        |
+| 50. Hardening de Artefatos                                     | ✅ Implementado | `server/services/artifactHardeningService.ts`                                                                 |
+| 51. BCP/DR com RTO/RPO Testados                                | ✅ Implementado | `server/services/bcpDrService.ts` + `server/routes/bcpDrRoutes.ts`                                            |
+| 52. Redundância Geográfica Automática                          | ✅ Implementado | `server/services/bcpDrService.ts` (cenários DR com `regiaoAtiva`/`regiaoFallback` e failover simulado)        |
+| 53. Conformidade BDGD (ANEEL) Nativa                           | ✅ Implementado | `server/services/bdgdValidatorService.ts` + `server/routes/bdgdRoutes.ts`                                     |
+| 54. Dossiê Regulatório e Cadeia de Custódia                    | ✅ Implementado | `server/services/dossieRegulatorioService.ts` + `server/routes/dossieRoutes.ts`                               |
+| 68. Audit Log Forense Multicamada (Write-Once)                 | ✅ Implementado | `server/services/auditLogService.ts` (SHA-256, Object.freeze, in-memory store, `verifyEntry`) — refatorado para síncrono em 2026-05-05A |
+| 71. Idempotência Garantida em Jobs de Exportação               | ✅ Implementado | `server/services/jobIdempotencyService.ts` + `ON CONFLICT` em `cloudTasksService.ts`                          |
+| 74. Invalidação Proativa de Cache em Mudanças de Papel         | ✅ Implementado | `server/services/roleService.ts` (`clearUserRoleCache` + `onRoleChange` via `cacheService.ts`)                |
+| 75. Encryption at Rest com Master Keys Cliente                 | ✅ Implementado | `server/services/encryptionAtRestService.ts` + `server/routes/encryptionAtRestRoutes.ts`                      |
+| 76. Time-series Cold Storage p/ Logs de Auditoria              | ✅ Implementado | `server/services/auditColdStorageService.ts` + `server/routes/auditColdStorageRoutes.ts`                      |
+| 77. Política de Descarte Seguro Certificado (NIST 800-88)      | ✅ Implementado | `server/services/dataRetentionService.ts` (política de descarte com archiveOnExpiry + maxAgeDays)              |
+| 97. Certificação de Acessibilidade eMAG                        | ✅ Implementado | `server/services/emagCertService.ts` + `server/routes/nbr9050Routes.ts`                                       |
+| 98. Dossiê de Proveniência para Fiscalização ANEEL             | ✅ Implementado | `server/services/aneelProvenanceService.ts` + `server/routes/provenienciaForenseRoutes.ts`                    |
+| 111. Release Governance & CAB Simplificado                     | ✅ Implementado | `server/services/releaseCabService.ts` + `server/routes/releaseCabRoutes.ts`                                  |
+| 112. Runbooks Operacionais & Troubleshooting                   | ✅ Implementado | `server/services/operationalRunbookService.ts` + `server/routes/operationalRunbookRoutes.ts`                  |
+| 113. Service Desk L1/L2/L3 Industrial                          | ✅ Implementado | `server/services/serviceDeskService.ts` + `server/routes/serviceDeskRoutes.ts`                                |
+| 114. SLO/SLA por Fluxo Crítico Contratual                      | ✅ Implementado | `server/services/sloService.ts` + `server/routes/contractualSlaRoutes.ts`                                     |
+| 116. Matriz de Rastreabilidade Regulatória                     | ✅ Implementado | `server/services/rastreabilidadeRegulatoriaService.ts` + `server/routes/rastreabilidadeRoutes.ts`             |
+| 117. Prontidão para RFP/RFI                                    | ✅ Implementado | `server/services/rfpReadinessService.ts` + `server/routes/rfpReadinessRoutes.ts`                              |
+| 118. Gestão de Mudança e Janelas de Manutenção                 | ✅ Implementado | `server/services/changeManagementService.ts` + `server/routes/changeManagementRoutes.ts` (31 testes)          |
+| 119. Base de Conhecimento Forense                              | ✅ Implementado | `server/services/knowledgeBaseService.ts` + `server/routes/knowledgeBaseRoutes.ts`                            |
+| 120. Trilha de Evidências para Licitações                      | ✅ Implementado | `server/services/licitacoesService.ts`                                                                        |
+| 124. Circuit Breakers para Integrações Externas                | ✅ Implementado | `server/utils/circuitBreaker.ts` + `server/utils/externalApi.ts` (`fetchWithCircuitBreaker`)                  |
+
+## ✅ Double Check de Pontos Implementados (2026-05-06A)
+
+| Ponto                                                          | Status          | Evidência                                                                                                     |
+| -------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------- |
+| 14B. Retrocompatibilidade de Modelos e Prompts                 | ✅ Implementado | `server/services/modelRetrocompatService.ts` + `server/routes/modelRetrocompatRoutes.ts` (22 testes)          |
+| 27. Foco em Legibilidade de Grid                               | ✅ Implementado | `server/services/gridLegibilityService.ts` + `server/routes/gridLegibilityRoutes.ts` (18 testes)              |
+| 121. Hardening para Ambiente Corporativo Restritivo            | ✅ Implementado | `server/services/corporateHardeningService.ts` + `server/routes/corporateHardeningRoutes.ts` (18 testes)      |
+| 122. Pacote de Homologação Enterprise (Onboarding)             | ✅ Implementado | `server/services/enterpriseOnboardingService.ts` + `server/routes/enterpriseOnboardingRoutes.ts` (14 testes)  |
+| 123. Suporte a Implantação On-Premise / Híbrida                | ✅ Implementado | `server/services/onPremiseService.ts` + `server/routes/onPremiseRoutes.ts` (16 testes)                        |
+
+## ✅ Double Check de Pontos Implementados (2026-T2 Sprint)
+
+| Ponto                                                          | Status          | Evidência                                                                                                                                                               |
+| -------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T2.59 — Motor LCP (Least-Cost Path sobre rede viária)          | ✅ Implementado | `server/services/dg/lcpTypes.ts` + `server/services/dg/lcpService.ts` + `server/routes/dgRoutes.ts` (GET `/api/dg/lcp/profiles`, POST `/api/dg/lcp`); 11 testes        |
+|                                                                |                 | Frontend: `src/hooks/useLcp.ts` + `src/components/LcpPanel.tsx` + `src/i18n/lcpText.ts` (3 locales: pt-BR, en-US, es-ES)                                               |
+|                                                                |                 | Algoritmo: Dijkstra ponderado; custo = `lengthMeters × highwayMult × sensitiveMult × existingBonus + fixedPenalty`; 4 perfis: URBAN_STANDARD, RURAL_STANDARD, CORRIDOR_PREFERRED, MINIMIZE_CROSSINGS |
+| T2.19 — Plataforma de Chaos Engineering                        | ✅ Implementado | `server/services/chaosEngineeringService.ts` + `server/routes/chaosRoutes.ts` (`/api/chaos/*`); 16 testes                                                               |
+|                                                                |                 | Tipos de falha: latency, error_rate, resource_exhaustion, network_partition, payload_corruption, timeout                                                                |
+|                                                                |                 | Features: criação/listagem/execução/cancelamento de experimentos; relatório de resiliência (score 0-100, avg recovery time, top targets); rollback automático por SLO   |
+
+---
+
 ## 🏁 Workflow de Encerramento
 
 Ao final de cada task:
 
 1. Executar suite de testes (`npm run test:all`).
-2. Verificar cobertura.
+2. Verificar cobertura (100% para os 20% críticos; >=80% para os demais).
 3. Realizar o commit na branch `dev`.
-4. Atualizar o `RAG/MEMORY.md`.
+4. Atualizar o `RAG/MEMORY/CAC.md`.

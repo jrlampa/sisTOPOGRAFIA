@@ -227,5 +227,5 @@ def test_bt_topology_entities_are_drawn(dxf_gen):
 
 def test_save_raises_for_empty_modelspace(dxf_gen):
     """Prevent silent success when no entities were generated."""
-    with pytest.raises(RuntimeError, match="model space has no entities"):
+    with pytest.raises(RuntimeError, match="model space sem entidades"):
         dxf_gen.save()

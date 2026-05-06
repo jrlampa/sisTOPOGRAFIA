@@ -67,3 +67,42 @@ export const parseUtmQuery = (query: string): GeoLocation | null => {
     label: `UTM ${zone}${band} ${easting} ${northing}`
   };
 };
+
+/**
+ * Calculates the UTM zone for a given longitude.
+ */
+export const getUtmZone = (lng: number): number => {
+  return Math.floor((lng + 180) / 6) + 1;
+};
+
+/**
+ * Identifies the UTM band for a given latitude.
+ */
+export const getUtmBand = (lat: number): string => {
+  if (lat >= 84 || lat < -80) return "Z"; // Outside UTM range
+  const bands = "CDEFGHJKLMNPQRSTUVWXX";
+  const index = Math.floor((lat + 80) / 8);
+  return bands[index] || "X";
+};
+
+/**
+ * Converts WGS84 coordinates to UTM Easting/Northing.
+ */
+export const toUtm = (lat: number, lng: number) => {
+  const zone = getUtmZone(lng);
+  const band = getUtmBand(lat);
+  const isSouth = lat < 0;
+
+  const projString = `+proj=utm +zone=${zone}${isSouth ? " +south" : ""} +datum=WGS84 +units=m +no_defs`;
+  
+  const [easting, northing] = proj4("WGS84", projString).forward([lng, lat]);
+
+  return {
+    easting,
+    northing,
+    zone,
+    band,
+    isSouth,
+    projString
+  };
+};
