@@ -116,6 +116,20 @@ jobs:
           path: coverage/frontend-risk/
           retention-days: 1
 
+  # 4.1 Integration Tests
+  test-integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+      - run: npm ci --prefer-offline --no-audit
+      - name: Run Integration Tests
+        run: npm run test:integration
+
   # 5. Security & SBOM
   security:
     name: Security & Compliance
@@ -180,6 +194,22 @@ jobs:
       - name: Run E2E Smoke
         run: npm run test:e2e -- --grep @smoke
 
+  # 8.1 Unified QA Regression Gate
+  qa-regression:
+    name: QA Regression Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+      - run: npm ci --prefer-offline --no-audit
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Run Unified QA Regression
+        run: npm run test:qa:regression
+
   # 9. D7 Go Parcial Gate
   d7-go-parcial:
     name: D7 Go Parcial Gate
@@ -199,7 +229,17 @@ jobs:
     name: Checkpoints Integrity
     runs-on: ubuntu-latest
     needs:
-      [test-backend, test-frontend, lint, security, build, parity-p0, e2e-smoke]
+      [
+        test-backend,
+        test-frontend,
+        test-integration,
+        lint,
+        security,
+        build,
+        parity-p0,
+        e2e-smoke,
+        qa-regression,
+      ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -246,10 +286,12 @@ jobs:
       - lint
       - test-backend
       - test-frontend
+      - test-integration
       - security
       - build
       - parity-p0
       - e2e-smoke
+      - qa-regression
       - d7-go-parcial
       - checkpoints
       - coverage-gate
@@ -261,16 +303,18 @@ jobs:
           echo "Lint: ${{ needs.lint.result }}"
           echo "Test Backend: ${{ needs.test-backend.result }}"
           echo "Test Frontend: ${{ needs.test-frontend.result }}"
+          echo "Test Integration: ${{ needs.test-integration.result }}"
           echo "Security: ${{ needs.security.result }}"
           echo "Build: ${{ needs.build.result }}"
           echo "Parity: ${{ needs.parity-p0.result }}"
           echo "E2E Smoke: ${{ needs.e2e-smoke.result }}"
+          echo "QA Regression: ${{ needs.qa-regression.result }}"
           echo "D7 Go: ${{ needs.d7-go-parcial.result }}"
           echo "Checkpoints: ${{ needs.checkpoints.result }}"
           echo "Coverage Gate: ${{ needs.coverage-gate.result }}"
 
           FAILED=""
-          for JOB in db-predeploy audit lint test-backend test-frontend security build parity-p0 e2e-smoke d7-go-parcial checkpoints coverage-gate; do
+          for JOB in db-predeploy audit lint test-backend test-frontend test-integration security build parity-p0 e2e-smoke qa-regression d7-go-parcial checkpoints coverage-gate; do
             RESULT=$(
               case $JOB in
                 db-predeploy) echo "${{ needs.db-predeploy.result }}" ;;
@@ -278,10 +322,12 @@ jobs:
                 lint) echo "${{ needs.lint.result }}" ;;
                 test-backend) echo "${{ needs.test-backend.result }}" ;;
                 test-frontend) echo "${{ needs.test-frontend.result }}" ;;
+                test-integration) echo "${{ needs.test-integration.result }}" ;;
                 security) echo "${{ needs.security.result }}" ;;
                 build) echo "${{ needs.build.result }}" ;;
                 parity-p0) echo "${{ needs.parity-p0.result }}" ;;
                 e2e-smoke) echo "${{ needs.e2e-smoke.result }}" ;;
+                qa-regression) echo "${{ needs.qa-regression.result }}" ;;
                 d7-go-parcial) echo "${{ needs.d7-go-parcial.result }}" ;;
                 checkpoints) echo "${{ needs.checkpoints.result }}" ;;
                 coverage-gate) echo "${{ needs.coverage-gate.result }}" ;;

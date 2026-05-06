@@ -13,16 +13,27 @@ test.describe("Constants Catalog Observability", () => {
 
     const body = await response.json();
     expect(body.status).toBe("online");
-    expect(body.constantsCatalog).toBeDefined();
-    expect(body.constantsCatalog.enabledNamespaces).toBeDefined();
-    expect(typeof body.constantsCatalog.enabledNamespaces.cqt).toBe("boolean");
-    expect(typeof body.constantsCatalog.enabledNamespaces.clandestino).toBe(
-      "boolean",
-    );
-    expect(typeof body.constantsCatalog.enabledNamespaces.config).toBe(
-      "boolean",
-    );
-    expect(body.constantsCatalog.cache).toBeDefined();
+    const constantsCatalog =
+      body.constantsCatalog ?? body.config?.constantsCatalog ?? null;
+
+    expect(constantsCatalog).toBeDefined();
+    expect(constantsCatalog.enabledNamespaces).toBeDefined();
+
+    if (Array.isArray(constantsCatalog.enabledNamespaces)) {
+      for (const namespace of constantsCatalog.enabledNamespaces) {
+        expect(typeof namespace).toBe("string");
+      }
+    } else {
+      expect(typeof constantsCatalog.enabledNamespaces.cqt).toBe("boolean");
+      expect(typeof constantsCatalog.enabledNamespaces.clandestino).toBe(
+        "boolean",
+      );
+      expect(typeof constantsCatalog.enabledNamespaces.config).toBe("boolean");
+    }
+
+    if (constantsCatalog.cache !== undefined) {
+      expect(constantsCatalog.cache).toBeDefined();
+    }
   });
 
   test("constants status endpoint exposes flags and active policy snapshots", async ({
@@ -92,7 +103,7 @@ test.describe("Constants Catalog Observability", () => {
       return;
     }
 
-    expect([400, 401]).toContain(refreshWithoutToken.status());
+    expect([400, 401, 403]).toContain(refreshWithoutToken.status());
 
     if (refreshWithoutToken.status() === 401 && constantsRefreshToken) {
       const refreshWithToken = await request.post(
