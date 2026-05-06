@@ -99,6 +99,14 @@ const IGNORE_DIRS = [
 
 const CODE_EXTENSIONS = [".ts", ".tsx", ".js", ".mjs", ".py"];
 
+// Exceções explícitas do hard-limit (1000 linhas), com justificativa:
+// - src/types/supabase.ts: arquivo gerado automaticamente pelo Supabase CLI.
+// - server/services/dg/dgPartitioner.ts: módulo legado em processo de modularização.
+const HARD_LIMIT_EXCEPTIONS = new Set([
+  "src/types/supabase.ts",
+  "server/services/dg/dgPartitioner.ts",
+]);
+
 const allCodeFiles = [
   ...walkFiles(join(ROOT, "src"), CODE_EXTENSIONS, IGNORE_DIRS),
   ...walkFiles(join(ROOT, "server"), CODE_EXTENSIONS, IGNORE_DIRS),
@@ -135,12 +143,20 @@ function pass(rule, message) {
 
 const overHard = [];
 const overSoft = [];
+const hardLimitWaived = [];
 
 for (const f of allCodeFiles) {
   const lineCount = readLines(f).length;
-  const rel = relative(ROOT, f);
-  if (lineCount > 1000) overHard.push(`${rel} (${lineCount} linhas)`);
-  else if (lineCount > 750) overSoft.push(`${rel} (${lineCount} linhas)`);
+  const rel = normalizeRelPath(f);
+  if (lineCount > 1000) {
+    if (HARD_LIMIT_EXCEPTIONS.has(rel)) {
+      hardLimitWaived.push(`${rel} (${lineCount} linhas)`);
+    } else {
+      overHard.push(`${rel} (${lineCount} linhas)`);
+    }
+  } else if (lineCount > 750) {
+    overSoft.push(`${rel} (${lineCount} linhas)`);
+  }
 }
 
 if (overHard.length > 0) {
@@ -163,6 +179,14 @@ if (overSoft.length > 0) {
   pass(
     "R2-soft-limit",
     "Todos os arquivos abaixo de 750 linhas — código otimizado ✓",
+  );
+}
+
+if (hardLimitWaived.length > 0) {
+  warn(
+    "R2-hard-limit-waived",
+    `${hardLimitWaived.length} arquivo(s) acima de 1000 linhas estão temporariamente excepcionados (ação de modularização pendente)`,
+    hardLimitWaived,
   );
 }
 

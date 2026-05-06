@@ -207,11 +207,8 @@ function adaptApiResponse(
   raw: Record<string, unknown>,
   source: MtLatLon,
 ): MtRouterResult {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawEdges = (raw.edges as any[]) ?? [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawPaths = (raw.paths as any[]) ?? [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawDraft = raw.mtTopologyDraft as any;
 
   const edges: MtRouterEdge[] = rawEdges.map((e) => {
@@ -241,7 +238,6 @@ function adaptApiResponse(
     routeNodeIds: p.nodeIds ?? [],
     totalDistanceMeters: p.lengthMeters ?? 0,
   }));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const unreachable: string[] = (raw.unreachableTerminals as string[]) ?? [];
   const engineeringWarnings: string[] =
     (raw.engineeringWarnings as string[]) ?? [];
