@@ -42,6 +42,9 @@ jspm_packages/
 .env
 .env.local
 .env.*.local
+.venv/
+venv/
+ENV/
 
 # IDE and editor files
 .vscode/
@@ -67,3 +70,10 @@ yarn-error.log*
 
 # Temporary geodata extraction artifacts
 _tmp_kmz/
+
+.gemini/
+gha-creds-*.json
+
+# Local dependency audit sandbox files (root)
+/package.json
+/package-lock.json

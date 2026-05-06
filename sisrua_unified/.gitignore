@@ -85,6 +85,10 @@ tmp/
 chaos_output.txt
 .lighthouseci/
 
+# Security scan outputs
+pip-audit-report*.json
+bandit-report*.json
+
 # Artifacts (brain cache, RAG outputs gerados)
 artifacts/
 scratch/
