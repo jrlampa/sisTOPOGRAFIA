@@ -31,7 +31,7 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       - LLM_ENDPOINT=http://ollama:11434
       # ── On-Premise / Hybrid deployment (Item 123) ──────────────────
-      - DEPLOYMENT_MODE=cloud  # cloud | hybrid | on-premise
+      - DEPLOYMENT_MODE=cloud # cloud | hybrid | on-premise
       # TILE_SERVER_URL=  # Set for local tile server in on-premise mode
       # ── Corporate Hardening (Item 121) ─────────────────────────────
       - HELMET_ENABLED=true
@@ -57,10 +57,16 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
       timeout: 10s
+      start_period: 20s
       retries: 3
     restart: unless-stopped
     networks:
       - sisrua-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -88,7 +94,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "redis-cli --no-auth-warning -a \"$$(cat /run/secrets/redis_password)\" ping",
+          'redis-cli --no-auth-warning -a "$$(cat /run/secrets/redis_password)" ping',
         ]
       interval: 10s
       timeout: 3s

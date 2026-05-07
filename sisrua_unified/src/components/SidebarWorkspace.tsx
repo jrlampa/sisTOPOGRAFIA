@@ -78,12 +78,20 @@ export function SidebarWorkspace({
 
   const t = getSidebarWorkspaceText(locale);
 
+  const STAGE_ACCENT = [
+    "bg-sky-500 shadow-sky-500/25",
+    "bg-indigo-600 shadow-indigo-600/25",
+    "bg-violet-600 shadow-violet-600/25",
+    "bg-emerald-500 shadow-emerald-500/25",
+  ] as const;
+
   const STAGES = [
     {
       id: 1,
       label: t.stage1Label,
       helper: t.stage1Helper,
       icon: Compass,
+      accent: STAGE_ACCENT[0],
       component: <SidebarSelectionControls {...selectionControlsProps} />,
     },
     {
@@ -91,6 +99,7 @@ export function SidebarWorkspace({
       label: t.stage2Label,
       helper: t.stage2Helper,
       icon: Network,
+      accent: STAGE_ACCENT[1],
       component: <SidebarBtEditorSection {...btEditorSectionProps} />,
     },
     {
@@ -98,6 +107,7 @@ export function SidebarWorkspace({
       label: t.stage3Label,
       helper: t.stage3Helper,
       icon: Zap,
+      accent: STAGE_ACCENT[2],
       component: <SidebarMtEditorSection {...mtEditorSectionProps} />,
     },
     {
@@ -105,6 +115,7 @@ export function SidebarWorkspace({
       label: t.stage4Label,
       helper: t.stage4Helper,
       icon: LineChart,
+      accent: STAGE_ACCENT[3],
       component: <SidebarAnalysisResults {...analysisResultsProps} />,
     },
   ];
@@ -162,8 +173,8 @@ export function SidebarWorkspace({
     return (
       <motion.aside
         initial={{ width: 0, opacity: 0 }}
-        animate={{ width: 72, opacity: 1 }}
-        className="relative z-20 flex h-full flex-col items-center border-r bg-slate-50/40 p-2 backdrop-blur-2xl glass-premium dark:border-white/5 dark:bg-slate-900/40 shadow-2xl"
+        animate={{ width: 64, opacity: 1 }}
+        className="relative z-20 flex h-full flex-col items-center border-r bg-slate-50/40 py-3 px-1.5 backdrop-blur-2xl glass-premium dark:border-white/5 dark:bg-slate-900/40 shadow-2xl"
       >
         <button
           onClick={() => onToggleCollapse(false)}
@@ -173,7 +184,7 @@ export function SidebarWorkspace({
           <ChevronRight size={20} />
         </button>
 
-        <div className="flex flex-1 flex-col gap-4">
+        <div className="flex flex-1 flex-col gap-3">
           {STAGES.map((s) => {
             const isActive = activeStage === s.id;
             const isDone = activeStage > s.id;
@@ -188,25 +199,25 @@ export function SidebarWorkspace({
                 }}
                 title={s.label}
                 aria-label={s.label}
-                className={`group relative flex h-12 w-12 items-center justify-center rounded-2xl transition-all ${
+                className={`group relative flex h-11 w-11 items-center justify-center rounded-2xl transition-all ${
                   isActive
                     ? "bg-white/80 shadow-md dark:bg-white/10 glass-shine"
                     : "hover:bg-slate-100 dark:hover:bg-white/5"
                 }`}
               >
                 <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all ${
+                  className={`flex h-8 w-8 items-center justify-center rounded-xl transition-all shadow-md ${
                     isActive
-                      ? "bg-blue-600 text-white scale-110 shadow-lg shadow-blue-600/30"
+                      ? `${s.accent} text-white scale-110`
                       : isDone
-                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
-                        : "bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600"
+                        ? "bg-emerald-100 text-emerald-600 shadow-none dark:bg-emerald-500/20 dark:text-emerald-400"
+                        : "bg-slate-200 text-slate-400 shadow-none dark:bg-slate-800 dark:text-slate-600"
                   }`}
                 >
                   {isDone ? (
-                    <CheckCircle2 size={18} strokeWidth={3} />
+                    <CheckCircle2 size={16} strokeWidth={3} />
                   ) : (
-                    <Icon size={18} strokeWidth={2.5} />
+                    <Icon size={16} strokeWidth={2.5} />
                   )}
                 </div>
 
@@ -278,40 +289,40 @@ export function SidebarWorkspace({
               onClick={() => setActiveStage(s.id)}
               title={s.helper}
               aria-label={s.label}
-              className={`group relative flex flex-col items-center gap-2 rounded-xl py-3 transition-all ${
+              className={`group relative flex flex-col items-center gap-1.5 rounded-xl py-2.5 transition-all ${
                 isActive
-                  ? "bg-white/70 shadow-lg shadow-slate-200/50 dark:bg-white/10 dark:shadow-none glass-shine"
-                  : "hover:bg-slate-100 dark:hover:bg-white/5"
+                  ? "bg-white/70 shadow-md shadow-slate-200/50 dark:bg-white/10 dark:shadow-none glass-shine"
+                  : "hover:bg-slate-100/60 dark:hover:bg-white/5"
               }`}
             >
               <div
-                className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all ${
+                className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all ${
                   isActive
-                    ? "bg-blue-600 text-white scale-110 shadow-md shadow-blue-600/20"
+                    ? `${s.accent} text-white scale-105 shadow-md`
                     : isDone
                       ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
-                      : "bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600"
+                      : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600"
                 }`}
               >
                 {isDone ? (
-                  <CheckCircle2 size={20} strokeWidth={3} />
+                  <CheckCircle2 size={17} strokeWidth={2.5} />
                 ) : (
-                  <Icon size={20} strokeWidth={2.5} />
+                  <Icon size={17} strokeWidth={2.5} />
                 )}
               </div>
               <span
-                className={`text-[9px] font-black uppercase tracking-widest ${
+                className={`text-[8.5px] font-black uppercase tracking-widest leading-none ${
                   isActive
-                    ? "text-blue-600 dark:text-blue-400"
+                    ? "text-slate-700 dark:text-slate-200"
                     : "text-slate-400 dark:text-slate-600"
                 }`}
               >
-                Etapa {s.id}
+                {s.label}
               </span>
               {isActive && (
                 <motion.div
                   layoutId="active-bar"
-                  className="absolute -bottom-1 h-0.5 w-4 rounded-full bg-blue-600"
+                  className="absolute -bottom-0.5 h-0.5 w-5 rounded-full bg-current opacity-60"
                 />
               )}
             </button>

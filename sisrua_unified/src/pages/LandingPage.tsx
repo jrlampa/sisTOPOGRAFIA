@@ -146,20 +146,20 @@ const FAQ = [
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur">
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md transition-colors hover:border-white/15">
       <button
-        className="flex w-full items-center justify-between px-5 py-4 text-left text-sm font-medium text-slate-100"
+        className="flex w-full items-center justify-between px-5 py-4 text-left text-sm font-semibold text-slate-200 transition-colors hover:text-slate-50"
         onClick={() => setOpen((v) => !v)}
       >
         <span>{q}</span>
         {open ? (
-          <ChevronUp className="h-4 w-4 shrink-0 text-indigo-400" />
+          <ChevronUp className="h-4 w-4 shrink-0 text-cyan-400" />
         ) : (
-          <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+          <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" />
         )}
       </button>
       {open && (
-        <div className="border-t border-white/10 px-5 pb-4 pt-3 text-sm text-slate-400 leading-relaxed">
+        <div className="border-t border-white/10 px-5 pb-5 pt-3 text-sm leading-relaxed text-slate-400">
           {a}
         </div>
       )}
@@ -227,47 +227,60 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-slate-100">
+    <div
+      data-theme="dark"
+      className="min-h-screen bg-[#071524] font-sans text-slate-100"
+    >
       {/* ── Atmosfera ── */}
       <div
         className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
         aria-hidden="true"
       >
         <span
-          className="absolute -left-48 -top-48 h-[600px] w-[600px] rounded-full opacity-[0.15]"
+          className="absolute -left-48 -top-48 h-[640px] w-[640px] rounded-full blur-[100px] opacity-20"
+          style={{
+            background: "radial-gradient(circle, #0ea5c6 0%, transparent 70%)",
+          }}
+        />
+        <span
+          className="absolute -bottom-48 right-0 h-[540px] w-[540px] rounded-full blur-[100px] opacity-[0.14]"
           style={{
             background: "radial-gradient(circle, #6366f1 0%, transparent 70%)",
           }}
         />
         <span
-          className="absolute -bottom-48 right-0 h-[500px] w-[500px] rounded-full opacity-[0.12]"
+          className="absolute left-1/2 top-1/3 h-[420px] w-[420px] -translate-x-1/2 rounded-full blur-[80px] opacity-[0.09]"
           style={{
-            background: "radial-gradient(circle, #06b6d4 0%, transparent 70%)",
+            background: "radial-gradient(circle, #38bdf8 0%, transparent 70%)",
           }}
         />
         <span
-          className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 rounded-full opacity-[0.07]"
+          className="absolute bottom-1/4 left-1/4 h-[300px] w-[300px] rounded-full blur-[60px] opacity-[0.06]"
           style={{
-            background: "radial-gradient(circle, #8b5cf6 0%, transparent 70%)",
+            background: "radial-gradient(circle, #f58220 0%, transparent 70%)",
           }}
         />
       </div>
 
       {/* ── Header ── */}
-      <header className="relative z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl">
+      <header className="glass-premium relative z-40 border-b border-white/10 bg-[#071524]/60 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-screen-xl items-center justify-between px-6">
           <Link
             to="/"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2.5"
             aria-label="Página inicial"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 shadow-md shadow-indigo-500/30">
-              <Map className="h-4 w-4 text-white" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-slate-900 p-1 shadow-md shadow-cyan-500/20">
+              <img
+                src="/branding/logo_sisrua_optimized.png"
+                className="h-6 w-6 object-contain"
+                alt="sisTOPOGRAFIA"
+              />
             </span>
-            <span className="text-sm font-bold">
-              sis<span className="text-indigo-400">TOPOGRAFIA</span>
+            <span className="font-display text-sm font-bold tracking-tight">
+              sis<span className="text-cyan-400">TOPOGRAFIA</span>
             </span>
-            <span className="rounded bg-indigo-600/20 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-indigo-400">
+            <span className="hidden rounded-md border border-cyan-400/30 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-black tracking-[0.15em] text-cyan-300 sm:inline">
               SaaS
             </span>
           </Link>
@@ -297,13 +310,13 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <a
               href="#acesso"
-              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-slate-100"
+              className="rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-white/5 hover:text-slate-100"
             >
               Entrar
             </a>
             <a
               href="#acesso"
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/30 transition-all hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
+              className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950 shadow-md shadow-cyan-500/30 transition-all hover:bg-cyan-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400"
             >
               Começar grátis
             </a>
@@ -314,13 +327,13 @@ export default function LandingPage() {
       <div className="relative z-10">
         {/* ── Hero ── */}
         <section className="mx-auto max-w-screen-xl px-6 pb-24 pt-20 text-center">
-          <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-indigo-400">
+          <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-cyan-300">
             <Sparkles className="h-3.5 w-3.5" />
             Plataforma enterprise de geoprocessamento
           </span>
-          <h1 className="mx-auto max-w-3xl text-4xl font-black leading-tight tracking-tight text-slate-50 sm:text-5xl lg:text-6xl">
+          <h1 className="font-display mx-auto max-w-3xl text-4xl font-black leading-tight tracking-tight text-slate-50 sm:text-5xl lg:text-6xl">
             Projetos de rede elétrica{" "}
-            <span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-cyan-400 to-sky-400 bg-clip-text text-transparent">
               com precisão topográfica
             </span>
           </h1>
@@ -344,7 +357,7 @@ export default function LandingPage() {
                     ?.scrollIntoView({ behavior: "smooth" });
                 }
               }}
-              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-500 hover:shadow-indigo-500/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
+              className="flex items-center gap-2 rounded-xl bg-cyan-500 px-6 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-cyan-500/25 transition-all hover:bg-cyan-400 hover:shadow-cyan-500/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400"
             >
               {mode === "authenticated" && !awaitingEmailConfirmation
                 ? "Abrir plataforma"
@@ -353,43 +366,35 @@ export default function LandingPage() {
             </Link>
             <a
               href="#contato"
-              className="flex items-center gap-2 rounded-xl border border-white/15 px-6 py-3 text-sm font-semibold text-slate-300 backdrop-blur transition-all hover:border-white/30 hover:text-slate-100"
+              className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-slate-300 backdrop-blur transition-all hover:border-white/25 hover:bg-white/10 hover:text-slate-100"
             >
               Falar com especialista
             </a>
           </div>
           {/* Social proof */}
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <BadgeCheck className="h-4 w-4 text-emerald-500" /> Compliance
-              LGPD nativo
-            </span>
-            <span className="flex items-center gap-1.5">
-              <BadgeCheck className="h-4 w-4 text-emerald-500" /> Dados
-              armazenados no Brasil
-            </span>
-            <span className="flex items-center gap-1.5">
-              <BadgeCheck className="h-4 w-4 text-emerald-500" /> Exportação
-              BDGD/ANEEL
-            </span>
-            <span className="flex items-center gap-1.5">
-              <BadgeCheck className="h-4 w-4 text-emerald-500" /> SLA contratual
-              disponível
-            </span>
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-slate-400">
+            {[
+              "Compliance LGPD nativo",
+              "Dados armazenados no Brasil",
+              "Exportação BDGD/ANEEL",
+              "SLA contratual disponível",
+            ].map((item) => (
+              <span key={item} className="flex items-center gap-1.5">
+                <BadgeCheck className="h-4 w-4 text-emerald-400" />
+                {item}
+              </span>
+            ))}
           </div>
         </section>
 
-        <section
-          id="acesso"
-          className="border-t border-white/5 bg-slate-900/60 px-6 py-20"
-        >
+        <section id="acesso" className="border-t border-white/5 px-6 py-20">
           <div className="mx-auto grid max-w-screen-xl gap-8 lg:grid-cols-[1fr_420px] lg:items-start">
             <div>
               <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
                 <Mail className="h-3.5 w-3.5" />
                 Autoatendimento IM3 liberado
               </span>
-              <h2 className="mt-4 text-3xl font-black text-slate-50">
+              <h2 className="font-display mt-4 text-3xl font-black tracking-tight text-slate-50">
                 Usuários {`@${allowedCorporateDomain}`} entram só com cadastro e
                 confirmação de email.
               </h2>
@@ -403,20 +408,20 @@ export default function LandingPage() {
                 controlado.
               </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-300">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-md">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-400">
                     Regra aplicada
                   </p>
-                  <p className="mt-2 text-sm text-slate-300">
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
                     Cadastro livre para aliases do domínio IM3 com onboarding
                     automático no backend.
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-md">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-400">
                     Garantia operacional
                   </p>
-                  <p className="mt-2 text-sm text-slate-300">
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
                     Enquanto o email não for confirmado, o backend mantém o
                     acesso pendente.
                   </p>
@@ -424,15 +429,15 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-slate-950/90 p-6 shadow-2xl shadow-indigo-950/30 backdrop-blur-xl">
+            <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#071524]/80 p-6 shadow-2xl shadow-cyan-950/40 backdrop-blur-xl">
               <div className="mb-5 flex rounded-2xl border border-white/10 bg-white/5 p-1">
                 <button
                   type="button"
                   onClick={() => setAuthMode("signup")}
                   className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${
                     authMode === "signup"
-                      ? "bg-indigo-600 text-white"
-                      : "text-slate-300"
+                      ? "bg-cyan-500 text-slate-950"
+                      : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
                   Cadastro IM3
@@ -442,8 +447,8 @@ export default function LandingPage() {
                   onClick={() => setAuthMode("login")}
                   className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${
                     authMode === "login"
-                      ? "bg-indigo-600 text-white"
-                      : "text-slate-300"
+                      ? "bg-cyan-500 text-slate-950"
+                      : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
                   Entrar
@@ -536,7 +541,7 @@ export default function LandingPage() {
                 </div>
                 {authMode === "signup" && (
                   <label className="block">
-                    <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    <span className="mb-1 block text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                       Nome
                     </span>
                     <input
@@ -551,7 +556,7 @@ export default function LandingPage() {
                 )}
 
                 <label className="block">
-                  <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  <span className="mb-1 block text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                     Email corporativo
                   </span>
                   <input
@@ -566,7 +571,7 @@ export default function LandingPage() {
                 </label>
 
                 <label className="block">
-                  <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  <span className="mb-1 block text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                     Senha
                   </span>
                   {authMode === "signup" ? (
@@ -595,7 +600,7 @@ export default function LandingPage() {
                 <button
                   type="submit"
                   disabled={loading || !configured}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Lock className="h-4 w-4" />
                   {loading
@@ -650,28 +655,28 @@ export default function LandingPage() {
         </section>
 
         {/* ── Features ── */}
-        <section
-          id="features"
-          className="border-t border-white/5 bg-slate-900/40 px-6 py-20"
-        >
+        <section id="features" className="border-t border-white/5 px-6 py-20">
           <div className="mx-auto max-w-screen-xl">
             <div className="mb-12 text-center">
-              <h2 className="text-3xl font-black text-slate-50">
+              <span className="mb-3 inline-block text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">
+                Plataforma
+              </span>
+              <h2 className="font-display text-3xl font-black tracking-tight text-slate-50">
                 Funcionalidades enterprise
               </h2>
-              <p className="mt-3 text-slate-400">
+              <p className="mx-auto mt-3 max-w-xl text-slate-400">
                 Construído para concessionárias, construtoras e integradores de
                 infraestrutura elétrica.
               </p>
             </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map((f) => (
                 <div
                   key={f.title}
-                  className="group rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur transition-all hover:border-indigo-500/30 hover:bg-white/10"
+                  className="group rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-cyan-500/20 hover:bg-white/10"
                 >
                   <span
-                    className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-${f.color}-500/15`}
+                    className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-${f.color}-500/15`}
                   >
                     <f.icon className={`h-5 w-5 text-${f.color}-400`} />
                   </span>
@@ -688,33 +693,36 @@ export default function LandingPage() {
         </section>
 
         {/* ── Planos ── */}
-        <section id="planos" className="px-6 py-20">
+        <section id="planos" className="border-t border-white/5 px-6 py-20">
           <div className="mx-auto max-w-screen-xl">
             <div className="mb-12 text-center">
-              <h2 className="text-3xl font-black text-slate-50">
+              <span className="mb-3 inline-block text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">
+                Preços
+              </span>
+              <h2 className="font-display text-3xl font-black tracking-tight text-slate-50">
                 Planos e preços
               </h2>
               <p className="mt-3 text-slate-400">
                 Escolha o plano ideal para seu volume de projetos.
               </p>
             </div>
-            <div className="grid gap-8 lg:grid-cols-3">
+            <div className="grid gap-6 lg:grid-cols-3">
               {PLANS.map((plan) => (
                 <div
                   key={plan.name}
-                  className={`relative flex flex-col rounded-2xl border p-8 ${
+                  className={`relative flex flex-col rounded-2xl border p-8 backdrop-blur-md ${
                     plan.highlight
-                      ? "border-indigo-500/60 bg-indigo-950/40 shadow-xl shadow-indigo-500/10"
+                      ? "border-cyan-400/30 bg-cyan-950/20 shadow-xl shadow-cyan-500/10"
                       : "border-white/10 bg-white/5"
                   }`}
                 >
                   {plan.highlight && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-4 py-1 text-xs font-bold text-white shadow-lg shadow-indigo-500/30">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-cyan-500 px-4 py-1 text-xs font-bold text-slate-950 shadow-lg shadow-cyan-500/30">
                       Mais popular
                     </span>
                   )}
                   <div className="mb-6">
-                    <h3 className="text-lg font-bold text-slate-100">
+                    <h3 className="font-display text-lg font-bold text-slate-100">
                       {plan.name}
                     </h3>
                     <p className="mt-1 text-xs text-slate-400">
@@ -745,10 +753,10 @@ export default function LandingPage() {
                   <div className="mt-auto">
                     <Link
                       to={plan.ctaLink}
-                      className={`block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold transition-all ${
+                      className={`block w-full rounded-xl px-4 py-3 text-center text-sm font-bold transition-all ${
                         plan.highlight
-                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/30 hover:bg-indigo-500"
-                          : "border border-white/20 text-slate-300 hover:border-white/40 hover:text-slate-100"
+                          ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30 hover:bg-cyan-400"
+                          : "border border-white/15 text-slate-300 hover:border-white/30 hover:text-slate-100"
                       }`}
                     >
                       {plan.cta}
@@ -761,14 +769,16 @@ export default function LandingPage() {
         </section>
 
         {/* ── FAQ ── */}
-        <section
-          id="faq"
-          className="border-t border-white/5 bg-slate-900/40 px-6 py-20"
-        >
+        <section id="faq" className="border-t border-white/5 px-6 py-20">
           <div className="mx-auto max-w-2xl">
-            <h2 className="mb-10 text-center text-3xl font-black text-slate-50">
-              Perguntas frequentes
-            </h2>
+            <div className="mb-10 text-center">
+              <span className="mb-3 inline-block text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">
+                FAQ
+              </span>
+              <h2 className="font-display text-3xl font-black tracking-tight text-slate-50">
+                Perguntas frequentes
+              </h2>
+            </div>
             <div className="flex flex-col gap-3">
               {FAQ.map((item) => (
                 <FaqItem key={item.q} {...item} />
@@ -778,9 +788,12 @@ export default function LandingPage() {
         </section>
 
         {/* ── Contato ── */}
-        <section id="contato" className="px-6 py-20">
+        <section id="contato" className="border-t border-white/5 px-6 py-20">
           <div className="mx-auto max-w-xl text-center">
-            <h2 className="text-3xl font-black text-slate-50">
+            <span className="mb-3 inline-block text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">
+              Contato
+            </span>
+            <h2 className="font-display text-3xl font-black tracking-tight text-slate-50">
               Fale com nossa equipe
             </h2>
             <p className="mt-3 text-slate-400">
@@ -789,7 +802,7 @@ export default function LandingPage() {
             </p>
             <a
               href="mailto:contato@sistopografia.com.br"
-              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/30 transition-all hover:bg-indigo-500"
+              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-6 py-3 text-sm font-bold text-slate-950 shadow-md shadow-cyan-500/30 transition-all hover:bg-cyan-400"
             >
               <Globe className="h-4 w-4" />
               contato@sistopografia.com.br
@@ -798,13 +811,34 @@ export default function LandingPage() {
         </section>
 
         {/* ── Footer ── */}
-        <footer className="border-t border-white/10 bg-slate-950 px-6 py-10">
-          <div className="mx-auto flex max-w-screen-xl flex-col items-center justify-between gap-4 sm:flex-row">
-            <span className="text-xs text-slate-400">
-              © {new Date().getFullYear()} sisTOPOGRAFIA · SaaS enterprise de
-              geoprocessamento
-            </span>
-            <div className="flex items-center gap-4 text-xs text-slate-400">
+        <footer className="border-t border-white/5 bg-[#071524]/80 px-6 py-10">
+          <div className="mx-auto flex max-w-screen-xl flex-col items-center gap-6 md:flex-row md:justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-slate-900 p-1">
+                <img
+                  src="/branding/logo_sisrua_optimized.png"
+                  className="h-5 w-5 object-contain"
+                  alt=""
+                />
+              </span>
+              <span className="font-display text-sm font-bold tracking-tight text-slate-300">
+                sis<span className="text-cyan-400">TOPOGRAFIA</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-5">
+              <img
+                src="/branding/logo_im3.png"
+                className="h-4 w-auto opacity-40 grayscale transition hover:opacity-70 hover:grayscale-0"
+                alt="IM3"
+              />
+              <span className="text-[8px] font-black text-slate-700">×</span>
+              <img
+                src="/branding/logo_light_sa.gif"
+                className="h-4 w-auto opacity-40 grayscale transition hover:opacity-70 hover:grayscale-0"
+                alt="Light S.A."
+              />
+            </div>
+            <div className="flex items-center gap-4 text-xs text-slate-600">
               <Link
                 to="/ajuda"
                 className="transition-colors hover:text-slate-400"
@@ -817,7 +851,10 @@ export default function LandingPage() {
               >
                 Status
               </Link>
-              <span>CNPJ: informar</span>
+              <span>
+                © {new Date().getFullYear()} IM3 Brasil · Todos os direitos
+                reservados
+              </span>
             </div>
           </div>
         </footer>

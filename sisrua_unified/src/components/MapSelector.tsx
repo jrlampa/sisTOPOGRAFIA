@@ -46,20 +46,37 @@ L.Marker.prototype.options.icon = DefaultIcon;
 // ─── Subcomponentes Internos para UX Dinâmica ─────────────────────────────────
 
 /**
- * Rastreador de mouse para capturar coordenadas em tempo real no mapa.
+ * Camada de interação isolada para rastreio de mouse e ghost edges.
+ * Evita re-renderizar todo o MapSelector durante o movimento do mouse.
  */
-function MapMouseTracker({
-  onMouseMove,
-}: {
-  onMouseMove: (pos: L.LatLng) => void;
-}) {
+const MapInteractionLayer = React.memo(({ 
+  pendingBtEdgeStartPoleId, 
+  polesById 
+}: { 
+  pendingBtEdgeStartPoleId: string | null | undefined;
+  polesById: Map<string, MapBtPole>;
+}) => {
+  const [mousePos, setMousePos] = useState<L.LatLng | null>(null);
+
   useMapEvents({
     mousemove(e) {
-      onMouseMove(e.latlng);
+      if (pendingBtEdgeStartPoleId) {
+        setMousePos(e.latlng);
+      } else if (mousePos) {
+        setMousePos(null);
+      }
     },
   });
-  return null;
-}
+
+  if (!pendingBtEdgeStartPoleId || !mousePos) return null;
+
+  const startPole = polesById.get(pendingBtEdgeStartPoleId);
+  if (!startPole) return null;
+
+  return <GhostEdge startPole={startPole} mousePos={mousePos} />;
+});
+
+MapInteractionLayer.displayName = "MapInteractionLayer";
 
 /**
  * Renderiza um "Vão Fantasma" (Ghost Edge) ao iniciar uma nova conexão.
@@ -312,7 +329,6 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     lng: number;
     snapId?: string;
   } | null>(null);
-  const [mousePos, setMousePos] = useState<L.LatLng | null>(null);
   const [isXRayMode, setIsXRayMode] = useState(false);
 
   // UX: Atalho de teclado para X-Ray Mode (X ou Shift)
@@ -354,6 +370,21 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   const accumulatedByPoleMap = useMemo(() => {
     return new Map(accumulatedByPole.map((entry) => [entry.poleId, entry]));
   }, [accumulatedByPole]);
+
+  const leafPoleIds = useMemo(() => {
+    const parentPoleIds = new Set<string>();
+    topology.edges.forEach((edge) => {
+      const edgeFlag =
+        edge.edgeChangeFlag ??
+        (edge.removeOnExecution ? "remove" : "existing");
+      if (edgeFlag !== "remove") parentPoleIds.add(edge.fromPoleId);
+    });
+    const leaves = new Set<string>();
+    topology.poles.forEach((p) => {
+      if (!parentPoleIds.has(p.id)) leaves.add(p.id);
+    });
+    return leaves;
+  }, [topology.edges, topology.poles]);
 
   const poleHasTransformer = useMemo(() => {
     const byPole = new Map<string, boolean>();
@@ -600,17 +631,10 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         className="h-full min-h-[400px] w-full"
         preferCanvas={true}
       >
-        <MapMouseTracker onMouseMove={setMousePos} />
-
-        {/* Vão Fantasma (Ghost Edge) em modo de adição de trecho */}
-        {pendingBtEdgeStartPoleId &&
-          mousePos &&
-          polesById.has(pendingBtEdgeStartPoleId) && (
-            <GhostEdge
-              startPole={polesById.get(pendingBtEdgeStartPoleId)!}
-              mousePos={mousePos}
-            />
-          )}
+        <MapInteractionLayer 
+          pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId}
+          polesById={polesById}
+        />
 
         {/* Snapping Guides Visual Confirmation */}
         {draggedPole?.snapId && polesById.has(draggedPole.snapId) && (
@@ -691,20 +715,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           loadCenterPoleId={loadCenterPoleId ?? null}
           poleHasTransformer={poleHasTransformer}
           accumulatedByPoleMap={accumulatedByPoleMap}
-          leafPoleIds={(() => {
-            const parentPoleIds = new Set<string>();
-            topology.edges.forEach((edge) => {
-              const edgeFlag =
-                edge.edgeChangeFlag ??
-                (edge.removeOnExecution ? "remove" : "existing");
-              if (edgeFlag !== "remove") parentPoleIds.add(edge.fromPoleId);
-            });
-            const leaves = new Set<string>();
-            topology.poles.forEach((p) => {
-              if (!parentPoleIds.has(p.id)) leaves.add(p.id);
-            });
-            return leaves;
-          })()}
+          leafPoleIds={leafPoleIds}
           onBtMapClick={onBtMapClick}
           onBtDragPole={onBtDragPole}
           onBtDragPoleRealtime={handleBtDragRealtime}

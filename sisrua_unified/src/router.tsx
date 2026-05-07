@@ -2,7 +2,7 @@
  * router.tsx — Roteamento SPA enterprise do sisTOPOGRAFIA.
  *
  * Mapa de rotas:
- *   /              → LandingPage (marketing)
+ *   /              → LandingDraftPage (marketing)
  *   /dashboard     → DashboardPage (KPIs do tenant)
  *   /app           → ProjetoPage (mapa + DXF — componente App existente)
  *   /admin         → AdminClientePage (autoatendimento do cliente)
@@ -20,7 +20,7 @@ import { lazyWithRetry } from "./utils/lazyWithRetry";
 
 // ─── Lazy imports ─────────────────────────────────────────────────────────
 
-const LandingPage = lazy(() =>
+const LandingDraftPage = lazy(() =>
   lazyWithRetry(() => import("./components/LandingDraftPage")),
 );
 const DashboardPage = lazy(() =>
@@ -64,7 +64,7 @@ export default function AppRouter() {
       <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<LandingDraftPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/app" element={<ProjetoPage />} />
             <Route path="/admin" element={<AdminPage />} />
@@ -72,7 +72,7 @@ export default function AppRouter() {
             <Route path="/ajuda" element={<AjudaPage />} />
             <Route path="/status" element={<StatusPage />} />
             {/* Compatibilidade com rota legada /landing */}
-            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/landing" element={<LandingDraftPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>

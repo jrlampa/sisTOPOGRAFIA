@@ -39,8 +39,8 @@ const validPayload = () => ({
 });
 
 describe("formulaVersioningRoutes", () => {
-  beforeEach(() => {
-    resetCatalog();
+  beforeEach(async () => {
+    await resetCatalog();
     vi.clearAllMocks();
   });
 

@@ -66,7 +66,7 @@ export function AppHeader({
   const prefersReducedMotion = useReducedMotion();
 
   const actionButtonClass =
-    "flex items-center justify-center rounded-2xl border-2 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900";
+    "flex items-center justify-center rounded-xl border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900";
 
   const t = getAppHeaderText(locale);
   const isMobileMenuEnabled = useABTest("ux20-mobile-menu-redesign", true);
@@ -98,7 +98,7 @@ export function AppHeader({
 
   return (
     <header
-      className={`app-header relative sticky top-0 z-40 flex h-20 shrink-0 items-center justify-between border-b px-4 backdrop-blur-2xl md:px-8 transition-all duration-500 glass-premium ${
+      className={`app-header relative sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl md:px-6 transition-all duration-500 glass-premium ${
         isDark
           ? "border-white/10 bg-slate-950/60 shadow-[0_4px_30px_rgba(0,0,0,0.3)]"
           : "border-sky-200/40 bg-white/70 shadow-[0_10px_40px_rgba(148,163,184,0.12)]"
@@ -210,65 +210,63 @@ export function AppHeader({
       </AnimatePresence>
 
       {/* ─── Left section: Logo + branding ───────────────────────── */}
-      <div className="flex items-center gap-4 md:gap-6">
+      <div className="flex items-center gap-3">
         <motion.div
           whileHover={{ scale: 1.05, rotate: -2 }}
           whileTap={{ scale: 0.95 }}
-          className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border-2 border-sky-400/20 bg-white p-2 shadow-2xl shadow-sky-500/20 dark:border-white/10 dark:bg-slate-900"
+          className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-sky-400/20 bg-white p-1.5 shadow-md shadow-sky-500/20 dark:border-white/10 dark:bg-slate-900"
         >
           <img
             src="/branding/logo_sisrua_optimized.png"
             alt="Logo sisRUA"
-            className="h-10 w-10 object-contain"
+            className="h-6 w-6 object-contain"
           />
           <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/10 to-transparent opacity-0 transition-opacity hover:opacity-100" />
         </motion.div>
 
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-3">
-            <h1
-              className={`font-display flex items-center gap-3 text-xl font-black tracking-tight md:text-2xl ${
-                isDark ? "text-white" : "text-slate-950"
+        <div className="flex items-center gap-3">
+          {/* Brand name */}
+          <h1
+            className={`font-display flex items-center gap-2 text-base font-black tracking-tight md:text-lg ${
+              isDark ? "text-white" : "text-slate-950"
+            }`}
+          >
+            <span className="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent dark:from-white dark:to-slate-400">
+              sis
+            </span>
+            <span
+              className={`flex items-center justify-center rounded-md border px-2 py-0.5 text-[10px] font-black tracking-[0.15em] shadow-sm ${
+                isDark
+                  ? "border-cyan-400/30 bg-cyan-500/10 text-cyan-300"
+                  : "border-cyan-500/20 bg-cyan-500/5 text-cyan-600"
               }`}
             >
-              <span className="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent dark:from-white dark:to-slate-400">
-                sis|
-              </span>
-              <span
-                className={`flex items-center justify-center rounded-lg border px-2.5 py-0.5 text-xs font-black tracking-[0.2em] shadow-sm ${
-                  isDark
-                    ? "border-cyan-400/30 bg-cyan-500/10 text-cyan-300"
-                    : "border-cyan-500/20 bg-cyan-500/5 text-cyan-600"
-                }`}
-              >
-                UNIFIED
-              </span>
-            </h1>
+              UNIFIED
+            </span>
+          </h1>
+
+          {/* Divider */}
+          <div className="hidden h-5 w-px bg-slate-200 dark:bg-white/10 sm:block" />
+
+          {/* Partner logos */}
+          <div className="hidden items-center gap-2 sm:flex">
+            <img
+              src="/branding/logo_im3.png"
+              alt="IM3"
+              className="h-4 w-auto opacity-60 grayscale transition-all hover:grayscale-0 hover:opacity-100"
+            />
+            <span className="text-[8px] font-black text-slate-300 dark:text-slate-600">
+              ×
+            </span>
+            <img
+              src="/branding/logo_light_sa.gif"
+              alt="Light S.A."
+              className="h-4 w-auto opacity-60 grayscale transition-all hover:grayscale-0 hover:opacity-100"
+            />
           </div>
 
-          <div className="flex items-center gap-3">
-            <p
-              className={`text-xs font-bold uppercase tracking-[0.3em] opacity-80 ${
-                isDark ? "text-slate-400" : "text-slate-500"
-              }`}
-            >
-              {t.geoelectricEngineering}
-            </p>
-
-            <div className="hidden items-center gap-2 rounded-full border border-slate-200/50 bg-white/40 px-2.5 py-1 backdrop-blur-sm dark:border-slate-800/50 dark:bg-slate-900/40 lg:flex">
-              <img
-                src="/branding/logo_im3.png"
-                alt="IM3"
-                className="h-3 w-auto opacity-80 grayscale transition-all hover:grayscale-0 hover:opacity-100"
-              />
-              <span className="text-[8px] font-black text-slate-400">x</span>
-              <img
-                src="/branding/logo_light_sa.gif"
-                alt="Light S.A."
-                className="h-3 w-auto opacity-80 grayscale transition-all hover:grayscale-0 hover:opacity-100"
-              />
-            </div>
-
+          {/* Backend status badge */}
+          <div className="hidden sm:block">
             {/* Backend status badge */}
             <motion.div
               aria-live="polite"
@@ -282,7 +280,7 @@ export function AppHeader({
                     }
               }
               transition={{ repeat: Infinity, duration: 2 }}
-              className={`group relative flex items-center gap-2 overflow-hidden rounded-full border px-3 py-1 text-xs font-black tracking-wider transition-all duration-500 ${
+              className={`group relative flex items-center gap-1.5 overflow-hidden rounded-full border px-2.5 py-0.5 text-[10px] font-black tracking-wider transition-all duration-500 ${
                 backendStatus === "online"
                   ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
                   : backendStatus === "degraded"
@@ -323,11 +321,12 @@ export function AppHeader({
                     : t.apiOffline}
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-              
+
               {/* Accessible tooltip */}
               <span className="absolute top-full mt-2 left-0 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
                 {backendStatusLabel}
-                {backendResponseTimeMs != null && ` (${backendResponseTimeMs} ms)`}
+                {backendResponseTimeMs != null &&
+                  ` (${backendResponseTimeMs} ms)`}
               </span>
             </motion.div>
           </div>
@@ -339,7 +338,7 @@ export function AppHeader({
         {/* Mobile hamburger — conditionally rendered via A/B experiment */}
         {isMobileMenuEnabled && (
           <button
-            className={`group relative flex h-10 w-10 items-center justify-center rounded-xl border-2 transition-colors md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 focus-visible:ring-offset-1 ${
+            className={`group relative flex h-9 w-9 items-center justify-center rounded-lg border transition-colors md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 focus-visible:ring-offset-1 ${
               isDark
                 ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
                 : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
@@ -348,7 +347,9 @@ export function AppHeader({
             aria-expanded={isMobileMenuOpen}
             onClick={() => {
               const next = !isMobileMenuOpen;
-              trackHeaderAction(next ? "mobile_menu_open" : "mobile_menu_close");
+              trackHeaderAction(
+                next ? "mobile_menu_open" : "mobile_menu_close",
+              );
               setIsMobileMenuOpen(next);
             }}
           >
@@ -366,7 +367,7 @@ export function AppHeader({
               trackHeaderAction("toggle_sidebar");
               onToggleSidebarCollapsed();
             }}
-            className={`group relative ${actionButtonClass} h-11 w-11 shadow-sm ${
+            className={`group relative ${actionButtonClass} h-9 w-9 shadow-sm ${
               isDark
                 ? "border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
                 : "border-sky-100 bg-sky-50 text-sky-700 hover:bg-sky-100"
@@ -397,24 +398,25 @@ export function AppHeader({
 
         {isSidebarCollapsed && (
           <div className="hidden flex-col items-center gap-1 xl:flex">
-            <span className="rounded-full border border-cyan-400/20 bg-cyan-400/5 px-4 py-1.5 text-xs font-black uppercase tracking-[0.25em] text-cyan-600 shadow-sm dark:text-cyan-300">
+            <span className="rounded-full border border-cyan-400/20 bg-cyan-400/5 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-600 shadow-sm dark:text-cyan-300">
               {t.mapModeInfo}
             </span>
           </div>
         )}
 
         {/* Desktop: save/open/help/settings — hidden on mobile when new menu is enabled */}
-        <div className={`${isMobileMenuEnabled ? "hidden md:flex" : "flex"} items-center gap-3`}>
-          
+        <div
+          className={`${isMobileMenuEnabled ? "hidden md:flex" : "flex"} items-center gap-3`}
+        >
           <button
             onClick={() => {
               trackHeaderAction("open_help");
               onOpenHelp();
             }}
             aria-label={t.openHelp}
-            className={`group relative ${actionButtonClass} h-11 w-11 border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/10`}
+            className={`group relative ${actionButtonClass} h-9 w-9 border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/10`}
           >
-            <HelpCircle size={20} strokeWidth={2} />
+            <HelpCircle size={18} strokeWidth={2} />
             <span className="absolute top-full mt-2 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
               {t.openHelp}
             </span>
@@ -426,15 +428,15 @@ export function AppHeader({
               onOpenSettings();
             }}
             aria-label={t.openSettings}
-            className={`group relative ${actionButtonClass} h-11 w-11 border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/10`}
+            className={`group relative ${actionButtonClass} h-9 w-9 border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/10`}
           >
-            <Settings size={20} strokeWidth={2} />
+            <Settings size={18} strokeWidth={2} />
             <span className="absolute top-full mt-2 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
               {t.openSettings}
             </span>
           </button>
 
-          <div className="h-6 w-px bg-slate-200 dark:bg-white/10 mx-1" />
+          <div className="h-5 w-px bg-slate-200 dark:bg-white/10 mx-0.5" />
 
           <button
             onClick={() => {
@@ -442,9 +444,9 @@ export function AppHeader({
               handleOpenProjectClick();
             }}
             aria-label={t.openProject}
-            className={`group relative ${actionButtonClass} h-11 w-11 border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/10`}
+            className={`group relative ${actionButtonClass} h-9 w-9 border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/10`}
           >
-            <FolderOpen size={18} strokeWidth={2} />
+            <FolderOpen size={16} strokeWidth={2} />
             <span className="absolute top-full mt-2 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
               {t.openProject}
             </span>
@@ -457,10 +459,10 @@ export function AppHeader({
                 onSaveProject();
               }}
               aria-label={t.saveProject}
-              className={`${actionButtonClass} h-11 px-4 border-amber-500 bg-amber-500 text-white font-bold text-sm shadow-sm hover:bg-amber-600 hover:border-amber-600 dark:shadow-none dark:hover:bg-amber-400 dark:hover:border-amber-400`}
+              className={`${actionButtonClass} h-9 px-3.5 border-amber-500 bg-amber-500 text-white font-bold text-xs shadow-sm hover:bg-amber-600 hover:border-amber-600 dark:shadow-none dark:hover:bg-amber-400 dark:hover:border-amber-400`}
               title={t.saveProject}
             >
-              <Save size={18} strokeWidth={2.5} className="mr-2" />
+              <Save size={14} strokeWidth={2.5} className="mr-1.5" />
               {t.saveProject}
             </button>
             <div className="absolute -top-2 -right-2 transition-all">

@@ -65,5 +65,5 @@ ENV NODE_ENV=development \
 
 EXPOSE 3000 3001
 
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["npm", "run", "dev"]

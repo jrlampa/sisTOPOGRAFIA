@@ -8,7 +8,7 @@ const SettingsModal = React.lazy(() =>
   lazyWithRetry(() => import("./SettingsModal")),
 );
 
-type Props = {
+export type AppSettingsOverlayProps = {
   showSettings: boolean;
   closeSettings: () => void;
   settings: AppSettings;
@@ -44,7 +44,7 @@ export function AppSettingsOverlay({
   handleDownloadGeoJSON,
   handleSaveProject,
   handleLoadProject,
-}: Props) {
+}: AppSettingsOverlayProps) {
   return (
     <AnimatePresence>
       {showSettings && (

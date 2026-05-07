@@ -4,8 +4,6 @@ import {
   FormFieldMessage,
   getValidationInputClassName,
 } from "./FormFieldFeedback";
-import { DgOptimizationPanel } from "./DgOptimizationPanel";
-import MtRouterPanel from "./MtRouterPanel";
 import type {
   DgOptimizationOutput,
   DgScenario,
@@ -45,6 +43,14 @@ import type { CriticalConfirmationConfig } from "./BtModals";
 const BtTopologyPanel = React.lazy(() =>
   lazyWithRetry(() => import("./BtTopologyPanel")),
 );
+const DgOptimizationPanel = React.lazy(() =>
+  lazyWithRetry(() =>
+    import("./DgOptimizationPanel").then((module) => ({
+      default: module.DgOptimizationPanel,
+    })),
+  ),
+);
+const MtRouterPanel = React.lazy(() => lazyWithRetry(() => import("./MtRouterPanel")));
 
 import { SidebarBulkEditSection } from "./SidebarBulkEditSection";
 
@@ -465,29 +471,31 @@ export function SidebarBtEditorSection({
       {onRunDgOptimization && (
         <>
           <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
-          <DgOptimizationPanel
-            locale={locale}
-            hasPoles={effectiveDgTopology.poles.length > 0}
-            poles={effectiveDgTopology.poles}
-            currentTransformer={effectiveDgTopology.transformers[0]}
-            currentTotalCableLengthMeters={currentTotalCableLengthMeters}
-            hasTransformer={effectiveDgTopology.transformers.length > 0}
-            hasProjectedPoles={effectiveDgTopology.poles.some(
-              (p) => p.nodeChangeFlag === "new",
-            )}
-            isOptimizing={isDgOptimizing}
-            result={dgResult}
-            error={dgError}
-            activeAltIndex={dgActiveAltIndex}
-            onSetActiveAltIndex={onSetDgActiveAltIndex ?? (() => undefined)}
-            isPreviewActive={dgIsPreviewActive}
-            onSetIsPreviewActive={onSetDgIsPreviewActive ?? (() => undefined)}
-            onRun={onRunDgOptimization}
-            onAcceptAll={onAcceptDgAll ?? (() => undefined)}
-            onAcceptTrafoOnly={onAcceptDgTrafoOnly ?? (() => undefined)}
-            onDiscard={onClearDgResult ?? (() => undefined)}
-            onRemediateCqt={handleRemediateCqt}
-          />
+          <Suspense fallback={<InlineSuspenseFallback label={t.loadingBtPanel} />}>
+            <DgOptimizationPanel
+              locale={locale}
+              hasPoles={effectiveDgTopology.poles.length > 0}
+              poles={effectiveDgTopology.poles}
+              currentTransformer={effectiveDgTopology.transformers[0]}
+              currentTotalCableLengthMeters={currentTotalCableLengthMeters}
+              hasTransformer={effectiveDgTopology.transformers.length > 0}
+              hasProjectedPoles={effectiveDgTopology.poles.some(
+                (p) => p.nodeChangeFlag === "new",
+              )}
+              isOptimizing={isDgOptimizing}
+              result={dgResult}
+              error={dgError}
+              activeAltIndex={dgActiveAltIndex}
+              onSetActiveAltIndex={onSetDgActiveAltIndex ?? (() => undefined)}
+              isPreviewActive={dgIsPreviewActive}
+              onSetIsPreviewActive={onSetDgIsPreviewActive ?? (() => undefined)}
+              onRun={onRunDgOptimization}
+              onAcceptAll={onAcceptDgAll ?? (() => undefined)}
+              onAcceptTrafoOnly={onAcceptDgTrafoOnly ?? (() => undefined)}
+              onDiscard={onClearDgResult ?? (() => undefined)}
+              onRemediateCqt={handleRemediateCqt}
+            />
+          </Suspense>
         </>
       )}
 
@@ -495,22 +503,24 @@ export function SidebarBtEditorSection({
       {mtRouterState && onMtRouterCalculate && (
         <>
           <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
-          <MtRouterPanel
-            state={mtRouterState}
-            onSetSelectionMode={onMtRouterSetSelectionMode ?? (() => undefined)}
-            onRemoveTerminal={onMtRouterRemoveTerminal ?? (() => undefined)}
-            onSetMaxSnapDistance={
-              onMtRouterSetMaxSnapDistance ?? (() => undefined)
-            }
-            onSetNetworkProfile={
-              onMtRouterSetNetworkProfile ?? (() => undefined)
-            }
-            onSetMtCqtParams={onMtRouterSetMtCqtParams ?? (() => undefined)}
-            onUploadKmz={onMtRouterUploadKmz ?? (() => undefined)}
-            onCalculate={onMtRouterCalculate}
-            onApply={onMtRouterApplyProject ?? (() => undefined)}
-            onReset={onMtRouterReset ?? (() => undefined)}
-          />
+          <Suspense fallback={<InlineSuspenseFallback label={t.loadingBtPanel} />}>
+            <MtRouterPanel
+              state={mtRouterState}
+              onSetSelectionMode={onMtRouterSetSelectionMode ?? (() => undefined)}
+              onRemoveTerminal={onMtRouterRemoveTerminal ?? (() => undefined)}
+              onSetMaxSnapDistance={
+                onMtRouterSetMaxSnapDistance ?? (() => undefined)
+              }
+              onSetNetworkProfile={
+                onMtRouterSetNetworkProfile ?? (() => undefined)
+              }
+              onSetMtCqtParams={onMtRouterSetMtCqtParams ?? (() => undefined)}
+              onUploadKmz={onMtRouterUploadKmz ?? (() => undefined)}
+              onCalculate={onMtRouterCalculate}
+              onApply={onMtRouterApplyProject ?? (() => undefined)}
+              onReset={onMtRouterReset ?? (() => undefined)}
+            />
+          </Suspense>
         </>
       )}
     </>

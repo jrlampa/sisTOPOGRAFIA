@@ -71,7 +71,7 @@ export function MainMapWorkspace({
   return (
     <div className="relative z-10 flex-1 min-h-[44vh] p-3 md:p-4 xl:min-h-0">
       <Suspense fallback={<MapSuspenseFallback label={t.mapLoading} />}>
-        <div className="relative h-full rounded-[1.75rem] border border-sky-200 bg-white p-2 shadow-[0_18px_42px_rgba(148,163,184,0.2)] dark:border-white/10 dark:bg-slate-950 dark:shadow-none">
+        <div className="relative h-full rounded-3xl border border-sky-200/60 bg-white p-2 shadow-[0_20px_48px_rgba(14,165,233,0.10),0_4px_12px_rgba(0,0,0,0.06)] dark:border-white/10 dark:bg-slate-950 dark:shadow-none">
           <MapSelector
             {...mapSelectorProps}
             dgGhostMode={mapSelectorProps.dgGhostMode}

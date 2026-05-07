@@ -40,6 +40,17 @@ function buildProductionCsp(env: Record<string, string>) {
     "https://server.arcgisonline.com",
     ...parseSpaceSeparatedSources(env.VITE_CSP_IMG_SRC),
   ];
+  const styleSrc = [
+    "'self'",
+    "https://fonts.googleapis.com",
+    ...parseSpaceSeparatedSources(env.VITE_CSP_STYLE_SRC),
+  ];
+  const fontSrc = [
+    "'self'",
+    "data:",
+    "https://fonts.gstatic.com",
+    ...parseSpaceSeparatedSources(env.VITE_CSP_FONT_SRC),
+  ];
 
   const dedupe = (values: string[]) => Array.from(new Set(values));
 
@@ -50,8 +61,8 @@ function buildProductionCsp(env: Record<string, string>) {
     "frame-ancestors 'none'",
     "form-action 'self'",
     "script-src 'self'",
-    "style-src 'self'",
-    "font-src 'self' data:",
+    `style-src ${dedupe(styleSrc).join(" ")}`,
+    `font-src ${dedupe(fontSrc).join(" ")}`,
     `img-src ${dedupe(imgSrc).join(" ")}`,
     `connect-src ${dedupe(connectSrc).join(" ")}`,
     "worker-src 'self' blob:",
@@ -86,7 +97,6 @@ export default defineConfig(({ mode }) => {
       hmr: {
         protocol: "ws",
         host: "localhost",
-        port: 3000,
       },
       watch: {
         usePolling: true,

@@ -136,6 +136,20 @@ describe("PostgresCanonicalTopologyRepository", () => {
       const result = await repo.readPoles(TEST_TENANT);
       expect(result[0].btStructures).toEqual(structures);
     });
+
+    it("extrai lat/lng via geom_json (GeoJSON do PostGIS) com sucesso", async () => {
+      const geom = { type: "Point", coordinates: [-46.123, -23.456] };
+      unsafeMock.mockResolvedValueOnce([
+        makePoleRow({ 
+          geom_json: JSON.stringify(geom),
+          lat: 0, // Garante que não está pegando das colunas lat/lng
+          lng: 0 
+        }),
+      ]);
+      const result = await repo.readPoles(TEST_TENANT);
+      expect(result[0].lat).toBe(-23.456);
+      expect(result[0].lng).toBe(-46.123);
+    });
   });
 
   // ── readEdges ────────────────────────────────────────────────────────────

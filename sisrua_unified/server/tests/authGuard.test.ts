@@ -5,6 +5,7 @@ const { mockConfig } = vi.hoisted(() => ({
     NODE_ENV: "test",
     ADMIN_TOKEN: undefined as string | undefined,
     METRICS_TOKEN: undefined as string | undefined,
+    SUPABASE_SUPERADMIN_EMAIL: undefined as string | undefined,
   },
 }));
 
@@ -29,6 +30,34 @@ describe("authGuard hardening", () => {
     mockConfig.NODE_ENV = "test";
     mockConfig.ADMIN_TOKEN = undefined;
     mockConfig.METRICS_TOKEN = undefined;
+    mockConfig.SUPABASE_SUPERADMIN_EMAIL = undefined;
+  });
+
+  it("allows admin route when Supabase user has admin role", () => {
+    mockConfig.NODE_ENV = "production";
+
+    const req: any = { headers: {}, path: "/api/admin", ip: "127.0.0.1" };
+    const res: any = {
+      locals: {
+        userId: "supabase-user-id",
+        userEmail: "admin@im3brasil.com.br",
+        authenticatedUser: {
+          email: "admin@im3brasil.com.br",
+          payload: {
+            role: "authenticated",
+            app_metadata: { role: "admin" },
+          },
+        },
+      },
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
+    };
+    const next = vi.fn();
+
+    requireAdminToken(req, res, next);
+
+    expect(next).toHaveBeenCalledWith();
+    expect(res.status).not.toHaveBeenCalled();
   });
 
   it("allows admin route in non-production when token is absent", () => {

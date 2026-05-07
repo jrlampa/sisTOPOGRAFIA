@@ -41,6 +41,31 @@ const permissionsMatrix: Record<UserRole, Permission[]> = {
   guest: [],
 };
 
+function normalizeTenantCandidate(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizeRoleClaim(value: unknown): UserRole | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "admin" || normalized === "technician" || normalized === "viewer" || normalized === "guest") {
+    return normalized;
+  }
+
+  if (normalized === "superadmin" || normalized === "service_role" || normalized === "supabase_admin") {
+    return "admin";
+  }
+
+  return null;
+}
+
 /**
  * Middleware para controle de permissões granular (RBAC).
  */
@@ -56,6 +81,11 @@ export const requirePermission = (requiredPermission: Permission) => {
     const userId =
       localUserId || (canTrustHeaderIdentity ? headerUserId : "") || undefined;
     const requestId = res.locals.requestId;
+    const trustedTenantId = normalizeTenantCandidate(res.locals.tenantId);
+    const requestedTenantId =
+      normalizeTenantCandidate(req.headers["x-tenant-id"]) ||
+      normalizeTenantCandidate(req.headers["x-projeto-id"]);
+    const supabaseRoleClaim = normalizeRoleClaim(res.locals.supabaseRoleClaim);
 
     if (localUserId && headerUserId && localUserId !== headerUserId) {
       logger.warn("User identity mismatch between trusted context and header", {
@@ -74,10 +104,23 @@ export const requirePermission = (requiredPermission: Permission) => {
       });
     }
 
+    if (trustedTenantId && requestedTenantId && trustedTenantId !== requestedTenantId) {
+      logger.warn("Tenant mismatch between trusted JWT claim and request header", {
+        requestId,
+        path: req.path,
+        trustedTenantId,
+        requestedTenantId,
+      });
+      return next(createError.authorization("Tenant mismatch"));
+    }
+
     try {
       const userContext = await getUserRole(userId);
-      const userRole = userContext.role;
-      const tenantId = userContext.tenantId;
+      const userRole =
+        userContext.role === "viewer" && supabaseRoleClaim
+          ? supabaseRoleClaim
+          : userContext.role;
+      const tenantId = trustedTenantId || userContext.tenantId;
 
       // Propaga o tenantId para os repositórios através do res.locals
       res.locals.userId = userId;

@@ -2,7 +2,7 @@ import React from "react";
 import {
   ArrowRight,
   BadgeCheck,
-  Compass,
+  Zap,
   Cpu,
   Layers,
   LineChart,
@@ -12,197 +12,222 @@ import {
   ShieldCheck,
   Sparkles,
   Workflow,
+  Database,
+  Box,
+  CheckCircle2,
 } from "lucide-react";
-
-const CORE_MODULES = [
-  {
-    icon: Map,
-    title: "Leitura territorial viva",
-    text: "Consolida malha urbana e contexto tecnico em uma base unica para engenharia de BT e planejamento regulatorio.",
-    badge: "BASE CARTOGRAFICA",
-    tone: "from-[#fb923c] to-[#f59e0b]",
-  },
-  {
-    icon: Workflow,
-    title: "Fluxo guiado por risco",
-    text: "Prioriza trechos criticos, organiza seccionamento e reduz retrabalho entre escritorio, campo e operacao.",
-    badge: "ORQUESTRACAO",
-    tone: "from-[#0ea5e9] to-[#0284c7]",
-  },
-  {
-    icon: Cpu,
-    title: "Motor DG acionavel",
-    text: "Executa cenarios de particionamento e transforma resultado tecnico em acao operacional com rastreabilidade.",
-    badge: "INTELIGENCIA",
-    tone: "from-[#14b8a6] to-[#0f766e]",
-  },
-];
-
-const TIMELINE = [
-  {
-    step: "01",
-    title: "Seleciona area",
-    detail:
-      "Poligono ou raio com leitura imediata do terreno, malha urbana e contexto de rede.",
-  },
-  {
-    step: "02",
-    title: "Executa DG",
-    detail:
-      "Particoes, condutores e trafos com diagnostico eletrico auditavel por cenario.",
-  },
-  {
-    step: "03",
-    title: "Exporta DXF",
-    detail:
-      "Saida pronta para CAD com ruas, meio-fio e camadas de engenharia padronizadas.",
-  },
-];
-
-const PLANS = [
-  {
-    name: "Freemium",
-    price: "R$ 0",
-    cadence: "uso continuo",
-    points: ["1 projeto ativo", "DXF essencial", "Base de aprendizado"],
-  },
-  {
-    name: "Pro Operacional",
-    price: "R$ 249",
-    cadence: "por mes",
-    points: ["Projetos ilimitados", "Motor DG", "Historico e auditoria"],
-    featured: true,
-  },
-  {
-    name: "Enterprise",
-    price: "Sob consulta",
-    cadence: "escala dedicada",
-    points: ["SSO e governanca", "SLA contratual", "Ambiente isolado"],
-  },
-];
+import { useTranslation } from "react-i18next";
+import { getLandingPageText } from "../i18n/landingPageText";
+import { AppLocale } from "../types";
+import { normalizeAppLocale, SUPPORTED_APP_LOCALES } from "../i18n/appLocale";
 
 export default function LandingDraftPage() {
-  return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#f7f2e7] text-[#0f172a]">
-      <style>
-        {`@keyframes riseIn{0%{opacity:0;transform:translateY(22px)}100%{opacity:1;transform:translateY(0)}}
-          @keyframes drift{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-10px,0)}}
-          .lp-rise{animation:riseIn .8s ease forwards}
-          .lp-drift{animation:drift 7s ease-in-out infinite}`}
-      </style>
+  const { i18n } = useTranslation();
+  const currentLocale = normalizeAppLocale(i18n.language);
+  const t = getLandingPageText(currentLocale);
 
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_14%,rgba(14,165,233,.22),transparent_24%),radial-gradient(circle_at_82%_12%,rgba(251,146,60,.25),transparent_30%),radial-gradient(circle_at_48%_92%,rgba(20,184,166,.2),transparent_26%)]" />
-        <div className="absolute inset-0 opacity-40 [background:repeating-radial-gradient(circle_at_center,rgba(15,23,42,.08)_0_1px,transparent_1px_18px)]" />
+  const changeLanguage = (lang: AppLocale) => {
+    i18n.changeLanguage(lang);
+  };
+
+  const CORE_MODULES = [
+    {
+      icon: Map,
+      title: t.module1Title,
+      text: t.module1Text,
+      badge: t.module1Badge,
+      tone: "from-[#fb923c] to-[#f59e0b]",
+    },
+    {
+      icon: Zap,
+      title: t.module2Title,
+      text: t.module2Text,
+      badge: t.module2Badge,
+      tone: "from-[#0ea5e9] to-[#0284c7]",
+    },
+    {
+      icon: Database,
+      title: t.module3Title,
+      text: t.module3Text,
+      badge: t.module3Badge,
+      tone: "from-[#14b8a6] to-[#0f766e]",
+    },
+  ];
+
+  const TIMELINE = [
+    {
+      step: "01",
+      title: t.timelineStep1Title,
+      detail: t.timelineStep1Detail,
+    },
+    {
+      step: "02",
+      title: t.timelineStep2Title,
+      detail: t.timelineStep2Detail,
+    },
+    {
+      step: "03",
+      title: t.timelineStep3Title,
+      detail: t.timelineStep3Detail,
+    },
+  ];
+
+  const PLANS = [
+    {
+      name: t.plan1Name,
+      price: t.plan1Price,
+      cadence: t.plan1Cadence,
+      points: t.plan1Points,
+    },
+    {
+      name: t.plan2Name,
+      price: t.plan2Price,
+      cadence: t.plan2Cadence,
+      points: t.plan2Points,
+      featured: true,
+    },
+    {
+      name: t.plan3Name,
+      price: t.plan3Price,
+      cadence: t.plan3Cadence,
+      points: t.plan3Points,
+    },
+  ];
+
+  return (
+    <div className="relative min-h-screen overflow-x-hidden app-shell font-sans selection:bg-brand-500/30">
+      {/* ── Atmosfera Enterprise ── */}
+      <div className="app-shell-atmosphere">
+        <div className="app-shell-orb app-shell-orb-1" />
+        <div className="app-shell-orb app-shell-orb-2" />
+        <div className="app-shell-orb app-shell-orb-3" />
       </div>
 
-      <header className="sticky top-0 z-30 border-b border-[#0f172a]/15 bg-[#f7f2e7]/90 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 md:px-8">
-          <div className="flex items-center gap-3">
-            <div className="lp-drift rounded-2xl border border-[#0f172a]/15 bg-gradient-to-br from-[#0ea5e9] to-[#f97316] p-2 text-white shadow-[0_12px_28px_rgba(15,23,42,.2)]">
-              <Compass size={20} />
+      <header className="app-header sticky top-0 z-50 border-b backdrop-blur-xl">
+        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6 lg:px-10">
+          <div className="flex items-center gap-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-500 text-white shadow-lg shadow-brand-500/20">
+              <Zap size={22} className="animate-pulse" />
             </div>
             <div>
-              <p className="font-display text-lg font-black leading-none tracking-tight">
-                sisTOPOGRAFIA
+              <p className="font-display text-xl font-black leading-none tracking-tight text-app-title">
+                sis<span className="text-brand-600">TOPOGRAFIA</span>
               </p>
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#0f172a]/70">
-                plataforma corporativa para engenharia BT
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-app-subtle/80">
+                {t.headerSub}
               </p>
             </div>
           </div>
-          <nav className="flex items-center gap-2 text-sm font-bold">
+          <nav className="hidden items-center gap-6 md:flex">
+            <div className="flex items-center gap-1 rounded-full bg-white/10 p-1 border border-white/5">
+              {SUPPORTED_APP_LOCALES.map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => changeLanguage(lang)}
+                  className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-full transition-all ${
+                    currentLocale === lang
+                      ? "bg-brand-600 text-white shadow-sm"
+                      : "text-app-subtle/60 hover:text-app-subtle hover:bg-white/5"
+                  }`}
+                >
+                  {lang.split("-")[0]}
+                </button>
+              ))}
+            </div>
+
             <a
               href="#modulos"
-              className="rounded-xl border border-[#0f172a]/15 bg-white/70 px-4 py-2 transition hover:bg-white"
+              className="text-sm font-bold text-app-subtle transition-colors hover:text-brand-600"
             >
-              Modulos
+              {t.navModules}
             </a>
             <a
               href="#planos"
-              className="rounded-xl border border-[#0f172a]/15 bg-[#0f172a] px-4 py-2 text-white transition hover:bg-[#1e293b]"
+              className="btn-enterprise flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-black uppercase tracking-wider"
             >
-              Planos
+              {t.navPlans}
             </a>
           </nav>
         </div>
       </header>
 
       <main className="relative z-10">
-        <section className="mx-auto grid w-full max-w-7xl gap-10 px-4 pb-12 pt-10 md:px-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:pb-20 lg:pt-16">
-          <div className="lp-rise" style={{ animationDelay: "0.05s" }}>
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#0f172a]/20 bg-white/85 px-4 py-1 text-xs font-black uppercase tracking-[0.18em] text-[#0f172a]/80">
-              <Sparkles size={14} />
-              landing comercial reposicionada para conversao B2B
-            </p>
-            <h1 className="max-w-3xl font-display text-4xl font-black leading-[0.96] md:text-6xl">
-              Planejamento eletrico com
-              <span className="block bg-gradient-to-r from-[#0ea5e9] via-[#0f766e] to-[#f97316] bg-clip-text text-transparent">
-                leitura urbana real.
+        <section className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-6 pb-20 pt-16 lg:flex-row lg:items-center lg:px-10">
+          <div className="flex-1 space-y-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/5 px-4 py-1.5 text-[11px] font-black uppercase tracking-widest text-brand-700">
+              <Sparkles size={14} className="text-brand-500" />
+              {t.heroBadge}
+            </div>
+            <h1 className="max-w-3xl font-display text-4xl font-black leading-[1.1] text-app-title md:text-6xl lg:text-7xl">
+              {t.heroTitle}
+              <span className="mt-2 block bg-gradient-to-r from-brand-600 via-brand-500 to-cyan-500 bg-clip-text text-transparent">
+                {t.heroTitleHighlight}
               </span>
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-relaxed text-[#0f172a]/80 md:text-lg">
-              Experiencia pensada para decisores tecnicos: contexto territorial,
-              motor DG e entrega DXF em uma narrativa unica para campo,
-              engenharia e gestao executiva.
+            <p className="max-w-2xl text-lg leading-relaxed text-app-subtle md:text-xl">
+              {t.heroDesc}
             </p>
 
-            <div className="mt-9 flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-4 pt-4">
               <a
-                href="#planos"
-                className="inline-flex items-center gap-2 rounded-2xl border border-[#0f172a]/15 bg-[#0f172a] px-6 py-3 text-sm font-black uppercase tracking-[0.09em] text-white transition hover:-translate-y-0.5 hover:bg-[#1e293b]"
+                href="/app"
+                className="btn-enterprise flex items-center gap-3 rounded-2xl bg-brand-600 px-8 py-4 text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-brand-500/25 hover:bg-brand-700"
               >
-                iniciar piloto
-                <ArrowRight size={16} />
+                {t.btnPilot}
+                <ArrowRight size={18} />
               </a>
               <a
                 href="#modulos"
-                className="inline-flex items-center gap-2 rounded-2xl border border-[#0f172a]/15 bg-white/80 px-6 py-3 text-sm font-black uppercase tracking-[0.09em] text-[#0f172a] transition hover:bg-white"
+                className="btn-enterprise flex items-center gap-3 rounded-2xl px-8 py-4 text-sm font-black uppercase tracking-widest text-app-title"
               >
-                explorar modulos
+                {t.btnExplore}
               </a>
             </div>
 
-            <div className="mt-9 grid gap-3 sm:grid-cols-3">
-              <Metric label="ganho em velocidade" value="2.6x" />
-              <Metric label="retrabalho evitado" value="-41%" />
-              <Metric label="consistencia tecnica" value="99.1%" />
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Metric label={t.metricSpeed} value="2.6x" />
+              <Metric label={t.metricRework} value="-41%" />
+              <Metric label={t.metricConsistency} value="99.1%" />
             </div>
           </div>
 
-          <aside
-            className="lp-rise rounded-[28px] border border-[#0f172a]/12 bg-white/85 p-6 shadow-[0_24px_54px_rgba(15,23,42,.18)] backdrop-blur"
-            style={{ animationDelay: "0.16s" }}
-          >
-            <div className="rounded-2xl border border-[#0f172a]/10 bg-[#111827] p-4 text-white">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#a5f3fc]">
-                cockpit operacional
-              </p>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <MiniKpi icon={Radar} title="area" value="7.3 km2" />
-                <MiniKpi icon={Route} title="trechos" value="184" />
-                <MiniKpi icon={Layers} title="particoes" value="16" />
-                <MiniKpi icon={LineChart} title="cqt max" value="13.8%" />
+          <aside className="lg:w-[420px]">
+            <div className="glass-panel overflow-hidden rounded-[2.5rem] p-2 shadow-2xl">
+              <div className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-inner relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-cyan-500/20 transition-all duration-700" />
+                
+                <div className="mb-6 flex items-center justify-between border-b border-white/10 pb-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-400">
+                    {t.cockpitTitle}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-bold text-cyan-500/60 uppercase tracking-tighter">Live Engineering</span>
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <MiniKpi icon={Radar} title={t.miniKpiArea} value="7.3 km²" />
+                  <MiniKpi icon={Route} title={t.miniKpiEdges} value="184" />
+                  <MiniKpi icon={Layers} title={t.miniKpiPartitions} value="16" />
+                  <MiniKpi icon={LineChart} title={t.miniKpiCqt} value="13.8%" />
+                </div>
               </div>
-            </div>
 
-            <div className="mt-4 rounded-2xl border border-[#0f172a]/10 bg-[#fff8ed] p-4">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#92400e]">
-                diferenciais imediatos
-              </p>
-              <div className="mt-3 space-y-2 text-sm text-[#1f2937]">
-                <p className="flex items-start gap-2">
-                  <BadgeCheck size={16} className="mt-0.5 text-[#0f766e]" />
-                  ruas e meio-fio no DXF para leitura contextual imediata no CAD
+              <div className="mt-2 rounded-[2rem] bg-white/40 p-6 backdrop-blur-md">
+                <p className="mb-4 text-[11px] font-black uppercase tracking-[0.2em] text-brand-700">
+                  {t.diffTitle}
                 </p>
-                <p className="flex items-start gap-2">
-                  <BadgeCheck size={16} className="mt-0.5 text-[#0f766e]" />
-                  cenarios DG comparaveis por camada para decisao de engenharia
-                </p>
-                <p className="flex items-start gap-2">
-                  <BadgeCheck size={16} className="mt-0.5 text-[#0f766e]" />
-                  narrativa visual pronta para propostas tecnicas e comerciais
-                </p>
+                <div className="space-y-4 text-sm font-medium text-app-subtle">
+                  {[t.diffPoint1, t.diffPoint2, t.diffPoint3].map((text, i) => (
+                    <p key={i} className="flex items-start gap-3">
+                      <BadgeCheck
+                        size={18}
+                        className="mt-0.5 shrink-0 text-emerald-600"
+                      />
+                      <span>{text}</span>
+                    </p>
+                  ))}
+                </div>
               </div>
             </div>
           </aside>
@@ -210,42 +235,36 @@ export default function LandingDraftPage() {
 
         <section
           id="modulos"
-          className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-10"
+          className="mx-auto w-full max-w-7xl px-6 py-20 lg:px-10"
         >
-          <div
-            className="lp-rise mb-6 flex items-end justify-between gap-4"
-            style={{ animationDelay: "0.24s" }}
-          >
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#0f172a]/65">
-                arquitetura de valor
-              </p>
-              <h2 className="font-display text-3xl font-black md:text-4xl">
-                Tres blocos para demonstrar valor tecnico sem friccao
-              </h2>
-            </div>
+          <div className="mb-12">
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-brand-600">
+              {t.archTitleBadge}
+            </p>
+            <h2 className="mt-4 font-display text-3xl font-black text-app-title md:text-5xl">
+              {t.archTitle}
+            </h2>
           </div>
-          <div className="grid gap-4 lg:grid-cols-3">
-            {CORE_MODULES.map((item, index) => {
+          <div className="grid gap-8 lg:grid-cols-3">
+            {CORE_MODULES.map((item, _index) => {
               const Icon = item.icon;
               return (
                 <article
                   key={item.title}
-                  className="lp-rise rounded-3xl border border-[#0f172a]/12 bg-white/90 p-6 shadow-[0_14px_28px_rgba(15,23,42,.14)] transition hover:-translate-y-1"
-                  style={{ animationDelay: `${0.3 + index * 0.08}s` }}
+                  className="glass-panel glass-panel-hover group rounded-[2rem] p-8"
                 >
                   <div
-                    className={`inline-flex rounded-2xl bg-gradient-to-r ${item.tone} p-2 text-white`}
+                    className={`inline-flex rounded-2xl bg-gradient-to-r ${item.tone} p-3 text-white shadow-lg`}
                   >
-                    <Icon size={18} />
+                    <Icon size={24} />
                   </div>
-                  <p className="mt-4 text-[11px] font-black uppercase tracking-[0.2em] text-[#0f172a]/55">
+                  <p className="mt-8 text-[11px] font-black uppercase tracking-[0.2em] text-app-subtle/60">
                     {item.badge}
                   </p>
-                  <h3 className="mt-2 font-display text-2xl font-black leading-tight">
+                  <h3 className="mt-3 font-display text-2xl font-black leading-tight text-app-title">
                     {item.title}
                   </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-[#0f172a]/78">
+                  <p className="mt-4 text-base leading-relaxed text-app-subtle/80">
                     {item.text}
                   </p>
                 </article>
@@ -254,111 +273,190 @@ export default function LandingDraftPage() {
           </div>
         </section>
 
-        <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-8 md:py-12">
-          <div className="rounded-[30px] border border-[#0f172a]/10 bg-[#0f172a] p-6 text-white shadow-[0_20px_56px_rgba(15,23,42,.3)] md:p-8">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#67e8f9]">
-              fluxo operacional recomendado
-            </p>
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
-              {TIMELINE.map((phase, index) => (
-                <article
-                  key={phase.step}
-                  className="lp-rise rounded-2xl border border-white/15 bg-white/5 p-4"
-                  style={{ animationDelay: `${0.4 + index * 0.08}s` }}
-                >
-                  <p className="text-xs font-black tracking-[0.18em] text-[#a5f3fc]">
-                    ETAPA {phase.step}
-                  </p>
-                  <h3 className="mt-2 font-display text-2xl font-black">
-                    {phase.title}
-                  </h3>
-                  <p className="mt-2 text-sm text-slate-200">{phase.detail}</p>
-                </article>
-              ))}
+        {/* ── Nova Seção: Metadados BIM & Conformidade ── */}
+        <section className="mx-auto w-full max-w-7xl px-6 py-12 lg:px-10">
+          <div className="grid gap-8 lg:grid-cols-2">
+            <div className="glass-panel rounded-[2.5rem] p-8 lg:p-12 flex flex-col justify-center">
+              <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-lg">
+                <Box size={24} />
+              </div>
+              <h2 className="font-display text-3xl font-black text-app-title md:text-4xl">
+                Half-way BIM: <br/>
+                <span className="text-brand-600 text-2xl md:text-3xl">Inteligência de Ativos</span>
+              </h2>
+              <p className="mt-6 text-lg leading-relaxed text-app-subtle">
+                Cada elemento exportado carrega o DNA da rede. Do esforço nominal do poste à impedância do condutor, garantimos que o DXF seja o ponto de partida para um gêmeo digital real.
+              </p>
+              <div className="mt-10 space-y-4">
+                <div className="flex items-center gap-4 text-sm font-bold text-app-title">
+                  <CheckCircle2 size={20} className="text-emerald-500" />
+                  <span>Atributos ANEEL nativos em cada layer</span>
+                </div>
+                <div className="flex items-center gap-4 text-sm font-bold text-app-title">
+                  <CheckCircle2 size={20} className="text-emerald-500" />
+                  <span>Sincronização com normas de concessionárias</span>
+                </div>
+                <div className="flex items-center gap-4 text-sm font-bold text-app-title">
+                  <CheckCircle2 size={20} className="text-emerald-500" />
+                  <span>Rastreabilidade total de modificações</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="glass-premium rounded-[2.5rem] p-8 lg:p-12 bg-gradient-to-br from-slate-900 to-slate-950 text-white flex flex-col items-center justify-center text-center">
+              <div className="relative mb-8 h-48 w-48 flex items-center justify-center">
+                <div className="absolute inset-0 border-[1px] border-cyan-500/20 rounded-full animate-[spin_10s_linear_infinite]" />
+                <div className="absolute inset-4 border-[1px] border-cyan-500/40 rounded-full animate-[spin_6s_linear_infinite_reverse]" />
+                <div className="absolute inset-8 border-[1px] border-cyan-500/60 rounded-full animate-[spin_4s_linear_infinite]" />
+                <Cpu size={64} className="text-cyan-400" />
+              </div>
+              <h3 className="font-display text-2xl font-black">Motor DG Certificado</h3>
+              <p className="mt-4 text-sm text-slate-400 max-w-xs">
+                Algoritmos de particionamento e cálculo elétrico validados por suítes de teste de regressão exaustivas.
+              </p>
+              <div className="mt-8 grid grid-cols-2 gap-4 w-full">
+                <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
+                  <p className="text-[20px] font-black text-cyan-400">99.8%</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-500">Acurácia Elétrica</p>
+                </div>
+                <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
+                  <p className="text-[20px] font-black text-cyan-400">SOC2</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-500">Readiness</p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <section
-          id="planos"
-          className="mx-auto w-full max-w-7xl px-4 pb-12 pt-4 md:px-8 md:pb-16"
-        >
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#0f172a]/65">
-                modelo comercial
+        <section className="mx-auto w-full max-w-7xl px-6 py-12 lg:px-10">
+          <div className="glass-premium rounded-[3rem] p-8 text-white lg:p-12 glass-overlay overflow-hidden">
+            <div className="relative z-10">
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-300">
+                {t.timelineBadge}
               </p>
-              <h2 className="font-display text-3xl font-black md:text-4xl">
-                Freemium para entrada, Pro para recorrencia previsivel
-              </h2>
+              <div className="mt-10 grid gap-8 md:grid-cols-3">
+                {TIMELINE.map((phase) => (
+                  <article
+                    key={phase.step}
+                    className="group relative rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all hover:bg-white/10"
+                  >
+                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-cyan-400">
+                      <span className="font-display text-lg font-black">{phase.step}</span>
+                    </div>
+                    <h3 className="font-display text-2xl font-black text-white">
+                      {phase.title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-relaxed text-slate-300">
+                      {phase.detail}
+                    </p>
+                  </article>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="grid gap-4 lg:grid-cols-3">
+        </section>
+
+        <section id="planos" className="mx-auto w-full max-w-7xl px-6 py-24 lg:px-10">
+          <div className="mb-16 text-center lg:text-left">
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-brand-600">
+              {t.plansBadge}
+            </p>
+            <h2 className="mt-4 font-display text-3xl font-black text-app-title md:text-5xl">
+              {t.plansTitle}
+            </h2>
+          </div>
+          <div className="grid gap-8 lg:grid-cols-3">
             {PLANS.map((plan) => (
               <article
                 key={plan.name}
-                className={`rounded-3xl border p-5 transition hover:-translate-y-1 ${plan.featured ? "border-[#0284c7] bg-[#ecfeff] shadow-[0_16px_32px_rgba(2,132,199,.22)]" : "border-[#0f172a]/10 bg-white/85 shadow-[0_12px_24px_rgba(15,23,42,.12)]"}`}
+                className={`glass-panel glass-panel-hover flex flex-col rounded-[2.5rem] p-8 ${
+                  plan.featured ? "border-brand-500/50 ring-2 ring-brand-500/20" : ""
+                }`}
               >
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#0f172a]/60">
-                  {plan.name}
-                </p>
-                <p className="mt-3 font-display text-4xl font-black">
-                  {plan.price}
-                </p>
-                <p className="text-sm text-[#0f172a]/70">{plan.cadence}</p>
-                <ul className="mt-4 space-y-2 text-sm text-[#0f172a]/75">
+                <div className="mb-8">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-app-subtle/60">
+                    {plan.name}
+                  </p>
+                  <p className="mt-4 font-display text-5xl font-black text-app-title">
+                    {plan.price}
+                  </p>
+                  <p className="mt-2 text-sm font-bold text-brand-600 uppercase tracking-widest">
+                    {plan.cadence}
+                  </p>
+                </div>
+                <ul className="mb-10 flex flex-grow flex-col gap-4">
                   {plan.points.map((point) => (
-                    <li key={point} className="flex items-start gap-2">
-                      <ShieldCheck
-                        size={16}
-                        className="mt-0.5 text-[#0f766e]"
-                      />
-                      {point}
+                    <li key={point} className="flex items-start gap-3 text-sm font-medium text-app-subtle">
+                      <ShieldCheck size={18} className="mt-0.5 shrink-0 text-brand-500" />
+                      <span>{point}</span>
                     </li>
                   ))}
                 </ul>
                 <button
                   type="button"
-                  className={`mt-6 w-full rounded-xl border px-4 py-2 text-sm font-black uppercase tracking-[0.08em] transition ${plan.featured ? "border-[#0284c7] bg-[#0284c7] text-white hover:bg-[#0369a1]" : "border-[#0f172a]/15 bg-white hover:bg-slate-50"}`}
+                  className={`btn-enterprise w-full rounded-2xl py-4 text-sm font-black uppercase tracking-widest transition-all ${
+                    plan.featured
+                      ? "bg-brand-600 text-white hover:bg-brand-700"
+                      : "text-app-title hover:bg-white/40"
+                  }`}
                 >
-                  escolher {plan.name.toLowerCase()}
+                  {t.btnSelectPlan(plan.name)}
                 </button>
               </article>
             ))}
           </div>
         </section>
 
-        <section className="mx-auto w-full max-w-7xl px-4 pb-16 md:px-8">
-          <div className="rounded-3xl border border-[#0f172a]/12 bg-white/90 p-6 text-[#0f172a] shadow-[0_14px_28px_rgba(15,23,42,.12)] md:flex md:items-center md:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#0f172a]/60">
-                proximo passo
+        <section className="mx-auto w-full max-w-7xl px-6 pb-24 lg:px-10">
+          <div className="glass-premium flex flex-col items-center justify-between gap-8 rounded-[3rem] p-8 text-center md:flex-row md:p-12 md:text-left">
+            <div className="max-w-xl">
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-300">
+                {t.ctaTitleBadge}
               </p>
-              <h3 className="mt-2 font-display text-2xl font-black">
-                Leve sua operacao de rede BT para um padrao corporativo.
+              <h3 className="mt-4 font-display text-3xl font-black text-white md:text-4xl">
+                {t.ctaTitle}
               </h3>
             </div>
             <a
               href="#planos"
-              className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-[#0f172a]/15 bg-[#0f172a] px-6 py-3 text-sm font-black uppercase tracking-[0.09em] text-white transition hover:bg-[#1e293b] md:mt-0"
+              className="btn-enterprise flex items-center gap-3 rounded-2xl bg-white px-10 py-5 text-sm font-black uppercase tracking-widest text-brand-950 transition-transform hover:scale-105"
             >
-              solicitar demonstracao
-              <ArrowRight size={16} />
+              {t.btnDemo}
+              <ArrowRight size={20} />
             </a>
           </div>
         </section>
       </main>
+
+      <footer className="border-t border-brand-500/10 bg-white/20 py-12 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 md:flex-row lg:px-10">
+          <p className="text-xs font-bold text-app-subtle/60 uppercase tracking-widest">
+            {t.footerRights}
+          </p>
+          <div className="flex gap-8">
+            <a href="#" className="text-xs font-black uppercase tracking-widest text-app-subtle transition-colors hover:text-brand-600">
+              {t.footerLinks.privacy}
+            </a>
+            <a href="#" className="text-xs font-black uppercase tracking-widest text-app-subtle transition-colors hover:text-brand-600">
+              {t.footerLinks.terms}
+            </a>
+            <a href="#" className="text-xs font-black uppercase tracking-widest text-app-subtle transition-colors hover:text-brand-600">
+              {t.footerLinks.support}
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[#0f172a]/10 bg-white/80 p-3 shadow-[0_10px_22px_rgba(15,23,42,.12)]">
-      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#0f172a]/55">
+    <div className="glass-panel glass-panel-hover rounded-2xl p-4">
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-subtle/50">
         {label}
       </p>
-      <p className="mt-1 font-display text-2xl font-black">{value}</p>
+      <p className="mt-1 font-display text-2xl font-black text-app-title">{value}</p>
     </div>
   );
 }
@@ -373,14 +471,15 @@ function MiniKpi({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-      <div className="mb-2 inline-flex rounded-md bg-white/10 p-2 text-[#7dd3fc]">
-        <Icon size={15} />
+    <div className="rounded-2xl border border-white/5 bg-white/5 p-4 transition-colors hover:bg-white/10">
+      <div className="mb-3 inline-flex rounded-xl bg-cyan-500/10 p-2 text-cyan-400">
+        <Icon size={18} />
       </div>
-      <p className="text-[11px] uppercase tracking-[0.12em] text-slate-400">
+      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">
         {title}
       </p>
-      <p className="font-display text-xl font-black text-white">{value}</p>
+      <p className="mt-1 font-display text-xl font-black text-white tracking-tight">{value}</p>
     </div>
   );
 }
+

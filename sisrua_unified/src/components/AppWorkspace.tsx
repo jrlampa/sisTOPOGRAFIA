@@ -1,16 +1,42 @@
 import React from "react";
 import { AppShellLayout } from "./AppShellLayout";
 import { GuidedTaskChecklist } from "./GuidedTaskChecklist";
-import { ElectricalAuditDrawer } from "./ElectricalAuditDrawer";
-import { BtTelescopicSuggestionModal } from "./BtTelescopicSuggestionModal";
-import { HelpModal } from "./HelpModal";
-import { CommandPalette } from "./CommandPalette";
 import { AppSettings, BtTopology, MtTopology, SelectionMode } from "../types";
+import { lazyWithRetry } from "../utils/lazyWithRetry";
 import {
   BtPoleAccumulatedDemand
 } from "../services/btDerivedService";
 import { getMainMapWorkspaceText } from "../i18n/mainMapWorkspaceText";
 import { getGuidedTaskChecklistText } from "../i18n/guidedTaskChecklistText";
+
+const ElectricalAuditDrawer = React.lazy(() =>
+  lazyWithRetry(() =>
+    import("./ElectricalAuditDrawer").then((module) => ({
+      default: module.ElectricalAuditDrawer,
+    })),
+  ),
+);
+const BtTelescopicSuggestionModal = React.lazy(() =>
+  lazyWithRetry(() =>
+    import("./BtTelescopicSuggestionModal").then((module) => ({
+      default: module.BtTelescopicSuggestionModal,
+    })),
+  ),
+);
+const HelpModal = React.lazy(() =>
+  lazyWithRetry(() =>
+    import("./HelpModal").then((module) => ({
+      default: module.HelpModal,
+    })),
+  ),
+);
+const CommandPalette = React.lazy(() =>
+  lazyWithRetry(() =>
+    import("./CommandPalette").then((module) => ({
+      default: module.CommandPalette,
+    })),
+  ),
+);
 
 interface AppWorkspaceProps {
   settings: AppSettings;
@@ -344,34 +370,42 @@ export function AppWorkspace(props: AppWorkspaceProps) {
       />
 
       <React.Suspense fallback={null}>
-        <ElectricalAuditDrawer
-          locale={settings.locale}
-          isOpen={isAuditOpen}
-          onClose={() => setIsAuditOpen(false)}
-          selectedElement={selectedAuditElement}
-          onAuditAction={handleAuditAction}
-        />
+        {isAuditOpen && selectedAuditElement && (
+          <ElectricalAuditDrawer
+            locale={settings.locale}
+            isOpen={isAuditOpen}
+            onClose={() => setIsAuditOpen(false)}
+            selectedElement={selectedAuditElement}
+            onAuditAction={handleAuditAction}
+          />
+        )}
 
-        <BtTelescopicSuggestionModal
-          output={btTelescopicSuggestions}
-          onApply={handleApplyTelescopicSuggestions}
-          onCancel={clearBtTelescopicSuggestions}
-        />
+        {btTelescopicSuggestions && (
+          <BtTelescopicSuggestionModal
+            output={btTelescopicSuggestions}
+            onApply={handleApplyTelescopicSuggestions}
+            onCancel={clearBtTelescopicSuggestions}
+          />
+        )}
 
-        <HelpModal
-          isOpen={isHelpOpen}
-          locale={settings.locale}
-          onClose={() => setIsHelpOpen(false)}
-        />
+        {isHelpOpen && (
+          <HelpModal
+            isOpen={isHelpOpen}
+            locale={settings.locale}
+            onClose={() => setIsHelpOpen(false)}
+          />
+        )}
 
-        <CommandPalette
-          isOpen={isCommandPaletteOpen}
-          onClose={() => setIsCommandPaletteOpen(false)}
-          actions={commandPaletteActions}
-          poles={btTopology.poles}
-          onGoToPole={handleGoToPole}
-          locale={settings.locale}
-        />
+        {isCommandPaletteOpen && (
+          <CommandPalette
+            isOpen={isCommandPaletteOpen}
+            onClose={() => setIsCommandPaletteOpen(false)}
+            actions={commandPaletteActions}
+            poles={btTopology.poles}
+            onGoToPole={handleGoToPole}
+            locale={settings.locale}
+          />
+        )}
       </React.Suspense>
 
       <GuidedTaskChecklist

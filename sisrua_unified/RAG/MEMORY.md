@@ -1,3 +1,51 @@
+## Atualização Operacional (2026-05-06E) - Auditoria Corretiva Backend & Quality Gates
+
+- **Contexto**: Auditoria e debugging profundo no backend solicitado para garantir estabilidade, segurança e conformidade (Tech Lead / Fullstack Sênior).
+- **Problemas Identificados e Resolvidos**:
+  1. **Artifact Hardening (TS Target Mismatch)**: Corrigido erro de compilação no `artifactHardeningService.ts` (`Property 'replaceAll' does not exist`) convertendo `.replaceAll("\0", "")` para o formato regex global `.replace(/\0/g, "")`, garantindo compatibilidade com engines Node/ES mais antigas durante a build.
+  2. **Formula Versioning (Typing Inconsistency)**: Corrigido erro `TransactionSql<{}> is not assignable to Sql<{}>` no helper privado `seedDatabaseFromInitialCatalog`. O parâmetro foi flexibilizado internamente para transações, garantindo que o catálogo base seja semeado de forma atômica no banco relacional.
+  3. **Cloud Tasks Fallback (Test Failure)**: Corrigido falha no `cloudTasksService.test.ts`. O modo fallback local não injetava o `tenantId`, o que violava o contrato da fila de tarefas isolada por tenant (multi-tenancy RLS). Adicionada simulação rigorosa de queda do Postgres (`DATABASE_URL: ""`) para garantir cobertura do fallback de memória assíncrona.
+  4. **Linting Strict**: Limpeza de advertências no `canonicalTopologyRepository.ts` (exceção não capturada/utilizada renomeada para `_e`) e remoção de biblioteca estéril no `dxfRoutes.ts` (import de `randomUUID` não utilizado).
+- **Resultado da Auditoria**:
+  - `npm run typecheck:backend` -> **0 erros** (Exit Code 0).
+  - `npm run lint:backend:strict` -> **0 avisos, 0 erros** (Exit Code 0).
+  - `npm run test:backend` -> **3030 testes passando (220/220 arquivos)**, com Coverage Statements em **85.26%**.
+- **Status**: Backend plenamente auditado, validado e estável. Tolerância a falhas testada.
+
+## Atualização Operacional (2026-05-06D) - Evolução UI/UX Sênior (Redes MT/BT)
+
+- **Contexto**: Evolução da landing page (`LandingDraftPage.tsx`) sob a ótica de um Designer UI/UX Sênior com 15 anos de experiência no setor elétrico.
+- **Implementado**:
+  - **Refatoração de Copywriting**: Transição de linguagem genérica para terminologia técnica de engenharia de distribuição (Projetos de Expansão/Reforma, Metadados BIM, CQT, Conformidade ANEEL).
+  - **Iconografia Técnica**: Substituição de ícones (`Compass` → `Zap`, `Workflow` → `Cpu`) para melhor identificação com o setor de energia.
+  - **Nova Seção "Half-way BIM"**: Adição de bloco dedicado à inteligência de ativos e conformidade técnica, destacando a riqueza de metadados no DXF 2.5D.
+  - **Visual "Live Engineering"**: Implementação de efeitos visuais dinâmicos no Cockpit Operacional para simular monitoramento em tempo real e autoridade geospacial.
+  - **i18n Evoluído**: Atualização do `landingPageText.ts` com as novas strings técnicas para pt-BR (manutenção de en-US e es-ES como bases).
+- **Resultado**: Interface que comunica confiança técnica e autoridade para decisores de engenharia e utilities.
+- **Status**: Concluído e validado.
+
+## Atualização Operacional (2026-05-06C) - Redesign Landing Page (Enterprise UI/UX)
+
+- **Contexto**: Resposta ao feedback do usuário sobre a interface da landpage ("horrivel"). Otimização focada em profissionalismo B2B e alinhamento com a identidade visual do projeto.
+- **Implementado**:
+  - **Refatoração UI/UX**: `LandingDraftPage.tsx` totalmente redesenhado. Substituído o layout fixo e cores hardcoded pelo tema **Glassmorphism Enterprise** definido em `index.css`.
+  - **Suporte Multi-idioma**: Criado `landingPageText.ts` com suporte a **pt-BR, en-US e es-ES**. Integrado `useTranslation` para detecção e troca dinâmica de idioma diretamente na landpage.
+  - **Layout Responsivo**: Reestruturação do Header com seletor de idioma integrado, evitando sobreposição de elementos.
+  - **Consistência de Marca**: Uso sistemático de variáveis de tema (`app-shell`, `glass-panel`, `btn-enterprise`, `text-app-title`) e paleta de cores `brand-600` (Enterprise Blue).
+  - **Garantia de Qualidade**: Verificação de lint (0 erros/avisos) e garantia de conformidade com a regra "Thin Frontend / Smart Backend" e textos 100% em pt-BR.
+- **Resultado**: Interface moderna, limpa e alinhada com os padrões de engenharia da plataforma. Melhoria drástica na legibilidade e navegação.
+- **Status**: Concluído e validado via linting.
+
+## Atualização Operacional (2026-05-06B) - Otimização PostGIS & Map Performance
+
+- **Contexto**: Evolução do SaaS focada em precisão espacial e fluidez de interface.
+- **Implementado**:
+  - **Refatoração PostGIS (Backend)**: `canonicalTopologyRepository.ts` atualizado para ler `ST_AsGeoJSON(geom)` nativamente. Extração de `lat/lng` agora é feita via parser GeoJSON no repositório, garantindo que o motor de geoprocessamento utilize dados geoespaciais indexados (GIST) sem quebrar o contrato do frontend.
+  - **Otimização React (Frontend)**: `MapSelectorDgOverlay.tsx` refatorado com `React.memo` e função de comparação customizada (deep check do `scenarioId`). Redução drástica de re-renderizações durante movimentos de mouse e interações com outras camadas do mapa.
+  - **Garantia de Qualidade**: Adicionado teste unitário em `canonicalTopologyRepository.test.ts` para validar especificamente a extração via GeoJSON.
+- **Resultado**: 18/18 testes de repositório passando; interface do mapa mais responsiva em cenários de Design Generativo complexos.
+- **Status**: Concluído como parte da evolução livre solicitada pelo Tech Lead.
+
 ## Atualização Operacional (2026-05-06A) - Itens T1: 14B, 27, 121, 122, 123 — Enterprise Deployment + Retrocompat + Grid
 
 - **Contexto**: Continuidade após MT Router Phase 2 (commit `bf583c5`). 5 itens T1 restantes do STRATEGIC_ROADMAP_2026 implementados.
@@ -511,7 +559,9 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 - **Serviço:** server/services/formulaVersioningService.ts
   - Tipos: FormulaCategory, VersionStatus, FormulaVersion, FormulaDefinition, FormulaDiff
   - Funções: computeDefinitionHash, listFormulas, getFormulaById, getActiveVersion,
-    getVersionHistory, diffVersions, egisterFormulaVersion, getDeprecationReport, esetCatalog
+    getVersionHistory, diffVersions, 
+egisterFormulaVersion, getDeprecationReport, 
+esetCatalog
   - Catálogo inicial: 5 fórmulas (QT_SEGMENTO_BT, RESISTENCIA_CORRIGIDA, LIMITE_CQT_ANEEL,
     TENSAO_PISO_OPERACIONAL, K8_QT_MT_TRAFO), cada uma com histórico versionado
   - Hash djb2 para rastreabilidade/auditoria regulatória (sem dependência de crypto assíncrono)
@@ -532,4 +582,5 @@ Plataforma unificada para orquestração de engenharia Light S.A., integrando to
 - Versionamento semântico (semver) + auto-depreciação de versão ativa ao registrar nova versão ctive
 - Auditoria de fórmulas regulatórias: ANEEL PRODIST Módulo 8, ABNT NBR 5410, Light S.A.
 - Diff com detecção automática de mudanças isBreaking (alteração em expression ou constants = breaking)
-- Middleware de autenticação via uthGuard.ts (equireAdminToken)
+- Middleware de autenticação via uthGuard.ts (
+equireAdminToken)

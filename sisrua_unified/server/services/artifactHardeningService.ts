@@ -140,7 +140,7 @@ export class ArtifactHardeningService {
     return texto
       .replace(/(<script[\s>].*?<\/script>)/gis, "[REMOVIDO]")
       .replace(/(javascript\s*:)/gi, "javascript_blocked:")
-      .replaceAll("\0", "")
+      .replace(/\0/g, "")
       .slice(0, 10_000);
   }
 

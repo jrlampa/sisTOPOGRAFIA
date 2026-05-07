@@ -79,7 +79,7 @@ describe("cloudTasksService (Postgres queue)", () => {
       filename: "file.dxf",
       cacheKey: "cache-key",
       downloadUrl: "https://example.com/downloads/file.dxf",
-    });
+    } as any, "test-tenant-id");
 
     expect(result.taskId).toBe("test-uuid");
     expect(result.taskName).toBe("pg-task-test-uuid");
@@ -93,6 +93,7 @@ describe("cloudTasksService (Postgres queue)", () => {
       ...originalEnv,
       NODE_ENV: "test",
       USE_SUPABASE_JOBS: "false",
+      DATABASE_URL: "",
     };
 
     const fakeGenerate = vi.fn().mockResolvedValue("DXF_OK");
@@ -119,7 +120,7 @@ describe("cloudTasksService (Postgres queue)", () => {
       filename: "file.dxf",
       cacheKey: "fallback-cache-key",
       downloadUrl: "https://example.com/downloads/file.dxf",
-    });
+    } as any, "test-tenant-id");
 
     await vi.runAllTimersAsync();
     vi.useRealTimers();

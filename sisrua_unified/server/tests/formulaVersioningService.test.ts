@@ -41,15 +41,17 @@ describe("computeDefinitionHash", () => {
 });
 
 describe("listFormulas", () => {
-  beforeEach(() => resetCatalog());
+  beforeEach(async () => {
+    await resetCatalog();
+  });
 
-  it("retorna 5 fórmulas do catálogo inicial", () => {
-    const result = listFormulas();
+  it("retorna 5 fórmulas do catálogo inicial", async () => {
+    const result = await listFormulas();
     expect(result.length).toBe(5);
   });
 
-  it("cada entrada tem id, category, activeVersion, activeEntry", () => {
-    const result = listFormulas();
+  it("cada entrada tem id, category, activeVersion, activeEntry", async () => {
+    const result = await listFormulas();
     for (const f of result) {
       expect(f.id).toBeTruthy();
       expect(f.category).toBeTruthy();
@@ -61,115 +63,125 @@ describe("listFormulas", () => {
 });
 
 describe("getFormulaById", () => {
-  beforeEach(() => resetCatalog());
+  beforeEach(async () => {
+    await resetCatalog();
+  });
 
-  it("retorna a fórmula QT_SEGMENTO_BT", () => {
-    const def = getFormulaById("QT_SEGMENTO_BT");
+  it("retorna a fórmula QT_SEGMENTO_BT", async () => {
+    const def = await getFormulaById("QT_SEGMENTO_BT");
     expect(def).not.toBeNull();
     expect(def!.id).toBe("QT_SEGMENTO_BT");
     expect(def!.category).toBe("bt_radial");
   });
 
-  it("retorna null para fórmula inexistente", () => {
-    const def = getFormulaById("FORMULA_INEXISTENTE");
+  it("retorna null para fórmula inexistente", async () => {
+    const def = await getFormulaById("FORMULA_INEXISTENTE");
     expect(def).toBeNull();
   });
 
-  it("QT_SEGMENTO_BT tem versão ativa 2.0.0", () => {
-    const def = getFormulaById("QT_SEGMENTO_BT");
+  it("QT_SEGMENTO_BT tem versão ativa 2.0.0", async () => {
+    const def = await getFormulaById("QT_SEGMENTO_BT");
     expect(def!.activeVersion).toBe("2.0.0");
   });
 });
 
 describe("getActiveVersion", () => {
-  beforeEach(() => resetCatalog());
+  beforeEach(async () => {
+    await resetCatalog();
+  });
 
-  it("retorna versão ativa com status 'active'", () => {
-    const active = getActiveVersion("QT_SEGMENTO_BT");
+  it("retorna versão ativa com status 'active'", async () => {
+    const active = await getActiveVersion("QT_SEGMENTO_BT");
     expect(active).not.toBeNull();
     expect(active!.status).toBe("active");
     expect(active!.version).toBe("2.0.0");
   });
 
-  it("versão ativa contém fator de fase φ para MONO=2", () => {
-    const active = getActiveVersion("QT_SEGMENTO_BT");
+  it("versão ativa contém fator de fase φ para MONO=2", async () => {
+    const active = await getActiveVersion("QT_SEGMENTO_BT");
     expect(active!.constants["phi_MONO"]).toBe(2);
   });
 
-  it("retorna null para fórmula inexistente", () => {
-    expect(getActiveVersion("INEXISTENTE")).toBeNull();
+  it("retorna null para fórmula inexistente", async () => {
+    expect(await getActiveVersion("INEXISTENTE")).toBeNull();
   });
 
-  it("LIMITE_CQT_ANEEL versão ativa é 2.0.0 com 8%", () => {
-    const active = getActiveVersion("LIMITE_CQT_ANEEL");
+  it("LIMITE_CQT_ANEEL versão ativa é 2.0.0 com 8%", async () => {
+    const active = await getActiveVersion("LIMITE_CQT_ANEEL");
     expect(active!.version).toBe("2.0.0");
     expect(active!.constants["ANEEL_CQT_LIMIT"]).toBe(0.08);
   });
 
-  it("TENSAO_PISO_OPERACIONAL versão ativa tem V_min=117", () => {
-    const active = getActiveVersion("TENSAO_PISO_OPERACIONAL");
+  it("TENSAO_PISO_OPERACIONAL versão ativa tem V_min=117", async () => {
+    const active = await getActiveVersion("TENSAO_PISO_OPERACIONAL");
     expect(active!.constants["V_min_V"]).toBe(117);
   });
 });
 
 describe("getVersionHistory", () => {
-  beforeEach(() => resetCatalog());
+  beforeEach(async () => {
+    await resetCatalog();
+  });
 
-  it("retorna histórico em ordem decrescente de versão", () => {
-    const history = getVersionHistory("QT_SEGMENTO_BT");
+  it("retorna histórico em ordem decrescente de versão", async () => {
+    const history = await getVersionHistory("QT_SEGMENTO_BT");
     expect(history[0].version).toBe("2.0.0");
     expect(history[1].version).toBe("1.0.0");
   });
 
-  it("retorna array vazio para fórmula inexistente", () => {
-    expect(getVersionHistory("INEXISTENTE")).toEqual([]);
+  it("retorna array vazio para fórmula inexistente", async () => {
+    expect(await getVersionHistory("INEXISTENTE")).toEqual([]);
   });
 
-  it("versão 1.0.0 de QT_SEGMENTO_BT está deprecated", () => {
-    const history = getVersionHistory("QT_SEGMENTO_BT");
+  it("versão 1.0.0 de QT_SEGMENTO_BT está deprecated", async () => {
+    const history = await getVersionHistory("QT_SEGMENTO_BT");
     const v1 = history.find((v) => v.version === "1.0.0");
     expect(v1?.status).toBe("deprecated");
   });
 });
 
 describe("diffVersions", () => {
-  beforeEach(() => resetCatalog());
+  beforeEach(async () => {
+    await resetCatalog();
+  });
 
-  it("detecta mudança de expressão entre v1 e v2 de QT_SEGMENTO_BT", () => {
-    const diff = diffVersions("QT_SEGMENTO_BT", "1.0.0", "2.0.0");
+  it("detecta mudança de expressão entre v1 e v2 de QT_SEGMENTO_BT", async () => {
+    const diff = await diffVersions("QT_SEGMENTO_BT", "1.0.0", "2.0.0");
     expect(diff).not.toBeNull();
     const exprChange = diff!.changedFields.find((f) => f.field === "expression");
     expect(exprChange).toBeDefined();
   });
 
-  it("diff é marcado como breaking quando há mudança de expressão", () => {
-    const diff = diffVersions("QT_SEGMENTO_BT", "1.0.0", "2.0.0");
+  it("diff é marcado como breaking quando há mudança de expressão", async () => {
+    const diff = await diffVersions("QT_SEGMENTO_BT", "1.0.0", "2.0.0");
     expect(diff!.isBreaking).toBe(true);
     expect(diff!.breakingReason).toBeTruthy();
   });
 
-  it("retorna null para fórmula inexistente", () => {
-    const diff = diffVersions("INEXISTENTE", "1.0.0", "2.0.0");
+  it("retorna null para fórmula inexistente", async () => {
+    const diff = await diffVersions("INEXISTENTE", "1.0.0", "2.0.0");
     expect(diff).toBeNull();
   });
 
-  it("retorna null para versão inexistente", () => {
-    const diff = diffVersions("QT_SEGMENTO_BT", "9.9.9", "2.0.0");
+  it("retorna null para versão inexistente", async () => {
+    const diff = await diffVersions("QT_SEGMENTO_BT", "9.9.9", "2.0.0");
     expect(diff).toBeNull();
   });
 
-  it("diff entre versão idêntica não tem campos alterados", () => {
-    const diff = diffVersions("RESISTENCIA_CORRIGIDA", "1.0.0", "1.0.0");
+  it("diff entre versão idêntica não tem campos alterados", async () => {
+    const diff = await diffVersions("RESISTENCIA_CORRIGIDA", "1.0.0", "1.0.0");
     expect(diff!.changedFields).toHaveLength(0);
     expect(diff!.isBreaking).toBe(false);
   });
 });
 
 describe("registerFormulaVersion", () => {
-  beforeEach(() => resetCatalog());
+  beforeEach(async () => {
+    await resetCatalog();
+  });
 
-  it("registra nova versão numa fórmula existente", () => {
-    const result = registerFormulaVersion("QT_SEGMENTO_BT", "bt_radial", {
+  it("registra nova versão numa fórmula existente", async () => {
+    const result = await registerFormulaVersion("QT_SEGMENTO_BT", "bt_radial", {
       version: "3.0.0",
       status: "draft",
       name: "QT BT v3 (draft)",
@@ -182,12 +194,12 @@ describe("registerFormulaVersion", () => {
     expect(result.version).toBe("3.0.0");
     expect(result.definitionHash).toBeTruthy();
 
-    const def = getFormulaById("QT_SEGMENTO_BT");
+    const def = await getFormulaById("QT_SEGMENTO_BT");
     expect(def!.versions.some((v) => v.version === "3.0.0")).toBe(true);
   });
 
-  it("lança erro ao registrar versão duplicada", () => {
-    expect(() =>
+  it("lança erro ao registrar versão duplicada", async () => {
+    await expect(
       registerFormulaVersion("QT_SEGMENTO_BT", "bt_radial", {
         version: "2.0.0",
         status: "active",
@@ -198,11 +210,11 @@ describe("registerFormulaVersion", () => {
         standardReference: "—",
         effectiveDate: "2026-01-01",
       }),
-    ).toThrow(/já existe/);
+    ).rejects.toThrow(/já existe/);
   });
 
-  it("registrar versão 'active' depreca a versão anteriormente ativa", () => {
-    registerFormulaVersion("RESISTENCIA_CORRIGIDA", "conductor", {
+  it("registrar versão 'active' depreca a versão anteriormente ativa", async () => {
+    await registerFormulaVersion("RESISTENCIA_CORRIGIDA", "conductor", {
       version: "2.0.0",
       status: "active",
       name: "Resistência v2",
@@ -213,16 +225,16 @@ describe("registerFormulaVersion", () => {
       effectiveDate: "2026-06-01",
     });
 
-    const history = getVersionHistory("RESISTENCIA_CORRIGIDA");
+    const history = await getVersionHistory("RESISTENCIA_CORRIGIDA");
     const old = history.find((v) => v.version === "1.0.0");
     expect(old?.status).toBe("deprecated");
 
-    const def = getFormulaById("RESISTENCIA_CORRIGIDA");
+    const def = await getFormulaById("RESISTENCIA_CORRIGIDA");
     expect(def!.activeVersion).toBe("2.0.0");
   });
 
-  it("cria nova fórmula quando ID não existe no catálogo", () => {
-    registerFormulaVersion("FORMULA_NOVA", "standards", {
+  it("cria nova fórmula quando ID não existe no catálogo", async () => {
+    await registerFormulaVersion("FORMULA_NOVA", "standards", {
       version: "1.0.0",
       status: "active",
       name: "Nova Fórmula Teste",
@@ -233,22 +245,24 @@ describe("registerFormulaVersion", () => {
       effectiveDate: "2026-01-01",
     });
 
-    const def = getFormulaById("FORMULA_NOVA");
+    const def = await getFormulaById("FORMULA_NOVA");
     expect(def).not.toBeNull();
     expect(def!.activeVersion).toBe("1.0.0");
   });
 });
 
 describe("getDeprecationReport", () => {
-  beforeEach(() => resetCatalog());
+  beforeEach(async () => {
+    await resetCatalog();
+  });
 
-  it("retorna fórmulas com versões depreciadas", () => {
-    const report = getDeprecationReport();
+  it("retorna fórmulas com versões depreciadas", async () => {
+    const report = await getDeprecationReport();
     expect(report.length).toBeGreaterThan(0);
   });
 
-  it("QT_SEGMENTO_BT versão 1.0.0 aparece no relatório", () => {
-    const report = getDeprecationReport();
+  it("QT_SEGMENTO_BT versão 1.0.0 aparece no relatório", async () => {
+    const report = await getDeprecationReport();
     const entry = report.find(
       (r) => r.formulaId === "QT_SEGMENTO_BT" && r.deprecatedVersion === "1.0.0",
     );
@@ -256,8 +270,8 @@ describe("getDeprecationReport", () => {
     expect(entry!.replacedBy).toBe("2.0.0");
   });
 
-  it("LIMITE_CQT_ANEEL 1.0.0 aparece com substituto 2.0.0", () => {
-    const report = getDeprecationReport();
+  it("LIMITE_CQT_ANEEL 1.0.0 aparece com substituto 2.0.0", async () => {
+    const report = await getDeprecationReport();
     const entry = report.find(
       (r) =>
         r.formulaId === "LIMITE_CQT_ANEEL" && r.deprecatedVersion === "1.0.0",

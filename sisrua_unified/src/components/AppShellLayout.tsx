@@ -1,18 +1,34 @@
 import React from "react";
 import { AppHeader } from "./AppHeader";
-import { AppSettingsOverlay } from "./AppSettingsOverlay";
 import { AppStatusStack } from "./AppStatusStack";
 import { MainMapWorkspace } from "./MainMapWorkspace";
 import { SidebarWorkspace } from "./SidebarWorkspace";
-import { BimInspectorDrawer } from "./BimInspectorDrawer";
 import { useBackendHealth } from "../hooks/useBackendHealth";
 import {
   loadSidebarUiState,
   persistSidebarUiState,
 } from "../utils/preferencesPersistence";
+import { lazyWithRetry } from "../utils/lazyWithRetry";
 
 import type { AppLocale } from "../types";
 import type { HistoryEntry } from "../hooks/useUndoRedo";
+import type { AppSettingsOverlayProps } from "./AppSettingsOverlay";
+import type { BimInspectorDrawerProps } from "./BimInspectorDrawer";
+
+const AppSettingsOverlay = React.lazy(() =>
+  lazyWithRetry(() =>
+    import("./AppSettingsOverlay").then((module) => ({
+      default: module.AppSettingsOverlay,
+    })),
+  ),
+);
+const BimInspectorDrawer = React.lazy(() =>
+  lazyWithRetry(() =>
+    import("./BimInspectorDrawer").then((module) => ({
+      default: module.BimInspectorDrawer,
+    })),
+  ),
+);
 
 type Props = {
   locale: AppLocale;
@@ -28,13 +44,13 @@ type Props = {
   onOpenSettings: () => void;
   onOpenHelp: () => void;
   appStatusStackProps: React.ComponentProps<typeof AppStatusStack>;
-  appSettingsOverlayProps: React.ComponentProps<typeof AppSettingsOverlay>;
+  appSettingsOverlayProps: AppSettingsOverlayProps;
   sidebarWorkspaceProps: Omit<
     React.ComponentProps<typeof SidebarWorkspace>,
     "isCollapsed" | "onToggleCollapse"
   >;
   mainMapWorkspaceProps: React.ComponentProps<typeof MainMapWorkspace>;
-  bimInspectorProps?: React.ComponentProps<typeof BimInspectorDrawer>;
+  bimInspectorProps?: BimInspectorDrawerProps;
   hasAreaSelection: boolean;
   onStartSearch: () => void;
   onMapClickAction: () => void;
@@ -96,10 +112,18 @@ export function AppShellLayout({
         <span className="absolute top-1/4 left-1/3 h-96 w-96 rounded-full bg-cyan-500/10 blur-[120px] animate-pulse" />
       </div>
       <AppStatusStack {...appStatusStackProps} />
-      <AppSettingsOverlay {...appSettingsOverlayProps} />
+      {appSettingsOverlayProps.showSettings && (
+        <React.Suspense fallback={null}>
+          <AppSettingsOverlay {...appSettingsOverlayProps} />
+        </React.Suspense>
+      )}
       
       {/* BIM Deep Inspector Drawer */}
-      {bimInspectorProps && <BimInspectorDrawer {...bimInspectorProps} />}
+      {bimInspectorProps?.isOpen && (
+        <React.Suspense fallback={null}>
+          <BimInspectorDrawer {...bimInspectorProps} />
+        </React.Suspense>
+      )}
 
       <AppHeader
         locale={locale}

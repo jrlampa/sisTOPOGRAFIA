@@ -359,5 +359,40 @@ describe("PermissionHandler Middleware", () => {
         }),
       );
     });
+
+    it("should deny access when trusted tenant and requested tenant mismatch", async () => {
+      mockGetUserRole.mockResolvedValue({ role: "admin", tenantId: "tenant-a" });
+      mockRes.locals!.userId = "trusted-user";
+      mockRes.locals!.tenantId = "tenant-a";
+      mockReq.headers!["x-tenant-id"] = "tenant-b";
+
+      await requirePermission("read")(
+        mockReq as Request,
+        mockRes as Response,
+        nextFunction,
+      );
+
+      expect(nextFunction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining("Tenant mismatch"),
+        }),
+      );
+    });
+
+    it("should allow supabase role claim fallback when DB role is viewer", async () => {
+      mockGetUserRole.mockResolvedValue({ role: "viewer", tenantId: "tenant-a" });
+      mockRes.locals!.userId = "trusted-user";
+      mockRes.locals!.tenantId = "tenant-a";
+      mockRes.locals!.supabaseRoleClaim = "technician";
+
+      await requirePermission("write")(
+        mockReq as Request,
+        mockRes as Response,
+        nextFunction,
+      );
+
+      expect(nextFunction).toHaveBeenCalledWith();
+      expect(mockRes.locals!.userRole).toBe("technician");
+    });
   });
 });

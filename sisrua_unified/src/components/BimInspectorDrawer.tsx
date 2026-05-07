@@ -19,7 +19,7 @@ import type {
 import type { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 
-interface BimInspectorDrawerProps {
+export interface BimInspectorDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   pole: BtPoleNode | null;
@@ -45,6 +45,7 @@ export function BimInspectorDrawer({
 }: BimInspectorDrawerProps) {
   const [activeTab, setActiveTab] = useState<InspectorTab>("engineering");
   const containerRef = useFocusTrap(isOpen);
+  const poleTitleInputId = `bim-inspector-pole-title-${pole?.id ?? "unknown"}`;
 
   if (!pole) return null;
 
@@ -89,6 +90,9 @@ export function BimInspectorDrawer({
             </div>
             <button
               onClick={onClose}
+              type="button"
+              title="Fechar inspeção"
+              aria-label="Fechar inspeção"
               className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/5"
             >
               <X size={20} />
@@ -121,10 +125,14 @@ export function BimInspectorDrawer({
           <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
             {/* Asset Title / Rename */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <label
+                htmlFor={poleTitleInputId}
+                className="text-[10px] font-black uppercase tracking-widest text-slate-400"
+              >
                 Título do Ativo
               </label>
               <input
+                id={poleTitleInputId}
                 type="text"
                 value={pole.title}
                 onChange={(e) => onRenamePole?.(pole.id, e.target.value)}
