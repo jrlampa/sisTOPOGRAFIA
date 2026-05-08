@@ -11,7 +11,7 @@
  */
 export function sanitizeFilename(filename: string): string {
   if (!filename || typeof filename !== "string") {
-    throw new Error("Filename must be a non-empty string");
+    throw new Error("O nome do arquivo deve ser uma string não vazia");
   }
 
   // Remove any path components (prevent ../, \\, etc)
@@ -29,7 +29,7 @@ export function sanitizeFilename(filename: string): string {
 
   // Ensure we have a valid filename
   if (!safe || safe === ".") {
-    throw new Error("Invalid filename after sanitization");
+    throw new Error("Nome de arquivo inválido após sanitização");
   }
 
   return safe;
@@ -48,11 +48,11 @@ export function downloadBlob(
   filename: string,
 ): void {
   if (!content) {
-    throw new Error("Content cannot be empty");
+    throw new Error("O conteúdo não pode estar vazio");
   }
 
   if (!mimeType || typeof mimeType !== "string") {
-    throw new Error("Invalid MIME type");
+    throw new Error("Tipo MIME inválido");
   }
 
   // Validate and sanitize filename

@@ -13,7 +13,7 @@ const readFileAsText = async (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => resolve((e.target?.result as string) ?? '');
-        reader.onerror = () => reject(new Error('Failed to read file as text.'));
+        reader.onerror = () => reject(new Error('Falha ao ler o arquivo como texto.'));
         reader.readAsText(file);
     });
 
@@ -21,7 +21,7 @@ const readFileAsArrayBuffer = async (file: File): Promise<ArrayBuffer> =>
     new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => resolve((e.target?.result as ArrayBuffer) ?? new ArrayBuffer(0));
-        reader.onerror = () => reject(new Error('Failed to read file as binary.'));
+        reader.onerror = () => reject(new Error('Falha ao ler o arquivo como binário.'));
         reader.readAsArrayBuffer(file);
     });
 
@@ -48,12 +48,12 @@ const parseKmlText = (text: string): KmlParseResult => {
     const parserError = xmlDoc.getElementsByTagName('parsererror');
 
     if (parserError.length > 0) {
-        throw new Error('Invalid KML content.');
+        throw new Error('Conteúdo KML inválido.');
     }
 
     const coordinateTags = xmlDoc.getElementsByTagName('coordinates');
     if (coordinateTags.length === 0) {
-        throw new Error('No coordinates found in KML/KMZ.');
+        throw new Error('Nenhuma coordenada encontrada no KML/KMZ.');
     }
 
     // Determine geometry type: if any Polygon or LinearRing exists → area boundary.
@@ -68,7 +68,7 @@ const parseKmlText = (text: string): KmlParseResult => {
             const pts = parseCoordText(coordinateTags[i].textContent ?? '');
             allPoints.push(...pts);
         }
-        if (allPoints.length === 0) throw new Error('No valid coordinates found in KML/KMZ.');
+        if (allPoints.length === 0) throw new Error('Nenhuma coordenada válida encontrada no KML/KMZ.');
         return { type: 'polygon', points: allPoints };
     }
 
@@ -85,7 +85,7 @@ const parseKmlText = (text: string): KmlParseResult => {
             const nameEl = pm.getElementsByTagName('name')[0];
             markers.push({ point: pts[0], name: nameEl?.textContent?.trim() ?? undefined });
         }
-        if (markers.length === 0) throw new Error('No valid placemark coordinates found in KML/KMZ.');
+        if (markers.length === 0) throw new Error('Nenhuma coordenada de marcador válida encontrada no KML/KMZ.');
         return { type: 'markers', markers };
     }
 
@@ -95,7 +95,7 @@ const parseKmlText = (text: string): KmlParseResult => {
         const pts = parseCoordText(coordinateTags[i].textContent ?? '');
         allPoints.push(...pts);
     }
-    if (allPoints.length === 0) throw new Error('No valid coordinates found in KML/KMZ.');
+    if (allPoints.length === 0) throw new Error('Nenhuma coordenada válida encontrada no KML/KMZ.');
     if (allPoints.length >= 3) return { type: 'polygon', points: allPoints };
     return { type: 'markers', markers: allPoints.map(p => ({ point: p })) };
 };
@@ -110,7 +110,7 @@ const extractKmlFromKmz = async (file: File): Promise<string> => {
     const kmlEntry = preferredEntry ?? firstKmlEntry;
 
     if (!kmlEntry) {
-        throw new Error('KMZ without .kml file inside.');
+        throw new Error('Arquivo KMZ sem arquivo .kml interno.');
     }
 
     return kmlEntry.async('text');

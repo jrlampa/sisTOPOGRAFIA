@@ -13,7 +13,7 @@
  */
 export function sanitizeString(input: string, maxLength = 255): string {
   if (typeof input !== "string") {
-    throw new Error("Input must be a string");
+    throw new Error("A entrada deve ser uma string");
   }
 
   const sanitized = input
@@ -65,7 +65,7 @@ export function validateCoordinates(lat: number, lng: number): boolean {
  */
 export function sanitizeFileName(filename: string): string {
   if (typeof filename !== "string") {
-    throw new Error("Filename must be a string");
+    throw new Error("O nome do arquivo deve ser uma string");
   }
 
   return filename
@@ -90,11 +90,11 @@ export function sanitizeNumber(
   const num = Number(input);
 
   if (Number.isNaN(num)) {
-    throw new Error("Input is not a valid number");
+    throw new Error("A entrada não é um número válido");
   }
 
   if (num < min || num > max) {
-    throw new Error(`Number must be between ${min} and ${max}`);
+    throw new Error(`O número deve estar entre ${min} e ${max}`);
   }
 
   return num;
@@ -108,7 +108,7 @@ export function sanitizeNumber(
  */
 export function escapeSqlString(input: string): string {
   if (typeof input !== "string") {
-    throw new Error("Input must be a string");
+    throw new Error("A entrada deve ser uma string");
   }
 
   return input.replace(/'/g, "''").replace(/\\/g, "\\\\");
@@ -160,7 +160,7 @@ export function validateAndParseJson<T>(jsonString: string): T {
     const parsed = JSON.parse(jsonString);
     return parsed as T;
   } catch {
-    throw new Error("Invalid JSON provided");
+    throw new Error("JSON fornecido é inválido");
   }
 }
 

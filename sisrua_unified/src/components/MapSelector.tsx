@@ -2,10 +2,6 @@ import React, { useState, useMemo, useId, useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
-  useMapEvents,
-  Polyline,
-  Marker,
-  Circle,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -30,115 +26,16 @@ import {
   AppTheme,
 } from "../types";
 import {
-  MapBtPole,
   MapBtTopology,
   MapMtTopology,
 } from "../types.map";
 import { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
 import { DgScenario } from "../hooks/useDgOptimization";
 import type { MtRouterState, MtLatLon } from "../hooks/useMtRouter";
-import { DefaultIcon } from "./MapSelectorStyles";
-import { applyOrthoSnap, applyRoadSnap } from "../utils/smartSnapping";
+
+import { MapInteractionLayer } from "./MapLayers/MapInteractionLayer";
 
 // Initialize Leaflet Default Icon fix
-L.Marker.prototype.options.icon = DefaultIcon;
-
-// ─── Subcomponentes Internos para UX Dinâmica ─────────────────────────────────
-
-/**
- * Camada de interação isolada para rastreio de mouse e ghost edges.
- * Evita re-renderizar todo o MapSelector durante o movimento do mouse.
- */
-const MapInteractionLayer = React.memo(({ 
-  pendingBtEdgeStartPoleId, 
-  polesById 
-}: { 
-  pendingBtEdgeStartPoleId: string | null | undefined;
-  polesById: Map<string, MapBtPole>;
-}) => {
-  const [mousePos, setMousePos] = useState<L.LatLng | null>(null);
-
-  useMapEvents({
-    mousemove(e) {
-      if (pendingBtEdgeStartPoleId) {
-        setMousePos(e.latlng);
-      } else if (mousePos) {
-        setMousePos(null);
-      }
-    },
-  });
-
-  if (!pendingBtEdgeStartPoleId || !mousePos) return null;
-
-  const startPole = polesById.get(pendingBtEdgeStartPoleId);
-  if (!startPole) return null;
-
-  return <GhostEdge startPole={startPole} mousePos={mousePos} />;
-});
-
-MapInteractionLayer.displayName = "MapInteractionLayer";
-
-/**
- * Renderiza um "Vão Fantasma" (Ghost Edge) ao iniciar uma nova conexão.
- */
-function GhostEdge({
-  startPole,
-  mousePos,
-}: {
-  startPole: MapBtPole;
-  mousePos: L.LatLng;
-}) {
-  const distance = L.latLng(startPole.lat, startPole.lng).distanceTo(mousePos);
-  const color =
-    distance > 40 ? "#ef4444" : distance > 30 ? "#f59e0b" : "#3b82f6";
-
-  return (
-    <>
-      <Polyline
-        positions={[
-          [startPole.lat, startPole.lng],
-          [mousePos.lat, mousePos.lng],
-        ]}
-        pathOptions={{ color, weight: 2, dashArray: "5 10", opacity: 0.6 }}
-      />
-      <Marker
-        position={[
-          (startPole.lat + mousePos.lat) / 2,
-          (startPole.lng + mousePos.lng) / 2,
-        ]}
-        icon={L.divIcon({
-          className: "ghost-edge-label",
-          html: `<div class="px-2 py-0.5 rounded-full bg-white/90 border border-slate-200 shadow-md text-[10px] font-black whitespace-nowrap" style="color: ${color}; transform: translateY(-10px);">${distance.toFixed(1)}m</div>`,
-          iconSize: [0, 0],
-        })}
-        interactive={false}
-      />
-      <Circle
-        center={[startPole.lat, startPole.lng]}
-        radius={30}
-        pathOptions={{
-          color: "#3b82f6",
-          weight: 1,
-          fillOpacity: 0.02,
-          interactive: false,
-        }}
-      />
-      <Circle
-        center={[startPole.lat, startPole.lng]}
-        radius={40}
-        pathOptions={{
-          color: "#f59e0b",
-          weight: 1,
-          fillOpacity: 0.01,
-          dashArray: "5 5",
-          interactive: false,
-        }}
-      />
-    </>
-  );
-}
-
-// ─── Componente Principal ─────────────────────────────────────────────────────
 
 interface MapSelectorProps {
   center: { lat: number; lng: number; label?: string };

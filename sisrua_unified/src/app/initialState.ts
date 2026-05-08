@@ -66,9 +66,9 @@ const DEFAULT_APP_STATE: GlobalState = {
       disablePopups: true,
     },
     projectMetadata: {
-      projectName: "PROJECT OSM-01",
-      companyName: "ENG CORP",
-      engineerName: "ENG. LEAD",
+      projectName: "PROJETO OSM-01",
+      companyName: "IM3 BRASIL",
+      engineerName: "ENG. RESPONSAVEL",
       date: new Date().toLocaleDateString(DEFAULT_LOCALE),
       scale: "N/A",
       revision: "R00",

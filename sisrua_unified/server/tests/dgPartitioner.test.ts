@@ -9,7 +9,8 @@
  *   - End-to-end: partitionNetwork
  */
 
-import { partitionNetwork, planMtRouter } from "../services/dg/dgPartitioner";
+import { partitionNetwork } from "../services/dg/dgPartitioner";
+import { planMtRouter } from "../services/dg/dgMtRouter";
 import { buildMst } from "../services/dg/dgMst";
 import { findBestCutEdge } from "../services/dg/dgCuts";
 import { applyEccentricityDrag } from "../services/dg/dgEccentricity";

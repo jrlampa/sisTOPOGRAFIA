@@ -98,8 +98,9 @@ describe('kmlParser', () => {
         const file = new File([invalidContent], 'bad.kml');
         (file as any).content = invalidContent;
 
-        // Note: DOMParser in JSDOM might not throw on all invalid XML but we can test if our helper throws 
+        // Note: DOMParser in JSDOM might not throw on all invalid XML but we can test if our helper throws
         // if no coordinates are found.
-        await expect(parseKml(file)).rejects.toThrow('No coordinates found');
-    });
-});
+        await expect(parseKml(file)).rejects.toThrow('Nenhuma coordenada encontrada no KML/KMZ.');
+        });
+        });
+

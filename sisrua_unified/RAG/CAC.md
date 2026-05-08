@@ -6,6 +6,7 @@
 - **MV_BT_HISTORY_DAILY_SUMMARY**: Dashboards BT (Refresh Hourly).
 - **MV_AUDIT_STATS**: Relatórios de conformidade (Refresh Hourly).
 - **MV_CONSTANTS_NAMESPACE_SUMMARY**: Status do catálogo (Refresh Hourly).
+- **MV_AUDIT_SIEM_EXPORT**: Exportação forense otimizada (Nova em 064 - Refresh Hourly).
 - **Mecanismo**: `REFRESH MATERIALIZED VIEW CONCURRENTLY` para evitar locks de leitura.
 
 ### Camada 2: Database Indices (Cache-Friendly)

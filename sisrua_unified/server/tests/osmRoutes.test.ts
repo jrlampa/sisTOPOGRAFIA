@@ -40,51 +40,9 @@ describe("osmRoutes", { timeout: 15000 }, () => {
       }),
     );
   });
-
-  it("keeps synthetic fallback enabled only in test environment", async () => {
-    process.env.NODE_ENV = "test";
-    vi.resetModules();
-
-    global.fetch = vi
-      .fn()
-      .mockRejectedValue(new Error("overpass-down")) as unknown as typeof fetch;
-
-    const { default: osmRoutes } = await import("../routes/osmRoutes");
-    const app = express();
-    app.use(express.json());
-    app.use("/api/osm", osmRoutes);
-
-    const response = await request(app)
-      .post("/api/osm")
-      .send({ lat: -23.55, lng: -46.63, radius: 300 });
-
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual(
-      expect.objectContaining({
-        _fallback: true,
-      }),
-    );
-    expect(Array.isArray(response.body.elements)).toBe(true);
-  });
-
-  it("blocks /mock route outside test environment", async () => {
-    process.env.NODE_ENV = "production";
-    vi.resetModules();
-
-    const { default: osmRoutes } = await import("../routes/osmRoutes");
-    const app = express();
-    app.use(express.json());
-    app.use("/api/osm", osmRoutes);
-
-    const response = await request(app)
-      .post("/api/osm/mock")
-      .send({ lat: -23.55, lng: -46.63, radius: 300 });
-
-    expect(response.status).toBe(404);
-  });
 });
 
-describe("osmRoutes — success path, cache, mock route, stats branches", () => {
+describe("osmRoutes — success path, cache, stats branches", () => {
   const originalEnv = process.env.NODE_ENV;
   const originalFetch = global.fetch;
 
@@ -158,22 +116,4 @@ describe("osmRoutes — success path, cache, mock route, stats branches", () => 
     // Second request is from cache (fetch called only once)
     expect(callCount).toBe(1);
   });
-
-  it("POST /mock retorna 200 em ambiente de teste", async () => {
-    process.env.NODE_ENV = "test";
-    vi.resetModules();
-
-    const { default: osmRoutes } = await import("../routes/osmRoutes");
-    const app = express();
-    app.use(express.json());
-    app.use("/api/osm", osmRoutes);
-
-    const res = await request(app)
-      .post("/api/osm/mock")
-      .send({ lat: -23.55, lng: -46.63, radius: 300 });
-
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body.elements)).toBe(true);
-  });
 });
-

@@ -1,4 +1,16 @@
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
+
+// Mock lazy components synchronously for unit tests
+vi.mock("../../src/components/BtTopologyPanel", () => ({
+  default: () => <div data-testid="bt-topology-panel">BtTopologyPanel Mock</div>
+}));
+vi.mock("../../src/components/DgOptimizationPanel", () => ({
+  DgOptimizationPanel: ({ locale: _locale }: any) => <div data-testid="dg-panel">dgPanel.title</div>
+}));
+vi.mock("../../src/components/MtRouterPanel", () => ({
+  default: () => <div data-testid="mt-router-panel">MtRouterPanel Mock</div>
+}));
+
 /**
  * SidebarBtEditorSection.test.tsx — Vitest: teste da barra lateral BT.
  * Verifica renderização de seções, painel DG e controles de topologia.
@@ -56,9 +68,9 @@ describe("SidebarBtEditorSection", () => {
     expect(screen.getByText(/rede nova/i)).toBeInTheDocument();
   });
 
-  it("deve renderizar o painel DG quando onRunDgOptimization é fornecido", () => {
+  it("deve renderizar o painel DG quando onRunDgOptimization é fornecido", async () => {
     render(<SidebarBtEditorSection {...DEFAULT_PROPS} onRunDgOptimization={vi.fn()} />);
-    expect(screen.getByText(/dgPanel.title/i)).toBeInTheDocument();
+    expect(await screen.findByText(/dgPanel.title/i)).toBeInTheDocument();
   });
 
   it("deve exibir os botões de controle de topologia", () => {

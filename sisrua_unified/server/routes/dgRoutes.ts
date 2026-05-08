@@ -25,7 +25,7 @@ import {
   getDgRunScenarios,
   getDgRunRecommendation,
 } from "../services/dgOptimizationService.js";
-import { planMtRouter } from "../services/dg/dgPartitioner.js";
+import { planMtRouter } from "../services/dg/dgMtRouter.js";
 import { computeLcpRoutes } from "../services/dg/lcpService.js";
 import { LCP_COST_PROFILES } from "../services/dg/lcpTypes.js";
 import { parseKmzToMtRouterInput } from "../services/dg/kmzPreprocessingService.js";
