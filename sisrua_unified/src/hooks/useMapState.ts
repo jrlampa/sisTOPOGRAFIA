@@ -90,7 +90,15 @@ export function useMapState({
     setAppState(sessionDraft, false);
     setSessionDraft(null);
     clearSessionDraft();
-    showToast("Sessão anterior restaurada.", "success");
+
+    const msg =
+      appState.settings.locale === "en-US"
+        ? "Previous session restored."
+        : appState.settings.locale === "es-ES"
+          ? "Sesión anterior restaurada."
+          : "Sessão anterior restaurada.";
+
+    showToast(msg, "success");
   };
 
   const handleDismissSession = () => {
