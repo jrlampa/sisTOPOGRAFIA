@@ -200,111 +200,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
     [btTopology.edges, selectedEdgeId],
   );
 
-  const updatePole = useCallback((poleId: string, updater: (pole: any) => any) => {
-    onTopologyChange({
-      ...btTopology,
-      poles: btTopology.poles.map((pole) =>
-        pole.id === poleId ? updater(pole) : pole,
-      ),
-    });
-  }, [btTopology, onTopologyChange]);
-
-  const updateTransformer = useCallback((id: string, updater: (t: any) => any) => {
-    onTopologyChange({
-      ...btTopology,
-      transformers: btTopology.transformers.map((t) =>
-        t.id === id ? updater(t) : t,
-      ),
-    });
-  }, [btTopology, onTopologyChange]);
-
-  const updateEdge = useCallback((id: string, updater: (e: any) => any) => {
-    onTopologyChange({
-      ...btTopology,
-      edges: btTopology.edges.map((e) => (e.id === id ? updater(e) : e)),
-    });
-  }, [btTopology, onTopologyChange]);
-
-  const updatePoleRamais = useCallback((
-    poleId: string,
-    ramais: BtTopology["poles"][number]["ramais"],
-  ) => {
-    updatePole(poleId, (pole) => ({ ...pole, ramais }));
-  }, [updatePole]);
-
-  const updatePoleSpec = useCallback((
-    poleId: string,
-    spec: BtTopology["poles"][number]["poleSpec"] | undefined,
-  ) => {
-    updatePole(poleId, (pole) => ({ ...pole, poleSpec: spec }));
-  }, [updatePole]);
-
-  const updatePoleConditionStatus = useCallback((
-    poleId: string,
-    conditionStatus: BtTopology["poles"][number]["conditionStatus"] | undefined,
-  ) => {
-    updatePole(poleId, (pole) => ({ ...pole, conditionStatus }));
-  }, [updatePole]);
-
-  const updatePoleBtStructures = useCallback((
-    poleId: string,
-    btStructures: BtTopology["poles"][number]["btStructures"] | undefined,
-  ) => {
-    updatePole(poleId, (pole) => ({ ...pole, btStructures }));
-  }, [updatePole]);
-
-  const updatePoleGeneralNotes = useCallback((
-    poleId: string,
-    generalNotes: string | undefined,
-  ) => {
-    updatePole(poleId, (pole) => ({ ...pole, generalNotes }));
-  }, [updatePole]);
-
-  const updateTransformerVerified = useCallback((id: string, verified: boolean) => {
-    updateTransformer(id, (transformer) => ({ ...transformer, verified }));
-  }, [updateTransformer]);
-
-  const updateTransformerReadings = useCallback((
-    id: string,
-    readings: BtTopology["transformers"][number]["readings"],
-  ) => {
-    updateTransformer(id, (transformer) => ({ ...transformer, readings }));
-  }, [updateTransformer]);
-
-  const updateTransformerProjectPower = useCallback((
-    id: string,
-    projectPowerKva: number,
-  ) => {
-    updateTransformer(id, (transformer) => ({
-      ...transformer,
-      projectPowerKva,
-    }));
-  }, [updateTransformer]);
-
-  const updateEdgeVerified = useCallback((id: string, verified: boolean) => {
-    updateEdge(id, (edge) => ({ ...edge, verified }));
-  }, [updateEdge]);
-
-  const updateEdgeConductors = useCallback((
-    id: string,
-    conductors: BtTopology["edges"][number]["conductors"],
-  ) => {
-    updateEdge(id, (edge) => ({ ...edge, conductors }));
-  }, [updateEdge]);
-
-  const updateEdgeMtConductors = useCallback((
-    id: string,
-    mtConductors: BtTopology["edges"][number]["conductors"],
-  ) => {
-    updateEdge(id, (edge) => ({ ...edge, mtConductors }));
-  }, [updateEdge]);
-
-  const updateEdgeReplacementFromConductors = useCallback((
-    id: string,
-    replacementFromConductors: BtTopology["edges"][number]["conductors"],
-  ) => {
-    updateEdge(id, (edge) => ({ ...edge, replacementFromConductors }));
-  }, [updateEdge]);
+  const updaters = useBtTopologyUpdaters({ btTopology, onTopologyChange });
 
   const contextValue = useMemo(
     () => ({
@@ -340,21 +236,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
       onSetSelectedEdgeId,
       onSelectedEdgeChange: selectEdge,
       onSelectedTransformerChange: selectTransformer,
-      updatePole,
-      updateTransformer,
-      updateEdge,
-      updatePoleRamais,
-      updatePoleSpec,
-      updatePoleConditionStatus,
-      updatePoleBtStructures,
-      updatePoleGeneralNotes,
-      updateTransformerVerified,
-      updateTransformerReadings,
-      updateTransformerProjectPower,
-      updateEdgeVerified,
-      updateEdgeConductors,
-      updateEdgeMtConductors,
-      updateEdgeReplacementFromConductors,
+      ...updaters,
     }),
     [
       accumulatedByPole,
@@ -389,21 +271,7 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
       summary,
       transformerDebugById,
       transformersDerived,
-      updateEdge,
-      updateEdgeConductors,
-      updateEdgeMtConductors,
-      updateEdgeReplacementFromConductors,
-      updateEdgeVerified,
-      updatePole,
-      updatePoleBtStructures,
-      updatePoleConditionStatus,
-      updatePoleGeneralNotes,
-      updatePoleRamais,
-      updatePoleSpec,
-      updateTransformer,
-      updateTransformerProjectPower,
-      updateTransformerReadings,
-      updateTransformerVerified,
+      updaters,
     ],
   );
 
@@ -459,7 +327,8 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
                     type="number"
                     min={0}
                     step={0.1}
-                    defaultValue={40}
+                    value={clandestinoAreaM2}
+                    onChange={(e) => onClandestinoAreaChange(Math.max(0, Number(e.target.value)))}
                     className="w-full rounded-xl border-2 border-violet-100 bg-violet-50/30 p-2.5 text-xs font-black text-violet-900 focus:border-violet-200 focus:ring-4 focus:ring-violet-50 dark:border-violet-900/20 dark:bg-violet-950/10 dark:text-violet-200 outline-none transition-all"
                     title={t.clandestinoAvgAreaLabel}
                   />
