@@ -40,6 +40,21 @@ export const trackEvent = (
 };
 
 /**
+ * Specifically track performance metrics for critical operations.
+ */
+export const trackPerformance = (
+  operation: string,
+  durationMs: number,
+  metadata?: Record<string, any>,
+) => {
+  trackEvent("performance_metric", {
+    operation,
+    duration_ms: Math.round(durationMs),
+    ...metadata,
+  });
+};
+
+/**
  * Specifically track DXF generation success/failure.
  */
 export const trackDxfGeneration = (

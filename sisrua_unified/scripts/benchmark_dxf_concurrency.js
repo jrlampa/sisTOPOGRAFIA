@@ -12,15 +12,15 @@ async function runDxfConcurrencyTest() {
   console.log(`🚀 Iniciando Teste de Concorrência DXF (${CONCURRENT_JOBS} jobs)...`);
 
   const payload = {
-    lat: -22.9068,
-    lon: -43.1729,
+    lat: -22.9519,
+    lon: -43.2105,
     radius: 100,
     mode: 'circle',
     polygon: [
-      [-43.1729, -22.9068],
-      [-43.1730, -22.9069],
-      [-43.1728, -22.9070],
-      [-43.1729, -22.9068] // Fechar o polígono
+      [-43.2105, -22.9519],
+      [-43.2106, -22.9520],
+      [-43.2104, -22.9521],
+      [-43.2105, -22.9519]
     ],
     client_name: 'BENCHMARK_USER'
   };
@@ -53,7 +53,7 @@ async function runDxfConcurrencyTest() {
       
       if (data.status === 'success') {
         console.log(`  Job #${i+1} Cache Hit!`);
-        return 'completed';
+        return { status: 'completed' };
       }
 
       const taskId = data.jobId;
@@ -61,14 +61,20 @@ async function runDxfConcurrencyTest() {
       
       // Polling para conclusão
       let status = 'queued';
+      let error = null;
       while (status === 'queued' || status === 'processing') {
         await new Promise(r => setTimeout(r, 2000));
-        const statusRes = await fetch(`${BASE_URL}/api/jobs/${taskId}`);
+        const statusRes = await fetch(`${BASE_URL}/api/jobs/${taskId}`, {
+          headers: { 
+            'x-user-id': ADMIN_USER_ID
+          }
+        });
         const statusData = await statusRes.json();
         status = statusData.status;
-        console.log(`  Job #${i+1} status: ${status}`);
+        error = statusData.error;
+        console.log(`  Job #${i+1} status: ${status}${error ? ' - Erro: ' + error : ''}`);
       }
-      return status;
+      return { status, error };
     });
 
     const results = await Promise.all(promises);
@@ -76,8 +82,14 @@ async function runDxfConcurrencyTest() {
     
     console.log('\nResultados:');
     console.log(`- Tempo Total: ${duration.toFixed(2)}s`);
-    console.log(`- Jobs Concluídos: ${results.filter(s => s === 'completed').length}`);
-    console.log(`- Jobs Falhos: ${results.filter(s => s === 'failed').length}`);
+    console.log(`- Jobs Concluídos: ${results.filter(r => r.status === 'completed').length}`);
+    console.log(`- Jobs Falhos: ${results.filter(r => r.status === 'failed').length}`);
+    
+    results.forEach((r, i) => {
+      if (r.status === 'failed') {
+        console.log(`  Erro Job #${i+1}: ${r.error}`);
+      }
+    });
     
   } catch (err) {
     console.error('❌ Erro no benchmark:', err.message);

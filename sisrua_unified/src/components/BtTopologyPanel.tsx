@@ -20,6 +20,7 @@ import { useBtTopologyPanelBulkImport } from "./BtTopologyPanel/useBtTopologyPan
 import type { CriticalConfirmationConfig } from "./BtModals";
 import BtUnifiedDashboard from "./BtTopologyPanel/BtUnifiedDashboard";
 import { BtTopologyProvider } from "./BtTopologyPanel/BtTopologyContext";
+import { useBtTopologyUpdaters } from "./BtTopologyPanel/useBtTopologyUpdaters";
 
 interface BtTopologyPanelProps {
   locale: AppLocale;
@@ -175,15 +176,21 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
     onSetSelectedEdgeId,
   ]);
 
-  const selectTransformer = useCallback((id: string) => {
-    onSetSelectedTransformerId?.(id);
-    onSelectedTransformerChange?.(id);
-  }, [onSelectedTransformerChange, onSetSelectedTransformerId]);
+  const selectTransformer = useCallback(
+    (id: string) => {
+      onSetSelectedTransformerId?.(id);
+      onSelectedTransformerChange?.(id);
+    },
+    [onSelectedTransformerChange, onSetSelectedTransformerId],
+  );
 
-  const selectEdge = useCallback((id: string) => {
-    onSetSelectedEdgeId?.(id);
-    onSelectedEdgeChange?.(id);
-  }, [onSelectedEdgeChange, onSetSelectedEdgeId]);
+  const selectEdge = useCallback(
+    (id: string) => {
+      onSetSelectedEdgeId?.(id);
+      onSelectedEdgeChange?.(id);
+    },
+    [onSelectedEdgeChange, onSetSelectedEdgeId],
+  );
 
   const selectedPole = useMemo(
     () => btTopology.poles.find((p) => p.id === selectedPoleId) ?? null,
@@ -328,7 +335,11 @@ const BtTopologyPanel: React.FC<BtTopologyPanelProps> = (props) => {
                     min={0}
                     step={0.1}
                     value={clandestinoAreaM2}
-                    onChange={(e) => onClandestinoAreaChange(Math.max(0, Number(e.target.value)))}
+                    onChange={(e) =>
+                      onClandestinoAreaChange(
+                        Math.max(0, Number(e.target.value)),
+                      )
+                    }
                     className="w-full rounded-xl border-2 border-violet-100 bg-violet-50/30 p-2.5 text-xs font-black text-violet-900 focus:border-violet-200 focus:ring-4 focus:ring-violet-50 dark:border-violet-900/20 dark:bg-violet-950/10 dark:text-violet-200 outline-none transition-all"
                     title={t.clandestinoAvgAreaLabel}
                   />

@@ -10,6 +10,25 @@ vi.mock("../../src/components/DgOptimizationPanel", () => ({
 vi.mock("../../src/components/MtRouterPanel", () => ({
   default: () => <div data-testid="mt-router-panel">MtRouterPanel Mock</div>
 }));
+vi.mock("../../src/contexts/FeatureFlagContext", async () => {
+  const { DEFAULT_FEATURE_FLAGS } = await vi.importActual<
+    typeof import("../../src/types/featureFlags")
+  >("../../src/types/featureFlags");
+
+  return {
+    useFeatureFlags: () => ({
+      flags: DEFAULT_FEATURE_FLAGS,
+      customPresets: [],
+      featureHealth: {},
+      toggleFlag: vi.fn(),
+      applyPreset: vi.fn(),
+      saveCustomPreset: vi.fn(),
+      deleteCustomPreset: vi.fn(),
+      resetToDefaults: vi.fn(),
+      isReady: true,
+    }),
+  };
+});
 
 /**
  * SidebarBtEditorSection.test.tsx — Vitest: teste da barra lateral BT.

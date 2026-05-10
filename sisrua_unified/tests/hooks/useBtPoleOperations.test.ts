@@ -30,7 +30,7 @@ describe("useBtPoleOperations", () => {
 
   it("deve inserir um poste em uma localização", () => {
     const { result } = render();
-    const location = { lat: -23.5, lng: -46.5 };
+    const location = { lat: appState.center.lat, lng: appState.center.lng };
 
     act(() => {
       result.current.insertBtPoleAtLocation(location);

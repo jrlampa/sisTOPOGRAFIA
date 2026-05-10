@@ -14,6 +14,10 @@ export const BRAZIL_STANDARD: EngineeringStandard = {
     DEFAULT_AMBIENT_TEMP_C: 30,
     BT_TRI_PHASE_ETA: 3,
     FREQUENCY_HZ: 60,
+    NBR9050_MIN_SIDEWALK_FREE_WIDTH_M: 1.2,
+    NBR9050_MIN_CALCADA_WIDTH_M: 1.5,
+    POLE_STANDARD_DIAMETER_M: 0.3,
+    ENVIRONMENTAL_BUFFER_RADIUS_M: 5.0,
   },
   conductors: {
     lowTempLimits: [

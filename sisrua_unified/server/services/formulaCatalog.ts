@@ -1,4 +1,4 @@
-import { FormulaCategory, VersionStatus, FormulaVersion, FormulaDefinition, computeDefinitionHash } from "./formulaVersioningService.js";
+import { FormulaDefinition, computeDefinitionHash } from "./formulaVersioningService.js";
 
 export const INITIAL_CATALOG: FormulaDefinition[] = [
   {

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useId, useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
+  Polyline,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -29,13 +30,14 @@ import {
   MapBtTopology,
   MapMtTopology,
 } from "../types.map";
+import { FeatureFlags } from "../types/featureFlags";
 import { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
 import { DgScenario } from "../hooks/useDgOptimization";
 import type { MtRouterState, MtLatLon } from "../hooks/useMtRouter";
+import { MapJurisdictionLayer } from "./MapLayers/MapJurisdictionLayer";
 
 import { MapInteractionLayer } from "./MapLayers/MapInteractionLayer";
-
-// Initialize Leaflet Default Icon fix
+import { applyRoadSnap, applyOrthoSnap } from "../utils/geometriaUtils";
 
 interface MapSelectorProps {
   center: { lat: number; lng: number; label?: string };
@@ -147,9 +149,17 @@ interface MapSelectorProps {
   onMtRouterMapClick?: (pos: MtLatLon) => void;
   onBoxSelect?: (bounds: L.LatLngBounds) => void;
   osmData?: OsmElement[] | null;
+  complianceResults?: {
+    urban?: any[];
+    environmental?: any[];
+    solar?: { results: any[] };
+  };
   locale: AppLocale;
   layerConfig?: LayerConfig;
   theme?: AppTheme;
+  flags?: FeatureFlags;
+  neighbors?: Array<{ id: string; name: string; polygon: Array<[number, number]> }>;
+  hasCollision?: boolean;
 }
 
 const MapSelector: React.FC<MapSelectorProps> = ({
@@ -216,9 +226,13 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onMtRouterMapClick,
   onBoxSelect,
   osmData,
+  complianceResults,
   locale,
   layerConfig,
   theme,
+  flags,
+  neighbors = [],
+  hasCollision = false,
 }) => {
   const [draggedPole, setDraggedPole] = useState<{
     id: string;
@@ -351,14 +365,12 @@ const MapSelector: React.FC<MapSelectorProps> = ({
       return;
     }
 
-    // 1. Tenta Snap para o eixo da rua (OSM)
     let snapResult = applyRoadSnap(lat, lng, osmData || []);
 
-    // 2. Se não deu snap na rua, tenta snap ortogonal nos vizinhos
     if (!snapResult.type) {
       const pole = polesById.get(id);
       if (pole) {
-        const neighbors = topology.edges
+        const neighbors_ortho = topology.edges
           .filter((e) => e.fromPoleId === id || e.toPoleId === id)
           .map((e) => {
             const neighborId = e.fromPoleId === id ? e.toPoleId : e.fromPoleId;
@@ -367,7 +379,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           })
           .filter((p): p is NonNullable<typeof p> => !!p);
 
-        snapResult = applyOrthoSnap(lat, lng, neighbors);
+        snapResult = applyOrthoSnap(lat, lng, neighbors_ortho);
       }
     }
 
@@ -390,7 +402,6 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           cursor: crosshair !important;
         }
 
-        /* Sunlight Mode: High Contrast for field use */
         .map-theme-sunlight .leaflet-tile-pane {
           filter: contrast(1.5) brightness(1.2) grayscale(100%) !important;
           opacity: 1 !important;
@@ -404,22 +415,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           filter: none !important;
           opacity: 1 !important;
         }
-        .map-theme-sunlight.map-bt-editing .leaflet-tile-pane {
-          filter: contrast(2) brightness(1.5) grayscale(100%) !important;
-          opacity: 0.4 !important;
-        }
-        .map-theme-sunlight .bim-pop-in-tooltip > div {
-          background: #ffff00 !important;
-          color: #000000 !important;
-          border: 2px solid #000000 !important;
-          backdrop-filter: none !important;
-        }
-        .map-theme-sunlight .bim-pop-in-tooltip span {
-          color: #000000 !important;
-        }
 
-        /* Auto-dimming: quando em modo edição BT, camadas base perdem saturação
-           para que a rede BT (postes/vãos) seja o foco visual dominante. */
         .map-bt-editing .leaflet-tile-pane {
           filter: saturate(0.25) brightness(1.1) contrast(0.9);
           transition: filter 0.6s cubic-bezier(0.4, 0, 0.2, 1);
@@ -428,58 +424,16 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           opacity: 0.2;
           transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        /* Indicador visual de modo ativo */
-        .map-bt-editing::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: 1rem;
-          border: 3px solid rgba(56, 189, 248, 0.4);
-          pointer-events: none;
-          z-index: 500;
-          box-shadow: 
-            inset 0 0 30px rgba(56, 189, 248, 0.1),
-            0 0 15px rgba(56, 189, 248, 0.2);
-          transition: all 0.6s ease;
-          animation: map-active-glow 3s infinite alternate;
-        }
 
-        @keyframes map-active-glow {
-          from { border-color: rgba(56, 189, 248, 0.3); box-shadow: inset 0 0 20px rgba(56, 189, 248, 0.05); }
-          to { border-color: rgba(56, 189, 248, 0.6); box-shadow: inset 0 0 40px rgba(56, 189, 248, 0.2); }
-        }
-
-        /* Ghost Mode: Esmaece camadas BT/MT para dar destaque visual ao DG (Frente 3) */
         .map-dg-ghost-mode .leaflet-tile-pane {
           filter: grayscale(80%) opacity(0.5) contrast(0.8);
           transition: filter 0.6s ease;
         }
-        .map-dg-ghost-mode .leaflet-overlay-pane svg path:not(.dg-overlay-path) {
-          opacity: 0.15;
-          filter: grayscale(100%);
-          transition: all 0.6s ease;
-        }
-        .map-dg-ghost-mode .leaflet-marker-pane .leaflet-marker-icon:not(.dg-marker) {
-          opacity: 0.3;
-          filter: grayscale(100%);
-          transition: all 0.6s ease;
-        }
 
-        /* X-Ray Mode: Focus Mode 2.0 */
         .map-xray-mode .leaflet-tile-pane {
           filter: grayscale(100%) brightness(0.2) contrast(1.2) blur(1px);
           opacity: 0.1;
           transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .map-xray-mode .leaflet-overlay-pane svg path:not([data-violation="true"]) {
-          opacity: 0.05;
-          filter: grayscale(100%);
-          transition: all 0.5s ease;
-        }
-        .map-xray-mode .leaflet-marker-pane .leaflet-marker-icon:not([data-violation="true"]) {
-          opacity: 0.1;
-          filter: grayscale(100%) blur(2px);
-          transition: all 0.5s ease;
         }
         .map-xray-mode [data-violation="true"] {
           filter: 
@@ -495,29 +449,9 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           to { filter: drop-shadow(0 0 25px #ef4444) drop-shadow(0 0 40px #ef4444) brightness(1.8); }
         }
 
-        /* Snapping Guides */
         .snapping-guide-line {
           filter: drop-shadow(0 0 3px rgba(34, 211, 238, 0.8));
           stroke-dasharray: 4, 8;
-          animation: guide-pulse 2s infinite ease-in-out;
-        }
-        @keyframes guide-pulse {
-          0%, 100% { opacity: 0.4; }
-          50% { opacity: 1; }
-        }
-
-        .leaflet-container {
-          background: transparent !important;
-          transition: filter 0.5s ease;
-        }
-        
-        /* High-fidelity 2.5D Elevation shadow simulation */
-        .leaflet-marker-pane .bt-pole-icon {
-          filter: drop-shadow(2px 4px 3px rgba(0,0,0,0.3));
-          transition: filter 0.3s ease;
-        }
-        .leaflet-marker-pane .bt-pole-icon:hover {
-          filter: drop-shadow(3px 6px 5px rgba(0,0,0,0.4)) brightness(1.1);
         }
       `}</style>
       <MapContainer
@@ -533,7 +467,6 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           polesById={polesById}
         />
 
-        {/* Snapping Guides Visual Confirmation */}
         {draggedPole?.snapId && polesById.has(draggedPole.snapId) && (
           <Polyline
             positions={[
@@ -558,6 +491,14 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           referrerPolicy="strict-origin-when-cross-origin"
           maxZoom={24}
           maxNativeZoom={tileConfig.maxNativeZoom}
+        />
+
+        <MapJurisdictionLayer 
+          selectionMode={selectionMode}
+          polygonPoints={polygonPoints}
+          center={center}
+          radius={radius}
+          neighbors={neighbors}
         />
 
         <SelectionManager
@@ -600,6 +541,10 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           locale={locale}
           layerConfig={layerConfig}
           draggedPole={draggedPole}
+          flags={flags}
+          isGhostMode={flags?.enableGhostMode}
+          hasCollision={hasCollision}
+          jurisdiction={{ polygon: polygonPoints, radius, center: [center.lat, center.lng] }}
         />
 
         <MapSelectorPolesLayer
@@ -625,8 +570,12 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtQuickRemovePoleRamal={onBtQuickRemovePoleRamal}
           onBtSelectPole={onBtSelectPole}
           draggedPole={draggedPole}
+          complianceResults={complianceResults}
           locale={locale}
           layerConfig={layerConfig}
+          flags={flags}
+          isGhostMode={flags?.enableGhostMode}
+          hasCollision={hasCollision}
         />
 
         <MapSelectorTransformersLayer
@@ -671,7 +620,6 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           </>
         )}
 
-        {/* Sobreposição DG – exibida quando há cenário ativo */}
         {dgScenario && (
           <MapSelectorDgOverlay
             paneName={dgOverlayPaneName}
@@ -680,7 +628,6 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           />
         )}
 
-        {/* Sobreposição MT Router – seleção interativa e resultado de rota */}
         {mtRouterState && (
           <MapMtRouterOverlay
             state={mtRouterState}

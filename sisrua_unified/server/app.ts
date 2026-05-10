@@ -101,6 +101,7 @@ import changeManagementRoutes from "./routes/changeManagementRoutes.js";
 import enterpriseReadinessRoutes from "./routes/enterpriseReadinessRoutes.js";
 import supplyChainRoutes from "./routes/supplyChainRoutes.js";
 import predictiveObservabilityRoutes from "./routes/predictiveObservabilityRoutes.js";
+import predictiveMaintenanceRoutes from "./routes/predictiveMaintenanceRoutes.js";
 import encryptionAtRestRoutes from "./routes/encryptionAtRestRoutes.js";
 import auditColdStorageRoutes from "./routes/auditColdStorageRoutes.js";
 import environmentPromotionRoutes from "./routes/environmentPromotionRoutes.js";
@@ -527,6 +528,7 @@ app.use("/api/knowledge-base", knowledgeBaseRoutes);
 app.use("/api/enterprise-readiness", enterpriseReadinessRoutes);
 app.use("/api/supply-chain", supplyChainRoutes);
 app.use("/api/predictive-observability", predictiveObservabilityRoutes);
+app.use("/api/maintenance/predictive", predictiveMaintenanceRoutes);
 app.use("/api/encryption-at-rest", requireAdminToken, encryptionAtRestRoutes);
 app.use("/api/audit-cold-storage", requireAdminToken, auditColdStorageRoutes);
 app.use(

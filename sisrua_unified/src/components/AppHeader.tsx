@@ -8,8 +8,12 @@ import {
   Save,
   Settings,
   X,
+  Box,
+  ChevronLeft,
+  Camera,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import HistoryControls from "./HistoryControls";
 import { AutoSaveIndicator } from "./AutoSaveIndicator";
 import type { HealthStatus } from "../hooks/useBackendHealth";
@@ -32,6 +36,8 @@ interface AppHeaderProps {
   onOpenProject: (file: File) => void;
   onOpenSettings: () => void;
   onOpenHelp: () => void;
+  onFeatureSettings?: () => void;
+  onOpenSnapshots?: () => void;
   isSidebarCollapsed: boolean;
   onToggleSidebarCollapsed: () => void;
   isDark: boolean;
@@ -39,6 +45,7 @@ interface AppHeaderProps {
   backendResponseTimeMs: number | null;
   autoSaveStatus?: "idle" | "saving" | "error";
   lastAutoSaved?: string;
+  projectName?: string;
 }
 
 export function AppHeader({
@@ -53,6 +60,8 @@ export function AppHeader({
   onOpenProject,
   onOpenSettings,
   onOpenHelp,
+  onFeatureSettings,
+  onOpenSnapshots: _onOpenSnapshots,
   isDark,
   backendStatus,
   backendResponseTimeMs,
@@ -60,6 +69,7 @@ export function AppHeader({
   onToggleSidebarCollapsed,
   autoSaveStatus = "idle",
   lastAutoSaved,
+  projectName,
 }: AppHeaderProps) {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
@@ -211,6 +221,16 @@ export function AppHeader({
 
       {/* ─── Left section: Logo + branding ───────────────────────── */}
       <div className="flex items-center gap-3">
+        <Link
+          to="/portal/projects"
+          className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-all group mr-1"
+          title="Voltar ao Portal"
+        >
+          <ChevronLeft
+            size={20}
+            className="group-hover:-translate-x-0.5 transition-transform"
+          />
+        </Link>
         <motion.div
           whileHover={{ scale: 1.05, rotate: -2 }}
           whileTap={{ scale: 0.95 }}
@@ -247,6 +267,16 @@ export function AppHeader({
 
           {/* Divider */}
           <div className="hidden h-5 w-px bg-slate-200 dark:bg-white/10 sm:block" />
+
+          {/* Project Name Badge */}
+          {projectName && (
+            <div className="hidden items-center gap-2 px-3 py-1 rounded-lg bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 md:flex">
+               <Camera size={12} className="text-indigo-500" />
+               <span className="text-[10px] font-black uppercase tracking-tight text-slate-600 dark:text-slate-300 truncate max-w-[120px]">
+                  {projectName}
+               </span>
+            </div>
+          )}
 
           {/* Partner logos */}
           <div className="hidden items-center gap-2 sm:flex">
@@ -423,16 +453,24 @@ export function AppHeader({
           </button>
 
           <button
-            onClick={() => {
-              trackHeaderAction("open_settings");
-              onOpenSettings();
-            }}
+            onClick={onOpenSettings}
             aria-label={t.openSettings}
             className={`group relative ${actionButtonClass} h-9 w-9 border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/10`}
           >
             <Settings size={18} strokeWidth={2} />
             <span className="absolute top-full mt-2 w-max rounded-md bg-slate-800 px-2 py-1 text-xs font-bold text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
               {t.openSettings}
+            </span>
+          </button>
+
+          <button
+            onClick={onFeatureSettings}
+            aria-label="Modularidade"
+            className={`group relative ${actionButtonClass} h-9 w-9 border-transparent text-fuchsia-500 hover:text-fuchsia-700 hover:bg-fuchsia-500/10 dark:text-fuchsia-400 dark:hover:text-fuchsia-200`}
+          >
+            <Box size={18} strokeWidth={2.5} />
+            <span className="absolute top-full mt-2 w-max rounded-md bg-slate-800 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-white opacity-0 transition-opacity group-focus-visible:opacity-100 group-hover:opacity-100 pointer-events-none z-50">
+              Modulariedade SaaS
             </span>
           </button>
 

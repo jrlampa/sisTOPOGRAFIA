@@ -103,8 +103,10 @@ export const BtUnifiedDashboard: React.FC = () => {
       {/* Tab Navigation */}
       <div className="flex p-1 bg-slate-100/80 backdrop-blur-md rounded-xl border border-slate-200 mb-4 dark:bg-zinc-900/50 dark:border-white/5">
         {tabs.map((tab) => (
-          <button
+          <motion.button
             key={tab.id}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
             onClick={() => setActiveTab(tab.id as TabType)}
             className={`relative flex flex-1 items-center justify-center gap-2 py-2 text-xs font-black uppercase tracking-wider transition-all duration-300 rounded-lg ${
               activeTab === tab.id 
@@ -121,7 +123,7 @@ export const BtUnifiedDashboard: React.FC = () => {
             )}
             <span className="relative z-10">{tab.icon}</span>
             <span className="relative z-10">{tab.label}</span>
-          </button>
+          </motion.button>
         ))}
       </div>
 

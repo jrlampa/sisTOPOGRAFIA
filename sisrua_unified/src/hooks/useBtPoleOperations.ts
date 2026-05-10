@@ -31,6 +31,7 @@ import { useBtPoleClandestinoHandlers } from "./useBtPoleClandestinoHandlers";
 import { generateEntityId, ID_PREFIX } from "../utils/idGenerator";
 import { API_BASE_URL } from "../config/api";
 import { applyOrthoSnap } from "../utils/smartSnapping";
+import { SpatialJurisdictionService } from "../services/spatialJurisdictionService";
 
 export type { PendingNormalClassificationPole };
 
@@ -130,6 +131,18 @@ export function useBtPoleOperations({
   };
 
   const insertBtPoleAtLocation = (location: GeoLocation) => {
+    // Verificação de Jurisdição Espacial (Item C)
+    const inJurisdiction = SpatialJurisdictionService.isPointInJurisdiction(location.lat, location.lng, {
+      polygon: appState.polygon,
+      radius: appState.radius,
+      center: appState.center ? [appState.center.lat, appState.center.lng] : undefined
+    });
+
+    if (!inJurisdiction) {
+      showToast("Operação bloqueada: Local fora da jurisdição deste projeto.", "error");
+      return;
+    }
+
     const nextId = nextSequentialId(
       btTopology.poles.map((pole) => pole.id),
       "P",
@@ -266,6 +279,19 @@ export function useBtPoleOperations({
       )
       .filter((p): p is NonNullable<typeof p> => !!p);
     const { lat, lng } = applyOrthoSnap(rawLat, rawLng, neighbors);
+
+    // Verificação de Jurisdição Espacial (Item C)
+    const inJurisdiction = SpatialJurisdictionService.isPointInJurisdiction(lat, lng, {
+      polygon: appState.polygon,
+      radius: appState.radius,
+      center: appState.center ? [appState.center.lat, appState.center.lng] : undefined
+    });
+
+    if (!inJurisdiction) {
+       showToast("Movimentação bloqueada: Poste fora do limite da jurisdição.", "warning");
+       return;
+    }
+
     setAppState(
       (prev) => ({
         ...prev,

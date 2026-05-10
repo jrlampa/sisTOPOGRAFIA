@@ -5,17 +5,18 @@ import { useAppTopologySources } from "./useAppTopologySources";
 import { useMapState } from "./useMapState";
 import { useAutoSave } from "./useAutoSave";
 import { useElevationProfile } from "./useElevationProfile";
+import { useCompliance } from "./useCompliance";
 
 /** 
  * Centraliza a orquestração de hooks do App para reduzir volumetria do componente principal.
  * Agrupa estados e handlers relacionados por domínio.
  */
-export function useAppHooks() {
+export function useAppHooks(projectId?: string) {
   const orchestrator = useAppOrchestrator();
   const { appState, setAppState } = orchestrator;
 
   const osmEngine = useOsmEngine();
-  const autoSave = useAutoSave(appState);
+  const autoSave = useAutoSave(appState, projectId);
   const elevationProfile = useElevationProfile();
   
   const mapState = useMapState({
@@ -32,6 +33,7 @@ export function useAppHooks() {
   });
 
   const derivedState = useBtDerivedState({ appState, setAppState });
+  const compliance = useCompliance();
 
   return {
     orchestrator,
@@ -40,6 +42,7 @@ export function useAppHooks() {
     elevationProfile,
     mapState,
     topologySources,
-    derivedState
+    derivedState,
+    compliance
   };
 }

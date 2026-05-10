@@ -215,10 +215,12 @@ export default defineConfig(({ mode }) => {
               return "feature-bt-tabs";
             }
             if (
-              isSrcPath("components/BtTopologyPanel") ||
-              id.includes("SidebarBtEditorSection")
+              isSrcPath("components/BtTopologyPanel")
             ) {
-              return "feature-bt-core";
+              return "feature-bt-panel";
+            }
+            if (id.includes("SidebarBtEditorSection")) {
+              return "feature-bt-editor";
             }
             if (
               isSrcPath("components/MapLayers") ||
@@ -240,6 +242,12 @@ export default defineConfig(({ mode }) => {
             }
             if (id.includes("AdminPage") || isSrcPath("components/admin")) {
               return "feature-admin";
+            }
+            if (id.includes("node_modules/exceljs/")) {
+              return "exceljs";
+            }
+            if (id.includes("node_modules/lodash/")) {
+              return "lodash";
             }
           },
         },

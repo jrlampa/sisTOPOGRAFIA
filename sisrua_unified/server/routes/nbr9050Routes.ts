@@ -33,6 +33,38 @@ const RegistrarItemSchema = z.object({
 
 const ProcessarSchema = z.object({ parecerTecnico: z.string().optional() });
 
+const TopologySchema = z.object({
+  poles: z.array(z.object({
+    id: z.string(),
+    lat: z.number(),
+    lng: z.number()
+  })),
+  transformers: z.array(z.any()),
+  edges: z.array(z.any())
+});
+
+/**
+ * POST /auto
+ * Executa análise automática de acessibilidade urbana.
+ */
+router.post("/auto", async (req: Request, res: Response) => {
+  const parsed = TopologySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Topologia inválida para análise.", details: parsed.error.format() });
+  }
+
+  const results = Nbr9050Service.analisarAcessibilidadeAutomatica(parsed.data as any);
+  const score = results.length > 0 
+    ? Math.round((results.filter(r => r.conforme).length / results.length) * 100) 
+    : 100;
+
+  res.json({
+    timestamp: new Date().toISOString(),
+    score,
+    results
+  });
+});
+
 // POST /analises
 router.post("/analises", (req: Request, res: Response) => {
   const parse = CriarAnaliseSchema.safeParse(req.body);

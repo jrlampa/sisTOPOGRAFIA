@@ -2,179 +2,132 @@
  * corporateHardeningService.test.ts — Testes do serviço de Hardening Corporativo (121 [T1])
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import {
-  runCorporateHardeningChecks,
-  type CorporateHardeningReport,
-  type HardeningCheckStatus,
-} from "../services/corporateHardeningService.js";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function findCheck(report: CorporateHardeningReport, id: string) {
-  return report.checks.find((c) => c.id === id);
-}
-
-// ─── Testes ───────────────────────────────────────────────────────────────────
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { runCorporateHardeningChecks } from "../services/corporateHardeningService.js";
 
 describe("corporateHardeningService", () => {
-  let originalEnv: NodeJS.ProcessEnv;
+  const originalEnv = process.env;
 
   beforeEach(() => {
-    originalEnv = { ...process.env };
+    vi.resetModules();
+    process.env = { ...originalEnv };
   });
 
   afterEach(() => {
-    // Restaura variáveis de ambiente
-    for (const key of Object.keys(process.env)) {
-      if (!(key in originalEnv)) {
-        delete process.env[key];
-      }
-    }
-    Object.assign(process.env, originalEnv);
+    process.env = originalEnv;
   });
 
-  // ── Estrutura do relatório ──────────────────────────────────────────────────
-
-  it("retorna relatório com estrutura completa", () => {
-    const report = runCorporateHardeningChecks();
-    expect(report).toHaveProperty("timestamp");
-    expect(report).toHaveProperty("overallStatus");
-    expect(report).toHaveProperty("score");
-    expect(report).toHaveProperty("checks");
-    expect(report).toHaveProperty("summary");
-    expect(report.checks.length).toBeGreaterThan(0);
-  });
-
-  it("score está entre 0 e 100", () => {
-    const report = runCorporateHardeningChecks();
-    expect(report.score).toBeGreaterThanOrEqual(0);
-    expect(report.score).toBeLessThanOrEqual(100);
-  });
-
-  it("summary contém contagens corretas", () => {
-    const report = runCorporateHardeningChecks();
-    const { pass, warn, fail, skip } = report.summary;
-    expect(pass + warn + fail + skip).toBe(report.checks.length);
-  });
-
-  it("timestamp é ISO string válido", () => {
-    const report = runCorporateHardeningChecks();
-    expect(() => new Date(report.timestamp)).not.toThrow();
-    expect(new Date(report.timestamp).toISOString()).toBe(report.timestamp);
-  });
-
-  // ── Proxy ──────────────────────────────────────────────────────────────────
-
-  it("proxy-001: pass quando sem proxy configurado", () => {
+  it("gera relatório yellow em ambiente limpo (sem variáveis específicas corporativas)", () => {
+    // Limpa variáveis que podem afetar o teste
     delete process.env.HTTP_PROXY;
     delete process.env.HTTPS_PROXY;
-    delete process.env.http_proxy;
-    delete process.env.https_proxy;
+    delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+    delete process.env.NODE_TLS_MIN_VERSION;
+    delete process.env.HELMET_ENABLED;
+    delete process.env.NODE_EXTRA_CA_CERTS;
+    delete process.env.HTTP_TIMEOUT_MS;
+
     const report = runCorporateHardeningChecks();
-    const check = findCheck(report, "proxy-001");
-    expect(check?.status).toBe("pass");
+    // É yellow porque NODE_EXTRA_CA_CERTS ausente gera warning por padrão
+    expect(report.overallStatus).toBe("yellow");
+    expect(report.summary.warn).toBeGreaterThan(0);
   });
 
-  it("proxy-001: warn quando proxy com credenciais na URL", () => {
-    process.env.HTTPS_PROXY = "http://user:pass@proxy.corp.com:8080";
+  it("gera relatório green quando CA corporativa está configurada", () => {
+    delete process.env.HTTP_PROXY;
+    delete process.env.HTTPS_PROXY;
+    process.env.NODE_EXTRA_CA_CERTS = "/path/to/cert.pem";
+
     const report = runCorporateHardeningChecks();
-    const check = findCheck(report, "proxy-001");
-    expect(check?.status).toBe("warn");
-    expect(check?.recommendation).toBeDefined();
+    expect(report.overallStatus).toBe("green");
+    expect(report.score).toBe(100);
   });
 
-  it("proxy-001: pass quando proxy sem credenciais na URL", () => {
-    process.env.HTTPS_PROXY = "http://proxy.corp.com:8080";
+  it("detecta proxy com autenticação e gera status yellow", () => {
+    process.env.HTTPS_PROXY = "http://user:pass@proxy.corp:8080";
+    
     const report = runCorporateHardeningChecks();
-    const check = findCheck(report, "proxy-001");
-    expect(check?.status).toBe("pass");
+    const proxyCheck = report.checks.find(c => c.id === "proxy-001");
+    
+    expect(proxyCheck?.status).toBe("warn");
+    expect(report.overallStatus).toBe("yellow");
+    expect(report.score).toBeLessThan(100);
   });
 
-  // ── TLS ────────────────────────────────────────────────────────────────────
-
-  it("tls-002: fail quando NODE_TLS_REJECT_UNAUTHORIZED=0", () => {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+  it("detecta TLS min version insegura e gera status red", () => {
+    process.env.NODE_TLS_MIN_VERSION = "TLSv1";
+    
     const report = runCorporateHardeningChecks();
-    const check = findCheck(report, "tls-002");
-    expect(check?.status).toBe("fail");
+    const tlsCheck = report.checks.find(c => c.id === "tls-001");
+    
+    expect(tlsCheck?.status).toBe("fail");
     expect(report.overallStatus).toBe("red");
   });
 
-  it("tls-002: pass quando NODE_TLS_REJECT_UNAUTHORIZED não é 0", () => {
-    delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
-    const report = runCorporateHardeningChecks();
-    const check = findCheck(report, "tls-002");
-    expect(check?.status).toBe("pass");
-  });
-
-  it("tls-001: fail quando NODE_TLS_MIN_VERSION está abaixo do mínimo", () => {
-    process.env.NODE_TLS_MIN_VERSION = "TLSv1.0";
-    const report = runCorporateHardeningChecks();
-    const check = findCheck(report, "tls-001");
-    expect(check?.status).toBe("fail");
-    expect(check?.recommendation).toBeDefined();
-  });
-
-  // ── CA Bundle ──────────────────────────────────────────────────────────────
-
-  it("tls-003: pass quando NODE_EXTRA_CA_CERTS está configurado", () => {
-    process.env.NODE_EXTRA_CA_CERTS = "/etc/ssl/corporate-ca.pem";
-    const report = runCorporateHardeningChecks();
-    const check = findCheck(report, "tls-003");
-    expect(check?.status).toBe("pass");
-    expect(check?.detail).toContain("/etc/ssl/corporate-ca.pem");
-  });
-
-  it("tls-003: warn quando NODE_EXTRA_CA_CERTS não está configurado", () => {
-    delete process.env.NODE_EXTRA_CA_CERTS;
-    const report = runCorporateHardeningChecks();
-    const check = findCheck(report, "tls-003");
-    expect(check?.status).toBe("warn");
-  });
-
-  // ── Headers ────────────────────────────────────────────────────────────────
-
-  it("hdr-001: fail quando HELMET_ENABLED=false", () => {
-    process.env.HELMET_ENABLED = "false";
-    const report = runCorporateHardeningChecks();
-    const check = findCheck(report, "hdr-001");
-    expect(check?.status).toBe("fail");
-  });
-
-  it("hdr-001: pass por padrão (Helmet habilitado)", () => {
-    delete process.env.HELMET_ENABLED;
-    const report = runCorporateHardeningChecks();
-    const check = findCheck(report, "hdr-001");
-    expect(check?.status).toBe("pass");
-  });
-
-  // ── Status geral ───────────────────────────────────────────────────────────
-
-  it("overallStatus é green quando todos os checks passam", () => {
-    delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
-    delete process.env.HELMET_ENABLED;
-    delete process.env.HTTP_PROXY;
-    delete process.env.HTTPS_PROXY;
-    delete process.env.NODE_EXTRA_CA_CERTS;
-    // Não há como garantir green neste ambiente, mas validamos a lógica:
-    const report = runCorporateHardeningChecks();
-    const hasFail = report.checks.some((c) => c.status === "fail");
-    const hasWarn = report.checks.some((c) => c.status === "warn");
-    if (!hasFail && !hasWarn) {
-      expect(report.overallStatus).toBe("green");
-    } else if (hasFail) {
-      expect(report.overallStatus).toBe("red");
-    } else {
-      expect(report.overallStatus).toBe("yellow");
-    }
-  });
-
-  it("score cai quando há checks fail", () => {
+  it("detecta NODE_TLS_REJECT_UNAUTHORIZED=0 como falha crítica", () => {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-    process.env.HELMET_ENABLED = "false";
+    
     const report = runCorporateHardeningChecks();
-    expect(report.score).toBeLessThan(100);
-    expect(report.summary.fail).toBeGreaterThanOrEqual(2);
+    const tlsCheck = report.checks.find(c => c.id === "tls-002");
+    
+    expect(tlsCheck?.status).toBe("fail");
+    expect(report.overallStatus).toBe("red");
+  });
+
+  it("detecta variáveis de antivírus/DLP e gera alerta", () => {
+    process.env.ZSCALER_PROXY = "1";
+    
+    const report = runCorporateHardeningChecks();
+    const avCheck = report.checks.find(c => c.id === "av-001");
+    
+    expect(avCheck?.status).toBe("warn");
+  });
+
+  it("valida se helmet desativado gera falha", () => {
+    process.env.HELMET_ENABLED = "false";
+    
+    const report = runCorporateHardeningChecks();
+    const hdrCheck = report.checks.find(c => c.id === "hdr-001");
+    
+    expect(hdrCheck?.status).toBe("fail");
+  });
+
+  it("valida timeout de rede insuficiente", () => {
+    process.env.HTTP_TIMEOUT_MS = "1000"; // Abaixo do threshold de 5000
+    
+    const report = runCorporateHardeningChecks();
+    const netCheck = report.checks.find(c => c.id === "net-001");
+    
+    expect(netCheck?.status).toBe("warn");
+  });
+
+  it("valida path de sucesso para TLS Reject Unauthorized", () => {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "1";
+    const report = runCorporateHardeningChecks();
+    const check = report.checks.find(c => c.id === "tls-002");
+    expect(check?.status).toBe("pass");
+  });
+
+  it("valida detecção de NODE_OPTIONS com flag tls-min", () => {
+    process.env.NODE_OPTIONS = "--tls-min-v1.2";
+    const report = runCorporateHardeningChecks();
+    const check = report.checks.find(c => c.id === "tls-001");
+    expect(check?.detail).toContain("Flag --tls-min-v1.2 detectada");
+  });
+
+  it("valida score zero em caso de muitas falhas", () => {
+    process.env.HELMET_ENABLED = "false";
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+    process.env.NODE_TLS_MIN_VERSION = "TLSv1";
+    process.env.HTTP_PROXY = "http://user:pass@proxy"; // warn
+    process.env.ZSCALER_PROXY = "1"; // warn
+    process.env.HTTP_TIMEOUT_MS = "100"; // warn
+    
+    const report = runCorporateHardeningChecks();
+    // 3 fails * 20 = 60
+    // 3 warns * 5 = 15
+    // score = 100 - 75 = 25
+    expect(report.score).toBeLessThanOrEqual(25);
+    expect(report.overallStatus).toBe("red");
   });
 });

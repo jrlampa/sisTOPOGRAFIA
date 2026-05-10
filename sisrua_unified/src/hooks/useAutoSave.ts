@@ -11,6 +11,8 @@
  */
 import { useEffect, useRef, useCallback, useState } from "react";
 import { GlobalState } from "../types";
+import { ProjectService } from "../services/projectService";
+import { SpatialJurisdictionService } from "../services/spatialJurisdictionService";
 
 const STORAGE_KEY = "sisrua_session_draft";
 const DEBOUNCE_MS = 1_500;
@@ -28,25 +30,38 @@ export type AutoSaveStatus = "idle" | "saving" | "error";
  * Call this hook in a component that holds GlobalState. It will debounce-write
  * the current state to localStorage whenever `state` changes.
  */
-export function useAutoSave(state: GlobalState, enabled = true) {
+export function useAutoSave(
+  state: GlobalState,
+  projectIdOrEnabled?: string | boolean,
+  enabled = true,
+) {
+  const projectId =
+    typeof projectIdOrEnabled === "string" ? projectIdOrEnabled : undefined;
+  const isEnabled =
+    typeof projectIdOrEnabled === "boolean" ? projectIdOrEnabled : enabled;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [status, setStatus] = useState<AutoSaveStatus>("idle");
   const [lastSaved, setLastSaved] = useState<string | undefined>(undefined);
 
-  const persist = useCallback((s: GlobalState) => {
+  const persist = useCallback(async (s: GlobalState) => {
     const timestamp = new Date().toLocaleTimeString("pt-BR", {
       hour: "2-digit",
       minute: "2-digit",
     });
 
-    // Strip bulky/transient data that can be refetched or isn't part of the core design
-    // This prevents hitting the 5MB localStorage limit on large projects.
+    // Aplicar Filtro de Jurisdição antes de salvar na nuvem
+    const filteredTopology = SpatialJurisdictionService.filterTopology(s.btTopology, {
+      polygon: s.polygon,
+      radius: s.radius,
+      center: s.center
+    });
+
     const stateToSave = {
       ...s,
-      // Transient session data — should not be persisted in a project draft
+      btTopology: filteredTopology,
       osmData: null,
       terrainData: null,
-      btExportHistory: [], // Large history is kept in DB/Backend
+      btExportHistory: [], 
       autoSaveStatus: "idle",
     };
 
@@ -57,20 +72,24 @@ export function useAutoSave(state: GlobalState, enabled = true) {
     };
 
     try {
-      const serialized = JSON.stringify(draft);
-      localStorage.setItem(STORAGE_KEY, serialized);
+      // 1. Local (Buffer)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+
+      // 2. Cloud (Se houver projetoId)
+      if (projectId) {
+        await ProjectService.saveProjectState(projectId, stateToSave as GlobalState);
+      }
+
       setLastSaved(timestamp);
       setStatus("idle");
     } catch (_error) {
-      console.error(
-        "[AutoSave] Failed to persist state (likely exceeded quota)",
-      );
+      console.error("[AutoSave] Falha na persistência", _error);
       setStatus("error");
     }
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!isEnabled) return;
 
     setStatus("saving");
     if (timerRef.current !== null) clearTimeout(timerRef.current);
@@ -79,7 +98,7 @@ export function useAutoSave(state: GlobalState, enabled = true) {
     return () => {
       if (timerRef.current !== null) clearTimeout(timerRef.current);
     };
-  }, [state, enabled, persist]);
+  }, [state, isEnabled, persist]);
 
   return { status, lastSaved };
 }

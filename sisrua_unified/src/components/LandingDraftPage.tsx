@@ -58,7 +58,7 @@ export default function LandingDraftPage() {
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
             <a href="#features" className="hover:text-sky-400 transition-colors">Funcionalidades</a>
             <a href="#docs" className="hover:text-sky-400 transition-colors">Documentação</a>
-            <Link to="/app" className="rounded-full bg-slate-100 px-5 py-2 text-slate-950 hover:bg-white transition-all font-bold">
+            <Link to="/portal" className="rounded-full bg-slate-100 px-5 py-2 text-slate-950 hover:bg-white transition-all font-bold">
               Entrar
             </Link>
           </div>
@@ -87,7 +87,7 @@ export default function LandingDraftPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full sm:w-80 rounded-full border border-slate-800 bg-slate-900/50 px-6 py-3.5 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all"
               />
-              <Link to="/app" className="w-full sm:w-auto rounded-full bg-sky-500 px-8 py-4 text-sm font-bold text-slate-950 hover:bg-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.3)] transition-all flex items-center justify-center gap-2">
+              <Link to="/portal" className="w-full sm:w-auto rounded-full bg-sky-500 px-8 py-4 text-sm font-bold text-slate-950 hover:bg-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.3)] transition-all flex items-center justify-center gap-2">
                 Começar agora <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
@@ -140,11 +140,10 @@ export default function LandingDraftPage() {
           <div className="flex items-center gap-2 text-slate-400">
             <span className="text-sm">© 2026 IM3 Brasil. Todos os direitos reservados.</span>
           </div>
-          <div className="flex items-center gap-6 text-sm font-medium text-slate-500">
-            <a href="#" className="hover:text-slate-300">Privacidade</a>
-            <a href="#" className="hover:text-slate-300">Termos</a>
-            <a href="#" className="flex items-center gap-1 hover:text-slate-300">
-              Status <ChevronRight className="h-3 w-3" />
+          <div className="flex gap-4 text-xs text-slate-300">
+            <a href="#" className="hover:text-slate-100">Privacidade</a>
+            <a href="#" className="hover:text-slate-100">Termos</a>
+            <a href="#" className="flex items-center gap-1 hover:text-slate-100">              Status <ChevronRight className="h-3 w-3" />
             </a>
           </div>
         </div>

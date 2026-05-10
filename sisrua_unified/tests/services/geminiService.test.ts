@@ -86,6 +86,42 @@ describe("geminiService analysis parsing", () => {
     const result = await analyzeArea({ buildings: 1 }, "Area Teste", true);
     expect(result).toContain("**Erro de conexão**");
   });
+
+  it("returns fallback error message for other non-ok status codes", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("not found", {
+        status: 404,
+        headers: { "content-type": "text/plain" },
+      }),
+    );
+
+    const result = await analyzeArea({ buildings: 1 }, "Area Teste", true);
+    expect(result).toBe("**Erro na análise**: Resposta inválida do servidor (HTTP 404).");
+  });
+
+  it("returns error message when server returns 200 but empty content", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    const result = await analyzeArea({ buildings: 1 }, "Area Teste", true);
+    expect(result).toContain("O servidor não retornou conteúdo de análise.");
+  });
+
+  it("handles JSON parse error in response gracefully", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("{ invalid json }", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    const result = await analyzeArea({ buildings: 1 }, "Area Teste", true);
+    expect(result).toBe("{ invalid json }");
+  });
 });
 
 describe("findLocationWithGemini", () => {

@@ -90,6 +90,11 @@ async function tabUntilFocused(
 }
 
 async function ensureBtStepOpen(page: import("@playwright/test").Page) {
+  // Wait for sidebar to be at least partially visible
+  await page.waitForSelector(".sidebar-workspace", { state: "visible", timeout: 10000 }).catch(() => {
+    console.warn("Sidebar workspace not visible after 10s");
+  });
+
   const btStepButton = page.getByTestId("sidebar-stage-2");
   const collapsedBtStepButton = page.getByTestId("sidebar-stage-collapsed-2");
 
@@ -100,6 +105,10 @@ async function ensureBtStepOpen(page: import("@playwright/test").Page) {
     } else {
       await btStepButton.click({ force: true, timeout: 5000 });
     }
+    // Wait for the stage content to load (it's lazy loaded)
+    await page.waitForSelector('[data-testid="btn-add-pole"]', { timeout: 10000 }).catch(() => {
+       console.warn("Stage 2 content (btn-add-pole) not visible after 10s");
+    });
   } catch (e) {
     console.warn("Failed to click BT step button, proceeding anyway...", e);
   }
@@ -194,9 +203,7 @@ test.describe("A11y transversal – fluxos críticos BT @a11y", () => {
   test("fluxo de editar poste por coordenadas deve manter WCAG e controles acessíveis", async ({
     page,
   }) => {
-    const addPoleButton = page.getByRole("button", {
-      name: /\+\s*(POSTE|POLE)(\s*\(BT\))?/i,
-    });
+    const addPoleButton = page.getByTestId("btn-add-pole");
     await expect(addPoleButton).toBeVisible();
     await addPoleButton.click();
 
@@ -218,9 +225,7 @@ test.describe("A11y transversal – fluxos críticos BT @a11y", () => {
   test("modal crítico de reset BT deve ser navegável por teclado e sem violações críticas", async ({
     page,
   }) => {
-    const resetButton = page.getByRole("button", {
-      name: /(ZERAR BT|RESET LV|VACIAR BT)/i,
-    });
+    const resetButton = page.getByTestId("btn-reset-bt");
     await expect(resetButton).toBeVisible();
 
     // /app sidebar has many focusable elements before the reset button;

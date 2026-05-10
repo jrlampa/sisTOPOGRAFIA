@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+import { test, expect } from '@playwright/test';
 
 test('hello world', async ({ page }) => {
     await page.goto('http://localhost:3000'); // Adjust the URL as needed

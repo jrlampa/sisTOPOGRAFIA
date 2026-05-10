@@ -37,6 +37,11 @@
 - **Mecanismo**: Divisão de estados monolíticos em hooks especializados (`useAppEngineeringWorkflows`, `useAppLifecycleEffects`, `useAppMainHandlers`).
 - **Benefício**: Redução de re-renders desnecessários no `AppWorkspace` ao isolar lógicas de negócio pesadas em sub-lifecycles. Melhora a percepção de performance (UX-20) e facilita o Unit Testing.
 
+### Camada 8: API Runtime Cache (Proxy/Memory)
+- **OSM_PROVIDER_CACHE**: Memória (LRU Simulado) no `osmRoutes.ts`.
+- **TTL**: 24 horas.
+- **Benefício**: Reduz dependência de Overpass API externa, garantindo performance e resiliência a quedas de serviço.
+
 ## 📊 Monitoramento de Saúde (Health Check)
 Monitorado via `private.db_health_report()` diariamente às 07:00 UTC.
 - **Target Cache Hit Ratio**: > 99%.

@@ -1,45 +1,26 @@
 import React from "react";
-import { AppShellLayout } from "./AppShellLayout";
-import { GuidedTaskChecklist } from "./GuidedTaskChecklist";
-import { AppSettings, BtTopology, MtTopology, SelectionMode } from "../types";
-import { lazyWithRetry } from "../utils/lazyWithRetry";
-import {
-  BtPoleAccumulatedDemand
-} from "../services/btDerivedService";
-import { getMainMapWorkspaceText } from "../i18n/mainMapWorkspaceText";
-import { getGuidedTaskChecklistText } from "../i18n/guidedTaskChecklistText";
+import { SidebarWorkspace } from "./SidebarWorkspace";
+import { AppHeader } from "./AppHeader";
+import MapSelector from "./MapSelector";
+import { SessionRecoveryBanner } from "./SessionRecoveryBanner";
+import { HelpModal } from "./HelpModal";
+import SettingsModal from "./SettingsModal";
+import { BtModalStack } from "./BtModalStack";
+import { BimInspectorDrawer } from "./BimInspectorDrawer";
+import { ElectricalAuditDrawer } from "./ElectricalAuditDrawer";
+import { BtTelescopicSuggestionModal } from "./BtTelescopicSuggestionModal";
+import Toast from "./Toast";
+import { CommandPalette } from "./CommandPalette";
+import { FeatureSettingsModal } from "./FeatureSettingsModal";
+import { JurisdictionStatus } from "./JurisdictionStatus";
+import { useFeatureFlags } from "../contexts/FeatureFlagContext";
+import { useMultiplayer } from "../hooks/useMultiplayer";
+import { useNeighborhoodAwareness } from "../hooks/useNeighborhoodAwareness";
+import { MultiplayerAvatars } from "./MultiplayerAvatars";
+import { useAuth } from "../auth/AuthProvider";
 
-const ElectricalAuditDrawer = React.lazy(() =>
-  lazyWithRetry(() =>
-    import("./ElectricalAuditDrawer").then((module) => ({
-      default: module.ElectricalAuditDrawer,
-    })),
-  ),
-);
-const BtTelescopicSuggestionModal = React.lazy(() =>
-  lazyWithRetry(() =>
-    import("./BtTelescopicSuggestionModal").then((module) => ({
-      default: module.BtTelescopicSuggestionModal,
-    })),
-  ),
-);
-const HelpModal = React.lazy(() =>
-  lazyWithRetry(() =>
-    import("./HelpModal").then((module) => ({
-      default: module.HelpModal,
-    })),
-  ),
-);
-const CommandPalette = React.lazy(() =>
-  lazyWithRetry(() =>
-    import("./CommandPalette").then((module) => ({
-      default: module.CommandPalette,
-    })),
-  ),
-);
-
-interface AppWorkspaceProps {
-  settings: AppSettings;
+type AppWorkspaceProps = {
+  settings: any;
   isDark: boolean;
   isFocusMode: boolean;
   isXRayMode: boolean;
@@ -64,7 +45,7 @@ interface AppWorkspaceProps {
   statusMessage: string;
   showDxfProgress: boolean;
   dxfProgressValue: number;
-  dxfProgressStatus: string | null;
+  dxfProgressStatus: string;
   dxfProgressLabel: string;
   latestBtExport: any;
   btExportHistory: any[];
@@ -75,364 +56,330 @@ interface AppWorkspaceProps {
   btHistoryLoading: boolean;
   btHistoryCanLoadMore: boolean;
   handleLoadMoreBtHistory: () => void;
-  btHistoryProjectTypeFilter: "all" | "ramais" | "clandestino";
-  setBtHistoryProjectTypeFilter: React.Dispatch<
-    React.SetStateAction<"all" | "ramais" | "clandestino">
-  >;
-  btHistoryCqtScenarioFilter: "all" | "atual" | "proj1" | "proj2";
-  setBtHistoryCqtScenarioFilter: React.Dispatch<
-    React.SetStateAction<"all" | "atual" | "proj1" | "proj2">
-  >;
-  updateSettings: (settings: AppSettings) => void;
-  selectionMode: SelectionMode;
-  handleSelectionModeChange: (mode: any) => void;
+  btHistoryProjectTypeFilter: string;
+  setBtHistoryProjectTypeFilter: (v: string) => void;
+  btHistoryCqtScenarioFilter: string;
+  setBtHistoryCqtScenarioFilter: (v: string) => void;
+  updateSettings: (s: any) => void;
+  selectionMode: any;
+  handleSelectionModeChange: (m: any) => void;
   radius: number;
   handleRadiusChange: (r: number) => void;
-  polygon: any;
+  polygon: any[];
   handleClearPolygon: () => void;
   osmData: any;
   handleDownloadDxf: () => Promise<void>;
-  handleDownloadGeoJSON: () => Promise<void>;
+  handleDownloadGeoJSON: () => void;
   isSidebarDockedForRamalModal: boolean;
   sidebarSelectionControlsProps: any;
   sidebarBtEditorSectionProps: any;
-  mtTopology: MtTopology;
-  updateMtTopology: (topology: MtTopology) => void;
+  mtTopology: any;
+  updateMtTopology: (t: any) => void;
   hasBtPoles: boolean;
   sidebarAnalysisResultsProps: any;
   mapSelectorProps: any;
-  elevationProfileData: any;
+  elevationProfileData: any[];
   clearProfile: () => void;
   btModalStackProps: any;
-  showToast: (
-    message: string,
-    type: "success" | "error" | "info" | "warning",
-  ) => void;
+  showToast: (m: string, t: any) => void;
   isBimInspectorOpen: boolean;
-  setIsBimInspectorOpen: (open: boolean) => void;
+  setIsBimInspectorOpen: (o: boolean) => void;
   inspectedPole: any;
   inspectedTransformer: any;
-  inspectedAccumulatedData: BtPoleAccumulatedDemand | null;
-  btTopology: BtTopology;
-  handleBtRenamePole: (id: string, title: string) => void;
-  handleBtSetPoleChangeFlag: (id: string, flag: any) => void;
-  autoSaveStatus: "idle" | "saving" | "error";
-  lastAutoSaved?: string;
+  inspectedAccumulatedData: any;
+  btTopology: any;
+  handleBtRenamePole: (id: string, name: string) => void;
+  handleBtSetPoleChangeFlag: (id: string, f: any) => void;
+  autoSaveStatus: string;
+  lastAutoSaved: string | undefined;
   isAuditOpen: boolean;
-  setIsAuditOpen: (open: boolean) => void;
+  setIsAuditOpen: (o: boolean) => void;
   selectedAuditElement: any;
   handleAuditAction: (action: "approve" | "reject", notes: string) => void;
-  btTelescopicSuggestions: any;
-  handleApplyTelescopicSuggestions: (analysisOutput: any) => void;
+  btTelescopicSuggestions: any[];
+  handleApplyTelescopicSuggestions: (s: any) => void;
   clearBtTelescopicSuggestions: () => void;
   isHelpOpen: boolean;
+  onOpenSnapshots: () => void;
   isCommandPaletteOpen: boolean;
-  setIsCommandPaletteOpen: (open: boolean) => void;
+  setIsCommandPaletteOpen: (o: boolean) => void;
   commandPaletteActions: any[];
   handleGoToPole: (id: string) => void;
-  terrainData: any;
-  showSettings: boolean;
-  closeSettings: () => void;
-  isCalculating: boolean;
-}
+  terrainData?: any;
+  showSettings?: boolean;
+  closeSettings?: () => void;
+  isCalculating?: boolean;
+  complianceResults?: any;
+  children?: React.ReactNode;
+};
 
-export function AppWorkspace(props: AppWorkspaceProps) {
-  const {
-    settings,
-    isDark,
-    isFocusMode,
-    isXRayMode,
-    canUndo,
-    canRedo,
-    undo,
-    redo,
-    appPast,
-    appFuture,
-    handleSaveProject,
-    handleLoadProject,
-    openSettings,
-    setIsHelpOpen,
-    toasts,
-    closeToast,
-    sessionDraft,
-    handleRestoreSession,
-    handleDismissSession,
-    isProcessing,
-    isDownloading,
-    progressValue,
-    statusMessage,
-    showDxfProgress,
-    dxfProgressValue,
-    dxfProgressStatus,
-    dxfProgressLabel,
-    latestBtExport,
-    btExportHistory,
-    exportBtHistoryJson,
-    exportBtHistoryCsv,
-    handleClearBtExportHistory,
-    btHistoryTotal,
-    btHistoryLoading,
-    btHistoryCanLoadMore,
-    handleLoadMoreBtHistory,
-    btHistoryProjectTypeFilter,
-    setBtHistoryProjectTypeFilter,
-    btHistoryCqtScenarioFilter,
-    setBtHistoryCqtScenarioFilter,
-    updateSettings,
+export function AppWorkspace({
+  settings,
+  isDark,
+  isFocusMode: _isFocusMode,
+  isXRayMode: _isXRayMode,
+  canUndo,
+  canRedo,
+  undo,
+  redo,
+  appPast: _appPast,
+  appFuture: _appFuture,
+  handleSaveProject,
+  handleLoadProject,
+  openSettings,
+  setIsHelpOpen,
+  toasts,
+  closeToast,
+  sessionDraft,
+  handleRestoreSession,
+  handleDismissSession,
+  isProcessing: _isProcessing,
+  isDownloading: _isDownloading,
+  progressValue: _progressValue,
+  statusMessage: _statusMessage,
+  showDxfProgress: _showDxfProgress,
+  dxfProgressValue: _dxfProgressValue,
+  dxfProgressStatus: _dxfProgressStatus,
+  dxfProgressLabel: _dxfProgressLabel,
+  latestBtExport: _latestBtExport,
+  btExportHistory: _btExportHistory,
+  exportBtHistoryJson: _exportBtHistoryJson,
+  exportBtHistoryCsv: _exportBtHistoryCsv,
+  handleClearBtExportHistory: _handleClearBtExportHistory,
+  btHistoryTotal: _btHistoryTotal,
+  btHistoryLoading: _btHistoryLoading,
+  btHistoryCanLoadMore: _btHistoryCanLoadMore,
+  handleLoadMoreBtHistory: _handleLoadMoreBtHistory,
+  btHistoryProjectTypeFilter: _btHistoryProjectTypeFilter,
+  setBtHistoryProjectTypeFilter: _setBtHistoryProjectTypeFilter,
+  btHistoryCqtScenarioFilter: _btHistoryCqtScenarioFilter,
+  setBtHistoryCqtScenarioFilter: _setBtHistoryCqtScenarioFilter,
+  updateSettings,
+  selectionMode,
+  handleSelectionModeChange: _handleSelectionModeChange,
+  radius: _radius,
+  handleRadiusChange: _handleRadiusChange,
+  polygon,
+  handleClearPolygon: _handleClearPolygon,
+  osmData,
+  handleDownloadDxf: _handleDownloadDxf,
+  handleDownloadGeoJSON: _handleDownloadGeoJSON,
+  isSidebarDockedForRamalModal,
+  sidebarSelectionControlsProps,
+  sidebarBtEditorSectionProps,
+  mtTopology,
+  updateMtTopology,
+  hasBtPoles,
+  sidebarAnalysisResultsProps,
+  mapSelectorProps,
+  elevationProfileData: _elevationProfileData,
+  clearProfile: _clearProfile,
+  btModalStackProps,
+  showToast: _showToast,
+  isBimInspectorOpen,
+  setIsBimInspectorOpen,
+  inspectedPole,
+  inspectedTransformer,
+  inspectedAccumulatedData,
+  btTopology,
+  handleBtRenamePole,
+  handleBtSetPoleChangeFlag,
+  autoSaveStatus,
+  lastAutoSaved,
+  isAuditOpen,
+  setIsAuditOpen,
+  selectedAuditElement,
+  handleAuditAction,
+  btTelescopicSuggestions,
+  handleApplyTelescopicSuggestions,
+  clearBtTelescopicSuggestions,
+  isHelpOpen,
+  onOpenSnapshots,
+  isCommandPaletteOpen,
+  setIsCommandPaletteOpen,
+  commandPaletteActions,
+  handleGoToPole: _handleGoToPole,
+  terrainData: _terrainData,
+  showSettings,
+  closeSettings,
+  isCalculating: _isCalculating,
+  complianceResults,
+  children,
+}: AppWorkspaceProps) {
+  const { flags } = useFeatureFlags();
+  const { user } = useAuth();
+  const [isFeatureSettingsOpen, setIsFeatureSettingsOpen] = React.useState(false);
+
+  const { neighbors, hasCollision } = useNeighborhoodAwareness(
+    mapSelectorProps?.center,
     selectionMode,
-    handleSelectionModeChange,
-    radius,
-    handleRadiusChange,
     polygon,
-    handleClearPolygon,
-    osmData,
-    handleDownloadDxf,
-    handleDownloadGeoJSON,
-    isSidebarDockedForRamalModal,
-    sidebarSelectionControlsProps,
-    sidebarBtEditorSectionProps,
-    mtTopology,
-    updateMtTopology,
-    hasBtPoles,
-    sidebarAnalysisResultsProps,
-    mapSelectorProps,
-    elevationProfileData,
-    clearProfile,
-    btModalStackProps,
-    showToast,
-    isBimInspectorOpen,
-    setIsBimInspectorOpen,
-    inspectedPole,
-    inspectedTransformer,
-    inspectedAccumulatedData,
-    btTopology,
-    handleBtRenamePole,
-    handleBtSetPoleChangeFlag,
-    autoSaveStatus,
-    lastAutoSaved,
-    isAuditOpen,
-    setIsAuditOpen,
-    selectedAuditElement,
-    handleAuditAction,
-    btTelescopicSuggestions,
-    handleApplyTelescopicSuggestions,
-    clearBtTelescopicSuggestions,
-    isHelpOpen,
-    isCommandPaletteOpen,
-    setIsCommandPaletteOpen,
-    commandPaletteActions,
-    handleGoToPole,
-    terrainData,
-    isCalculating,
-  } = props;
+    "current-project"
+  );
+
+  const { onlineUsers } = useMultiplayer(
+    flags.enableMultiplayer ? "global-project" : "",
+    { id: user?.id || "anon", name: user?.email?.split("@")[0] || "Visitante" }
+  );
 
   return (
-    <>
-      <AppShellLayout
+    <div className={`app-shell relative flex h-screen w-full flex-col overflow-hidden font-sans transition-colors duration-500 ${isDark ? "dark text-slate-200" : "text-slate-900"}`}>
+      {/* Header */}
+      <AppHeader
         locale={settings.locale}
         isDark={isDark}
-        isFocusMode={isFocusMode}
-        isXRayMode={isXRayMode}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={undo}
         onRedo={redo}
-        past={appPast}
-        future={appFuture}
         onSaveProject={handleSaveProject}
         onOpenProject={handleLoadProject}
         onOpenSettings={openSettings}
         onOpenHelp={() => setIsHelpOpen(true)}
-        appStatusStackProps={{
-          locale: settings.locale,
-          toasts,
-          closeToast,
-          sessionDraft,
-          handleRestoreSession,
-          handleDismissSession,
-          isProcessing,
-          isDownloading,
-          progressValue,
-          statusMessage,
-          showDxfProgress,
-          dxfProgressValue,
-          dxfProgressStatus,
-          dxfProgressLabel,
-          btExportSummaryProps: {
-            latestBtExport,
-            btExportHistory,
-            exportBtHistoryJson,
-            exportBtHistoryCsv,
-            clearBtExportHistory: handleClearBtExportHistory,
-            btHistoryTotal,
-            btHistoryLoading,
-            btHistoryCanLoadMore,
-            onLoadMoreBtHistory: handleLoadMoreBtHistory,
-            historyProjectTypeFilter: btHistoryProjectTypeFilter,
-            onHistoryProjectTypeFilterChange: setBtHistoryProjectTypeFilter,
-            historyCqtScenarioFilter: btHistoryCqtScenarioFilter,
-            onHistoryCqtScenarioFilterChange: setBtHistoryCqtScenarioFilter,
-          },
-        }}
-        appSettingsOverlayProps={{
-          showSettings: props.showSettings,
-          closeSettings: props.closeSettings,
-          settings,
-          updateSettings,
-          selectionMode,
-          handleSelectionModeChange,
-          radius,
-          handleRadiusChange,
-          polygon,
-          handleClearPolygon,
-          hasData: !!osmData,
-          isDownloading,
-          handleDownloadDxf,
-          handleDownloadGeoJSON,
-          handleSaveProject,
-          handleLoadProject,
-        }}
-        sidebarWorkspaceProps={{
-          locale: settings.locale,
-          isSidebarDockedForRamalModal,
-          selectionControlsProps: sidebarSelectionControlsProps,
-          btEditorSectionProps: {
-            ...sidebarBtEditorSectionProps,
-            isCalculating,
-          },
-          mtEditorSectionProps: {
-            locale: settings.locale,
-            mtTopology,
-            onMtTopologyChange: updateMtTopology,
-            mtEditorMode: settings.mtEditorMode ?? "none",
-            hasBtPoles,
-            onMtEditorModeChange: (mode: any) =>
-              updateSettings({ ...settings, mtEditorMode: mode }),
-          },
-          analysisResultsProps: sidebarAnalysisResultsProps,
-        }}
-        mainMapWorkspaceProps={{
-          locale: settings.locale,
-          theme: settings.theme,
-          mapSelectorProps,
-          floatingLayerPanelProps: {
-            settings,
-            onUpdateSettings: updateSettings,
-            isDark,
-          },
-          elevationProfileData,
-          onCloseElevationProfile: () => {
-            clearProfile();
-            handleSelectionModeChange("circle");
-          },
-          isDark,
-          btModalStackProps,
-          hasAreaSelection: !!osmData,
-          onStartSearch: () => {
-            setIsHelpOpen(false);
-            handleSelectionModeChange("circle");
-          },
-          onMapClickAction: () => {
-            setIsHelpOpen(false);
-            handleSelectionModeChange("circle");
-            showToast(
-              getMainMapWorkspaceText(settings.locale).clickToDefineCenter,
-              "info",
-            );
-          },
-        }}
-        bimInspectorProps={{
-          isOpen: isBimInspectorOpen,
-          onClose: () => setIsBimInspectorOpen(false),
-          pole: inspectedPole,
-          transformer: inspectedTransformer,
-          accumulatedData: inspectedAccumulatedData,
-          btTopology: btTopology,
-          locale: settings.locale,
-          onRenamePole: handleBtRenamePole,
-          onSetPoleChangeFlag: handleBtSetPoleChangeFlag,
-        }}
-        hasAreaSelection={!!osmData}
-        onStartSearch={() => {
-          setIsHelpOpen(false);
-          handleSelectionModeChange("circle");
-        }}
-        onMapClickAction={() => {
-          setIsHelpOpen(false);
-          handleSelectionModeChange("circle");
-          showToast(
-            getMainMapWorkspaceText(settings.locale).clickToDefineCenter,
-            "info",
-          );
-        }}
-        autoSaveStatus={autoSaveStatus}
+        onOpenSnapshots={onOpenSnapshots}
+        onFeatureSettings={() => setIsFeatureSettingsOpen(true)}
+        projectName={settings.projectMetadata?.projectName || "Novo Projeto"}
+        autoSaveStatus={autoSaveStatus as any}
         lastAutoSaved={lastAutoSaved}
+        isSidebarCollapsed={settings.sidebarCollapsed}
+        onToggleSidebarCollapsed={() => updateSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed })}
+        backendStatus="online"
+        backendResponseTimeMs={45}
       />
 
-      <React.Suspense fallback={null}>
-        {isAuditOpen && selectedAuditElement && (
-          <ElectricalAuditDrawer
+      {/* Body: Sidebar + Main */}
+      <div className="relative z-10 flex flex-1 flex-col overflow-hidden xl:flex-row">
+        {/* Sidebar */}
+        <SidebarWorkspace
+          locale={settings.locale}
+          isCollapsed={settings.sidebarCollapsed}
+          onToggleCollapse={(c) => updateSettings({ ...settings, sidebarCollapsed: c })}
+          isSidebarDockedForRamalModal={isSidebarDockedForRamalModal}
+          selectionControlsProps={sidebarSelectionControlsProps}
+          btEditorSectionProps={sidebarBtEditorSectionProps}
+          mtEditorSectionProps={{
+            mtTopology,
+            updateMtTopology,
+            btTopology,
+            hasBtPoles,
+          }}
+          analysisResultsProps={sidebarAnalysisResultsProps}
+        />
+
+        {/* Main Map Area */}
+        <main className="relative flex-1 bg-slate-900 overflow-hidden rounded-tl-3xl shadow-inner">
+          {mapSelectorProps ? (
+            <MapSelector
+              {...mapSelectorProps}
+              measurePath={[]}
+              onMeasurePathChange={() => {}}
+              osmData={osmData}
+              locale={settings.locale}
+              theme={settings.theme}
+              complianceResults={complianceResults}
+              flags={flags}
+              neighbors={neighbors}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-slate-500 text-sm">
+              Carregando mapa…
+            </div>
+          )}
+
+          {/* HUD Elements */}
+          <div className="pointer-events-none absolute inset-0 z-30 p-6 flex flex-col justify-between overflow-hidden">
+            <div className="flex flex-col items-start gap-4">
+              <SessionRecoveryBanner
+                sessionDraft={sessionDraft as any}
+                onRestore={handleRestoreSession}
+                onDismiss={handleDismissSession}
+              />
+              {flags.enableMultiplayer && (
+                <div className="pointer-events-auto">
+                  <MultiplayerAvatars users={onlineUsers} />
+                </div>
+              )}
+
+              <JurisdictionStatus
+                topology={btTopology}
+                selectionMode={selectionMode}
+                hasPolygon={polygon.length >= 3}
+                hasCollision={hasCollision}
+              />
+            </div>
+          </div>
+
+          {/* Modals & Overlays */}
+          {btModalStackProps && <BtModalStack {...btModalStackProps} />}
+
+          <BimInspectorDrawer
+            isOpen={isBimInspectorOpen}
+            onClose={() => setIsBimInspectorOpen(false)}
+            pole={inspectedPole}
+            transformer={inspectedTransformer}
+            accumulatedData={inspectedAccumulatedData}
+            btTopology={btTopology}
+            onRenamePole={handleBtRenamePole}
+            onSetPoleChangeFlag={handleBtSetPoleChangeFlag}
             locale={settings.locale}
+          />
+
+          <ElectricalAuditDrawer
             isOpen={isAuditOpen}
             onClose={() => setIsAuditOpen(false)}
             selectedElement={selectedAuditElement}
             onAuditAction={handleAuditAction}
+            locale={settings.locale}
           />
-        )}
 
-        {btTelescopicSuggestions && (
           <BtTelescopicSuggestionModal
-            output={btTelescopicSuggestions}
-            onApply={handleApplyTelescopicSuggestions}
+            output={btTelescopicSuggestions?.length ? { suggestions: btTelescopicSuggestions, lmaxByConductor: {} } : null}
+            onApply={(out) => handleApplyTelescopicSuggestions(out)}
             onCancel={clearBtTelescopicSuggestions}
           />
-        )}
 
-        {isHelpOpen && (
           <HelpModal
             isOpen={isHelpOpen}
-            locale={settings.locale}
             onClose={() => setIsHelpOpen(false)}
+            locale={settings.locale}
           />
-        )}
 
-        {isCommandPaletteOpen && (
+          <FeatureSettingsModal
+            isOpen={isFeatureSettingsOpen}
+            onClose={() => setIsFeatureSettingsOpen(false)}
+          />
+
+          {showSettings && (
+            <SettingsModal
+              isOpen={!!showSettings}
+              settings={settings}
+              onUpdateSettings={updateSettings as any}
+              onClose={closeSettings || (() => {})}
+            />
+          )}
+
           <CommandPalette
             isOpen={isCommandPaletteOpen}
             onClose={() => setIsCommandPaletteOpen(false)}
             actions={commandPaletteActions}
-            poles={btTopology.poles}
-            onGoToPole={handleGoToPole}
             locale={settings.locale}
           />
-        )}
-      </React.Suspense>
 
-      <GuidedTaskChecklist
-        locale={settings.locale}
-        tasks={[
-          {
-            id: "area",
-            label: getGuidedTaskChecklistText(settings.locale).taskArea,
-            done: !!osmData,
-          },
-          {
-            id: "bt",
-            label: getGuidedTaskChecklistText(settings.locale).taskBt,
-            done: hasBtPoles,
-          },
-          {
-            id: "terrain",
-            label: getGuidedTaskChecklistText(settings.locale).taskTerrain,
-            done: !!terrainData,
-          },
-          {
-            id: "export",
-            label: getGuidedTaskChecklistText(settings.locale).taskExport,
-            done: false,
-          },
-        ]}
-      />
-    </>
+          {children}
+
+          <div className="fixed bottom-6 right-6 z-[1000] flex flex-col gap-2 pointer-events-none">
+            {toasts.map((t, idx) => (
+              <Toast
+                key={t.id}
+                message={t.message}
+                type={t.type}
+                onClose={() => closeToast(t.id)}
+                stackOffset={idx}
+              />
+            ))}
+          </div>
+        </main>
+      </div>
+    </div>
   );
 }

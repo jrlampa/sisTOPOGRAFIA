@@ -34,10 +34,14 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 
+import { FeatureFlagProvider } from "./contexts/FeatureFlagContext";
+
 root.render(
   <React.StrictMode>
     <AuthProvider>
-      <AppRouter />
+      <FeatureFlagProvider>
+        <AppRouter />
+      </FeatureFlagProvider>
     </AuthProvider>
   </React.StrictMode>,
 );

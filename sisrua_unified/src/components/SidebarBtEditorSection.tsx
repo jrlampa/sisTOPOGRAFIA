@@ -39,6 +39,7 @@ import type {
 import { getCoordinateInputFeedback } from "../utils/validation";
 import { lazyWithRetry } from "../utils/lazyWithRetry";
 import type { CriticalConfirmationConfig } from "./BtModals";
+import { useFeatureFlags } from "../contexts/FeatureFlagContext";
 
 const BtTopologyPanel = React.lazy(() =>
   lazyWithRetry(() => import("./BtTopologyPanel")),
@@ -211,6 +212,7 @@ export function SidebarBtEditorSection({
   onSetSelectedTransformerId,
   mtTopology,
 }: SidebarBtEditorSectionProps) {
+  const { flags } = useFeatureFlags();
   const effectiveDgTopology = dgTopology ?? btTopology;
 
   const currentTotalCableLengthMeters = useMemo(() => {
@@ -303,6 +305,7 @@ export function SidebarBtEditorSection({
             {t.btnMove}
           </button>
           <button
+            data-testid="btn-add-pole"
             onClick={() => setBtEditorMode("add-pole")}
             aria-pressed={btEditorMode === "add-pole"}
             className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btEditorMode === "add-pole" ? "border-blue-600 bg-blue-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
@@ -411,6 +414,7 @@ export function SidebarBtEditorSection({
           )}
 
         <button
+          data-testid="btn-reset-bt"
           onClick={handleResetBtTopology}
           className="w-full rounded-xl border border-rose-300 py-2 text-xs font-bold text-rose-700 transition-all hover:bg-rose-50 dark:border-rose-700/50 dark:text-rose-300 dark:hover:bg-rose-950/30"
           title={t.resetBtTopologyTitle}
@@ -468,7 +472,7 @@ export function SidebarBtEditorSection({
       </Suspense>
 
       {/* Design Generativo – painel de otimização (Frente 3) */}
-      {onRunDgOptimization && (
+      {flags.enableDgWizard && onRunDgOptimization && (
         <>
           <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
           <Suspense fallback={<InlineSuspenseFallback label={t.loadingBtPanel} />}>

@@ -1,7 +1,7 @@
-
 import { API_BASE_URL } from "../config/api";
-
 import { buildApiHeaders } from "./apiClient";
+import Logger from "../utils/logger";
+import { trackPerformance } from "../utils/analytics";
 
 const API_URL = API_BASE_URL;
 
@@ -121,8 +121,10 @@ export const generateDXF = async (
   contourRenderMode: "spline" | "polyline" = "spline",
   btContext?: Record<string, unknown>,
 ): Promise<DxfQueueResponse | DxfCachedResponse> => {
+  const traceId = Logger.startTrace("generateDXF");
   const normalizedMode: "circle" | "polygon" | "bbox" =
     mode === "polygon" || mode === "bbox" ? mode : "circle";
+  
   const normalizedPolygon = Array.isArray(polygon)
     ? polygon
         .map((point) => {
@@ -161,61 +163,78 @@ export const generateDXF = async (
         .filter((point): point is [number, number] => point !== null)
     : [];
 
-  const response = await fetch(`${API_URL}/dxf`, {
-    method: "POST",
-    headers: buildApiHeaders(),
-    body: JSON.stringify({
-      lat,
-      lon,
-      radius,
-      mode: normalizedMode,
-      polygon: normalizedPolygon,
-      layers,
-      projection,
-      contourRenderMode,
-      btContext,
-    }),
-  });
+  try {
+    const response = await fetch(`${API_URL}/dxf`, {
+      method: "POST",
+      headers: buildApiHeaders(),
+      body: JSON.stringify({
+        lat,
+        lon,
+        radius,
+        mode: normalizedMode,
+        polygon: normalizedPolygon,
+        layers,
+        projection,
+        contourRenderMode,
+        btContext,
+      }),
+    });
 
-  const parsed = await parseApiBody(response);
+    const durationMs = Logger.endTrace(traceId);
+    trackPerformance("generate_dxf_request", durationMs, { radius, mode: normalizedMode });
 
-  if (!response.ok) {
-    throw new Error(
-      buildHttpErrorMessage(
-        parsed,
-        response.status,
-        "Backend generation failed",
-      ),
+    const parsed = await parseApiBody(response);
+
+    if (!response.ok) {
+      throw new Error(
+        buildHttpErrorMessage(
+          parsed,
+          response.status,
+          "Backend generation failed",
+        ),
+      );
+    }
+
+    return requireJsonBody<DxfQueueResponse | DxfCachedResponse>(
+      parsed,
+      response.status,
+      "DXF generation",
     );
+  } catch (error) {
+    Logger.endTrace(traceId);
+    throw error;
   }
-
-  return requireJsonBody<DxfQueueResponse | DxfCachedResponse>(
-    parsed,
-    response.status,
-    "DXF generation",
-  );
 };
 
 export const getDxfJobStatus = async (jobId: string): Promise<DxfJobStatus> => {
-  const response = await fetch(`${API_URL}/jobs/${jobId}`, {
-    headers: buildApiHeaders(),
-  });
+  const traceId = Logger.startTrace(`getDxfJobStatus_${jobId}`);
+  try {
+    const response = await fetch(`${API_URL}/jobs/${jobId}`, {
+      headers: buildApiHeaders(),
+    });
 
-  const parsed = await parseApiBody(response);
+    const durationMs = Logger.endTrace(traceId);
+    trackPerformance("get_dxf_job_status", durationMs, { jobId });
 
-  if (!response.ok) {
-    throw new Error(
-      buildHttpErrorMessage(
-        parsed,
-        response.status,
-        "Failed to load job status",
-      ),
+    const parsed = await parseApiBody(response);
+
+    if (!response.ok) {
+      throw new Error(
+        buildHttpErrorMessage(
+          parsed,
+          response.status,
+          "Failed to load job status",
+        ),
+      );
+    }
+
+    return requireJsonBody<DxfJobStatus>(
+      parsed,
+      response.status,
+      "DXF job status",
     );
+  } catch (error) {
+    Logger.endTrace(traceId);
+    throw error;
   }
-
-  return requireJsonBody<DxfJobStatus>(
-    parsed,
-    response.status,
-    "DXF job status",
-  );
 };

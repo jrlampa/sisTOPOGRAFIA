@@ -12,6 +12,11 @@ export interface EngineeringStandard {
     DEFAULT_AMBIENT_TEMP_C: number;
     BT_TRI_PHASE_ETA: number;
     FREQUENCY_HZ: number;
+    // --- Compliance & Urbanism (T2) ---
+    NBR9050_MIN_SIDEWALK_FREE_WIDTH_M: number;
+    NBR9050_MIN_CALCADA_WIDTH_M: number;
+    POLE_STANDARD_DIAMETER_M: number;
+    ENVIRONMENTAL_BUFFER_RADIUS_M: number;
   };
   conductors: {
     lowTempLimits: string[];

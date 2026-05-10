@@ -3449,6 +3449,155 @@ export type Database = {
         }
         Relationships: []
       }
+      // ── Tabelas das migrações 065-068 (T3-134/T3-136) ────────────────────────
+      // NOTA: Regenerar via `supabase gen types` após aplicar ao Supabase Cloud.
+      collaboration_sessions: {
+        Row: {
+          id: string
+          tenant_id: string | null
+          projeto_id: string
+          nome_projeto: string
+          responsavel_id: string | null
+          status: string
+          versao_atual: number
+          metadata: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id?: string | null
+          projeto_id: string
+          nome_projeto: string
+          responsavel_id?: string | null
+          status?: string
+          versao_atual?: number
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string | null
+          projeto_id?: string
+          nome_projeto?: string
+          responsavel_id?: string | null
+          status?: string
+          versao_atual?: number
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      collaboration_history: {
+        Row: {
+          id: string
+          sessao_id: string
+          usuario_id: string | null
+          tipo_operacao: string
+          payload: Json
+          versao_base: number
+          versao_resultante: number
+          conflito: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          sessao_id: string
+          usuario_id?: string | null
+          tipo_operacao: string
+          payload: Json
+          versao_base: number
+          versao_resultante: number
+          conflito?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          sessao_id?: string
+          usuario_id?: string | null
+          tipo_operacao?: string
+          payload?: Json
+          versao_base?: number
+          versao_resultante?: number
+          conflito?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          id: string
+          tenant_id: string | null
+          name: string
+          location: string | null
+          area_m2: number | null
+          status: string
+          category: string | null
+          is_archived: boolean | null
+          app_state: Json
+          created_at: string
+          updated_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id?: string | null
+          name: string
+          location?: string | null
+          area_m2?: number | null
+          status?: string
+          category?: string | null
+          is_archived?: boolean | null
+          app_state: Json
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string | null
+          name?: string
+          location?: string | null
+          area_m2?: number | null
+          status?: string
+          category?: string | null
+          is_archived?: boolean | null
+          app_state?: Json
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      project_snapshots: {
+        Row: {
+          id: string
+          project_id: string
+          label: string
+          app_state: Json
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          label: string
+          app_state: Json
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          label?: string
+          app_state?: Json
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       dg_discard_rate_by_constraint_v: {
@@ -3742,6 +3891,20 @@ export type Database = {
           check_name: string
           detail: string
           status: string
+        }[]
+      }
+      get_neighboring_projects: {
+        Args: {
+          min_lat: number
+          max_lat: number
+          min_lng: number
+          max_lng: number
+          exclude_id?: string | null
+        }
+        Returns: {
+          id: string
+          name: string
+          boundary_json: Json
         }[]
       }
     }

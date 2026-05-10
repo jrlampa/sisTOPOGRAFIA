@@ -1,6 +1,5 @@
 import { Router, Request, Response } from "express";
 import { logger } from "../utils/logger.js";
-import { config } from "../config.js";
 import { osmRequestSchema } from "../schemas/apiSchemas.js";
 import { fetchWithCircuitBreaker } from "../utils/externalApi.js";
 

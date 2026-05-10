@@ -57,6 +57,11 @@ function PageLoader() {
 }
 
 // ─── Roteador principal ───────────────────────────────────────────────────
+import { PortalLayout } from "./components/PortalLayout";
+import { ProjectPage } from "./pages/ProjectPage";
+import { TeamPage } from "./pages/TeamPage";
+
+// ─── Roteador principal ───────────────────────────────────────────────────
 
 export default function AppRouter() {
   return (
@@ -65,13 +70,27 @@ export default function AppRouter() {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<LandingDraftPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
+
+            {/* Nova Arquitetura de Portal (Item B) */}
+            <Route path="/portal" element={<PortalLayout />}>
+              <Route index element={<DashboardPage />} />
+              <Route path="projects" element={<ProjectPage />} />
+              <Route path="team" element={<TeamPage />} />
+              <Route path="finance" element={<div className="p-8 text-white font-black uppercase tracking-widest italic opacity-40">FinOps Central (Coming Soon)</div>} />
+...
+
+              <Route path="modularity" element={<div className="p-8 text-white font-black uppercase tracking-widest italic opacity-40">Configurações da Engine</div>} />
+              <Route path="settings" element={<div className="p-8 text-white font-black uppercase tracking-widest italic opacity-40">Perfil & Preferências</div>} />
+            </Route>
+
+            {/* O Editor imersivo (Fullscreen) */}
+            <Route path="/editor/:projeto_id" element={<ProjetoPage />} />
             <Route path="/app" element={<ProjetoPage />} />
+
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/saas-admin" element={<SaaSAdminPage />} />
             <Route path="/ajuda" element={<AjudaPage />} />
             <Route path="/status" element={<StatusPage />} />
-            {/* Compatibilidade com rota legada /landing */}
             <Route path="/landing" element={<LandingDraftPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

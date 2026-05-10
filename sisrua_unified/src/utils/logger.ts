@@ -138,6 +138,40 @@ class Logger {
     }
   }
 
+  // ─── Performance Tracing ───────────────────────────────────────────────────
+  private static activeTraces = new Map<string, number>();
+
+  /** 
+   * Inicia um trace de performance. 
+   * Retorna um ID único para finalizar o trace.
+   */
+  static startTrace(label: string): string {
+    const traceId = `${label}_${Math.random().toString(36).substring(2, 9)}`;
+    this.activeTraces.set(traceId, performance.now());
+    this.debug(`[TRACE START] ${label}`, { traceId });
+    return traceId;
+  }
+
+  /** 
+   * Finaliza um trace e retorna a duração em ms.
+   * Loga o resultado automaticamente.
+   */
+  static endTrace(traceId: string): number {
+    const startTime = this.activeTraces.get(traceId);
+    if (startTime === undefined) return 0;
+    
+    const duration = performance.now() - startTime;
+    const label = traceId.split('_')[0];
+    this.activeTraces.delete(traceId);
+    
+    this.info(`[TRACE END] ${label}`, { 
+      traceId, 
+      durationMs: Math.round(duration * 100) / 100 
+    });
+    
+    return duration;
+  }
+
   static getLogs(): readonly LogEntry[] {
     return [...this.logs];
   }

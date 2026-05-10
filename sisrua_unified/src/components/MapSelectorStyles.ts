@@ -30,7 +30,7 @@ export const getFlagButtonClass = (
 };
 
 export const getIconActionButtonClass = (
-  variant: "danger" | "sky" | "slate" | "violet",
+  variant: "danger" | "sky" | "slate" | "violet" | "amber" | "rose" | "emerald",
   active = false,
 ) => {
   const baseClass =
@@ -42,6 +42,18 @@ export const getIconActionButtonClass = (
 
   if (variant === "sky") {
     return `${baseClass} border-sky-500 text-sky-600 bg-sky-500/10 hover:bg-sky-100`;
+  }
+
+  if (variant === "amber") {
+    return `${baseClass} border-amber-500 text-amber-600 bg-amber-500/10 hover:bg-amber-100`;
+  }
+
+  if (variant === "rose") {
+    return `${baseClass} border-rose-500 text-rose-600 bg-rose-500/10 hover:bg-rose-100`;
+  }
+
+  if (variant === "emerald") {
+    return `${baseClass} border-emerald-500 text-emerald-600 bg-emerald-500/10 hover:bg-emerald-100`;
   }
 
   if (variant === "violet") {

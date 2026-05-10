@@ -59,6 +59,34 @@ const atualizarChecklistSchema = z.object({
   ).min(1).max(20),
 });
 
+const TopologySchema = z.object({
+  poles: z.array(z.object({
+    id: z.string(),
+    lat: z.number(),
+    lng: z.number()
+  })),
+  transformers: z.array(z.any()),
+  edges: z.array(z.any())
+});
+
+/**
+ * POST /auto-interferencias
+ * Executa detecção automática de interferências com APPs/UCs (T2-45).
+ */
+router.post("/auto-interferencias", (req: Request, res: Response) => {
+  const parse = TopologySchema.safeParse(req.body);
+  if (!parse.success) {
+    return res.status(400).json({ erro: "Topologia inválida", detalhes: parse.error.issues });
+  }
+  const interferencias = EsgAmbientalService.detectarInterferencias(parse.data as any);
+  return res.json({
+    timestamp: new Date().toISOString(),
+    riskLevel: interferencias.length > 0 ? "ALTO" : "BAIXO",
+    totalInterferencias: interferencias.length,
+    interferencias
+  });
+});
+
 // ─── POST /relatorios ─────────────────────────────────────────────────────────
 
 router.post("/relatorios", (req: Request, res: Response) => {
