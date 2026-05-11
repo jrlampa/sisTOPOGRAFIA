@@ -21,8 +21,8 @@ ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 
 -- Políticas
 CREATE POLICY projects_tenant_isolation ON public.projects
-    USING (tenant_id = (SELECT tenant_id FROM user_profiles WHERE user_id = auth.uid()))
-    WITH CHECK (tenant_id = (SELECT tenant_id FROM user_profiles WHERE user_id = auth.uid()));
+    USING (tenant_id = (SELECT public.current_tenant_id()))
+    WITH CHECK (tenant_id = (SELECT public.current_tenant_id()));
 
 -- Trigger para updated_at
 CREATE TRIGGER trg_projects_updated_at

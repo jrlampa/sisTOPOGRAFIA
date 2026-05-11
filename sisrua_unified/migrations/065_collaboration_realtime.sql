@@ -40,10 +40,10 @@ ALTER TABLE collaboration_history ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de Tenant Isolation
 CREATE POLICY tenant_isolation_sessions ON collaboration_sessions
-    USING (tenant_id = (SELECT tenant_id FROM user_profiles WHERE user_id = auth.uid()));
+    USING (tenant_id = (SELECT public.current_tenant_id()));
 
 CREATE POLICY tenant_isolation_history ON collaboration_history
-    USING (sessao_id IN (SELECT id FROM collaboration_sessions WHERE tenant_id = (SELECT tenant_id FROM user_profiles WHERE user_id = auth.uid())));
+    USING (sessao_id IN (SELECT id FROM collaboration_sessions WHERE tenant_id = (SELECT public.current_tenant_id())));
 
 -- Habilitar Realtime para estas tabelas (opcional se usarmos Broadcast puro, mas bom para fallbacks)
 -- ALTER PUBLICATION supabase_realtime ADD TABLE collaboration_sessions;
