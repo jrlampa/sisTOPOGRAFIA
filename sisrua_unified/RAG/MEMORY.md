@@ -6,6 +6,7 @@
 - **Governança (T3.136)**: SuperAdmin Dashboard operacional com métricas de escala, saúde de infraestrutura e trilha de auditoria forense.
 - **UI/UX Sênior**: Overhaul completo do Editor Core e Painéis com Glassmorphism, Framer Motion e acessibilidade WCAG 2.1 AA.
 - **Pipeline & Qualidade**: Linter 100% OK, Typechecking impecável, Suite de testes com 100% de sucesso.
+- **Engenharia (py_engine)**: Estabilização e cobertura de testes de elite atingida. Core modules (Controller, Geometry, Mixins) com cobertura >= 80%. Suite Python agora com 108 asserções validadas.
 - **Engenharia**: Propagação de metadados BIM validada no py_engine (Item T3.134).
 - **DG Wizard (T3.131)**: Assistente de projeto completo que automatiza demanda e alocação de trafos.
 - **Gestão Fundiária (T2.107)**: Unificação dos serviços INCRA e Documental.
