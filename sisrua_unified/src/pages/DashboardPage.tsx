@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Activity,
   ChevronRight,
@@ -15,7 +16,7 @@ import { ProjectService, ActivityLog } from "../services/projectService";
 
 // ─── Suporte ──────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, sub, icon: Icon, trend, color = "indigo" }: any) {
+function StatCard({ label, value, sub, icon: Icon, trend, color = "indigo", delay = 0 }: any) {
   const colors: any = {
     indigo: "text-indigo-400 bg-indigo-500/10",
     emerald: "text-emerald-400 bg-emerald-500/10",
@@ -24,23 +25,29 @@ function StatCard({ label, value, sub, icon: Icon, trend, color = "indigo" }: an
   };
 
   return (
-    <div className="p-6 rounded-3xl bg-slate-900/50 border border-white/5 backdrop-blur-xl shadow-xl flex flex-col gap-4 group hover:border-white/10 transition-all">
-      <div className="flex items-center justify-between">
-        <div className={`p-2 rounded-xl ${colors[color]}`}>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay, ease: "easeOut" }}
+      className="relative overflow-hidden p-6 rounded-3xl bg-slate-900/40 border border-white/5 backdrop-blur-2xl shadow-2xl flex flex-col gap-4 group hover:border-white/20 transition-all hover:-translate-y-1 hover:shadow-indigo-500/10"
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="relative z-10 flex items-center justify-between">
+        <div className={`p-2 rounded-xl ${colors[color]} ring-1 ring-white/5`}>
           <Icon className="h-5 w-5" />
         </div>
         {trend && (
-          <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase">
+          <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase ring-1 ring-emerald-500/20">
             +{trend}%
           </span>
         )}
       </div>
-      <div>
+      <div className="relative z-10">
         <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{label}</div>
-        <div className="text-3xl font-black text-white mt-1 italic tracking-tighter">{value}</div>
+        <div className="text-3xl font-black text-white mt-1 italic tracking-tighter drop-shadow-md">{value}</div>
         {sub && <div className="text-[10px] font-bold text-slate-600 mt-1 uppercase">{sub}</div>}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -72,27 +79,36 @@ export default function DashboardPage() {
   }, []);
   
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-10"
+    >
       {/* Welcome Section */}
-      <div className="flex flex-wrap items-end justify-between gap-6">
+      <motion.div 
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6 }}
+        className="flex flex-wrap items-end justify-between gap-6"
+      >
         <div>
-          <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">Visão Geral</h1>
-          <p className="text-slate-500 text-sm font-bold uppercase tracking-[0.2em] mt-1">Bem-vindo ao centro de comando, <span className="text-indigo-400">{user?.email?.split('@')[0]}</span></p>
+          <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic drop-shadow-lg">Visão Geral</h1>
+          <p className="text-slate-400 text-sm font-bold uppercase tracking-[0.2em] mt-1">Bem-vindo ao centro de comando, <span className="text-indigo-400">{user?.email?.split('@')[0]}</span></p>
         </div>
-        <div className="flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/5">
-           <div className="px-4 py-2 text-right border-r border-white/5">
+        <div className="flex items-center gap-3 bg-slate-900/60 p-2 rounded-2xl border border-white/10 backdrop-blur-xl shadow-xl">
+           <div className="px-4 py-2 text-right border-r border-white/10">
              <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none italic">Jurisdição IM3</div>
              <div className="text-xs font-black text-white uppercase mt-1">Brasil / Sudeste</div>
            </div>
            <div className="px-4 py-2 text-right">
              <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none">Status do Tenant</div>
              <div className="text-xs font-black text-emerald-400 uppercase mt-1 flex items-center justify-end gap-1.5">
-               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                Enterprise Ativo
              </div>
            </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -103,6 +119,7 @@ export default function DashboardPage() {
           icon={Briefcase} 
           trend={projectCount ? "10" : undefined}
           color="indigo"
+          delay={0.1}
         />
         <StatCard 
           label="Área Mapeada" 
@@ -110,6 +127,7 @@ export default function DashboardPage() {
           sub="Cortes geográficos" 
           icon={MapIcon} 
           color="emerald"
+          delay={0.2}
         />
         <StatCard 
           label="Membros Online" 
@@ -117,6 +135,7 @@ export default function DashboardPage() {
           sub="Sincronização Live" 
           icon={Users} 
           color="amber"
+          delay={0.3}
         />
         <StatCard 
           label="Compliance ESG" 
@@ -124,12 +143,18 @@ export default function DashboardPage() {
           sub="Média do portfólio" 
           icon={ShieldCheck} 
           color="fuchsia"
+          delay={0.4}
         />
       </div>
 
       {/* Bottom Layout: Recent Activity + Project Lifecycle */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="lg:col-span-2 space-y-6"
+        >
           <div className="flex items-center justify-between px-2">
             <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.4em]">Linha do Tempo de Atividade</h3>
             <div className="flex items-center gap-4">
@@ -166,7 +191,7 @@ export default function DashboardPage() {
                </Link>
              ))}
           </div>
-        </div>
+        </motion.div>
 
         <div className="space-y-6">
           <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.4em] px-2">Integridade de Projetos</h3>
@@ -205,6 +230,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

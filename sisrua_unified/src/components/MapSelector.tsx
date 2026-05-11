@@ -38,6 +38,15 @@ import { MapJurisdictionLayer } from "./MapLayers/MapJurisdictionLayer";
 
 import { MapInteractionLayer } from "./MapLayers/MapInteractionLayer";
 import { applyRoadSnap, applyOrthoSnap } from "../utils/geometriaUtils";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Navigation, 
+  Move, 
+  MapPin, 
+  GitCommit, 
+  Zap,
+  MousePointer2
+} from "lucide-react";
 
 interface MapSelectorProps {
   center: { lat: number; lng: number; label?: string };
@@ -397,6 +406,37 @@ const MapSelector: React.FC<MapSelectorProps> = ({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
+      <AnimatePresence>
+        {isEditing && (
+          <motion.div 
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -50, opacity: 0 }}
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none"
+          >
+             <div className="flex items-center gap-3 px-6 py-2.5 rounded-full bg-slate-900/80 border border-blue-500/30 backdrop-blur-xl shadow-2xl shadow-blue-500/20">
+                <div className="p-1.5 bg-blue-500/20 rounded-lg text-blue-400">
+                   {btEditorMode === "add-pole" && <MapPin size={14} strokeWidth={3} />}
+                   {btEditorMode === "move-pole" && <Move size={14} strokeWidth={3} />}
+                   {btEditorMode === "add-edge" && <GitCommit size={14} strokeWidth={3} />}
+                   {btEditorMode === "add-transformer" && <Zap size={14} strokeWidth={3} />}
+                   {btEditorMode === "none" && mtEditorMode !== "none" && <MousePointer2 size={14} strokeWidth={3} />}
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white">
+                   Modo Edição: {
+                     btEditorMode === "add-pole" ? "Adicionar Poste" :
+                     btEditorMode === "move-pole" ? "Mover Ativo" :
+                     btEditorMode === "add-edge" ? "Conectar Rede" :
+                     btEditorMode === "add-transformer" ? "Instalar Trafo" :
+                     "Seleção MT"
+                   }
+                </span>
+                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse ml-2" />
+             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <style>{`
         .map-cursor-active .leaflet-container {
           cursor: crosshair !important;

@@ -1,196 +1,203 @@
-import React, { useState } from "react";
-import { Mail, Lock } from "lucide-react";
-import { Link } from "react-router-dom";
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  ShieldCheck, 
+  Mail, 
+  Lock, 
+  Building2, 
+  ArrowRight, 
+  Loader2, 
+  AlertCircle,
+  CheckCircle2
+} from "lucide-react";
 import { useAuth } from "../../auth/AuthProvider";
-import { allowedCorporateDomain } from "../../lib/supabaseClient";
 
+/**
+ * LandingAuth.tsx — Portal de autenticação corporativo da Landing Page.
+ */
 export function LandingAuth() {
-  const {
-    configured,
-    loading,
-    mode,
-    user,
-    error,
-    message,
-    awaitingEmailConfirmation,
-    signInWithEmail,
-    signUpWithEmail,
-    signInWithGoogle,
-    signInWithMicrosoft,
-  } = useAuth();
+  const { signInWithEmail, loading, error, user } = useAuth();
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [tenantId, setTenantId] = React.useState("");
+  const [isSuccess, setIsSuccess] = React.useState(false);
 
-  const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
-
-  async function handleAuthSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setFormError(null);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      if (authMode === "signup") {
-        await signUpWithEmail({ email, password, fullName });
-      } else {
-        await signInWithEmail({ email, password });
-      }
-    } catch (submitError) {
-      setFormError(submitError instanceof Error ? submitError.message : "Falha ao autenticar.");
+      await signInWithEmail({ email, password });
+      setIsSuccess(true);
+    } catch (err) {
+      console.error(err);
     }
-  }
-
-  async function handleSocialLogin(provider: "google" | "microsoft") {
-    setFormError(null);
-    try {
-      if (provider === "google") {
-        await signInWithGoogle();
-      } else {
-        await signInWithMicrosoft();
-      }
-    } catch (socialError) {
-      setFormError(socialError instanceof Error ? socialError.message : "Falha no login social.");
-    }
-  }
+  };
 
   return (
-    <section id="acesso" className="border-t border-white/5 px-6 py-20">
-      <div className="mx-auto grid max-w-screen-xl gap-8 lg:grid-cols-[1fr_420px] lg:items-start">
-        <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
-            <Mail className="h-3.5 w-3.5" />
-            Autoatendimento IM3 liberado
-          </span>
-          <h2 className="font-display mt-4 text-3xl font-black tracking-tight text-slate-50">
-            Usuários {`@${allowedCorporateDomain}`} entram só com cadastro e confirmação de email.
-          </h2>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
-            O fluxo aceita alias como <span className="font-semibold text-slate-200">nome+obra@{allowedCorporateDomain}</span>. O acesso é liberado após a confirmação do email enviada pelo Supabase.
-          </p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-md">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-400">Regra aplicada</p>
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">Cadastro livre para aliases do domínio IM3 com onboarding automático no backend.</p>
+    <section id="acesso" className="relative py-24 px-6 overflow-hidden">
+      {/* Background Orbs */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-4xl -z-10">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] animate-pulse delay-1000" />
+      </div>
+
+      <div className="mx-auto max-w-7xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          
+          {/* Content side */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="space-y-8"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase tracking-widest">
+              <ShieldCheck size={14} />
+              Protocolo de Segurança Ativo
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-md">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-400">Garantia operacional</p>
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">Enquanto o email não for confirmado, o backend mantém o acesso pendente.</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#071524]/80 p-6 shadow-2xl shadow-cyan-950/40 backdrop-blur-xl">
-          <div className="mb-5 flex rounded-2xl border border-white/10 bg-white/5 p-1">
-            <button
-              type="button"
-              onClick={() => setAuthMode("signup")}
-              className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${authMode === "signup" ? "bg-cyan-500 text-slate-950" : "text-slate-400 hover:text-slate-200"}`}
-            >
-              Cadastro IM3
-            </button>
-            <button
-              type="button"
-              onClick={() => setAuthMode("login")}
-              className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${authMode === "login" ? "bg-cyan-500 text-slate-950" : "text-slate-400 hover:text-slate-200"}`}
-            >
-              Entrar
-            </button>
-          </div>
-
-          <form className="space-y-4" onSubmit={handleAuthSubmit}>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                disabled={loading || !configured}
-                onClick={() => void handleSocialLogin("google")}
-                className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {/* Google Icon */}
-                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden="true">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                </svg>
-                Google
-              </button>
-              <button
-                type="button"
-                disabled={loading || !configured}
-                onClick={() => void handleSocialLogin("microsoft")}
-                className="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {/* Microsoft Icon */}
-                <svg viewBox="0 0 23 23" className="h-4 w-4 shrink-0" aria-hidden="true">
-                  <rect x="1" y="1" width="10" height="10" fill="#F35325" />
-                  <rect x="12" y="1" width="10" height="10" fill="#81BC06" />
-                  <rect x="1" y="12" width="10" height="10" fill="#05A6F0" />
-                  <rect x="12" y="12" width="10" height="10" fill="#FFBA08" />
-                </svg>
-                Microsoft
-              </button>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="h-px flex-1 bg-white/10" />
-              <span className="text-xs text-slate-500">ou com email</span>
-              <span className="h-px flex-1 bg-white/10" />
-            </div>
-
-            {authMode === "signup" && (
-              <label className="block">
-                <span className="mb-1 block text-xs font-black uppercase tracking-[0.16em] text-slate-500">Nome</span>
-                <input
-                  name="fullName" value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Nome completo" autoComplete="name"
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
-                />
-              </label>
-            )}
-
-            <label className="block">
-              <span className="mb-1 block text-xs font-black uppercase tracking-[0.16em] text-slate-500">Email corporativo</span>
-              <input
-                name="email" type="email" value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={`voce+alias@${allowedCorporateDomain}`} autoComplete="email"
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-1 block text-xs font-black uppercase tracking-[0.16em] text-slate-500">Senha</span>
-              <input
-                name="password" type="password" value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={authMode === "signup" ? "Mínimo recomendado: 10 caracteres" : "Sua senha"}
-                autoComplete={authMode === "signup" ? "new-password" : "current-password"}
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
-              />
-            </label>
-
-            <button
-              type="submit" disabled={loading || !configured}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Lock className="h-4 w-4" />
-              {loading ? "Processando..." : authMode === "signup" ? "Cadastrar e confirmar email" : "Entrar com email"}
-            </button>
-          </form>
-
-          <div className="mt-4 space-y-3 text-sm">
-            {message && <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-emerald-200">{message}</div>}
-            {(formError || error) && <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-rose-200">{formError || error}</div>}
-            {!configured && <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-amber-100">Configure as variáveis de ambiente Supabase.</div>}
-            {mode === "authenticated" && user && !awaitingEmailConfirmation && (
-              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-cyan-100">
-                Sessão ativa para <span className="font-semibold">{user.email}</span>.
-                <div className="mt-2">
-                  <Link to="/app" className="font-semibold text-white underline underline-offset-4">Abrir plataforma</Link>
-                </div>
+            <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tighter uppercase italic leading-[1.1]">
+              Acesso à <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-500">
+                Jurisdição Digital.
+              </span>
+            </h2>
+            <p className="text-lg text-slate-400 max-w-lg leading-relaxed font-medium">
+              Conecte-se com sua identidade corporativa para acessar projetos topográficos, análises de conformidade e o motor de design generativo.
+            </p>
+            
+            <div className="grid grid-cols-2 gap-6 pt-4">
+              <div className="space-y-2">
+                <div className="text-2xl font-black text-white italic tracking-tighter">AES 256</div>
+                <div className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Encriptação ponta-a-ponta</div>
               </div>
-            )}
-          </div>
+              <div className="space-y-2">
+                <div className="text-2xl font-black text-white italic tracking-tighter">SSO Ready</div>
+                <div className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Integração Azure/Okta</div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Form side */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="relative"
+          >
+            <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/5 to-indigo-500/5 blur-3xl" />
+            <div className="relative glass-premium border border-white/10 bg-[#020617]/40 p-8 sm:p-12 rounded-[2.5rem] shadow-2xl backdrop-blur-3xl overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-indigo-600 to-violet-600" />
+              
+              <AnimatePresence mode="wait">
+                {isSuccess || user ? (
+                  <motion.div
+                    key="success"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center justify-center py-12 text-center"
+                  >
+                    <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mb-6 ring-1 ring-emerald-500/30">
+                       <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+                    </div>
+                    <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2 italic">Bem-vindo de volta</h3>
+                    <p className="text-slate-400 text-sm font-medium mb-8">Redirecionando para o seu portal corporativo...</p>
+                    <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+                  </motion.div>
+                ) : (
+                  <motion.form 
+                    key="form"
+                    onSubmit={handleLogin} 
+                    className="space-y-6"
+                  >
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">
+                          Email Corporativo
+                        </label>
+                        <div className="relative group">
+                          <input 
+                            type="email"
+                            required
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            placeholder="seu@empresa.com.br"
+                            className="w-full h-14 rounded-2xl border-2 border-white/5 bg-slate-950/50 px-12 text-sm font-bold text-white shadow-inner transition-all focus:border-cyan-500/50 focus:ring-4 focus:ring-cyan-500/5 outline-none placeholder:text-slate-600"
+                          />
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-cyan-400 transition-colors" size={18} />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">
+                          Chave de Acesso
+                        </label>
+                        <div className="relative group">
+                          <input 
+                            type="password"
+                            required
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full h-14 rounded-2xl border-2 border-white/5 bg-slate-950/50 px-12 text-sm font-bold text-white shadow-inner transition-all focus:border-cyan-500/50 focus:ring-4 focus:ring-cyan-500/5 outline-none placeholder:text-slate-600"
+                          />
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-cyan-400 transition-colors" size={18} />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">
+                          ID da Organização (Opcional)
+                        </label>
+                        <div className="relative group">
+                          <input 
+                            type="text"
+                            value={tenantId}
+                            onChange={e => setTenantId(e.target.value)}
+                            placeholder="Ex: IM3-RJ-01"
+                            className="w-full h-14 rounded-2xl border-2 border-white/5 bg-slate-950/50 px-12 text-sm font-bold text-white shadow-inner transition-all focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/5 outline-none placeholder:text-slate-600 opacity-60 focus:opacity-100"
+                          />
+                          <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-400 transition-colors" size={18} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {error && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold"
+                      >
+                        <AlertCircle size={16} />
+                        {error}
+                      </motion.div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full h-16 rounded-2xl bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-indigo-600/30 hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:grayscale transition-all flex items-center justify-center gap-3"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="animate-spin" size={20} />
+                          Autenticando
+                        </>
+                      ) : (
+                        <>
+                          Entrar na Plataforma
+                          <ArrowRight size={18} />
+                        </>
+                      )}
+                    </button>
+
+                    <div className="flex items-center justify-center gap-2 pt-2">
+                       <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Esqueceu a chave?</span>
+                       <a href="#" className="text-[10px] font-black text-indigo-400 hover:text-cyan-400 transition-colors uppercase tracking-widest">Recuperar</a>
+                    </div>
+                  </motion.form>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>

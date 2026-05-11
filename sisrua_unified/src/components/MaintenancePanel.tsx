@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Activity, ShieldAlert, CheckCircle2, Loader2, Brain, AlertTriangle } from "lucide-react";
 import { API_BASE_URL } from "../config/api";
 import { buildApiHeaders } from "../services/apiClient";
@@ -65,17 +66,29 @@ export const MaintenancePanel: React.FC<MaintenancePanelProps> = ({ transformer,
     }
   };
 
+  const getRiskBg = (level: string) => {
+    switch (level) {
+      case "baixo": return "bg-emerald-500/10 border-emerald-500/20 ring-emerald-500/30";
+      case "medio": return "bg-amber-500/10 border-amber-500/20 ring-amber-500/30";
+      case "alto": return "bg-orange-500/10 border-orange-500/20 ring-orange-500/30";
+      case "critico": return "bg-rose-500/10 border-rose-500/20 ring-rose-500/30";
+      default: return "bg-white/5 border-white/10 ring-white/5";
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-4 p-4 glass-premium rounded-xl border border-white/10">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold flex items-center gap-2">
-          <Activity className="w-5 h-5 text-fuchsia-400" />
+    <div className="flex flex-col gap-4 p-4 glass-premium rounded-2xl border border-white/5 bg-slate-900/30 backdrop-blur-2xl shadow-xl">
+      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <h3 className="text-sm font-black flex items-center gap-2 tracking-tight uppercase text-white/80">
+          <div className="p-1.5 bg-fuchsia-500/20 rounded-lg text-fuchsia-400 ring-1 ring-fuchsia-500/30">
+            <Activity className="w-4 h-4" />
+          </div>
           Saúde da Rede (IA)
         </h3>
         <button
           onClick={handleAnalyze}
           disabled={loading || !transformer}
-          className="px-3 py-1.5 bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-50 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-2"
+          className="px-3 py-1.5 bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-2 shadow-lg hover:shadow-fuchsia-500/25 active:scale-95"
         >
           {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Brain className="w-3 h-3" />}
           Análise IA
@@ -83,62 +96,95 @@ export const MaintenancePanel: React.FC<MaintenancePanelProps> = ({ transformer,
       </div>
 
       {!transformer && (
-        <p className="text-xs text-slate-500 text-center py-4">
+        <p className="text-[10px] uppercase font-black tracking-widest text-slate-500 text-center py-6 opacity-60">
           Selecione um transformador para auditoria preditiva.
         </p>
       )}
 
-      {error && (
-        <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-[10px] text-red-200">
-          {error}
-        </div>
-      )}
+      <AnimatePresence mode="wait">
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-[10px] font-bold text-red-300 flex items-center gap-2"
+          >
+            <AlertTriangle className="w-3 h-3 shrink-0" />
+            {error}
+          </motion.div>
+        )}
 
-      {result && (
-        <div className="animate-in fade-in slide-in-from-top-2 duration-500 space-y-4">
-          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-            <div>
-              <div className="text-[10px] text-slate-500 uppercase font-black">Risk Score</div>
-              <div className={`text-2xl font-mono font-black ${getRiskColor(result.riskLevel)}`}>
-                {result.healthScore}%
+        {result && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+            <div className={`flex items-center justify-between p-4 rounded-2xl border ring-1 ${getRiskBg(result.riskLevel)} transition-colors`}>
+              <div>
+                <div className="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-1 flex items-center gap-1">
+                   <Activity className="w-3 h-3" /> Risk Score
+                </div>
+                <div className={`text-3xl font-mono font-black tracking-tighter drop-shadow-lg ${getRiskColor(result.riskLevel)}`}>
+                  {result.healthScore}%
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-1">Nível de Risco</div>
+                <div className={`text-xs px-2.5 py-1 rounded bg-black/20 font-black uppercase tracking-widest ${getRiskColor(result.riskLevel)}`}>
+                  {result.riskLevel}
+                </div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-[10px] text-slate-500 uppercase font-black">Nível de Risco</div>
-              <div className={`text-sm font-bold uppercase ${getRiskColor(result.riskLevel)}`}>
-                {result.riskLevel}
+
+            <div className="p-4 bg-white/5 rounded-2xl border border-white/5 relative overflow-hidden group hover:border-white/10 transition-colors">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <Brain className="w-16 h-16 text-indigo-400" />
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-3 text-indigo-400 uppercase text-[9px] font-black tracking-widest">
+                  <ShieldAlert className="w-3 h-3" />
+                  Diagnóstico Cognitivo
+                </div>
+                <p className="text-xs leading-relaxed text-slate-300 italic font-medium">
+                  "{result.rationale}"
+                </p>
               </div>
             </div>
-          </div>
 
-          <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-            <div className="flex items-center gap-2 mb-2 text-slate-400 uppercase text-[9px] font-black">
-              <ShieldAlert className="w-3 h-3" />
-              Diagnóstico Cognitivo
-            </div>
-            <p className="text-xs leading-relaxed text-slate-200 italic">
-              "{result.rationale}"
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="text-[9px] text-slate-500 uppercase font-black px-1">Ações Recomendadas</div>
-            {result.suggestedActions.map((action, i) => (
-              <div key={i} className="flex items-start gap-2 p-2 bg-emerald-500/5 border border-emerald-500/20 rounded-lg text-[11px] text-emerald-100">
-                <CheckCircle2 className="w-3 h-3 mt-0.5 text-emerald-400 shrink-0" />
-                {action}
+            <div className="space-y-2">
+              <div className="text-[9px] text-slate-500 uppercase font-black tracking-widest px-1 mb-2 flex items-center gap-2">
+                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                 Plano de Ação Recomendado
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+              {result.suggestedActions.map((action, i) => (
+                <motion.div 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 * i }}
+                  key={i} 
+                  className="flex items-start gap-2 p-2.5 bg-emerald-500/5 border border-emerald-500/20 rounded-xl text-[11px] font-bold text-emerald-200 hover:bg-emerald-500/10 transition-colors"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-emerald-400 shrink-0" />
+                  {action}
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
-      {!result && !loading && transformer && (
-        <div className="flex flex-col items-center justify-center py-6 text-center opacity-40">
-          <AlertTriangle className="w-8 h-8 mb-2" />
-          <p className="text-[10px] font-bold uppercase tracking-tighter">Motor Preditivo em Standby</p>
-        </div>
-      )}
+        {!result && !loading && transformer && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center py-8 text-center opacity-40"
+          >
+            <Brain className="w-8 h-8 mb-3 text-fuchsia-400" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Motor Preditivo em Standby</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

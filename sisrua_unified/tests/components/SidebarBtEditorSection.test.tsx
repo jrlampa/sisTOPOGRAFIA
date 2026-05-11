@@ -80,8 +80,12 @@ const DEFAULT_PROPS: any = {
 
 describe("SidebarBtEditorSection", () => {
   it("deve renderizar o título da seção e o seletor de cenário", () => {
-    render(<SidebarBtEditorSection {...DEFAULT_PROPS} />);
-    expect(screen.getByText(/editor bt/i)).toBeInTheDocument();
+    render(
+      <React.Suspense fallback={<div>Loading...</div>}>
+        <SidebarBtEditorSection {...DEFAULT_PROPS} />
+      </React.Suspense>
+    );
+    expect(screen.getByText(/toolbox/i)).toBeInTheDocument();
     // Usa getAllByText e verifica se ao menos um está lá
     expect(screen.getAllByText(/rede atual/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/rede nova/i)).toBeInTheDocument();

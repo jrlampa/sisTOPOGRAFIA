@@ -1,5 +1,16 @@
 import React, { Suspense, useMemo } from "react";
-import { Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Loader2, 
+  Navigation, 
+  Move, 
+  MapPin, 
+  GitCommit, 
+  Zap, 
+  AlertTriangle,
+  RefreshCcw,
+  Plus
+} from "lucide-react";
 import {
   FormFieldMessage,
   getValidationInputClassName,
@@ -61,11 +72,42 @@ type TransformerDebugById = Record<
 >;
 
 const InlineSuspenseFallback = ({ label }: { label: string }) => (
-  <div className="flex items-center justify-center gap-2 rounded-xl border-2 border-amber-800/25 bg-amber-50 p-4 text-xs font-semibold uppercase tracking-wide text-amber-900 shadow-[4px_4px_0_rgba(124,45,18,0.16)] dark:border-amber-500/45 dark:bg-zinc-900 dark:text-amber-100 dark:shadow-[4px_4px_0_rgba(251,146,60,0.22)]">
-    <Loader2 size={14} className="animate-spin" />
+  <div className="flex items-center justify-center gap-2 rounded-xl border border-white/5 bg-slate-900/50 p-6 text-xs font-black uppercase tracking-widest text-slate-400 backdrop-blur-xl shadow-2xl">
+    <Loader2 size={16} className="animate-spin text-indigo-500" />
     {label}
   </div>
 );
+
+interface EditorToolButtonProps {
+  active: boolean;
+  onClick: () => void;
+  icon: any;
+  label: string;
+  colorClass: string;
+  testId?: string;
+}
+
+function EditorToolButton({ active, onClick, icon: Icon, label, colorClass, testId }: EditorToolButtonProps) {
+  return (
+    <button
+      data-testid={testId}
+      onClick={onClick}
+      aria-pressed={active}
+      className={`group relative flex flex-col items-center justify-center gap-2 rounded-2xl border transition-all p-3 ${
+        active 
+          ? `bg-white dark:bg-white/10 shadow-xl ring-2 ${colorClass} border-transparent scale-105 z-10 glass-shine` 
+          : "bg-white/5 border-white/5 hover:bg-white/10 text-slate-500 hover:text-slate-300"
+      }`}
+    >
+      <div className={`transition-transform duration-300 ${active ? "scale-110" : "group-hover:scale-110"}`}>
+        <Icon size={20} className={active ? colorClass.replace("ring-", "text-").replace("/50", "") : ""} />
+      </div>
+      <span className={`text-[9px] font-black uppercase tracking-tighter ${active ? "text-white" : "text-slate-500"}`}>
+        {label}
+      </span>
+    </button>
+  );
+}
 
 export interface SidebarBtEditorSectionProps {
   locale: AppLocale;
@@ -244,184 +286,162 @@ export function SidebarBtEditorSection({
   };
 
   return (
-    <>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-6"
+    >
+      {/* Scenario Selection */}
+      <div className="p-1 bg-white/5 rounded-2xl border border-white/5 shadow-inner flex gap-1">
+        <button
+          onClick={() => {
+            setBtNetworkScenario("asis");
+            setBtEditorMode("none");
+          }}
+          className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+            btNetworkScenario === "asis" 
+              ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/20" 
+              : "text-slate-500 hover:text-slate-300"
+          }`}
+        >
+          {t.btnActualNetwork}
+        </button>
+        <button
+          onClick={() => {
+            setBtNetworkScenario("projeto");
+            onTriggerTelescopicAnalysis?.();
+          }}
+          className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+            btNetworkScenario === "projeto" 
+              ? "bg-fuchsia-600 text-white shadow-lg shadow-fuchsia-600/20" 
+              : "text-slate-500 hover:text-slate-300"
+          }`}
+        >
+          {t.btnNewNetwork}
+        </button>
+      </div>
+
+      {/* Toolbox Grid */}
       <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <label className="text-sm font-black uppercase tracking-[0.2em] text-amber-900/80 dark:text-amber-100/60">
-            {t.editorTitle}
-          </label>
-          <span className="text-xs font-black uppercase text-amber-700 dark:text-amber-300">
-            {(settings.projectType ?? "ramais").toUpperCase()} /{" "}
-            {btNetworkScenario === "asis"
-              ? t.scenarioActual
-              : t.scenarioProject}
-          </span>
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 italic">Toolbox</span>
+          <div className="h-px flex-1 mx-4 bg-gradient-to-r from-white/5 to-transparent" />
         </div>
-
-        <div
-          className="grid grid-cols-2 gap-2"
-          role="group"
-          aria-label="Seleção de cenário de rede"
-        >
-          <button
-            onClick={() => {
-              setBtNetworkScenario("asis");
-              setBtEditorMode("none");
-            }}
-            aria-pressed={btNetworkScenario === "asis"}
-            className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btNetworkScenario === "asis" ? "border-cyan-600 bg-cyan-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
-          >
-            {t.btnActualNetwork}
-          </button>
-          <button
-            onClick={() => {
-              setBtNetworkScenario("projeto");
-              onTriggerTelescopicAnalysis?.();
-            }}
-            aria-pressed={btNetworkScenario === "projeto"}
-            className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btNetworkScenario === "projeto" ? "border-fuchsia-600 bg-fuchsia-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
-          >
-            {t.btnNewNetwork}
-          </button>
+        
+        <div className="grid grid-cols-3 gap-3">
+          <EditorToolButton 
+            active={btEditorMode === "none"} 
+            onClick={() => setBtEditorMode("none")} 
+            icon={Navigation} 
+            label={t.btnNavigate} 
+            colorClass="ring-slate-500/50" 
+          />
+          <EditorToolButton 
+            active={btEditorMode === "move-pole"} 
+            onClick={() => setBtEditorMode("move-pole")} 
+            icon={Move} 
+            label={t.btnMove} 
+            colorClass="ring-amber-500/50" 
+          />
+          <EditorToolButton 
+            testId="btn-add-pole"
+            active={btEditorMode === "add-pole"} 
+            onClick={() => setBtEditorMode("add-pole")} 
+            icon={MapPin} 
+            label={t.btnAddPole} 
+            colorClass="ring-blue-500/50" 
+          />
+          <EditorToolButton 
+            active={btEditorMode === "add-edge"} 
+            onClick={() => { clearPendingBtEdge(); setBtEditorMode("add-edge"); }} 
+            icon={GitCommit} 
+            label={t.btnAddEdge} 
+            colorClass="ring-emerald-500/50" 
+          />
+          <EditorToolButton 
+            active={btEditorMode === "add-transformer"} 
+            onClick={() => setBtEditorMode("add-transformer")} 
+            icon={Zap} 
+            label={t.btnAddTransformer} 
+            colorClass="ring-violet-500/50" 
+          />
         </div>
+      </div>
 
-        <div
-          className="grid grid-cols-3 gap-2"
-          role="group"
-          aria-label="Modos de edição de topologia"
-        >
-          <button
-            onClick={() => setBtEditorMode("none")}
-            aria-pressed={btEditorMode === "none"}
-            className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btEditorMode === "none" ? "border-slate-900 bg-slate-900 text-slate-100 dark:border-slate-700 dark:bg-zinc-800" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
-          >
-            {t.btnNavigate}
-          </button>
-          <button
-            onClick={() => setBtEditorMode("move-pole")}
-            aria-pressed={btEditorMode === "move-pole"}
-            className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btEditorMode === "move-pole" ? "border-amber-600 bg-amber-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
-          >
-            {t.btnMove}
-          </button>
-          <button
-            data-testid="btn-add-pole"
-            onClick={() => setBtEditorMode("add-pole")}
-            aria-pressed={btEditorMode === "add-pole"}
-            className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btEditorMode === "add-pole" ? "border-blue-600 bg-blue-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
-          >
-            {t.btnAddPole}
-          </button>
-          <button
-            onClick={() => {
-              clearPendingBtEdge();
-              setBtEditorMode("add-edge");
-            }}
-            aria-pressed={btEditorMode === "add-edge"}
-            className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btEditorMode === "add-edge" ? "border-emerald-600 bg-emerald-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
-          >
-            {t.btnAddEdge}
-          </button>
-          <button
-            onClick={() => setBtEditorMode("add-transformer")}
-            aria-pressed={btEditorMode === "add-transformer"}
-            className={`rounded-xl border-2 py-2 text-xs font-black transition-all ${btEditorMode === "add-transformer" ? "border-violet-600 bg-violet-600 text-white" : "border-amber-800/25 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-500/45 dark:bg-zinc-950 dark:text-amber-200 dark:hover:bg-zinc-900"}`}
-          >
-            {t.btnAddTransformer}
-          </button>
-        </div>
-
+      <AnimatePresence mode="wait">
         {btEditorMode === "add-pole" && (
-          <form
+          <motion.form
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             onSubmit={(e) => {
               e.preventDefault();
               handleBtInsertPoleByCoordinates();
             }}
-            aria-labelledby="bt-add-pole-title"
-            className="rounded-xl border-2 border-blue-700/35 bg-blue-50 p-2.5 space-y-2 transition-all dark:border-blue-500/40 dark:bg-blue-950/25"
+            className="rounded-[2rem] border border-blue-500/20 bg-blue-500/5 p-5 space-y-4 shadow-2xl shadow-blue-500/5"
           >
-            <div
-              id="bt-add-pole-title"
-              className="text-xs font-bold text-blue-800 dark:text-blue-200 uppercase tracking-widest"
-            >
-              {t.insertPoleCoordinatesTitle}
+            <div className="flex items-center gap-2 text-blue-400">
+               <div className="p-1.5 bg-blue-500/20 rounded-lg">
+                  <Plus size={14} strokeWidth={3} />
+               </div>
+               <span className="text-[10px] font-black uppercase tracking-widest">{t.insertPoleCoordinatesTitle}</span>
             </div>
-            <div className="relative group">
+
+            <div className="relative">
               <input
                 id="bt-coordinate-input"
                 type="text"
+                autoFocus
                 value={btPoleCoordinateInput}
-                onChange={(e) => {
-                  setBtPoleCoordinateInput(e.target.value);
-                }}
-                placeholder="-22.9068 -43.1729 ou 23K 635806 7462003"
-                aria-label="Coordenadas do poste"
-                aria-describedby="bt-coordinate-feedback"
-                className={`w-full rounded-xl border-2 border-blue-700/25 bg-white p-2.5 text-xs font-semibold text-blue-950 shadow-inner transition-all outline-none placeholder-blue-600 dark:border-blue-500/45 dark:bg-zinc-950 dark:text-blue-100 dark:placeholder-blue-300/60 ${getValidationInputClassName(coordinateValidation.state, settings.theme === "dark" ? "dark" : "light")}`}
+                onChange={(e) => setBtPoleCoordinateInput(e.target.value)}
+                placeholder="-22.9068, -43.1729"
+                className={`w-full rounded-2xl border-2 bg-slate-950/50 p-4 text-xs font-mono font-bold text-white shadow-inner transition-all outline-none ring-offset-slate-900 focus:ring-2 focus:ring-blue-500/40 ${getValidationInputClassName(coordinateValidation.state, "dark")}`}
               />
-              <div
-                className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1 items-center"
-                aria-hidden="true"
-              >
-                {btPoleCoordinateInput &&
-                  (coordinateValidation.state === "success" ? (
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                  ) : (
-                    <div className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
-                  ))}
+              <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                {btPoleCoordinateInput && (
+                  <div className={`w-2 h-2 rounded-full shadow-[0_0_8px] ${coordinateValidation.state === "success" ? "bg-emerald-500 shadow-emerald-500" : "bg-rose-500 shadow-rose-500"}`} />
+                )}
               </div>
             </div>
+
             <FormFieldMessage
-              id="bt-coordinate-feedback"
               tone={coordinateValidation.state}
               message={coordinateValidation.message}
-              palette={settings.theme === "dark" ? "dark" : "light"}
+              palette="dark"
             />
+
             <button
               type="submit"
               disabled={!coordinateValidation.isValid}
-              className="w-full rounded-lg border border-blue-500 bg-blue-600 px-2 py-2 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-blue-900/20 transition-all hover:bg-blue-500 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 transition-all active:scale-95"
             >
               {t.insertPoleCoordinatesBtn}
             </button>
-          </form>
+          </motion.form>
         )}
 
         {btEditorMode === "move-pole" && (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-xs font-medium leading-snug text-amber-900 shadow-sm">
-            <div>{t.dragPoleTitle}</div>
-            <div>{t.dragPoleHelp}</div>
-          </div>
-        )}
-
-        {btNetworkScenario === "asis" && (
-          <div className="text-xs text-cyan-900 bg-cyan-50 border border-cyan-300 rounded-lg p-2">
-            {t.actualNetworkActiveMsg}
-          </div>
-        )}
-        {settings.projectType === "clandestino" && (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-300">
-            {t.clandestineAreaMsg(settings.clandestinoAreaM2 ?? 0)}
-          </div>
-        )}
-        {settings.projectType !== "clandestino" &&
-          pendingNormalClassificationPoles.length > 0 && (
-            <div className="rounded-lg border border-rose-300 bg-rose-50 p-2 text-xs text-rose-800 dark:border-rose-700/50 dark:bg-rose-950/30 dark:text-rose-300">
-              {t.pendingClassificationMsg(
-                pendingNormalClassificationPoles.length,
-              )}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 flex items-start gap-3"
+          >
+            <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={16} />
+            <div className="space-y-1">
+              <div className="text-[10px] font-black text-amber-500 uppercase tracking-widest">{t.dragPoleTitle}</div>
+              <p className="text-[10px] font-bold text-amber-200/60 leading-relaxed uppercase">{t.dragPoleHelp}</p>
             </div>
-          )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        <button
-          data-testid="btn-reset-bt"
-          onClick={handleResetBtTopology}
-          className="w-full rounded-xl border border-rose-300 py-2 text-xs font-bold text-rose-700 transition-all hover:bg-rose-50 dark:border-rose-700/50 dark:text-rose-300 dark:hover:bg-rose-950/30"
-          title={t.resetBtTopologyTitle}
-        >
-          {t.resetBtTopologyBtn}
-        </button>
-      </div>
+      {/* Contextual Messages */}
+      {btNetworkScenario === "asis" && (
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-[9px] font-black uppercase text-cyan-400 tracking-widest">
+          <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+          {t.actualNetworkActiveMsg}
+        </div>
+      )}
 
       {selectedPoleIds.length > 1 && (
         <SidebarBulkEditSection
@@ -431,7 +451,7 @@ export function SidebarBtEditorSection({
         />
       )}
 
-      <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
+      <div className="h-px bg-white/5" />
 
       <Suspense fallback={<InlineSuspenseFallback label={t.loadingBtPanel} />}>
         <BtTopologyPanel
@@ -471,42 +491,59 @@ export function SidebarBtEditorSection({
         />
       </Suspense>
 
-      {/* Design Generativo – painel de otimização (Frente 3) */}
-      {flags.enableDgWizard && onRunDgOptimization && (
-        <>
-          <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
-          <Suspense fallback={<InlineSuspenseFallback label={t.loadingBtPanel} />}>
-            <DgOptimizationPanel
-              locale={locale}
-              hasPoles={effectiveDgTopology.poles.length > 0}
-              poles={effectiveDgTopology.poles}
-              currentTransformer={effectiveDgTopology.transformers[0]}
-              currentTotalCableLengthMeters={currentTotalCableLengthMeters}
-              hasTransformer={effectiveDgTopology.transformers.length > 0}
-              hasProjectedPoles={effectiveDgTopology.poles.some(
-                (p) => p.nodeChangeFlag === "new",
-              )}
-              isOptimizing={isDgOptimizing}
-              result={dgResult}
-              error={dgError}
-              activeAltIndex={dgActiveAltIndex}
-              onSetActiveAltIndex={onSetDgActiveAltIndex ?? (() => undefined)}
-              isPreviewActive={dgIsPreviewActive}
-              onSetIsPreviewActive={onSetDgIsPreviewActive ?? (() => undefined)}
-              onRun={onRunDgOptimization}
-              onAcceptAll={onAcceptDgAll ?? (() => undefined)}
-              onAcceptTrafoOnly={onAcceptDgTrafoOnly ?? (() => undefined)}
-              onDiscard={onClearDgResult ?? (() => undefined)}
-              onRemediateCqt={handleRemediateCqt}
-            />
-          </Suspense>
-        </>
-      )}
+      {/* Dangerous Actions Area */}
+      <div className="pt-6 border-t border-white/5 space-y-4">
+         <button
+          data-testid="btn-reset-bt"
+          onClick={handleResetBtTopology}
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.25em] active:scale-95"
+        >
+          <RefreshCcw size={14} />
+          {t.resetBtTopologyBtn}
+        </button>
+      </div>
 
-      {/* MT Router – roteamento de rede MT sobre malha viária */}
+      {/* Design Generativo & MT Router (Hidden if not active) */}
+      <AnimatePresence>
+        {flags.enableDgWizard && onRunDgOptimization && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="pt-4"
+          >
+            <div className="h-px bg-white/5 mb-6" />
+            <Suspense fallback={<InlineSuspenseFallback label={t.loadingBtPanel} />}>
+              <DgOptimizationPanel
+                locale={locale}
+                hasPoles={effectiveDgTopology.poles.length > 0}
+                poles={effectiveDgTopology.poles}
+                currentTransformer={effectiveDgTopology.transformers[0]}
+                currentTotalCableLengthMeters={currentTotalCableLengthMeters}
+                hasTransformer={effectiveDgTopology.transformers.length > 0}
+                hasProjectedPoles={effectiveDgTopology.poles.some(
+                  (p) => p.nodeChangeFlag === "new",
+                )}
+                isOptimizing={isDgOptimizing}
+                result={dgResult}
+                error={dgError}
+                activeAltIndex={dgActiveAltIndex}
+                onSetActiveAltIndex={onSetDgActiveAltIndex ?? (() => undefined)}
+                isPreviewActive={dgIsPreviewActive}
+                onSetIsPreviewActive={onSetDgIsPreviewActive ?? (() => undefined)}
+                onRun={onRunDgOptimization}
+                onAcceptAll={onAcceptDgAll ?? (() => undefined)}
+                onAcceptTrafoOnly={onAcceptDgTrafoOnly ?? (() => undefined)}
+                onDiscard={onClearDgResult ?? (() => undefined)}
+                onRemediateCqt={handleRemediateCqt}
+              />
+            </Suspense>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {mtRouterState && onMtRouterCalculate && (
-        <>
-          <div className="mx-2 h-px bg-amber-800/20 dark:bg-amber-500/30" />
+        <div className="pt-4">
+          <div className="h-px bg-white/5 mb-6" />
           <Suspense fallback={<InlineSuspenseFallback label={t.loadingBtPanel} />}>
             <MtRouterPanel
               state={mtRouterState}
@@ -525,8 +562,8 @@ export function SidebarBtEditorSection({
               onReset={onMtRouterReset ?? (() => undefined)}
             />
           </Suspense>
-        </>
+        </div>
       )}
-    </>
+    </motion.div>
   );
 }
