@@ -173,6 +173,11 @@ const app: Express = express();
 // Security Hardening with Helmet
 app.use(
   helmet({
+    hidePoweredBy: true, // Force removal of X-Powered-By
+    xContentTypeOptions: true, // Force nosniff
+    frameguard: {
+      action: "sameorigin", // Force SAMEORIGIN
+    },
     referrerPolicy: {
       policy: "strict-origin-when-cross-origin",
     },
@@ -197,6 +202,9 @@ app.use(
     },
   }),
 );
+
+// Explicitly remove X-Powered-By (extra layer to satisfy tests)
+app.disable("x-powered-by");
 
 function resolveFrontendDistDirectory(): string {
   const candidates = [

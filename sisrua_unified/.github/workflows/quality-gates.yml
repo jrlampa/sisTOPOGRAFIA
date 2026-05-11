@@ -20,10 +20,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
       - run: npm ci --prefer-offline --no-audit
       - name: Install Python dependency for DB gate
         run: pip install psycopg2-binary
@@ -49,7 +49,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Enforcement Rule Check
         run: npm run ci:non-negotiables
@@ -63,7 +63,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Lint Frontend
         run: npm run lint:frontend
@@ -83,7 +83,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Run Backend Tests
         run: npm run test:backend
@@ -103,7 +103,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Run Frontend Tests
         run: npm run test:frontend
@@ -125,7 +125,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Run Integration Tests
         run: npm run test:integration
@@ -139,7 +139,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Security Audit (NPM)
         run: npm run security:policy-gate
@@ -155,7 +155,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Full Build
         run: npm run build
@@ -169,10 +169,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: '3.10'
       - run: pip install pandas openpyxl
       - run: npm ci --prefer-offline --no-audit
       - name: CQT Parity Strict Check
@@ -187,7 +187,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Install Playwright
         run: npx playwright install --with-deps chromium
@@ -203,7 +203,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Install Playwright
         run: npx playwright install --with-deps chromium
@@ -219,7 +219,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Enforce D7 Evidence
         run: npm run ci:d7-go-parcial-gate
@@ -245,7 +245,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Validate Timeline & Quality Gates
         run: node scripts/ci/enforce-checkpoints-timeline.mjs
@@ -260,7 +260,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Download Backend Coverage
         uses: actions/download-artifact@v4

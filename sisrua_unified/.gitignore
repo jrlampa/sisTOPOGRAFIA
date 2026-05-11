@@ -84,6 +84,10 @@ coverage-final.json
 tmp/
 chaos_output.txt
 .lighthouseci/
+*.geojson
+*.kml
+test_*.csv
+.act-quality.log
 
 # Security scan outputs
 pip-audit-report*.json

@@ -110,7 +110,7 @@ RUN mkdir -p /app/public/dxf /app/cache /app/logs && \
     chmod +x /app/docker-entrypoint.sh
 
 # Verificação de dependências Python (falha o build se pacote estiver faltando)
-RUN /opt/venv/bin/python3 -c "
+RUN <<EOF /opt/venv/bin/python3
 import sys, importlib.util
 required = [
     'osmnx','geopandas','shapely','pyproj','rasterio','networkx',
@@ -119,9 +119,10 @@ required = [
 ]
 missing = [m for m in required if importlib.util.find_spec(m) is None]
 if missing:
-    print('CRITICAL: missing Python deps:', missing); sys.exit(1)
+    print(f'CRITICAL: missing Python deps: {missing}')
+    sys.exit(1)
 print('ALL Python dependencies OK')
-"
+EOF
 
 # ENTRYPOINT: ajusta ownership de volumes em runtime e faz exec para appuser
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
