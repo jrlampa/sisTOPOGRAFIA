@@ -1,56 +1,52 @@
-import { useEffect, useRef } from "react";
+import React from "react";
 
-/**
- * Hook para prender o foco dentro de um elemento (Focus Trap).
- * Essencial para acessibilidade em modais.
- */
-export function useFocusTrap(isOpen: boolean) {
-  const containerRef = useRef<HTMLDivElement>(null);
+export function useFocusTrap(
+  elementRef: React.RefObject<HTMLElement>,
+  options: { initialFocus?: HTMLElement } = {},
+) {
+  React.useEffect(() => {
+    const element = elementRef.current;
+    if (!element) return;
 
-  useEffect(() => {
-    if (!isOpen) return;
+    const FOCUSABLE_SELECTOR = `
+      button,
+      [href],
+      input,
+      select,
+      textarea,
+      [tabindex]:not([tabindex="-1"])
+    `;
 
-    const container = containerRef.current;
-    if (!container) return;
+    const focusableElements = Array.from(
+      element.querySelectorAll(FOCUSABLE_SELECTOR),
+    ) as HTMLElement[];
 
-    // Seleciona todos os elementos focáveis
-    const focusableElements = container.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    const firstElement = focusableElements[0];
+    if (focusableElements.length === 0) return;
+
+    const firstElement = options.initialFocus || focusableElements[0];
     const lastElement = focusableElements[focusableElements.length - 1];
 
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key !== "Tab") return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
 
-      if (e.shiftKey) {
-        // Shift + Tab: se estiver no primeiro, vai para o último
+      if (event.shiftKey) {
         if (document.activeElement === firstElement) {
-          e.preventDefault();
-          lastElement?.focus();
+          event.preventDefault();
+          lastElement.focus();
         }
       } else {
-        // Tab: se estiver no último, vai para o primeiro
         if (document.activeElement === lastElement) {
-          e.preventDefault();
-          firstElement?.focus();
+          event.preventDefault();
+          firstElement.focus();
         }
       }
-    }
+    };
 
-    // Foca o primeiro elemento ao abrir
-    // Pequeno delay para garantir que o modal terminou de animar/renderizar
-    const timer = setTimeout(() => {
-      firstElement?.focus();
-    }, 100);
-
-    document.addEventListener("keydown", handleKeyDown);
+    element.addEventListener("keydown", handleKeyDown);
+    firstElement.focus();
 
     return () => {
-      clearTimeout(timer);
-      document.removeEventListener("keydown", handleKeyDown);
+      element.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen]);
-
-  return containerRef;
+  }, [elementRef, options]);
 }

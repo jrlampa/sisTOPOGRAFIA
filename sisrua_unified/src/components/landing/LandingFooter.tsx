@@ -1,5 +1,5 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React from 'react';
+import { Link } from 'react-router-dom';
 
 export function LandingFooter() {
   return (
@@ -30,23 +30,14 @@ export function LandingFooter() {
             alt="Light S.A."
           />
         </div>
-        <div className="flex items-center gap-4 text-xs text-slate-600">
-          <Link
-            to="/ajuda"
-            className="transition-colors hover:text-slate-400"
-          >
+        <div className="flex items-center gap-4 text-xs text-slate-400">
+          <Link to="/ajuda" className="transition-colors hover:text-slate-400">
             Central de Ajuda
           </Link>
-          <Link
-            to="/status"
-            className="transition-colors hover:text-slate-400"
-          >
+          <Link to="/status" className="transition-colors hover:text-slate-400">
             Status
           </Link>
-          <span>
-            © {new Date().getFullYear()} IM3 Brasil · Todos os direitos
-            reservados
-          </span>
+          <span>© {new Date().getFullYear()} IM3 Brasil · Todos os direitos reservados</span>
         </div>
       </div>
     </footer>

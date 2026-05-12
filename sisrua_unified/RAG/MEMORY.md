@@ -1,8 +1,9 @@
 # 🧠 Memória de Projeto — sisTOPOGRAFIA (sisRUA Unified)
 
 ## 📊 Estado da Arte (Tier 3: Otimização Avançada)
-- **Status Atual (2026-05-11)**: Auditoria Técnica, Evolução de Acesso e Manutenção de Infraestrutura concluídas.
-- **Docker & Infra**: Dockerfile otimizado com Heredocs para verificação de dependências Python. Arquivos `.gitignore` e `.dockerignore` atualizados para maior limpeza (exclusão de relatórios e geodados temporários).
+- **Status Atual (2026-05-11)**: Auditoria Técnica, Evolução de Acesso e Otimização de Banco de Dados concluídas.
+- **Banco de Dados (Supabase Best Practices)**: Aplicada migração 073 para hardening de RLS (caching via `current_tenant_id()`), indexação de chaves estrangeiras pendentes e implementação de índices compostos para listagem multi-tenant. RPCs espaciais agora possuem isolamento de tenant nativo.
+- **Docker & Infra**: Dockerfile otimizado com Heredocs para verificação de dependências Python. Arquivos `.gitignore` e `.dockerignore` atualizados para maior limpeza.
 - **Acesso & Segurança**: Landing Page oficial e Fluxo de Autenticação corporativo implementados com proteção de rotas (`PrivateRoute`).
 - **Governança (T3.136)**: SuperAdmin Dashboard operacional com métricas de escala, saúde de infraestrutura e trilha de auditoria forense.
 - **UI/UX Sênior**: Overhaul completo do Editor Core e Painéis com Glassmorphism, Framer Motion e acessibilidade WCAG 2.1 AA.

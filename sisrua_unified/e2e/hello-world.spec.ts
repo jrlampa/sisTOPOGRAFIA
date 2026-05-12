@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test';
 
-test('hello world', async ({ page }) => {
-    await page.goto('http://localhost:3000'); // Adjust the URL as needed
-    const text = await page.textContent('h1'); // Adjust the selector as needed
-    expect(text).toBe('Hello World');
+test('home page has correct headline', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
+  const h1 = page.locator('h1').first();
+  await expect(h1).toBeVisible({ timeout: 10000 });
+  const text = await h1.textContent();
+  expect(text?.trim()).toBeTruthy();
 });

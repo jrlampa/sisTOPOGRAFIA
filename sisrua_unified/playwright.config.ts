@@ -20,8 +20,13 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
-    url: 'http://127.0.0.1:3000',
+    url: 'http://127.0.0.1:3001/health',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
+    env: {
+      NODE_ENV: 'test',
+      METRICS_TOKEN: process.env.METRICS_TOKEN ?? 'release-smoke-metrics-token',
+      ADMIN_TOKEN: process.env.ADMIN_TOKEN ?? 'e2e-admin-test-token',
+    },
   },
 });

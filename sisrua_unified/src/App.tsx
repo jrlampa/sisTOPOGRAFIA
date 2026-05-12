@@ -10,6 +10,7 @@ import { useAppGlobalHotkeys } from "./hooks/useAppGlobalHotkeys";
 import { AppWorkspace } from "./components/AppWorkspace";
 import { SnapshotModal } from "./components/SnapshotModal";
 import { BtTopology } from "./types";
+import { ToastProvider } from "./hooks/useToast";
 
 /** Topologia BT vazia — fallback quando o estado ainda não foi carregado. */
 const EMPTY_BT_TOPOLOGY: BtTopology = { poles: [], transformers: [], edges: [] };
@@ -248,111 +249,115 @@ function App() {
   );
 
   return (
-    <AppWorkspace
-      settings={settings}
-      isDark={settings.theme === "dark"}
-      isFocusMode={isFocusMode}
-      isXRayMode={isXRayMode}
-      canUndo={canUndo}
-      canRedo={canRedo}
-      undo={undo}
-      redo={redo}
-      appPast={appPast}
-      appFuture={appFuture}
-      handleSaveProject={saveSnapshot}
-      handleLoadProject={() => {}}
-      openSettings={openSettings}
-      setIsHelpOpen={setIsHelpOpen}
-      toasts={toasts}
-      closeToast={closeToast}
-      sessionDraft={sessionDraft}
-      handleRestoreSession={handleRestoreSession}
-      handleDismissSession={handleDismissSession}
-      isProcessing={osmEngine.isProcessing}
-      isDownloading={analysisWorkflow.showDxfProgress}
-      progressValue={osmEngine.progressValue}
-      statusMessage={osmEngine.statusMessage}
-      showDxfProgress={analysisWorkflow.showDxfProgress}
-      dxfProgressValue={analysisWorkflow.dxfProgressValue}
-      dxfProgressStatus={analysisWorkflow.dxfProgressStatus ?? ""}
-      dxfProgressLabel={analysisWorkflow.dxfProgressLabel}
-      latestBtExport={null}
-      btExportHistory={[]}
-      exportBtHistoryJson={() => {}}
-      exportBtHistoryCsv={() => {}}
-      handleClearBtExportHistory={() => {}}
-      btHistoryTotal={0}
-      btHistoryLoading={false}
-      btHistoryCanLoadMore={false}
-      handleLoadMoreBtHistory={() => {}}
-      btHistoryProjectTypeFilter=""
-      setBtHistoryProjectTypeFilter={() => {}}
-      btHistoryCqtScenarioFilter=""
-      setBtHistoryCqtScenarioFilter={() => {}}
-      updateSettings={updateSettings}
-      selectionMode={appState.selectionMode}
-      handleSelectionModeChange={handleSelectionModeChange}
-      radius={appState.radius}
-      handleRadiusChange={handleRadiusChange}
-      polygon={appState.polygon}
-      handleClearPolygon={handleClearPolygon}
-      osmData={osmEngine.osmData}
-      handleDownloadDxf={handleDownloadDxf}
-      handleDownloadGeoJSON={handleDownloadGeoJSON}
-      isSidebarDockedForRamalModal={false}
-      sidebarSelectionControlsProps={sidebarProps.sidebarSelectionControlsProps}
-      sidebarBtEditorSectionProps={sidebarProps.sidebarBtEditorSectionProps}
-      mtTopology={topologySources.mtTopology}
-      updateMtTopology={() => {}}
-      hasBtPoles={btTopology.poles.length > 0}
-      sidebarAnalysisResultsProps={sidebarProps.sidebarAnalysisResultsProps}
-      mapSelectorProps={null}
-      elevationProfileData={elevationProfile.profileData}
-      clearProfile={elevationProfile.clearProfile}
-      btModalStackProps={null}
-      showToast={showToast}
-      isBimInspectorOpen={false}
-      setIsBimInspectorOpen={() => {}}
-      inspectedPole={null}
-      inspectedTransformer={null}
-      inspectedAccumulatedData={null}
-      btTopology={btTopology}
-      handleBtRenamePole={() => {}}
-      handleBtSetPoleChangeFlag={() => {}}
-      autoSaveStatus={autoSave.status}
-      lastAutoSaved={autoSave.lastSaved}
-      isAuditOpen={electricalAudit.isAuditOpen}
-      setIsAuditOpen={electricalAudit.setIsAuditOpen}
-      selectedAuditElement={electricalAudit.selectedAuditElement}
-      handleAuditAction={electricalAudit.handleAuditAction}
-      btTelescopicSuggestions={[]}
-      handleApplyTelescopicSuggestions={() => {}}
-      clearBtTelescopicSuggestions={() => {}}
-      isHelpOpen={isHelpOpen}
-      onOpenSnapshots={() => setIsSnapshotModalOpen(true)}
-      isCommandPaletteOpen={isCommandPaletteOpen}
-      setIsCommandPaletteOpen={setIsCommandPaletteOpen}
-      commandPaletteActions={commandPaletteActions}
-      handleGoToPole={setSelectedPoleId}
-      terrainData={osmEngine.terrainData}
-      showSettings={showSettings}
-      closeSettings={closeSettings}
-      isCalculating={derivedState.isCalculating}
-      complianceResults={compliance.result}
-    >
-      <SnapshotModal
-        isOpen={isSnapshotModalOpen}
-        onClose={() => setIsSnapshotModalOpen(false)}
-        projetoId={projeto_id || ""}
-        currentState={appState}
-        onRestore={(state) => {
-          setAppState(state, true, "Restauração de Snapshot");
-          setIsSnapshotModalOpen(false);
-          showToast("Snapshot restaurado com sucesso!", "success");
-        }}
-      />
-    </AppWorkspace>
+    <ToastProvider>
+      <AppWorkspace
+        settings={settings}
+        isDark={settings.theme === "dark"}
+        isFocusMode={isFocusMode}
+        isXRayMode={isXRayMode}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        undo={undo}
+        redo={redo}
+        appPast={appPast}
+        appFuture={appFuture}
+        handleSaveProject={saveSnapshot}
+        handleLoadProject={() => {}}
+        openSettings={openSettings}
+        setIsHelpOpen={setIsHelpOpen}
+        toasts={toasts}
+        closeToast={closeToast}
+        sessionDraft={sessionDraft}
+        handleRestoreSession={handleRestoreSession}
+        handleDismissSession={handleDismissSession}
+        isProcessing={osmEngine.isProcessing}
+        isDownloading={analysisWorkflow.showDxfProgress}
+        progressValue={osmEngine.progressValue}
+        statusMessage={osmEngine.statusMessage}
+        showDxfProgress={analysisWorkflow.showDxfProgress}
+        dxfProgressValue={analysisWorkflow.dxfProgressValue}
+        dxfProgressStatus={analysisWorkflow.dxfProgressStatus ?? ""}
+        dxfProgressLabel={analysisWorkflow.dxfProgressLabel}
+        latestBtExport={null}
+        btExportHistory={[]}
+        exportBtHistoryJson={() => {}}
+        exportBtHistoryCsv={() => {}}
+        handleClearBtExportHistory={() => {}}
+        btHistoryTotal={0}
+        btHistoryLoading={false}
+        btHistoryCanLoadMore={false}
+        handleLoadMoreBtHistory={() => {}}
+        btHistoryProjectTypeFilter=""
+        setBtHistoryProjectTypeFilter={() => {}}
+        btHistoryCqtScenarioFilter=""
+        setBtHistoryCqtScenarioFilter={() => {}}
+        updateSettings={updateSettings}
+        selectionMode={appState.selectionMode}
+        handleSelectionModeChange={handleSelectionModeChange}
+        radius={appState.radius}
+        handleRadiusChange={handleRadiusChange}
+        polygon={appState.polygon}
+        handleClearPolygon={handleClearPolygon}
+        osmData={osmEngine.osmData}
+        handleDownloadDxf={handleDownloadDxf}
+        handleDownloadGeoJSON={handleDownloadGeoJSON}
+        isSidebarDockedForRamalModal={false}
+        sidebarSelectionControlsProps={sidebarProps.sidebarSelectionControlsProps}
+        sidebarBtEditorSectionProps={sidebarProps.sidebarBtEditorSectionProps}
+        mtTopology={topologySources.mtTopology}
+        updateMtTopology={() => {}}
+        hasBtPoles={btTopology.poles.length > 0}
+        sidebarAnalysisResultsProps={sidebarProps.sidebarAnalysisResultsProps}
+        mapSelectorProps={null}
+        elevationProfileData={elevationProfile.profileData}
+        clearProfile={elevationProfile.clearProfile}
+        btModalStackProps={null}
+        showToast={showToast}
+        isBimInspectorOpen={false}
+        setIsBimInspectorOpen={() => {}}
+        inspectedPole={null}
+        inspectedTransformer={null}
+        inspectedAccumulatedData={null}
+        btTopology={btTopology}
+        handleBtRenamePole={() => {}}
+        handleBtSetPoleChangeFlag={() => {}}
+        autoSaveStatus={autoSave.status}
+        lastAutoSaved={autoSave.lastSaved}
+        isAuditOpen={electricalAudit.isAuditOpen}
+        setIsAuditOpen={electricalAudit.setIsAuditOpen}
+        selectedAuditElement={electricalAudit.selectedAuditElement}
+        handleAuditAction={electricalAudit.handleAuditAction}
+        btTelescopicSuggestions={[]}
+        handleApplyTelescopicSuggestions={() => {}}
+        clearBtTelescopicSuggestions={() => {}}
+        isHelpOpen={isHelpOpen}
+        onOpenSnapshots={() => setIsSnapshotModalOpen(true)}
+        isCommandPaletteOpen={isCommandPaletteOpen}
+        setIsCommandPaletteOpen={setIsCommandPaletteOpen}
+        commandPaletteActions={commandPaletteActions}
+        handleGoToPole={setSelectedPoleId}
+        terrainData={osmEngine.terrainData}
+        showSettings={showSettings}
+        closeSettings={closeSettings}
+        isCalculating={derivedState.isCalculating}
+        complianceResults={compliance.result}
+      >
+        <SnapshotModal
+          isOpen={isSnapshotModalOpen}
+          onClose={() => setIsSnapshotModalOpen(false)}
+          projetoId={projeto_id || ""}
+          currentState={appState}
+          onRestore={(state) => {
+            setAppState(state, true, "Restauração de Snapshot");
+            setIsSnapshotModalOpen(false);
+            showToast("Snapshot restaurado com sucesso!", "success");
+          }}
+        />
+      </AppWorkspace>
+    </ToastProvider>
   );
 }
+
+export default App;
 
 export default App;

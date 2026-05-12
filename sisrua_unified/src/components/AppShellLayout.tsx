@@ -9,6 +9,7 @@ import {
   persistSidebarUiState,
 } from "../utils/preferencesPersistence";
 import { lazyWithRetry } from "../utils/lazyWithRetry";
+import { Drawer } from "./ui/Drawer";
 
 import type { AppLocale } from "../types";
 import type { HistoryEntry } from "../hooks/useUndoRedo";
@@ -90,6 +91,7 @@ export function AppShellLayout({
   const [isSidebarCollapsedManual, setIsSidebarCollapsed] = React.useState(
     () => loadSidebarUiState().isCollapsed,
   );
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const isSidebarCollapsed = isFocusMode || isSidebarCollapsedManual;
 
@@ -105,6 +107,14 @@ export function AppShellLayout({
         isDark ? "text-slate-200" : "text-slate-900"
       }`}
     >
+      {/* Skip Link (Quick Win) */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-brand-600 focus:text-white focus:rounded-lg focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+      >
+        Pular para o conteúdo principal
+      </a>
+
       <div className="app-shell-atmosphere" aria-hidden="true">
         <span className="app-shell-orb app-shell-orb-1 blur-[80px] opacity-40" />
         <span className="app-shell-orb app-shell-orb-2 blur-[100px] opacity-30" />
@@ -125,6 +135,22 @@ export function AppShellLayout({
         </React.Suspense>
       )}
 
+      {/* Mobile Navigation Drawer (Design System Implementation) */}
+      <Drawer
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        title="Menu"
+        position="left"
+      >
+        <div className="p-4 flex flex-col h-full bg-slate-950/20 backdrop-blur-sm">
+          <SidebarWorkspace
+            {...sidebarWorkspaceProps}
+            isCollapsed={false}
+            onToggleCollapse={() => {}}
+          />
+        </div>
+      </Drawer>
+
       <AppHeader
         locale={locale}
         canUndo={canUndo}
@@ -137,6 +163,7 @@ export function AppShellLayout({
         onOpenProject={onOpenProject}
         onOpenSettings={onOpenSettings}
         onOpenHelp={onOpenHelp}
+        onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
         isSidebarCollapsed={isSidebarCollapsed}
         onToggleSidebarCollapsed={() =>
           setIsSidebarCollapsed((current) => !current)
@@ -147,7 +174,10 @@ export function AppShellLayout({
         autoSaveStatus={autoSaveStatus}
         lastAutoSaved={lastAutoSaved}
       />
-      <main className="relative z-10 flex flex-1 flex-col overflow-hidden border-t border-white/10 dark:border-white/5 xl:flex-row">
+      <main 
+        id="main-content"
+        className="relative z-10 flex flex-1 flex-col overflow-hidden border-t border-white/10 dark:border-white/5 xl:flex-row"
+      >
         <SidebarWorkspace
           {...sidebarWorkspaceProps}
           isCollapsed={isSidebarCollapsed}
