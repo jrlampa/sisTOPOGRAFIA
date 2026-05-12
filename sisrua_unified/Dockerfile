@@ -14,6 +14,7 @@
 #   • su-exec no lugar do gosu (binário 10× menor)
 #   • COPY --chown elimina layer de chown separado
 #   • Estágio py-deps independente: Python só reconstruído se requirements mudar
+#   • Tini como init (PID 1) para graceful shutdown
 # ─────────────────────────────────────────────────────────────────────────────
 
 ARG NODE_VERSION=22
@@ -79,13 +80,14 @@ ENV NODE_ENV=production \
     PATH="/opt/venv/bin:$PATH"
 
 # Runtime: Python3 (interpetador), su-exec (drop-privilege), curl (healthcheck)
-# su-exec é ~10× menor que gosu e cumpre o mesmo papel
+# tini é essencial para colher processos zumbi e repassar sinais (SIGTERM)
 RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
     apk add --update-cache \
         python3 \
         su-exec \
         ca-certificates \
-        curl
+        curl \
+        tini
 
 # Usuário não-root com UID fixo (paridade dev ↔ prod)
 RUN addgroup -g 10000 appuser && \
@@ -125,7 +127,7 @@ print('ALL Python dependencies OK')
 EOF
 
 # ENTRYPOINT: ajusta ownership de volumes em runtime e faz exec para appuser
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+ENTRYPOINT ["/sbin/tini", "--", "/app/docker-entrypoint.sh"]
 
 EXPOSE 8080
 
