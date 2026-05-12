@@ -59,6 +59,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const prefersReducedMotion = useReducedMotion();
+    
+    // Omit problematic standard HTML animation props that conflict with framer-motion
+    const { onAnimationStart: _onAnimationStart, onDrag: _onDrag, onDragStart: _onDragStart, onDragEnd: _onDragEnd, ...restProps } = props as any;
 
     return (
       <motion.button
@@ -78,7 +81,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           ${fullWidth ? "w-full" : ""}
           ${className}
         `}
-        {...props}
+        {...restProps}
       >
         {isLoading && (
           <Loader2 size={size === "sm" ? 14 : 18} className="animate-spin" />

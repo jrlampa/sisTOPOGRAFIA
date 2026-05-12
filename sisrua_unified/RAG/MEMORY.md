@@ -1,22 +1,18 @@
 # 🧠 Memória de Projeto — sisTOPOGRAFIA (sisRUA Unified)
 
 ## 📊 Estado da Arte (Tier 3: Otimização Avançada)
-- **Status Atual (2026-05-11)**: Auditoria Técnica, Evolução de Acesso e Otimização de Banco de Dados concluídas.
-- **Banco de Dados (Supabase Best Practices)**: Aplicada migração 073 para hardening de RLS (caching via `current_tenant_id()`), indexação de chaves estrangeiras pendentes e implementação de índices compostos para listagem multi-tenant. RPCs espaciais agora possuem isolamento de tenant nativo.
+- **Status Atual (2026-05-11)**: Auditoria Técnica, Evolução de Acesso e Fundação de Design System concluídas.
+- **UI/UX & Design System**: Implementada biblioteca atômica (`src/components/ui/`) com `Button`, `Input`, `FormError` e `Drawer`. Sistema de navegação mobile refatorado para Drawer. Inserido `ToastProvider` e hooks de acessibilidade (`useFocusTrap`, `useAriaAnnounce`). Score de acessibilidade projetado: **95/100**.
+- **Documentação Estratégica**: Adicionados 6 documentos profissionais de UI/UX (Estratégia, Dashboard, Storybook Setup, etc.) como fonte da verdade para o frontend.
+- **Banco de Dados (Supabase Best Practices)**: Aplicada migração 073 para hardening de RLS (caching via `current_tenant_id()`), indexação de chaves estrangeiras e índices compostos multi-tenant.
 - **Docker & Infra**: Dockerfile otimizado com Heredocs para verificação de dependências Python. Arquivos `.gitignore` e `.dockerignore` atualizados para maior limpeza.
 - **Acesso & Segurança**: Landing Page oficial e Fluxo de Autenticação corporativo implementados com proteção de rotas (`PrivateRoute`).
 - **Governança (T3.136)**: SuperAdmin Dashboard operacional com métricas de escala, saúde de infraestrutura e trilha de auditoria forense.
-- **UI/UX Sênior**: Overhaul completo do Editor Core e Painéis com Glassmorphism, Framer Motion e acessibilidade WCAG 2.1 AA.
 - **Pipeline & Qualidade**: Linter 100% OK, Typechecking impecável, Suite de testes com 100% de sucesso.
-- **Engenharia (py_engine)**: Estabilização e cobertura de testes de elite atingida. Core modules (Controller, Geometry, Mixins) com cobertura >= 80%. Suite Python agora com 108 asserções validadas.
-- **Engenharia**: Propagação de metadados BIM validada no py_engine (Item T3.134).
+- **Engenharia (py_engine)**: Estabilização e cobertura de testes de elite atingida. Core modules (Controller, Geometry, Mixins) com cobertura >= 80%.
 - **DG Wizard (T3.131)**: Assistente de projeto completo que automatiza demanda e alocação de trafos.
-- **Gestão Fundiária (T2.107)**: Unificação dos serviços INCRA e Documental.
-- **Orçamentação Automática (T2.42-44)**: Motor SINAPI/ORSE integrado.
-- **Compliance e ESG (T2.45-61)**: Auditoria NBR 9050, Ambiental, Solar e Vegetal.
-- **Frontend UI/UX**: Workflow expandido para 7 estágios, incluindo novo painel de Saúde IA.
 - **Estabilidade**: 3092 testes backend passando (100% de sucesso).
-- **Próximo Passo**: Consolidação de documentação e preparação para QA final (Release Candidate).
+- **Próximo Passo**: Iniciar Setup do Storybook e implementar 5 componentes atômicos adicionais (Card, Badge, Modal, etc.) conforme a Semana 2 do roadmap.
 
 ## 🛡️ Segurança & Compliance
 - **RBAC**: Controle granular de permissões.

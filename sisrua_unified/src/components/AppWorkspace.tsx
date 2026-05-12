@@ -238,6 +238,7 @@ export function AppWorkspace({
         onOpenHelp={() => setIsHelpOpen(true)}
         onOpenSnapshots={onOpenSnapshots}
         onFeatureSettings={() => setIsFeatureSettingsOpen(true)}
+        onToggleMobileMenu={() => {}}
         projectName={settings.projectMetadata?.projectName || "Novo Projeto"}
         autoSaveStatus={autoSaveStatus as any}
         lastAutoSaved={lastAutoSaved}

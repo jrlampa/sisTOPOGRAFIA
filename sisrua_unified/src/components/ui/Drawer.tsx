@@ -26,7 +26,7 @@ export function Drawer({
   children,
   size = "md",
 }: DrawerProps) {
-  const drawerRef = React.useRef<HTMLDivElement>(null);
+  const drawerRef = React.useRef<any>(null);
   useFocusTrap(drawerRef);
 
   React.useEffect(() => {

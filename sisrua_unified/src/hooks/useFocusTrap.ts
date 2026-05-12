@@ -1,10 +1,22 @@
 import React from "react";
 
+/**
+ * useFocusTrap (Hybrid Version)
+ * Supports both:
+ * 1. New Design System pattern: useFocusTrap(ref)
+ * 2. Legacy pattern: const ref = useFocusTrap(active)
+ */
 export function useFocusTrap(
-  elementRef: React.RefObject<HTMLElement>,
+  activeOrRef: boolean | React.RefObject<any>,
   options: { initialFocus?: HTMLElement } = {},
 ) {
+  const internalRef = React.useRef<any>(null);
+  const elementRef = typeof activeOrRef === "boolean" ? internalRef : activeOrRef;
+  const active = typeof activeOrRef === "boolean" ? activeOrRef : true;
+
   React.useEffect(() => {
+    if (!active) return;
+    
     const element = elementRef.current;
     if (!element) return;
 
@@ -48,5 +60,7 @@ export function useFocusTrap(
     return () => {
       element.removeEventListener("keydown", handleKeyDown);
     };
-  }, [elementRef, options]);
+  }, [elementRef, active, options]);
+
+  return internalRef;
 }
