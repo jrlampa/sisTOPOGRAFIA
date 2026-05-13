@@ -65,14 +65,7 @@ export const FeatureFlagProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       if (user && supabase) {
-        const { data, error } = await (supabase
-          .from("user_preferences" as any)
-          .select("feature_flags, custom_presets")
-          .eq("user_id", user.id)
-          .single() as unknown as Promise<{
-          data: UserPreferencesRow | null;
-          error: { code: string; message: string };
-        }>);
+        const { data, error } = (await (supabase as any).from("user_preferences").select("feature_flags, custom_presets").eq("user_id", user.id).single()) as { data: UserPreferencesRow | null; error: { code: string; message: string } | null };
 
         if (data) {
           if (data.feature_flags) {
@@ -145,14 +138,14 @@ export const FeatureFlagProvider: React.FC<{ children: React.ReactNode }> = ({
 
     if (user && supabase) {
       try {
-        await (supabase.from("user_preferences" as any).upsert({
+        await (supabase as any).from("user_preferences").upsert({
           user_id: user.id,
           feature_flags: nextFlags,
           custom_presets: updatedPresets ?? customPresets,
           updated_at: new Date().toISOString(),
-        } as any) as unknown as Promise<{ error: any }>);
-      } catch (err: any) {
-        console.error("[Flags] Erro ao sincronizar", err.message);
+        });
+      } catch (err) {
+        logger.error("Flags", "Erro ao sincronizar", err instanceof Error ? err.message : String(err));
       }
     }
   };

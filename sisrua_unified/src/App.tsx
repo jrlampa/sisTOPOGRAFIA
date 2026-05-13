@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { ProjectService } from './services/projectService';
@@ -17,22 +16,6 @@ import type {
   BtEditorModePayload,
 } from './types';
 import { ToastProvider } from './hooks/useToast';
-=======
-import React from "react";
-import { useParams } from "react-router-dom";
-import { ProjectService } from "./services/projectService";
-import { useAppHooks } from "./hooks/useAppHooks";
-import { useAppCommandPalette } from "./hooks/useAppCommandPalette";
-import { useAppElectricalAudit } from "./hooks/useAppElectricalAudit";
-import { useAppSidebarProps } from "./hooks/useAppSidebarProps";
-import { useAppAnalysisWorkflow } from "./hooks/useAppAnalysisWorkflow";
-import { useAppGlobalHotkeys } from "./hooks/useAppGlobalHotkeys";
-import { AppWorkspace } from "./components/AppWorkspace";
-import { SnapshotModal } from "./components/SnapshotModal";
-import { BtTopology } from "./types";
-import type { BtNetworkScenarioPayload, BtEditorModePayload } from './types';
-import { ToastProvider } from "./hooks/useToast";
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 
 /** Topologia BT vazia — fallback quando o estado ainda não foi carregado. */
 const EMPTY_BT_TOPOLOGY: BtTopology = { poles: [], transformers: [], edges: [] };
@@ -85,7 +68,6 @@ function App() {
     sessionDraft,
   } = mapState;
 
-<<<<<<< HEAD
   const { settings, btTopology = EMPTY_BT_TOPOLOGY, btNetworkScenario, btEditorMode } = appState;
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
@@ -113,14 +95,6 @@ function App() {
     },
     [setAppState]
   );
-=======
-  const { 
-    settings, 
-    btTopology = EMPTY_BT_TOPOLOGY,
-    btNetworkScenario,
-    btEditorMode 
-  } = appState;
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 
   // ─── Carregar projeto da URL ──────────────────────────────────────────────
 
@@ -135,7 +109,7 @@ function App() {
         }
       });
     }
-  }, [projeto_id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [projeto_id, setAppState, showToast]);
 
   // ─── Domain Hooks ────────────────────────────────────────────────────────
   const electricalAudit = useAppElectricalAudit({ settings, showToast });
@@ -179,32 +153,23 @@ function App() {
   const { commandPaletteActions } = useAppCommandPalette({
     locale: settings.locale,
     handleSaveProject: saveSnapshot,
-    handleLoadProject: () => {},
+    handleLoadProject: () => { showToast('Carregamento de projeto não disponível.', 'info'); },
     handleDownloadDxf,
     handleDownloadGeoJSON,
     handleDownloadCoordinatesCsv,
     handleResetBtTopology,
-    exportBtHistoryJson: () => {},
-    exportBtHistoryCsv: () => {},
+    exportBtHistoryJson: () => { showToast('Exportação de histórico não disponível.', 'info'); },
+    exportBtHistoryCsv: () => { showToast('Exportação de histórico não disponível.', 'info'); },
     undo,
     redo,
     setIsHelpOpen,
     openSettings,
     isFocusModeManual,
     setIsFocusModeManual,
-    handleRunDgOptimization: () => {},
-    handleTriggerTelescopicAnalysis: () => {},
-    setBtNetworkScenario: (s: BtNetworkScenarioPayload | null) =>
-<<<<<<< HEAD
-      setAppState(p => ({ ...p, btNetworkScenario: s }), true),
-    setBtEditorMode: (m: BtEditorModePayload) =>
-      setAppState(p => ({ ...p, btEditorMode: m }), true),
-=======
-      setAppState((p) => ({ ...p, btNetworkScenario: s }), true),
-    setBtEditorMode: (m: BtEditorModePayload) =>
-      setAppState((p) => ({ ...p, btEditorMode: m }), true),
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
-    setSelectedPoleId,
+    handleRunDgOptimization: () => { showToast('Otimização DG não disponível.', 'info'); },
+    handleTriggerTelescopicAnalysis: () => { showToast('Análise telescópica não disponível.', 'info'); },
+    setBtNetworkScenario,
+    setBtEditorMode,
     setIsCommandPaletteOpen,
   });
 
@@ -224,16 +189,8 @@ function App() {
     handleFetchAndAnalyze: analysisWorkflow.handleFetchAndAnalyze,
     isProcessing: osmEngine.isProcessing,
     isPolygonValid,
-    setBtNetworkScenario: (s: BtNetworkScenarioPayload | null) =>
-<<<<<<< HEAD
-      setAppState(p => ({ ...p, btNetworkScenario: s }), true),
-    setBtEditorMode: (m: BtEditorModePayload) =>
-      setAppState(p => ({ ...p, btEditorMode: m }), true),
-=======
-      setAppState((p) => ({ ...p, btNetworkScenario: s }), true),
-    setBtEditorMode: (m: BtEditorModePayload) =>
-      setAppState((p) => ({ ...p, btEditorMode: m }), true),
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
+    setBtNetworkScenario,
+    setBtEditorMode,
     btNetworkScenario,
     btEditorMode,
     btTopology,
@@ -244,10 +201,10 @@ function App() {
     btTransformerDebugById: derivedState.btTransformerDebugById ?? {},
     btPoleCoordinateInput: '',
     setBtPoleCoordinateInput: () => {},
-    handleBtInsertPoleByCoordinates: () => {},
+    handleBtInsertPoleByCoordinates: () => { showToast('Inserção por coordenadas não disponível.', 'info'); },
     pendingNormalClassificationPoles: [],
     handleResetBtTopology,
-    updateBtTopology: (t: any) => setAppState(p => ({ ...p, btTopology: t }), true),
+    updateBtTopology,
     updateProjectType: (p: any) =>
       setAppState(prev => ({ ...prev, settings: { ...prev.settings, projectType: p } }), true),
     updateClandestinoAreaM2: (a: number) =>
@@ -255,8 +212,8 @@ function App() {
     handleBtSelectedPoleChange: () => {},
     handleBtSelectedTransformerChange: () => {},
     handleBtSelectedEdgeChange: () => {},
-    handleBtRenamePole: () => {},
-    handleBtRenameTransformer: () => {},
+    handleBtRenamePole: () => { showToast('Renomeação de poste não disponível.', 'info'); },
+    handleBtRenameTransformer: () => { showToast('Renomeação de transformador não disponível.', 'info'); },
     handleBtSetEdgeChangeFlag: () => {},
     handleBtSetPoleChangeFlag: () => {},
     handleBtTogglePoleCircuitBreak: () => {},
@@ -264,15 +221,15 @@ function App() {
     btClandestinoDisplay: derivedState.btClandestinoDisplay,
     btTransformersDerived: derivedState.btTransformersDerived ?? [],
     requestCriticalConfirmation: () => {},
-    handleTriggerTelescopicAnalysis: () => {},
+    handleTriggerTelescopicAnalysis: () => { showToast('Análise telescópica não disponível.', 'info'); },
     isDgOptimizing: false,
     dgResult: null,
     dgError: null,
     dgActiveAltIndex: 0,
-    handleRunDgOptimization: () => {},
-    handleAcceptDgAll: () => {},
-    handleAcceptDgTrafoOnly: () => {},
-    handleDiscardDgResult: () => {},
+    handleRunDgOptimization: () => { showToast('Otimização DG não disponível.', 'info'); },
+    handleAcceptDgAll: () => { showToast('Aceitação de resultados DG não disponível.', 'info'); },
+    handleAcceptDgTrafoOnly: () => { showToast('Aceitação de resultados DG não disponível.', 'info'); },
+    handleDiscardDgResult: () => { showToast('Descarte de resultados DG não disponível.', 'info'); },
     setDgActiveAltIndex: () => {},
     isPreviewActive: false,
     setIsPreviewActive: () => {},
@@ -299,129 +256,66 @@ function App() {
 
   // ─── UI State ─────────────────────────────────────────────────────────────
   const isFocusMode =
-<<<<<<< HEAD
     isFocusModeManual || (!!settings.enableFocusMode && btEditorMode.mode !== 'none');
-=======
-    isFocusModeManual || (!!settings.enableFocusMode && btEditorMode.mode !== "none");
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 
   useAppGlobalHotkeys(setIsFocusModeManual, setIsXRayMode, settings.theme, theme =>
     updateSettings({ ...settings, theme })
   );
 
+  // ─── JSX ──────────────────────────────────────────────────────────────────
   return (
-    <ToastProvider>
+    <div
+      className={clsx(
+        'h-screen w-screen flex flex-col overflow-hidden',
+        settings.theme === 'dark' ? 'dark' : ''
+      )}
+    >
+      <Toast
+        toast={currentToast}
+        onClose={dismissToast}
+      />
+
+      {isCommandPaletteOpen && (
+        <CommandPalette
+          actions={commandPaletteActions}
+          onClose={() => setIsCommandPaletteOpen(false)}
+        />
+      )}
+
+      {isHelpOpen && <HelpModal onClose={() => setIsHelpOpen(false)} />}
+
+      {isSettingsOpen && (
+        <SettingsModal
+          settings={settings}
+          onSave={(updated) => {
+            updateSettings(updated);
+            closeSettings();
+          }}
+          onClose={closeSettings}
+        />
+      )}
+
       <AppWorkspace
         settings={settings}
-        isDark={settings.theme === 'dark'}
+        appState={appState}
+        setAppState={setAppState}
+        sidebarProps={sidebarProps}
         isFocusMode={isFocusMode}
         isXRayMode={isXRayMode}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        undo={undo}
-        redo={redo}
-        appPast={appPast}
-        appFuture={appFuture}
-        handleSaveProject={saveSnapshot}
-        handleLoadProject={() => {}}
-        openSettings={openSettings}
-        setIsHelpOpen={setIsHelpOpen}
-        toasts={toasts}
-        closeToast={closeToast}
-        sessionDraft={sessionDraft}
-        handleRestoreSession={handleRestoreSession}
-        handleDismissSession={handleDismissSession}
-        isProcessing={osmEngine.isProcessing}
-        isDownloading={analysisWorkflow.showDxfProgress}
-        progressValue={osmEngine.progressValue}
-        statusMessage={osmEngine.statusMessage}
-        showDxfProgress={analysisWorkflow.showDxfProgress}
-        dxfProgressValue={analysisWorkflow.dxfProgressValue}
-        dxfProgressStatus={analysisWorkflow.dxfProgressStatus ?? ''}
-        dxfProgressLabel={analysisWorkflow.dxfProgressLabel}
-        latestBtExport={null}
-        btExportHistory={[]}
-        exportBtHistoryJson={() => {}}
-        exportBtHistoryCsv={() => {}}
-        handleClearBtExportHistory={() => {}}
-        btHistoryTotal={0}
-        btHistoryLoading={false}
-        btHistoryCanLoadMore={false}
-        handleLoadMoreBtHistory={() => {}}
-        btHistoryProjectTypeFilter=""
-        setBtHistoryProjectTypeFilter={() => {}}
-        btHistoryCqtScenarioFilter=""
-        setBtHistoryCqtScenarioFilter={() => {}}
-        updateSettings={updateSettings}
-        selectionMode={appState.selectionMode}
-        handleSelectionModeChange={handleSelectionModeChange}
-        radius={appState.radius}
-        handleRadiusChange={handleRadiusChange}
-        polygon={appState.polygon}
-        handleClearPolygon={handleClearPolygon}
-        osmData={osmEngine.osmData}
-        handleDownloadDxf={handleDownloadDxf}
-        handleDownloadGeoJSON={handleDownloadGeoJSON}
-        isSidebarDockedForRamalModal={false}
-        sidebarSelectionControlsProps={sidebarProps.sidebarSelectionControlsProps}
-        sidebarBtEditorSectionProps={sidebarProps.sidebarBtEditorSectionProps}
-        mtTopology={topologySources.mtTopology}
-        updateMtTopology={() => {}}
-        hasBtPoles={btTopology.poles.length > 0}
-        sidebarAnalysisResultsProps={sidebarProps.sidebarAnalysisResultsProps}
-        mapSelectorProps={null}
-        elevationProfileData={elevationProfile.profileData}
-        clearProfile={elevationProfile.clearProfile}
-        btModalStackProps={null}
-        showToast={showToast}
-        isBimInspectorOpen={false}
-        setIsBimInspectorOpen={() => {}}
-        inspectedPole={null}
-        inspectedTransformer={null}
-        inspectedAccumulatedData={null}
+        selectedPoleId={selectedPoleId}
+        setSelectedPoleId={setSelectedPoleId}
+        osmEngine={osmEngine}
         btTopology={btTopology}
-        btNetworkScenario={appState.btNetworkScenario}
-        btEditorMode={appState.btEditorMode}
+        updateBtTopology={updateBtTopology}
+        btNetworkScenario={btNetworkScenario}
+        btEditorMode={btEditorMode}
         setBtNetworkScenario={setBtNetworkScenario}
         setBtEditorMode={setBtEditorMode}
-        updateBtTopology={updateBtTopology}
-        handleBtRenamePole={() => {}}
-        handleBtSetPoleChangeFlag={() => {}}
-        autoSaveStatus={autoSave.status}
-        lastAutoSaved={autoSave.lastSaved}
-        isAuditOpen={electricalAudit.isAuditOpen}
-        setIsAuditOpen={electricalAudit.setIsAuditOpen}
-        selectedAuditElement={electricalAudit.selectedAuditElement}
-        handleAuditAction={electricalAudit.handleAuditAction}
-        btTelescopicSuggestions={[]}
-        handleApplyTelescopicSuggestions={() => {}}
-        clearBtTelescopicSuggestions={() => {}}
-        isHelpOpen={isHelpOpen}
-        onOpenSnapshots={() => setIsSnapshotModalOpen(true)}
-        isCommandPaletteOpen={isCommandPaletteOpen}
-        setIsCommandPaletteOpen={setIsCommandPaletteOpen}
-        commandPaletteActions={commandPaletteActions}
-        handleGoToPole={setSelectedPoleId}
-        terrainData={osmEngine.terrainData}
-        showSettings={showSettings}
-        closeSettings={closeSettings}
-        isCalculating={derivedState.isCalculating}
-        complianceResults={compliance.result}
-      >
-        <SnapshotModal
-          isOpen={isSnapshotModalOpen}
-          onClose={() => setIsSnapshotModalOpen(false)}
-          projetoId={projeto_id || ''}
-          currentState={appState}
-          onRestore={state => {
-            setAppState(state, true, 'Restauração de Snapshot');
-            setIsSnapshotModalOpen(false);
-            showToast('Snapshot restaurado com sucesso!', 'success');
-          }}
-        />
-      </AppWorkspace>
-    </ToastProvider>
+        topologySources={topologySources}
+        derivedState={derivedState}
+        openCommandPalette={() => setIsCommandPaletteOpen(true)}
+        showToast={showToast}
+      />
+    </div>
   );
 }
-
-export default App;
