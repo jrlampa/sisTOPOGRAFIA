@@ -60,27 +60,21 @@ ENV NODE_ENV=production \
 RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
     apk add --update-cache \
         python3 \
-        su-exec \
         ca-certificates \
         curl \
         tini
 
-# Usuário não-root (UID 10001)
-RUN addgroup -g 10001 appuser && \
-    adduser -D -u 10001 -G appuser appuser
-
 # ── Artefatos do build ───────────────────────────────────────────────────────
 COPY --from=py-deps  /opt/venv                /opt/venv
-COPY --from=node-build --chown=appuser:appuser /app/dist         ./dist
-COPY --from=node-build --chown=appuser:appuser /app/node_modules ./node_modules
-COPY --from=node-build --chown=appuser:appuser /app/py_engine    ./py_engine
-COPY --from=node-build --chown=appuser:appuser /app/public       ./public
+COPY --from=node-build /app/dist         ./dist
+COPY --from=node-build /app/node_modules ./node_modules
+COPY --from=node-build /app/py_engine    ./py_engine
+COPY --from=node-build /app/public       ./public
 
-COPY --chown=appuser:appuser package.json          ./package.json
-COPY --chown=appuser:appuser docker-entrypoint.sh  ./docker-entrypoint.sh
+COPY package.json          ./package.json
+COPY docker-entrypoint.sh  ./docker-entrypoint.sh
 
 RUN mkdir -p /app/public/dxf /app/cache /app/logs && \
-    chown -R appuser:appuser /app/public/dxf /app/cache /app/logs && \
     chmod +x /app/docker-entrypoint.sh
 
 # Verificação de dependências Python via Heredoc
@@ -105,4 +99,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
     CMD curl -fsS "http://localhost:${PORT}/health" || exit 1
 
-CMD ["node", "dist/server/index.js"]
+CMD ["node", "dist/server/server/index.js"]

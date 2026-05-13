@@ -1,11 +1,11 @@
 import React from "react";
 
-type ToastType = "success" | "error" | "warning" | "info";
+type ToastType = "success" | "error" | "warning" | "info" | "alert";
 
 export interface Toast {
   id: string;
   type: ToastType;
-  title: string;
+  title?: string;
   message: string;
   action?: {
     label: string;

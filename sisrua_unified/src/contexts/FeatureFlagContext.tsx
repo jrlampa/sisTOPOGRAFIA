@@ -11,6 +11,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../auth/AuthProvider";
 import { API_BASE_URL } from "../config/api";
 import { buildApiHeaders } from "../services/apiClient";
+import { logger } from "../utils/logger";
 
 interface FeatureHealth {
   latencyMs: number;
@@ -59,7 +60,7 @@ export const FeatureFlagProvider: React.FC<{ children: React.ReactNode }> = ({
         try {
           initialFlags = { ...DEFAULT_FEATURE_FLAGS, ...JSON.parse(saved) };
         } catch (e) {
-          console.error("Failed to parse local flags", e);
+          logger.error("FeatureFlags", "Failed to parse local flags", e);
         }
       }
 
@@ -70,7 +71,7 @@ export const FeatureFlagProvider: React.FC<{ children: React.ReactNode }> = ({
           .eq("user_id", user.id)
           .single() as unknown as Promise<{
           data: UserPreferencesRow | null;
-          error: any;
+          error: { code: string; message: string };
         }>);
 
         if (data) {
@@ -85,7 +86,7 @@ export const FeatureFlagProvider: React.FC<{ children: React.ReactNode }> = ({
             setCustomPresets(data.custom_presets);
           }
         } else if (error && error.code !== "PGRST116") {
-          console.warn("[Flags] Erro ao carregar do banco", error.message);
+          logger.warn("FeatureFlags", "Erro ao carregar do banco", error.message);
         }
       }
 

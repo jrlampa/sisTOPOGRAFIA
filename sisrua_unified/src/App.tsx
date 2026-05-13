@@ -10,6 +10,7 @@ import { useAppGlobalHotkeys } from "./hooks/useAppGlobalHotkeys";
 import { AppWorkspace } from "./components/AppWorkspace";
 import { SnapshotModal } from "./components/SnapshotModal";
 import { BtTopology } from "./types";
+import type { BtNetworkScenarioPayload, BtEditorModePayload } from './types';
 import { ToastProvider } from "./hooks/useToast";
 
 /** Topologia BT vazia — fallback quando o estado ainda não foi carregado. */
@@ -72,8 +73,12 @@ function App() {
     sessionDraft,
   } = mapState;
 
-  const { settings, btTopology = EMPTY_BT_TOPOLOGY } = appState;
-  const { btEditorMode = "none" } = settings;
+  const { 
+    settings, 
+    btTopology = EMPTY_BT_TOPOLOGY,
+    btNetworkScenario,
+    btEditorMode 
+  } = appState;
 
   // ─── Carregar projeto da URL ──────────────────────────────────────────────
   React.useEffect(() => {
@@ -146,10 +151,10 @@ function App() {
     setIsFocusModeManual,
     handleRunDgOptimization: () => {},
     handleTriggerTelescopicAnalysis: () => {},
-    setBtNetworkScenario: (s: any) =>
-      setAppState((p) => ({ ...p, settings: { ...p.settings, btNetworkScenario: s } }), true),
-    setBtEditorMode: (m: any) =>
-      setAppState((p) => ({ ...p, settings: { ...p.settings, btEditorMode: m } }), true),
+    setBtNetworkScenario: (s: BtNetworkScenarioPayload | null) =>
+      setAppState((p) => ({ ...p, btNetworkScenario: s }), true),
+    setBtEditorMode: (m: BtEditorModePayload) =>
+      setAppState((p) => ({ ...p, btEditorMode: m }), true),
     setSelectedPoleId,
     setIsCommandPaletteOpen,
   });
@@ -170,12 +175,12 @@ function App() {
     handleFetchAndAnalyze: analysisWorkflow.handleFetchAndAnalyze,
     isProcessing: osmEngine.isProcessing,
     isPolygonValid,
-    setBtNetworkScenario: (s: any) =>
-      setAppState((p) => ({ ...p, settings: { ...p.settings, btNetworkScenario: s } }), true),
-    setBtEditorMode: (m: any) =>
-      setAppState((p) => ({ ...p, settings: { ...p.settings, btEditorMode: m } }), true),
-    btNetworkScenario: settings.btNetworkScenario,
-    btEditorMode: settings.btEditorMode,
+    setBtNetworkScenario: (s: BtNetworkScenarioPayload | null) =>
+      setAppState((p) => ({ ...p, btNetworkScenario: s }), true),
+    setBtEditorMode: (m: BtEditorModePayload) =>
+      setAppState((p) => ({ ...p, btEditorMode: m }), true),
+    btNetworkScenario,
+    btEditorMode,
     btTopology,
     dgTopologySource: topologySources.dgTopologySource,
     btAccumulatedByPole: derivedState.btAccumulatedByPole ?? [],
@@ -239,7 +244,7 @@ function App() {
 
   // ─── UI State ─────────────────────────────────────────────────────────────
   const isFocusMode =
-    isFocusModeManual || (!!settings.enableFocusMode && btEditorMode !== "none");
+    isFocusModeManual || (!!settings.enableFocusMode && btEditorMode.mode !== "none");
 
   useAppGlobalHotkeys(
     setIsFocusModeManual,

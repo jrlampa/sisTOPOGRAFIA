@@ -2,14 +2,20 @@
  * Rotas T2-57 — sisTOPOGRAFIA Academy
  */
 
-import { Router, Request, Response } from "express";
-import { z } from "zod";
-import { AcademyService } from "../services/academyService.js";
+import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import { AcademyService } from '../services/academyService.js';
+import {
+  enforceTenantConsistency,
+  requireAuthenticatedWrite,
+} from '../middleware/writeAuthPolicy.js';
 
 const router = Router();
 
-const NivelEnum = z.enum(["basico", "intermediario", "avancado", "especialista"]);
-const TipoConteudoEnum = z.enum(["video", "texto", "quiz", "simulacao", "pratica_guiada"]);
+router.use(requireAuthenticatedWrite);
+
+const NivelEnum = z.enum(['basico', 'intermediario', 'avancado', 'especialista']);
+const TipoConteudoEnum = z.enum(['video', 'texto', 'quiz', 'simulacao', 'pratica_guiada']);
 
 const CriarTrilhaSchema = z.object({
   tenantId: z.string().min(2),
@@ -44,31 +50,39 @@ const ConcluirModuloSchema = z.object({
 });
 
 // POST /trilhas
-router.post("/trilhas", (req: Request, res: Response) => {
-  const parse = CriarTrilhaSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
-  try {
-    return res.status(201).json(AcademyService.criarTrilha(parse.data));
-  } catch (err: unknown) {
-    return res.status(422).json({ error: (err as Error).message });
+router.post(
+  '/trilhas',
+  enforceTenantConsistency(req => (req.body as { tenantId?: unknown })?.tenantId),
+  (req: Request, res: Response) => {
+    const parse = CriarTrilhaSchema.safeParse(req.body);
+    if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+    try {
+      return res.status(201).json(AcademyService.criarTrilha(parse.data));
+    } catch (err: unknown) {
+      return res.status(422).json({ error: (err as Error).message });
+    }
   }
-});
+);
 
 // GET /trilhas
-router.get("/trilhas", (req: Request, res: Response) => {
-  const tenantId = req.query.tenantId as string | undefined;
-  return res.json(AcademyService.listarTrilhas(tenantId));
-});
+router.get(
+  '/trilhas',
+  enforceTenantConsistency(req => req.query.tenantId),
+  (req: Request, res: Response) => {
+    const tenantId = req.query.tenantId as string | undefined;
+    return res.json(AcademyService.listarTrilhas(tenantId));
+  }
+);
 
 // GET /trilhas/:id
-router.get("/trilhas/:id", (req: Request, res: Response) => {
+router.get('/trilhas/:id', (req: Request, res: Response) => {
   const trilha = AcademyService.obterTrilha(req.params.id);
-  if (!trilha) return res.status(404).json({ error: "Trilha não encontrada" });
+  if (!trilha) return res.status(404).json({ error: 'Trilha não encontrada' });
   return res.json(trilha);
 });
 
 // POST /trilhas/:id/publicar
-router.post("/trilhas/:id/publicar", (req: Request, res: Response) => {
+router.post('/trilhas/:id/publicar', (req: Request, res: Response) => {
   try {
     return res.json(AcademyService.publicarTrilha(req.params.id));
   } catch (err: unknown) {
@@ -77,7 +91,7 @@ router.post("/trilhas/:id/publicar", (req: Request, res: Response) => {
 });
 
 // POST /trilhas/:id/cursos
-router.post("/trilhas/:id/cursos", (req: Request, res: Response) => {
+router.post('/trilhas/:id/cursos', (req: Request, res: Response) => {
   const parse = AdicionarCursoSchema.safeParse(req.body);
   if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
   try {
@@ -88,7 +102,7 @@ router.post("/trilhas/:id/cursos", (req: Request, res: Response) => {
 });
 
 // POST /cursos/:id/modulos
-router.post("/cursos/:id/modulos", (req: Request, res: Response) => {
+router.post('/cursos/:id/modulos', (req: Request, res: Response) => {
   const parse = AdicionarModuloSchema.safeParse(req.body);
   if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
   try {
@@ -99,7 +113,7 @@ router.post("/cursos/:id/modulos", (req: Request, res: Response) => {
 });
 
 // POST /progresso
-router.post("/progresso", (req: Request, res: Response) => {
+router.post('/progresso', (req: Request, res: Response) => {
   const parse = IniciarProgressoSchema.safeParse(req.body);
   if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
   try {
@@ -110,7 +124,7 @@ router.post("/progresso", (req: Request, res: Response) => {
 });
 
 // PATCH /progresso/:id/concluir-modulo
-router.patch("/progresso/:id/concluir-modulo", (req: Request, res: Response) => {
+router.patch('/progresso/:id/concluir-modulo', (req: Request, res: Response) => {
   const parse = ConcluirModuloSchema.safeParse(req.body);
   if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
   try {
@@ -121,7 +135,7 @@ router.patch("/progresso/:id/concluir-modulo", (req: Request, res: Response) => 
 });
 
 // POST /progresso/:id/certificar
-router.post("/progresso/:id/certificar", (req: Request, res: Response) => {
+router.post('/progresso/:id/certificar', (req: Request, res: Response) => {
   try {
     return res.json(AcademyService.emitirCertificado(req.params.id));
   } catch (err: unknown) {
@@ -130,7 +144,7 @@ router.post("/progresso/:id/certificar", (req: Request, res: Response) => {
 });
 
 // GET /categorias
-router.get("/categorias", (_req: Request, res: Response) => {
+router.get('/categorias', (_req: Request, res: Response) => {
   return res.json(AcademyService.listarCategorias());
 });
 

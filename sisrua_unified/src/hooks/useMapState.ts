@@ -106,8 +106,8 @@ export function useMapState({
     clearSessionDraft();
   };
 
-  const updateSettings = (newSettings: AppSettings) => {
-    setAppState((prev) => ({ ...prev, settings: newSettings }), true);
+  const updateSettings = (newSettings: Partial<AppSettings>) => {
+    setAppState((prev) => ({ ...prev, settings: { ...prev.settings, ...newSettings } }), true);
   };
 
   const handleMapClick = (newCenter: GeoLocation) => {

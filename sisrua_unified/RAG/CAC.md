@@ -1,5 +1,12 @@
 # sisRUA Unified — Cache Advanced Configuration (CAC)
 
+## ✅ Atualização Operacional — 2026-05-13
+- **Build/PWA validado**: `vite build` gerou `dist/`, `sw.js` e `workbox` com precache de 45 entradas.
+- **Cache browser preservado**: nenhuma alteração regressiva identificada na camada PWA/Workbox durante a remediação de dependências.
+- **Auditoria de segurança**: dependências de produção revalidadas com `npm audit --omit=dev --audit-level=critical`, retornando `found 0 vulnerabilities`.
+- **Recomendação CAC**: manter monitoramento de tamanho de bundles e runtime cache após novas features, especialmente módulos admin, mapa, BT editor/panel e Recharts.
+- **Governança**: qualquer mudança futura em cache ou dependências deve passar por `typecheck`, `lint`, `build`, `security:audit`, `test:qa:regression` e `coverage:policy` antes de commit na branch `dev`.
+
 ## 🎯 Estratégia de Cache Multi-Camada
 
 ### Camada 1: Application Cache (Materialized Views)

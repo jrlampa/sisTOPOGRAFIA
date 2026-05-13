@@ -52,7 +52,7 @@ const NotFoundPage = lazy(() =>
   lazyWithRetry(() => import("./pages/NotFoundPage")),
 );
 const AdminPage = lazy(() =>
-  lazyWithRetry(() => import("./components/AdminPage")),
+  lazyWithRetry(() => import("./components/AdminPage/AdminPage")),
 );
 const ProjetoPage = lazy(() => lazyWithRetry(() => import("./App")));
 

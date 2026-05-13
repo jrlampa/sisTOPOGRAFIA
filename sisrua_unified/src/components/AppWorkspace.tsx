@@ -18,9 +18,12 @@ import { useMultiplayer } from "../hooks/useMultiplayer";
 import { useNeighborhoodAwareness } from "../hooks/useNeighborhoodAwareness";
 import { MultiplayerAvatars } from "./MultiplayerAvatars";
 import { useAuth } from "../auth/AuthProvider";
+import type { AppSettings, BtNetworkScenarioPayload, GlobalState } from '../types';
+import type { HistoryEntry } from '../hooks/useUndoRedo';
+import type { Toast as ToastItem } from '../hooks/useToast';
 
 type AppWorkspaceProps = {
-  settings: any;
+  settings: AppSettings;
   isDark: boolean;
   isFocusMode: boolean;
   isXRayMode: boolean;
@@ -28,15 +31,15 @@ type AppWorkspaceProps = {
   canRedo: boolean;
   undo: () => void;
   redo: () => void;
-  appPast: any[];
-  appFuture: any[];
+  appPast: HistoryEntry<GlobalState>[];
+  appFuture: HistoryEntry<GlobalState>[];
   handleSaveProject: () => void;
   handleLoadProject: (file: File) => void;
   openSettings: () => void;
   setIsHelpOpen: (open: boolean) => void;
-  toasts: any[];
+  toasts: ToastItem[];
   closeToast: (id?: string) => void;
-  sessionDraft: any;
+  sessionDraft: GlobalState | null;
   handleRestoreSession: () => void;
   handleDismissSession: () => void;
   isProcessing: boolean;
@@ -47,8 +50,8 @@ type AppWorkspaceProps = {
   dxfProgressValue: number;
   dxfProgressStatus: string;
   dxfProgressLabel: string;
-  latestBtExport: any;
-  btExportHistory: any[];
+  latestBtExport: { timestamp: string; filename: string } | null;
+  btExportHistory: Array<{ timestamp: string; filename: string }>;
   exportBtHistoryJson: () => void;
   exportBtHistoryCsv: () => void;
   handleClearBtExportHistory: () => void;
@@ -60,7 +63,7 @@ type AppWorkspaceProps = {
   setBtHistoryProjectTypeFilter: (v: string) => void;
   btHistoryCqtScenarioFilter: string;
   setBtHistoryCqtScenarioFilter: (v: string) => void;
-  updateSettings: (s: any) => void;
+  updateSettings: (s: Partial<AppSettings>) => void;
   selectionMode: any;
   handleSelectionModeChange: (m: any) => void;
   radius: number;
@@ -242,7 +245,7 @@ export function AppWorkspace({
         projectName={settings.projectMetadata?.projectName || "Novo Projeto"}
         autoSaveStatus={autoSaveStatus as any}
         lastAutoSaved={lastAutoSaved}
-        isSidebarCollapsed={settings.sidebarCollapsed}
+        isSidebarCollapsed={!!settings.sidebarCollapsed}
         onToggleSidebarCollapsed={() => updateSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed })}
         backendStatus="online"
         backendResponseTimeMs={45}
@@ -253,7 +256,7 @@ export function AppWorkspace({
         {/* Sidebar */}
         <SidebarWorkspace
           locale={settings.locale}
-          isCollapsed={settings.sidebarCollapsed}
+          isCollapsed={!!settings.sidebarCollapsed}
           onToggleCollapse={(c) => updateSettings({ ...settings, sidebarCollapsed: c })}
           isSidebarDockedForRamalModal={isSidebarDockedForRamalModal}
           selectionControlsProps={sidebarSelectionControlsProps}

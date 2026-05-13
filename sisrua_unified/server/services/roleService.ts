@@ -1,8 +1,8 @@
-import { logger } from "../utils/logger.js";
-import { getDbClient } from "../repositories/dbClient.js";
-import { onRoleChange } from "./cacheService.js";
+import { logger } from '../utils/logger.js';
+import { getDbClient } from '../repositories/dbClient.js';
+import { onRoleChange } from './cacheService.js';
 
-export type UserRole = "admin" | "technician" | "viewer" | "guest";
+export type UserRole = 'admin' | 'technician' | 'viewer' | 'guest';
 
 export interface UserContext {
   role: UserRole;
@@ -22,6 +22,11 @@ interface UserRoleUpsertResult {
   role: UserRole;
 }
 
+interface UserRoleQueryResult {
+  role: UserRole;
+  tenant_id: string | null;
+}
+
 /**
  * Serviço RBAC — Gestão de papéis de usuários.
  *
@@ -38,13 +43,11 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
  * Recupera o contexto de um usuário (papel e tenant) do banco de dados.
  * Retorna 'guest' para IDs inválidos e 'viewer' com tenant nulo quando o DB não está disponível.
  */
-export async function getUserRole(
-  userId: string | undefined,
-): Promise<UserContext> {
-  const defaultContext: UserContext = { role: "viewer", tenantId: null };
+export async function getUserRole(userId: string | undefined): Promise<UserContext> {
+  const defaultContext: UserContext = { role: 'viewer', tenantId: null };
 
-  if (!userId || typeof userId !== "string" || userId.trim().length === 0) {
-    return { role: "guest", tenantId: null };
+  if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+    return { role: 'guest', tenantId: null };
   }
 
   const normalizedUserId = userId.trim();
@@ -52,19 +55,19 @@ export async function getUserRole(
   // Verificar cache
   const cached = roleCache.get(normalizedUserId);
   if (cached && cached.expiresAt > Date.now()) {
-    logger.debug("User context cache hit", { userId: normalizedUserId });
+    logger.debug('User context cache hit', { userId: normalizedUserId });
     return cached.context;
   }
 
   try {
     const sql = getDbClient();
     if (!sql) {
-      logger.debug("DB não disponível, contexto padrão: viewer", {
+      logger.debug('DB não disponível, contexto padrão: viewer', {
         userId: normalizedUserId,
       });
       return defaultContext;
     }
-    const rows = await sql<any[]>`
+    const rows = await sql<UserRoleQueryResult[]>`
       SELECT role, tenant_id
       FROM user_roles
       WHERE user_id = ${normalizedUserId}
@@ -83,7 +86,7 @@ export async function getUserRole(
         expiresAt: Date.now() + CACHE_TTL_MS,
       });
 
-      logger.debug("Contexto de usuário recuperado do banco", {
+      logger.debug('Contexto de usuário recuperado do banco', {
         userId: normalizedUserId,
         role: context.role,
         tenantId: context.tenantId,
@@ -92,13 +95,13 @@ export async function getUserRole(
       return context;
     }
 
-    logger.debug("Contexto de usuário não encontrado, padrão: viewer", {
+    logger.debug('Contexto de usuário não encontrado, padrão: viewer', {
       userId: normalizedUserId,
     });
 
     return defaultContext;
   } catch (err: unknown) {
-    logger.error("Falha ao recuperar contexto de usuário", {
+    logger.error('Falha ao recuperar contexto de usuário', {
       userId: normalizedUserId,
       error: err instanceof Error ? err.message : String(err),
     });
@@ -110,13 +113,13 @@ export async function getUserRole(
 /** Limpa todo o cache de papéis de usuário. */
 export function clearRoleCache(): void {
   roleCache.clear();
-  logger.info("Cache de papéis de usuário limpo");
+  logger.info('Cache de papéis de usuário limpo');
 }
 
 /** Limpa o cache de um usuário específico. */
 export function clearUserRoleCache(userId: string): void {
   roleCache.delete(userId.trim());
-  logger.debug("Cache de papel limpo para usuário", { userId });
+  logger.debug('Cache de papel limpo para usuário', { userId });
 }
 
 /**
@@ -127,14 +130,14 @@ export async function setUserRole(
   role: UserRole,
   assignedBy: string,
   reason?: string,
-  tenantId?: string | null,
+  tenantId?: string | null
 ): Promise<boolean> {
   if (!userId || userId.trim().length === 0) {
-    logger.warn("userId inválido em setUserRole");
+    logger.warn('userId inválido em setUserRole');
     return false;
   }
   if (!assignedBy || assignedBy.trim().length === 0) {
-    logger.warn("assignedBy inválido em setUserRole");
+    logger.warn('assignedBy inválido em setUserRole');
     return false;
   }
 
@@ -144,7 +147,7 @@ export async function setUserRole(
   try {
     const sql = getDbClient();
     if (!sql) {
-      logger.warn("DB não disponível, não é possível atribuir papel");
+      logger.warn('DB não disponível, não é possível atribuir papel');
       return false;
     }
     const rows = await sql<UserRoleUpsertResult[]>`
@@ -165,13 +168,13 @@ export async function setUserRole(
       try {
         onRoleChange(normalizedUserId);
       } catch (cacheErr: unknown) {
-        logger.warn("Falha ao invalidar cache após mudança de papel", {
+        logger.warn('Falha ao invalidar cache após mudança de papel', {
           userId: normalizedUserId,
           error: cacheErr instanceof Error ? cacheErr.message : String(cacheErr),
         });
       }
 
-      logger.info("Papel de usuário atualizado", {
+      logger.info('Papel de usuário atualizado', {
         userId: normalizedUserId,
         newRole: role,
         assignedBy: normalizedAssignedBy,
@@ -183,7 +186,7 @@ export async function setUserRole(
 
     return false;
   } catch (err: unknown) {
-    logger.error("Falha ao atribuir papel de usuário", {
+    logger.error('Falha ao atribuir papel de usuário', {
       userId: normalizedUserId,
       role,
       error: err instanceof Error ? err.message : String(err),
@@ -196,9 +199,7 @@ export async function setUserRole(
 /**
  * Obtém todos os usuários com um papel específico.
  */
-export async function getUsersByRole(
-  role: UserRole,
-): Promise<UserRoleRecord[]> {
+export async function getUsersByRole(role: UserRole): Promise<UserRoleRecord[]> {
   try {
     const sql = getDbClient();
     if (!sql) return [];
@@ -212,7 +213,7 @@ export async function getUsersByRole(
 
     return rows ?? [];
   } catch (err: unknown) {
-    logger.error("Falha ao listar usuários por papel", {
+    logger.error('Falha ao listar usuários por papel', {
       role,
       error: err instanceof Error ? err.message : String(err),
     });
@@ -250,7 +251,7 @@ export async function getRoleStatistics(): Promise<Record<UserRole, number>> {
 
     return empty;
   } catch (err: unknown) {
-    logger.error("Falha ao recuperar estatísticas de papéis", {
+    logger.error('Falha ao recuperar estatísticas de papéis', {
       error: err instanceof Error ? err.message : String(err),
     });
 

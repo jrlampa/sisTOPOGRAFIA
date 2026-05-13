@@ -1,6 +1,6 @@
 import React from "react";
 import { getCommandPaletteText } from "../i18n/commandPaletteText";
-import { AppLocale } from "../types";
+import { AppLocale, BtNetworkScenarioPayload, BtEditorModePayload } from "../types";
 
 export function useAppCommandPalette({
   locale,
@@ -42,8 +42,8 @@ export function useAppCommandPalette({
   setIsFocusModeManual: (manual: boolean) => void;
   handleRunDgOptimization: () => void;
   handleTriggerTelescopicAnalysis: () => void;
-  setBtNetworkScenario: (scenario: "asis" | "projeto") => void;
-  setBtEditorMode: (mode: any) => void;
+  setBtNetworkScenario: (s: BtNetworkScenarioPayload | null) => void;
+  setBtEditorMode: (m: BtEditorModePayload) => void;
   setSelectedPoleId: (id: string) => void;
   setIsCommandPaletteOpen: (open: boolean) => void;
 }) {
@@ -174,37 +174,37 @@ export function useAppCommandPalette({
       id: "mode-asis",
       label: i18nCmd.scenarioAsIs,
       section: i18nCmd.sectionVisualization,
-      onSelect: () => setBtNetworkScenario("asis"),
+      onSelect: () => setBtNetworkScenario({ mode: 'ramal', metadata: { legacyScenario: 'asis' } }),
     },
     {
       id: "mode-proj",
       label: i18nCmd.scenarioProject,
       section: i18nCmd.sectionVisualization,
-      onSelect: () => setBtNetworkScenario("projeto"),
+      onSelect: () => setBtNetworkScenario({ mode: 'ramal', metadata: { legacyScenario: 'projeto' } }),
     },
     {
       id: "editor-none",
       label: i18nCmd.exitEditorMode,
       section: i18nCmd.sectionEdit,
-      onSelect: () => setBtEditorMode("none"),
+      onSelect: () => setBtEditorMode({ mode: "none" }),
     },
     {
       id: "editor-pole",
       label: i18nCmd.modeAddPole,
       section: i18nCmd.sectionEdit,
-      onSelect: () => setBtEditorMode("pole"),
+      onSelect: () => setBtEditorMode({ mode: "add-pole" }),
     },
     {
       id: "editor-transformer",
       label: i18nCmd.modeAddTransformer,
       section: i18nCmd.sectionEdit,
-      onSelect: () => setBtEditorMode("transformer"),
+      onSelect: () => setBtEditorMode({ mode: "add-transformer" }),
     },
     {
       id: "editor-edge",
       label: i18nCmd.modeAddEdge,
       section: i18nCmd.sectionEdit,
-      onSelect: () => setBtEditorMode("edge"),
+      onSelect: () => setBtEditorMode({ mode: "add-edge" }),
     },
   ], [
     i18nCmd,

@@ -2,16 +2,28 @@
  * Rotas T2-67 — Ciclo As-Built Mobile
  */
 
-import { Router, Request, Response } from "express";
-import { z } from "zod";
-import { AsBuiltMobileService } from "../services/asBuiltMobileService.js";
+import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import { AsBuiltMobileService } from '../services/asBuiltMobileService.js';
+import {
+  enforceTenantConsistency,
+  requireAuthenticatedWrite,
+} from '../middleware/writeAuthPolicy.js';
 
 const router = Router();
 
+router.use(requireAuthenticatedWrite);
+
 const TipoDesvioEnum = z.enum([
-  "posicao", "altura", "tipo_equipamento", "numeracao", "circuito", "carga", "outro",
+  'posicao',
+  'altura',
+  'tipo_equipamento',
+  'numeracao',
+  'circuito',
+  'carga',
+  'outro',
 ]);
-const ImpactoEnum = z.enum(["baixo", "medio", "alto", "critico"]);
+const ImpactoEnum = z.enum(['baixo', 'medio', 'alto', 'critico']);
 
 const CriarRegistroSchema = z.object({
   tenantId: z.string().min(2),
@@ -38,31 +50,39 @@ const AprovarSchema = z.object({ aprovadoPor: z.string().min(3) });
 const RejeitarSchema = z.object({ motivo: z.string().min(5) });
 
 // POST /registros
-router.post("/registros", (req: Request, res: Response) => {
-  const parse = CriarRegistroSchema.safeParse(req.body);
-  if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
-  try {
-    return res.status(201).json(AsBuiltMobileService.criarRegistro(parse.data));
-  } catch (err: unknown) {
-    return res.status(422).json({ error: (err as Error).message });
+router.post(
+  '/registros',
+  enforceTenantConsistency(req => (req.body as { tenantId?: unknown })?.tenantId),
+  (req: Request, res: Response) => {
+    const parse = CriarRegistroSchema.safeParse(req.body);
+    if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
+    try {
+      return res.status(201).json(AsBuiltMobileService.criarRegistro(parse.data));
+    } catch (err: unknown) {
+      return res.status(422).json({ error: (err as Error).message });
+    }
   }
-});
+);
 
 // GET /registros
-router.get("/registros", (req: Request, res: Response) => {
-  const tenantId = req.query.tenantId as string | undefined;
-  return res.json(AsBuiltMobileService.listarRegistros(tenantId));
-});
+router.get(
+  '/registros',
+  enforceTenantConsistency(req => req.query.tenantId),
+  (req: Request, res: Response) => {
+    const tenantId = req.query.tenantId as string | undefined;
+    return res.json(AsBuiltMobileService.listarRegistros(tenantId));
+  }
+);
 
 // GET /registros/:id
-router.get("/registros/:id", (req: Request, res: Response) => {
+router.get('/registros/:id', (req: Request, res: Response) => {
   const registro = AsBuiltMobileService.obterRegistro(req.params.id);
-  if (!registro) return res.status(404).json({ error: "Registro As-Built não encontrado" });
+  if (!registro) return res.status(404).json({ error: 'Registro As-Built não encontrado' });
   return res.json(registro);
 });
 
 // POST /registros/:id/desvios
-router.post("/registros/:id/desvios", (req: Request, res: Response) => {
+router.post('/registros/:id/desvios', (req: Request, res: Response) => {
   const parse = AdicionarDesvioSchema.safeParse(req.body);
   if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
   try {
@@ -73,7 +93,7 @@ router.post("/registros/:id/desvios", (req: Request, res: Response) => {
 });
 
 // POST /registros/:id/sincronizar
-router.post("/registros/:id/sincronizar", (req: Request, res: Response) => {
+router.post('/registros/:id/sincronizar', (req: Request, res: Response) => {
   try {
     return res.json(AsBuiltMobileService.sincronizarRegistro(req.params.id));
   } catch (err: unknown) {
@@ -82,7 +102,7 @@ router.post("/registros/:id/sincronizar", (req: Request, res: Response) => {
 });
 
 // POST /registros/:id/aprovar
-router.post("/registros/:id/aprovar", (req: Request, res: Response) => {
+router.post('/registros/:id/aprovar', (req: Request, res: Response) => {
   const parse = AprovarSchema.safeParse(req.body);
   if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
   try {
@@ -93,7 +113,7 @@ router.post("/registros/:id/aprovar", (req: Request, res: Response) => {
 });
 
 // POST /registros/:id/rejeitar
-router.post("/registros/:id/rejeitar", (req: Request, res: Response) => {
+router.post('/registros/:id/rejeitar', (req: Request, res: Response) => {
   const parse = RejeitarSchema.safeParse(req.body);
   if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
   try {
@@ -104,7 +124,7 @@ router.post("/registros/:id/rejeitar", (req: Request, res: Response) => {
 });
 
 // GET /tipos-desvio
-router.get("/tipos-desvio", (_req: Request, res: Response) => {
+router.get('/tipos-desvio', (_req: Request, res: Response) => {
   return res.json(AsBuiltMobileService.listarTiposDesvio());
 });
 
