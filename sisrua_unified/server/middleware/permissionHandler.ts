@@ -114,6 +114,14 @@ export const requirePermission = (requiredPermission: Permission) => {
       return next(createError.authorization("Tenant mismatch"));
     }
 
+    if (!userId) {
+      logger.warn("Unauthenticated access attempt to restricted resource", {
+        requestId,
+        path: req.path,
+      });
+      return next(createError.authentication("Authentication required"));
+    }
+
     try {
       const userContext = await getUserRole(userId);
       const userRole =

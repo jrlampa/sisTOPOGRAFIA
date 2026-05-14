@@ -153,11 +153,12 @@ const createDxfRateLimiter = (windowMs: number) =>
     keyGenerator,
     message: { error: "Too many DXF requests, please try again later." },
     handler: (req, res, _next, options) => {
-      logger.warn("DXF rate limit exceeded", {
+      logger.warn(`${options.message.error || "Rate limit exceeded"}`, {
         ip: req.ip,
         path: req.path,
         limit: options.limit,
         windowMs: options.windowMs,
+        isSecurity: true,
       });
       res.status(options.statusCode).json(options.message);
     },
@@ -173,11 +174,12 @@ const createGeneralRateLimiter = (windowMs: number) =>
     keyGenerator,
     message: { error: "Too many requests, please try again later." },
     handler: (req, res, _next, options) => {
-      logger.warn("Rate limit exceeded", {
+      logger.warn(`${options.message.error || "Rate limit exceeded"}`, {
         ip: req.ip,
         path: req.path,
         limit: options.limit,
         windowMs: options.windowMs,
+        isSecurity: true,
       });
       res.status(options.statusCode).json(options.message);
     },
@@ -194,11 +196,12 @@ const createAnalyzeRateLimiter = (windowMs: number) =>
       error: "Too many AI analysis requests, please try again later.",
     },
     handler: (req, res, _next, options) => {
-      logger.warn("Analyze rate limit exceeded", {
+      logger.warn(`${options.message.error || "Rate limit exceeded"}`, {
         ip: req.ip,
         path: req.path,
         limit: options.limit,
         windowMs: options.windowMs,
+        isSecurity: true,
       });
       res.status(options.statusCode).json(options.message);
     },
@@ -213,11 +216,12 @@ const createDownloadsRateLimiter = (windowMs: number) =>
     keyGenerator,
     message: { error: "Too many download requests, please try again later." },
     handler: (req, res, _next, options) => {
-      logger.warn("Download rate limit exceeded", {
+      logger.warn(`${options.message.error || "Rate limit exceeded"}`, {
         ip: req.ip,
         path: req.path,
         limit: options.limit,
         windowMs: options.windowMs,
+        isSecurity: true,
       });
       res.status(options.statusCode).json(options.message);
     },

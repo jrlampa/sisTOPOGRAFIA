@@ -62,19 +62,18 @@ describe("jobStatusService unit tests", () => {
     stopCleanupInterval();
   });
 
-  it("should create and retrieve a job in-memory", () => {
-    const job = createJob("job-1", TEST_TENANT);
+  it("should create and retrieve a job in-memory", async () => {
+    const job = await createJob("job-1", TEST_TENANT);
     expect(job.id).toBe("job-1");
-    expect(getJob("job-1")?.id).toBe("job-1");
+    const retrieved = await getJob("job-1");
+    expect(retrieved?.id).toBe("job-1");
   });
 
   it("getJobWithPersistence reads through to Postgres", async () => {
     // 1. Setup mock for SQL responses
     // Call 1: await sqlClient`SELECT 1` in initializePersistence
     sqlClientMock.mockResolvedValueOnce([{ one: 1 }]);
-    // Call 2: loadJobsFromPostgres SELECT in initializePersistence
-    unsafeMock.mockResolvedValueOnce([]);
-    // Call 3: fetchJobFromPostgres SELECT in getJobWithPersistence
+    // Call 2: fetchJobFromPostgres SELECT in getJobWithPersistence
     unsafeMock.mockResolvedValueOnce([
       {
         id: "pg-job",

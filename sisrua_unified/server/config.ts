@@ -37,7 +37,10 @@ const EnvSchema = z.object({
   APP_VERSION: z.string().default("1.2.0"),
 
   // ── AI & Engineering ──────────────────────────────────────────────────────
+  REDIS_HOST: z.string().default("localhost"),
+  REDIS_PORT: z.coerce.number().default(6379),
   REDIS_PASSWORD: z.string().optional(),
+  REDIS_TLS: z.string().default("false"),
 
   // ── Ollama ────────────────────────────────────────────────────────────────
   OLLAMA_MODEL: z.string().default("llama3.2"),

@@ -207,7 +207,7 @@ router.get("/export", async (req: Request, res: Response) => {
          data_before,
          data_after,
          cef_message
-       FROM public.v_audit_siem_export
+       FROM public.mv_audit_siem_export
        ${where}
        ORDER BY event_time DESC
        LIMIT $${paramIdx}`,

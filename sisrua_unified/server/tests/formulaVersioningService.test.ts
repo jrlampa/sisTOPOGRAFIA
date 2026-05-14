@@ -2,7 +2,15 @@
  * formulaVersioningService.test.ts — T3.73: Versionamento Semântico de Fórmulas
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+vi.mock("../config.js", () => ({
+  config: {
+    DATABASE_URL: undefined,
+    NODE_ENV: "test",
+  },
+}));
+
 import {
   computeDefinitionHash,
   listFormulas,

@@ -210,17 +210,33 @@ router.get('/portal', requirePermission('read'), async (req: Request, res: Respo
  * Stripe enviará POST com X-Stripe-Signature para validação
  */
 router.post('/webhook', async (req: Request, res: Response) => {
+  const sig = req.headers['stripe-signature'];
+  const endpointSecret = config.STRIPE_WEBHOOK_SECRET;
+
+  if (!endpointSecret) {
+    logger.warn('Webhook Stripe recebido mas STRIPE_WEBHOOK_SECRET não configurada');
+    return res.status(400).json({ erro: 'Webhook não configurado' });
+  }
+
+  if (!sig) {
+    logger.warn('Webhook Stripe recebido sem assinatura (stripe-signature)');
+    return res.status(400).json({ erro: 'Assinatura ausente' });
+  }
+
+  let event;
+
   try {
-    if (!config.STRIPE_WEBHOOK_SECRET) {
-      logger.warn('Webhook Stripe recebido mas STRIPE_WEBHOOK_SECRET não configurada');
-      return res.status(400).json({ erro: 'Webhook não configurado' });
+    // Usar o rawBody capturado pelo middleware express.json configurado em app.ts
+    const payload = (req as any).rawBody;
+    
+    if (!payload) {
+      logger.error('Webhook Stripe falhou: rawBody não capturado pelo middleware express.json');
+      return res.status(500).json({ erro: 'Erro interno de configuração de body' });
     }
+    
+    event = stripeService.constructEvent(payload, sig as string, endpointSecret);
 
-    // Em produção, usar verifyStripeSignature aqui
-    // Por enquanto, assumindo que o corpo é válido
-    const event = req.body;
-
-    logger.info('Webhook Stripe recebido', {
+    logger.info('Webhook Stripe verificado e recebido', {
       type: event.type,
       id: event.id,
     });
@@ -248,8 +264,8 @@ router.post('/webhook', async (req: Request, res: Response) => {
     // Responder com 200 OK (Stripe requer isto)
     return res.json({ received: true });
   } catch (error) {
-    logger.error('Erro ao processar webhook Stripe', error);
-    return res.status(500).json({ erro: 'Erro ao processar webhook' });
+    logger.error('Erro ao processar webhook Stripe (assinatura inválida ou erro interno)', error);
+    return res.status(400).json({ erro: 'Falha na validação do webhook' });
   }
 });
 
@@ -261,12 +277,16 @@ router.post('/webhook', async (req: Request, res: Response) => {
  */
 router.post('/admin/bootstrap', async (req: Request, res: Response) => {
   try {
-    // Validar admin token
-    const adminToken = config.ADMIN_TOKEN || config.METRICS_TOKEN;
+    // Validar admin token (Fix Item 4: Separar ADMIN de METRICS)
+    const adminToken = config.ADMIN_TOKEN;
     const authHeader = req.headers.authorization?.replace('Bearer ', '');
 
     if (!adminToken || authHeader !== adminToken) {
-      return res.status(401).json({ erro: 'Token de admin inválido' });
+      logger.warn('[BillingRoutes] Tentativa de bootstrap com token inválido ou METRICS_TOKEN', {
+        hasAdminToken: !!adminToken,
+        isSecurity: true
+      });
+      return res.status(401).json({ erro: 'Token de admin obrigatório para esta operação' });
     }
 
     const results = await stripeService.bootstrapSisRuaProducts();

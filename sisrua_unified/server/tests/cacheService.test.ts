@@ -23,7 +23,9 @@ describe('CacheService', () => {
       const key2 = createCacheKey(payload);
 
       expect(key1).toBe(key2);
-      expect(key1).toHaveLength(64); // SHA-256 produces 64-character hex
+      expect(key1).toContain('dxf_cache:');
+      // SHA-256 hex part is 64 chars, prefix is 'dxf_cache:' (10 chars)
+      expect(key1).toHaveLength(74); 
     });
 
     it('should generate different hashes for different payloads', () => {
@@ -129,111 +131,111 @@ describe('CacheService', () => {
   });
 
   describe('setCachedFilename and getCachedFilename', () => {
-    it('should store and retrieve cached filename', () => {
+    it('should store and retrieve cached filename', async () => {
       const key = 'test-key-123';
       const filename = 'dxf_test_123.dxf';
 
-      setCachedFilename(key, filename);
-      const retrieved = getCachedFilename(key);
+      await setCachedFilename(key, filename);
+      const retrieved = await getCachedFilename(key);
 
       expect(retrieved).toBe(filename);
     });
 
-    it('should return null for non-existent key', () => {
-      const retrieved = getCachedFilename('non-existent-key-' + Date.now());
+    it('should return null for non-existent key', async () => {
+      const retrieved = await getCachedFilename('non-existent-key-' + Date.now());
       expect(retrieved).toBeNull();
     });
 
-    it('should respect custom TTL', () => {
+    it('should respect custom TTL', async () => {
       vi.useFakeTimers();
 
       const key = 'test-key-ttl-' + Date.now();
       const filename = 'dxf_ttl.dxf';
       const customTTL = 1000; // 1 second
 
-      setCachedFilename(key, filename, customTTL);
+      await setCachedFilename(key, filename, customTTL);
 
       // Should be available immediately
-      expect(getCachedFilename(key)).toBe(filename);
+      expect(await getCachedFilename(key)).toBe(filename);
 
       // Advance time by 500ms (within TTL)
       vi.advanceTimersByTime(500);
-      expect(getCachedFilename(key)).toBe(filename);
+      expect(await getCachedFilename(key)).toBe(filename);
 
       // Advance time past TTL
       vi.advanceTimersByTime(600);
-      expect(getCachedFilename(key)).toBeNull();
+      expect(await getCachedFilename(key)).toBeNull();
 
       vi.useRealTimers();
     });
 
-    it('should use default TTL when not specified', () => {
+    it('should use default TTL when not specified', async () => {
       vi.useFakeTimers();
 
       const key = 'test-key-default-ttl-' + Date.now();
       const filename = 'dxf_default.dxf';
 
-      setCachedFilename(key, filename);
+      await setCachedFilename(key, filename);
 
       // Should be available immediately
-      expect(getCachedFilename(key)).toBe(filename);
+      expect(await getCachedFilename(key)).toBe(filename);
 
       // Advance time by less than default TTL (24 hours)
       vi.advanceTimersByTime(DEFAULT_TTL_MS - 1000);
-      expect(getCachedFilename(key)).toBe(filename);
+      expect(await getCachedFilename(key)).toBe(filename);
 
       // Advance time past default TTL
       vi.advanceTimersByTime(2000);
-      expect(getCachedFilename(key)).toBeNull();
+      expect(await getCachedFilename(key)).toBeNull();
 
       vi.useRealTimers();
     });
   });
 
   describe('deleteCachedFilename', () => {
-    it('should delete cached entry', () => {
+    it('should delete cached entry', async () => {
       const key = 'test-key-delete-' + Date.now();
       const filename = 'dxf_delete.dxf';
 
-      setCachedFilename(key, filename);
-      expect(getCachedFilename(key)).toBe(filename);
+      await setCachedFilename(key, filename);
+      expect(await getCachedFilename(key)).toBe(filename);
 
-      deleteCachedFilename(key);
-      expect(getCachedFilename(key)).toBeNull();
+      await deleteCachedFilename(key);
+      expect(await getCachedFilename(key)).toBeNull();
     });
 
-    it('should not throw when deleting non-existent key', () => {
-      expect(() => {
-        deleteCachedFilename('non-existent-key-' + Date.now());
-      }).not.toThrow();
+    it('should not throw when deleting non-existent key', async () => {
+      await expect((async () => {
+        await deleteCachedFilename('non-existent-key-' + Date.now());
+      })()).resolves.not.toThrow();
     });
   });
 
   describe('Cache expiration behavior', () => {
-    it('should automatically clean expired entries on retrieval', () => {
+    it('should automatically clean expired entries on retrieval', async () => {
       vi.useFakeTimers();
 
       const key = 'test-key-expire-' + Date.now();
       const filename = 'dxf_expire.dxf';
 
-      setCachedFilename(key, filename, 1000);
+      await setCachedFilename(key, filename, 1000);
 
       // Cache hit within TTL
-      expect(getCachedFilename(key)).toBe(filename);
+      expect(await getCachedFilename(key)).toBe(filename);
 
       // Advance time past expiration
       vi.advanceTimersByTime(1500);
 
       // Should return null and clean up
-      expect(getCachedFilename(key)).toBeNull();
+      expect(await getCachedFilename(key)).toBeNull();
 
       // Subsequent calls should also return null
-      expect(getCachedFilename(key)).toBeNull();
+      expect(await getCachedFilename(key)).toBeNull();
 
       vi.useRealTimers();
     });
 
-    it('should handle multiple cache entries with different TTLs', () => {
+    it('should handle multiple cache entries with different TTLs', async () => {
       vi.useFakeTimers();
 
       const key1 = 'test-key-multi-1-' + Date.now();
@@ -241,29 +243,28 @@ describe('CacheService', () => {
       const filename1 = 'dxf_multi_1.dxf';
       const filename2 = 'dxf_multi_2.dxf';
 
-      setCachedFilename(key1, filename1, 1000); // 1 second
-      setCachedFilename(key2, filename2, 2000); // 2 seconds
+      await setCachedFilename(key1, filename1, 1000); // 1 second
+      await setCachedFilename(key2, filename2, 2000); // 2 seconds
 
       // Both should be available initially
-      expect(getCachedFilename(key1)).toBe(filename1);
-      expect(getCachedFilename(key2)).toBe(filename2);
+      expect(await getCachedFilename(key1)).toBe(filename1);
+      expect(await getCachedFilename(key2)).toBe(filename2);
 
       // Advance time past first TTL
       vi.advanceTimersByTime(1500);
 
       // First should be expired, second still valid
-      expect(getCachedFilename(key1)).toBeNull();
-      expect(getCachedFilename(key2)).toBe(filename2);
+      expect(await getCachedFilename(key1)).toBeNull();
+      expect(await getCachedFilename(key2)).toBe(filename2);
 
       // Advance time past second TTL
       vi.advanceTimersByTime(600);
 
       // Both should be expired
-      expect(getCachedFilename(key1)).toBeNull();
-      expect(getCachedFilename(key2)).toBeNull();
+      expect(await getCachedFilename(key1)).toBeNull();
+      expect(await getCachedFilename(key2)).toBeNull();
 
       vi.useRealTimers();
     });
   });
 });
-

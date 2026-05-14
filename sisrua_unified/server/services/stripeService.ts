@@ -46,6 +46,7 @@ const TIER_DEFINITIONS: Record<SisRuaTier, TierDefinition> = {
     name: 'Community (Gratuito)',
     description: 'Análise básica e visualização de dados geoespaciais',
     priceMonthlyBRL: 0,
+    stripePriceId: process.env.STRIPE_PRICE_COMMUNITY,
     features: {
       maxAreaKm2: 2,
       maxDxfPerMonth: 0,
@@ -63,7 +64,8 @@ const TIER_DEFINITIONS: Record<SisRuaTier, TierDefinition> = {
     id: 'professional',
     name: 'Professional',
     description: 'Exportação DXF, análise completa de topologia, 50km²',
-    priceMonthlyBRL: 120, // Será sincronizado com Stripe
+    priceMonthlyBRL: 120,
+    stripePriceId: process.env.STRIPE_PRICE_PROFESSIONAL,
     features: {
       maxAreaKm2: 50,
       maxDxfPerMonth: 20,
@@ -81,7 +83,8 @@ const TIER_DEFINITIONS: Record<SisRuaTier, TierDefinition> = {
     id: 'enterprise',
     name: 'Enterprise',
     description: 'Acesso ilimitado, multi-tenant, suporte dedicado',
-    priceMonthlyBRL: 1500, // Negotiated per customer
+    priceMonthlyBRL: 1500,
+    stripePriceId: process.env.STRIPE_PRICE_ENTERPRISE,
     features: {
       maxAreaKm2: -1, // Unlimited
       maxDxfPerMonth: -1,
@@ -118,7 +121,7 @@ class StripeService {
   constructor() {
     if (config.STRIPE_SECRET_KEY) {
       this.stripe = new Stripe(config.STRIPE_SECRET_KEY, {
-        apiVersion: '2025-02-24-preview' as any,
+        apiVersion: '2023-10-16' as any, // Versão estável confirmada (Roadmap #116)
       });
       logger.info('StripeService initialized with API key');
     } else {
@@ -126,6 +129,14 @@ class StripeService {
         'StripeService: STRIPE_SECRET_KEY não configurada. Funcionalidades de pagamento desabilitadas.'
       );
     }
+  }
+
+  /**
+   * Valida a assinatura de um webhook recebido da Stripe
+   */
+  constructEvent(payload: string | Buffer, sig: string, secret: string): Stripe.Event {
+    const stripe = this.getStripe();
+    return stripe.webhooks.constructEvent(payload, sig, secret);
   }
 
   /**
@@ -162,11 +173,15 @@ class StripeService {
           logger.info(`Produto ${tier} já existe na Stripe`, { productId: existing.id });
           results[tier] = { productId: existing.id };
 
+          // Persistência em memória (Fix Item 2)
+          TIER_DEFINITIONS[tier].stripeProductId = existing.id;
+
           // Se não for Community, buscar preço
           if (tier !== 'community') {
             const prices = await stripe.prices.list({ product: existing.id, limit: 1 });
             if (prices.data.length > 0) {
               results[tier].priceId = prices.data[0].id;
+              TIER_DEFINITIONS[tier].stripePriceId = prices.data[0].id;
             }
           }
           continue;
@@ -204,6 +219,11 @@ class StripeService {
           });
 
           results[tier].priceId = price.id;
+          
+          // Persistência em memória (Fix Item 2)
+          TIER_DEFINITIONS[tier].stripeProductId = product.id;
+          TIER_DEFINITIONS[tier].stripePriceId = price.id;
+
           logger.info(`Preço para ${tier} criado`, {
             priceId: price.id,
             amountBRL: tierDef.priceMonthlyBRL,

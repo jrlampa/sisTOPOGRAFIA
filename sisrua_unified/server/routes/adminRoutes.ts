@@ -54,6 +54,11 @@ import {
   removeServiceProfile,
   upsertServiceProfile,
 } from "../services/tenantServiceProfileService.js";
+import { 
+  invalidateCacheByPattern, 
+  invalidateCacheByTag, 
+  clearCache 
+} from "../services/cacheService.js";
 
 const router = Router();
 
@@ -389,5 +394,43 @@ router.delete(
     }
   },
 );
+
+// ─── Gestão de Cache ─────────────────────────────────────────────────────────
+
+router.post("/cache/limpar", async (req: Request, res: Response) => {
+  if (!isAdminAuthorized(req)) return forbidden(res);
+  
+  await clearCache();
+  logger.info("[AdminRoutes] Cache global limpo", {
+    atribuidoPor: "admin",
+    isSecurity: true
+  });
+  
+  return res.json({ mensagem: "Cache global limpo com sucesso" });
+});
+
+router.post("/cache/invalidar-padrao", async (req: Request, res: Response) => {
+  if (!isAdminAuthorized(req)) return forbidden(res);
+  
+  const { padrao } = req.body;
+  if (typeof padrao !== "string") {
+    return res.status(400).json({ erro: "Padrão deve ser uma string" });
+  }
+
+  const removidos = await invalidateCacheByPattern(padrao);
+  return res.json({ mensagem: `Padrão '${padrao}' invalidado`, removidos });
+});
+
+router.post("/cache/invalidar-tag", async (req: Request, res: Response) => {
+  if (!isAdminAuthorized(req)) return forbidden(res);
+  
+  const { tag } = req.body;
+  if (typeof tag !== "string") {
+    return res.status(400).json({ erro: "Tag deve ser uma string" });
+  }
+
+  const removidos = await invalidateCacheByTag(tag);
+  return res.json({ mensagem: `Tag '${tag}' invalidada`, removidos });
+});
 
 export default router;

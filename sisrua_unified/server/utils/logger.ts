@@ -65,12 +65,25 @@ const logger = winston.createLogger({
       filename: path.join(logDir, "error-%DATE%.log"),
       datePattern: "YYYY-MM-DD",
       level: "error",
+      maxSize: "20m",
       maxFiles: "14d",
     }),
     new winston.transports.DailyRotateFile({
       filename: path.join(logDir, "combined-%DATE%.log"),
       datePattern: "YYYY-MM-DD",
+      maxSize: "20m",
       maxFiles: "14d",
+    }),
+    // Roadmap Item 114: Log de auditoria de segurança isolado
+    new winston.transports.DailyRotateFile({
+      filename: path.join(logDir, "security-%DATE%.log"),
+      datePattern: "YYYY-MM-DD",
+      maxSize: "10m",
+      maxFiles: "30d",
+      format: winston.format.combine(
+        winston.format((info) => (info.isSecurity ? info : false))(),
+        winston.format.json(),
+      ),
     }),
   ],
 });

@@ -51,6 +51,7 @@ import { getCoordinateInputFeedback } from "../utils/validation";
 import { lazyWithRetry } from "../utils/lazyWithRetry";
 import type { CriticalConfirmationConfig } from "./BtModals";
 import { useFeatureFlags } from "../contexts/FeatureFlagContext";
+import { useTopology } from "../contexts/TopologyContext";
 
 const BtTopologyPanel = React.lazy(() =>
   lazyWithRetry(() => import("./BtTopologyPanel")),
@@ -112,11 +113,6 @@ function EditorToolButton({ active, onClick, icon: Icon, label, colorClass, test
 export interface SidebarBtEditorSectionProps {
   locale: AppLocale;
   settings: AppSettings;
-  setBtNetworkScenario: (scenario: BtNetworkScenario) => void;
-  setBtEditorMode: (mode: BtEditorMode) => void;
-  btNetworkScenario: BtNetworkScenario;
-  btEditorMode: BtEditorMode;
-  btTopology: BtTopology;
   dgTopology?: BtTopology;
   btAccumulatedByPole: BtPoleAccumulatedDemand[];
   btSummary: BtDerivedSummary;
@@ -128,7 +124,6 @@ export interface SidebarBtEditorSectionProps {
   clearPendingBtEdge: () => void;
   pendingNormalClassificationPoles: PendingNormalClassificationPole[];
   handleResetBtTopology: () => void;
-  updateBtTopology: (topology: BtTopology) => void;
   updateProjectType: (type: BtProjectType) => void;
   updateClandestinoAreaM2: (area: number) => void;
   handleBtSelectedPoleChange: (poleId: string) => void;
@@ -185,17 +180,11 @@ export interface SidebarBtEditorSectionProps {
   onSetSelectedPoleIds?: (ids: string[]) => void;
   onSetSelectedEdgeId?: (id: string) => void;
   onSetSelectedTransformerId?: (id: string) => void;
-  mtTopology: MtTopology;
 }
 
 export function SidebarBtEditorSection({
   locale,
   settings,
-  setBtNetworkScenario,
-  setBtEditorMode,
-  btNetworkScenario,
-  btEditorMode,
-  btTopology,
   dgTopology,
   btAccumulatedByPole,
   btSummary,
@@ -207,7 +196,6 @@ export function SidebarBtEditorSection({
   clearPendingBtEdge,
   pendingNormalClassificationPoles,
   handleResetBtTopology,
-  updateBtTopology,
   updateProjectType,
   updateClandestinoAreaM2,
   handleBtSelectedPoleChange,
@@ -252,9 +240,17 @@ export function SidebarBtEditorSection({
   onSetSelectedPoleIds,
   onSetSelectedEdgeId,
   onSetSelectedTransformerId,
-  mtTopology,
 }: SidebarBtEditorSectionProps) {
   const { flags } = useFeatureFlags();
+  const { 
+    btTopology, 
+    btNetworkScenario, 
+    btEditorMode, 
+    setBtNetworkScenario, 
+    setBtEditorMode,
+    updateBtTopology 
+  } = useTopology();
+
   const effectiveDgTopology = dgTopology ?? btTopology;
 
   const currentTotalCableLengthMeters = useMemo(() => {
@@ -295,11 +291,11 @@ export function SidebarBtEditorSection({
       <div className="p-1 bg-white/5 rounded-2xl border border-white/5 shadow-inner flex gap-1">
         <button
           onClick={() => {
-            setBtNetworkScenario("asis");
-            setBtEditorMode("none");
+            setBtNetworkScenario({ mode: 'ramal' });
+            setBtEditorMode({ mode: 'none' });
           }}
           className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-            btNetworkScenario === "asis" 
+            btNetworkScenario?.mode === 'ramal'
               ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/20" 
               : "text-slate-500 hover:text-slate-300"
           }`}
@@ -308,11 +304,11 @@ export function SidebarBtEditorSection({
         </button>
         <button
           onClick={() => {
-            setBtNetworkScenario("projeto");
+            setBtNetworkScenario({ mode: 'clandestino' }); // Assuming 'projeto' mapping here
             onTriggerTelescopicAnalysis?.();
           }}
           className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-            btNetworkScenario === "projeto" 
+            btNetworkScenario?.mode === 'clandestino'
               ? "bg-fuchsia-600 text-white shadow-lg shadow-fuchsia-600/20" 
               : "text-slate-500 hover:text-slate-300"
           }`}
@@ -330,37 +326,37 @@ export function SidebarBtEditorSection({
         
         <div className="grid grid-cols-3 gap-3">
           <EditorToolButton 
-            active={btEditorMode === "none"} 
-            onClick={() => setBtEditorMode("none")} 
+            active={btEditorMode.mode === "none"} 
+            onClick={() => setBtEditorMode({ mode: 'none' })} 
             icon={Navigation} 
             label={t.btnNavigate} 
             colorClass="ring-slate-500/50" 
           />
           <EditorToolButton 
-            active={btEditorMode === "move-pole"} 
-            onClick={() => setBtEditorMode("move-pole")} 
+            active={btEditorMode.mode === "move-pole"} 
+            onClick={() => setBtEditorMode({ mode: 'move-pole' })} 
             icon={Move} 
             label={t.btnMove} 
             colorClass="ring-amber-500/50" 
           />
           <EditorToolButton 
             testId="btn-add-pole"
-            active={btEditorMode === "add-pole"} 
-            onClick={() => setBtEditorMode("add-pole")} 
+            active={btEditorMode.mode === "add-pole"} 
+            onClick={() => setBtEditorMode({ mode: 'add-pole' })} 
             icon={MapPin} 
             label={t.btnAddPole} 
             colorClass="ring-blue-500/50" 
           />
           <EditorToolButton 
-            active={btEditorMode === "add-edge"} 
-            onClick={() => { clearPendingBtEdge(); setBtEditorMode("add-edge"); }} 
+            active={btEditorMode.mode === "add-edge"} 
+            onClick={() => { clearPendingBtEdge(); setBtEditorMode({ mode: 'add-edge' }); }} 
             icon={GitCommit} 
             label={t.btnAddEdge} 
             colorClass="ring-emerald-500/50" 
           />
           <EditorToolButton 
-            active={btEditorMode === "add-transformer"} 
-            onClick={() => setBtEditorMode("add-transformer")} 
+            active={btEditorMode.mode === "add-transformer"} 
+            onClick={() => setBtEditorMode({ mode: 'add-transformer' })} 
             icon={Zap} 
             label={t.btnAddTransformer} 
             colorClass="ring-violet-500/50" 
@@ -369,7 +365,7 @@ export function SidebarBtEditorSection({
       </div>
 
       <AnimatePresence mode="wait">
-        {btEditorMode === "add-pole" && (
+        {btEditorMode.mode === "add-pole" && (
           <motion.form
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -420,7 +416,7 @@ export function SidebarBtEditorSection({
           </motion.form>
         )}
 
-        {btEditorMode === "move-pole" && (
+        {btEditorMode.mode === "move-pole" && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -436,7 +432,7 @@ export function SidebarBtEditorSection({
       </AnimatePresence>
 
       {/* Contextual Messages */}
-      {btNetworkScenario === "asis" && (
+      {btNetworkScenario?.mode === 'ramal' && (
         <div className="flex items-center gap-2 p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-[9px] font-black uppercase text-cyan-400 tracking-widest">
           <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
           {t.actualNetworkActiveMsg}
@@ -461,7 +457,7 @@ export function SidebarBtEditorSection({
           summary={btSummary}
           pointDemandKva={btPointDemandKva}
           projectType={settings.projectType ?? "ramais"}
-          btNetworkScenario={btNetworkScenario}
+          btNetworkScenario={btNetworkScenario?.mode === 'clandestino' ? 'projeto' : 'asis'}
           clandestinoAreaM2={settings.clandestinoAreaM2 ?? 0}
           transformerDebugById={btTransformerDebugById}
           onTopologyChange={updateBtTopology}
@@ -487,7 +483,7 @@ export function SidebarBtEditorSection({
           onSetSelectedPoleIds={onSetSelectedPoleIds}
           onSetSelectedEdgeId={onSetSelectedEdgeId}
           onSetSelectedTransformerId={onSetSelectedTransformerId}
-          mtTopology={mtTopology}
+          mtTopology={useTopology().mtTopology}
         />
       </Suspense>
 

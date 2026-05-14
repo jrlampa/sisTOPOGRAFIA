@@ -12,7 +12,8 @@ export type {
   BtEditorModePayload, 
   MtNetworkState,
   AdminSettings,
-  ServiceTierForm
+  ServiceTierForm,
+  CanonicalNetworkTopology
 };
 
 export interface GeoLocation {
@@ -20,8 +21,6 @@ export interface GeoLocation {
   lng: number;
   label?: string;
 }
-
-// ... rest of file (I'll use a more targeted replace next)
 
 export interface OsmNode {
   type: "node";

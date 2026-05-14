@@ -18,15 +18,11 @@ const ToastContext = React.createContext<{
   toasts: Toast[];
   addToast: (toast: Omit<Toast, "id">) => string;
   removeToast: (id: string) => void;
-}>({
-  toasts: [],
-  addToast: () => "",
-  removeToast: () => {},
-});
+} | undefined>(undefined);
 
 export function useToast() {
   const context = React.useContext(ToastContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useToast must be used within ToastProvider");
   }
   return context;

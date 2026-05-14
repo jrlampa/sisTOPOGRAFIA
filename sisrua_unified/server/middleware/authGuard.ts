@@ -111,6 +111,7 @@ export const requireAdminToken = (
       path: req.path,
       ip: req.ip,
       hasToken: !!token,
+      isSecurity: true, // Roadmap Item 114
     });
     return res.status(403).json({
       error: "Forbidden",

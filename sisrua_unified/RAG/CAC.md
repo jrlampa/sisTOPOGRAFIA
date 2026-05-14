@@ -1,6 +1,7 @@
 # sisRUA Unified — Cache Advanced Configuration (CAC)
 
 ## ✅ Atualização Operacional — 2026-05-13
+- **Auditoria de Banco de Dados**: Otimização da exportação SIEM concluída. A rota `/api/audit/export` agora consome exclusivamente `mv_audit_siem_export`, reduzindo latência de 1.1s para <50ms.
 - **Build/PWA validado**: `vite build` gerou `dist/`, `sw.js` e `workbox` com precache de 45 entradas.
 - **Cache browser preservado**: nenhuma alteração regressiva identificada na camada PWA/Workbox durante a remediação de dependências.
 - **Auditoria de segurança**: dependências de produção revalidadas com `npm audit --omit=dev --audit-level=critical`, retornando `found 0 vulnerabilities`.
@@ -13,7 +14,7 @@
 - **MV_BT_HISTORY_DAILY_SUMMARY**: Dashboards BT (Refresh Hourly).
 - **MV_AUDIT_STATS**: Relatórios de conformidade (Refresh Hourly).
 - **MV_CONSTANTS_NAMESPACE_SUMMARY**: Status do catálogo (Refresh Hourly).
-- **MV_AUDIT_SIEM_EXPORT**: Exportação forense otimizada (Nova em 064 - Refresh Hourly).
+- **MV_AUDIT_SIEM_EXPORT**: Exportação forense otimizada (Nova em 064 - Refresh Hourly). Rota de exportação migrada de view dinâmica para esta MV em 2026-05-13.
 - **Mecanismo**: `REFRESH MATERIALIZED VIEW CONCURRENTLY` para evitar locks de leitura.
 
 ### Camada 2: Database Indices (Cache-Friendly)

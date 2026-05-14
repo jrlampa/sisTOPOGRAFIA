@@ -27,6 +27,7 @@ export default defineConfig({
       NODE_ENV: 'test',
       METRICS_TOKEN: process.env.METRICS_TOKEN ?? 'release-smoke-metrics-token',
       ADMIN_TOKEN: process.env.ADMIN_TOKEN ?? 'e2e-admin-test-token',
+      STRIPE_WEBHOOK_SECRET: 'whsec_test_secret',
     },
   },
 });

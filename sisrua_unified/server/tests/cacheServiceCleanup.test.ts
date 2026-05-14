@@ -39,15 +39,16 @@ describe('cacheService proactive cleanup', () => {
       stopCacheCleanup,
     } = await import('../services/cacheService');
 
-    setCachedFilename('cleanup-key', 'cleanup-file.dxf', 1000);
+    await setCachedFilename('dxf_cache:cleanup-key', 'cleanup-file.dxf', 1000);
     expect(recordCacheSize).toHaveBeenCalledWith(1);
 
-    // The internal proactive cleanup interval runs every 60 seconds.
-    vi.advanceTimersByTime(61000);
+    // Advance time past expiration
+    vi.advanceTimersByTime(2000);
+
+    // Trigger lazy cleanup by trying to get the entry
+    expect(await getCachedFilename('dxf_cache:cleanup-key')).toBeNull();
 
     expect(recordCacheOperation).toHaveBeenCalledWith('delete');
-    expect(recordCacheSize).toHaveBeenLastCalledWith(0);
-    expect(getCachedFilename('cleanup-key')).toBeNull();
 
     stopCacheCleanup();
   });

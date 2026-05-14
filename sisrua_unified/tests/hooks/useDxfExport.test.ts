@@ -1,84 +1,124 @@
-import { renderHook, act, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { useDxfExport } from "../../src/hooks/useDxfExport";
-import type { GeoLocation, LayerConfig } from "../../src/types";
+import { renderHook, act } from '@testing-library/react';
+import { useDxfExport } from '@/hooks/useDxfExport';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as dxfService from '@/services/dxfService';
 
-vi.mock("../../src/services/dxfService", () => ({
-  generateDXF: vi.fn(),
-  getDxfJobStatus: vi.fn(),
-}));
+vi.mock('@/services/dxfService');
 
-import { generateDXF, getDxfJobStatus } from "../../src/services/dxfService";
+describe('useDxfExport hook', () => {
+  const mockOnSuccess = vi.fn();
+  const mockOnError = vi.fn();
+  
+  const mockInputs = {
+    center: { lat: 0, lng: 0 },
+    radius: 100,
+    selectionMode: 'circle' as const,
+    polygon: [],
+    layers: { buildings: true, roads: true } as any,
+  };
 
-const center: GeoLocation = { lat: -23.5505, lng: -46.6333, label: "SP" };
-const polygon: GeoLocation[] = [
-  { lat: -23.5505, lng: -46.6333 },
-  { lat: -23.551, lng: -46.634 },
-  { lat: -23.5515, lng: -46.633 },
-];
-const layers: LayerConfig = { buildings: true, roads: true };
-
-describe("useDxfExport basic flows", () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
-    vi.spyOn(global, "fetch").mockResolvedValue({
-      ok: true,
-      json: async () => ({ btContext: { network: "ok" } }),
-    } as Response);
+    // Mock window.location.assign
+    vi.stubGlobal('location', { assign: vi.fn() });
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
-  it("downloads immediately when backend returns URL", async () => {
-    vi.mocked(generateDXF).mockResolvedValueOnce({
-      status: "success",
-      url: "http://localhost:3001/downloads/test.dxf",
-      btContextUrl: "http://localhost:3001/downloads/context.json",
-    });
+  it('handles immediate download URL', async () => {
+    vi.mocked(dxfService.generateDXF).mockResolvedValue({ 
+      url: 'http://test.com/file.dxf', 
+      btContextUrl: 'http://test.com/ctx.json' 
+    } as any);
 
-    const onSuccess = vi.fn();
-    const onError = vi.fn();
-
-    const { result } = renderHook(() =>
-      useDxfExport({ onSuccess, onError }),
-    );
+    const { result } = renderHook(() => useDxfExport({ 
+      onSuccess: mockOnSuccess, 
+      onError: mockOnError 
+    }));
 
     await act(async () => {
-      await result.current.downloadDxf(center, 500, "polygon", polygon, layers);
+      await result.current.downloadDxf(
+        mockInputs.center,
+        mockInputs.radius,
+        mockInputs.selectionMode,
+        mockInputs.polygon,
+        mockInputs.layers
+      );
     });
 
-    expect(onSuccess).toHaveBeenCalledWith("DXF Downloaded");
+    expect(window.location.assign).toHaveBeenCalledWith('http://test.com/file.dxf');
+    expect(mockOnSuccess).toHaveBeenCalledWith('DXF Downloaded');
+    expect(result.current.isDownloading).toBe(false);
   });
 
-  it("polls queued job until completion", async () => {
-    vi.mocked(generateDXF).mockResolvedValueOnce({ status: "queued", jobId: "job-123" });
-    
-    vi.mocked(getDxfJobStatus).mockResolvedValueOnce({
-      status: "completed",
-      progress: 100,
-      result: {
-        url: "http://localhost:3001/downloads/job-123.dxf",
-      },
-    });
+  it('handles job-based generation with polling', async () => {
+    vi.mocked(dxfService.generateDXF).mockResolvedValue({ jobId: 'job-123' } as any);
+    vi.mocked(dxfService.getDxfJobStatus)
+      .mockResolvedValueOnce({ status: 'processing', progress: 50 } as any)
+      .mockResolvedValueOnce({ status: 'completed', result: { url: 'http://test.com/file.dxf' } } as any);
 
-    const onSuccess = vi.fn();
-    const onError = vi.fn();
-
-    vi.spyOn(window, "setInterval").mockImplementation(((callback: TimerHandler) => {
-      void (callback as () => Promise<void>)();
-      return 1 as unknown as ReturnType<typeof setInterval>;
-    }) as typeof window.setInterval);
-
-    const { result } = renderHook(() => useDxfExport({ onSuccess, onError }));
+    const { result } = renderHook(() => useDxfExport({ 
+      onSuccess: mockOnSuccess, 
+      onError: mockOnError 
+    }));
 
     await act(async () => {
-      await result.current.downloadDxf(center, 500, "circle", [], layers);
+      await result.current.downloadDxf(
+        mockInputs.center,
+        mockInputs.radius,
+        mockInputs.selectionMode,
+        mockInputs.polygon,
+        mockInputs.layers
+      );
     });
 
-    await waitFor(() => {
-      expect(onSuccess).toHaveBeenCalledWith("DXF Downloaded");
+    expect(result.current.jobId).toBe('job-123');
+    expect(result.current.jobStatus).toBe('queued');
+
+    // First poll
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
     });
+    expect(result.current.jobStatus).toBe('processing');
+    expect(result.current.jobProgress).toBe(50);
+
+    // Second poll (completed)
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+    expect(result.current.jobStatus).toBe('completed');
+    expect(window.location.assign).toHaveBeenCalledWith('http://test.com/file.dxf');
+    expect(mockOnSuccess).toHaveBeenCalledWith('DXF Downloaded');
+  });
+
+  it('handles job failure', async () => {
+    vi.mocked(dxfService.generateDXF).mockResolvedValue({ jobId: 'job-err' } as any);
+    vi.mocked(dxfService.getDxfJobStatus).mockResolvedValue({ status: 'failed', error: 'Server crash' } as any);
+
+    const { result } = renderHook(() => useDxfExport({ 
+      onSuccess: mockOnSuccess, 
+      onError: mockOnError 
+    }));
+
+    await act(async () => {
+      await result.current.downloadDxf(
+        mockInputs.center,
+        mockInputs.radius,
+        mockInputs.selectionMode,
+        mockInputs.polygon,
+        mockInputs.layers
+      );
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(result.current.jobStatus).toBe('failed');
+    expect(mockOnError).toHaveBeenCalledWith(expect.stringContaining('Server crash'));
   });
 });

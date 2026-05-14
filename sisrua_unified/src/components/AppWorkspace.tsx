@@ -18,11 +18,19 @@ import { useMultiplayer } from "../hooks/useMultiplayer";
 import { useNeighborhoodAwareness } from "../hooks/useNeighborhoodAwareness";
 import { MultiplayerAvatars } from "./MultiplayerAvatars";
 import { useAuth } from "../auth/AuthProvider";
-import type { AppSettings, BtNetworkScenarioPayload, GlobalState } from '../types';
+import { TopologyProvider } from "../contexts/TopologyContext";
+import type { 
+  AppSettings, 
+  GlobalState, 
+  BtTopology, 
+  MtTopology, 
+  CanonicalNetworkTopology 
+} from '../types';
+import type { BtNetworkScenarioPayload, BtEditorModePayload } from '../types/index';
 import type { HistoryEntry } from '../hooks/useUndoRedo';
 import type { Toast as ToastItem } from '../hooks/useToast';
 
-type AppWorkspaceProps = {
+export interface AppWorkspaceProps {
   settings: AppSettings;
   isDark: boolean;
   isFocusMode: boolean;
@@ -76,8 +84,8 @@ type AppWorkspaceProps = {
   isSidebarDockedForRamalModal: boolean;
   sidebarSelectionControlsProps: any;
   sidebarBtEditorSectionProps: any;
-  mtTopology: any;
-  updateMtTopology: (t: any) => void;
+  mtTopology: MtTopology;
+  updateMtTopology: (t: MtTopology) => void;
   hasBtPoles: boolean;
   sidebarAnalysisResultsProps: any;
   mapSelectorProps: any;
@@ -90,7 +98,13 @@ type AppWorkspaceProps = {
   inspectedPole: any;
   inspectedTransformer: any;
   inspectedAccumulatedData: any;
-  btTopology: any;
+  btTopology: BtTopology;
+  canonicalTopology?: CanonicalNetworkTopology;
+  btNetworkScenario: BtNetworkScenarioPayload | null;
+  btEditorMode: BtEditorModePayload;
+  setBtNetworkScenario: (s: BtNetworkScenarioPayload | null) => void;
+  setBtEditorMode: (m: BtEditorModePayload) => void;
+  updateBtTopology: (topology: BtTopology) => void;
   handleBtRenamePole: (id: string, name: string) => void;
   handleBtSetPoleChangeFlag: (id: string, f: any) => void;
   autoSaveStatus: string;
@@ -111,10 +125,10 @@ type AppWorkspaceProps = {
   terrainData?: any;
   showSettings?: boolean;
   closeSettings?: () => void;
-  isCalculating?: boolean;
+  isCalculating: boolean;
   complianceResults?: any;
   children?: React.ReactNode;
-};
+}
 
 export function AppWorkspace({
   settings,
@@ -185,6 +199,12 @@ export function AppWorkspace({
   inspectedTransformer,
   inspectedAccumulatedData,
   btTopology,
+  canonicalTopology,
+  btNetworkScenario,
+  btEditorMode,
+  setBtNetworkScenario,
+  setBtEditorMode,
+  updateBtTopology,
   handleBtRenamePole,
   handleBtSetPoleChangeFlag,
   autoSaveStatus,
@@ -205,7 +225,7 @@ export function AppWorkspace({
   terrainData: _terrainData,
   showSettings,
   closeSettings,
-  isCalculating: _isCalculating,
+  isCalculating,
   complianceResults,
   children,
 }: AppWorkspaceProps) {
@@ -225,165 +245,191 @@ export function AppWorkspace({
     { id: user?.id || "anon", name: user?.email?.split("@")[0] || "Visitante" }
   );
 
-  return (
-    <div className={`app-shell relative flex h-screen w-full flex-col overflow-hidden font-sans transition-colors duration-500 ${isDark ? "dark text-slate-200" : "text-slate-900"}`}>
-      {/* Header */}
-      <AppHeader
-        locale={settings.locale}
-        isDark={isDark}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={undo}
-        onRedo={redo}
-        onSaveProject={handleSaveProject}
-        onOpenProject={handleLoadProject}
-        onOpenSettings={openSettings}
-        onOpenHelp={() => setIsHelpOpen(true)}
-        onOpenSnapshots={onOpenSnapshots}
-        onFeatureSettings={() => setIsFeatureSettingsOpen(true)}
-        onToggleMobileMenu={() => {}}
-        projectName={settings.projectMetadata?.projectName || "Novo Projeto"}
-        autoSaveStatus={autoSaveStatus as any}
-        lastAutoSaved={lastAutoSaved}
-        isSidebarCollapsed={!!settings.sidebarCollapsed}
-        onToggleSidebarCollapsed={() => updateSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed })}
-        backendStatus="online"
-        backendResponseTimeMs={45}
-      />
+  const topologyContextValue = React.useMemo(() => ({
+    btTopology,
+    mtTopology,
+    canonicalTopology,
+    btNetworkScenario,
+    btEditorMode,
+    isCalculating,
+    updateBtTopology,
+    updateMtTopology,
+    setBtNetworkScenario,
+    setBtEditorMode,
+  }), [
+    btTopology, 
+    mtTopology, 
+    canonicalTopology, 
+    btNetworkScenario, 
+    btEditorMode, 
+    isCalculating, 
+    updateBtTopology, 
+    updateMtTopology, 
+    setBtNetworkScenario, 
+    setBtEditorMode
+  ]);
 
-      {/* Body: Sidebar + Main */}
-      <div className="relative z-10 flex flex-1 flex-col overflow-hidden xl:flex-row">
-        {/* Sidebar */}
-        <SidebarWorkspace
+  return (
+    <TopologyProvider value={topologyContextValue}>
+      <div className={`app-shell relative flex h-screen w-full flex-col overflow-hidden font-sans transition-colors duration-500 ${isDark ? "dark text-slate-200" : "text-slate-900"}`}>
+        {/* Header */}
+        <AppHeader
           locale={settings.locale}
-          isCollapsed={!!settings.sidebarCollapsed}
-          onToggleCollapse={(c) => updateSettings({ ...settings, sidebarCollapsed: c })}
-          isSidebarDockedForRamalModal={isSidebarDockedForRamalModal}
-          selectionControlsProps={sidebarSelectionControlsProps}
-          btEditorSectionProps={sidebarBtEditorSectionProps}
-          mtEditorSectionProps={{
-            mtTopology,
-            updateMtTopology,
-            btTopology,
-            hasBtPoles,
-          }}
-          analysisResultsProps={sidebarAnalysisResultsProps}
+          isDark={isDark}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
+          onSaveProject={handleSaveProject}
+          onOpenProject={handleLoadProject}
+          onOpenSettings={openSettings}
+          onOpenHelp={() => setIsHelpOpen(true)}
+          onOpenSnapshots={onOpenSnapshots}
+          onFeatureSettings={() => setIsFeatureSettingsOpen(true)}
+          onToggleMobileMenu={() => {}}
+          projectName={settings.projectMetadata?.projectName || "Novo Projeto"}
+          autoSaveStatus={autoSaveStatus as any}
+          lastAutoSaved={lastAutoSaved}
+          isSidebarCollapsed={!!settings.sidebarCollapsed}
+          onToggleSidebarCollapsed={() => updateSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed })}
+          backendStatus="online"
+          backendResponseTimeMs={45}
         />
 
-        {/* Main Map Area */}
-        <main className="relative flex-1 bg-slate-900 overflow-hidden rounded-tl-3xl shadow-inner">
-          {mapSelectorProps ? (
-            <MapSelector
-              {...mapSelectorProps}
-              measurePath={[]}
-              onMeasurePathChange={() => {}}
-              osmData={osmData}
+        {/* Body: Sidebar + Main */}
+        <div className="relative z-10 flex flex-1 flex-col overflow-hidden xl:flex-row">
+          {/* Sidebar */}
+          <SidebarWorkspace
+            locale={settings.locale}
+            isCollapsed={!!settings.sidebarCollapsed}
+            onToggleCollapse={(c) => updateSettings({ ...settings, sidebarCollapsed: c })}
+            isSidebarDockedForRamalModal={isSidebarDockedForRamalModal}
+            selectionControlsProps={sidebarSelectionControlsProps}
+            btEditorSectionProps={sidebarBtEditorSectionProps}
+            mtEditorSectionProps={{
+              mtTopology,
+              updateMtTopology,
+              btTopology,
+              hasBtPoles,
+            }}
+            analysisResultsProps={sidebarAnalysisResultsProps}
+          />
+
+          {/* Main Map Area */}
+          <main className="relative flex-1 bg-slate-900 overflow-hidden rounded-tl-3xl shadow-inner">
+            {mapSelectorProps ? (
+              <MapSelector
+                {...mapSelectorProps}
+                measurePath={[]}
+                onMeasurePathChange={() => {}}
+                osmData={osmData}
+                locale={settings.locale}
+                theme={settings.theme}
+                complianceResults={complianceResults}
+                flags={flags}
+                neighbors={neighbors}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-slate-500 text-sm">
+                Carregando mapa…
+              </div>
+            )}
+
+            {/* HUD Elements */}
+            <div className="pointer-events-none absolute inset-0 z-30 p-6 flex flex-col justify-between overflow-hidden">
+              <div className="flex flex-col items-start gap-4">
+                <SessionRecoveryBanner
+                  sessionDraft={sessionDraft as any}
+                  onRestore={handleRestoreSession}
+                  onDismiss={handleDismissSession}
+                />
+                {flags.enableMultiplayer && (
+                  <div className="pointer-events-auto">
+                    <MultiplayerAvatars users={onlineUsers} />
+                  </div>
+                )}
+
+                <JurisdictionStatus
+                  topology={btTopology}
+                  selectionMode={selectionMode}
+                  hasPolygon={polygon.length >= 3}
+                  hasCollision={hasCollision}
+                />
+              </div>
+            </div>
+
+            {/* Modals & Overlays */}
+            {btModalStackProps && <BtModalStack {...btModalStackProps} />}
+
+            <BimInspectorDrawer
+              isOpen={isBimInspectorOpen}
+              onClose={() => setIsBimInspectorOpen(false)}
+              pole={inspectedPole}
+              transformer={inspectedTransformer}
+              accumulatedData={inspectedAccumulatedData}
+              btTopology={btTopology}
+              onRenamePole={handleBtRenamePole}
+              onSetPoleChangeFlag={handleBtSetPoleChangeFlag}
               locale={settings.locale}
-              theme={settings.theme}
-              complianceResults={complianceResults}
-              flags={flags}
-              neighbors={neighbors}
             />
-          ) : (
-            <div className="flex h-full items-center justify-center text-slate-500 text-sm">
-              Carregando mapa…
-            </div>
-          )}
 
-          {/* HUD Elements */}
-          <div className="pointer-events-none absolute inset-0 z-30 p-6 flex flex-col justify-between overflow-hidden">
-            <div className="flex flex-col items-start gap-4">
-              <SessionRecoveryBanner
-                sessionDraft={sessionDraft as any}
-                onRestore={handleRestoreSession}
-                onDismiss={handleDismissSession}
-              />
-              {flags.enableMultiplayer && (
-                <div className="pointer-events-auto">
-                  <MultiplayerAvatars users={onlineUsers} />
-                </div>
-              )}
-
-              <JurisdictionStatus
-                topology={btTopology}
-                selectionMode={selectionMode}
-                hasPolygon={polygon.length >= 3}
-                hasCollision={hasCollision}
-              />
-            </div>
-          </div>
-
-          {/* Modals & Overlays */}
-          {btModalStackProps && <BtModalStack {...btModalStackProps} />}
-
-          <BimInspectorDrawer
-            isOpen={isBimInspectorOpen}
-            onClose={() => setIsBimInspectorOpen(false)}
-            pole={inspectedPole}
-            transformer={inspectedTransformer}
-            accumulatedData={inspectedAccumulatedData}
-            btTopology={btTopology}
-            onRenamePole={handleBtRenamePole}
-            onSetPoleChangeFlag={handleBtSetPoleChangeFlag}
-            locale={settings.locale}
-          />
-
-          <ElectricalAuditDrawer
-            isOpen={isAuditOpen}
-            onClose={() => setIsAuditOpen(false)}
-            selectedElement={selectedAuditElement}
-            onAuditAction={handleAuditAction}
-            locale={settings.locale}
-          />
-
-          <BtTelescopicSuggestionModal
-            output={btTelescopicSuggestions?.length ? { suggestions: btTelescopicSuggestions, lmaxByConductor: {} } : null}
-            onApply={(out) => handleApplyTelescopicSuggestions(out)}
-            onCancel={clearBtTelescopicSuggestions}
-          />
-
-          <HelpModal
-            isOpen={isHelpOpen}
-            onClose={() => setIsHelpOpen(false)}
-            locale={settings.locale}
-          />
-
-          <FeatureSettingsModal
-            isOpen={isFeatureSettingsOpen}
-            onClose={() => setIsFeatureSettingsOpen(false)}
-          />
-
-          {showSettings && (
-            <SettingsModal
-              isOpen={!!showSettings}
-              settings={settings}
-              onUpdateSettings={updateSettings as any}
-              onClose={closeSettings || (() => {})}
+            <ElectricalAuditDrawer
+              isOpen={isAuditOpen}
+              onClose={() => setIsAuditOpen(false)}
+              selectedElement={selectedAuditElement}
+              onAuditAction={handleAuditAction}
+              locale={settings.locale}
             />
-          )}
 
-          <CommandPalette
-            isOpen={isCommandPaletteOpen}
-            onClose={() => setIsCommandPaletteOpen(false)}
-            actions={commandPaletteActions}
-            locale={settings.locale}
-          />
+            <BtTelescopicSuggestionModal
+              output={btTelescopicSuggestions?.length ? { suggestions: btTelescopicSuggestions, lmaxByConductor: {} } : null}
+              onApply={(out) => handleApplyTelescopicSuggestions(out)}
+              onCancel={clearBtTelescopicSuggestions}
+            />
 
-          {children}
+            <HelpModal
+              isOpen={isHelpOpen}
+              onClose={() => setIsHelpOpen(false)}
+              locale={settings.locale}
+            />
 
-          <div className="fixed bottom-6 right-6 z-[1000] flex flex-col gap-2 pointer-events-none">
-            {toasts.map((t, idx) => (
-              <Toast
-                key={t.id}
-                message={t.message}
-                type={t.type}
-                onClose={() => closeToast(t.id)}
-                stackOffset={idx}
+            <FeatureSettingsModal
+              isOpen={isFeatureSettingsOpen}
+              onClose={() => setIsFeatureSettingsOpen(false)}
+            />
+
+            {showSettings && (
+              <SettingsModal
+                isOpen={!!showSettings}
+                settings={settings}
+                onUpdateSettings={updateSettings as any}
+                onClose={closeSettings || (() => {})}
               />
-            ))}
-          </div>
-        </main>
+            )}
+
+            <CommandPalette
+              isOpen={isCommandPaletteOpen}
+              onClose={() => setIsCommandPaletteOpen(false)}
+              actions={commandPaletteActions}
+              locale={settings.locale}
+            />
+
+            {children}
+
+            <div className="fixed bottom-6 right-6 z-[1000] flex flex-col gap-2 pointer-events-none">
+              {toasts.map((t, idx) => (
+                <Toast
+                  key={t.id}
+                  message={t.message}
+                  type={t.type}
+                  onClose={() => closeToast(t.id)}
+                  stackOffset={idx}
+                />
+              ))}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </TopologyProvider>
   );
 }

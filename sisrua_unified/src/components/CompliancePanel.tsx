@@ -103,12 +103,7 @@ export const CompliancePanel: React.FC<CompliancePanelProps> = ({
         )}
 
         {result && (
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="flex flex-col gap-4"
-          >
+          <div className="flex flex-col gap-4">
             {/* Fundiário (Item 107) */}
             <motion.div variants={itemVariants} className="p-4 bg-white/5 rounded-2xl border border-white/5 relative overflow-hidden group hover:border-sky-500/30 transition-colors">
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -176,7 +171,7 @@ export const CompliancePanel: React.FC<CompliancePanelProps> = ({
             )}
 
             {/* Vegetação */}
-            {flags.enableEnvironmentalAudit && (
+            {flags.enableVegetationAnalysis && (
               <motion.div variants={itemVariants} className="p-4 bg-white/5 rounded-2xl border border-white/5 relative overflow-hidden group hover:border-emerald-500/30 transition-colors">
                 <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                   <TreeDeciduous className="w-16 h-16 text-emerald-400" />
@@ -262,7 +257,7 @@ export const CompliancePanel: React.FC<CompliancePanelProps> = ({
                 </div>
               </motion.div>
             )}
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

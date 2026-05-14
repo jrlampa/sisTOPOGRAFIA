@@ -41,6 +41,19 @@ import React from "react";
 import { SidebarBtEditorSection } from "../../src/components/SidebarBtEditorSection";
 import { INITIAL_APP_STATE } from "../../src/app/initialState";
 import { EMPTY_BT_TOPOLOGY } from "../../src/utils/btNormalization";
+import { TopologyProvider } from "../../src/contexts/TopologyContext";
+
+const MOCK_TOPOLOGY_STATE: any = {
+  btTopology: { poles: [], transformers: [], edges: [] },
+  mtTopology: { poles: [], edges: [] },
+  btNetworkScenario: { mode: 'ramal' },
+  btEditorMode: { mode: 'none' },
+  isCalculating: false,
+  updateBtTopology: vi.fn(),
+  updateMtTopology: vi.fn(),
+  setBtNetworkScenario: vi.fn(),
+  setBtEditorMode: vi.fn(),
+};
 
 const DEFAULT_PROPS: any = {
   locale: "pt-BR",
@@ -81,9 +94,11 @@ const DEFAULT_PROPS: any = {
 describe("SidebarBtEditorSection", () => {
   it("deve renderizar o título da seção e o seletor de cenário", () => {
     render(
-      <React.Suspense fallback={<div>Loading...</div>}>
-        <SidebarBtEditorSection {...DEFAULT_PROPS} />
-      </React.Suspense>
+      <TopologyProvider value={MOCK_TOPOLOGY_STATE}>
+        <React.Suspense fallback={<div>Loading...</div>}>
+          <SidebarBtEditorSection {...DEFAULT_PROPS} />
+        </React.Suspense>
+      </TopologyProvider>
     );
     expect(screen.getByText(/toolbox/i)).toBeInTheDocument();
     // Usa getAllByText e verifica se ao menos um está lá
@@ -92,12 +107,20 @@ describe("SidebarBtEditorSection", () => {
   });
 
   it("deve renderizar o painel DG quando onRunDgOptimization é fornecido", async () => {
-    render(<SidebarBtEditorSection {...DEFAULT_PROPS} onRunDgOptimization={vi.fn()} />);
+    render(
+      <TopologyProvider value={MOCK_TOPOLOGY_STATE}>
+        <SidebarBtEditorSection {...DEFAULT_PROPS} onRunDgOptimization={vi.fn()} />
+      </TopologyProvider>
+    );
     expect(await screen.findByText(/dgPanel.title/i)).toBeInTheDocument();
   });
 
   it("deve exibir os botões de controle de topologia", () => {
-    render(<SidebarBtEditorSection {...DEFAULT_PROPS} />);
+    render(
+      <TopologyProvider value={MOCK_TOPOLOGY_STATE}>
+        <SidebarBtEditorSection {...DEFAULT_PROPS} />
+      </TopologyProvider>
+    );
     expect(screen.getByRole("button", { name: /\+ poste/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /\+ condutor/i })).toBeInTheDocument();
   });

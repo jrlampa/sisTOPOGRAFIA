@@ -1,5 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { 
   ShieldCheck, 
   Mail, 
@@ -16,14 +17,37 @@ import { useAuth } from "../../auth/AuthProvider";
  * LandingAuth.tsx — Portal de autenticação corporativo da Landing Page.
  */
 export function LandingAuth() {
-  const { signInWithEmail, loading, error, user } = useAuth();
+  const { signInWithEmail, loading, error: authError, user } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [tenantId, setTenantId] = React.useState("");
   const [isSuccess, setIsSuccess] = React.useState(false);
+  const [localError, setLocalError] = React.useState<string | null>(null);
+
+  const error = localError || authError;
+
+  // Efeito de redirecionamento pós-login
+  React.useEffect(() => {
+    if (isSuccess || (user && !error)) {
+      const timer = setTimeout(() => {
+        navigate("/portal/dashboard");
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isSuccess, user, error, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLocalError(null);
+    
+    // Validação de domínio corporativo (Roadmap #117)
+    const corporateDomain = "im3brasil.com.br";
+    if (!email.toLowerCase().endsWith(`@${corporateDomain}`)) {
+      setLocalError(`Somente emails @${corporateDomain} têm autoatendimento liberado.`);
+      return;
+    }
+
     try {
       await signInWithEmail({ email, password });
       setIsSuccess(true);
@@ -91,6 +115,7 @@ export function LandingAuth() {
                 {isSuccess || user ? (
                   <motion.div
                     key="success"
+                    data-testid="login-success-message"
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="flex flex-col items-center justify-center py-12 text-center"
@@ -117,6 +142,7 @@ export function LandingAuth() {
                           <input 
                             type="email"
                             required
+                            data-testid="login-email"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             placeholder="seu@empresa.com.br"
@@ -134,6 +160,7 @@ export function LandingAuth() {
                           <input 
                             type="password"
                             required
+                            data-testid="login-password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             placeholder="••••••••"
@@ -150,6 +177,7 @@ export function LandingAuth() {
                         <div className="relative group">
                           <input 
                             type="text"
+                            data-testid="login-tenant"
                             value={tenantId}
                             onChange={e => setTenantId(e.target.value)}
                             placeholder="Ex: IM3-RJ-01"
@@ -164,6 +192,7 @@ export function LandingAuth() {
                       <motion.div 
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
+                        data-testid="login-error-message"
                         className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold"
                       >
                         <AlertCircle size={16} />
@@ -174,6 +203,7 @@ export function LandingAuth() {
                     <button
                       type="submit"
                       disabled={loading}
+                      data-testid="login-submit"
                       className="w-full h-16 rounded-2xl bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-indigo-600/30 hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:grayscale transition-all flex items-center justify-center gap-3"
                     >
                       {loading ? (

@@ -266,7 +266,16 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: config.BODY_LIMIT }));
+app.use(
+  express.json({
+    limit: config.BODY_LIMIT,
+    verify: (req: any, _res, buf) => {
+      if (req.url?.includes('/api/billing/webhook')) {
+        req.rawBody = buf;
+      }
+    },
+  })
+);
 app.use(compression());
 
 // DB Wake-up Middleware - Garante que o banco comece a acordar no primeiro acesso

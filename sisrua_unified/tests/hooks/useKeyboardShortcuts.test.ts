@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook } from "@testing-library/react";
-import { useKeyboardShortcuts } from "../../src/hooks/useKeyboardShortcuts";
+import { renderHook } from '@testing-library/react';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-describe("useKeyboardShortcuts", () => {
+describe('useKeyboardShortcuts hook', () => {
   const mockHandlers = {
     onCancel: vi.fn(),
     onSetEditorMode: vi.fn(),
@@ -16,84 +16,84 @@ describe("useKeyboardShortcuts", () => {
     vi.clearAllMocks();
   });
 
-  it("should trigger onCancel when Escape is pressed", () => {
+  const fireKey = (key: string, options = {}) => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key, ...options }));
+  };
+
+  it('triggers onCancel on Escape', () => {
     renderHook(() => useKeyboardShortcuts(mockHandlers));
-
-    const event = new KeyboardEvent("keydown", { key: "Escape" });
-    window.dispatchEvent(event);
-
+    fireKey('Escape');
     expect(mockHandlers.onCancel).toHaveBeenCalled();
   });
 
-  it("should trigger onSetEditorMode when P is pressed", () => {
+  it('triggers onSetEditorMode on mode keys', () => {
     renderHook(() => useKeyboardShortcuts(mockHandlers));
-
-    const event = new KeyboardEvent("keydown", { key: "p" });
-    window.dispatchEvent(event);
-
-    expect(mockHandlers.onSetEditorMode).toHaveBeenCalledWith("add-pole");
+    
+    fireKey('p');
+    expect(mockHandlers.onSetEditorMode).toHaveBeenCalledWith('add-pole');
+    
+    fireKey('t');
+    expect(mockHandlers.onSetEditorMode).toHaveBeenCalledWith('add-transformer');
+    
+    fireKey('e');
+    expect(mockHandlers.onSetEditorMode).toHaveBeenCalledWith('add-edge');
+    
+    fireKey('v');
+    expect(mockHandlers.onSetEditorMode).toHaveBeenCalledWith('move-pole');
+    
+    fireKey('n');
+    expect(mockHandlers.onSetEditorMode).toHaveBeenCalledWith('none');
   });
 
-  it("should trigger onUndo when Ctrl+Z is pressed", () => {
+  it('triggers onSetSelectionMode on selection keys', () => {
     renderHook(() => useKeyboardShortcuts(mockHandlers));
+    
+    fireKey('m');
+    expect(mockHandlers.onSetSelectionMode).toHaveBeenCalledWith('measure');
+    
+    fireKey('c');
+    expect(mockHandlers.onSetSelectionMode).toHaveBeenCalledWith('circle');
+    
+    fireKey('l');
+    expect(mockHandlers.onSetSelectionMode).toHaveBeenCalledWith('polygon');
+  });
 
-    const event = new KeyboardEvent("keydown", { key: "z", ctrlKey: true });
-    window.dispatchEvent(event);
-
+  it('triggers undo/redo on Ctrl+Z and Ctrl+Shift+Z', () => {
+    renderHook(() => useKeyboardShortcuts(mockHandlers));
+    
+    fireKey('z', { ctrlKey: true });
     expect(mockHandlers.onUndo).toHaveBeenCalled();
-  });
-
-  it("should trigger onRedo when Ctrl+Shift+Z is pressed", () => {
-    renderHook(() => useKeyboardShortcuts(mockHandlers));
-
-    const event = new KeyboardEvent("keydown", {
-      key: "z",
-      ctrlKey: true,
-      shiftKey: true,
-    });
-    window.dispatchEvent(event);
-
+    
+    fireKey('z', { ctrlKey: true, shiftKey: true });
     expect(mockHandlers.onRedo).toHaveBeenCalled();
+
+    fireKey('y', { ctrlKey: true });
+    expect(mockHandlers.onRedo).toHaveBeenCalledTimes(2);
   });
 
-  it("should trigger onToggleHelp when / is pressed", () => {
+  it('triggers onToggleHelp on help keys', () => {
     renderHook(() => useKeyboardShortcuts(mockHandlers));
-
-    const event = new KeyboardEvent("keydown", { key: "/" });
-    window.dispatchEvent(event);
-
+    
+    fireKey('?');
     expect(mockHandlers.onToggleHelp).toHaveBeenCalled();
   });
 
-  it("should trigger onToggleHelp when Ctrl+/ is pressed", () => {
+  it('ignores keys when typing in input fields', () => {
     renderHook(() => useKeyboardShortcuts(mockHandlers));
-
-    const event = new KeyboardEvent("keydown", { key: "/", ctrlKey: true });
-    window.dispatchEvent(event);
-
-    expect(mockHandlers.onToggleHelp).toHaveBeenCalled();
-  });
-
-  it("should NOT trigger shortcuts when typing in an input", () => {
-    renderHook(() => useKeyboardShortcuts(mockHandlers));
-
-    const input = document.createElement("input");
-    const event = new KeyboardEvent("keydown", { key: "p", bubbles: true });
-
-    // Mock target
-    Object.defineProperty(event, "target", { value: input, enumerable: true });
-
-    window.dispatchEvent(event);
-
+    
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+    
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', bubbles: true }));
+    
     expect(mockHandlers.onSetEditorMode).not.toHaveBeenCalled();
+    document.body.removeChild(input);
   });
 
-  it("should respect the enabled flag", () => {
+  it('respects enabled prop', () => {
     renderHook(() => useKeyboardShortcuts({ ...mockHandlers, enabled: false }));
-
-    const event = new KeyboardEvent("keydown", { key: "p" });
-    window.dispatchEvent(event);
-
-    expect(mockHandlers.onSetEditorMode).not.toHaveBeenCalled();
+    fireKey('Escape');
+    expect(mockHandlers.onCancel).not.toHaveBeenCalled();
   });
 });

@@ -261,6 +261,7 @@ describe("PermissionHandler Middleware", () => {
   describe("guest role", () => {
     beforeEach(() => {
       mockGetUserRole.mockResolvedValue({ role: "guest", tenantId: null });
+      mockReq.headers!["x-user-id"] = "guest-user"; // Provide userId to bypass authentication check
     });
 
     it("should deny guest from read", async () => {
@@ -343,7 +344,6 @@ describe("PermissionHandler Middleware", () => {
 
     it("should ignore x-user-id fallback in production when no trusted identity exists", async () => {
       mockConfig.NODE_ENV = "production";
-      mockGetUserRole.mockResolvedValue({ role: "guest", tenantId: null });
       mockReq.headers!["x-user-id"] = "spoofed-user";
 
       await requirePermission("read")(
@@ -352,10 +352,11 @@ describe("PermissionHandler Middleware", () => {
         nextFunction,
       );
 
-      expect(mockGetUserRole).toHaveBeenCalledWith(undefined);
+      expect(mockGetUserRole).not.toHaveBeenCalled();
       expect(nextFunction).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: expect.stringContaining("Missing required permission: read"),
+          message: expect.stringContaining("Authentication required"),
+          statusCode: 401,
         }),
       );
     });

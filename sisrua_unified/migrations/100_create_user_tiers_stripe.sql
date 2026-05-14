@@ -6,7 +6,7 @@ BEGIN;
 
 -- Create table to track user subscription status
 CREATE TABLE IF NOT EXISTS user_tiers (
-    user_id TEXT PRIMARY KEY,
+    user_id UUID PRIMARY KEY,
     tier TEXT NOT NULL DEFAULT 'community' CHECK (tier IN ('community', 'professional', 'enterprise')),
     stripe_customer_id TEXT,
     stripe_subscription_id TEXT,
@@ -52,7 +52,7 @@ DROP TRIGGER IF EXISTS user_tiers_updated_at_trigger ON user_tiers;
 CREATE TRIGGER user_tiers_updated_at_trigger
   BEFORE UPDATE ON user_tiers
   FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+  EXECUTE FUNCTION set_updated_at();
 
 -- Função para criação automática de tier para novos usuários
 DROP FUNCTION IF EXISTS create_user_tier_on_signup();

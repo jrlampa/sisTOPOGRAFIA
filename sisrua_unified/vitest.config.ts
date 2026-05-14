@@ -9,10 +9,11 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
     testTimeout: 15000,
+    include: ['tests/**/*.{test,spec}.{js,ts,jsx,tsx}'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov', 'text-summary'],
-      reportsDirectory: 'coverage/frontend',
+      reporter: ['text', 'json', 'html', 'json-summary'],
+      reportsDirectory: './coverage/frontend-unit',
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'node_modules/',
@@ -26,7 +27,6 @@ export default defineConfig({
         '**/build/**',
       ],
     },
-    include: ['tests/**/*.{test,spec}.{js,ts,jsx,tsx}'],
   },
   resolve: {
     alias: {

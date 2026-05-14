@@ -418,7 +418,7 @@ router.post(
         btContext: btContext ?? null,
       });
 
-      const cachedFilename = getCachedFilename(cacheKey);
+      const cachedFilename = await getCachedFilename(cacheKey);
       if (cachedFilename) {
         const dxfDirectory = resolveDxfDirectory();
         const cachedFilePath = path.join(dxfDirectory, cachedFilename);

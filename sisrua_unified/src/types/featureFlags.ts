@@ -11,6 +11,7 @@ export interface FeatureFlags {
   // Compliance
   enableNbr9050: boolean;
   enableEnvironmentalAudit: boolean;
+  enableVegetationAnalysis: boolean;
   enableSolarShading: boolean;
   
   // IA & Dados
@@ -31,6 +32,7 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   enableSinapiBudget: true,
   enableNbr9050: true,
   enableEnvironmentalAudit: true,
+  enableVegetationAnalysis: true,
   enableSolarShading: true,
   enableAiPredictiveMaintenance: true,
   enableTopodataElevation: true,
@@ -129,6 +131,12 @@ export const FEATURE_LABELS: Record<keyof FeatureFlags, FeatureLabelInfo> = {
   enableEnvironmentalAudit: { 
     label: "Auditoria Ambiental", 
     description: "Detecção de APPs e buffers de vegetação.", 
+    category: "Compliance",
+    performanceImpact: "medium"
+  },
+  enableVegetationAnalysis: { 
+    label: "Análise de Vegetação", 
+    description: "Cálculo de poda e riscos arbóreos em rede.", 
     category: "Compliance",
     performanceImpact: "medium"
   },

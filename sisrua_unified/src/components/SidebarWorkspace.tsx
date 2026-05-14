@@ -13,13 +13,14 @@ import {
   Calculator,
   Activity,
 } from "lucide-react";
-import type { AppLocale } from "../types";
+import type { AppLocale, AppSettings, BtTopology, MtTopology } from "../types";
 import { getSidebarWorkspaceText } from "../i18n/sidebarWorkspaceText";
 import { trackWorkflowStage } from "../utils/analytics";
 import { CompliancePanel } from "./CompliancePanel";
 import { BudgetPanel } from "./BudgetPanel";
 import { MaintenancePanel } from "./MaintenancePanel";
 import { useFeatureFlags } from "../contexts/FeatureFlagContext";
+import { useTopology } from "../contexts/TopologyContext";
 
 // ─── Lazy imports ────────────────────────────────────────────────────────────
 
@@ -62,6 +63,7 @@ export function SidebarWorkspace({
   projetoId = "default-proj",
 }: SidebarWorkspaceProps) {
   const { flags } = useFeatureFlags();
+  const { btTopology, mtTopology } = useTopology();
   const [activeStage, setActiveStage] = React.useState<number>(1);
   const [showCelebration, setShowCelebration] = React.useState(false);
   const stageEntryTimeRef = React.useRef<number>(Date.now());
@@ -124,7 +126,7 @@ export function SidebarWorkspace({
         accent: STAGE_ACCENT[4],
         component: (
           <CompliancePanel 
-            topology={btEditorSectionProps.btTopology} 
+            topology={btTopology} 
             osmData={selectionControlsProps.osmData}
             locale={locale} 
           />
@@ -139,7 +141,7 @@ export function SidebarWorkspace({
         accent: STAGE_ACCENT[5],
         component: (
           <BudgetPanel 
-            topology={btEditorSectionProps.btTopology} 
+            topology={btTopology} 
             tenantId={tenantId}
             projetoId={projetoId}
             locale={locale} 
@@ -155,8 +157,8 @@ export function SidebarWorkspace({
         accent: STAGE_ACCENT[6],
         component: (
           <MaintenancePanel 
-            transformer={btEditorSectionProps.btTopology.transformers[0]} 
-            poles={btEditorSectionProps.btTopology.poles}
+            transformer={btTopology.transformers[0]} 
+            poles={btTopology.poles}
             locale={locale} 
           />
         ),
@@ -165,12 +167,8 @@ export function SidebarWorkspace({
     ];
 
     const filtered = ALL_STAGES.filter(s => s.enabled);
-    if (flags.enableFinOpsDashboard) {
-       const disabledCount = ALL_STAGES.length - filtered.length;
-       if (disabledCount > 0) console.debug(`[Modularity] ${disabledCount} estágios removidos.`);
-    }
     return filtered;
-  }, [t, selectionControlsProps, btEditorSectionProps, mtEditorSectionProps, analysisResultsProps, flags, tenantId, projetoId, locale]);
+  }, [t, selectionControlsProps, btEditorSectionProps, mtEditorSectionProps, analysisResultsProps, flags, tenantId, projetoId, locale, btTopology]);
 
   const currentIndex = STAGES.findIndex(s => s.id === activeStage);
   const currentStage = STAGES[currentIndex] || STAGES[0];
@@ -188,15 +186,9 @@ export function SidebarWorkspace({
     }
   }, [activeStage]);
 
-  React.useEffect(() => {
-    if (activeStage !== 1 && !STAGES.find(s => s.id === activeStage)) {
-       setActiveStage(1);
-    }
-  }, [STAGES, activeStage]);
-
   const hasArea = !!selectionControlsProps.center;
-  const hasBtPoles = btEditorSectionProps.btTopology.poles.length > 0;
-  const hasMtPoles = mtEditorSectionProps.mtTopology.poles.length > 0;
+  const hasBtPoles = btTopology.poles.length > 0;
+  const hasMtPoles = mtTopology.poles.length > 0;
 
   const nextStageDisabled =
     (activeStage === 1 && !hasArea) ||
@@ -253,7 +245,6 @@ export function SidebarWorkspace({
             return (
               <button
                 key={s.id}
-                data-testid={`sidebar-stage-collapsed-${s.id}`}
                 onClick={() => { setActiveStage(s.id); onToggleCollapse(false); }}
                 className={`group relative flex h-11 w-11 items-center justify-center rounded-2xl transition-all ${isActive ? "bg-white/80 shadow-md dark:bg-white/10 glass-shine" : "hover:bg-slate-100 dark:hover:bg-white/5"}`}
               >
@@ -275,7 +266,6 @@ export function SidebarWorkspace({
     <motion.aside
       initial={{ x: -320, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      data-testid="sidebar-workspace"
       className={`sidebar-workspace relative flex h-full w-full flex-col border-r bg-slate-50/30 p-4 backdrop-blur-2xl glass-premium transition-all dark:border-white/5 dark:bg-slate-900/30 xl:w-[380px] ${isSidebarDockedForRamalModal ? "opacity-50 pointer-events-none grayscale-[0.5]" : ""}`}
     >
       <div className="mb-6 flex items-center justify-between px-2">
@@ -303,7 +293,6 @@ export function SidebarWorkspace({
           return (
             <button
               key={s.id}
-              data-testid={`sidebar-stage-${s.id}`}
               onClick={() => setActiveStage(s.id)}
               className={`group relative flex flex-col items-center gap-1.5 rounded-xl py-2.5 transition-all ${isActive ? "bg-white/70 shadow-md shadow-slate-200/50 dark:bg-white/10 dark:shadow-none glass-shine" : "hover:bg-slate-100/60 dark:hover:bg-white/5"}`}
             >

@@ -324,6 +324,11 @@ function App() {
         inspectedTransformer={null}
         inspectedAccumulatedData={null}
         btTopology={btTopology}
+        btNetworkScenario={appState.btNetworkScenario}
+        btEditorMode={appState.btEditorMode}
+        setBtNetworkScenario={setBtNetworkScenario}
+        setBtEditorMode={setBtEditorMode}
+        updateBtTopology={updateBtTopology}
         handleBtRenamePole={() => {}}
         handleBtSetPoleChangeFlag={() => {}}
         autoSaveStatus={autoSave.status}
