@@ -56,6 +56,17 @@ Monitorado via `private.db_health_report()` diariamente às 07:00 UTC.
 - **Target Blocked Locks**: 0.
 - **Target Dead Tuples**: Mínimo possível via Auto-Vacuum diário.
 
+## Métricas de Qualidade e Cobertura (Maio 2026)
+- **Cobertura Backend:** 86.44% (Meta 80% Atingida)
+- **Cobertura Frontend:** 44.53% (Evolução de +10% na Onda 2)
+- **Média Global:** ~65% (Tendência de alta para atingir 80% na Onda 3)
+- **Segurança:** 100% de cobertura em Auth, Webhooks e Sanitização.
+
+## Onda 2 de Testes Frontend (Concluída 2026-05-14)
+- **Componentes Cobertos:** AppHeader, BtTopologyPanel, MapSelector (Poles, Edges, Transformers layers), BtModals, DgWizardModal, CompliancePanel, FloatingLayerPanel.
+- **Hooks Cobertos:** useAppOrchestrator, useAppSidebarProps, useCompliance, useBudget, useAppMainHandlers, useAdminForm, useAppLifecycleEffects, useABTest, useFocusTrap, useAriaAnnounce.
+- **Infraestrutura:** Implementados mocks globais para Leaflet e Framer Motion, estabilizando a suíte de testes de UI.
+
 ## 🛠️ Comandos de Manutenção
 - `SELECT * FROM private.v_maintenance_schedule;`
 - `SELECT * FROM private.maintenance_log ORDER BY started_at DESC LIMIT 20;`

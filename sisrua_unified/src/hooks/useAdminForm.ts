@@ -32,10 +32,19 @@ export function useAdminForm(initialValues: AdminSettings) {
   const validateField = useCallback(
     (field: string, value: unknown) => {
       try {
-        // Validar campo individual
-        if (field.startsWith('serviceTiers.')) {
-          const index = parseInt(field.split('.')[1]);
-          ServiceTierSchema.parse(form.serviceTiers[index]);
+        // Validar campo individual ou objeto de tier
+        if (field.startsWith("serviceTiers.")) {
+          const parts = field.split(".");
+          // Se for "serviceTiers.0", o value é o objeto completo do tier
+          if (parts.length === 2) {
+            ServiceTierSchema.parse(value);
+          } else {
+            // Se for "serviceTiers.0.fieldName", extrair subField
+            const index = parseInt(parts[1]);
+            const subField = parts[2];
+            const tierData = { ...form.serviceTiers[index], [subField]: value };
+            ServiceTierSchema.parse(tierData);
+          }
         } else {
           // Validar todo o form
           SettingsSchema.parse({ ...form, [field]: value });
@@ -44,14 +53,31 @@ export function useAdminForm(initialValues: AdminSettings) {
         // Remover erro se validação passou
         setErrors(prev => {
           const next = { ...prev };
-          delete next[field];
+          // Se for objeto, remover todos os erros filhos
+          if (field.split('.').length === 2) {
+             Object.keys(next).forEach(k => {
+               if (k.startsWith(`${field}.`)) delete next[k];
+             });
+          } else {
+             delete next[field];
+          }
           return next;
         });
         return true;
       } catch (error) {
         if (error instanceof z.ZodError) {
-          const message = error.issues[0]?.message || 'Campo inválido';
-          setErrors(prev => ({ ...prev, [field]: message }));
+          if (field.split('.').length === 2) {
+            // Mapear erros do objeto para caminhos completos
+            const newErrors: Record<string, string> = {};
+            error.issues.forEach(err => {
+              const fullPath = `${field}.${err.path.join('.')}`;
+              newErrors[fullPath] = err.message;
+            });
+            setErrors(prev => ({ ...prev, ...newErrors }));
+          } else {
+            const message = error.issues[0]?.message || 'Campo inválido';
+            setErrors(prev => ({ ...prev, [field]: message }));
+          }
         }
         return false;
       }
@@ -84,28 +110,17 @@ export function useAdminForm(initialValues: AdminSettings) {
         return newForm as AdminSettings;
       });
 
-      // Validar apenas se campo foi tocado
-      if (touched[field]) {
-        validateField(field, value);
-      }
+      // Validar sempre para feedback imediato (ou após primeiro toque)
+      validateField(field, value);
     },
-    [touched, validateField]
+    [validateField]
   );
 
   const handleBlur = useCallback(
     (field: string) => {
       setTouched(prev => ({ ...prev, [field]: true }));
-      const fieldValue = field
-        .split('.')
-        .reduce<unknown>((obj, key) => {
-          if (obj && typeof obj === 'object') {
-            return (obj as Record<string, unknown>)[key];
-          }
-          return undefined;
-        }, form as unknown);
-      validateField(field, fieldValue);
     },
-    [form, validateField]
+    []
   );
 
   const handleSubmit = useCallback(

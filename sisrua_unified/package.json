@@ -43,6 +43,7 @@
     "test:frontend:risk": "vitest run --config vitest.risk.config.ts --coverage",
     "test:backend": "vitest run --config vitest.backend.config.ts --coverage",
     "test:backend:debug": "vitest --config vitest.backend.config.ts",
+    "test:contract": "vitest run --config vitest.backend.config.ts server/tests/authContract.test.ts server/tests/billingContract.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:release:smoke": "playwright test e2e/release-smoke.spec.ts e2e/constants-observability.spec.ts --config playwright.release-smoke.config.ts",
     "ci:e2e:flake-check": "node scripts/ci/analyze-playwright-flakiness.mjs --lastRun test-results/.last-run.json --report test-results/release-smoke-report.json --out artifacts/ci/flakiness-report.json",
@@ -81,6 +82,7 @@
     "postinstall": "echo '\n✅ Configuração concluída!\n\n🐳 RECOMENDADO: Use Docker para a melhor experiência:\n   npm run docker:dev\n\n💻 Ou instale manualmente as dependências Python:\n   pip install -r py_engine/requirements.txt\n'",
     "test:metrics": "node scripts/test-suite-metrics.js",
     "test:load": "node scripts/load-test-baseline.js",
+    "backup:external": "node scripts/backup-external-gcs.js",
     "coverage:consolidate": "node scripts/consolidate-coverage.js",
     "coverage:policy": "node scripts/check-coverage-policy.js",
     "coverage:policy:strict": "node scripts/check-coverage-policy.js --strict",
@@ -88,6 +90,7 @@
   },
   "dependencies": {
     "@google-cloud/firestore": "^8.3.0",
+    "@google-cloud/storage": "^7.11.0",
     "@google-cloud/tasks": "^6.2.1",
     "@supabase/supabase-js": "^2.105.1",
     "@types/multer": "^2.0.0",

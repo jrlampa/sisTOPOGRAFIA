@@ -19,6 +19,13 @@
 - **Débito técnico conhecido**: warnings legados de lint (`no-explicit-any`, `no-unused-vars`, hooks deps) permanecem dentro da policy atual, mas devem ser tratados por ondas priorizando auth, billing, rotas críticas e domínio geoespacial.
 - **Princípios preservados**: Docker First, Supabase First, Thin Frontend/Smart Backend, Segurança First, DDD, DRY/DRT, 2.5D e pt-BR como idioma principal.
 
+## ✅ Atualização Operacional — 2026-05-14
+- **Status Global**: 100% de estabilidade em E2E, Auth Domain Enforcement e Stripe Billing. Cobertura global atingiu ~65%, com Frontend subindo para 44.53% após a Onda 2.
+- **Onda 2 Frontend**: Concluída. Mocks globais para Leaflet e Framer Motion implementados em `tests/setup.ts`. Cobertura de 100% em hooks estruturais (`useAppOrchestrator`, `useAppSidebarProps`).
+- **Segurança**: Webhooks Stripe agora validam assinaturas rigorosamente em prod e dev.
+- **Cache**: Invalidação por padrão (SCAN/MATCH) e por tag implementada no Redis.
+- **Roadmap Próximos Passos**: Iniciar Onda 3 para atingir 80% global, focando em componentes remanescentes (`AdminPage`, `BatchUpload` 100%, `DashboardPage` fixes).
+
 ## 📊 Estado da Arte (Tier 3: Otimização Avançada)
 - **Status Atual (2026-05-11)**: Auditoria Técnica, Evolução de Acesso e Resolução de Falhas Críticas concluídas.
 - **Segurança & RLS (Defense-in-Depth)**: Aplicada migração 074, garantindo que todas as tabelas de negócio possuam RLS ativo, mesmo que a camada de API seja comprometida.
@@ -43,3 +50,11 @@
 - Não usar 3D (apenas 2.5D).
 - Lógica pesada SEMPRE no backend.
 - Cobertura mínima global >= 80%.
+
+## ✅ Atualização Operacional — 2026-05-15
+- **Correção de Regressão E2E**: Resolvidas 5 falhas nos pacotes Auth e Billing.
+    - **Billing**: Padronizado retorno 401 para não autenticado; incluído campo `erro` (pt-BR) no `errorHandler` global para compatibilidade.
+    - **Auth**: Testes refatorados para usar asserções funcionais (navegação/visibilidade) em vez de URLs fixas, reduzindo fragilidade.
+- **Recuperação de Teste de Carga**: `load-test-baseline.js` corrigido com a criação do `scripts/logger-adapter.js`, eliminando erro de import de módulo.
+- **Documentação**: Criado `e2e/BEST_PRACTICES.md` e atualizado `docs/CONTRACTS.md` para formalizar contratos de erro.
+- **Estabilidade**: Suíte completa de testes (`auth`, `billing`, `load`) validada e operando em verde.

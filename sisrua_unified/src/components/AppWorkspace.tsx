@@ -4,7 +4,7 @@ import { AppHeader } from "./AppHeader";
 import MapSelector from "./MapSelector";
 import { SessionRecoveryBanner } from "./SessionRecoveryBanner";
 import { HelpModal } from "./HelpModal";
-import SettingsModal from "./SettingsModal";
+import { AppSettingsOverlay } from "./AppSettingsOverlay";
 import { BtModalStack } from "./BtModalStack";
 import { BimInspectorDrawer } from "./BimInspectorDrawer";
 import { ElectricalAuditDrawer } from "./ElectricalAuditDrawer";
@@ -269,6 +269,27 @@ export function AppWorkspace({
     setBtEditorMode
   ]);
 
+  const currentBtEditorMode = btEditorMode?.mode ?? "none";
+
+  const handleSettingsModalUpdate = React.useCallback(
+    (nextSettings: AppSettings) => {
+      updateSettings(nextSettings);
+
+      const nextMode = nextSettings.btEditorMode ?? "none";
+      if (currentBtEditorMode !== nextMode) {
+        setBtEditorMode({ mode: nextMode });
+      }
+    },
+    [currentBtEditorMode, setBtEditorMode, updateSettings],
+  );
+
+  const hasExportData = React.useMemo(() => {
+    if (Array.isArray((osmData as any)?.elements)) {
+      return (osmData as any).elements.length > 0;
+    }
+    return Boolean(osmData);
+  }, [osmData]);
+
   return (
     <TopologyProvider value={topologyContextValue}>
       <div className={`app-shell relative flex h-screen w-full flex-col overflow-hidden font-sans transition-colors duration-500 ${isDark ? "dark text-slate-200" : "text-slate-900"}`}>
@@ -398,14 +419,26 @@ export function AppWorkspace({
               onClose={() => setIsFeatureSettingsOpen(false)}
             />
 
-            {showSettings && (
-              <SettingsModal
-                isOpen={!!showSettings}
-                settings={settings}
-                onUpdateSettings={updateSettings as any}
-                onClose={closeSettings || (() => {})}
-              />
-            )}
+            <AppSettingsOverlay
+              showSettings={!!showSettings}
+              closeSettings={closeSettings || (() => {})}
+              settings={settings}
+              updateSettings={handleSettingsModalUpdate}
+              selectionMode={selectionMode}
+              handleSelectionModeChange={_handleSelectionModeChange}
+              radius={_radius}
+              handleRadiusChange={_handleRadiusChange}
+              polygon={polygon as any}
+              handleClearPolygon={_handleClearPolygon}
+              hasData={hasExportData}
+              isDownloading={_isDownloading}
+              handleDownloadDxf={_handleDownloadDxf}
+              handleDownloadGeoJSON={async () => {
+                await Promise.resolve(_handleDownloadGeoJSON());
+              }}
+              handleSaveProject={handleSaveProject}
+              handleLoadProject={handleLoadProject}
+            />
 
             <CommandPalette
               isOpen={isCommandPaletteOpen}

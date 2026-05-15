@@ -18,32 +18,31 @@ describe('AjudaPage component', () => {
 
   it('renders correctly', () => {
     renderWithRouter(<AjudaPage />);
-    expect(screen.getByText(/Centro de Ajuda/i)).toBeDefined();
-    expect(screen.getByPlaceholderText(/O que você deseja aprender/i)).toBeDefined();
+    expect(screen.getByText(/Central de Ajuda/i)).toBeDefined();
+    expect(screen.getByPlaceholderText(/Buscar no FAQ técnico/i)).toBeDefined();
   });
 
   it('filters items based on search query', () => {
     renderWithRouter(<AjudaPage />);
-    const searchInput = screen.getByPlaceholderText(/O que você deseja aprender/i);
+    const searchInput = screen.getByPlaceholderText(/Buscar no FAQ técnico/i);
     
-    fireEvent.change(searchInput, { target: { value: 'DXF' } });
+    fireEvent.change(searchInput, { target: { value: 'área' } });
     
-    // Check if relevant section is visible
-    expect(screen.getByText(/Exportação DXF/i)).toBeDefined();
-    // Non-relevant sections should be hidden if logic works
+    // Check if relevant section is visible (e.g. Extração de Dados)
+    expect(screen.getByText(/Extração de Dados/i)).toBeDefined();
   });
 
   it('navigates through categories', () => {
     renderWithRouter(<AjudaPage />);
     
-    const categories = ['Primeiros Passos', 'Design Generativo', 'Comandos de Teclado'];
+    const categories = [/Primeiros passos/i, /Extração de Dados/i, /Exportação DXF/i];
     categories.forEach(cat => {
       expect(screen.getByText(cat)).toBeDefined();
     });
   });
 
-  it('shows video tutorials section', () => {
+  it('shows operational runbooks section', () => {
     renderWithRouter(<AjudaPage />);
-    expect(screen.getByText(/Tutoriais em Vídeo/i)).toBeDefined();
+    expect(screen.getByText(/Runbooks Operacionais/i)).toBeDefined();
   });
 });

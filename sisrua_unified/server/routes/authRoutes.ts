@@ -4,6 +4,8 @@ import { getUserRole } from "../services/roleService.js";
 import { provisionAuthenticatedUserAccess } from "../services/authOnboardingService.js";
 import type { VerifiedSupabaseUser } from "../services/supabaseJwtService.js";
 
+import { createError, asyncHandler } from "../errorHandler.js";
+
 const router = Router();
 
 function getAuthenticatedUser(res: Response): VerifiedSupabaseUser | null {
@@ -13,7 +15,7 @@ function getAuthenticatedUser(res: Response): VerifiedSupabaseUser | null {
     : null;
 }
 
-router.get("/me", async (_req: Request, res: Response) => {
+router.get("/me", asyncHandler(async (_req: Request, res: Response) => {
   const authenticatedUser = getAuthenticatedUser(res);
   if (!authenticatedUser) {
     return res.json({ authenticated: false });
@@ -38,33 +40,37 @@ router.get("/me", async (_req: Request, res: Response) => {
       requiredEmailConfirmation: true,
     },
   });
-});
+}));
 
-router.post("/onboarding", async (_req: Request, res: Response) => {
+router.post("/onboarding", asyncHandler(async (_req: Request, res: Response) => {
   const authenticatedUser = getAuthenticatedUser(res);
   if (!authenticatedUser) {
-    return res.status(401).json({
-      error: "Unauthorized",
-      code: "UNAUTHORIZED",
-      message: "Supabase session required",
+    throw createError.authentication("Não autenticado", { 
+      message: "Supabase session required" 
     });
   }
 
   const result = await provisionAuthenticatedUserAccess(authenticatedUser);
 
+  // Adicionar campo 'erro' para compatibilidade se houver erro
+  const enhancedResult = {
+    ...result,
+    erro: (result as any).reason || (result as any).error || undefined
+  };
+
   if (result.status === "unavailable") {
-    return res.status(503).json(result);
+    return res.status(503).json(enhancedResult);
   }
 
   if (result.status === "domain-not-allowed") {
-    return res.status(403).json(result);
+    return res.status(403).json(enhancedResult);
   }
 
   if (result.status === "pending-email-confirmation") {
-    return res.status(202).json(result);
+    return res.status(202).json(enhancedResult);
   }
 
-  return res.json(result);
-});
+  return res.json(enhancedResult);
+}));
 
 export default router;

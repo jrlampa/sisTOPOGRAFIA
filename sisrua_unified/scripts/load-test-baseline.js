@@ -1,9 +1,10 @@
 import autocannon from 'autocannon';
+import { logger } from './logger-adapter.js';
 
 async function runLoadTest() {
   const url = process.env.APP_URL || 'http://localhost:3001';
   
-  console.log(`🚀 Iniciando Load Test Baseline em ${url}...`);
+  logger.info(`Iniciando Load Test Baseline em ${url}...`);
 
   const result = await autocannon({
     url,
@@ -19,14 +20,15 @@ async function runLoadTest() {
     ]
   });
 
-  console.log('📊 Resultados do Load Test:');
-  console.log(`- Requests/sec: ${result.requests.average}`);
-  console.log(`- Latência Média: ${result.latency.average} ms`);
-  console.log(`- Latência P99: ${result.latency.p99} ms`);
-  console.log(`- Erros: ${result.errors}`);
+  logger.info('Resultados do Load Test:', {
+    requestsPerSec: result.requests.average,
+    latencyAvg: result.latency.average,
+    latencyP99: result.latency.p99,
+    errors: result.errors
+  });
 
   if (result.non2xx > 0) {
-    console.warn(`⚠️ Detectadas ${result.non2xx} respostas não-2xx.`);
+    logger.warn(`Detectadas ${result.non2xx} respostas não-2xx.`);
   }
 
   return result;

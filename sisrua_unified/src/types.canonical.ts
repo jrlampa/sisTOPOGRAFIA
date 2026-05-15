@@ -35,11 +35,11 @@ export interface CanonicalPoleSpec {
 
 /** Status de condição física do poste. */
 export type CanonicalPoleConditionStatus =
-  | "bom_estado"
-  | "projetado"
-  | "desaprumado"
-  | "trincado"
-  | "condenado";
+  | 'bom_estado'
+  | 'projetado'
+  | 'desaprumado'
+  | 'trincado'
+  | 'condenado';
 
 /** Ramal conectado ao poste (herdado de BtPoleRamalEntry). */
 export interface CanonicalRamalEntry {
@@ -50,7 +50,7 @@ export interface CanonicalRamalEntry {
 }
 
 /** Flag de ciclo de vida do nó. */
-export type CanonicalNodeChangeFlag = "existing" | "new" | "remove" | "replace";
+export type CanonicalNodeChangeFlag = 'existing' | 'new' | 'remove' | 'replace';
 
 // ─── PoleNode canônico (Aggregate Root) ──────────────────────────────────────
 
@@ -96,20 +96,79 @@ export interface CanonicalPoleNode {
   verified?: boolean;
   nodeChangeFlag?: CanonicalNodeChangeFlag;
   /** Fonte do dado (UX-15). */
-  dataSource?: "imported" | "manual" | "dg_calculated";
+  dataSource?: 'imported' | 'manual' | 'dg_calculated';
+}
+
+// ─── Catálogo de Condutores ───────────────────────────────────────────────────
+
+/**
+ * Catálogo completo de um condutor com propriedades técnicas.
+ * Proveniente da tabela conductor_catalog no Supabase.
+ *
+ * Utilizado para enriquecimento de dados de condutores em arestas,
+ * cálculos elétricos (queda de tensão, CQT), e validação de especificações.
+ */
+export interface ConductorCatalogEntry {
+  // Identidade
+  id: number;
+  conductorId: string; // "70 Al - MX"
+  displayName: string; // "70 mm² Alumínio Meia Dura"
+
+  // Classificação
+  material: 'Al' | 'Cu' | 'Al-CONC' | 'Other';
+  category: 'BT' | 'MT' | 'HV' | 'EHV';
+  strandingType?: string; // "MX" | "QX" | "DX" | "TX" | "DU"
+
+  // Propriedades Geométricas
+  sectionMm2?: number; // 70
+  diameterMm?: number; // 9.45
+  numberOfStrands?: number; // 12, 19, etc.
+
+  // Propriedades Elétricas (20°C, AC 60Hz)
+  resistanceOhmPerKm?: number; // 0.41 Ω/km
+  reactanceMohmsPerKm?: number; // 0.38 mΩ/km
+  conductivitySiemens?: number; // 58.0
+
+  // Propriedades Mecânicas
+  weightKgPerKm?: number; // 0.23 kg/km
+  tensileStrengthDan?: number; // 1700 daN
+  breakingLoadDan?: number; // Carga de ruptura
+  elasticModulusPa?: number; // Módulo de elasticidade
+
+  // Propriedades Termais
+  maxTemperatureCelsius?: number; // 80
+  coefficientTempResPerC?: number; // 0.00403
+
+  // Padrões
+  standard?: string; // "NBR 8092", "IEC 61089"
+  normDocument?: string;
+
+  // Auditoria
+  isActive: boolean;
+  createdAt: string; // ISO 8601
+  updatedAt: string; // ISO 8601
 }
 
 // ─── Condutor de aresta ───────────────────────────────────────────────────────
 
-/** Condutor em uma aresta de rede (herdado de BtRamalEntry). */
+/**
+ * Condutor em uma aresta de rede (herdado de BtRamalEntry).
+ * Estrutura mínima para persistência na canonical_edges.
+ *
+ * Pode ser enriquecida com dados completos via `catalogData`
+ * quando consultado junto com conductor_catalog.
+ */
 export interface CanonicalConductorEntry {
   id: string;
   quantity: number;
   conductorName: string;
+
+  // Enriquecimento opcional (preenchido ao buscar com join ou função lookup)
+  catalogData?: ConductorCatalogEntry;
 }
 
 /** Flag de ciclo de vida da aresta. */
-export type CanonicalEdgeChangeFlag = "existing" | "new" | "remove" | "replace";
+export type CanonicalEdgeChangeFlag = 'existing' | 'new' | 'remove' | 'replace';
 
 // ─── NetworkEdge canônico ─────────────────────────────────────────────────────
 
@@ -149,7 +208,7 @@ export interface CanonicalNetworkEdge {
 
 // ─── NetworkTopology canônica ─────────────────────────────────────────────────
 
-import type { BtTransformer } from "./types.js";
+import type { BtTransformer } from './types.js';
 
 // ... rest of imports if any
 
@@ -178,27 +237,25 @@ export interface CanonicalNetworkTopology {
  * Útil para narrowing em código de migração dual-read.
  */
 export function isCanonicalPoleNode(obj: unknown): obj is CanonicalPoleNode {
-  if (typeof obj !== "object" || obj === null) return false;
+  if (typeof obj !== 'object' || obj === null) return false;
   const o = obj as Record<string, unknown>;
   return (
-    typeof o["id"] === "string" &&
-    typeof o["lat"] === "number" &&
-    typeof o["lng"] === "number" &&
-    typeof o["title"] === "string"
+    typeof o['id'] === 'string' &&
+    typeof o['lat'] === 'number' &&
+    typeof o['lng'] === 'number' &&
+    typeof o['title'] === 'string'
   );
 }
 
 /**
  * Verifica se um objeto é um CanonicalNetworkEdge válido (mínimo).
  */
-export function isCanonicalNetworkEdge(
-  obj: unknown,
-): obj is CanonicalNetworkEdge {
-  if (typeof obj !== "object" || obj === null) return false;
+export function isCanonicalNetworkEdge(obj: unknown): obj is CanonicalNetworkEdge {
+  if (typeof obj !== 'object' || obj === null) return false;
   const o = obj as Record<string, unknown>;
   return (
-    typeof o["id"] === "string" &&
-    typeof o["fromPoleId"] === "string" &&
-    typeof o["toPoleId"] === "string"
+    typeof o['id'] === 'string' &&
+    typeof o['fromPoleId'] === 'string' &&
+    typeof o['toPoleId'] === 'string'
   );
 }

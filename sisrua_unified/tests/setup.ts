@@ -47,17 +47,30 @@ Object.defineProperty(window, 'IntersectionObserver', {
 // Mock framer-motion to avoid animation-related test failures
 vi.mock('framer-motion', () => {
   const React = require('react');
+  const dummy = (Tag: string) => {
+    return React.forwardRef(({ children, ...props }: any, ref: any) => {
+      const { 
+          variants, initial, animate, exit, transition, 
+          whileHover, whileTap, whileInView, viewport,
+          layoutId, layout, onAnimationComplete,
+          ...domProps 
+      } = props;
+      // Do not pass children in props if passing as third argument
+      const { children: _, ...otherDomProps } = domProps;
+      return React.createElement(Tag, { ...otherDomProps, ref }, children);
+    });
+  };
   return {
     motion: {
-      div: (props: any) => React.createElement('div', props, props.children),
-      form: (props: any) => React.createElement('form', props, props.children),
-      aside: (props: any) => React.createElement('aside', props, props.children),
-      p: (props: any) => React.createElement('p', props, props.children),
-      button: (props: any) => React.createElement('button', props, props.children),
-      span: (props: any) => React.createElement('span', props, props.children),
-      h2: (props: any) => React.createElement('h2', props, props.children),
-      section: (props: any) => React.createElement('section', props, props.children),
-      nav: (props: any) => React.createElement('nav', props, props.children),
+      div: dummy('div'),
+      form: dummy('form'),
+      aside: dummy('aside'),
+      p: dummy('p'),
+      button: dummy('button'),
+      span: dummy('span'),
+      h2: dummy('h2'),
+      section: dummy('section'),
+      nav: dummy('nav'),
     },
     AnimatePresence: ({ children }: any) => children,
     useReducedMotion: () => false,
@@ -114,12 +127,29 @@ vi.mock('react-leaflet', () => {
     Circle: ({ children }: any) => React.createElement('div', { 'data-testid': 'circle' }, children),
     useMap: () => ({
       flyTo: vi.fn(),
+      setView: vi.fn(),
       on: vi.fn(),
       off: vi.fn(),
-      getCenter: () => ({ lat: 0, lng: 0 }),
+      getCenter: () => ({ lat: 0, lng: 0, distanceTo: () => 100 }),
       getZoom: () => 13,
+      panBy: vi.fn(),
+      invalidateSize: vi.fn(),
     }),
-    useMapEvents: () => ({}),
+    useMapEvents: (handlers: any) => {
+        const map = {
+            flyTo: vi.fn(),
+            setView: vi.fn(),
+            on: vi.fn(),
+            off: vi.fn(),
+            getCenter: () => ({ lat: 0, lng: 0, distanceTo: () => 100 }),
+            getZoom: () => 13,
+            panBy: vi.fn(),
+            invalidateSize: vi.fn(),
+        };
+        (global as any).__latestMapHandlers = handlers;
+        (global as any).__latestMapInstance = map;
+        return map;
+    },
     Popup: ({ children }: any) => React.createElement('div', { 'data-testid': 'popup' }, children),
   };
 });

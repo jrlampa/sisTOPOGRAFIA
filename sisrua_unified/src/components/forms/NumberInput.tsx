@@ -20,11 +20,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
         onChange={e => {
           const parsed = parseBr(e.target.value);
           if (Number.isFinite(parsed)) {
-            const clamped =
-              min !== undefined && max !== undefined
-                ? Math.max(min, Math.min(max, parsed))
-                : parsed;
-            onChange(clamped);
+            onChange(parsed);
           }
         }}
         onBlur={e => {

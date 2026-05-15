@@ -119,7 +119,7 @@ export const requirePermission = (requiredPermission: Permission) => {
         requestId,
         path: req.path,
       });
-      return next(createError.authentication("Authentication required"));
+      return next(createError.authentication("Não autenticado"));
     }
 
     try {
@@ -160,7 +160,7 @@ export const requirePermission = (requiredPermission: Permission) => {
       });
       return next(
         createError.authorization(
-          `Missing required permission: ${requiredPermission}`,
+          `Permissão insuficiente: ${requiredPermission}`,
         ),
       );
     } catch (err: unknown) {
@@ -170,7 +170,7 @@ export const requirePermission = (requiredPermission: Permission) => {
         requestId,
         error: err instanceof Error ? err.message : String(err),
       });
-      return next(createError.authorization("Permission check failed"));
+      return next(createError.authorization("Falha ao verificar permissões"));
     }
   };
 };

@@ -23,6 +23,7 @@ describe('CompliancePanel component', () => {
       enableNbr9050: true,
       enableEnvironmentalAudit: true,
       enableSolarShading: true,
+      enableVegetationAnalysis: true,
     }
   };
 
@@ -73,15 +74,16 @@ describe('CompliancePanel component', () => {
       solar: { results: [] }
     };
     vi.mocked(useCompliance).mockReturnValue({ ...mockCompliance, result: mockResult } as any);
-    
+
     render(<CompliancePanel {...defaultProps} />);
-    
+
     expect(screen.getByText(/Gestão Fundiária/i)).toBeDefined();
-    expect(screen.getByText(/Auditoria Ambiental/i)).toBeDefined();
-    expect(screen.getByText(/Análise de Vegetação/i)).toBeDefined();
+
+    expect(screen.getByText(/Impacto Ambiental/i)).toBeDefined();
+    expect(screen.getByText(/Inventário de Vegetação/i)).toBeDefined();
     expect(screen.getByText(/Acessibilidade Urbana/i)).toBeDefined();
-    expect(screen.getByText(/Irradiação e Sombreamento/i)).toBeDefined();
-    
+    expect(screen.getByText(/Incidência Solar/i)).toBeDefined();
+
     expect(screen.getByText('Prop A')).toBeDefined();
     expect(screen.getByText('95%')).toBeDefined();
   });
@@ -103,9 +105,10 @@ describe('CompliancePanel component', () => {
     vi.mocked(useCompliance).mockReturnValue({ ...mockCompliance, result: mockResult } as any);
 
     render(<CompliancePanel {...defaultProps} />);
-    
-    expect(screen.queryByText(/Auditoria Ambiental/i)).toBeNull();
+
+    expect(screen.queryByText(/Impacto Ambiental/i)).toBeNull();
     expect(screen.queryByText(/Acessibilidade Urbana/i)).toBeNull();
     expect(screen.getByText(/Gestão Fundiária/i)).toBeDefined();
   });
+
 });

@@ -1,17 +1,21 @@
-import React from "react";
-import { useParams } from "react-router-dom";
-import { ProjectService } from "./services/projectService";
-import { useAppHooks } from "./hooks/useAppHooks";
-import { useAppCommandPalette } from "./hooks/useAppCommandPalette";
-import { useAppElectricalAudit } from "./hooks/useAppElectricalAudit";
-import { useAppSidebarProps } from "./hooks/useAppSidebarProps";
-import { useAppAnalysisWorkflow } from "./hooks/useAppAnalysisWorkflow";
-import { useAppGlobalHotkeys } from "./hooks/useAppGlobalHotkeys";
-import { AppWorkspace } from "./components/AppWorkspace";
-import { SnapshotModal } from "./components/SnapshotModal";
-import { BtTopology } from "./types";
-import type { BtNetworkScenarioPayload, BtEditorModePayload } from './types';
-import { ToastProvider } from "./hooks/useToast";
+import React from 'react';
+import { useParams } from 'react-router-dom';
+import { ProjectService } from './services/projectService';
+import { useAppHooks } from './hooks/useAppHooks';
+import { useAppCommandPalette } from './hooks/useAppCommandPalette';
+import { useAppElectricalAudit } from './hooks/useAppElectricalAudit';
+import { useAppSidebarProps } from './hooks/useAppSidebarProps';
+import { useAppAnalysisWorkflow } from './hooks/useAppAnalysisWorkflow';
+import { useAppGlobalHotkeys } from './hooks/useAppGlobalHotkeys';
+import { AppWorkspace } from './components/AppWorkspace';
+import { SnapshotModal } from './components/SnapshotModal';
+import type {
+  BtTopology,
+  GlobalState,
+  BtNetworkScenarioPayload,
+  BtEditorModePayload,
+} from './types';
+import { ToastProvider } from './hooks/useToast';
 
 /** Topologia BT vazia — fallback quando o estado ainda não foi carregado. */
 const EMPTY_BT_TOPOLOGY: BtTopology = { poles: [], transformers: [], edges: [] };
@@ -30,7 +34,7 @@ function App() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = React.useState(false);
   const [isFocusModeManual, setIsFocusModeManual] = React.useState(false);
   const [isXRayMode, setIsXRayMode] = React.useState(false);
-  const [selectedPoleId, setSelectedPoleId] = React.useState("");
+  const [selectedPoleId, setSelectedPoleId] = React.useState('');
 
   // ─── Core Hooks ──────────────────────────────────────────────────────────
   const {
@@ -44,17 +48,8 @@ function App() {
     compliance,
   } = useAppHooks(projeto_id);
 
-  const {
-    appState,
-    setAppState,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    appPast,
-    appFuture,
-    saveSnapshot,
-  } = orchestrator;
+  const { appState, setAppState, undo, redo, canUndo, canRedo, appPast, appFuture, saveSnapshot } =
+    orchestrator;
 
   const {
     updateSettings,
@@ -73,22 +68,44 @@ function App() {
     sessionDraft,
   } = mapState;
 
-  const { 
-    settings, 
-    btTopology = EMPTY_BT_TOPOLOGY,
-    btNetworkScenario,
-    btEditorMode 
-  } = appState;
+  const { settings, btTopology = EMPTY_BT_TOPOLOGY, btNetworkScenario, btEditorMode } = appState;
+
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+  const setBtNetworkScenario = React.useCallback(
+    (s: BtNetworkScenarioPayload | null) => {
+      setAppState((p: GlobalState) => ({ ...p, btNetworkScenario: s }), true, 'Alterar Cenário BT');
+    },
+    [setAppState]
+  );
+
+  const setBtEditorMode = React.useCallback(
+    (m: BtEditorModePayload) => {
+      setAppState((p: GlobalState) => ({ ...p, btEditorMode: m }), true, `Modo: ${m.mode}`);
+    },
+    [setAppState]
+  );
+
+  const updateBtTopology = React.useCallback(
+    (topology: BtTopology) => {
+      setAppState(
+        (p: GlobalState) => ({ ...p, btTopology: topology }),
+        true,
+        'Atualizar Topologia BT'
+      );
+    },
+    [setAppState]
+  );
 
   // ─── Carregar projeto da URL ──────────────────────────────────────────────
+
   React.useEffect(() => {
     if (projeto_id) {
-      ProjectService.getProjectState(projeto_id).then((state) => {
+      ProjectService.getProjectState(projeto_id).then(state => {
         if (state) {
-          setAppState(state, false, "Carregamento de Projeto");
-          showToast("Projeto carregado com sucesso.", "success");
+          setAppState(state, false, 'Carregamento de Projeto');
+          showToast('Projeto carregado com sucesso.', 'success');
         } else {
-          showToast("Falha ao carregar projeto.", "error");
+          showToast('Falha ao carregar projeto.', 'error');
         }
       });
     }
@@ -113,22 +130,22 @@ function App() {
 
   // ─── Fallbacks para hooks pendentes de refatoração (T3-138) ──────────────
   const handleDownloadGeoJSON = React.useCallback(async () => {
-    showToast("Exportação GeoJSON em desenvolvimento.", "info");
+    showToast('Exportação GeoJSON em desenvolvimento.', 'info');
   }, [showToast]);
 
   const handleDownloadDxf = React.useCallback(async () => {
-    showToast("Exportação DXF em desenvolvimento.", "info");
+    showToast('Exportação DXF em desenvolvimento.', 'info');
   }, [showToast]);
 
   const handleDownloadCoordinatesCsv = React.useCallback(() => {
-    showToast("Exportação CSV em desenvolvimento.", "info");
+    showToast('Exportação CSV em desenvolvimento.', 'info');
   }, [showToast]);
 
   const handleResetBtTopology = React.useCallback(() => {
     setAppState(
-      (prev) => ({ ...prev, btTopology: { poles: [], transformers: [], edges: [] } }),
+      prev => ({ ...prev, btTopology: { poles: [], transformers: [], edges: [] } }),
       true,
-      "Reset Topologia BT"
+      'Reset Topologia BT'
     );
   }, [setAppState]);
 
@@ -152,9 +169,9 @@ function App() {
     handleRunDgOptimization: () => {},
     handleTriggerTelescopicAnalysis: () => {},
     setBtNetworkScenario: (s: BtNetworkScenarioPayload | null) =>
-      setAppState((p) => ({ ...p, btNetworkScenario: s }), true),
+      setAppState(p => ({ ...p, btNetworkScenario: s }), true),
     setBtEditorMode: (m: BtEditorModePayload) =>
-      setAppState((p) => ({ ...p, btEditorMode: m }), true),
+      setAppState(p => ({ ...p, btEditorMode: m }), true),
     setSelectedPoleId,
     setIsCommandPaletteOpen,
   });
@@ -176,9 +193,9 @@ function App() {
     isProcessing: osmEngine.isProcessing,
     isPolygonValid,
     setBtNetworkScenario: (s: BtNetworkScenarioPayload | null) =>
-      setAppState((p) => ({ ...p, btNetworkScenario: s }), true),
+      setAppState(p => ({ ...p, btNetworkScenario: s }), true),
     setBtEditorMode: (m: BtEditorModePayload) =>
-      setAppState((p) => ({ ...p, btEditorMode: m }), true),
+      setAppState(p => ({ ...p, btEditorMode: m }), true),
     btNetworkScenario,
     btEditorMode,
     btTopology,
@@ -187,16 +204,16 @@ function App() {
     btSummary: derivedState.btSummary,
     btPointDemandKva: derivedState.btPointDemandKva ?? 0,
     btTransformerDebugById: derivedState.btTransformerDebugById ?? {},
-    btPoleCoordinateInput: "",
+    btPoleCoordinateInput: '',
     setBtPoleCoordinateInput: () => {},
     handleBtInsertPoleByCoordinates: () => {},
     pendingNormalClassificationPoles: [],
     handleResetBtTopology,
-    updateBtTopology: (t: any) => setAppState((p) => ({ ...p, btTopology: t }), true),
+    updateBtTopology: (t: any) => setAppState(p => ({ ...p, btTopology: t }), true),
     updateProjectType: (p: any) =>
-      setAppState((prev) => ({ ...prev, settings: { ...prev.settings, projectType: p } }), true),
+      setAppState(prev => ({ ...prev, settings: { ...prev.settings, projectType: p } }), true),
     updateClandestinoAreaM2: (a: number) =>
-      setAppState((p) => ({ ...p, settings: { ...p.settings, clandestinoAreaM2: a } }), true),
+      setAppState(p => ({ ...p, settings: { ...p.settings, clandestinoAreaM2: a } }), true),
     handleBtSelectedPoleChange: () => {},
     handleBtSelectedTransformerChange: () => {},
     handleBtSelectedEdgeChange: () => {},
@@ -223,8 +240,8 @@ function App() {
     setIsPreviewActive: () => {},
     selectedPoleId,
     selectedPoleIds: [],
-    selectedEdgeId: "",
-    selectedTransformerId: "",
+    selectedEdgeId: '',
+    selectedTransformerId: '',
     setSelectedPoleId,
     setSelectedPoleIds: () => {},
     setSelectedEdgeId: () => {},
@@ -232,7 +249,7 @@ function App() {
     mtTopology: topologySources.mtTopology,
     osmData: osmEngine.osmData,
     stats: osmEngine.stats,
-    analysisText: osmEngine.analysisText ?? "",
+    analysisText: osmEngine.analysisText ?? '',
     terrainData: osmEngine.terrainData,
     error: osmEngine.error,
     handleDownloadDxf,
@@ -244,20 +261,17 @@ function App() {
 
   // ─── UI State ─────────────────────────────────────────────────────────────
   const isFocusMode =
-    isFocusModeManual || (!!settings.enableFocusMode && btEditorMode.mode !== "none");
+    isFocusModeManual || (!!settings.enableFocusMode && btEditorMode.mode !== 'none');
 
-  useAppGlobalHotkeys(
-    setIsFocusModeManual,
-    setIsXRayMode,
-    settings.theme,
-    (theme) => updateSettings({ ...settings, theme }),
+  useAppGlobalHotkeys(setIsFocusModeManual, setIsXRayMode, settings.theme, theme =>
+    updateSettings({ ...settings, theme })
   );
 
   return (
     <ToastProvider>
       <AppWorkspace
         settings={settings}
-        isDark={settings.theme === "dark"}
+        isDark={settings.theme === 'dark'}
         isFocusMode={isFocusMode}
         isXRayMode={isXRayMode}
         canUndo={canUndo}
@@ -281,7 +295,7 @@ function App() {
         statusMessage={osmEngine.statusMessage}
         showDxfProgress={analysisWorkflow.showDxfProgress}
         dxfProgressValue={analysisWorkflow.dxfProgressValue}
-        dxfProgressStatus={analysisWorkflow.dxfProgressStatus ?? ""}
+        dxfProgressStatus={analysisWorkflow.dxfProgressStatus ?? ''}
         dxfProgressLabel={analysisWorkflow.dxfProgressLabel}
         latestBtExport={null}
         btExportHistory={[]}
@@ -355,12 +369,12 @@ function App() {
         <SnapshotModal
           isOpen={isSnapshotModalOpen}
           onClose={() => setIsSnapshotModalOpen(false)}
-          projetoId={projeto_id || ""}
+          projetoId={projeto_id || ''}
           currentState={appState}
-          onRestore={(state) => {
-            setAppState(state, true, "Restauração de Snapshot");
+          onRestore={state => {
+            setAppState(state, true, 'Restauração de Snapshot');
             setIsSnapshotModalOpen(false);
-            showToast("Snapshot restaurado com sucesso!", "success");
+            showToast('Snapshot restaurado com sucesso!', 'success');
           }}
         />
       </AppWorkspace>

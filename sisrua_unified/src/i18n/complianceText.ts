@@ -37,7 +37,7 @@ export const complianceText = {
     easementRequired: "Necessário Servidão",
     regularized: "Regularizado",
     pending: "Pendente",
-  },
+  }, 
   "en-US": {
     title: "Compliance & Regulations",
     environmentalTitle: "Environmental Impact",

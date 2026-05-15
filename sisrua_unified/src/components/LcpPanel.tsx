@@ -192,10 +192,14 @@ export function LcpPanel({
 
       {/* Perfil de custo */}
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">
+        <label 
+          htmlFor="lcp-cost-profile-select"
+          className="block text-xs font-medium text-gray-600 mb-1"
+        >
           {t.labelCostProfile}
         </label>
         <select
+          id="lcp-cost-profile-select"
           value={state.costProfile.id}
           onChange={(e) => {
             const found = state.availableProfiles.find((p) => p.id === e.target.value);

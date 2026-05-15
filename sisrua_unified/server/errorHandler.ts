@@ -31,6 +31,7 @@ export enum ErrorCode {
 
 export interface ApiErrorResponse {
   error: string;
+  erro?: string; // Compatibilidade pt-BR
   code: ErrorCode;
   category: ErrorCategory;
   details?: Record<string, any>;
@@ -54,6 +55,7 @@ export class ApiError extends Error {
   public toJSON(): ApiErrorResponse {
     return {
       error: this.message,
+      erro: this.message, // Compatibilidade pt-BR
       code: this.code,
       category: this.category,
       details: this.details,
@@ -90,6 +92,7 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
     if (err instanceof ApiError) {
       const response: ApiErrorResponse = {
         error: err.message,
+        erro: err.message, // Compatibilidade pt-BR
         code: err.code,
         category: err.category,
         details: config.NODE_ENV === "development" ? err.details : undefined,
@@ -106,6 +109,7 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
     if (err instanceof z.ZodError) {
       const response: ApiErrorResponse = {
         error: "Validation failed",
+        erro: "Falha na validação", // Compatibilidade pt-BR
         code: ErrorCode.INPUT_INVALID,
         category: ErrorCategory.VALIDATION,
         details: { errors: err.issues },

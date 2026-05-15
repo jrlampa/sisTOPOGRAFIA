@@ -33,7 +33,7 @@ Este documento formaliza os contratos HTTP para os domínios críticos de Autent
 - **Segurança:** Requer Autenticação JWT + Permissão `read`.
 - **Cenário Sem Autenticação:**
   - **Status:** 401
-  - **Payload:** `{ "error": "Authentication required", "code": "UNAUTHORIZED", "category": "AuthenticationError" }`
+  - **Payload:** `{ "error": "Authentication required", "erro": "Authentication required", "code": "UNAUTHORIZED", "category": "AuthenticationError" }`
 
 ## 📏 Padrões de Teste E2E
 
