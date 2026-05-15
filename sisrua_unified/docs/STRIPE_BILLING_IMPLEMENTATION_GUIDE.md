@@ -64,9 +64,9 @@
 
 ```bash
 # ─── Stripe API Keys ──────────────────────────────────
-STRIPE_SECRET_KEY=sk_live_REDACTED  # Live key em prod
-STRIPE_PUBLIC_KEY=pk_live_REDACTED   # Público (frontend)
-STRIPE_WEBHOOK_SECRET=whsec_REDACTED # Webhook signing secret
+STRIPE_SECRET_KEY=sk_live_REDACTED_secret_key_here        # Live key em prod
+STRIPE_PUBLIC_KEY=pk_live_REDACTED_public_key_here        # Público (frontend)
+STRIPE_WEBHOOK_SECRET=whsec_REDACTED_webhook_secret_here  # Webhook signing secret
 
 # ─── Frontend URLs ────────────────────────────────────
 FRONTEND_URL=https://sisrua.yourdomain.com           # Used for success/cancel URLs
