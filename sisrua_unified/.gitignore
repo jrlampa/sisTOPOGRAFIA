@@ -100,8 +100,11 @@ cache/
 .cache/
 .agents/
 .gemini/
+.copilot/
 secrets/
 _quarantine/
+.ruff_cache/
+.mypy_cache/
 
 # Editor directories and files
 .vscode/*

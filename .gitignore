@@ -92,3 +92,8 @@ gha-creds-*.json
 # Local dependency audit sandbox files (root)
 /package.json
 /package-lock.json
+
+# Local AI/QA tooling metadata (workstation-only)
+.copilot/
+.clinerules/
+.husky/

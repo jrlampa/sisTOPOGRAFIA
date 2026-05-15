@@ -53,6 +53,8 @@ defusedxml==0.7.1
     # via py-serializable
 et-xmlfile==2.0.0
     # via openpyxl
+execnet==2.1.2
+    # via pytest-xdist
 ezdxf==1.4.3
     # via -r sisrua_unified/py_engine/requirements.in
 filelock==3.29.0
@@ -169,7 +171,13 @@ pytest==9.0.3
     # via
     #   -r sisrua_unified/py_engine/requirements.in
     #   pytest-cov
+    #   pytest-mock
+    #   pytest-xdist
 pytest-cov==7.1.0
+    # via -r sisrua_unified/py_engine/requirements.in
+pytest-mock==3.15.1
+    # via -r sisrua_unified/py_engine/requirements.in
+pytest-xdist==3.8.0
     # via -r sisrua_unified/py_engine/requirements.in
 python-dateutil==2.9.0.post0
     # via

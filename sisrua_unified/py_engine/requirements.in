@@ -33,6 +33,8 @@ srtm.py
 # Testes
 pytest
 pytest-cov
+pytest-mock
+pytest-xdist
 
 # Validação
 pydantic

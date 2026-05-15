@@ -30,6 +30,9 @@ secrets/
 # ─── Ferramentas de desenvolvimento ──────────────────────────────────────────
 .vscode
 .idea
+.copilot
+.clinerules
+.husky
 *.swp
 *.swo
 .DS_Store
