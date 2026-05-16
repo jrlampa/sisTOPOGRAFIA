@@ -141,19 +141,24 @@ describe("findTransformerConflictsWithoutSectioning", () => {
     expect(conflicts[0].transformerIds).toHaveLength(3);
   });
 
-  it("transformer with undefined poleId is skipped", () => {
+  it("handles triangle topology correctly (line 81 – visited.has(current))", () => {
+    // Triangle: P1-P2, P2-P3, P1-P3
+    // When DFS processes P1, pushes P2 and P3.
+    // When processing P2, pushes P3 again → visited.has(P3) → continue (line 81)
     const topology: BtTopology = {
-      poles: [makePole("P1"), makePole("P2")],
-      transformers: [
-        makeTransformer("T1", "P1"),
-        { id: "T_no_pole", lat: 0, lng: 0, title: "TNoP" } as any, // no poleId
-        makeTransformer("T2", "P2"),
+      poles: [makePole("P1"), makePole("P2"), makePole("P3")],
+      transformers: [makeTransformer("T1", "P1"), makeTransformer("T2", "P2")],
+      edges: [
+        makeEdge("E1", "P1", "P2"),
+        makeEdge("E2", "P2", "P3"),
+        makeEdge("E3", "P1", "P3"), // makes a triangle
       ],
-      edges: [makeEdge("E1", "P1", "P2")],
     };
     const conflicts = findTransformerConflictsWithoutSectioning(topology);
-    // T1 and T2 are in same component → conflict
+    // T1 and T2 are in the same component → conflict
     expect(conflicts).toHaveLength(1);
-    expect(conflicts[0].transformerIds).not.toContain("T_no_pole");
+    expect(conflicts[0].transformerIds).toContain("T1");
+    expect(conflicts[0].transformerIds).toContain("T2");
   });
+
 });

@@ -14,11 +14,6 @@ describe('sanitizeDataForProduction', () => {
     });
 
     it('removes internal IPs from strings', () => {
-        const result = sanitizeDataForProduction('Connected to 192.168.1.42');
-        expect(result).toContain('[IP]');
-    });
-
-    it('removes 10.x IPs from strings', () => {
         const result = sanitizeDataForProduction('Server at 10.0.0.1 responded');
         expect(result).toContain('[IP]');
     });

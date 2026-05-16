@@ -80,6 +80,75 @@ describe("lazyWithRetry", () => {
 });
 
 // ---------------------------------------------------------------------------
+// clearClientCaches – branches via lazyWithRetry trigger
+// ---------------------------------------------------------------------------
+
+describe("clearClientCaches – serviceWorker and caches branches", () => {
+  afterEach(() => {
+    sessionStorage.removeItem("__sisrua_chunk_reload_once__");
+    vi.restoreAllMocks();
+  });
+
+  it("unregisters service workers when serviceWorker is in navigator", async () => {
+    const unregisterSpy = vi.fn().mockResolvedValue(true);
+    const getRegistrationsSpy = vi.fn().mockResolvedValue([
+      { unregister: unregisterSpy },
+    ]);
+
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: { getRegistrations: getRegistrationsSpy },
+    });
+
+    const reloadSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { reload: reloadSpy },
+    });
+
+    const error = new Error("Failed to fetch dynamically imported module");
+    const factory = vi.fn().mockRejectedValue(error);
+
+    await expect(lazyWithRetry(factory)).rejects.toThrow();
+    expect(getRegistrationsSpy).toHaveBeenCalled();
+    expect(unregisterSpy).toHaveBeenCalled();
+
+    // Cleanup – remove serviceWorker property
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: undefined,
+    });
+  });
+
+  it("deletes caches when caches is in window", async () => {
+    const deleteSpy = vi.fn().mockResolvedValue(true);
+    const keysSpy = vi.fn().mockResolvedValue(["cache-v1", "cache-v2"]);
+
+    // Stub globalThis.caches so both "caches" in window AND caches.keys() work
+    vi.stubGlobal("caches", { keys: keysSpy, delete: deleteSpy });
+
+    // Ensure serviceWorker is not in navigator to avoid interference from previous test
+    Reflect.deleteProperty(navigator, "serviceWorker");
+
+    const reloadSpy = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { reload: reloadSpy },
+    });
+
+    sessionStorage.removeItem("__sisrua_chunk_reload_once__");
+    const error = new Error("Failed to fetch dynamically imported module");
+    const factory = vi.fn().mockRejectedValue(error);
+
+    await expect(lazyWithRetry(factory)).rejects.toThrow();
+    expect(keysSpy).toHaveBeenCalled();
+    expect(deleteSpy).toHaveBeenCalledTimes(2); // once per cache key
+
+    vi.unstubAllGlobals();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // resetChunkReloadFlag
 // ---------------------------------------------------------------------------
 

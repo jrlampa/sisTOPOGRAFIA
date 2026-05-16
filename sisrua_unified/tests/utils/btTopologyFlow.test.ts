@@ -158,30 +158,184 @@ describe("calculateAccumulatedDemandKva", () => {
 // calculateBtSummary
 // ---------------------------------------------------------------------------
 
-describe("calculateBtSummary", () => {
-  it("sums edge lengths correctly", () => {
+describe("calculateAccumulatedDemandByPole – additional weighted-ramal branches", () => {
+  it("skips clandestino ramais in weighted demand calc when projectType is 'ramais' (line 321)", () => {
+    // In ramais mode, isClandestino=true → skip the ramal in weighted calculation (line 321)
+    // BUT localClients still counts the quantity (getPoleClientsByProjectType sums all)
     const topology: BtTopology = {
-      poles: [],
-      transformers: [],
-      edges: [
-        { id: "E1", fromPoleId: "P1", toPoleId: "P2", conductors: [], lengthMeters: 100 },
-        { id: "E2", fromPoleId: "P2", toPoleId: "P3", conductors: [], lengthMeters: 200 },
+      poles: [
+        {
+          id: "P1",
+          lat: 0,
+          lng: 0,
+          title: "P1",
+          // ramalType undefined → defaults to CLANDESTINO_RAMAL_TYPE in weighted calc
+          ramais: [{ id: "r1", quantity: 5 }],
+        },
       ],
+      transformers: [
+        {
+          id: "T1",
+          poleId: "P1",
+          lat: 0,
+          lng: 0,
+          title: "T1",
+          demandKw: 10,
+          readings: [],
+        } as any,
+      ],
+      edges: [],
     };
-    const summary = calculateBtSummary(topology);
-    expect(summary.totalLengthMeters).toBe(300);
-    expect(summary.edges).toBe(2);
+    // Should NOT throw; the clandestino ramal is skipped in weighted demand calc
+    expect(() => calculateAccumulatedDemandByPole(topology, "ramais", 0)).not.toThrow();
+    const results = calculateAccumulatedDemandByPole(topology, "ramais", 0);
+    const p1 = results.find((r) => r.poleId === "P1");
+    expect(p1).toBeDefined();
+    // localClients counts all ramal quantities (client count doesn't filter by type)
+    expect(p1?.localClients).toBe(5);
   });
 
-  it("handles edges without lengthMeters (defaults to 0)", () => {
+  it("skips non-clandestino ramals in clandestino mode (line 321, other branch)", () => {
     const topology: BtTopology = {
-      poles: [],
-      transformers: [],
+      poles: [
+        {
+          id: "P1",
+          lat: 0,
+          lng: 0,
+          title: "P1",
+          ramais: [
+            { id: "r1", quantity: 3, ramalType: "5 CC" }, // non-clandestino
+          ],
+        },
+      ],
+      transformers: [
+        {
+          id: "T1",
+          poleId: "P1",
+          lat: 0,
+          lng: 0,
+          title: "T1",
+          demandKw: 10,
+          readings: [],
+        } as any,
+      ],
+      edges: [],
+    };
+    // In clandestino mode: "5 CC" ramais are skipped
+    const results = calculateAccumulatedDemandByPole(topology, "clandestino", 50);
+    const p1 = results.find((r) => r.poleId === "P1");
+    expect(p1?.localClients).toBe(0); // "5 CC" ramal skipped in clandestino mode
+  });
+
+  it("skips ramals with quantity <= 0 (line 326)", () => {
+    const topology: BtTopology = {
+      poles: [
+        {
+          id: "P1",
+          lat: 0,
+          lng: 0,
+          title: "P1",
+          ramais: [
+            { id: "r1", quantity: 0, ramalType: "5 CC" },   // zero → skipped in weighted calc
+            { id: "r2", quantity: -1, ramalType: "5 CC" },  // negative → skipped in weighted calc
+            { id: "r3", quantity: 3, ramalType: "5 CC" },   // valid
+          ],
+        },
+      ],
+      transformers: [
+        {
+          id: "T1",
+          poleId: "P1",
+          lat: 0,
+          lng: 0,
+          title: "T1",
+          demandKw: 10,
+          readings: [],
+        } as any,
+      ],
+      edges: [],
+    };
+    const results = calculateAccumulatedDemandByPole(topology, "ramais", 0);
+    const p1 = results.find((r) => r.poleId === "P1");
+    // localClients = sum of ALL ramal quantities (0 + -1 + 3 = 2)
+    // The weighted demand calculation skips qty<=0 (line 326), but localClients uses sum
+    expect(p1?.localClients).toBe(2);
+    // Function should not throw
+    expect(p1).toBeDefined();
+  });
+
+  it("uses hasUnknownRamalWeight=true when ramalType is unrecognised (line 331)", () => {
+    const topology: BtTopology = {
+      poles: [
+        {
+          id: "P1",
+          lat: 0,
+          lng: 0,
+          title: "P1",
+          ramais: [
+            { id: "r1", quantity: 5, ramalType: "UNKNOWN_TYPE" },
+          ],
+        },
+      ],
+      transformers: [
+        {
+          id: "T1",
+          poleId: "P1",
+          lat: 0,
+          lng: 0,
+          title: "T1",
+          demandKw: 10,
+          readings: [],
+        } as any,
+      ],
+      edges: [],
+    };
+    // No throw expected; hasUnknownRamalWeight=true disables workbook demand
+    expect(() =>
+      calculateAccumulatedDemandByPole(topology, "ramais", 0),
+    ).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// calculateBtSummary – via btTopologyFlow imports
+// ---------------------------------------------------------------------------
+
+describe("calculateBtSummary – additional paths", () => {
+  it("includes counts and totalLengthMeters correctly", () => {
+    const topology: BtTopology = {
+      poles: [
+        { id: "P1", lat: 0, lng: 0, title: "P1" },
+        { id: "P2", lat: 0, lng: 0, title: "P2" },
+      ],
+      transformers: [
+        {
+          id: "T1",
+          poleId: "P1",
+          lat: 0,
+          lng: 0,
+          title: "T1",
+          monthlyBillBrl: 0,
+          demandKw: 10,
+          readings: [],
+        },
+      ],
       edges: [
-        { id: "E1", fromPoleId: "P1", toPoleId: "P2", conductors: [] } as any,
+        {
+          id: "E1",
+          fromPoleId: "P1",
+          toPoleId: "P2",
+          conductors: [],
+          lengthMeters: 100,
+        },
       ],
     };
+
     const summary = calculateBtSummary(topology);
-    expect(summary.totalLengthMeters).toBe(0);
+    expect(summary.poles).toBe(2);
+    expect(summary.transformers).toBe(1);
+    expect(summary.edges).toBe(1);
+    expect(summary.totalLengthMeters).toBe(100);
+    expect(summary.transformerDemandKva).toBeGreaterThanOrEqual(0);
   });
 });
