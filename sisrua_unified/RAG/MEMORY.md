@@ -26,35 +26,5 @@
 - **Cache**: Invalidação por padrão (SCAN/MATCH) e por tag implementada no Redis.
 - **Roadmap Próximos Passos**: Iniciar Onda 3 para atingir 80% global, focando em componentes remanescentes (`AdminPage`, `BatchUpload` 100%, `DashboardPage` fixes).
 
-## 📊 Estado da Arte (Tier 3: Otimização Avançada)
-- **Status Atual (2026-05-11)**: Auditoria Técnica, Evolução de Acesso e Resolução de Falhas Críticas concluídas.
-- **Segurança & RLS (Defense-in-Depth)**: Aplicada migração 074, garantindo que todas as tabelas de negócio possuam RLS ativo, mesmo que a camada de API seja comprometida.
-- **Infraestrutura Docker**: Dockerfiles unificados em **Alpine:3.21** para eliminar incompatibilidades de glibc (GDAL/GEOS). Adicionados `tini` para gerenciamento de processos (PID 1) e `HEALTHCHECK` nativo. Shutdown agora é imediato (graceful).
-- **UI/UX & Design System**: Implementada biblioteca atômica (`src/components/ui/`) com `Button`, `Input`, `FormError` e `Drawer`. Sistema de navegação mobile refatorado para Drawer. Inserido `ToastProvider` e hooks de acessibilidade (`useFocusTrap`, `useAriaAnnounce`). Score de acessibilidade projetado: **95/100**.
-- **Documentação Estratégica**: Adicionados 6 documentos profissionais de UI/UX (Estratégia, Dashboard, Storybook Setup, etc.) como fonte da verdade para o frontend.
-- **Banco de Dados (Supabase Best Practices)**: Aplicada migração 073 para hardening de RLS (caching via `current_tenant_id()`), indexação de chaves estrangeiras e índices compostos multi-tenant. RPCs espaciais agora possuem isolamento de tenant nativo.
-- **Pipeline & Qualidade**: Linter 100% OK, Typechecking impecável, Suite de testes com 100% de sucesso. Build local validado e funcional.
-- **Engenharia (py_engine)**: Estabilização e cobertura de testes de elite atingida. Core modules (Controller, Geometry, Mixins) com cobertura >= 80%.
-- **Estabilidade**: 3092 testes backend passando (100% de sucesso).
-- **Próximo Passo**: Iniciar Setup do Storybook e implementar 5 componentes atômicos adicionais (Card, Badge, Modal, etc.) conforme a Semana 2 do roadmap.
 
-## 🛡️ Segurança & Compliance
-- **RBAC**: Controle granular de permissões.
-- **Audit**: Trilha de auditoria IA e FinOps implementada.
 
-## 🚀 Performance Baselines
-- **IA Preditiva**: Diagnóstico gerado em <10s via Ollama local.
-- **DG Wizard**: Geração em <5s.
-
-## 📜 Regras de Ouro
-- Não usar 3D (apenas 2.5D).
-- Lógica pesada SEMPRE no backend.
-- Cobertura mínima global >= 80%.
-
-## ✅ Atualização Operacional — 2026-05-15
-- **Correção de Regressão E2E**: Resolvidas 5 falhas nos pacotes Auth e Billing.
-    - **Billing**: Padronizado retorno 401 para não autenticado; incluído campo `erro` (pt-BR) no `errorHandler` global para compatibilidade.
-    - **Auth**: Testes refatorados para usar asserções funcionais (navegação/visibilidade) em vez de URLs fixas, reduzindo fragilidade.
-- **Recuperação de Teste de Carga**: `load-test-baseline.js` corrigido com a criação do `scripts/logger-adapter.js`, eliminando erro de import de módulo.
-- **Documentação**: Criado `e2e/BEST_PRACTICES.md` e atualizado `docs/CONTRACTS.md` para formalizar contratos de erro.
-- **Estabilidade**: Suíte completa de testes (`auth`, `billing`, `load`) validada e operando em verde.

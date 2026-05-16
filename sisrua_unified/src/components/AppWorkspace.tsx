@@ -18,6 +18,7 @@ import { useMultiplayer } from "../hooks/useMultiplayer";
 import { useNeighborhoodAwareness } from "../hooks/useNeighborhoodAwareness";
 import { MultiplayerAvatars } from "./MultiplayerAvatars";
 import { useAuth } from "../auth/AuthProvider";
+<<<<<<< HEAD
 import { TopologyProvider } from "../contexts/TopologyContext";
 import type { 
   AppSettings, 
@@ -31,6 +32,13 @@ import type { HistoryEntry } from '../hooks/useUndoRedo';
 import type { Toast as ToastItem } from '../hooks/useToast';
 
 export interface AppWorkspaceProps {
+=======
+import type { AppSettings, BtNetworkScenarioPayload, GlobalState } from '../types';
+import type { HistoryEntry } from '../hooks/useUndoRedo';
+import type { Toast as ToastItem } from '../hooks/useToast';
+
+type AppWorkspaceProps = {
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
   settings: AppSettings;
   isDark: boolean;
   isFocusMode: boolean;
@@ -245,6 +253,7 @@ export function AppWorkspace({
     { id: user?.id || "anon", name: user?.email?.split("@")[0] || "Visitante" }
   );
 
+<<<<<<< HEAD
   const topologyContextValue = React.useMemo(() => ({
     btTopology,
     mtTopology,
@@ -268,6 +277,33 @@ export function AppWorkspace({
     setBtNetworkScenario, 
     setBtEditorMode
   ]);
+=======
+  return (
+    <div className={`app-shell relative flex h-screen w-full flex-col overflow-hidden font-sans transition-colors duration-500 ${isDark ? "dark text-slate-200" : "text-slate-900"}`}>
+      {/* Header */}
+      <AppHeader
+        locale={settings.locale}
+        isDark={isDark}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
+        onSaveProject={handleSaveProject}
+        onOpenProject={handleLoadProject}
+        onOpenSettings={openSettings}
+        onOpenHelp={() => setIsHelpOpen(true)}
+        onOpenSnapshots={onOpenSnapshots}
+        onFeatureSettings={() => setIsFeatureSettingsOpen(true)}
+        onToggleMobileMenu={() => {}}
+        projectName={settings.projectMetadata?.projectName || "Novo Projeto"}
+        autoSaveStatus={autoSaveStatus as any}
+        lastAutoSaved={lastAutoSaved}
+        isSidebarCollapsed={!!settings.sidebarCollapsed}
+        onToggleSidebarCollapsed={() => updateSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed })}
+        backendStatus="online"
+        backendResponseTimeMs={45}
+      />
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 
   const currentBtEditorMode = btEditorMode?.mode ?? "none";
 
@@ -296,6 +332,7 @@ export function AppWorkspace({
         {/* Header */}
         <AppHeader
           locale={settings.locale}
+<<<<<<< HEAD
           isDark={isDark}
           canUndo={canUndo}
           canRedo={canRedo}
@@ -315,6 +352,20 @@ export function AppWorkspace({
           onToggleSidebarCollapsed={() => updateSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed })}
           backendStatus="online"
           backendResponseTimeMs={45}
+=======
+          isCollapsed={!!settings.sidebarCollapsed}
+          onToggleCollapse={(c) => updateSettings({ ...settings, sidebarCollapsed: c })}
+          isSidebarDockedForRamalModal={isSidebarDockedForRamalModal}
+          selectionControlsProps={sidebarSelectionControlsProps}
+          btEditorSectionProps={sidebarBtEditorSectionProps}
+          mtEditorSectionProps={{
+            mtTopology,
+            updateMtTopology,
+            btTopology,
+            hasBtPoles,
+          }}
+          analysisResultsProps={sidebarAnalysisResultsProps}
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
         />
 
         {/* Body: Sidebar + Main */}

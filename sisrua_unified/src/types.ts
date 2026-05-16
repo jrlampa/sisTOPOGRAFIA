@@ -12,8 +12,12 @@ export type {
   BtEditorModePayload, 
   MtNetworkState,
   AdminSettings,
+<<<<<<< HEAD
   ServiceTierForm,
   CanonicalNetworkTopology
+=======
+  ServiceTierForm
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 };
 
 export interface GeoLocation {
@@ -21,6 +25,8 @@ export interface GeoLocation {
   lng: number;
   label?: string;
 }
+
+// ... rest of file (I'll use a more targeted replace next)
 
 export interface OsmNode {
   type: "node";

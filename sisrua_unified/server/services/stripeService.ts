@@ -46,7 +46,10 @@ const TIER_DEFINITIONS: Record<SisRuaTier, TierDefinition> = {
     name: 'Community (Gratuito)',
     description: 'Análise básica e visualização de dados geoespaciais',
     priceMonthlyBRL: 0,
+<<<<<<< HEAD
     stripePriceId: process.env.STRIPE_PRICE_COMMUNITY,
+=======
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
     features: {
       maxAreaKm2: 2,
       maxDxfPerMonth: 0,
@@ -64,8 +67,12 @@ const TIER_DEFINITIONS: Record<SisRuaTier, TierDefinition> = {
     id: 'professional',
     name: 'Professional',
     description: 'Exportação DXF, análise completa de topologia, 50km²',
+<<<<<<< HEAD
     priceMonthlyBRL: 120,
     stripePriceId: process.env.STRIPE_PRICE_PROFESSIONAL,
+=======
+    priceMonthlyBRL: 120, // Será sincronizado com Stripe
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
     features: {
       maxAreaKm2: 50,
       maxDxfPerMonth: 20,
@@ -83,8 +90,12 @@ const TIER_DEFINITIONS: Record<SisRuaTier, TierDefinition> = {
     id: 'enterprise',
     name: 'Enterprise',
     description: 'Acesso ilimitado, multi-tenant, suporte dedicado',
+<<<<<<< HEAD
     priceMonthlyBRL: 1500,
     stripePriceId: process.env.STRIPE_PRICE_ENTERPRISE,
+=======
+    priceMonthlyBRL: 1500, // Negotiated per customer
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
     features: {
       maxAreaKm2: -1, // Unlimited
       maxDxfPerMonth: -1,
@@ -121,7 +132,11 @@ class StripeService {
   constructor() {
     if (config.STRIPE_SECRET_KEY) {
       this.stripe = new Stripe(config.STRIPE_SECRET_KEY, {
+<<<<<<< HEAD
         apiVersion: '2023-10-16' as any, // Versão estável confirmada (Roadmap #116)
+=======
+        apiVersion: '2025-02-24-preview' as any,
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
       });
       logger.info('StripeService initialized with API key');
     } else {
@@ -132,6 +147,7 @@ class StripeService {
   }
 
   /**
+<<<<<<< HEAD
    * Valida a assinatura de um webhook recebido da Stripe
    */
   constructEvent(payload: string | Buffer, sig: string, secret: string): Stripe.Event {
@@ -140,6 +156,8 @@ class StripeService {
   }
 
   /**
+=======
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
    * ─────────────────────────────────────────────────────────────────────────
    * PARTE 1: Criação de Produtos Stripe (Bootstrapping)
    * ─────────────────────────────────────────────────────────────────────────
@@ -173,15 +191,21 @@ class StripeService {
           logger.info(`Produto ${tier} já existe na Stripe`, { productId: existing.id });
           results[tier] = { productId: existing.id };
 
+<<<<<<< HEAD
           // Persistência em memória (Fix Item 2)
           TIER_DEFINITIONS[tier].stripeProductId = existing.id;
 
+=======
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
           // Se não for Community, buscar preço
           if (tier !== 'community') {
             const prices = await stripe.prices.list({ product: existing.id, limit: 1 });
             if (prices.data.length > 0) {
               results[tier].priceId = prices.data[0].id;
+<<<<<<< HEAD
               TIER_DEFINITIONS[tier].stripePriceId = prices.data[0].id;
+=======
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
             }
           }
           continue;
@@ -219,11 +243,14 @@ class StripeService {
           });
 
           results[tier].priceId = price.id;
+<<<<<<< HEAD
           
           // Persistência em memória (Fix Item 2)
           TIER_DEFINITIONS[tier].stripeProductId = product.id;
           TIER_DEFINITIONS[tier].stripePriceId = price.id;
 
+=======
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
           logger.info(`Preço para ${tier} criado`, {
             priceId: price.id,
             amountBRL: tierDef.priceMonthlyBRL,

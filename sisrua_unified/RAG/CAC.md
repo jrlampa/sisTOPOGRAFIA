@@ -70,3 +70,6 @@ Monitorado via `private.db_health_report()` diariamente às 07:00 UTC.
 ## 🛠️ Comandos de Manutenção
 - `SELECT * FROM private.v_maintenance_schedule;`
 - `SELECT * FROM private.maintenance_log ORDER BY started_at DESC LIMIT 20;`
+
+
+

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { ProjectService } from './services/projectService';
@@ -16,6 +17,22 @@ import type {
   BtEditorModePayload,
 } from './types';
 import { ToastProvider } from './hooks/useToast';
+=======
+import React from "react";
+import { useParams } from "react-router-dom";
+import { ProjectService } from "./services/projectService";
+import { useAppHooks } from "./hooks/useAppHooks";
+import { useAppCommandPalette } from "./hooks/useAppCommandPalette";
+import { useAppElectricalAudit } from "./hooks/useAppElectricalAudit";
+import { useAppSidebarProps } from "./hooks/useAppSidebarProps";
+import { useAppAnalysisWorkflow } from "./hooks/useAppAnalysisWorkflow";
+import { useAppGlobalHotkeys } from "./hooks/useAppGlobalHotkeys";
+import { AppWorkspace } from "./components/AppWorkspace";
+import { SnapshotModal } from "./components/SnapshotModal";
+import { BtTopology } from "./types";
+import type { BtNetworkScenarioPayload, BtEditorModePayload } from './types';
+import { ToastProvider } from "./hooks/useToast";
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 
 /** Topologia BT vazia — fallback quando o estado ainda não foi carregado. */
 const EMPTY_BT_TOPOLOGY: BtTopology = { poles: [], transformers: [], edges: [] };
@@ -68,6 +85,7 @@ function App() {
     sessionDraft,
   } = mapState;
 
+<<<<<<< HEAD
   const { settings, btTopology = EMPTY_BT_TOPOLOGY, btNetworkScenario, btEditorMode } = appState;
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
@@ -95,6 +113,14 @@ function App() {
     },
     [setAppState]
   );
+=======
+  const { 
+    settings, 
+    btTopology = EMPTY_BT_TOPOLOGY,
+    btNetworkScenario,
+    btEditorMode 
+  } = appState;
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 
   // ─── Carregar projeto da URL ──────────────────────────────────────────────
 
@@ -169,9 +195,15 @@ function App() {
     handleRunDgOptimization: () => {},
     handleTriggerTelescopicAnalysis: () => {},
     setBtNetworkScenario: (s: BtNetworkScenarioPayload | null) =>
+<<<<<<< HEAD
       setAppState(p => ({ ...p, btNetworkScenario: s }), true),
     setBtEditorMode: (m: BtEditorModePayload) =>
       setAppState(p => ({ ...p, btEditorMode: m }), true),
+=======
+      setAppState((p) => ({ ...p, btNetworkScenario: s }), true),
+    setBtEditorMode: (m: BtEditorModePayload) =>
+      setAppState((p) => ({ ...p, btEditorMode: m }), true),
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
     setSelectedPoleId,
     setIsCommandPaletteOpen,
   });
@@ -193,9 +225,15 @@ function App() {
     isProcessing: osmEngine.isProcessing,
     isPolygonValid,
     setBtNetworkScenario: (s: BtNetworkScenarioPayload | null) =>
+<<<<<<< HEAD
       setAppState(p => ({ ...p, btNetworkScenario: s }), true),
     setBtEditorMode: (m: BtEditorModePayload) =>
       setAppState(p => ({ ...p, btEditorMode: m }), true),
+=======
+      setAppState((p) => ({ ...p, btNetworkScenario: s }), true),
+    setBtEditorMode: (m: BtEditorModePayload) =>
+      setAppState((p) => ({ ...p, btEditorMode: m }), true),
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
     btNetworkScenario,
     btEditorMode,
     btTopology,
@@ -261,7 +299,11 @@ function App() {
 
   // ─── UI State ─────────────────────────────────────────────────────────────
   const isFocusMode =
+<<<<<<< HEAD
     isFocusModeManual || (!!settings.enableFocusMode && btEditorMode.mode !== 'none');
+=======
+    isFocusModeManual || (!!settings.enableFocusMode && btEditorMode.mode !== "none");
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 
   useAppGlobalHotkeys(setIsFocusModeManual, setIsXRayMode, settings.theme, theme =>
     updateSettings({ ...settings, theme })

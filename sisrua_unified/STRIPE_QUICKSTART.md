@@ -14,8 +14,8 @@ Abrir https://dashboard.stripe.com/apikeys
 
 ```bash
 # .env.local ou .env.production
-STRIPE_SECRET_KEY=sk_live_1234567890ABCDEF...
-STRIPE_PUBLIC_KEY=pk_live_ABCDEF1234567890...
+STRIPE_SECRET_KEY=sk_live_REDACTED...
+STRIPE_PUBLIC_KEY=pk_live_REDACTED...
 ```
 
 Criar webhook em https://dashboard.stripe.com/webhooks:
@@ -24,7 +24,7 @@ Criar webhook em https://dashboard.stripe.com/webhooks:
 - Eventos: `customer.subscription.*`, `invoice.payment.*`
 
 ```bash
-STRIPE_WEBHOOK_SECRET=whsec_1234567890ABCDEF...
+STRIPE_WEBHOOK_SECRET=whsec_REDACTED...
 ```
 
 ---

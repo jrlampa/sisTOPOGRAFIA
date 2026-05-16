@@ -79,3 +79,5 @@ GRANT UPDATE ON user_tiers TO authenticated;
 GRANT ALL ON user_tiers TO service_role;
 
 COMMIT;
+
+

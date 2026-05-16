@@ -510,3 +510,5 @@ R: Sim! Estender `user_tiers` com coluna `tenant_id` e adicionar policy RLS
 
 **Última atualização:** 13 Maio 2026  
 **Próxima revisão:** 30 Junho 2026
+
+

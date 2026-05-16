@@ -54,7 +54,10 @@ import ibgeRoutes from './routes/ibgeRoutes.js';
 import indeRoutes from './routes/indeRoutes.js';
 import analysisRoutes from './routes/analysisRoutes.js';
 import constantsRoutes from './routes/constantsRoutes.js';
+<<<<<<< HEAD
 import catalogRoutes from './routes/catalogRoutes.js';
+=======
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 import btHistoryRoutes from './routes/btHistoryRoutes.js';
 import btDerivedRoutes from './routes/btDerivedRoutes.js';
 import btCalculationRoutes from './routes/btCalculationRoutes.js';
@@ -106,7 +109,10 @@ import zeroTrustRoutes from './routes/zeroTrustRoutes.js';
 import blueGreenRoutes from './routes/blueGreenRoutes.js';
 import pentestRoutes from './routes/pentestRoutes.js';
 import bcpDrRoutes from './routes/bcpDrRoutes.js';
+<<<<<<< HEAD
 import backupRoutes from './routes/backupRoutes.js';
+=======
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 import complianceRoutes from './routes/complianceRoutes.js';
 import identityLifecycleRoutes from './routes/identityLifecycleRoutes.js';
 import multiTenantIsolationRoutes from './routes/multiTenantIsolationRoutes.js';
@@ -459,7 +465,10 @@ app.use('/api/inde', indeRoutes);
 app.use('/api/analysis', analysisRoutes);
 app.use('/api/analyze', analysisRoutes); // Alias para compatibilidade com frontend que usa singular
 app.use('/api/constants', constantsRoutes);
+<<<<<<< HEAD
 app.use('/api/catalog', catalogRoutes);
+=======
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 app.use('/api/bt-history', btHistoryRoutes);
 app.use('/api/bt-derived', btDerivedRoutes);
 app.use('/api/bt-calculation', btCalculationRoutes);
@@ -514,7 +523,10 @@ app.use('/api/zero-trust', requireAdminToken, zeroTrustRoutes);
 app.use('/api/blue-green', requireAdminToken, blueGreenRoutes);
 app.use('/api/pentest', requireAdminToken, pentestRoutes);
 app.use('/api/bcp-dr', requireAdminToken, bcpDrRoutes);
+<<<<<<< HEAD
 app.use('/api/backup', requireAdminToken, backupRoutes);
+=======
+>>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 app.use('/api/compliance', requireAdminToken, complianceRoutes);
 app.use('/api/identity-lifecycle', requireAdminToken, identityLifecycleRoutes);
 app.use('/api/multi-tenant-isolation', requireAdminToken, multiTenantIsolationRoutes);
