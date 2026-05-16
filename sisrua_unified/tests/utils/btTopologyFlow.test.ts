@@ -339,3 +339,35 @@ describe("calculateBtSummary – additional paths", () => {
     expect(summary.transformerDemandKva).toBeGreaterThanOrEqual(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// BFS circuit-break path (line 287)
+// ---------------------------------------------------------------------------
+
+describe("calculateAccumulatedDemandByPole – circuit break BFS stop (line 287)", () => {
+  it("circuit break pole stops BFS propagation", () => {
+    // P1 (transformer) → P2 (circuit break) → P3
+    // BFS from P1 hits P2 (circuit break) → line 287 hit, P3 not reachable via BFS from T1
+    const topology: BtTopology = {
+      poles: [
+        { id: "P1", lat: 0, lng: 0, title: "P1", ramais: [{ id: "r1", quantity: 2, ramalType: "5 CC" }] },
+        { id: "P2", lat: 0, lng: 0.001, title: "P2", circuitBreakPoint: true, ramais: [{ id: "r2", quantity: 1, ramalType: "5 CC" }] },
+        { id: "P3", lat: 0, lng: 0.002, title: "P3", ramais: [{ id: "r3", quantity: 3, ramalType: "5 CC" }] },
+      ],
+      transformers: [
+        { id: "T1", poleId: "P1", lat: 0, lng: 0, title: "T1", demandKw: 10, readings: [] } as any,
+      ],
+      edges: [
+        { id: "E1", fromPoleId: "P1", toPoleId: "P2", conductors: [], lengthMeters: 10 },
+        { id: "E2", fromPoleId: "P2", toPoleId: "P3", conductors: [], lengthMeters: 10 },
+      ],
+    };
+    expect(() => calculateAccumulatedDemandByPole(topology, "ramais", 0)).not.toThrow();
+    const results = calculateAccumulatedDemandByPole(topology, "ramais", 0);
+    // P2 is a circuit break – children = [] (line 389-393), so no downstream from P2
+    const p2 = results.find((r) => r.poleId === "P2");
+    expect(p2).toBeDefined();
+    expect(p2?.localClients).toBe(1);
+    expect(p2?.accumulatedClients).toBe(1); // no children downstream
+  });
+});

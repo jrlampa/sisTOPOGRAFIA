@@ -182,3 +182,120 @@ describe("btDxfContext", () => {
     expect(context.cqtComputationInputs.branches).toHaveLength(0);
   });
 });
+
+describe("btDxfContext – additional coverage", () => {
+  it("returns 'DIREITO' for pole/edge labeled with DIR prefix (line 31)", () => {
+    // Edge ID with "DIREITO" label causes getSideLabel to return "DIREITO"
+    const topology: BtTopology = {
+      poles: [
+        { id: "P1", lat: 0, lng: 0, title: "P1" },
+        { id: "P2", lat: 0.001, lng: 0.001, title: "P2" },
+      ],
+      transformers: [],
+      edges: [
+        {
+          id: "DIREITO-E1",
+          fromPoleId: "P1",
+          toPoleId: "P2",
+          conductors: [{ id: "c1", conductorName: "4x16mm²", quantity: 1 }],
+          lengthMeters: 20,
+        },
+      ],
+    };
+    const context = buildBtDxfContext({
+      btTopology: topology,
+      settings: INITIAL_APP_STATE.settings,
+      btNetworkScenario: "asis",
+      includeTopology: false,
+    });
+    // cqtComputationInputs.branches should contain the edge with lado=DIREITO
+    expect(context.cqtComputationInputs.branches).toHaveLength(1);
+    expect(context.cqtComputationInputs.branches[0].lado).toBe("DIREITO");
+  });
+
+  it("counts only clandestino ramais in clandestino totalClientsX (lines 72-78)", () => {
+    const topology: BtTopology = {
+      poles: [
+        {
+          id: "P1",
+          lat: 0,
+          lng: 0,
+          title: "P1",
+          ramais: [
+            { id: "r1", quantity: 3 }, // undefined ramalType → clandestino
+            { id: "r2", quantity: 5, ramalType: "5 CC" }, // non-clandestino
+          ],
+        },
+      ],
+      transformers: [],
+      edges: [],
+    };
+    const settings = {
+      ...INITIAL_APP_STATE.settings,
+      projectType: "clandestino" as const,
+    };
+    const context = buildBtDxfContext({
+      btTopology: topology,
+      settings,
+      btNetworkScenario: "asis",
+      includeTopology: true,
+    });
+    // In clandestino mode, only r1 (quantity=3, clandestino) counts
+    expect(context.cqtComputationInputs.dmdi.sumClientsX).toBe(3);
+  });
+
+  it("includes replacementFromConductors in topology edges (lines 227-233)", () => {
+    const topology: BtTopology = {
+      poles: [
+        { id: "P1", lat: 0, lng: 0, title: "P1" },
+        { id: "P2", lat: 0, lng: 0.001, title: "P2" },
+      ],
+      transformers: [],
+      edges: [
+        {
+          id: "E1",
+          fromPoleId: "P1",
+          toPoleId: "P2",
+          conductors: [{ id: "c1", conductorName: "4x16mm²", quantity: 1 }],
+          replacementFromConductors: [
+            { id: "rc1", conductorName: "4x10mm²", quantity: 2 },
+          ],
+          lengthMeters: 10,
+        },
+      ],
+    };
+    const context = buildBtDxfContext({
+      btTopology: topology,
+      settings: INITIAL_APP_STATE.settings,
+      btNetworkScenario: "asis",
+      includeTopology: true,
+    });
+    expect(context.topology!.edges[0].replacementFromConductors).toHaveLength(1);
+    expect(context.topology!.edges[0].replacementFromConductors[0].conductorName).toBe("4x10mm²");
+  });
+
+  it("includes poles with ramais in topology output (line 200)", () => {
+    const topology: BtTopology = {
+      poles: [
+        {
+          id: "P1",
+          lat: 0,
+          lng: 0,
+          title: "P1",
+          ramais: [{ id: "r1", quantity: 5, ramalType: "5 CC", notes: "  note " }],
+        },
+      ],
+      transformers: [],
+      edges: [],
+    };
+    const context = buildBtDxfContext({
+      btTopology: topology,
+      settings: INITIAL_APP_STATE.settings,
+      btNetworkScenario: "asis",
+      includeTopology: true,
+    });
+    expect(context.topology!.poles[0].ramais).toHaveLength(1);
+    expect(context.topology!.poles[0].ramais[0].quantity).toBe(5);
+    expect(context.topology!.poles[0].ramais[0].notes).toBe("note"); // trimmed
+  });
+});
