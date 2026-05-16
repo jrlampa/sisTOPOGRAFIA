@@ -54,65 +54,7 @@ import ibgeRoutes from './routes/ibgeRoutes.js';
 import indeRoutes from './routes/indeRoutes.js';
 import analysisRoutes from './routes/analysisRoutes.js';
 import constantsRoutes from './routes/constantsRoutes.js';
-<<<<<<< HEAD
 import catalogRoutes from './routes/catalogRoutes.js';
-=======
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
-import btHistoryRoutes from './routes/btHistoryRoutes.js';
-import btDerivedRoutes from './routes/btDerivedRoutes.js';
-import btCalculationRoutes from './routes/btCalculationRoutes.js';
-import btBulkImportRoutes from './routes/btBulkImportRoutes.js';
-import dgRoutes from './routes/dgRoutes.js';
-import jobRoutes from './routes/jobRoutes.js';
-import firestoreRoutes from './routes/firestoreRoutes.js';
-import dxfRoutes from './routes/dxfRoutes.js';
-import metricsRoutes from './routes/metricsRoutes.js';
-import featureFlagRoutes from './routes/featureFlagRoutes.js';
-import quotaRoutes from './routes/quotaRoutes.js';
-import costCenterRoutes from './routes/costCenterRoutes.js';
-import businessKpiRoutes from './routes/businessKpiRoutes.js';
-import adminRoutes from './routes/adminRoutes.js';
-import dataRetentionRoutes from './routes/dataRetentionRoutes.js';
-import capacityPlanningRoutes from './routes/capacityPlanningRoutes.js';
-import vulnManagementRoutes from './routes/vulnManagementRoutes.js';
-import infoClassificationRoutes from './routes/infoClassificationRoutes.js';
-import holdingRoutes from './routes/holdingRoutes.js';
-import finOpsRoutes from './routes/finOpsRoutes.js';
-import opsRoutes from './routes/opsRoutes.js';
-import storageRoutes from './routes/storageRoutes.js';
-import bdgdRoutes from './routes/bdgdRoutes.js';
-import lgpdRoutes from './routes/lgpdRoutes.js';
-import dossieRoutes from './routes/dossieRoutes.js';
-import lgpdRetencaoRoutes from './routes/lgpdRetencaoRoutes.js';
-import lgpdResidenciaRoutes from './routes/lgpdResidenciaRoutes.js';
-import sreRoutes from './routes/sreRoutes.js';
-import rastreabilidadeRoutes from './routes/rastreabilidadeRoutes.js';
-import licitacoesRoutes from './routes/licitacoesRoutes.js';
-import ollamaGovernanceRoutes from './routes/ollamaGovernanceRoutes.js';
-import releaseIntegrityRoutes from './routes/releaseIntegrityRoutes.js';
-import releaseCabRoutes from './routes/releaseCabRoutes.js';
-import serviceDeskRoutes from './routes/serviceDeskRoutes.js';
-import contractualSlaRoutes from './routes/contractualSlaRoutes.js';
-import rfpReadinessRoutes from './routes/rfpReadinessRoutes.js';
-import knowledgeBaseRoutes from './routes/knowledgeBaseRoutes.js';
-import changeManagementRoutes from './routes/changeManagementRoutes.js';
-import enterpriseReadinessRoutes from './routes/enterpriseReadinessRoutes.js';
-import supplyChainRoutes from './routes/supplyChainRoutes.js';
-import predictiveObservabilityRoutes from './routes/predictiveObservabilityRoutes.js';
-import predictiveMaintenanceRoutes from './routes/predictiveMaintenanceRoutes.js';
-import encryptionAtRestRoutes from './routes/encryptionAtRestRoutes.js';
-import auditColdStorageRoutes from './routes/auditColdStorageRoutes.js';
-import environmentPromotionRoutes from './routes/environmentPromotionRoutes.js';
-import maintenanceRoutes from './routes/maintenanceRoutes.js';
-import tenantAuditExportRoutes from './routes/tenantAuditExportRoutes.js';
-import zeroTrustRoutes from './routes/zeroTrustRoutes.js';
-import blueGreenRoutes from './routes/blueGreenRoutes.js';
-import pentestRoutes from './routes/pentestRoutes.js';
-import bcpDrRoutes from './routes/bcpDrRoutes.js';
-<<<<<<< HEAD
-import backupRoutes from './routes/backupRoutes.js';
-=======
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 import complianceRoutes from './routes/complianceRoutes.js';
 import identityLifecycleRoutes from './routes/identityLifecycleRoutes.js';
 import multiTenantIsolationRoutes from './routes/multiTenantIsolationRoutes.js';
@@ -465,68 +407,7 @@ app.use('/api/inde', indeRoutes);
 app.use('/api/analysis', analysisRoutes);
 app.use('/api/analyze', analysisRoutes); // Alias para compatibilidade com frontend que usa singular
 app.use('/api/constants', constantsRoutes);
-<<<<<<< HEAD
 app.use('/api/catalog', catalogRoutes);
-=======
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
-app.use('/api/bt-history', btHistoryRoutes);
-app.use('/api/bt-derived', btDerivedRoutes);
-app.use('/api/bt-calculation', btCalculationRoutes);
-app.use('/api/bt', btBulkImportRoutes);
-app.use('/api/dg', dgRoutes);
-app.use('/api/jobs', jobRoutes);
-app.use('/api/firestore', firestoreRoutes);
-app.use('/api/dxf', dxfRoutes);
-app.use('/api/metrics', requireMetricsToken, metricsRoutes);
-app.use('/metrics', requireMetricsToken, metricsRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/billing', billingRoutes);
-app.use('/api/feature-flags', featureFlagRoutes);
-app.use('/api/quota', quotaRoutes);
-app.use('/api/cost-center', costCenterRoutes);
-app.use('/api/business-kpis', businessKpiRoutes);
-app.use('/api/admin', requireAdminToken, adminRoutes);
-app.use('/api/data-retention', dataRetentionRoutes);
-app.use('/api/capacity-planning', capacityPlanningRoutes);
-app.use('/api/vuln-management', requireAdminToken, vulnManagementRoutes);
-app.use('/api/info-classification', requireAdminToken, infoClassificationRoutes);
-app.use('/api/holding', holdingRoutes);
-app.use('/api/finops', finOpsRoutes);
-app.use('/api/ops', opsRoutes);
-app.use('/api/storage', storageRoutes);
-app.use('/api/bdgd', bdgdRoutes);
-app.use('/api/lgpd', lgpdRoutes);
-app.use('/api/dossie', dossieRoutes);
-app.use('/api/lgpd-retencao', lgpdRetencaoRoutes);
-app.use('/api/lgpd-residencia', lgpdResidenciaRoutes);
-app.use('/api/sre', sreRoutes);
-app.use('/api/rastreabilidade', rastreabilidadeRoutes);
-app.use('/api/licitacoes', licitacoesRoutes);
-app.use('/api/ollama-governance', requireAdminToken, ollamaGovernanceRoutes);
-app.use('/api/release-integrity', requireAdminToken, releaseIntegrityRoutes);
-app.use('/api/release-cab', requireAdminToken, releaseCabRoutes);
-app.use('/api/change-management', requireAdminToken, changeManagementRoutes);
-app.use('/api/service-desk', requireAdminToken, serviceDeskRoutes);
-app.use('/api/contractual-sla', requireAdminToken, contractualSlaRoutes);
-app.use('/api/rfp-readiness', rfpReadinessRoutes);
-app.use('/api/knowledge-base', knowledgeBaseRoutes);
-app.use('/api/enterprise-readiness', enterpriseReadinessRoutes);
-app.use('/api/supply-chain', requireAdminToken, supplyChainRoutes);
-app.use('/api/predictive-observability', predictiveObservabilityRoutes);
-app.use('/api/maintenance/predictive', predictiveMaintenanceRoutes);
-app.use('/api/encryption-at-rest', requireAdminToken, encryptionAtRestRoutes);
-app.use('/api/audit-cold-storage', requireAdminToken, auditColdStorageRoutes);
-app.use('/api/environment-promotion', requireAdminToken, environmentPromotionRoutes);
-app.use('/api/tenant-audit-export', requireAdminToken, tenantAuditExportRoutes);
-app.use('/api/maintenance', requireAdminToken, maintenanceRoutes);
-app.use('/api/zero-trust', requireAdminToken, zeroTrustRoutes);
-app.use('/api/blue-green', requireAdminToken, blueGreenRoutes);
-app.use('/api/pentest', requireAdminToken, pentestRoutes);
-app.use('/api/bcp-dr', requireAdminToken, bcpDrRoutes);
-<<<<<<< HEAD
-app.use('/api/backup', requireAdminToken, backupRoutes);
-=======
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 app.use('/api/compliance', requireAdminToken, complianceRoutes);
 app.use('/api/identity-lifecycle', requireAdminToken, identityLifecycleRoutes);
 app.use('/api/multi-tenant-isolation', requireAdminToken, multiTenantIsolationRoutes);

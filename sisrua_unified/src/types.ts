@@ -12,12 +12,8 @@ export type {
   BtEditorModePayload, 
   MtNetworkState,
   AdminSettings,
-<<<<<<< HEAD
   ServiceTierForm,
   CanonicalNetworkTopology
-=======
-  ServiceTierForm
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
 };
 
 export interface GeoLocation {

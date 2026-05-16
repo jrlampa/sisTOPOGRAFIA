@@ -46,33 +46,7 @@ const TIER_DEFINITIONS: Record<SisRuaTier, TierDefinition> = {
     name: 'Community (Gratuito)',
     description: 'Análise básica e visualização de dados geoespaciais',
     priceMonthlyBRL: 0,
-<<<<<<< HEAD
     stripePriceId: process.env.STRIPE_PRICE_COMMUNITY,
-=======
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
-    features: {
-      maxAreaKm2: 2,
-      maxDxfPerMonth: 0,
-      maxTerrainProcessingPerMonth: 0,
-      maxDgRunsPerMonth: 0,
-      maxProjectsStorage: 5,
-      projectRetentionDays: 30,
-      hasApiAccess: false,
-      hasWebhooks: false,
-      supportLevel: 'community',
-      slaUptime: 0.95,
-    },
-  },
-  professional: {
-    id: 'professional',
-    name: 'Professional',
-    description: 'Exportação DXF, análise completa de topologia, 50km²',
-<<<<<<< HEAD
-    priceMonthlyBRL: 120,
-    stripePriceId: process.env.STRIPE_PRICE_PROFESSIONAL,
-=======
-    priceMonthlyBRL: 120, // Será sincronizado com Stripe
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
     features: {
       maxAreaKm2: 50,
       maxDxfPerMonth: 20,
@@ -90,12 +64,8 @@ const TIER_DEFINITIONS: Record<SisRuaTier, TierDefinition> = {
     id: 'enterprise',
     name: 'Enterprise',
     description: 'Acesso ilimitado, multi-tenant, suporte dedicado',
-<<<<<<< HEAD
     priceMonthlyBRL: 1500,
     stripePriceId: process.env.STRIPE_PRICE_ENTERPRISE,
-=======
-    priceMonthlyBRL: 1500, // Negotiated per customer
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
     features: {
       maxAreaKm2: -1, // Unlimited
       maxDxfPerMonth: -1,
@@ -132,11 +102,7 @@ class StripeService {
   constructor() {
     if (config.STRIPE_SECRET_KEY) {
       this.stripe = new Stripe(config.STRIPE_SECRET_KEY, {
-<<<<<<< HEAD
         apiVersion: '2023-10-16' as any, // Versão estável confirmada (Roadmap #116)
-=======
-        apiVersion: '2025-02-24-preview' as any,
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
       });
       logger.info('StripeService initialized with API key');
     } else {
@@ -147,7 +113,6 @@ class StripeService {
   }
 
   /**
-<<<<<<< HEAD
    * Valida a assinatura de um webhook recebido da Stripe
    */
   constructEvent(payload: string | Buffer, sig: string, secret: string): Stripe.Event {
@@ -156,101 +121,12 @@ class StripeService {
   }
 
   /**
-=======
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
-   * ─────────────────────────────────────────────────────────────────────────
-   * PARTE 1: Criação de Produtos Stripe (Bootstrapping)
-   * ─────────────────────────────────────────────────────────────────────────
-   */
-
-  /**
-   * Cria os 3 produtos sisRUA na Stripe (executar uma única vez)
-   * Atualiza as definições locais com IDs reais da Stripe
-   */
-  async bootstrapSisRuaProducts(): Promise<
-    Record<SisRuaTier, { productId: string; priceId?: string }>
-  > {
-    const stripe = this.getStripe();
-
-    const results = {} as Record<SisRuaTier, { productId: string; priceId?: string }>;
-
-    for (const [tierKey, tierDef] of Object.entries(TIER_DEFINITIONS)) {
-      const tier = tierKey as SisRuaTier;
-
-      try {
-        logger.info(`Criando produto Stripe para tier: ${tier}`, { name: tierDef.name });
-
-        // 1. Verificar se já existe (por metadados)
-        const existingProducts = await stripe.products.search({
-          query: `metadata['sisrua_tier']:'${tier}'`,
-          limit: 100,
-        });
-
-        if (existingProducts.data.length > 0) {
-          const existing = existingProducts.data[0];
-          logger.info(`Produto ${tier} já existe na Stripe`, { productId: existing.id });
-          results[tier] = { productId: existing.id };
-
-<<<<<<< HEAD
-          // Persistência em memória (Fix Item 2)
-          TIER_DEFINITIONS[tier].stripeProductId = existing.id;
-
-=======
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
           // Se não for Community, buscar preço
           if (tier !== 'community') {
             const prices = await stripe.prices.list({ product: existing.id, limit: 1 });
             if (prices.data.length > 0) {
               results[tier].priceId = prices.data[0].id;
-<<<<<<< HEAD
               TIER_DEFINITIONS[tier].stripePriceId = prices.data[0].id;
-=======
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
-            }
-          }
-          continue;
-        }
-
-        // 2. Criar novo produto
-        const product = await stripe.products.create({
-          name: tierDef.name,
-          description: tierDef.description,
-          metadata: {
-            sisrua_tier: tier,
-            system: 'sisRUA',
-            max_area_km2: String(tierDef.features.maxAreaKm2),
-            max_dxf_per_month: String(tierDef.features.maxDxfPerMonth),
-          },
-          active: true,
-        });
-
-        results[tier] = { productId: product.id };
-        logger.info(`Produto ${tier} criado na Stripe`, { productId: product.id });
-
-        // 3. Criar preço (exceto Community que é gratuito)
-        if (tier !== 'community') {
-          const price = await stripe.prices.create({
-            product: product.id,
-            unit_amount: Math.round(tierDef.priceMonthlyBRL * 100), // Centavos
-            currency: 'brl',
-            recurring: {
-              interval: 'month',
-              usage_type: 'licensed',
-            },
-            metadata: {
-              sisrua_tier: tier,
-            },
-          });
-
-          results[tier].priceId = price.id;
-<<<<<<< HEAD
-          
-          // Persistência em memória (Fix Item 2)
-          TIER_DEFINITIONS[tier].stripeProductId = product.id;
-          TIER_DEFINITIONS[tier].stripePriceId = price.id;
-
-=======
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
           logger.info(`Preço para ${tier} criado`, {
             priceId: price.id,
             amountBRL: tierDef.priceMonthlyBRL,

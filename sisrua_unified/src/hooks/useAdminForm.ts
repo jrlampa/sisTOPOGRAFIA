@@ -32,7 +32,6 @@ export function useAdminForm(initialValues: AdminSettings) {
   const validateField = useCallback(
     (field: string, value: unknown) => {
       try {
-<<<<<<< HEAD
         // Validar campo individual ou objeto de tier
         if (field.startsWith("serviceTiers.")) {
           const parts = field.split(".");
@@ -46,12 +45,6 @@ export function useAdminForm(initialValues: AdminSettings) {
             const tierData = { ...form.serviceTiers[index], [subField]: value };
             ServiceTierSchema.parse(tierData);
           }
-=======
-        // Validar campo individual
-        if (field.startsWith('serviceTiers.')) {
-          const index = parseInt(field.split('.')[1]);
-          ServiceTierSchema.parse(form.serviceTiers[index]);
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
         } else {
           // Validar todo o form
           SettingsSchema.parse({ ...form, [field]: value });
@@ -60,7 +53,6 @@ export function useAdminForm(initialValues: AdminSettings) {
         // Remover erro se validação passou
         setErrors(prev => {
           const next = { ...prev };
-<<<<<<< HEAD
           // Se for objeto, remover todos os erros filhos
           if (field.split('.').length === 2) {
              Object.keys(next).forEach(k => {
@@ -69,15 +61,11 @@ export function useAdminForm(initialValues: AdminSettings) {
           } else {
              delete next[field];
           }
-=======
-          delete next[field];
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
           return next;
         });
         return true;
       } catch (error) {
         if (error instanceof z.ZodError) {
-<<<<<<< HEAD
           if (field.split('.').length === 2) {
             // Mapear erros do objeto para caminhos completos
             const newErrors: Record<string, string> = {};
@@ -90,10 +78,6 @@ export function useAdminForm(initialValues: AdminSettings) {
             const message = error.issues[0]?.message || 'Campo inválido';
             setErrors(prev => ({ ...prev, [field]: message }));
           }
-=======
-          const message = error.issues[0]?.message || 'Campo inválido';
-          setErrors(prev => ({ ...prev, [field]: message }));
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
         }
         return false;
       }
@@ -126,40 +110,17 @@ export function useAdminForm(initialValues: AdminSettings) {
         return newForm as AdminSettings;
       });
 
-<<<<<<< HEAD
       // Validar sempre para feedback imediato (ou após primeiro toque)
       validateField(field, value);
     },
     [validateField]
-=======
-      // Validar apenas se campo foi tocado
-      if (touched[field]) {
-        validateField(field, value);
-      }
-    },
-    [touched, validateField]
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
   );
 
   const handleBlur = useCallback(
     (field: string) => {
       setTouched(prev => ({ ...prev, [field]: true }));
-<<<<<<< HEAD
     },
     []
-=======
-      const fieldValue = field
-        .split('.')
-        .reduce<unknown>((obj, key) => {
-          if (obj && typeof obj === 'object') {
-            return (obj as Record<string, unknown>)[key];
-          }
-          return undefined;
-        }, form as unknown);
-      validateField(field, fieldValue);
-    },
-    [form, validateField]
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
   );
 
   const handleSubmit = useCallback(

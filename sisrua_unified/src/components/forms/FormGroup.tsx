@@ -27,15 +27,8 @@ export function FormGroup({
       </label>
 
       {/* Clonar children e passar id */}
-<<<<<<< HEAD
       {React.isValidElement(children)
         ? React.cloneElement(children as React.ReactElement, { id } as any)
-=======
-      {children && typeof children === 'object' && 'type' in children
-        ? typeof (children as any).type === 'function' || typeof (children as any).type === 'string'
-          ? React.cloneElement(children as React.ReactElement, { id } as any)
-          : children
->>>>>>> 7065075 (chore: stabilize audit gates, remediate security deps, update RAG/MEMORY + CAC)
         : children}
 
       {hint && !error && <p className="text-xs text-slate-500 dark:text-slate-400">{hint}</p>}
