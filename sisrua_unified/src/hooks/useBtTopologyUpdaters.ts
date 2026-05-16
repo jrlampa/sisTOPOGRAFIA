@@ -1,5 +1,16 @@
 import { useCallback } from "react";
-import { BtTopology } from "../types";
+import {
+  BtTopology,
+  BtPoleNode,
+  BtTransformer,
+  BtEdge,
+  BtPoleRamalEntry,
+  BtPoleSpec,
+  BtPoleConditionStatus,
+  BtPoleBtStructures,
+  BtTransformerReading,
+  BtRamalEntry,
+} from "../types";
 
 interface UseBtTopologyUpdatersParams {
   btTopology: BtTopology;
@@ -7,7 +18,7 @@ interface UseBtTopologyUpdatersParams {
 }
 
 export function useBtTopologyUpdaters({ btTopology, onTopologyChange }: UseBtTopologyUpdatersParams) {
-  const updatePole = useCallback((poleId: string, updater: (pole: any) => any) => {
+  const updatePole = useCallback((poleId: string, updater: (pole: BtPoleNode) => BtPoleNode) => {
     onTopologyChange({
       ...btTopology,
       poles: btTopology.poles.map((pole) =>
@@ -16,7 +27,7 @@ export function useBtTopologyUpdaters({ btTopology, onTopologyChange }: UseBtTop
     });
   }, [btTopology, onTopologyChange]);
 
-  const updateTransformer = useCallback((id: string, updater: (t: any) => any) => {
+  const updateTransformer = useCallback((id: string, updater: (t: BtTransformer) => BtTransformer) => {
     onTopologyChange({
       ...btTopology,
       transformers: btTopology.transformers.map((t) =>
@@ -25,30 +36,30 @@ export function useBtTopologyUpdaters({ btTopology, onTopologyChange }: UseBtTop
     });
   }, [btTopology, onTopologyChange]);
 
-  const updateEdge = useCallback((id: string, updater: (e: any) => any) => {
+  const updateEdge = useCallback((id: string, updater: (e: BtEdge) => BtEdge) => {
     onTopologyChange({
       ...btTopology,
       edges: btTopology.edges.map((e) => (e.id === id ? updater(e) : e)),
     });
   }, [btTopology, onTopologyChange]);
 
-  const updatePoleRamais = useCallback((poleId: string, ramais: any) => {
+  const updatePoleRamais = useCallback((poleId: string, ramais: BtPoleRamalEntry[]) => {
     updatePole(poleId, (pole) => ({ ...pole, ramais }));
   }, [updatePole]);
 
-  const updatePoleSpec = useCallback((poleId: string, spec: any) => {
+  const updatePoleSpec = useCallback((poleId: string, spec: BtPoleSpec) => {
     updatePole(poleId, (pole) => ({ ...pole, poleSpec: spec }));
   }, [updatePole]);
 
-  const updatePoleConditionStatus = useCallback((poleId: string, status: any) => {
+  const updatePoleConditionStatus = useCallback((poleId: string, status: BtPoleConditionStatus) => {
     updatePole(poleId, (pole) => ({ ...pole, conditionStatus: status }));
   }, [updatePole]);
 
-  const updatePoleBtStructures = useCallback((poleId: string, structures: any) => {
+  const updatePoleBtStructures = useCallback((poleId: string, structures: BtPoleBtStructures) => {
     updatePole(poleId, (pole) => ({ ...pole, btStructures: structures }));
   }, [updatePole]);
 
-  const updatePoleGeneralNotes = useCallback((poleId: string, notes: any) => {
+  const updatePoleGeneralNotes = useCallback((poleId: string, notes: string) => {
     updatePole(poleId, (pole) => ({ ...pole, generalNotes: notes }));
   }, [updatePole]);
 
@@ -56,7 +67,7 @@ export function useBtTopologyUpdaters({ btTopology, onTopologyChange }: UseBtTop
     updateTransformer(id, (transformer) => ({ ...transformer, verified }));
   }, [updateTransformer]);
 
-  const updateTransformerReadings = useCallback((id: string, readings: any) => {
+  const updateTransformerReadings = useCallback((id: string, readings: BtTransformerReading[]) => {
     updateTransformer(id, (transformer) => ({ ...transformer, readings }));
   }, [updateTransformer]);
 
@@ -68,15 +79,15 @@ export function useBtTopologyUpdaters({ btTopology, onTopologyChange }: UseBtTop
     updateEdge(id, (edge) => ({ ...edge, verified }));
   }, [updateEdge]);
 
-  const updateEdgeConductors = useCallback((id: string, conductors: any) => {
+  const updateEdgeConductors = useCallback((id: string, conductors: BtRamalEntry[]) => {
     updateEdge(id, (edge) => ({ ...edge, conductors }));
   }, [updateEdge]);
 
-  const updateEdgeMtConductors = useCallback((id: string, conductors: any) => {
+  const updateEdgeMtConductors = useCallback((id: string, conductors: BtRamalEntry[]) => {
     updateEdge(id, (edge) => ({ ...edge, mtConductors: conductors }));
   }, [updateEdge]);
 
-  const updateEdgeReplacementFromConductors = useCallback((id: string, conductors: any) => {
+  const updateEdgeReplacementFromConductors = useCallback((id: string, conductors: BtRamalEntry[]) => {
     updateEdge(id, (edge) => ({ ...edge, replacementFromConductors: conductors }));
   }, [updateEdge]);
 

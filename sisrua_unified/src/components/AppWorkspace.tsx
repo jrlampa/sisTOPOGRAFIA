@@ -24,8 +24,13 @@ import type {
   GlobalState, 
   BtTopology, 
   MtTopology, 
-  CanonicalNetworkTopology 
+  CanonicalNetworkTopology,
+  SelectionMode,
+  GeoLocation,
+  BtPoleNode,
+  BtTransformer,
 } from '../types';
+import type { ToastType } from './Toast';
 import type { BtNetworkScenarioPayload, BtEditorModePayload } from '../types/index';
 import type { HistoryEntry } from '../hooks/useUndoRedo';
 import type { Toast as ToastItem } from '../hooks/useToast';
@@ -72,11 +77,11 @@ export interface AppWorkspaceProps {
   btHistoryCqtScenarioFilter: string;
   setBtHistoryCqtScenarioFilter: (v: string) => void;
   updateSettings: (s: Partial<AppSettings>) => void;
-  selectionMode: any;
-  handleSelectionModeChange: (m: any) => void;
+  selectionMode: SelectionMode;
+  handleSelectionModeChange: (m: SelectionMode) => void;
   radius: number;
   handleRadiusChange: (r: number) => void;
-  polygon: any[];
+  polygon: GeoLocation[];
   handleClearPolygon: () => void;
   osmData: any;
   handleDownloadDxf: () => Promise<void>;
@@ -92,11 +97,11 @@ export interface AppWorkspaceProps {
   elevationProfileData: any[];
   clearProfile: () => void;
   btModalStackProps: any;
-  showToast: (m: string, t: any) => void;
+  showToast: (m: string, t: ToastType) => void;
   isBimInspectorOpen: boolean;
   setIsBimInspectorOpen: (o: boolean) => void;
-  inspectedPole: any;
-  inspectedTransformer: any;
+  inspectedPole: BtPoleNode | null;
+  inspectedTransformer: BtTransformer | null;
   inspectedAccumulatedData: any;
   btTopology: BtTopology;
   canonicalTopology?: CanonicalNetworkTopology;

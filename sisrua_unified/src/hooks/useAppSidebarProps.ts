@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { AppSettings, GeoLocation, BtTopology, MtTopology } from "../types";
+import { AppSettings, GeoLocation, BtTopology, MtTopology, SelectionMode, BtNetworkScenarioPayload, BtEditorModePayload } from "../types";
+import type { ToastType } from "../components/Toast";
 import {
   BtPoleAccumulatedDemand,
   BtDerivedSummary,
@@ -15,17 +16,17 @@ interface SidebarPropsParams {
   isSearching: boolean;
   handleSearch: (e: React.FormEvent) => Promise<void>;
   selectionMode: string;
-  handleSelectionModeChange: (m: any) => void;
+  handleSelectionModeChange: (m: SelectionMode) => void;
   radius: number;
   handleRadiusChange: (r: number) => void;
   saveSnapshot: () => void;
   handleFetchAndAnalyze: () => void;
   isProcessing: boolean;
   isPolygonValid: boolean;
-  setBtNetworkScenario: (s: any) => void;
-  setBtEditorMode: (m: any) => void;
-  btNetworkScenario: any;
-  btEditorMode: any;
+  setBtNetworkScenario: (s: BtNetworkScenarioPayload | null) => void;
+  setBtEditorMode: (m: BtEditorModePayload) => void;
+  btNetworkScenario: BtNetworkScenarioPayload | null;
+  btEditorMode: BtEditorModePayload;
   btTopology: BtTopology;
   dgTopologySource: any;
   btAccumulatedByPole: BtPoleAccumulatedDemand[];
@@ -77,11 +78,11 @@ interface SidebarPropsParams {
   stats: any;
   analysisText: string;
   terrainData: any;
-  error: any;
+  error: string | null;
   handleDownloadDxf: () => Promise<void>;
   handleDownloadCoordinatesCsv: () => void;
   isDownloading: boolean;
-  showToast: (msg: string, type: any) => void;
+  showToast: (msg: string, type: ToastType) => void;
   isCalculating: boolean;
 }
 

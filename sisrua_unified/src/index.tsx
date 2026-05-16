@@ -4,6 +4,7 @@ import "./index.css";
 import "./i18n"; // Import i18n configuration
 import AppRouter from "./router";
 import { AuthProvider } from "./auth/AuthProvider";
+import { FeatureFlagProvider } from "./contexts/FeatureFlagContext";
 import { initAnalytics } from "./utils/analytics";
 import { resetChunkReloadFlag } from "./utils/lazyWithRetry";
 
@@ -33,8 +34,6 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
-
-import { FeatureFlagProvider } from "./contexts/FeatureFlagContext";
 
 root.render(
   <React.StrictMode>

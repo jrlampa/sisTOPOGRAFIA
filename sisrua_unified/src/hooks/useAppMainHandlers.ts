@@ -1,12 +1,12 @@
 import React from "react";
-import { BtEditorMode, BtNetworkScenario } from "../types";
+import { BtTopology, BtPoleNode } from "../types";
 
 interface Params {
   setAppState: any;
-  btTopology: any;
-  setSelectedPoleIds: any;
-  setSelectedPoleId: any;
-  setIsCommandPaletteOpen: any;
+  btTopology: BtTopology;
+  setSelectedPoleIds: React.Dispatch<React.SetStateAction<string[]>>;
+  setSelectedPoleId: React.Dispatch<React.SetStateAction<string>>;
+  setIsCommandPaletteOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function useAppMainHandlers({
@@ -16,39 +16,11 @@ export function useAppMainHandlers({
   setSelectedPoleId,
   setIsCommandPaletteOpen,
 }: Params) {
-  const setBtEditorMode = React.useCallback(
-    (mode: BtEditorMode) => {
-      setAppState(
-        (prev: any) => ({
-          ...prev,
-          settings: { ...prev.settings, btEditorMode: mode },
-        }),
-        true,
-        `Modo Editor: ${mode}`,
-      );
-    },
-    [setAppState],
-  );
-
-  const setBtNetworkScenario = React.useCallback(
-    (scenario: BtNetworkScenario) => {
-      setAppState(
-        (prev: any) => ({
-          ...prev,
-          settings: { ...prev.settings, btNetworkScenario: scenario },
-        }),
-        true,
-        `Cenário: ${scenario}`,
-      );
-    },
-    [setAppState],
-  );
-
   const handleBoxSelect = React.useCallback(
     (bounds: L.LatLngBounds) => {
       const selectedIds = btTopology.poles
-        .filter((pole: any) => bounds.contains([pole.lat, pole.lng]))
-        .map((pole: any) => pole.id);
+        .filter((pole: BtPoleNode) => bounds.contains([pole.lat, pole.lng]))
+        .map((pole: BtPoleNode) => pole.id);
       setSelectedPoleIds(selectedIds);
       if (selectedIds.length === 1) {
         setSelectedPoleId(selectedIds[0]);
@@ -64,7 +36,7 @@ export function useAppMainHandlers({
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
-        setIsCommandPaletteOpen((prev: any) => !prev);
+        setIsCommandPaletteOpen((prev: boolean) => !prev);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -72,8 +44,6 @@ export function useAppMainHandlers({
   }, [setIsCommandPaletteOpen]);
 
   return {
-    setBtEditorMode,
-    setBtNetworkScenario,
     handleBoxSelect,
   };
 }

@@ -29,7 +29,7 @@ export function useAppHooks(projectId?: string) {
 
   const topologySources = useAppTopologySources({ 
     appState, 
-    btTopology: appState.btTopology ?? { poles: [], edges: [] } 
+    btTopology: appState.btTopology ?? { poles: [], transformers: [], edges: [] } 
   });
 
   const derivedState = useBtDerivedState({ appState, setAppState });

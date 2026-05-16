@@ -109,7 +109,7 @@ function App() {
         }
       });
     }
-  }, [projeto_id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [projeto_id, setAppState, showToast]);
 
   // ─── Domain Hooks ────────────────────────────────────────────────────────
   const electricalAudit = useAppElectricalAudit({ settings, showToast });
@@ -153,26 +153,23 @@ function App() {
   const { commandPaletteActions } = useAppCommandPalette({
     locale: settings.locale,
     handleSaveProject: saveSnapshot,
-    handleLoadProject: () => {},
+    handleLoadProject: () => { showToast('Carregamento de projeto não disponível.', 'info'); },
     handleDownloadDxf,
     handleDownloadGeoJSON,
     handleDownloadCoordinatesCsv,
     handleResetBtTopology,
-    exportBtHistoryJson: () => {},
-    exportBtHistoryCsv: () => {},
+    exportBtHistoryJson: () => { showToast('Exportação de histórico não disponível.', 'info'); },
+    exportBtHistoryCsv: () => { showToast('Exportação de histórico não disponível.', 'info'); },
     undo,
     redo,
     setIsHelpOpen,
     openSettings,
     isFocusModeManual,
     setIsFocusModeManual,
-    handleRunDgOptimization: () => {},
-    handleTriggerTelescopicAnalysis: () => {},
-    setBtNetworkScenario: (s: BtNetworkScenarioPayload | null) =>
-      setAppState(p => ({ ...p, btNetworkScenario: s }), true),
-    setBtEditorMode: (m: BtEditorModePayload) =>
-      setAppState(p => ({ ...p, btEditorMode: m }), true),
-    setSelectedPoleId,
+    handleRunDgOptimization: () => { showToast('Otimização DG não disponível.', 'info'); },
+    handleTriggerTelescopicAnalysis: () => { showToast('Análise telescópica não disponível.', 'info'); },
+    setBtNetworkScenario,
+    setBtEditorMode,
     setIsCommandPaletteOpen,
   });
 
@@ -192,10 +189,8 @@ function App() {
     handleFetchAndAnalyze: analysisWorkflow.handleFetchAndAnalyze,
     isProcessing: osmEngine.isProcessing,
     isPolygonValid,
-    setBtNetworkScenario: (s: BtNetworkScenarioPayload | null) =>
-      setAppState(p => ({ ...p, btNetworkScenario: s }), true),
-    setBtEditorMode: (m: BtEditorModePayload) =>
-      setAppState(p => ({ ...p, btEditorMode: m }), true),
+    setBtNetworkScenario,
+    setBtEditorMode,
     btNetworkScenario,
     btEditorMode,
     btTopology,
@@ -206,10 +201,10 @@ function App() {
     btTransformerDebugById: derivedState.btTransformerDebugById ?? {},
     btPoleCoordinateInput: '',
     setBtPoleCoordinateInput: () => {},
-    handleBtInsertPoleByCoordinates: () => {},
+    handleBtInsertPoleByCoordinates: () => { showToast('Inserção por coordenadas não disponível.', 'info'); },
     pendingNormalClassificationPoles: [],
     handleResetBtTopology,
-    updateBtTopology: (t: any) => setAppState(p => ({ ...p, btTopology: t }), true),
+    updateBtTopology,
     updateProjectType: (p: any) =>
       setAppState(prev => ({ ...prev, settings: { ...prev.settings, projectType: p } }), true),
     updateClandestinoAreaM2: (a: number) =>
@@ -217,8 +212,8 @@ function App() {
     handleBtSelectedPoleChange: () => {},
     handleBtSelectedTransformerChange: () => {},
     handleBtSelectedEdgeChange: () => {},
-    handleBtRenamePole: () => {},
-    handleBtRenameTransformer: () => {},
+    handleBtRenamePole: () => { showToast('Renomeação de poste não disponível.', 'info'); },
+    handleBtRenameTransformer: () => { showToast('Renomeação de transformador não disponível.', 'info'); },
     handleBtSetEdgeChangeFlag: () => {},
     handleBtSetPoleChangeFlag: () => {},
     handleBtTogglePoleCircuitBreak: () => {},
@@ -226,15 +221,15 @@ function App() {
     btClandestinoDisplay: derivedState.btClandestinoDisplay,
     btTransformersDerived: derivedState.btTransformersDerived ?? [],
     requestCriticalConfirmation: () => {},
-    handleTriggerTelescopicAnalysis: () => {},
+    handleTriggerTelescopicAnalysis: () => { showToast('Análise telescópica não disponível.', 'info'); },
     isDgOptimizing: false,
     dgResult: null,
     dgError: null,
     dgActiveAltIndex: 0,
-    handleRunDgOptimization: () => {},
-    handleAcceptDgAll: () => {},
-    handleAcceptDgTrafoOnly: () => {},
-    handleDiscardDgResult: () => {},
+    handleRunDgOptimization: () => { showToast('Otimização DG não disponível.', 'info'); },
+    handleAcceptDgAll: () => { showToast('Aceitação de resultados DG não disponível.', 'info'); },
+    handleAcceptDgTrafoOnly: () => { showToast('Aceitação de resultados DG não disponível.', 'info'); },
+    handleDiscardDgResult: () => { showToast('Descarte de resultados DG não disponível.', 'info'); },
     setDgActiveAltIndex: () => {},
     isPreviewActive: false,
     setIsPreviewActive: () => {},
