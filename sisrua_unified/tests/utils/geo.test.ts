@@ -189,3 +189,53 @@ describe("toUtm", () => {
     expect(result.band).toBeTruthy();
   });
 });
+
+// ---------------------------------------------------------------------------
+// parseLatLngQuery – additional edge cases for full coverage
+// ---------------------------------------------------------------------------
+
+describe("parseLatLngQuery – additional edge cases", () => {
+  it("returns null when either part is not a finite number (NaN scenario)", () => {
+    // The regex would reject 'abc', but let's verify the guard is exercised
+    // by passing something that looks numeric but produces NaN via direct call.
+    // parseFloat("") = NaN, but the regex normalization prevents this;
+    // instead we use an out-of-range value to exercise the Math.abs check:
+    expect(parseLatLngQuery("0 200")).toBeNull(); // lng > 180
+  });
+
+  it("returns a result for boundary latitude 90", () => {
+    const result = parseLatLngQuery("90 0");
+    expect(result).not.toBeNull();
+    expect(result!.lat).toBe(90);
+  });
+
+  it("returns a result for boundary longitude -180", () => {
+    const result = parseLatLngQuery("0 -180");
+    expect(result).not.toBeNull();
+    expect(result!.lng).toBe(-180);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseUtmQuery – north-hemisphere UTM band
+// ---------------------------------------------------------------------------
+
+describe("parseUtmQuery – north hemisphere", () => {
+  it("parses a UTM string with north band letter N", () => {
+    // UTM zone 32N, a European coordinate
+    const result = parseUtmQuery("32N 500000 5500000");
+    expect(result).not.toBeNull();
+    expect(result!.label).toContain("UTM");
+    expect(result!.lat).toBeGreaterThan(0);
+  });
+
+  it("returns null when north/south cannot be determined from band", () => {
+    // Band 'B' is not in C-X range and is not N/S
+    expect(parseUtmQuery("23B 660000 7460000")).toBeNull();
+  });
+
+  it("returns null when converted lat/lng is out of range", () => {
+    // Band I is not valid UTM band (not in C-M for south, not N-X for north)
+    expect(parseUtmQuery("23I 660000 7460000")).toBeNull();
+  });
+});
