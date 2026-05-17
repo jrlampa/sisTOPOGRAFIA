@@ -141,10 +141,10 @@ describe("findTransformerConflictsWithoutSectioning", () => {
     expect(conflicts[0].transformerIds).toHaveLength(3);
   });
 
-  it("handles triangle topology correctly (line 81 – visited.has(current))", () => {
+  it("handles triangle topology correctly without revisiting already-processed poles", () => {
     // Triangle: P1-P2, P2-P3, P1-P3
     // When DFS processes P1, pushes P2 and P3.
-    // When processing P2, pushes P3 again → visited.has(P3) → continue (line 81)
+    // When processing P2, pushes P3 again → visited.has(P3) → continue
     const topology: BtTopology = {
       poles: [makePole("P1"), makePole("P2"), makePole("P3")],
       transformers: [makeTransformer("T1", "P1"), makeTransformer("T2", "P2")],

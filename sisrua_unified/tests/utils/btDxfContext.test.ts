@@ -184,7 +184,7 @@ describe("btDxfContext", () => {
 });
 
 describe("btDxfContext – additional coverage", () => {
-  it("returns 'DIREITO' for pole/edge labeled with DIR prefix (line 31)", () => {
+  it("returns 'DIREITO' for pole/edge labeled with DIR prefix", () => {
     // Edge ID with "DIREITO" label causes getSideLabel to return "DIREITO"
     const topology: BtTopology = {
       poles: [
@@ -213,7 +213,7 @@ describe("btDxfContext – additional coverage", () => {
     expect(context.cqtComputationInputs.branches[0].lado).toBe("DIREITO");
   });
 
-  it("counts only clandestino ramais in clandestino totalClientsX (lines 72-78)", () => {
+  it("counts only clandestino ramais in clandestino totalClientsX", () => {
     const topology: BtTopology = {
       poles: [
         {
@@ -244,7 +244,7 @@ describe("btDxfContext – additional coverage", () => {
     expect(context.cqtComputationInputs.dmdi.sumClientsX).toBe(3);
   });
 
-  it("includes replacementFromConductors in topology edges (lines 227-233)", () => {
+  it("includes replacementFromConductors in topology edges", () => {
     const topology: BtTopology = {
       poles: [
         { id: "P1", lat: 0, lng: 0, title: "P1" },
@@ -274,7 +274,7 @@ describe("btDxfContext – additional coverage", () => {
     expect(context.topology!.edges[0].replacementFromConductors[0].conductorName).toBe("4x10mm²");
   });
 
-  it("includes poles with ramais in topology output (line 200)", () => {
+  it("includes poles with ramais in topology output", () => {
     const topology: BtTopology = {
       poles: [
         {

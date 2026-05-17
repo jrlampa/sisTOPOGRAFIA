@@ -104,17 +104,23 @@ describe('kmlParser', () => {
     });
 
     it('should throw error for KML with parsererror', async () => {
-        // Malformed XML that JSDOM's DOMParser will mark as parsererror
+        const originalDomParser = globalThis.DOMParser;
         const malformedContent = '<?xml version="1.0"?><root><unclosed>';
         const file = new File([malformedContent], 'broken.kml');
         (file as any).content = malformedContent;
 
-        // JSDOM may or may not produce parsererror for this; we accept either throw or no-throw
-        // since DOMParser behavior varies. We just ensure no unhandled rejection.
+        vi.stubGlobal('DOMParser', class {
+            parseFromString() {
+                return {
+                    getElementsByTagName: (tag: string) => (tag === 'parsererror' ? [{}] : [])
+                } as any;
+            }
+        });
+
         try {
-            await parseKml(file);
-        } catch (e) {
-            expect(e).toBeInstanceOf(Error);
+            await expect(parseKml(file)).rejects.toThrow('Invalid KML content.');
+        } finally {
+            vi.stubGlobal('DOMParser', originalDomParser);
         }
     });
 

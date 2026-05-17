@@ -28,9 +28,8 @@ const isDevelopment = () => {
  * Sanitizar dados para produção.
  * Remove: stack traces, paths do sistema, tokens, IPs internos.
  * Item 22: Nunca expor stack traces em produção.
- * @internal exported for testing
  */
-export function sanitizeDataForProduction(data: unknown): unknown {
+function sanitizeDataForProduction(data: unknown): unknown {
   if (!data) return data;
   
   if (typeof data === 'string') {
@@ -76,6 +75,10 @@ export function sanitizeDataForProduction(data: unknown): unknown {
   
   return data;
 }
+
+export const __testables__ = {
+  sanitizeDataForProduction,
+};
 
 class Logger {
   private static logs: LogEntry[] = [];

@@ -159,8 +159,8 @@ describe("calculateAccumulatedDemandKva", () => {
 // ---------------------------------------------------------------------------
 
 describe("calculateAccumulatedDemandByPole – additional weighted-ramal branches", () => {
-  it("skips clandestino ramais in weighted demand calc when projectType is 'ramais' (line 321)", () => {
-    // In ramais mode, isClandestino=true → skip the ramal in weighted calculation (line 321)
+  it("ignores clandestino ramais in weighted demand calc when projectType is 'ramais'", () => {
+    // In ramais mode, isClandestino=true → skip the ramal in weighted calculation
     // BUT localClients still counts the quantity (getPoleClientsByProjectType sums all)
     const topology: BtTopology = {
       poles: [
@@ -186,8 +186,6 @@ describe("calculateAccumulatedDemandByPole – additional weighted-ramal branche
       ],
       edges: [],
     };
-    // Should NOT throw; the clandestino ramal is skipped in weighted demand calc
-    expect(() => calculateAccumulatedDemandByPole(topology, "ramais", 0)).not.toThrow();
     const results = calculateAccumulatedDemandByPole(topology, "ramais", 0);
     const p1 = results.find((r) => r.poleId === "P1");
     expect(p1).toBeDefined();
@@ -195,7 +193,7 @@ describe("calculateAccumulatedDemandByPole – additional weighted-ramal branche
     expect(p1?.localClients).toBe(5);
   });
 
-  it("skips non-clandestino ramals in clandestino mode (line 321, other branch)", () => {
+  it("ignores non-clandestino ramals in clandestino mode", () => {
     const topology: BtTopology = {
       poles: [
         {
@@ -227,7 +225,7 @@ describe("calculateAccumulatedDemandByPole – additional weighted-ramal branche
     expect(p1?.localClients).toBe(0); // "5 CC" ramal skipped in clandestino mode
   });
 
-  it("skips ramals with quantity <= 0 (line 326)", () => {
+  it("ignores ramals with quantity <= 0 in weighted demand calculation", () => {
     const topology: BtTopology = {
       poles: [
         {
@@ -258,13 +256,13 @@ describe("calculateAccumulatedDemandByPole – additional weighted-ramal branche
     const results = calculateAccumulatedDemandByPole(topology, "ramais", 0);
     const p1 = results.find((r) => r.poleId === "P1");
     // localClients = sum of ALL ramal quantities (0 + -1 + 3 = 2)
-    // The weighted demand calculation skips qty<=0 (line 326), but localClients uses sum
+    // The weighted demand calculation skips qty<=0, but localClients uses sum
     expect(p1?.localClients).toBe(2);
     // Function should not throw
     expect(p1).toBeDefined();
   });
 
-  it("uses hasUnknownRamalWeight=true when ramalType is unrecognised (line 331)", () => {
+  it("falls back safely when ramalType is unrecognised", () => {
     const topology: BtTopology = {
       poles: [
         {
@@ -290,10 +288,9 @@ describe("calculateAccumulatedDemandByPole – additional weighted-ramal branche
       ],
       edges: [],
     };
-    // No throw expected; hasUnknownRamalWeight=true disables workbook demand
-    expect(() =>
-      calculateAccumulatedDemandByPole(topology, "ramais", 0),
-    ).not.toThrow();
+    const results = calculateAccumulatedDemandByPole(topology, "ramais", 0);
+    expect(results).toHaveLength(1);
+    expect(results[0].localClients).toBe(5);
   });
 });
 
@@ -341,13 +338,13 @@ describe("calculateBtSummary – additional paths", () => {
 });
 
 // ---------------------------------------------------------------------------
-// BFS circuit-break path (line 287)
+// BFS circuit-break path
 // ---------------------------------------------------------------------------
 
-describe("calculateAccumulatedDemandByPole – circuit break BFS stop (line 287)", () => {
+describe("calculateAccumulatedDemandByPole – circuit break stops BFS propagation", () => {
   it("circuit break pole stops BFS propagation", () => {
     // P1 (transformer) → P2 (circuit break) → P3
-    // BFS from P1 hits P2 (circuit break) → line 287 hit, P3 not reachable via BFS from T1
+    // BFS from P1 hits P2 (circuit break), so P3 is not reachable via BFS from T1
     const topology: BtTopology = {
       poles: [
         { id: "P1", lat: 0, lng: 0, title: "P1", ramais: [{ id: "r1", quantity: 2, ramalType: "5 CC" }] },
@@ -362,9 +359,8 @@ describe("calculateAccumulatedDemandByPole – circuit break BFS stop (line 287)
         { id: "E2", fromPoleId: "P2", toPoleId: "P3", conductors: [], lengthMeters: 10 },
       ],
     };
-    expect(() => calculateAccumulatedDemandByPole(topology, "ramais", 0)).not.toThrow();
     const results = calculateAccumulatedDemandByPole(topology, "ramais", 0);
-    // P2 is a circuit break – children = [] (line 389-393), so no downstream from P2
+    // P2 is a circuit break, so no downstream from P2
     const p2 = results.find((r) => r.poleId === "P2");
     expect(p2).toBeDefined();
     expect(p2?.localClients).toBe(1);
