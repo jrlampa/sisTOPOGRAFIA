@@ -46,6 +46,7 @@ jobs:
           test -d src || (echo "Missing src directory" && exit 1)
 
       - name: Validate required secrets
+        if: github.event_name != 'pull_request'
         env:
           GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
           GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
