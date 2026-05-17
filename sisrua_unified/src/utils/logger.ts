@@ -76,7 +76,7 @@ function sanitizeDataForProduction(data: unknown): unknown {
   return data;
 }
 
-export const __testables__ = {
+export const _testUtils = {
   isDevelopment,
   sanitizeDataForProduction,
 };

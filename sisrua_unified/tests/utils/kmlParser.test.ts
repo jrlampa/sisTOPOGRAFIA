@@ -110,7 +110,7 @@ describe('kmlParser', () => {
         (file as any).content = malformedContent;
 
         vi.stubGlobal('DOMParser', class {
-            parseFromString() {
+            parseFromString(_source: string, _mimeType?: DOMParserSupportedType) {
                 return {
                     getElementsByTagName: (tag: string) => (tag === 'parsererror' ? [{}] : [])
                 } as any;

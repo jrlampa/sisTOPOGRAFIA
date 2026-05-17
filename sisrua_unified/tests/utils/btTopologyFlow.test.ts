@@ -263,16 +263,21 @@ describe("calculateAccumulatedDemandByPole – additional weighted-ramal branche
   });
 
   it("falls back to client-average demand when ramalType is unrecognised", () => {
-    const topology: BtTopology = {
+    const topologyWithUnknownType: BtTopology = {
       poles: [
         {
           id: "P1",
           lat: 0,
           lng: 0,
           title: "P1",
-          ramais: [
-            { id: "r1", quantity: 5, ramalType: "UNKNOWN_TYPE" },
-          ],
+          ramais: [{ id: "r1", quantity: 5, ramalType: "UNKNOWN_TYPE" }],
+        },
+        {
+          id: "P2",
+          lat: 0,
+          lng: 0.001,
+          title: "P2",
+          ramais: [{ id: "r2", quantity: 1, ramalType: "185 MMX" }],
         },
       ],
       transformers: [
@@ -282,16 +287,41 @@ describe("calculateAccumulatedDemandByPole – additional weighted-ramal branche
           lat: 0,
           lng: 0,
           title: "T1",
-          demandKw: 10,
+          demandKw: 12,
           readings: [],
         } as any,
       ],
-      edges: [],
+      edges: [{ id: "E1", fromPoleId: "P1", toPoleId: "P2", conductors: [], lengthMeters: 10 }],
     };
-    const results = calculateAccumulatedDemandByPole(topology, "ramais", 0);
-    expect(results).toHaveLength(1);
-    expect(results[0].localClients).toBe(5);
-    expect(results[0].localTrechoDemandKva).toBe(10);
+    const topologyWithRecognizedType: BtTopology = {
+      ...topologyWithUnknownType,
+      poles: [
+        {
+          ...topologyWithUnknownType.poles[0],
+          ramais: [{ id: "r1", quantity: 5, ramalType: "13 DX 6 AWG" }],
+        },
+        topologyWithUnknownType.poles[1],
+      ],
+    };
+
+    const fallbackResults = calculateAccumulatedDemandByPole(
+      topologyWithUnknownType,
+      "ramais",
+      0,
+    );
+    const weightedResults = calculateAccumulatedDemandByPole(
+      topologyWithRecognizedType,
+      "ramais",
+      0,
+    );
+
+    const fallbackP1 = fallbackResults.find((r) => r.poleId === "P1");
+    const weightedP1 = weightedResults.find((r) => r.poleId === "P1");
+    expect(fallbackP1?.localClients).toBe(5);
+    expect(fallbackP1?.localTrechoDemandKva).toBe(10);
+    expect(weightedP1?.localTrechoDemandKva).toBeLessThan(
+      fallbackP1?.localTrechoDemandKva ?? Number.POSITIVE_INFINITY,
+    );
   });
 });
 

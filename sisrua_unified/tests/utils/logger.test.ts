@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import Logger, { __testables__ } from '../../src/utils/logger';
+import Logger, { _testUtils } from '../../src/utils/logger';
 
-const { sanitizeDataForProduction } = __testables__;
+const { sanitizeDataForProduction } = _testUtils;
 
 describe('sanitizeDataForProduction', () => {
     it('returns falsy data unchanged', () => {
@@ -156,7 +156,7 @@ describe('Logger', () => {
     it('should not add debug entries in development mode when debug is called', () => {
         Logger.debug('debug-entry');
         const debugLogs = Logger.getLogsByLevel('debug');
-        expect(debugLogs).toHaveLength(__testables__.isDevelopment() ? 1 : 0);
+        expect(debugLogs).toHaveLength(_testUtils.isDevelopment() ? 1 : 0);
     });
 
     it('should log warn entries with data', () => {
