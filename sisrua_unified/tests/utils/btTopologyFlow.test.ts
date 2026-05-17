@@ -318,14 +318,24 @@ describe("calculateAccumulatedDemandByPole – additional weighted-ramal branche
 
     const fallbackP1 = fallbackResults.find((r) => r.poleId === "P1");
     const weightedP1 = weightedResults.find((r) => r.poleId === "P1");
+    const RAMAL_WEIGHT_13_DX_6_AWG = 78; // Weight mapped for ramalType "13 DX 6 AWG"
+    const RAMAL_WEIGHT_185_MMX = 423; // Weight mapped for ramalType "185 MMX"
     const expectedFallbackDemand = Number(((12 / 6) * 5).toFixed(2)); // demand / totalClients * p1Clients
-    const expectedWeightedDemand = Number(((12 * (5 * 78)) / (5 * 78 + 1 * 423)).toFixed(2));
+    const expectedWeightedDemand = Number(
+      (
+        (12 * (5 * RAMAL_WEIGHT_13_DX_6_AWG)) /
+        (5 * RAMAL_WEIGHT_13_DX_6_AWG + 1 * RAMAL_WEIGHT_185_MMX)
+      ).toFixed(2),
+    );
 
     expect(fallbackP1?.localClients).toBe(5);
     expect(fallbackP1?.localTrechoDemandKva).toBe(expectedFallbackDemand);
     expect(weightedP1?.localTrechoDemandKva).toBeDefined();
     expect(fallbackP1?.localTrechoDemandKva).toBeDefined();
-    expect(weightedP1!.localTrechoDemandKva).toBe(expectedWeightedDemand);
+    if (!weightedP1 || !fallbackP1) {
+      throw new Error("Expected P1 results for both fallback and weighted scenarios");
+    }
+    expect(weightedP1.localTrechoDemandKva).toBe(expectedWeightedDemand);
   });
 });
 
