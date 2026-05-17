@@ -318,6 +318,8 @@ describe("calculateAccumulatedDemandByPole – additional weighted-ramal branche
     const fallbackP1 = fallbackResults.find((r) => r.poleId === "P1");
     const weightedP1 = weightedResults.find((r) => r.poleId === "P1");
     expect(fallbackP1?.localClients).toBe(5);
+    // Fallback path uses average demand per client: 12 kVA / 6 clients = 2 kVA/client.
+    // For P1 (5 clients), localTrechoDemandKva = 5 * 2 = 10 kVA.
     expect(fallbackP1?.localTrechoDemandKva).toBe(10);
     expect(weightedP1?.localTrechoDemandKva).toBeDefined();
     expect(fallbackP1?.localTrechoDemandKva).toBeDefined();
