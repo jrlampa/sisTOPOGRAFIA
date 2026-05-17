@@ -262,7 +262,7 @@ describe("calculateAccumulatedDemandByPole – additional weighted-ramal branche
     expect(p1).toBeDefined();
   });
 
-  it("falls back safely when ramalType is unrecognised", () => {
+  it("falls back to client-average demand when ramalType is unrecognised", () => {
     const topology: BtTopology = {
       poles: [
         {
@@ -291,6 +291,7 @@ describe("calculateAccumulatedDemandByPole – additional weighted-ramal branche
     const results = calculateAccumulatedDemandByPole(topology, "ramais", 0);
     expect(results).toHaveLength(1);
     expect(results[0].localClients).toBe(5);
+    expect(results[0].localTrechoDemandKva).toBe(10);
   });
 });
 

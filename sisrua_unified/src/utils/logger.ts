@@ -77,6 +77,7 @@ function sanitizeDataForProduction(data: unknown): unknown {
 }
 
 export const __testables__ = {
+  isDevelopment,
   sanitizeDataForProduction,
 };
 

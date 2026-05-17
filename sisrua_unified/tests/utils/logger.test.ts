@@ -154,12 +154,9 @@ describe('Logger', () => {
     });
 
     it('should not add debug entries in development mode when debug is called', () => {
-        const env = (import.meta as { env?: Record<string, string | boolean | undefined> }).env ?? {};
-        const isDevelopment = env.DEV === true || !env.MODE || env.MODE === 'development';
-
         Logger.debug('debug-entry');
         const debugLogs = Logger.getLogsByLevel('debug');
-        expect(debugLogs).toHaveLength(isDevelopment ? 1 : 0);
+        expect(debugLogs).toHaveLength(__testables__.isDevelopment() ? 1 : 0);
     });
 
     it('should log warn entries with data', () => {
