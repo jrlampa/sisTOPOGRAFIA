@@ -277,6 +277,7 @@ describe("calculateAccumulatedDemandByPole – additional weighted-ramal branche
           lat: 0,
           lng: 0.001,
           title: "P2",
+          // P1 has 5 clients and P2 has 1 client, so totalClients = 6 for fallback average.
           ramais: [{ id: "r2", quantity: 1, ramalType: "185 MMX" }],
         },
       ],
@@ -318,8 +319,8 @@ describe("calculateAccumulatedDemandByPole – additional weighted-ramal branche
     const fallbackP1 = fallbackResults.find((r) => r.poleId === "P1");
     const weightedP1 = weightedResults.find((r) => r.poleId === "P1");
     expect(fallbackP1?.localClients).toBe(5);
-    // Fallback path uses average demand per client: 12 kW / 6 clients = 2 kW/client.
-    // For P1 (5 clients), localTrechoDemandKva = 5 * 2 = 10 kW.
+    // Fallback path uses average demand per client from demandKw input: 12 / 6 = 2.
+    // For P1 (5 clients), localTrechoDemandKva = 5 * 2 = 10.
     expect(fallbackP1?.localTrechoDemandKva).toBe(10);
     expect(weightedP1?.localTrechoDemandKva).toBeDefined();
     expect(fallbackP1?.localTrechoDemandKva).toBeDefined();
