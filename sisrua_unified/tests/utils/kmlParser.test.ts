@@ -112,6 +112,7 @@ describe('kmlParser', () => {
         vi.stubGlobal('DOMParser', class {
             parseFromString(_source: string, _mimeType?: DOMParserSupportedType) {
                 return {
+                    documentElement: { nodeName: 'parsererror' },
                     getElementsByTagName: (tag: string) => (tag === 'parsererror' ? [{}] : [])
                 } as any;
             }

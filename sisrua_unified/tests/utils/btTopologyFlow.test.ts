@@ -319,8 +319,10 @@ describe("calculateAccumulatedDemandByPole – additional weighted-ramal branche
     const weightedP1 = weightedResults.find((r) => r.poleId === "P1");
     expect(fallbackP1?.localClients).toBe(5);
     expect(fallbackP1?.localTrechoDemandKva).toBe(10);
-    expect(weightedP1?.localTrechoDemandKva).toBeLessThan(
-      fallbackP1?.localTrechoDemandKva ?? Number.POSITIVE_INFINITY,
+    expect(weightedP1?.localTrechoDemandKva).toBeDefined();
+    expect(fallbackP1?.localTrechoDemandKva).toBeDefined();
+    expect(weightedP1!.localTrechoDemandKva).toBeLessThan(
+      fallbackP1!.localTrechoDemandKva,
     );
   });
 });
