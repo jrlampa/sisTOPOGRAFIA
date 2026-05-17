@@ -18,22 +18,30 @@ import { requestMetrics } from './middleware/requestMetrics.js';
 import { monitoringMiddleware } from './middleware/monitoring.js';
 import { specs } from './swagger.js';
 import { errorHandler } from './errorHandler.js';
-import {
-  attachSupabaseUserIfPresent,
-  requireAdminToken,
-  requireMetricsToken,
-} from './middleware/authGuard.js';
+import { attachSupabaseUserIfPresent, requireAdminToken } from './middleware/authGuard.js';
 import { detectSuspiciousPatterns, validatePayloadRate } from './middleware/validation-enhanced.js';
 
 // ─── Health Check Cache ────────────────────────────────────────────────
-let lastHealthResponse: any = null;
+type HealthCacheEntry = {
+  body: Record<string, unknown>;
+  statusCode: number;
+} | null;
+
+type OllamaGovernanceStatus = Awaited<ReturnType<typeof OllamaService.getGovernanceStatus>>;
+type OllamaStatusLike = Omit<Partial<OllamaGovernanceStatus>, 'runtime'> & {
+  runtime?: Partial<OllamaGovernanceStatus['runtime']>;
+};
+
+let lastHealthResponse: HealthCacheEntry = null;
 let lastHealthTimestamp = 0;
 
 let cachedDbStatus = 'disabled';
 let lastDbCheckTime = 0;
 const DB_CHECK_CACHE_TTL = 5000; // 5 seconds (more aggressive - DB checks are typically cheap)
 
-let lastOllamaStatus: any = { runtime: { available: false } };
+let lastOllamaStatus: OllamaStatusLike = { runtime: { available: false } };
+let lastOllamaCheckTime = 0;
+const OLLAMA_STATUS_CACHE_TTL = 15000;
 
 /** Clear health and DB check cache (exported for testability) */
 export function clearHealthCache(): void {
@@ -42,6 +50,7 @@ export function clearHealthCache(): void {
   cachedDbStatus = 'disabled';
   lastDbCheckTime = 0;
   lastOllamaStatus = { runtime: { available: false } };
+  lastOllamaCheckTime = 0;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -102,8 +111,28 @@ import modelRetrocompatRoutes from './routes/modelRetrocompatRoutes.js';
 import gridLegibilityRoutes from './routes/gridLegibilityRoutes.js';
 import chaosRoutes from './routes/chaosRoutes.js';
 import formulaVersioningRoutes from './routes/formulaVersioningRoutes.js';
+import zeroTrustRoutes from './routes/zeroTrustRoutes.js';
+import knowledgeBaseRoutes from './routes/knowledgeBaseRoutes.js';
+import pentestRoutes from './routes/pentestRoutes.js';
+import predictiveObservabilityRoutes from './routes/predictiveObservabilityRoutes.js';
+import releaseCabRoutes from './routes/releaseCabRoutes.js';
+import tenantAuditExportRoutes from './routes/tenantAuditExportRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import { billingRoutes } from './routes/billingRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import dxfRoutes from './routes/dxfRoutes.js';
+import serviceDeskRoutes from './routes/serviceDeskRoutes.js';
+import rfpReadinessRoutes from './routes/rfpReadinessRoutes.js';
+import supplyChainRoutes from './routes/supplyChainRoutes.js';
+import jobRoutes from './routes/jobRoutes.js';
+import dgRoutes from './routes/dgRoutes.js';
+import encryptionAtRestRoutes from './routes/encryptionAtRestRoutes.js';
+import auditColdStorageRoutes from './routes/auditColdStorageRoutes.js';
+import bcpDrRoutes from './routes/bcpDrRoutes.js';
+import environmentPromotionRoutes from './routes/environmentPromotionRoutes.js';
+import blueGreenRoutes from './routes/blueGreenRoutes.js';
+import contractualSlaRoutes from './routes/contractualSlaRoutes.js';
+import enterpriseReadinessRoutes from './routes/enterpriseReadinessRoutes.js';
 import { initDbClient, isDbAvailable, pingDb } from './repositories/dbClient.js';
 
 // Use process.cwd() to avoid import.meta conflicts with Jest/ts-jest
@@ -219,7 +248,7 @@ app.use(
 app.use(
   express.json({
     limit: config.BODY_LIMIT,
-    verify: (req: any, _res, buf) => {
+    verify: (req: Request & { rawBody?: Buffer }, _res, buf) => {
       if (req.url?.includes('/api/billing/webhook')) {
         req.rawBody = buf;
       }
@@ -334,13 +363,33 @@ async function performHealthCheck() {
   }
   const dbTime = Date.now() - dbStart;
 
-  // ─── Use Ollama status from cache (non-blocking background update) ──
-  const ollamaStatus = lastOllamaStatus;
+  // ─── Use cached Ollama status, but force a bounded sync refresh on cold/unavailable cache ──
+  let ollamaStatus = lastOllamaStatus;
+  const now = Date.now();
+  const shouldRefreshSync =
+    !lastOllamaStatus?.runtime?.available || now - lastOllamaCheckTime > OLLAMA_STATUS_CACHE_TTL;
+
+  if (shouldRefreshSync) {
+    try {
+      const boundedStatus: OllamaGovernanceStatus = await Promise.race([
+        OllamaService.getGovernanceStatus(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Ollama status refresh timeout')), 1500)
+        ),
+      ]);
+      lastOllamaStatus = boundedStatus;
+      lastOllamaCheckTime = Date.now();
+      ollamaStatus = boundedStatus;
+    } catch (err) {
+      logger.debug('Synchronous Ollama status refresh failed', { err });
+    }
+  }
 
   // Background update (fire and forget - don't block on Ollama)
   OllamaService.getGovernanceStatus()
-    .then(status => {
+    .then((status: OllamaGovernanceStatus) => {
       lastOllamaStatus = status;
+      lastOllamaCheckTime = Date.now();
     })
     .catch(err => {
       logger.debug('Background Ollama status update failed', { err });
@@ -408,6 +457,20 @@ app.use('/api/analysis', analysisRoutes);
 app.use('/api/analyze', analysisRoutes); // Alias para compatibilidade com frontend que usa singular
 app.use('/api/constants', constantsRoutes);
 app.use('/api/catalog', catalogRoutes);
+app.use('/api/dxf', dxfRoutes);
+app.use('/api/admin', requireAdminToken, adminRoutes);
+app.use('/api/service-desk', serviceDeskRoutes);
+app.use('/api/rfp-readiness', rfpReadinessRoutes);
+app.use('/api/supply-chain', supplyChainRoutes);
+app.use('/api/jobs', jobRoutes);
+app.use('/api/dg', dgRoutes);
+app.use('/api/encryption-at-rest', encryptionAtRestRoutes);
+app.use('/api/audit-cold-storage', auditColdStorageRoutes);
+app.use('/api/bcp-dr', bcpDrRoutes);
+app.use('/api/environment-promotion', environmentPromotionRoutes);
+app.use('/api/blue-green', blueGreenRoutes);
+app.use('/api/contractual-sla', contractualSlaRoutes);
+app.use('/api/enterprise-readiness', enterpriseReadinessRoutes);
 app.use('/api/compliance', requireAdminToken, complianceRoutes);
 app.use('/api/identity-lifecycle', requireAdminToken, identityLifecycleRoutes);
 app.use('/api/multi-tenant-isolation', requireAdminToken, multiTenantIsolationRoutes);
@@ -455,6 +518,16 @@ app.use('/api/model-retrocompat', requireAdminToken, modelRetrocompatRoutes);
 app.use('/api/grid-legibility', requireAdminToken, gridLegibilityRoutes);
 app.use('/api/chaos', requireAdminToken, chaosRoutes);
 app.use('/api/formula-versions', formulaVersioningRoutes);
+app.use('/api/zero-trust', zeroTrustRoutes);
+app.use('/api/knowledge-base', knowledgeBaseRoutes);
+app.use('/api/pentest', pentestRoutes);
+app.use('/api/predictive-observability', predictiveObservabilityRoutes);
+app.use('/api/release-cab', releaseCabRoutes);
+app.use('/api/tenant-audit-export', tenantAuditExportRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/billing', billingRoutes);
+app.use('/api/servicedesk', serviceDeskRoutes); // Alias legado
+app.use('/api/rfp', rfpReadinessRoutes); // Alias legado
 
 // Static files
 app.use(express.static(frontendDistDirectory));
