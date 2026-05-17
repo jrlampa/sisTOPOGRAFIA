@@ -20,7 +20,6 @@ import {
   getClandestinoDiversificationFactorByClients,
   calculateClandestinoDemandKvaByAreaAndClients,
   calculateClandestinoDemandKva,
-  loadClandestinoWorkbookRules,
   getClandestinoAreaRange,
   getClandestinoClientsRange,
 } from "../../src/utils/btClandestinoCalculations";
@@ -63,38 +62,42 @@ describe("calculateClandestinoDemandKva – null path (line 136)", () => {
 // ---------------------------------------------------------------------------
 
 describe("loadClandestinoWorkbookRules – error branches", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
   it("returns false when the API response is not ok", async () => {
-    // Because the module caches the promise after first call, we need a fresh import.
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValueOnce({ ok: false, status: 500, json: vi.fn() }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 500, json: vi.fn() });
+    vi.stubGlobal("fetch", fetchMock);
 
-    // Use a fresh module to avoid singleton interference
     const freshModule = await vi.importActual<
       typeof import("../../src/utils/btClandestinoCalculations")
     >("../../src/utils/btClandestinoCalculations");
 
-    // The module-level singleton means we can only exercise this path once per import.
-    // If loadClandestinoWorkbookRules was already called, it returns the same promise.
-    // This test ensures the function exists and resolves without throwing.
-    const result = loadClandestinoWorkbookRules();
-    await expect(result).resolves.toBeDefined();
+    await expect(freshModule.loadClandestinoWorkbookRules()).resolves.toBe(
+      false,
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("returns false when fetch rejects (network error)", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockRejectedValueOnce(new Error("Network error")),
+    const fetchMock = vi.fn().mockRejectedValueOnce(new Error("Network error"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const freshModule = await vi.importActual<
+      typeof import("../../src/utils/btClandestinoCalculations")
+    >("../../src/utils/btClandestinoCalculations");
+
+    await expect(freshModule.loadClandestinoWorkbookRules()).resolves.toBe(
+      false,
     );
-    // The singleton pattern means the first call wins. Calling here may return
-    // the cached promise. We just verify it doesn't throw.
-    const result = loadClandestinoWorkbookRules();
-    await expect(result).resolves.toBeDefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -103,24 +106,36 @@ describe("loadClandestinoWorkbookRules – error branches", () => {
 // ---------------------------------------------------------------------------
 
 describe("loadClandestinoWorkbookRules – success branch (via dynamic import)", () => {
-  it("returns true when API responds with valid areaToKva and clientToDiversifFactor", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: vi.fn().mockResolvedValue({
-          areaToKva: { "20": 1.62, "50": 1.88 },
-          clientToDiversifFactor: { "1": 3.88, "10": 9.64 },
-        }),
-      }),
-    );
+  beforeEach(() => {
+    vi.resetModules();
+  });
 
-    // This module is already loaded; the singleton result is used. We can't
-    // truly reset the module here without vi.resetModules(). We just ensure
-    // the function behaves correctly and doesn't throw.
-    const result = loadClandestinoWorkbookRules();
-    await expect(result).resolves.toBeDefined();
+  afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it("returns true when API responds with valid areaToKva and clientToDiversifFactor", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        areaToKva: { "20": 1.62, "50": 1.88 },
+        clientToDiversifFactor: { "1": 3.88, "10": 9.64 },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const freshModule = await vi.importActual<
+      typeof import("../../src/utils/btClandestinoCalculations")
+    >("../../src/utils/btClandestinoCalculations");
+
+    await expect(freshModule.loadClandestinoWorkbookRules()).resolves.toBe(
+      true,
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(freshModule.getClandestinoKvaByArea(20)).toBe(1.62);
+    expect(freshModule.getClandestinoDiversificationFactorByClients(10)).toBe(
+      9.64,
+    );
   });
 });
 
