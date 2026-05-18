@@ -425,9 +425,6 @@ jobs:
     if: always()
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Check all jobs passed
         run: |
           echo "Backend Tests: ${{ needs.test-backend.result }}"
