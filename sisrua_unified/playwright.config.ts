@@ -19,10 +19,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://127.0.0.1:3001/health',
+    command: 'concurrently "npm run server" "npm run client -- --host 127.0.0.1 --port 3000"',
+    url: 'http://127.0.0.1:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 120000,
+    timeout: 300000,
     env: {
       NODE_ENV: 'test',
       METRICS_TOKEN: process.env.METRICS_TOKEN ?? 'release-smoke-metrics-token',
