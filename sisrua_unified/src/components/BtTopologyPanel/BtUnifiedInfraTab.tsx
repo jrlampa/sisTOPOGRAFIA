@@ -1,11 +1,11 @@
-import React from "react";
-import { FileText, Zap } from "lucide-react";
-import { motion } from "framer-motion";
-import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
-import type { BtPoleConditionStatus } from "../../types";
-import PoleCockpitCard from "./Cockpit/PoleCockpitCard";
-import { useBtTopologyContext } from "./BtTopologyContext";
-import { fadeSlideUp, scaleIn } from "../../theme/motion";
+import React from 'react';
+import { FileText, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { getBtTopologyPanelText } from '../../i18n/btTopologyPanelText';
+import type { BtPoleConditionStatus } from '../../types';
+import PoleCockpitCard from './Cockpit/PoleCockpitCard';
+import { useBtTopologyContext } from './BtTopologyContext';
+import { fadeSlideUp, scaleIn } from '../../theme/motion';
 
 const BtUnifiedInfraTab: React.FC = () => {
   const {
@@ -27,7 +27,7 @@ const BtUnifiedInfraTab: React.FC = () => {
 
   if (!pole) return null;
 
-  const accData = accumulatedByPole.find((a) => a.poleId === pole.id);
+  const accData = accumulatedByPole.find(a => a.poleId === pole.id);
 
   // Mocks de resultados dos motores recém-criados para visualização imediata no Cockpit
   const mechanicalResult = accData
@@ -44,17 +44,15 @@ const BtUnifiedInfraTab: React.FC = () => {
       : 0;
 
   // Extrair estruturas de MT para o cockpit
-  const mtPole = mtTopology.poles.find((p) => p.id === pole.id);
-  const mtStructures = mtPole
-    ? Object.values(mtPole.mtStructures || {}).filter(Boolean)
-    : [];
+  const mtPole = mtTopology.poles.find(p => p.id === pole.id);
+  const mtStructures = mtPole ? Object.values(mtPole.mtStructures || {}).filter(Boolean) : [];
 
   return (
-    <motion.div 
+    <motion.div
       initial="hidden"
       animate="visible"
       variants={{
-        visible: { transition: { staggerChildren: 0.05 } }
+        visible: { transition: { staggerChildren: 0.05 } },
       }}
       className="space-y-4 pb-6"
     >
@@ -74,21 +72,24 @@ const BtUnifiedInfraTab: React.FC = () => {
       </motion.div>
 
       {/* Physical State & Structures */}
-      <motion.div variants={fadeSlideUp} className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm space-y-4 dark:bg-zinc-900/40 dark:border-white/5">
+      <motion.div
+        variants={fadeSlideUp}
+        className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm space-y-4 dark:bg-zinc-900/40 dark:border-white/5"
+      >
         <div>
           <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2 dark:text-slate-500">
             {pt.poleStateTitle}
           </label>
           <select
-            value={pole.conditionStatus ?? ""}
-            onChange={(e) =>
+            value={pole.conditionStatus ?? ''}
+            onChange={e =>
               updatePoleConditionStatus(
                 pole.id,
-                (e.target.value || undefined) as
-                  | BtPoleConditionStatus
-                  | undefined,
+                (e.target.value || undefined) as BtPoleConditionStatus | undefined
               )
             }
+            title={pt.poleStateTitle}
+            aria-label={pt.poleStateTitle}
             className="w-full bg-slate-50 border-none rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-100 dark:bg-zinc-950 dark:text-slate-200 dark:focus:ring-blue-900/20"
           >
             <option value="">{pt.selectState}</option>
@@ -105,13 +106,13 @@ const BtUnifiedInfraTab: React.FC = () => {
             {pt.structuresTitle}
           </label>
           <div className="grid grid-cols-2 gap-2">
-            {(["si1", "si2", "si3", "si4"] as const).map((slot) => (
+            {(['si1', 'si2', 'si3', 'si4'] as const).map(slot => (
               <input
                 key={slot}
                 type="text"
                 placeholder={slot.toUpperCase()}
-                value={pole.btStructures?.[slot] ?? ""}
-                onChange={(e) =>
+                value={pole.btStructures?.[slot] ?? ''}
+                onChange={e =>
                   updatePoleBtStructures(pole.id, {
                     ...pole.btStructures,
                     [slot]: e.target.value || undefined,
@@ -125,15 +126,16 @@ const BtUnifiedInfraTab: React.FC = () => {
       </motion.div>
 
       {/* Notes */}
-      <motion.div variants={fadeSlideUp} className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm dark:bg-zinc-900/40 dark:border-white/5">
+      <motion.div
+        variants={fadeSlideUp}
+        className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm dark:bg-zinc-900/40 dark:border-white/5"
+      >
         <label className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-slate-400 mb-2 dark:text-slate-500">
           <FileText size={12} /> {pt.generalNotesTitle}
         </label>
         <textarea
-          value={pole.generalNotes ?? ""}
-          onChange={(e) =>
-            updatePoleGeneralNotes(pole.id, e.target.value || undefined)
-          }
+          value={pole.generalNotes ?? ''}
+          onChange={e => updatePoleGeneralNotes(pole.id, e.target.value || undefined)}
           rows={3}
           className="w-full bg-slate-50 border-none rounded-xl p-3 text-sm text-slate-800 focus:ring-2 focus:ring-blue-100 resize-none dark:bg-zinc-950 dark:text-slate-200 dark:focus:ring-blue-900/20"
           placeholder={pt.generalNotesPlaceholder}
@@ -141,8 +143,11 @@ const BtUnifiedInfraTab: React.FC = () => {
       </motion.div>
 
       {/* MT Context (Unified Vision) */}
-      {mtTopology.poles.some((p) => p.id === pole.id) && (
-        <motion.div variants={fadeSlideUp} className="bg-gradient-to-br from-amber-50 to-orange-100/50 border border-orange-200 rounded-3xl p-4 shadow-sm dark:from-amber-950/20 dark:to-orange-950/20 dark:border-orange-900/30">
+      {mtTopology.poles.some(p => p.id === pole.id) && (
+        <motion.div
+          variants={fadeSlideUp}
+          className="bg-gradient-to-br from-amber-50 to-orange-100/50 border border-orange-200 rounded-3xl p-4 shadow-sm dark:from-amber-950/20 dark:to-orange-950/20 dark:border-orange-900/30"
+        >
           <label className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-orange-700/60 mb-3 dark:text-orange-400/60">
             <Zap size={12} /> {dashboardText.mediumVoltageContext}
           </label>
@@ -153,11 +158,9 @@ const BtUnifiedInfraTab: React.FC = () => {
               </span>
               <span className="text-xs font-mono font-bold text-orange-800 dark:text-orange-400">
                 {(() => {
-                  const mtPole = mtTopology.poles.find((p) => p.id === pole.id);
+                  const mtPole = mtTopology.poles.find(p => p.id === pole.id);
                   if (!mtPole?.mtStructures) return dashboardText.notAvailable;
-                  return Object.values(mtPole.mtStructures)
-                    .filter(Boolean)
-                    .join(" / ");
+                  return Object.values(mtPole.mtStructures).filter(Boolean).join(' / ');
                 })()}
               </span>
             </div>
@@ -167,9 +170,8 @@ const BtUnifiedInfraTab: React.FC = () => {
               </span>
               <span className="text-xs font-mono font-bold text-orange-800 dark:text-orange-400">
                 {dashboardText.spansCount(
-                  mtTopology.edges.filter(
-                    (e) => e.fromPoleId === pole.id || e.toPoleId === pole.id,
-                  ).length,
+                  mtTopology.edges.filter(e => e.fromPoleId === pole.id || e.toPoleId === pole.id)
+                    .length
                 )}
               </span>
             </div>

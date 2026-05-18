@@ -1,10 +1,10 @@
-import React from "react";
-import { Undo2, Redo2, RotateCcw, History } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import type { HistoryEntry } from "../hooks/useUndoRedo";
-import type { AppLocale } from "../types";
-import { getAppHeaderText } from "../i18n/appHeaderText";
-import { trackHeaderAction, trackRework } from "../utils/analytics";
+import React from 'react';
+import { Undo2, Redo2, RotateCcw, History } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import type { HistoryEntry } from '../hooks/useUndoRedo';
+import type { AppLocale } from '../types';
+import { getAppHeaderText } from '../i18n/appHeaderText';
+import { trackHeaderAction, trackRework } from '../utils/analytics';
 
 interface HistoryControlsProps {
   canUndo: boolean;
@@ -28,22 +28,19 @@ const HistoryControls: React.FC<HistoryControlsProps> = ({
   const [showHistory, setShowHistory] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
   const t = getAppHeaderText(locale);
-  
+
   // Close when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setShowHistory(false);
       }
     };
     if (showHistory) {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showHistory]);
 
@@ -55,23 +52,23 @@ const HistoryControls: React.FC<HistoryControlsProps> = ({
       ref={containerRef}
       role="group"
       aria-label={t.recentHistory}
-      onContextMenu={(e) => {
+      onContextMenu={e => {
         e.preventDefault();
-        if (!showHistory) trackHeaderAction("history_panel_open");
+        if (!showHistory) trackHeaderAction('history_panel_open');
         setShowHistory(!showHistory);
       }}
       className="relative flex items-center gap-1 rounded-2xl border border-slate-200 bg-sky-50/70 p-1 shadow-[0_10px_24px_rgba(148,163,184,0.16)] dark:border-white/10 dark:bg-white/5 dark:shadow-none"
     >
       <button
         onClick={() => {
-          trackRework("undo", "Header button");
+          trackRework('undo', 'Header button');
           onUndo();
         }}
         disabled={!canUndo}
         className={`p-1.5 rounded-xl transition-all active:scale-95 ${
           canUndo
-            ? "text-slate-700 hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-white"
-            : "cursor-not-allowed text-slate-300 dark:text-zinc-600"
+            ? 'text-slate-700 hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-white'
+            : 'cursor-not-allowed text-slate-300 dark:text-zinc-600'
         }`}
         title={`${t.undoAction} (Ctrl+Z)`}
         aria-label={t.undoAction}
@@ -81,17 +78,16 @@ const HistoryControls: React.FC<HistoryControlsProps> = ({
 
       <button
         onClick={() => {
-          if (!showHistory) trackHeaderAction("history_panel_open");
+          if (!showHistory) trackHeaderAction('history_panel_open');
           setShowHistory(!showHistory);
         }}
         className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 font-bold text-xs ${
           showHistory
-            ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
-            : "text-slate-700 hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-white"
+            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60'
+            : 'text-slate-700 hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-white'
         }`}
         title={t.historyTooltip}
         aria-label={t.historyTooltip}
-        aria-expanded={showHistory}
         aria-haspopup="true"
       >
         <History size={16} />
@@ -100,14 +96,14 @@ const HistoryControls: React.FC<HistoryControlsProps> = ({
 
       <button
         onClick={() => {
-          trackRework("redo", "Header button");
+          trackRework('redo', 'Header button');
           onRedo();
         }}
         disabled={!canRedo}
         className={`p-1.5 rounded-xl transition-all active:scale-95 ${
           canRedo
-            ? "text-slate-700 hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-white"
-            : "cursor-not-allowed text-slate-300 dark:text-zinc-600"
+            ? 'text-slate-700 hover:bg-white hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-white'
+            : 'cursor-not-allowed text-slate-300 dark:text-zinc-600'
         }`}
         title={`${t.redoAction} (Ctrl+Y)`}
         aria-label={t.redoAction}
@@ -150,7 +146,7 @@ const HistoryControls: React.FC<HistoryControlsProps> = ({
                 <button
                   key={`past-${i}`}
                   onClick={() => {
-                    trackRework("undo", `History jump: ${entry.label}`);
+                    trackRework('undo', `History jump: ${entry.label}`);
                     // One undo for each step back
                     for (let j = 0; j <= i; j++) onUndo();
                     setShowHistory(false);

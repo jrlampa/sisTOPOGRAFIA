@@ -4,9 +4,9 @@
  * Owns all SQL against `bt_export_history`. Business logic (HTTP handlers,
  * filtering, pagination) stays in btExportHistoryService.ts.
  */
-import type { ParameterOrJSON } from "postgres";
-import { getDbClient } from "./dbClient.js";
-import { logger } from "../utils/logger.js";
+import type { ParameterOrJSON } from 'postgres';
+import { getDbClient } from './dbClient.js';
+import { logger } from '../utils/logger.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -43,24 +43,48 @@ export interface BtExportHistoryFilter {
 }
 
 export interface IBtExportHistoryRepository {
-  insert(row: Omit<BtExportHistoryRow, "id" | "createdAt">): Promise<string>;
+  insert(row: Omit<BtExportHistoryRow, 'id' | 'createdAt'>): Promise<string>;
   findAll(filter?: BtExportHistoryFilter): Promise<BtExportHistoryRow[]>;
-  count(
-    filter?: Pick<BtExportHistoryFilter, "projectType" | "cqtScenario">,
-  ): Promise<number>;
+  count(filter?: Pick<BtExportHistoryFilter, 'projectType' | 'cqtScenario'>): Promise<number>;
   deleteOlderThan(date: Date): Promise<number>;
 }
 
 type SqlParam = ParameterOrJSON<never>;
 
+type InsertIdRow = { id: string };
+type CountRow = { cnt: number | string };
+
+type BtExportHistoryDbRow = {
+  id: string;
+  project_type: string | null;
+  bt_context_url: string | null;
+  critical_pole_id: string | null;
+  critical_accumulated_clients: number | string | null;
+  critical_accumulated_demand_kva: number | string | null;
+  verified_poles: number | string | null;
+  verified_edges: number | string | null;
+  verified_transformers: number | string | null;
+  total_poles: number | string | null;
+  total_edges: number | string | null;
+  total_transformers: number | string | null;
+  cqt_scenario: string | null;
+  cqt_dmdi: number | string | null;
+  cqt_p31: number | string | null;
+  cqt_p32: number | string | null;
+  cqt_k10_qt_mttr: number | string | null;
+  cqt_parity_status: string | null;
+  cqt_parity_passed: number | string | null;
+  cqt_parity_failed: number | string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: Date | string;
+};
+
 // ── Implementation ─────────────────────────────────────────────────────────────
 
 export class PostgresBtExportHistoryRepository implements IBtExportHistoryRepository {
-  async insert(
-    row: Omit<BtExportHistoryRow, "id" | "createdAt">,
-  ): Promise<string> {
+  async insert(row: Omit<BtExportHistoryRow, 'id' | 'createdAt'>): Promise<string> {
     const sql = getDbClient();
-    if (!sql) throw new Error("DB unavailable");
+    if (!sql) throw new Error('DB unavailable');
     const result = await sql.unsafe(
       `INSERT INTO bt_export_history (
          project_type, bt_context_url, critical_pole_id,
@@ -93,14 +117,14 @@ export class PostgresBtExportHistoryRepository implements IBtExportHistoryReposi
         row.cqtParityPassed,
         row.cqtParityFailed,
         row.metadata ? JSON.stringify(row.metadata) : null,
-      ],
+      ]
     );
-    return (result as any[])[0].id as string;
+    const rows = result as unknown as InsertIdRow[];
+    if (!rows[0]?.id) throw new Error('Insert failed: missing generated id');
+    return rows[0].id;
   }
 
-  async findAll(
-    filter: BtExportHistoryFilter = {},
-  ): Promise<BtExportHistoryRow[]> {
+  async findAll(filter: BtExportHistoryFilter = {}): Promise<BtExportHistoryRow[]> {
     const sql = getDbClient();
     if (!sql) return [];
     try {
@@ -114,9 +138,7 @@ export class PostgresBtExportHistoryRepository implements IBtExportHistoryReposi
         conditions.push(`cqt_scenario = $${params.length + 1}`);
         params.push(filter.cqtScenario);
       }
-      const where = conditions.length
-        ? `WHERE ${conditions.join(" AND ")}`
-        : "";
+      const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
       const limit = filter.limit ?? 100;
       const offset = filter.offset ?? 0;
       params.push(limit, offset);
@@ -124,17 +146,17 @@ export class PostgresBtExportHistoryRepository implements IBtExportHistoryReposi
         `SELECT * FROM bt_export_history ${where}
          ORDER BY created_at DESC
          LIMIT $${params.length - 1} OFFSET $${params.length}`,
-        params,
+        params
       );
-      return (rows as any[]).map(_mapRow);
+      return (rows as unknown as BtExportHistoryDbRow[]).map(_mapRow);
     } catch (err) {
-      logger.warn("[BtExportHistoryRepository] findAll failed", { err });
+      logger.warn('[BtExportHistoryRepository] findAll failed', { err });
       return [];
     }
   }
 
   async count(
-    filter: Pick<BtExportHistoryFilter, "projectType" | "cqtScenario"> = {},
+    filter: Pick<BtExportHistoryFilter, 'projectType' | 'cqtScenario'> = {}
   ): Promise<number> {
     const sql = getDbClient();
     if (!sql) return 0;
@@ -149,14 +171,15 @@ export class PostgresBtExportHistoryRepository implements IBtExportHistoryReposi
         conditions.push(`cqt_scenario = $${params.length + 1}`);
         params.push(filter.cqtScenario);
       }
-      const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+      const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
       const result = await sql.unsafe(
         `SELECT COUNT(*) AS cnt FROM bt_export_history ${where}`,
-        params,
+        params
       );
-      return Number((result as any[])[0]?.cnt ?? 0);
+      const rows = result as unknown as CountRow[];
+      return Number(rows[0]?.cnt ?? 0);
     } catch (err) {
-      logger.warn("[BtExportHistoryRepository] count failed", { err });
+      logger.warn('[BtExportHistoryRepository] count failed', { err });
       return 0;
     }
   }
@@ -168,48 +191,41 @@ export class PostgresBtExportHistoryRepository implements IBtExportHistoryReposi
       const result = await sql.unsafe(
         `WITH deleted AS (DELETE FROM bt_export_history WHERE created_at < $1 RETURNING id)
          SELECT COUNT(*) AS cnt FROM deleted`,
-        [date.toISOString()],
+        [date.toISOString()]
       );
-      return Number((result as any[])[0]?.cnt ?? 0);
+      const rows = result as unknown as CountRow[];
+      return Number(rows[0]?.cnt ?? 0);
     } catch (err) {
-      logger.warn("[BtExportHistoryRepository] deleteOlderThan failed", { err, date });
+      logger.warn('[BtExportHistoryRepository] deleteOlderThan failed', { err, date });
       return 0;
     }
   }
 }
 
-function _mapRow(r: any): BtExportHistoryRow {
+function _mapRow(r: BtExportHistoryDbRow): BtExportHistoryRow {
   return {
     id: r.id,
     projectType: r.project_type ?? null,
     btContextUrl: r.bt_context_url ?? null,
     criticalPoleId: r.critical_pole_id ?? null,
     criticalAccumulatedClients:
-      r.critical_accumulated_clients != null
-        ? Number(r.critical_accumulated_clients)
-        : null,
+      r.critical_accumulated_clients != null ? Number(r.critical_accumulated_clients) : null,
     criticalAccumulatedDemandKva:
-      r.critical_accumulated_demand_kva != null
-        ? Number(r.critical_accumulated_demand_kva)
-        : null,
+      r.critical_accumulated_demand_kva != null ? Number(r.critical_accumulated_demand_kva) : null,
     verifiedPoles: r.verified_poles != null ? Number(r.verified_poles) : null,
     verifiedEdges: r.verified_edges != null ? Number(r.verified_edges) : null,
-    verifiedTransformers:
-      r.verified_transformers != null ? Number(r.verified_transformers) : null,
+    verifiedTransformers: r.verified_transformers != null ? Number(r.verified_transformers) : null,
     totalPoles: r.total_poles != null ? Number(r.total_poles) : null,
     totalEdges: r.total_edges != null ? Number(r.total_edges) : null,
-    totalTransformers:
-      r.total_transformers != null ? Number(r.total_transformers) : null,
+    totalTransformers: r.total_transformers != null ? Number(r.total_transformers) : null,
     cqtScenario: r.cqt_scenario ?? null,
     cqtDmdi: r.cqt_dmdi != null ? Number(r.cqt_dmdi) : null,
     cqtP31: r.cqt_p31 != null ? Number(r.cqt_p31) : null,
     cqtP32: r.cqt_p32 != null ? Number(r.cqt_p32) : null,
     cqtK10QtMttr: r.cqt_k10_qt_mttr != null ? Number(r.cqt_k10_qt_mttr) : null,
     cqtParityStatus: r.cqt_parity_status ?? null,
-    cqtParityPassed:
-      r.cqt_parity_passed != null ? Number(r.cqt_parity_passed) : null,
-    cqtParityFailed:
-      r.cqt_parity_failed != null ? Number(r.cqt_parity_failed) : null,
+    cqtParityPassed: r.cqt_parity_passed != null ? Number(r.cqt_parity_passed) : null,
+    cqtParityFailed: r.cqt_parity_failed != null ? Number(r.cqt_parity_failed) : null,
     metadata: r.metadata ?? null,
     createdAt: new Date(r.created_at),
   };

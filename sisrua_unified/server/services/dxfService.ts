@@ -14,6 +14,18 @@ const project = (lat: number, lon: number, center: GeoLocation) => {
   return { x, y };
 };
 
+type Point2D = { x: number; y: number };
+type Point3D = { x: number; y: number; z: number };
+type GeoPoint = { lat: number; lon: number };
+type RelationMember = {
+  type?: string;
+  role?: string;
+  geometry?: GeoPoint[];
+};
+
+const isRelationMember = (value: unknown): value is RelationMember =>
+  typeof value === 'object' && value !== null;
+
 const perpendicularDistance = (p: { x: number, y: number }, v: { x: number, y: number }, w: { x: number, y: number }) => {
   const l2 = (w.x - v.x) ** 2 + (w.y - v.y) ** 2;
   if (l2 === 0) return Math.sqrt((p.x - v.x) ** 2 + (p.y - v.y) ** 2);
@@ -167,7 +179,7 @@ const createElevationResolver = (terrain: TerrainGrid | undefined, centerElev: n
   };
 };
 
-const calculateSlope = (p1: any, p2: any, p3: any): number => {
+const calculateSlope = (p1: Point3D, p2: Point3D, p3: Point3D): number => {
   const ux = p2.x - p1.x;
   const uy = p2.y - p1.y;
   const uz = p2.z - p1.z;
@@ -190,8 +202,8 @@ const getSlopeColor = (angle: number): number => {
   return SLOPE_COLORS.STEEP;
 };
 
-const generatePolyline = (points: any[], layer: string, isClosed: boolean, height: number, center: GeoLocation, getElevationAt: (lat: number, lng: number) => number, layerOffset: number = 0, linetype: string = 'CONTINUOUS', simplify: boolean = false) => {
-  let projected = points.map(p => project(p.lat, p.lon, center));
+const generatePolyline = (points: GeoPoint[], layer: string, isClosed: boolean, height: number, center: GeoLocation, getElevationAt: (lat: number, lng: number) => number, layerOffset: number = 0, linetype: string = 'CONTINUOUS', simplify: boolean = false) => {
+  let projected: Point2D[] = points.map((p) => project(p.lat, p.lon, center));
   if (simplify && projected.length > 2) projected = simplifyPoints(projected, 0.8);
 
   const flag = isClosed ? 1 : 0;
@@ -288,7 +300,8 @@ export const generateDXF = (
     else if (el.type === 'relation' && el.tags?.building) {
       const height = getHeight(el.tags);
       const layerOffset = getLayerOffset(el.tags);
-      el.members.forEach((member: any) => {
+      el.members.forEach((member) => {
+        if (!isRelationMember(member)) return;
         if (member.type === 'way' && member.role === 'outer' && member.geometry) {
           buffer.push(generatePolyline(member.geometry, LAYERS.BUILDINGS.name, true, height, center, getElevationAt, layerOffset, 'CONTINUOUS', options.simplify));
         }

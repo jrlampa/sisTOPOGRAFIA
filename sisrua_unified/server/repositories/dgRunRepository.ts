@@ -38,6 +38,9 @@ export interface IDgRunRepository {
 const MAX_IN_MEMORY_RUNS = 100;
 const inMemoryRuns = new Map<string, DgOptimizationOutput>();
 
+type DgRunOutputRow = Record<string, unknown>;
+type DgDiscardRateRow = Record<string, unknown>;
+
 /**
  * Adiciona um run ao cache em memória com política de despejo simples (FIFO-ish)
  */
@@ -253,13 +256,12 @@ async function saveNormalizedDgData(
   }
 }
 
-function parseOutput(row: any): DgOptimizationOutput | null {
-  const raw = row?.output_json;
+function parseOutput(row: DgRunOutputRow): DgOptimizationOutput | null {
+  const raw = row["output_json"];
   if (!raw) return null;
   try {
-    return (
-      typeof raw === "string" ? JSON.parse(raw) : raw
-    ) as DgOptimizationOutput;
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return parsed as DgOptimizationOutput;
   } catch {
     return null;
   }
@@ -491,7 +493,7 @@ export class PostgresDgRunRepository implements IDgRunRepository {
               `SELECT output_json FROM dg_runs WHERE tenant_id IS NULL ORDER BY computed_at DESC LIMIT $1`,
               [limit],
             );
-        for (const row of rows as any[]) {
+        for (const row of rows as DgRunOutputRow[]) {
           const parsed = parseOutput(row);
           if (parsed && matchesTenant(parsed, tenantId)) {
             summaries.set(parsed.runId, toSummary(parsed));
@@ -564,14 +566,15 @@ export class PostgresDgRunRepository implements IDgRunRepository {
               [limit],
             );
 
-        for (const row of rows as any[]) {
+        for (const row of rows as DgDiscardRateRow[]) {
+          const tenantValue = row["tenant_id"];
           const item: DgDiscardRateByConstraint = {
-            runId: String(row.run_id),
-            tenantId: row.tenant_id ? String(row.tenant_id) : undefined,
-            code: String(row.code) as DgConstraintCode,
-            discardedScenarios: Number(row.discarded_scenarios ?? 0),
-            totalScenarios: Number(row.total_scenarios ?? 0),
-            discardRatePercent: Number(row.discard_rate_percent ?? 0),
+            runId: String(row["run_id"]),
+            tenantId: tenantValue ? String(tenantValue) : undefined,
+            code: String(row["code"]) as DgConstraintCode,
+            discardedScenarios: Number(row["discarded_scenarios"] ?? 0),
+            totalScenarios: Number(row["total_scenarios"] ?? 0),
+            discardRatePercent: Number(row["discard_rate_percent"] ?? 0),
           };
           rowsByRunAndCode.set(`${item.runId}:${item.code}`, item);
         }
@@ -608,7 +611,10 @@ export class PostgresDgRunRepository implements IDgRunRepository {
             `SELECT output_json FROM dg_runs WHERE run_id = $1 AND tenant_id IS NULL LIMIT 1`,
             [runId],
           );
-      const parsed = parseOutput((rows as any[])[0]);
+      const outputRows = rows as DgRunOutputRow[];
+      if (outputRows.length === 0) return null;
+
+      const parsed = parseOutput(outputRows[0]);
       if (parsed && matchesTenant(parsed, tenantId)) {
         inMemoryRuns.set(runId, parsed);
         return parsed;

@@ -66,7 +66,7 @@ export const SnapshotModal: React.FC<SnapshotModalProps> = ({
               <p className="text-[10px] text-fuchsia-400/80 font-black uppercase tracking-[0.3em]">Congelar versões e marcos técnicos</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all hover:rotate-90">
+          <button onClick={onClose} title="Fechar modal" aria-label="Fechar modal" className="p-2 hover:bg-white/10 rounded-full transition-all hover:rotate-90">
             <X className="w-6 h-6 text-slate-500" />
           </button>
         </div>

@@ -4,37 +4,48 @@
  * Utilidades para sanitização de dados sensíveis antes de logging ou transmissão.
  */
 
-export type SanitizeLevel = "strict" | "moderate" | "minimal";
+export type SanitizeLevel = 'strict' | 'moderate' | 'minimal';
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+type ErrorWithMeta = Error & {
+  code?: unknown;
+  statusCode?: unknown;
+};
 
 /**
  * Lista de chaves consideradas sensíveis em nível STRICT
  */
 const SENSITIVE_KEYS_STRICT = new Set([
-  "password",
-  "passwd",
-  "pwd",
-  "token",
-  "apikey",
-  "api_key",
-  "secret",
-  "authorization",
-  "bearer",
-  "redis_password",
-  "database_url",
-  "connection_string",
-  "private_key",
-  "privatekey",
-  "access_token",
-  "refresh_token",
-  "session_token",
-  "jwt",
-  "oauth_token",
-  "github_token",
-  "slack_token",
-  "stripe_key",
-  "aws_secret",
-  "gcp_key",
-  "firebase_key",
+  'password',
+  'passwd',
+  'pwd',
+  'token',
+  'apikey',
+  'api_key',
+  'secret',
+  'authorization',
+  'bearer',
+  'redis_password',
+  'database_url',
+  'connection_string',
+  'private_key',
+  'privatekey',
+  'access_token',
+  'refresh_token',
+  'session_token',
+  'jwt',
+  'oauth_token',
+  'github_token',
+  'slack_token',
+  'stripe_key',
+  'aws_secret',
+  'gcp_key',
+  'firebase_key',
 ]);
 
 /**
@@ -42,15 +53,15 @@ const SENSITIVE_KEYS_STRICT = new Set([
  */
 const SENSITIVE_KEYS_MODERATE = new Set([
   ...SENSITIVE_KEYS_STRICT,
-  "email",
-  "phone",
-  "ssn",
-  "cpf",
-  "credit_card",
-  "card_number",
-  "cvv",
-  "user_id",
-  "username",
+  'email',
+  'phone',
+  'ssn',
+  'cpf',
+  'credit_card',
+  'card_number',
+  'cvv',
+  'user_id',
+  'username',
 ]);
 
 /**
@@ -69,51 +80,44 @@ const SENSITIVE_KEYS_MODERATE = new Set([
  * ```
  */
 export function sanitizeForLogging(
-  obj: any,
-  level: SanitizeLevel = "strict",
+  obj: unknown,
+  level: SanitizeLevel = 'strict',
   maxDepth: number = 10,
-  _currentDepth: number = 0,
-): any {
+  _currentDepth: number = 0
+): unknown {
   // Proteção contra deep recursion
   if (_currentDepth > maxDepth) {
-    return "[MAX_DEPTH_EXCEEDED]";
+    return '[MAX_DEPTH_EXCEEDED]';
   }
 
   // Tipos primitivos: retornar como está
   if (obj === null || obj === undefined) return obj;
-  if (typeof obj !== "object") return obj;
+  if (typeof obj !== 'object') return obj;
 
   // Selecionar conjunto de chaves sensíveis
   const sensitiveKeys =
-    level === "strict"
+    level === 'strict'
       ? SENSITIVE_KEYS_STRICT
-      : level === "moderate"
+      : level === 'moderate'
         ? SENSITIVE_KEYS_MODERATE
         : new Set<string>(); // minimal: nenhuma sanitização
 
   // Arrays: processar cada item
   if (Array.isArray(obj)) {
-    return obj.map((item) =>
-      sanitizeForLogging(item, level, maxDepth, _currentDepth + 1),
-    );
+    return obj.map(item => sanitizeForLogging(item, level, maxDepth, _currentDepth + 1));
   }
 
   // Objetos: processar cada propriedade
-  const sanitized: Record<string, any> = {};
+  const sanitized: UnknownRecord = {};
   for (const [key, value] of Object.entries(obj)) {
     const lowerKey = key.toLowerCase();
 
     // Se a chave é sensível, redactar valor
     if (sensitiveKeys.has(lowerKey)) {
-      sanitized[key] = "***REDACTED***";
-    } else if (typeof value === "object" && value !== null) {
+      sanitized[key] = '***REDACTED***';
+    } else if (typeof value === 'object' && value !== null) {
       // Recursivamente sanitizar objetos aninhados
-      sanitized[key] = sanitizeForLogging(
-        value,
-        level,
-        maxDepth,
-        _currentDepth + 1,
-      );
+      sanitized[key] = sanitizeForLogging(value, level, maxDepth, _currentDepth + 1);
     } else {
       sanitized[key] = value;
     }
@@ -126,31 +130,30 @@ export function sanitizeForLogging(
  * Cria uma versão "segura" de um objeto para logging.
  * Mais prática que sanitizeForLogging para uso em cadeia.
  */
-export function safe(obj: any, level: SanitizeLevel = "strict"): any {
+export function safe(obj: unknown, level: SanitizeLevel = 'strict'): unknown {
   return sanitizeForLogging(obj, level);
 }
 
 /**
  * Sanitiza um erro, removendo mensagens potencialmente sensíveis.
  */
-export function sanitizeError(
-  error: any,
-  level: SanitizeLevel = "strict",
-): any {
+export function sanitizeError(error: unknown, level: SanitizeLevel = 'strict'): unknown {
   if (!(error instanceof Error)) {
     return sanitizeForLogging(error, level);
   }
 
-  const sanitized = {
+  const errorWithMeta = error as ErrorWithMeta;
+
+  const sanitized: UnknownRecord = {
     name: error.name,
     message: sanitizeForLogging(error.message, level),
-    code: (error as any).code,
-    statusCode: (error as any).statusCode,
+    code: errorWithMeta.code,
+    statusCode: errorWithMeta.statusCode,
   };
 
   // Em development, incluir stack trace sanitizado
-  if (process.env.NODE_ENV === "development" && error.stack) {
-    (sanitized as any).stack = sanitizeForLogging(error.stack, level);
+  if (process.env.NODE_ENV === 'development' && error.stack) {
+    sanitized.stack = sanitizeForLogging(error.stack, level);
   }
 
   return sanitized;
@@ -164,14 +167,11 @@ export function sanitizeError(
  * - Input: "sk-1234567890abcdefgh"
  * - Output: "sk-1234...efgh"
  */
-export function partialRedact(
-  value: string | undefined | null,
-  visibleChars: number = 4,
-): string {
-  if (!value) return "";
+export function partialRedact(value: string | undefined | null, visibleChars: number = 4): string {
+  if (!value) return '';
 
   if (value.length <= visibleChars * 2 + 3) {
-    return "***REDACTED***";
+    return '***REDACTED***';
   }
 
   const start = value.slice(0, visibleChars);
@@ -182,15 +182,14 @@ export function partialRedact(
 /**
  * Exemplo de uso prático em logger
  */
-export function createLogContext(
-  ctx: any,
-  level: SanitizeLevel = "strict",
-): any {
+export function createLogContext(ctx: unknown, level: SanitizeLevel = 'strict'): UnknownRecord {
+  const baseContext = isRecord(ctx) ? ctx : {};
+
   return {
-    ...ctx,
+    ...baseContext,
     // Manter requestId, pero sanitizar user data
-    userData: sanitizeForLogging(ctx.userData, level),
-    config: sanitizeForLogging(ctx.config, level),
-    response: sanitizeForLogging(ctx.response, level),
+    userData: sanitizeForLogging(baseContext.userData, level),
+    config: sanitizeForLogging(baseContext.config, level),
+    response: sanitizeForLogging(baseContext.response, level),
   };
 }

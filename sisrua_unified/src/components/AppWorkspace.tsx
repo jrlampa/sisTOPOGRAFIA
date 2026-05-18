@@ -1,29 +1,29 @@
-import React from "react";
-import { SidebarWorkspace } from "./SidebarWorkspace";
-import { AppHeader } from "./AppHeader";
-import MapSelector from "./MapSelector";
-import { SessionRecoveryBanner } from "./SessionRecoveryBanner";
-import { HelpModal } from "./HelpModal";
-import { AppSettingsOverlay } from "./AppSettingsOverlay";
-import { BtModalStack } from "./BtModalStack";
-import { BimInspectorDrawer } from "./BimInspectorDrawer";
-import { ElectricalAuditDrawer } from "./ElectricalAuditDrawer";
-import { BtTelescopicSuggestionModal } from "./BtTelescopicSuggestionModal";
-import Toast from "./Toast";
-import { CommandPalette } from "./CommandPalette";
-import { FeatureSettingsModal } from "./FeatureSettingsModal";
-import { JurisdictionStatus } from "./JurisdictionStatus";
-import { useFeatureFlags } from "../contexts/FeatureFlagContext";
-import { useMultiplayer } from "../hooks/useMultiplayer";
-import { useNeighborhoodAwareness } from "../hooks/useNeighborhoodAwareness";
-import { MultiplayerAvatars } from "./MultiplayerAvatars";
-import { useAuth } from "../auth/AuthProvider";
-import { TopologyProvider } from "../contexts/TopologyContext";
-import type { 
-  AppSettings, 
-  GlobalState, 
-  BtTopology, 
-  MtTopology, 
+import React from 'react';
+import { SidebarWorkspace } from './SidebarWorkspace';
+import { AppHeader } from './AppHeader';
+import MapSelector from './MapSelector';
+import { SessionRecoveryBanner } from './SessionRecoveryBanner';
+import { HelpModal } from './HelpModal';
+import { AppSettingsOverlay } from './AppSettingsOverlay';
+import { BtModalStack } from './BtModalStack';
+import { BimInspectorDrawer } from './BimInspectorDrawer';
+import { ElectricalAuditDrawer } from './ElectricalAuditDrawer';
+import { BtTelescopicSuggestionModal } from './BtTelescopicSuggestionModal';
+import Toast from './Toast';
+import { CommandPalette } from './CommandPalette';
+import { FeatureSettingsModal } from './FeatureSettingsModal';
+import { JurisdictionStatus } from './JurisdictionStatus';
+import { useFeatureFlags } from '../contexts/FeatureFlagContext';
+import { useMultiplayer } from '../hooks/useMultiplayer';
+import { useNeighborhoodAwareness } from '../hooks/useNeighborhoodAwareness';
+import { MultiplayerAvatars } from './MultiplayerAvatars';
+import { useAuth } from '../auth/AuthProvider';
+import { TopologyProvider } from '../contexts/TopologyContext';
+import type {
+  AppSettings,
+  GlobalState,
+  BtTopology,
+  MtTopology,
   CanonicalNetworkTopology,
   SelectionMode,
   GeoLocation,
@@ -117,7 +117,7 @@ export interface AppWorkspaceProps {
   isAuditOpen: boolean;
   setIsAuditOpen: (o: boolean) => void;
   selectedAuditElement: any;
-  handleAuditAction: (action: "approve" | "reject", notes: string) => void;
+  handleAuditAction: (action: 'approve' | 'reject', notes: string) => void;
   btTelescopicSuggestions: any[];
   handleApplyTelescopicSuggestions: (s: any) => void;
   clearBtTelescopicSuggestions: () => void;
@@ -241,51 +241,54 @@ export function AppWorkspace({
   const { neighbors, hasCollision } = useNeighborhoodAwareness(
     mapSelectorProps?.center,
     selectionMode,
-    polygon,
-    "current-project"
+    polygon as any,
+    'current-project'
   );
 
-  const { onlineUsers } = useMultiplayer(
-    flags.enableMultiplayer ? "global-project" : "",
-    { id: user?.id || "anon", name: user?.email?.split("@")[0] || "Visitante" }
+  const { onlineUsers } = useMultiplayer(flags.enableMultiplayer ? 'global-project' : '', {
+    id: user?.id || 'anon',
+    name: user?.email?.split('@')[0] || 'Visitante',
+  });
+
+  const topologyContextValue = React.useMemo(
+    () => ({
+      btTopology,
+      mtTopology,
+      canonicalTopology,
+      btNetworkScenario,
+      btEditorMode,
+      isCalculating,
+      updateBtTopology,
+      updateMtTopology,
+      setBtNetworkScenario,
+      setBtEditorMode,
+    }),
+    [
+      btTopology,
+      mtTopology,
+      canonicalTopology,
+      btNetworkScenario,
+      btEditorMode,
+      isCalculating,
+      updateBtTopology,
+      updateMtTopology,
+      setBtNetworkScenario,
+      setBtEditorMode,
+    ]
   );
 
-  const topologyContextValue = React.useMemo(() => ({
-    btTopology,
-    mtTopology,
-    canonicalTopology,
-    btNetworkScenario,
-    btEditorMode,
-    isCalculating,
-    updateBtTopology,
-    updateMtTopology,
-    setBtNetworkScenario,
-    setBtEditorMode,
-  }), [
-    btTopology, 
-    mtTopology, 
-    canonicalTopology, 
-    btNetworkScenario, 
-    btEditorMode, 
-    isCalculating, 
-    updateBtTopology, 
-    updateMtTopology, 
-    setBtNetworkScenario, 
-    setBtEditorMode
-  ]);
-
-  const currentBtEditorMode = btEditorMode?.mode ?? "none";
+  const currentBtEditorMode = btEditorMode?.mode ?? 'none';
 
   const handleSettingsModalUpdate = React.useCallback(
     (nextSettings: AppSettings) => {
       updateSettings(nextSettings);
 
-      const nextMode = nextSettings.btEditorMode ?? "none";
+      const nextMode = nextSettings.btEditorMode ?? 'none';
       if (currentBtEditorMode !== nextMode) {
         setBtEditorMode({ mode: nextMode });
       }
     },
-    [currentBtEditorMode, setBtEditorMode, updateSettings],
+    [currentBtEditorMode, setBtEditorMode, updateSettings]
   );
 
   const hasExportData = React.useMemo(() => {
@@ -297,7 +300,9 @@ export function AppWorkspace({
 
   return (
     <TopologyProvider value={topologyContextValue}>
-      <div className={`app-shell relative flex h-screen w-full flex-col overflow-hidden font-sans transition-colors duration-500 ${isDark ? "dark text-slate-200" : "text-slate-900"}`}>
+      <div
+        className={`app-shell relative flex h-screen w-full flex-col overflow-hidden font-sans transition-colors duration-500 ${isDark ? 'dark text-slate-200' : 'text-slate-900'}`}
+      >
         {/* Header */}
         <AppHeader
           locale={settings.locale}
@@ -313,11 +318,13 @@ export function AppWorkspace({
           onOpenSnapshots={onOpenSnapshots}
           onFeatureSettings={() => setIsFeatureSettingsOpen(true)}
           onToggleMobileMenu={() => {}}
-          projectName={settings.projectMetadata?.projectName || "Novo Projeto"}
+          projectName={settings.projectMetadata?.projectName || 'Novo Projeto'}
           autoSaveStatus={autoSaveStatus as any}
           lastAutoSaved={lastAutoSaved}
           isSidebarCollapsed={!!settings.sidebarCollapsed}
-          onToggleSidebarCollapsed={() => updateSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed })}
+          onToggleSidebarCollapsed={() =>
+            updateSettings({ ...settings, sidebarCollapsed: !settings.sidebarCollapsed })
+          }
           backendStatus="online"
           backendResponseTimeMs={45}
         />
@@ -328,7 +335,7 @@ export function AppWorkspace({
           <SidebarWorkspace
             locale={settings.locale}
             isCollapsed={!!settings.sidebarCollapsed}
-            onToggleCollapse={(c) => updateSettings({ ...settings, sidebarCollapsed: c })}
+            onToggleCollapse={c => updateSettings({ ...settings, sidebarCollapsed: c })}
             isSidebarDockedForRamalModal={isSidebarDockedForRamalModal}
             selectionControlsProps={sidebarSelectionControlsProps}
             btEditorSectionProps={sidebarBtEditorSectionProps}
@@ -408,8 +415,12 @@ export function AppWorkspace({
             />
 
             <BtTelescopicSuggestionModal
-              output={btTelescopicSuggestions?.length ? { suggestions: btTelescopicSuggestions, lmaxByConductor: {} } : null}
-              onApply={(out) => handleApplyTelescopicSuggestions(out)}
+              output={
+                btTelescopicSuggestions?.length
+                  ? { suggestions: btTelescopicSuggestions, lmaxByConductor: {} }
+                  : null
+              }
+              onApply={out => handleApplyTelescopicSuggestions(out)}
               onCancel={clearBtTelescopicSuggestions}
             />
 

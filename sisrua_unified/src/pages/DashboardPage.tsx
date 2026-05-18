@@ -205,7 +205,16 @@ export default function DashboardPage() {
                    <span className="text-xs font-black text-white">{archivedCount}</span>
                 </div>
                 <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                   <div className="h-full bg-slate-500 transition-all duration-1000" style={{ width: `${(archivedCount / (((projectCount || 0) + archivedCount) || 1)) * 100}%` }} />
+                   <svg className="w-full h-full" viewBox="0 0 100 2" preserveAspectRatio="none" aria-hidden="true">
+                     <rect
+                       x="0"
+                       y="0"
+                       width={Math.max(0, Math.min(100, (archivedCount / (((projectCount || 0) + archivedCount) || 1)) * 100))}
+                       height="2"
+                       rx="1"
+                       className="fill-slate-500 transition-all duration-1000"
+                     />
+                   </svg>
                 </div>
              </div>
 
@@ -218,7 +227,9 @@ export default function DashboardPage() {
                    <span className="text-xs font-black text-white">85%</span>
                 </div>
                 <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                   <div className="h-full bg-emerald-500 transition-all duration-1000 shadow-[0_0_8px_rgba(16,185,129,0.4)]" style={{ width: `85%` }} />
+                   <svg className="w-full h-full" viewBox="0 0 100 2" preserveAspectRatio="none" aria-hidden="true">
+                    <rect x="0" y="0" width="85" height="2" rx="1" className="fill-emerald-500 transition-all duration-1000" />
+                   </svg>
                 </div>
              </div>
 

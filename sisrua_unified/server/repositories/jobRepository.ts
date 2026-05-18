@@ -4,13 +4,13 @@
  * Owns all SQL against the `jobs` table. Business logic (in-memory map,
  * progress callbacks, fallback) stays in jobStatusService.ts.
  */
-import { getDbClient } from "./dbClient.js";
-import { logger } from "../utils/logger.js";
-import type { DbJobRow, DbJson } from "../../shared/dbTypes.js";
+import { getDbClient } from './dbClient.js';
+import { logger } from '../utils/logger.js';
+import type { DbJobRow, DbJson } from '../../shared/dbTypes.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type JobStatus = "queued" | "processing" | "completed" | "failed";
+export type JobStatus = 'queued' | 'processing' | 'completed' | 'failed';
 
 export interface JobRow {
   id: string;
@@ -36,11 +36,10 @@ export interface IJobRepository {
   fail(id: string, tenantId: string, error: string): Promise<void>;
   findById(id: string, tenantId?: string): Promise<JobRow | null>;
   findRecent(limit: number, tenantId?: string): Promise<JobRow[]>;
-  deleteOld(
-    completedMaxAgeMs: number,
-    absoluteMaxAgeMs: number,
-  ): Promise<number>;
+  deleteOld(completedMaxAgeMs: number, absoluteMaxAgeMs: number): Promise<number>;
 }
+
+type CountRow = { cnt?: unknown };
 
 // ── Implementation ────────────────────────────────────────────────────────────
 
@@ -56,10 +55,10 @@ export class PostgresJobRepository implements IJobRepository {
            SET status = EXCLUDED.status,
                progress = EXCLUDED.progress,
                updated_at = NOW()`,
-        [id, tenantId, status, progress],
+        [id, tenantId, status, progress]
       );
     } catch (err) {
-      logger.warn("[JobRepository] upsert failed", { id, tenantId, err });
+      logger.warn('[JobRepository] upsert failed', { id, tenantId, err });
     }
   }
 
@@ -75,10 +74,10 @@ export class PostgresJobRepository implements IJobRepository {
              artifact_sha256 = $4,
              updated_at = NOW()
          WHERE id = $1 AND tenant_id = $2`,
-        [id, tenantId, JSON.stringify(result), result.artifactSha256 ?? null],
+        [id, tenantId, JSON.stringify(result), result.artifactSha256 ?? null]
       );
     } catch (err) {
-      logger.warn("[JobRepository] complete failed", { id, tenantId, err });
+      logger.warn('[JobRepository] complete failed', { id, tenantId, err });
     }
   }
 
@@ -90,30 +89,30 @@ export class PostgresJobRepository implements IJobRepository {
         `UPDATE jobs
          SET status = 'failed', error = $3, updated_at = NOW()
          WHERE id = $1 AND tenant_id = $2`,
-        [id, tenantId, error],
+        [id, tenantId, error]
       );
     } catch (err) {
-      logger.warn("[JobRepository] fail failed", { id, tenantId, err });
+      logger.warn('[JobRepository] fail failed', { id, tenantId, err });
     }
   }
 
   async findById(id: string, tenantId?: string): Promise<JobRow | null> {
     const sql = getDbClient();
     if (!sql) return null;
-    
-    const rows = tenantId 
+
+    const rows = tenantId
       ? await sql.unsafe(
           `SELECT id, status, progress, result, error, created_at, updated_at, attempts
            FROM jobs WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
-          [id, tenantId],
+          [id, tenantId]
         )
       : await sql.unsafe(
           `SELECT id, status, progress, result, error, created_at, updated_at, attempts
            FROM jobs WHERE id = $1 LIMIT 1`,
-          [id],
+          [id]
         );
 
-    const r = (rows as any[])[0];
+    const r = (rows as unknown as RawJobRow[])[0];
     if (!r) return null;
     return _mapRow(r as RawJobRow);
   }
@@ -121,26 +120,23 @@ export class PostgresJobRepository implements IJobRepository {
   async findRecent(limit: number, tenantId?: string): Promise<JobRow[]> {
     const sql = getDbClient();
     if (!sql) return [];
-    
+
     const rows = tenantId
       ? await sql.unsafe(
           `SELECT id, status, progress, result, error, created_at, updated_at, attempts
            FROM jobs WHERE tenant_id = $2 ORDER BY created_at DESC LIMIT $1`,
-          [limit, tenantId],
+          [limit, tenantId]
         )
       : await sql.unsafe(
           `SELECT id, status, progress, result, error, created_at, updated_at, attempts
            FROM jobs ORDER BY created_at DESC LIMIT $1`,
-          [limit],
+          [limit]
         );
-        
-    return (rows as any[]).map((r) => _mapRow(r as RawJobRow));
+
+    return (rows as unknown as RawJobRow[]).map(r => _mapRow(r as RawJobRow));
   }
 
-  async deleteOld(
-    completedMaxAgeMs: number,
-    absoluteMaxAgeMs: number,
-  ): Promise<number> {
+  async deleteOld(completedMaxAgeMs: number, absoluteMaxAgeMs: number): Promise<number> {
     const sql = getDbClient();
     if (!sql) return 0;
     const result = await sql.unsafe(
@@ -150,9 +146,9 @@ export class PostgresJobRepository implements IJobRepository {
             OR created_at < NOW() - ($2::numeric * interval '1 millisecond')
          RETURNING id
        ) SELECT COUNT(*) AS cnt FROM deleted`,
-      [completedMaxAgeMs, absoluteMaxAgeMs],
+      [completedMaxAgeMs, absoluteMaxAgeMs]
     );
-    return Number((result as any[])[0]?.cnt ?? 0);
+    return Number((result as unknown as CountRow[])[0]?.cnt ?? 0);
   }
 }
 

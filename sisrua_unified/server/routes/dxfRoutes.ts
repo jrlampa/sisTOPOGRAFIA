@@ -1,62 +1,55 @@
-import { Router, Request, Response } from "express";
-import multer from "multer";
-import { z } from "zod";
-import { createDxfTask } from "../services/cloudTasksService.js";
+import { Router, Request, Response } from 'express';
+import multer from 'multer';
+import { z } from 'zod';
+import { createDxfTask } from '../services/cloudTasksService.js';
 import {
   createCacheKey,
   deleteCachedFilename,
   getCachedFilename,
-} from "../services/cacheService.js";
-import { logger } from "../utils/logger.js";
-import { dxfRequestSchema } from "../schemas/dxfRequest.js";
-import { batchRowSchema } from "../schemas/apiSchemas.js";
-import { dxfRateLimiter } from "../middleware/rateLimiter.js";
-import { metricsService } from "../services/metricsService.js";
-import { config } from "../config.js";
-import { attachCqtSnapshotToBtContext } from "../services/cqtContextService.js";
-import { parseBatchFile } from "../services/batchService.js";
-import path from "path";
-import fs from "fs";
-import crypto from "crypto";
-import { resolveDxfDirectory } from "../utils/dxfDirectory.js";
-import { requirePermission } from "../middleware/permissionHandler.js";
-import { validate } from "../middleware/validation.js";
+} from '../services/cacheService.js';
+import { logger } from '../utils/logger.js';
+import { dxfRequestSchema } from '../schemas/dxfRequest.js';
+import { batchRowSchema } from '../schemas/apiSchemas.js';
+import { dxfRateLimiter } from '../middleware/rateLimiter.js';
+import { metricsService } from '../services/metricsService.js';
+import { config } from '../config.js';
+import { attachCqtSnapshotToBtContext } from '../services/cqtContextService.js';
+import { parseBatchFile } from '../services/batchService.js';
+import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
+import { resolveDxfDirectory } from '../utils/dxfDirectory.js';
+import { requirePermission } from '../middleware/permissionHandler.js';
+import { validate } from '../middleware/validation.js';
 import {
   detectSuspiciousPatterns,
   validateGeometryComplexity,
   validatorsExpanded,
-} from "../middleware/validation-enhanced.js";
-import {
-  validateBtTopology,
-  type TopologyInput,
-} from "../services/topologicalValidator.js";
+} from '../middleware/validation-enhanced.js';
+import { validateBtTopology, type TopologyInput } from '../services/topologicalValidator.js';
 import {
   getJobDossier,
   listRecentJobs,
   previewFailedTaskSanitation,
   replayFailedTask,
   sanitizeAndReprocessFailedTasks,
-} from "../services/jobDossierService.js";
+} from '../services/jobDossierService.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
 const router = Router();
 
 // Servir arquivos DXF gerados (Mover para o topo)
-router.get("/downloads/:filename", (req: Request, res: Response) => {
+router.get('/downloads/:filename', (req: Request, res: Response) => {
   const { filename } = req.params;
 
   // Basic sanitization: block any path separators or null bytes
-  if (
-    filename.includes("/") ||
-    filename.includes("\\") ||
-    filename.includes("\0")
-  ) {
-    logger.warn("Tentativa de Path Traversal bloqueada", {
+  if (filename.includes('/') || filename.includes('\\') || filename.includes('\0')) {
+    logger.warn('Tentativa de Path Traversal bloqueada', {
       filename,
       ip: req.ip,
     });
-    return res.status(400).json({ error: "Nome de arquivo inválido" });
+    return res.status(400).json({ error: 'Nome de arquivo inválido' });
   }
 
   const dxfDirectory = resolveDxfDirectory();
@@ -64,28 +57,26 @@ router.get("/downloads/:filename", (req: Request, res: Response) => {
 
   // Ensure the resolved path is still inside the dxfDirectory
   if (!filePath.startsWith(dxfDirectory)) {
-    logger.warn("Tentativa de escape de diretório detectada", {
+    logger.warn('Tentativa de escape de diretório detectada', {
       filename,
       filePath,
       ip: req.ip,
     });
-    return res.status(403).json({ error: "Acesso negado" });
+    return res.status(403).json({ error: 'Acesso negado' });
   }
 
-  logger.info("Tentativa de download de DXF", { filename, filePath });
+  logger.info('Tentativa de download de DXF', { filename, filePath });
 
   if (fs.existsSync(filePath)) {
     // Forçar download binário
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    res.setHeader("Content-Type", "application/octet-stream");
-    res.setHeader("Content-Description", "File Transfer");
-    res.setHeader("Cache-Control", "no-cache, must-revalidate");
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Description', 'File Transfer');
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
     return res.sendFile(filePath);
   } else {
-    logger.warn("Arquivo não encontrado para download", { filename, filePath });
-    return res
-      .status(404)
-      .json({ error: "Arquivo não encontrado ou expirado" });
+    logger.warn('Arquivo não encontrado para download', { filename, filePath });
+    return res.status(404).json({ error: 'Arquivo não encontrado ou expirado' });
   }
 });
 
@@ -94,8 +85,8 @@ router.get("/downloads/:filename", (req: Request, res: Response) => {
 // Protocol normalization: ensure only 'http' or 'https'
 const protocolSchema = z
   .string()
-  .transform((v) => v.split(",")[0].trim().toLowerCase())
-  .refine((v) => v === "http" || v === "https", {
+  .transform(v => v.split(',')[0].trim().toLowerCase())
+  .refine(v => v === 'http' || v === 'https', {
     message: 'Protocol must be "http" or "https"',
   });
 
@@ -118,20 +109,20 @@ const batchFileSchema = z
   .object({
     buffer: z
       .instanceof(Buffer)
-      .refine((buf) => buf.byteLength > 0, { message: "File is empty" })
-      .refine((buf) => buf.byteLength <= 50 * 1024 * 1024, {
-        message: "File exceeds 50MB limit",
+      .refine(buf => buf.byteLength > 0, { message: 'File is empty' })
+      .refine(buf => buf.byteLength <= 50 * 1024 * 1024, {
+        message: 'File exceeds 50MB limit',
       }),
     mimetype: z
       .string()
       .refine(
-        (mime) =>
+        mime =>
           [
-            "text/csv",
-            "application/vnd.ms-excel",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            'text/csv',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           ].includes(mime),
-        { message: "Invalid file type. Allowed: CSV, XLS, XLSX" },
+        { message: 'Invalid file type. Allowed: CSV, XLS, XLSX' }
       ),
     originalname: z.string().optional(),
   })
@@ -139,7 +130,7 @@ const batchFileSchema = z
 
 // ────────────────────────────────────────────────────────────────────────
 
-const DEFAULT_ALLOWED_HOSTS = new Set(["localhost", "127.0.0.1"]);
+const DEFAULT_ALLOWED_HOSTS = new Set(['localhost', '127.0.0.1']);
 
 const safeParseUrl = (value: string): URL | null => {
   try {
@@ -151,16 +142,16 @@ const safeParseUrl = (value: string): URL | null => {
 
 const getFallbackBaseUrl = (): string => {
   if (config.APP_PUBLIC_URL) {
-    return config.APP_PUBLIC_URL.replace(/\/+$/, "");
+    return config.APP_PUBLIC_URL.replace(/\/+$/, '');
   }
 
-  if (config.isDocker && config.NODE_ENV === "development") {
-    return "http://localhost:3002";
+  if (config.isDocker && config.NODE_ENV === 'development') {
+    return 'http://localhost:3002';
   }
 
   if (config.CORS_ORIGIN) {
-    const firstOrigin = config.CORS_ORIGIN.split(",")
-      .map((entry) => entry.trim())
+    const firstOrigin = config.CORS_ORIGIN.split(',')
+      .map(entry => entry.trim())
       .find(Boolean);
     if (firstOrigin) {
       const parsed = safeParseUrl(firstOrigin);
@@ -184,8 +175,8 @@ const buildAllowedHosts = (): Set<string> => {
   }
 
   if (config.CORS_ORIGIN) {
-    const origins = config.CORS_ORIGIN.split(",")
-      .map((entry) => entry.trim())
+    const origins = config.CORS_ORIGIN.split(',')
+      .map(entry => entry.trim())
       .filter(Boolean);
     for (const origin of origins) {
       const parsed = safeParseUrl(origin);
@@ -207,8 +198,20 @@ const failedTaskSanitationBodySchema = z
   })
   .strict();
 
-const normalizeProtocol = (value: unknown): "http" | "https" | null => {
-  if (typeof value !== "string" || value.trim().length === 0) {
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'Unknown error';
+}
+
+const normalizeProtocol = (value: unknown): 'http' | 'https' | null => {
+  if (typeof value !== 'string' || value.trim().length === 0) {
     return null;
   }
 
@@ -222,15 +225,15 @@ const normalizeProtocol = (value: unknown): "http" | "https" | null => {
 // Exported for focused unit tests.
 export function getBaseUrl(req: Request): string {
   if (config.APP_PUBLIC_URL) {
-    return config.APP_PUBLIC_URL.replace(/\/+$/, "");
+    return config.APP_PUBLIC_URL.replace(/\/+$/, '');
   }
 
-  const hostname = String(req.hostname || "")
+  const hostname = String(req.hostname || '')
     .trim()
     .toLowerCase();
   if (!hostname || !ALLOWED_HOSTS.has(hostname)) {
     const fallback = getFallbackBaseUrl();
-    logger.warn("Unsafe host header detected when building DXF download URL", {
+    logger.warn('Unsafe host header detected when building DXF download URL', {
       receivedHost: req.headers.host,
       hostname,
       fallback,
@@ -239,63 +242,52 @@ export function getBaseUrl(req: Request): string {
   }
 
   const protocol =
-    normalizeProtocol(req.headers["x-forwarded-proto"]) ||
+    normalizeProtocol(req.headers['x-forwarded-proto']) ||
     normalizeProtocol(req.protocol) ||
-    (config.NODE_ENV === "production" ? "https" : "http");
+    (config.NODE_ENV === 'production' ? 'https' : 'http');
 
-  const hostHeader =
-    typeof req.headers.host === "string" ? req.headers.host : "";
+  const hostHeader = typeof req.headers.host === 'string' ? req.headers.host : '';
   const portMatch = hostHeader.match(/:(\d{1,5})$/);
   const port = portMatch ? Number.parseInt(portMatch[1], 10) : NaN;
   const hasValidPort = Number.isInteger(port) && port >= 1 && port <= 65535;
-  const portSegment = hasValidPort ? `:${port}` : "";
+  const portSegment = hasValidPort ? `:${port}` : '';
 
   return `${protocol}://${hostname}${portSegment}`;
 }
 
 function extractCqtSummary(btContext: unknown): Record<string, unknown> | null {
-  if (!btContext || typeof btContext !== "object") {
+  if (!isRecord(btContext)) {
     return null;
   }
 
-  const context = btContext as Record<string, any>;
-  const cqtSnapshotRaw = context.cqtSnapshot;
-  if (!cqtSnapshotRaw || typeof cqtSnapshotRaw !== "object") {
+  const cqtSnapshotRaw = btContext['cqtSnapshot'];
+  if (!isRecord(cqtSnapshotRaw)) {
     return null;
   }
 
-  const cqtSnapshot = cqtSnapshotRaw as Record<string, any>;
-  const parity = cqtSnapshot.parity as Record<string, any> | undefined;
+  const cqtSnapshot = cqtSnapshotRaw;
+  const parityRaw = cqtSnapshot['parity'];
+  const parity = isRecord(parityRaw) ? parityRaw : undefined;
+
+  const dmdiRaw = cqtSnapshot['dmdi'];
+  const dmdi = isRecord(dmdiRaw) ? dmdiRaw['dmdi'] : undefined;
+
+  const geralRaw = cqtSnapshot['geral'];
+  const geral = isRecord(geralRaw) ? geralRaw : undefined;
+
+  const dbRaw = cqtSnapshot['db'];
+  const db = isRecord(dbRaw) ? dbRaw : undefined;
 
   const summary = {
-    scenario:
-      typeof cqtSnapshot.scenario === "string"
-        ? cqtSnapshot.scenario
-        : undefined,
-    dmdi:
-      typeof cqtSnapshot.dmdi?.dmdi === "number"
-        ? cqtSnapshot.dmdi.dmdi
-        : undefined,
-    p31:
-      typeof cqtSnapshot.geral?.p31CqtNoPonto === "number"
-        ? cqtSnapshot.geral.p31CqtNoPonto
-        : undefined,
-    p32:
-      typeof cqtSnapshot.geral?.p32CqtNoPonto === "number"
-        ? cqtSnapshot.geral.p32CqtNoPonto
-        : undefined,
-    k10QtMttr:
-      typeof cqtSnapshot.db?.k10QtMttr === "number"
-        ? cqtSnapshot.db.k10QtMttr
-        : undefined,
+    scenario: typeof cqtSnapshot['scenario'] === 'string' ? cqtSnapshot['scenario'] : undefined,
+    dmdi: typeof dmdi === 'number' ? dmdi : undefined,
+    p31: typeof geral?.['p31CqtNoPonto'] === 'number' ? geral['p31CqtNoPonto'] : undefined,
+    p32: typeof geral?.['p32CqtNoPonto'] === 'number' ? geral['p32CqtNoPonto'] : undefined,
+    k10QtMttr: typeof db?.['k10QtMttr'] === 'number' ? db['k10QtMttr'] : undefined,
     parityStatus:
-      typeof parity?.referenceStatus === "string"
-        ? parity.referenceStatus
-        : undefined,
-    parityPassed:
-      typeof parity?.passed === "number" ? parity.passed : undefined,
-    parityFailed:
-      typeof parity?.failed === "number" ? parity.failed : undefined,
+      typeof parity?.['referenceStatus'] === 'string' ? parity['referenceStatus'] : undefined,
+    parityPassed: typeof parity?.['passed'] === 'number' ? parity['passed'] : undefined,
+    parityFailed: typeof parity?.['failed'] === 'number' ? parity['failed'] : undefined,
   };
 
   // Validate extracted summary against schema
@@ -315,23 +307,20 @@ function buildDxfRequestSource(req: Request): {
   queuedAt: string;
 } {
   const requestId =
-    typeof req.headers["x-request-id"] === "string"
-      ? req.headers["x-request-id"].trim()
+    typeof req.headers['x-request-id'] === 'string'
+      ? req.headers['x-request-id'].trim()
       : undefined;
-  const endpoint =
-    `${req.method.toUpperCase()} ${req.baseUrl || ""}${req.path || ""}`.trim();
+  const endpoint = `${req.method.toUpperCase()} ${req.baseUrl || ''}${req.path || ''}`.trim();
   const sourceHeader =
-    typeof req.headers["x-client-source"] === "string"
-      ? req.headers["x-client-source"].trim()
-      : "";
+    typeof req.headers['x-client-source'] === 'string' ? req.headers['x-client-source'].trim() : '';
 
   return {
     endpoint,
     ...(requestId ? { requestId } : {}),
     source: sourceHeader.length > 0 ? sourceHeader : endpoint,
-    ...(typeof req.ip === "string" && req.ip.length > 0 ? { ip: req.ip } : {}),
-    ...(typeof req.headers["user-agent"] === "string"
-      ? { userAgent: req.headers["user-agent"] }
+    ...(typeof req.ip === 'string' && req.ip.length > 0 ? { ip: req.ip } : {}),
+    ...(typeof req.headers['user-agent'] === 'string'
+      ? { userAgent: req.headers['user-agent'] }
       : {}),
     queuedAt: new Date().toISOString(),
   };
@@ -339,9 +328,9 @@ function buildDxfRequestSource(req: Request): {
 
 // DXF Generation Endpoint
 router.post(
-  "/",
+  '/',
   dxfRateLimiter,
-  requirePermission("export_dxf"),
+  requirePermission('export_dxf'),
   detectSuspiciousPatterns,
   validateGeometryComplexity,
   validate(validatorsExpanded.dxfRequest),
@@ -350,13 +339,13 @@ router.post(
       const requestSource = buildDxfRequestSource(req);
       const validation = dxfRequestSchema.safeParse(req.body);
       if (!validation.success) {
-        logger.warn("DXF validation failed", {
+        logger.warn('DXF validation failed', {
           issues: validation.error.issues,
           ip: req.ip,
           requestSource,
         });
         return res.status(422).json({
-          error: "Invalid request body",
+          error: 'Invalid request body',
           details: validation.error.issues,
         });
       }
@@ -375,24 +364,23 @@ router.post(
       } = validation.data;
 
       // ── Item 8 · Validação topológica em tempo real ─────────────────────────
-      const rawTopology = (
-        validatedBtContext as Record<string, unknown> | undefined | null
-      )?.topology as TopologyInput | undefined | null;
-      if (rawTopology && typeof rawTopology === "object") {
+      const rawTopology = (validatedBtContext as Record<string, unknown> | undefined | null)
+        ?.topology as TopologyInput | undefined | null;
+      if (rawTopology && typeof rawTopology === 'object') {
         const topoResult = validateBtTopology(rawTopology);
         if (!topoResult.valid) {
-          logger.warn("Topologia BT inválida — DXF rejeitado", {
+          logger.warn('Topologia BT inválida — DXF rejeitado', {
             errors: topoResult.errors,
             ip: req.ip,
           });
           return res.status(422).json({
-            error: "Topologia BT inválida",
+            error: 'Topologia BT inválida',
             topologyErrors: topoResult.errors,
             topologyWarnings: topoResult.warnings,
           });
         }
         if (topoResult.warnings.length > 0) {
-          logger.info("Topologia BT com avisos (aceita)", {
+          logger.info('Topologia BT com avisos (aceita)', {
             warnings: topoResult.warnings,
             ip: req.ip,
           });
@@ -400,20 +388,17 @@ router.post(
       }
       // ───────────────────────────────────────────────────────────────────────
 
-      const btContext = attachCqtSnapshotToBtContext(
-        validatedBtContext ?? undefined,
-      );
+      const btContext = attachCqtSnapshotToBtContext(validatedBtContext ?? undefined);
       const cqtSummary = extractCqtSummary(btContext);
-      const resolvedContourRenderMode =
-        contourRenderMode === "polyline" ? "polyline" : "spline";
-      const resolvedMode = mode || "circle";
+      const resolvedContourRenderMode = contourRenderMode === 'polyline' ? 'polyline' : 'spline';
+      const resolvedMode = mode || 'circle';
       const cacheKey = createCacheKey({
         lat,
         lon,
         radius,
         mode: resolvedMode,
         contourRenderMode: resolvedContourRenderMode,
-        polygon: typeof polygon === "string" ? polygon : (polygon ?? null),
+        polygon: typeof polygon === 'string' ? polygon : (polygon ?? null),
         layers: layers ?? {},
         btContext: btContext ?? null,
       });
@@ -425,27 +410,27 @@ router.post(
         if (fs.existsSync(cachedFilePath)) {
           const baseUrl = getBaseUrl(req);
           const cachedUrl = `${baseUrl}/api/dxf/downloads/${cachedFilename}`;
-          logger.info("DXF cache hit", {
+          logger.info('DXF cache hit', {
             cacheKey,
             filename: cachedFilename,
             ip: req.ip,
           });
-          metricsService.recordDxfRequest("cache_hit");
+          metricsService.recordDxfRequest('cache_hit');
           return res.json({
-            status: "success",
-            message: "DXF Generated",
+            status: 'success',
+            message: 'DXF Generated',
             url: cachedUrl,
             ...(cqtSummary && { cqtSummary }),
           });
         }
         deleteCachedFilename(cacheKey);
-        logger.warn("DXF cache entry missing file", {
+        logger.warn('DXF cache entry missing file', {
           cacheKey,
           filename: cachedFilename,
           ip: req.ip,
         });
       } else {
-        logger.info("DXF cache miss", { cacheKey, ip: req.ip });
+        logger.info('DXF cache miss', { cacheKey, ip: req.ip });
       }
 
       const baseUrl = getBaseUrl(req);
@@ -456,18 +441,18 @@ router.post(
       // Incluindo o prefixo da rota /api/dxf
       const downloadUrl = `${baseUrl}/api/dxf/downloads/${filename}`;
 
-      logger.info("Queueing DXF generation", {
+      logger.info('Queueing DXF generation', {
         lat,
         lon,
         radius,
         mode: resolvedMode,
-        projection: projection || "local",
+        projection: projection || 'local',
         contourRenderMode: resolvedContourRenderMode,
         hasBtContext: !!btContext,
         hasCqtSnapshot: !!(
           btContext &&
-          typeof btContext === "object" &&
-          "cqtSnapshot" in btContext
+          typeof btContext === 'object' &&
+          'cqtSnapshot' in btContext
         ),
         cacheKey,
         requestSource,
@@ -481,12 +466,9 @@ router.post(
           lon,
           radius,
           mode: resolvedMode,
-          polygon:
-            typeof polygon === "string"
-              ? polygon
-              : JSON.stringify(polygon || []),
+          polygon: typeof polygon === 'string' ? polygon : JSON.stringify(polygon || []),
           layers: layers || {},
-          projection: projection || "local",
+          projection: projection || 'local',
           contourRenderMode: resolvedContourRenderMode,
           btContext: btContext ?? null,
           mtContext: validatedMtContext ?? null,
@@ -499,43 +481,43 @@ router.post(
           cacheKey,
           downloadUrl,
         },
-        userTenantId,
+        userTenantId
       );
 
-      const responseStatus = alreadyCompleted ? "success" : "queued";
-      metricsService.recordDxfRequest("generated");
+      const responseStatus = alreadyCompleted ? 'success' : 'queued';
+      metricsService.recordDxfRequest('generated');
       return res.status(alreadyCompleted ? 200 : 202).json({
         status: responseStatus,
         jobId: taskId,
         ...(cqtSummary && { cqtSummary }),
         ...(alreadyCompleted && {
           url: downloadUrl,
-          message: "DXF generated immediately in development mode",
+          message: 'DXF generated immediately in development mode',
         }),
       });
     } catch (err: unknown) {
-      logger.error("DXF generation error", {
+      logger.error('DXF generation error', {
         error: err instanceof Error ? err.message : String(err),
         ip: req.ip,
       });
-      metricsService.recordDxfRequest("failed");
-      return res.status(500).json({ error: "Generation failed" });
+      metricsService.recordDxfRequest('failed');
+      return res.status(500).json({ error: 'Generation failed' });
     }
-  },
+  }
 );
 
 // Batch DXF Generation via File (CSV or Excel)
 router.post(
-  "/batch",
+  '/batch',
   dxfRateLimiter,
-  upload.single("csv"),
-  requirePermission("export_dxf"),
+  upload.single('csv'),
+  requirePermission('export_dxf'),
   async (req: Request, res: Response) => {
     try {
       const requestSource = buildDxfRequestSource(req);
       const userTenantId = res.locals.tenantId;
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
+        return res.status(400).json({ error: 'No file uploaded' });
       }
 
       // Validate file MIME type and buffer size
@@ -547,7 +529,7 @@ router.post(
 
       if (!fileValidation.success) {
         return res.status(400).json({
-          error: "Invalid file",
+          error: 'Invalid file',
           details: fileValidation.error.issues,
         });
       }
@@ -575,10 +557,10 @@ router.post(
           lat,
           lon,
           radius,
-          mode: mode || "circle",
+          mode: mode || 'circle',
           polygon: null,
           layers: {},
-          contourRenderMode: "spline",
+          contourRenderMode: 'spline',
           btContext: null,
         });
 
@@ -588,11 +570,11 @@ router.post(
               lat,
               lon,
               radius,
-              mode: mode || "circle",
-              polygon: "[]",
+              mode: mode || 'circle',
+              polygon: '[]',
               layers: {},
-              projection: "local",
-              contourRenderMode: "spline",
+              projection: 'local',
+              contourRenderMode: 'spline',
               btContext: null,
               requestMeta: {
                 ...requestSource,
@@ -604,60 +586,60 @@ router.post(
               downloadUrl,
               cacheKey,
             },
-            userTenantId,
+            userTenantId
           );
 
-          results.push({ name, line, taskId, status: "queued" });
-        } catch (err: any) {
-          errors.push({ name, line, error: err.message });
+          results.push({ name, line, taskId, status: 'queued' });
+        } catch (err: unknown) {
+          errors.push({ name, line, error: getErrorMessage(err) });
         }
       }
 
       return res.json({
-        status: "batch_processed",
+        status: 'batch_processed',
         total: rows.length,
         queued: results.length,
         failed: errors.length,
         results,
         errors,
       });
-    } catch (err: any) {
-      logger.error("Batch DXF processing failed", { error: err.message });
-      return res.status(500).json({ error: "Batch processing failed" });
+    } catch (err: unknown) {
+      logger.error('Batch DXF processing failed', {
+        error: getErrorMessage(err),
+      });
+      return res.status(500).json({ error: 'Batch processing failed' });
     }
-  },
+  }
 );
 
 // GET /dxf/jobs/failed/sanitation-preview?limit=N — classifica failed por origem/causa
 router.get(
-  "/jobs/failed/sanitation-preview",
-  requirePermission("admin"),
+  '/jobs/failed/sanitation-preview',
+  requirePermission('admin'),
   async (req: Request, res: Response) => {
     try {
-      const raw = Number(req.query["limit"] ?? 200);
+      const raw = Number(req.query['limit'] ?? 200);
       const limit = Number.isFinite(raw) ? raw : 200;
       const preview = await previewFailedTaskSanitation(limit);
       return res.json(preview);
     } catch (err) {
-      logger.error("Erro na prévia de saneação de tarefas com falha", {
+      logger.error('Erro na prévia de saneação de tarefas com falha', {
         error: err,
       });
-      return res
-        .status(500)
-        .json({ error: "Falha ao gerar prévia de saneação" });
+      return res.status(500).json({ error: 'Falha ao gerar prévia de saneação' });
     }
-  },
+  }
 );
 
 // POST /dxf/jobs/failed/sanitize-reprocess — saneia inválidos e reprocessa elegíveis
 router.post(
-  "/jobs/failed/sanitize-reprocess",
-  requirePermission("admin"),
+  '/jobs/failed/sanitize-reprocess',
+  requirePermission('admin'),
   async (req: Request, res: Response) => {
     const parsed = failedTaskSanitationBodySchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       return res.status(400).json({
-        error: "Payload inválido",
+        error: 'Payload inválido',
         details: parsed.error.flatten(),
       });
     }
@@ -672,72 +654,68 @@ router.post(
 
     const result = await sanitizeAndReprocessFailedTasks(limit);
     return res.json(result);
-  },
+  }
 );
 
 // ─── Job Dossier — Item 3: Orquestração Confiável ────────────────────────────
 
 // GET /dxf/jobs?limit=N  — lista jobs recentes (admin ou técnico)
-router.get(
-  "/jobs",
-  requirePermission("export_dxf"),
-  async (req: Request, res: Response) => {
-    try {
-      const raw = Number(req.query["limit"] ?? 50);
-      const limit = Number.isFinite(raw) ? raw : 50;
+router.get('/jobs', requirePermission('export_dxf'), async (req: Request, res: Response) => {
+  try {
+    const raw = Number(req.query['limit'] ?? 50);
+    const limit = Number.isFinite(raw) ? raw : 50;
 
-      const userTenantId = res.locals.tenantId;
-      const userRole = res.locals.userRole;
+    const userTenantId = res.locals.tenantId;
+    const userRole = res.locals.userRole;
 
-      // Se não for admin, filtra pelo tenantId
-      const tenantToFilter = userRole === "admin" ? undefined : userTenantId;
+    // Se não for admin, filtra pelo tenantId
+    const tenantToFilter = userRole === 'admin' ? undefined : userTenantId;
 
-      const jobs = await listRecentJobs(limit, tenantToFilter);
-      return res.json({ total: jobs.length, jobs });
-    } catch (err) {
-      logger.error("Erro ao listar jobs recentes", { error: err });
-      return res.status(500).json({ error: "Falha ao listar jobs" });
-    }
-  },
-);
+    const jobs = await listRecentJobs(limit, tenantToFilter);
+    return res.json({ total: jobs.length, jobs });
+  } catch (err) {
+    logger.error('Erro ao listar jobs recentes', { error: err });
+    return res.status(500).json({ error: 'Falha ao listar jobs' });
+  }
+});
 
 // GET /dxf/jobs/:taskId  — dossiê completo de um job
 router.get(
-  "/jobs/:taskId",
-  requirePermission("export_dxf"),
+  '/jobs/:taskId',
+  requirePermission('export_dxf'),
   async (req: Request, res: Response) => {
     const { taskId } = req.params;
     const dossier = await getJobDossier(taskId);
     if (!dossier) {
-      return res.status(404).json({ error: "Tarefa não encontrada" });
+      return res.status(404).json({ error: 'Tarefa não encontrada' });
     }
 
     // Security: IDOR protection — check if job belongs to the user's tenant
     const userTenantId = res.locals.tenantId;
-    if (dossier.tenantId !== userTenantId && res.locals.userRole !== "admin") {
-      logger.warn("Tentativa de IDOR detectada em DXF Dossier", {
+    if (dossier.tenantId !== userTenantId && res.locals.userRole !== 'admin') {
+      logger.warn('Tentativa de IDOR detectada em DXF Dossier', {
         userId: res.locals.userId,
         taskId,
         dossierTenant: dossier.tenantId,
         userTenant: userTenantId,
       });
-      return res.status(404).json({ error: "Tarefa não encontrada" });
+      return res.status(404).json({ error: 'Tarefa não encontrada' });
     }
 
     return res.json(dossier);
-  },
+  }
 );
 
 // POST /dxf/jobs/:taskId/replay  — replay controlado (somente admin)
 router.post(
-  "/jobs/:taskId/replay",
-  requirePermission("admin"),
+  '/jobs/:taskId/replay',
+  requirePermission('admin'),
   async (req: Request, res: Response) => {
     const { taskId } = req.params;
     const result = await replayFailedTask(taskId);
     const httpStatus = result.replayed ? 200 : 409;
     return res.status(httpStatus).json(result);
-  },
+  }
 );
 
 export default router;

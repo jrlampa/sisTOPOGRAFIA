@@ -15,7 +15,7 @@ router.get('/conductors', async (req: Request, res: Response) => {
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.trunc(limitRaw), 1), 500) : 200;
 
   const where: string[] = ['is_active = true'];
-  const params: unknown[] = [];
+  const params: (string | number)[] = [];
 
   if (category) {
     params.push(category);

@@ -15,6 +15,17 @@ const router = Router();
 const ELEVATION_INTERNAL_ERROR_RESPONSE = {
   error: "Elevation service temporarily unavailable",
 };
+
+function errorMetadata(error: unknown): { message: string; stack?: string } {
+  if (error instanceof Error) {
+    return { message: error.message, stack: error.stack };
+  }
+  if (typeof error === "string") {
+    return { message: error };
+  }
+  return { message: "Unknown error" };
+}
+
 const MIN_STATS_RADIUS_M = 10;
 const MAX_STATS_RADIUS_M = 2_000;
 
@@ -54,10 +65,11 @@ router.post("/profile", async (req: Request, res: Response) => {
       steps,
     );
     return res.json({ profile });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const meta = errorMetadata(error);
     logger.error("Elevation profile error", {
-      error: error.message,
-      stack: error.stack,
+      error: meta.message,
+      stack: meta.stack,
     });
     return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
   }
@@ -134,8 +146,9 @@ ${profile
       );
       return res.send(kml);
     }
-  } catch (error: any) {
-    logger.error("Elevation profile export error", { error: error.message });
+  } catch (error: unknown) {
+    const meta = errorMetadata(error);
+    logger.error("Elevation profile export error", { error: meta.message, stack: meta.stack });
     return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
   }
 });
@@ -220,8 +233,9 @@ router.get("/stats", async (req: Request, res: Response) => {
       center: { lat: centerLat, lng: centerLng },
       radius_m: radiusM,
     });
-  } catch (error: any) {
-    logger.error("Elevation stats error", { error: error.message });
+  } catch (error: unknown) {
+    const meta = errorMetadata(error);
+    logger.error("Elevation stats error", { error: meta.message, stack: meta.stack });
     return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
   }
 });
@@ -247,8 +261,9 @@ router.get("/cache/status", (req: Request, res: Response) => {
       isBrazilianTerritory: true,
       source: "INPE TOPODATA",
     });
-  } catch (error: any) {
-    logger.error("Cache status error", { error: error.message });
+  } catch (error: unknown) {
+    const meta = errorMetadata(error);
+    logger.error("Cache status error", { error: meta.message, stack: meta.stack });
     return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
   }
 });
@@ -266,8 +281,9 @@ router.post("/cache/clear", (req: Request, res: Response) => {
   try {
     TopodataService.clearCache();
     return res.json({ message: "TOPODATA cache cleared successfully" });
-  } catch (error: any) {
-    logger.error("Cache clear error", { error: error.message });
+  } catch (error: unknown) {
+    const meta = errorMetadata(error);
+    logger.error("Cache clear error", { error: meta.message, stack: meta.stack });
     return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
   }
 });
@@ -315,8 +331,9 @@ router.post("/batch", async (req: Request, res: Response) => {
         openElevation: openElevCount,
       },
     });
-  } catch (error: any) {
-    logger.error("Batch elevation error", { error: error.message });
+  } catch (error: unknown) {
+    const meta = errorMetadata(error);
+    logger.error("Batch elevation error", { error: meta.message, stack: meta.stack });
     return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
   }
 });
@@ -367,8 +384,9 @@ router.get("/compare", async (req: Request, res: Response) => {
         ? "Use TOPODATA (30m) for better accuracy in Brazil"
         : "Use Open-Elevation (90m) for international locations",
     });
-  } catch (error: any) {
-    logger.error("Elevation comparison error", { error: error.message });
+  } catch (error: unknown) {
+    const meta = errorMetadata(error);
+    logger.error("Elevation comparison error", { error: meta.message, stack: meta.stack });
     return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
   }
 });
@@ -445,8 +463,9 @@ router.get("/slope", async (req: Request, res: Response) => {
           ? "Steep terrain - consider terrain cut/fill analysis"
           : "Suitable for standard construction",
     });
-  } catch (error: any) {
-    logger.error("Slope analysis error", { error: error.message });
+  } catch (error: unknown) {
+    const meta = errorMetadata(error);
+    logger.error("Slope analysis error", { error: meta.message, stack: meta.stack });
     return res.status(500).json(ELEVATION_INTERNAL_ERROR_RESPONSE);
   }
 });

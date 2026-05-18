@@ -211,10 +211,17 @@ export const CompliancePanel: React.FC<CompliancePanelProps> = ({
                     </span>
                   </div>
                   <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden shadow-inner">
-                    <div
-                      className="h-full bg-gradient-to-r from-amber-600 to-amber-400 transition-all duration-1000 shadow-[0_0_8px_rgba(251,191,36,0.5)]"
-                      style={{ width: `${result.urban?.score}%` }}
-                    />
+                    <svg className="w-full h-full" viewBox="0 0 100 2" preserveAspectRatio="none" aria-hidden="true">
+                      <rect x="0" y="0" width="100" height="2" rx="1" className="fill-slate-800" />
+                      <rect
+                        x="0"
+                        y="0"
+                        width={Math.max(0, Math.min(100, Number(result.urban?.score ?? 0)))}
+                        height="2"
+                        rx="1"
+                        className="fill-amber-500 transition-all duration-1000"
+                      />
+                    </svg>
                   </div>
                 </div>
               </motion.div>

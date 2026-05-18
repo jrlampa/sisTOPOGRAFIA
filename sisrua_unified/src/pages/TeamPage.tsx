@@ -134,7 +134,7 @@ export const TeamPage: React.FC = () => {
                 </td>
                 <td className="p-6 text-[11px] font-black text-slate-500 uppercase">{member.lastActive}</td>
                 <td className="p-6 text-right">
-                   <button className="p-2 hover:bg-white/10 rounded-xl text-slate-500 transition-all opacity-0 group-hover:opacity-100">
+                   <button title="Ações do membro" aria-label="Ações do membro" className="p-2 hover:bg-white/10 rounded-xl text-slate-500 transition-all opacity-0 group-hover:opacity-100">
                       <MoreHorizontal size={18} />
                    </button>
                 </td>

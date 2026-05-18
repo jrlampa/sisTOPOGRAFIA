@@ -79,7 +79,7 @@ describe('Billing API Contract Tests', () => {
     it('deve retornar 401 se o usuário não estiver autenticado', async () => {
       const res = await request(app).post('/api/billing/checkout').send({ tier: 'professional' });
       expect(res.status).toBe(401);
-      expect(res.body.erro).toBe('Não autenticado');
+      expect(res.body.erro).toBe('Authentication required');
     });
   });
 });

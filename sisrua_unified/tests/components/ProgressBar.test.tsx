@@ -44,9 +44,9 @@ describe('ProgressBar component', () => {
     expect(container.querySelector('.from-rose-500')).toBeDefined();
   });
 
-  it('sets width style correctly', () => {
+  it('sets width attribute correctly', () => {
     const { container } = render(<ProgressBar value={75} />);
-    const bar = container.querySelector('.h-full');
-    expect(bar?.getAttribute('style')).toContain('width: 75%');
+    const bar = container.querySelector('rect.h-full, rect');
+    expect(bar?.getAttribute('width')).toBe('75');
   });
 });

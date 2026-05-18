@@ -1,6 +1,6 @@
 /**
  * server/utils/cacheService.ts
- * 
+ *
  * Simple cache service with support for in-memory and Redis.
  * Fulfills Audit P2 requirement for production-ready caching.
  */
@@ -13,7 +13,7 @@ type CacheEntry<T> = {
 };
 
 class CacheService {
-  private memoryCache = new Map<string, CacheEntry<any>>();
+  private memoryCache = new Map<string, CacheEntry<unknown>>();
   private useRedis = true; // Enabled by default now that redisService is available
 
   /**
@@ -21,7 +21,7 @@ class CacheService {
    */
   async set<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
     const expiresAt = Date.now() + ttlSeconds * 1000;
-    
+
     if (this.useRedis) {
       try {
         await redisService.set(`util_cache:${key}`, JSON.stringify(value), ttlSeconds);
@@ -49,13 +49,13 @@ class CacheService {
 
     const entry = this.memoryCache.get(key);
     if (!entry) return null;
-    
+
     if (Date.now() > entry.expiresAt) {
       this.memoryCache.delete(key);
       return null;
     }
-    
-    return entry.value;
+
+    return entry.value as T;
   }
 
   /**
@@ -75,7 +75,9 @@ class CacheService {
     if (this.useRedis) {
       // Note: this clears ALL redis data, use with caution or implement pattern match
       // For utility cache, we might want to only clear its own prefix
-      logger.info('CacheService.clear() called - only memory cache cleared to prevent side effects');
+      logger.info(
+        'CacheService.clear() called - only memory cache cleared to prevent side effects'
+      );
     }
     this.memoryCache.clear();
   }

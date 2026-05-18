@@ -170,6 +170,8 @@ export function LcpPanel({
                 </span>
                 <button
                   onClick={() => onRemoveTerminal(terminal.id)}
+                  title={t.btnRemoveTerminal}
+                  aria-label={t.btnRemoveTerminal}
                   className="p-0.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"
                 >
                   <Trash2 size={10} />
@@ -227,6 +229,8 @@ export function LcpPanel({
           step={10}
           value={state.maxSnapDistanceMeters}
           onChange={(e) => onSetMaxSnapDistance(Number(e.target.value))}
+          title={t.labelSnapMax}
+          aria-label={t.labelSnapMax}
           className="w-20 text-xs border border-gray-300 rounded px-2 py-1"
         />
         <span className="text-xs text-gray-400">m</span>

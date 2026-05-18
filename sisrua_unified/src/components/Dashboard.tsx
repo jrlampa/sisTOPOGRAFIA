@@ -1,15 +1,7 @@
-import React from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
-import { Building2, Ruler, ArrowUpRight, Activity, Layers } from "lucide-react";
-import { AnalysisStats } from "../types";
+import React from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Building2, Ruler, ArrowUpRight, Activity, Layers } from 'lucide-react';
+import { AnalysisStats } from '../types';
 
 interface DashboardProps {
   stats: AnalysisStats;
@@ -18,32 +10,38 @@ interface DashboardProps {
 
 // Palette: 1 brand accent (blue-500) + slate grayscale
 const DATA_COLORS = {
-  buildings: "#3B82F6", // blue-500 — brand accent
-  roads: "#64748B", // slate-500
-  nature: "#94A3B8", // slate-400
+  buildings: '#3B82F6', // blue-500 — brand accent
+  roads: '#64748B', // slate-500
+  nature: '#94A3B8', // slate-400
+};
+
+const LEGEND_VALUE_CLASS: Record<string, string> = {
+  Edificações: 'text-blue-500',
+  Vias: 'text-slate-500',
+  Natureza: 'text-slate-400',
 };
 
 const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
   const data = [
     {
-      name: "Edificações",
+      name: 'Edificações',
       value: stats.totalBuildings,
       color: DATA_COLORS.buildings,
     },
-    { name: "Vias", value: stats.totalRoads, color: DATA_COLORS.roads },
-    { name: "Natureza", value: stats.totalNature, color: DATA_COLORS.nature },
+    { name: 'Vias', value: stats.totalRoads, color: DATA_COLORS.roads },
+    { name: 'Natureza', value: stats.totalNature, color: DATA_COLORS.nature },
   ];
 
   // Density card keeps semantic colors (communicates meaningful status)
   const densityColors: Record<string, string> = {
     Baixa:
-      "from-emerald-500/20 to-emerald-600/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+      'from-emerald-500/20 to-emerald-600/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
     Média:
-      "from-amber-500/20 to-amber-600/20 text-amber-700 dark:text-amber-400 border-amber-500/30",
-    Alta: "from-rose-500/20 to-rose-600/20 text-rose-700 dark:text-rose-400 border-rose-500/30",
+      'from-amber-500/20 to-amber-600/20 text-amber-700 dark:text-amber-400 border-amber-500/30',
+    Alta: 'from-rose-500/20 to-rose-600/20 text-rose-700 dark:text-rose-400 border-rose-500/30',
   };
 
-  const currentDensity = stats.density || "Baixa";
+  const currentDensity = stats.density || 'Baixa';
 
   return (
     <div className="flex flex-col gap-6">
@@ -55,9 +53,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
             <div className="rounded-2xl bg-blue-500/10 p-3 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
               <Layers size={20} />
             </div>
-            <span className="text-xs font-semibold text-slate-400 uppercase">
-              Total
-            </span>
+            <span className="text-xs font-semibold text-slate-400 uppercase">Total</span>
           </div>
           <div className="mt-4">
             <p className="text-4xl font-black tracking-tight text-slate-900 dark:text-slate-50">
@@ -105,9 +101,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
               <p className="text-4xl font-black tracking-tight text-slate-900 dark:text-slate-50">
                 {stats.avgHeight.toFixed(1)}
               </p>
-              <span className="text-base font-semibold text-slate-500/60">
-                m
-              </span>
+              <span className="text-base font-semibold text-slate-500/60">m</span>
             </div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Média Vertical
@@ -128,9 +122,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
             </span>
           </div>
           <div className="mt-4">
-            <p className="text-4xl font-black tracking-tight">
-              {currentDensity}
-            </p>
+            <p className="text-4xl font-black tracking-tight">{currentDensity}</p>
             <p className="text-xs font-semibold uppercase tracking-wider opacity-70">
               Densidade Urbana
             </p>
@@ -168,36 +160,22 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
           <div className="flex gap-4">
             <div className="flex items-center gap-1.5">
               <div className="h-2 w-2 rounded-full bg-blue-500" />
-              <span className="text-xs font-semibold text-slate-500 uppercase">
-                Edificações
-              </span>
+              <span className="text-xs font-semibold text-slate-500 uppercase">Edificações</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="h-2 w-2 rounded-full bg-slate-500" />
-              <span className="text-xs font-semibold text-slate-500 uppercase">
-                Vias
-              </span>
+              <span className="text-xs font-semibold text-slate-500 uppercase">Vias</span>
             </div>
           </div>
         </div>
 
         <div className="h-32 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={data}
-              layout="vertical"
-              margin={{ left: -20, right: 20 }}
-            >
+            <BarChart data={data} layout="vertical" margin={{ left: -20, right: 20 }}>
               <XAxis type="number" hide />
-              <YAxis
-                dataKey="name"
-                type="category"
-                width={80}
-                tick={false}
-                axisLine={false}
-              />
+              <YAxis dataKey="name" type="category" width={80} tick={false} axisLine={false} />
               <Tooltip
-                cursor={{ fill: "transparent" }}
+                cursor={{ fill: 'transparent' }}
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     return (
@@ -211,11 +189,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
               />
               <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={16}>
                 {data.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.color}
-                    fillOpacity={0.9}
-                  />
+                  <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.9} />
                 ))}
               </Bar>
             </BarChart>
@@ -224,17 +198,14 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, analysisText }) => {
 
         {/* Legend summary */}
         <div className="mt-4 grid grid-cols-3 gap-2">
-          {data.map((item) => (
+          {data.map(item => (
             <div
               key={item.name}
               className="flex flex-col items-center justify-center rounded-2xl bg-slate-50 p-2 dark:bg-zinc-800/50"
             >
-              <span className="text-xs font-semibold text-slate-400 uppercase">
-                {item.name}
-              </span>
+              <span className="text-xs font-semibold text-slate-400 uppercase">{item.name}</span>
               <span
-                className="text-lg font-black"
-                style={{ color: item.color }}
+                className={`text-lg font-black ${LEGEND_VALUE_CLASS[item.name] ?? 'text-slate-500'}`}
               >
                 {item.value}
               </span>

@@ -7,8 +7,8 @@
  * Orquestra estado, autenticação e roteamento de seções.
  * A lógica de UI está em AdminPagePrimitives e AdminPageSectionRenderers.
  */
-import React, { useState, useEffect, useCallback } from "react";
-import { API_BASE_URL } from "../config/api";
+import React, { useState, useEffect, useCallback } from 'react';
+import { API_BASE_URL } from '../config/api';
 import {
   Users,
   ShieldCheck,
@@ -19,8 +19,8 @@ import {
   Lock,
   RefreshCw,
   Network,
-} from "lucide-react";
-import { PainelCard } from "./AdminPagePrimitives";
+} from 'lucide-react';
+import { PainelCard } from './AdminPagePrimitives';
 import {
   renderSaude,
   renderDashboardMvs,
@@ -37,28 +37,28 @@ import {
   renderClassificacao,
   renderHoldings,
   renderFinOps,
-} from "./AdminPageSectionRenderers";
-import { getAdminText } from "../i18n/adminText";
-import { AppLocale } from "../types";
+} from './AdminPageSectionRenderers';
+import { getAdminText } from '../i18n/adminText';
+import { AppLocale } from '../types';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 type Secao =
-  | "saude"
-  | "dashboard"
-  | "usuarios"
-  | "papeis"
-  | "tenants"
-  | "quotas"
-  | "flags"
-  | "kpis"
-  | "servicos"
-  | "retencao"
-  | "capacidade"
-  | "vulns"
-  | "classificacao"
-  | "holdings"
-  | "finops";
+  | 'saude'
+  | 'dashboard'
+  | 'usuarios'
+  | 'papeis'
+  | 'tenants'
+  | 'quotas'
+  | 'flags'
+  | 'kpis'
+  | 'servicos'
+  | 'retencao'
+  | 'capacidade'
+  | 'vulns'
+  | 'classificacao'
+  | 'holdings'
+  | 'finops';
 
 interface SecaoConfig {
   id: Secao;
@@ -71,151 +71,149 @@ interface SecaoConfig {
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const [token, setToken] = useState<string>("");
-  const [tokenInput, setTokenInput] = useState<string>("");
+  const [token, setToken] = useState<string>('');
+  const [tokenInput, setTokenInput] = useState<string>('');
   const [autenticado, setAutenticado] = useState<boolean>(false);
-  const [erroAuth, setErroAuth] = useState<string>("");
+  const [erroAuth, setErroAuth] = useState<string>('');
 
   // TODO: Em uma integração real, buscar do contexto global de settings
-  const locale: AppLocale = "pt-BR";
+  const locale: AppLocale = 'pt-BR';
   const t = getAdminText(locale);
 
   const SECOES: SecaoConfig[] = [
     {
-      id: "saude",
+      id: 'saude',
       titulo: t.sections.saude,
-      descricao: "Status do painel e conectividade com banco",
+      descricao: 'Status do painel e conectividade com banco',
       icone: Activity,
-      cor: "emerald",
+      cor: 'emerald',
     },
     {
-      id: "dashboard",
+      id: 'dashboard',
       titulo: t.sections.dashboard,
-      descricao: "Performance de rede, auditoria e catálogo (via MVs)",
+      descricao: 'Performance de rede, auditoria e catálogo (via MVs)',
       icone: BarChart3,
-      cor: "fuchsia",
+      cor: 'fuchsia',
     },
     {
-      id: "usuarios",
+      id: 'usuarios',
       titulo: t.sections.usuarios,
-      descricao: "Gestão de usuários e atribuição de papéis (RBAC)",
+      descricao: 'Gestão de usuários e atribuição de papéis (RBAC)',
       icone: Users,
-      cor: "blue",
+      cor: 'blue',
     },
     {
-      id: "papeis",
+      id: 'papeis',
       titulo: t.sections.papeis,
-      descricao: "Estatísticas de distribuição de papéis no sistema",
+      descricao: 'Estatísticas de distribuição de papéis no sistema',
       icone: ShieldCheck,
-      cor: "indigo",
+      cor: 'indigo',
     },
     {
-      id: "tenants",
+      id: 'tenants',
       titulo: t.sections.tenants,
-      descricao: "Clientes corporativos ativos na plataforma",
+      descricao: 'Clientes corporativos ativos na plataforma',
       icone: Building2,
-      cor: "violet",
+      cor: 'violet',
     },
     {
-      id: "quotas",
+      id: 'quotas',
       titulo: t.sections.quotas,
-      descricao: "Limites de uso configurados por tenant",
+      descricao: 'Limites de uso configurados por tenant',
       icone: Sliders,
-      cor: "amber",
+      cor: 'amber',
     },
     {
-      id: "flags",
+      id: 'flags',
       titulo: t.sections.flags,
-      descricao: "Configurações de funcionalidades por tenant",
+      descricao: 'Configurações de funcionalidades por tenant',
       icone: BarChart3,
-      cor: "orange",
+      cor: 'orange',
     },
     {
-      id: "kpis",
+      id: 'kpis',
       titulo: t.sections.kpis,
-      descricao: "Observabilidade de negócio: taxa de sucesso e gargalos",
+      descricao: 'Observabilidade de negócio: taxa de sucesso e gargalos',
       icone: Activity,
-      cor: "rose",
+      cor: 'rose',
     },
     {
-      id: "servicos",
+      id: 'servicos',
       titulo: t.sections.servicos,
-      descricao: "Perfis de serviço (SLA/SLO)",
+      descricao: 'Perfis de serviço (SLA/SLO)',
       icone: Network,
-      cor: "sky",
+      cor: 'sky',
     },
     {
-      id: "retencao",
+      id: 'retencao',
       titulo: t.sections.retencao,
-      descricao: "Políticas de ciclo de vida e arquivamento por recurso",
+      descricao: 'Políticas de ciclo de vida e arquivamento por recurso',
       icone: Sliders,
-      cor: "teal",
+      cor: 'teal',
     },
     {
-      id: "capacidade",
+      id: 'capacidade',
       titulo: t.sections.capacidade,
-      descricao: "Histórico de capacidade e metas de jobs simultâneos",
+      descricao: 'Histórico de capacidade e metas de jobs simultâneos',
       icone: BarChart3,
-      cor: "cyan",
+      cor: 'cyan',
     },
     {
-      id: "vulns",
+      id: 'vulns',
       titulo: t.sections.vulns,
-      descricao: "Gestão de vulnerabilidades com prazos por severidade",
+      descricao: 'Gestão de vulnerabilidades com prazos por severidade',
       icone: ShieldCheck,
-      cor: "red",
+      cor: 'red',
     },
     {
-      id: "classificacao",
+      id: 'classificacao',
       titulo: t.sections.classificacao,
-      descricao: "Níveis de sensibilidade e políticas de segregação",
+      descricao: 'Níveis de sensibilidade e políticas de segregação',
       icone: Lock,
-      cor: "purple",
+      cor: 'purple',
     },
     {
-      id: "holdings",
+      id: 'holdings',
       titulo: t.sections.holdings,
-      descricao: "Grupos empresariais e auditoria cruzada",
+      descricao: 'Grupos empresariais e auditoria cruzada',
       icone: Building2,
-      cor: "stone",
+      cor: 'stone',
     },
     {
-      id: "finops",
+      id: 'finops',
       titulo: t.sections.finops,
-      descricao: "Consumo de APIs e processamento",
+      descricao: 'Consumo de APIs e processamento',
       icone: Activity,
-      cor: "lime",
+      cor: 'lime',
     },
   ];
 
-  const [secoesAbertas, setSecoesAbertas] = useState<
-    Partial<Record<Secao, boolean>>
-  >({ saude: true });
-  const [carregando, setCarregando] = useState<Partial<Record<Secao, boolean>>>(
-    {},
-  );
+  const [secoesAbertas, setSecoesAbertas] = useState<Partial<Record<Secao, boolean>>>({
+    saude: true,
+  });
+  const [carregando, setCarregando] = useState<Partial<Record<Secao, boolean>>>({});
   const [erros, setErros] = useState<Partial<Record<Secao, string>>>({});
   const [dados, setDados] = useState<Partial<Record<Secao, unknown>>>({});
 
-  const [tenantIdInput, setTenantIdInput] = useState<string>("");
-  const [tenantIdAtivo, setTenantIdAtivo] = useState<string>("");
+  const [tenantIdInput, setTenantIdInput] = useState<string>('');
+  const [tenantIdAtivo, setTenantIdAtivo] = useState<string>('');
   const [servicoForm, setServicoForm] = useState({
-    serviceCode: "core-geoprocessing",
-    serviceName: "Core Geoprocessing",
-    tier: "gold",
-    slaAvailabilityPct: "99.9",
-    sloLatencyP95Ms: "1500",
-    supportChannel: "24x7-chat",
-    supportHours: "24x7",
+    serviceCode: 'core-geoprocessing',
+    serviceName: 'Core Geoprocessing',
+    tier: 'gold',
+    slaAvailabilityPct: '99.9',
+    sloLatencyP95Ms: '1500',
+    supportChannel: '24x7-chat',
+    supportHours: '24x7',
   });
-  const [servicosMensagem, setServicosMensagem] = useState<string>("");
+  const [servicosMensagem, setServicosMensagem] = useState<string>('');
 
   const apiBase = `${API_BASE_URL}/admin`;
 
   const fetchComToken = useCallback(
     async (url: string, init?: RequestInit) => {
       const headers: Record<string, string> = {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         ...(init?.headers as Record<string, string> | undefined),
       };
       if (token) headers.Authorization = `Bearer ${token}`;
@@ -223,75 +221,71 @@ export default function AdminPage() {
       if (resp.status === 401) throw new Error(t.auth.error);
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
-        throw new Error(
-          (body as { erro?: string })?.erro ?? `Erro HTTP ${resp.status}`,
-        );
+        throw new Error((body as { erro?: string })?.erro ?? `Erro HTTP ${resp.status}`);
       }
       return resp.json();
     },
-    [token, t.auth.error],
+    [token, t.auth.error]
   );
 
   const carregarSecao = useCallback(
     async (secao: Secao, url: string) => {
-      setCarregando((c) => ({ ...c, [secao]: true }));
-      setErros((e) => ({ ...e, [secao]: undefined }));
+      setCarregando(c => ({ ...c, [secao]: true }));
+      setErros(e => ({ ...e, [secao]: undefined }));
       try {
         const json = await fetchComToken(url);
-        setDados((d) => ({ ...d, [secao]: json }));
+        setDados(d => ({ ...d, [secao]: json }));
       } catch (err) {
-        setErros((e) => ({
+        setErros(e => ({
           ...e,
           [secao]: err instanceof Error ? err.message : String(err),
         }));
       } finally {
-        setCarregando((c) => ({ ...c, [secao]: false }));
+        setCarregando(c => ({ ...c, [secao]: false }));
       }
     },
-    [fetchComToken],
+    [fetchComToken]
   );
 
   function urlParaSecao(secao: Secao): string {
     switch (secao) {
-      case "saude":
+      case 'saude':
         return `${apiBase}/saude`;
-      case "dashboard":
+      case 'dashboard':
         return `${apiBase}/dashboard-mvs`;
-      case "usuarios":
+      case 'usuarios':
         return `${apiBase}/usuarios`;
-      case "papeis":
+      case 'papeis':
         return `${apiBase}/papeis/estatisticas`;
-      case "tenants":
+      case 'tenants':
         return `${apiBase}/tenants`;
-      case "quotas":
+      case 'quotas':
         return `${apiBase}/quotas`;
-      case "flags":
-        return tenantIdAtivo
-          ? `${apiBase}/feature-flags?tenantId=${tenantIdAtivo}`
-          : "";
-      case "kpis":
-        return tenantIdAtivo ? `${apiBase}/kpis?tenantId=${tenantIdAtivo}` : "";
-      case "servicos":
+      case 'flags':
+        return tenantIdAtivo ? `${apiBase}/feature-flags?tenantId=${tenantIdAtivo}` : '';
+      case 'kpis':
+        return tenantIdAtivo ? `${apiBase}/kpis?tenantId=${tenantIdAtivo}` : '';
+      case 'servicos':
         return tenantIdAtivo
           ? `${apiBase}/servicos?tenantId=${tenantIdAtivo}`
           : `${apiBase}/servicos`;
-      case "retencao":
+      case 'retencao':
         return `${API_BASE_URL}/retencao/politicas`;
-      case "capacidade":
+      case 'capacidade':
         return `${API_BASE_URL}/capacidade/status`;
-      case "vulns":
+      case 'vulns':
         return `${API_BASE_URL}/vulns/resumo`;
-      case "classificacao":
+      case 'classificacao':
         return `${API_BASE_URL}/classificacao/resumo`;
-      case "holdings":
+      case 'holdings':
         return `${API_BASE_URL}/holdings`;
-      case "finops":
+      case 'finops':
         return `${API_BASE_URL}/finops/resumo`;
     }
   }
 
   function toggleSecao(secao: Secao) {
-    setSecoesAbertas((prev) => {
+    setSecoesAbertas(prev => {
       const abrir = !prev[secao];
       if (abrir && !dados[secao]) {
         const url = urlParaSecao(secao);
@@ -302,28 +296,28 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    void carregarSecao("saude", urlParaSecao("saude"));
+    void carregarSecao('saude', urlParaSecao('saude'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiBase, carregarSecao]);
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (!tokenInput.trim()) {
-      setErroAuth("Informe o token de acesso.");
+      setErroAuth('Informe o token de acesso.');
       return;
     }
     setToken(tokenInput.trim());
     setAutenticado(true);
-    setErroAuth("");
+    setErroAuth('');
     setDados({});
-    void carregarSecao("saude", urlParaSecao("saude"));
+    void carregarSecao('saude', urlParaSecao('saude'));
   }
 
   function handleDefinirTenant(e: React.FormEvent) {
     e.preventDefault();
     if (!tenantIdInput.trim()) return;
     setTenantIdAtivo(tenantIdInput.trim());
-    setDados((d) => ({
+    setDados(d => ({
       ...d,
       flags: undefined,
       kpis: undefined,
@@ -333,36 +327,31 @@ export default function AdminPage() {
 
   async function salvarServico() {
     if (!tenantIdAtivo) {
-      setServicosMensagem(
-        "Defina o tenant ativo antes de salvar um perfil de serviço.",
-      );
+      setServicosMensagem('Defina o tenant ativo antes de salvar um perfil de serviço.');
       return;
     }
 
     try {
-      await fetchComToken(
-        `${apiBase}/servicos/${tenantIdAtivo}/${servicoForm.serviceCode}`,
-        {
-          method: "PUT",
-          body: JSON.stringify({
-            serviceName: servicoForm.serviceName,
-            tier: servicoForm.tier,
-            slaAvailabilityPct: Number(servicoForm.slaAvailabilityPct),
-            sloLatencyP95Ms: Number(servicoForm.sloLatencyP95Ms),
-            supportChannel: servicoForm.supportChannel,
-            supportHours: servicoForm.supportHours,
-            escalationPolicy: {
-              model: "standard",
-              response: "15m",
-              escalateTo: "manager-on-call",
-            },
-            metadata: { origem: "painel_admin", ambiente: "enterprise" },
-            isActive: true,
-          }),
-        },
-      );
-      setServicosMensagem("Perfil de serviço salvo com sucesso.");
-      await carregarSecao("servicos", urlParaSecao("servicos"));
+      await fetchComToken(`${apiBase}/servicos/${tenantIdAtivo}/${servicoForm.serviceCode}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          serviceName: servicoForm.serviceName,
+          tier: servicoForm.tier,
+          slaAvailabilityPct: Number(servicoForm.slaAvailabilityPct),
+          sloLatencyP95Ms: Number(servicoForm.sloLatencyP95Ms),
+          supportChannel: servicoForm.supportChannel,
+          supportHours: servicoForm.supportHours,
+          escalationPolicy: {
+            model: 'standard',
+            response: '15m',
+            escalateTo: 'manager-on-call',
+          },
+          metadata: { origem: 'painel_admin', ambiente: 'enterprise' },
+          isActive: true,
+        }),
+      });
+      setServicosMensagem('Perfil de serviço salvo com sucesso.');
+      await carregarSecao('servicos', urlParaSecao('servicos'));
     } catch (err) {
       setServicosMensagem(err instanceof Error ? err.message : String(err));
     }
@@ -370,21 +359,16 @@ export default function AdminPage() {
 
   async function removerServico() {
     if (!tenantIdAtivo) {
-      setServicosMensagem(
-        "Defina o tenant ativo antes de remover um perfil de serviço.",
-      );
+      setServicosMensagem('Defina o tenant ativo antes de remover um perfil de serviço.');
       return;
     }
 
     try {
-      await fetchComToken(
-        `${apiBase}/servicos/${tenantIdAtivo}/${servicoForm.serviceCode}`,
-        {
-          method: "DELETE",
-        },
-      );
-      setServicosMensagem("Perfil de serviço removido com sucesso.");
-      await carregarSecao("servicos", urlParaSecao("servicos"));
+      await fetchComToken(`${apiBase}/servicos/${tenantIdAtivo}/${servicoForm.serviceCode}`, {
+        method: 'DELETE',
+      });
+      setServicosMensagem('Perfil de serviço removido com sucesso.');
+      await carregarSecao('servicos', urlParaSecao('servicos'));
     } catch (err) {
       setServicosMensagem(err instanceof Error ? err.message : String(err));
     }
@@ -394,31 +378,31 @@ export default function AdminPage() {
   const renderSecao = (secao: Secao) => {
     const d = dados[secao];
     switch (secao) {
-      case "saude":
+      case 'saude':
         return renderSaude(d);
-      case "dashboard":
+      case 'dashboard':
         return renderDashboardMvs(d);
-      case "usuarios":
+      case 'usuarios':
         return renderUsuarios(d);
-      case "papeis":
+      case 'papeis':
         return renderPapeis(d);
-      case "tenants":
+      case 'tenants':
         return renderTenants(d);
-      case "quotas":
+      case 'quotas':
         return renderQuotas(d);
-      case "flags":
+      case 'flags':
         return renderFlags(d);
-      case "kpis":
+      case 'kpis':
         return renderKpis(d);
-      case "servicos":
+      case 'servicos':
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <input
                 type="text"
                 value={servicoForm.serviceCode}
-                onChange={(e) =>
-                  setServicoForm((s) => ({
+                onChange={e =>
+                  setServicoForm(s => ({
                     ...s,
                     serviceCode: e.target.value.trim().toLowerCase(),
                   }))
@@ -429,17 +413,15 @@ export default function AdminPage() {
               <input
                 type="text"
                 value={servicoForm.serviceName}
-                onChange={(e) =>
-                  setServicoForm((s) => ({ ...s, serviceName: e.target.value }))
-                }
+                onChange={e => setServicoForm(s => ({ ...s, serviceName: e.target.value }))}
                 placeholder="Nome do serviço"
                 className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
               />
               <select
                 value={servicoForm.tier}
-                onChange={(e) =>
-                  setServicoForm((s) => ({ ...s, tier: e.target.value }))
-                }
+                onChange={e => setServicoForm(s => ({ ...s, tier: e.target.value }))}
+                title="Tier de serviço"
+                aria-label="Tier de serviço"
                 className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
               >
                 <option value="bronze">bronze</option>
@@ -450,8 +432,8 @@ export default function AdminPage() {
               <input
                 type="text"
                 value={servicoForm.supportHours}
-                onChange={(e) =>
-                  setServicoForm((s) => ({
+                onChange={e =>
+                  setServicoForm(s => ({
                     ...s,
                     supportHours: e.target.value,
                   }))
@@ -463,8 +445,8 @@ export default function AdminPage() {
                 type="number"
                 step="0.001"
                 value={servicoForm.slaAvailabilityPct}
-                onChange={(e) =>
-                  setServicoForm((s) => ({
+                onChange={e =>
+                  setServicoForm(s => ({
                     ...s,
                     slaAvailabilityPct: e.target.value,
                   }))
@@ -475,8 +457,8 @@ export default function AdminPage() {
               <input
                 type="number"
                 value={servicoForm.sloLatencyP95Ms}
-                onChange={(e) =>
-                  setServicoForm((s) => ({
+                onChange={e =>
+                  setServicoForm(s => ({
                     ...s,
                     sloLatencyP95Ms: e.target.value,
                   }))
@@ -487,8 +469,8 @@ export default function AdminPage() {
               <input
                 type="text"
                 value={servicoForm.supportChannel}
-                onChange={(e) =>
-                  setServicoForm((s) => ({
+                onChange={e =>
+                  setServicoForm(s => ({
                     ...s,
                     supportChannel: e.target.value,
                   }))
@@ -516,7 +498,7 @@ export default function AdminPage() {
               </button>
               <button
                 onClick={() => {
-                  void carregarSecao("servicos", urlParaSecao("servicos"));
+                  void carregarSecao('servicos', urlParaSecao('servicos'));
                 }}
                 className="rounded-lg bg-slate-600 hover:bg-slate-700 text-white px-3 py-2 text-sm font-semibold transition-colors"
               >
@@ -524,24 +506,22 @@ export default function AdminPage() {
               </button>
             </div>
             {servicosMensagem && (
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {servicosMensagem}
-              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{servicosMensagem}</p>
             )}
             {renderServicos(d)}
           </div>
         );
-      case "retencao":
+      case 'retencao':
         return renderRetencao(d);
-      case "capacidade":
+      case 'capacidade':
         return renderCapacidade(d);
-      case "vulns":
+      case 'vulns':
         return renderVulns(d);
-      case "classificacao":
+      case 'classificacao':
         return renderClassificacao(d);
-      case "holdings":
+      case 'holdings':
         return renderHoldings(d);
-      case "finops":
+      case 'finops':
         return renderFinOps(d);
     }
   };
@@ -578,8 +558,8 @@ export default function AdminPage() {
               </h2>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 mb-5 leading-relaxed">
-              Informe o token de administração para acessar os recursos
-              protegidos do painel central.
+              Informe o token de administração para acessar os recursos protegidos do painel
+              central.
             </p>
             <form onSubmit={handleLogin} className="flex flex-col gap-3">
               <div className="flex gap-2">
@@ -587,7 +567,7 @@ export default function AdminPage() {
                   id="admin-token-input"
                   type="password"
                   value={tokenInput}
-                  onChange={(e) => setTokenInput(e.target.value)}
+                  onChange={e => setTokenInput(e.target.value)}
                   placeholder={t.auth.placeholder}
                   aria-label="Token de administração"
                   className="flex-1 rounded-xl border-2 border-slate-200 dark:border-white/5 bg-white/50 dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:border-indigo-500 outline-none transition-all"
@@ -625,7 +605,7 @@ export default function AdminPage() {
                 id="tenant-id-input"
                 type="text"
                 value={tenantIdInput}
-                onChange={(e) => setTenantIdInput(e.target.value)}
+                onChange={e => setTenantIdInput(e.target.value)}
                 placeholder="Ex: empresa-abc"
                 className="flex-1 rounded-xl border-2 border-amber-100 dark:border-amber-900/20 bg-amber-50/30 dark:bg-amber-950/10 px-4 py-2.5 text-sm text-amber-900 dark:text-amber-100 placeholder:text-amber-700/30 focus:border-amber-400 outline-none transition-all"
               />
@@ -642,7 +622,7 @@ export default function AdminPage() {
                 aria-live="polite"
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-                Filtro ativo:{" "}
+                Filtro ativo:{' '}
                 <span className="font-black text-amber-700 dark:text-amber-300">
                   {tenantIdAtivo}
                 </span>
@@ -657,7 +637,7 @@ export default function AdminPage() {
             <button
               onClick={() => {
                 setDados({});
-                void carregarSecao("saude", urlParaSecao("saude"));
+                void carregarSecao('saude', urlParaSecao('saude'));
               }}
               className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors"
             >
@@ -669,7 +649,7 @@ export default function AdminPage() {
 
         {/* Seções */}
         <div className="space-y-3">
-          {SECOES.map((sec) => (
+          {SECOES.map(sec => (
             <PainelCard
               key={sec.id}
               titulo={sec.titulo}
