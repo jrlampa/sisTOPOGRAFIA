@@ -120,18 +120,16 @@ describe("loadClandestinoWorkbookRules – success branch (via dynamic import)",
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const freshModule = await import(
-      "../../src/utils/btClandestinoCalculations"
-    );
+    const {
+      loadClandestinoWorkbookRules,
+      getClandestinoKvaByArea,
+      getClandestinoDiversificationFactorByClients,
+    } = await import("../../src/utils/btClandestinoCalculations");
 
-    await expect(freshModule.loadClandestinoWorkbookRules()).resolves.toBe(
-      true,
-    );
+    await expect(loadClandestinoWorkbookRules()).resolves.toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(freshModule.getClandestinoKvaByArea(20)).toBe(1.62);
-    expect(freshModule.getClandestinoDiversificationFactorByClients(10)).toBe(
-      9.64,
-    );
+    expect(getClandestinoKvaByArea(20)).toBe(1.62);
+    expect(getClandestinoDiversificationFactorByClients(10)).toBe(9.64);
   });
 });
 
