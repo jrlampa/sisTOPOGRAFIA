@@ -122,7 +122,9 @@ describe("calculateEstimatedDemandByTransformer – additional paths", () => {
     };
     const result = calculateEstimatedDemandByTransformer(topology, "ramais", 0);
     expect(result).toHaveLength(1);
-    expect(result[0].assignedClients).toBeGreaterThanOrEqual(0);
+    expect(result[0].assignedClients).toBe(0);
+    expect(result[0].estimatedDemandKva).toBe(0);
+    expect(result[0].estimatedDemandKw).toBe(0);
   });
 });
 
