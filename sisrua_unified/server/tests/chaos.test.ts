@@ -126,7 +126,7 @@ describe('[C2] Caos: Banco de Dados — desconexão durante processamento', () =
 
   it('job deve permanecer em memória se DB falhar no meio do processamento', async () => {
     const jobId = 'chaos-db-job-1';
-    const job = createJob(jobId);
+    const job = await createJob(jobId);
 
     expect(job.status).toBe('queued');
 
@@ -134,19 +134,19 @@ describe('[C2] Caos: Banco de Dados — desconexão durante processamento', () =
     await updateJobStatus(jobId, 'processing', 30);
 
     // Job deve ainda estar acessível em memória
-    const inMemoryJob = getJob(jobId);
+    const inMemoryJob = await getJob(jobId);
     expect(inMemoryJob).not.toBeNull();
     expect(inMemoryJob?.status).toBe('processing');
   });
 
   it('job falho deve preservar a mensagem de erro mesmo após reconexão simulada', async () => {
     const jobId = 'chaos-db-job-2';
-    createJob(jobId);
+    await createJob(jobId);
 
     await updateJobStatus(jobId, 'processing');
     await failJob(jobId, 'DB ECONNRESET durante a escrita do resultado');
 
-    const job = getJob(jobId);
+    const job = await getJob(jobId);
     expect(job?.status).toBe('failed');
     expect(job?.error).toContain('ECONNRESET');
     expect(job?.attempts).toBe(1);
@@ -154,10 +154,10 @@ describe('[C2] Caos: Banco de Dados — desconexão durante processamento', () =
 
   it('job completo deve manter o resultado mesmo sem persistência DB', async () => {
     const jobId = 'chaos-db-job-3';
-    createJob(jobId);
+    await createJob(jobId);
     await completeJob(jobId, { url: '/dxf/chaos.dxf', filename: 'chaos.dxf' });
 
-    const job = getJob(jobId);
+    const job = await getJob(jobId);
     expect(job?.status).toBe('completed');
     expect(job?.result?.filename).toBe('chaos.dxf');
   });
@@ -167,13 +167,13 @@ describe('[C2] Caos: Banco de Dados — desconexão durante processamento', () =
 
     // Criar e atualizar todos simultaneamente
     await Promise.all(ids.map(async (id) => {
-      createJob(id);
+      await createJob(id);
       await withJitter(() => updateJobStatus(id, 'processing', 50));
       await withJitter(() => completeJob(id, { url: `/dxf/${id}.dxf`, filename: `${id}.dxf` }));
     }));
 
     // Todos devem estar completos
-    const statuses = ids.map((id) => getJob(id)?.status);
+    const statuses = await Promise.all(ids.map(async (id) => (await getJob(id))?.status));
     expect(statuses.every((s) => s === 'completed')).toBe(true);
   });
 });
@@ -269,20 +269,20 @@ describe('[C4] Caos: Python Engine — falhas de resposta', () => {
 // [C5] Cache — Pressão de Memória e Colisão de Chaves
 // ══════════════════════════════════════════════════════════════════════════════
 describe('[C5] Caos: Cache — pressão de memória e colisões', () => {
-  beforeEach(() => clearCache());
+  beforeEach(async () => await clearCache());
 
-  it('cache deve aceitar entradas simultâneas sem corrupção de dados', () => {
+  it('cache deve aceitar entradas simultâneas sem corrupção de dados', async () => {
     const entries = generateRandomScenarios(20);
 
-    entries.forEach(({ lat, lng, radius, label }) => {
+    await Promise.all(entries.map(async ({ lat, lng, radius, label }) => {
       const key = createCacheKey({ lat, lon: lng, radius, mode: 'test', polygon: null, layers: [], btContext: undefined, contourRenderMode: undefined });
-      setCachedFilename(key, `${label.replace(/\s/g, '_')}.dxf`);
-    });
+      await setCachedFilename(key, `${label.replace(/\s/g, '_')}.dxf`);
+    }));
 
     // Verificar que os primeiros valores ainda estão acessíveis
     const first = entries[0];
     const firstKey = createCacheKey({ lat: first.lat, lon: first.lng, radius: first.radius, mode: 'test', polygon: null, layers: [], btContext: undefined, contourRenderMode: undefined });
-    const cached = getCachedFilename(firstKey);
+    const cached = await getCachedFilename(firstKey);
     expect(typeof cached === 'string' || cached === null).toBe(true);
   });
 
@@ -318,12 +318,12 @@ describe('[C6] Caos: Race Conditions — jobs simultâneos', () => {
 
     // Criar o mesmo jobId 5 vezes simultaneamente
     await Promise.all(Array.from({ length: 5 }, () =>
-      withJitter(() => {
-        try { createJob(jobId); } catch { /* ignora duplicata */ }
+      withJitter(async () => {
+        try { await createJob(jobId); } catch { /* ignora duplicata */ }
       })
     ));
 
-    const job = getJob(jobId);
+    const job = await getJob(jobId);
     expect(job).not.toBeNull();
     // Status deve ser válido (nunca undefined/corrupto)
     expect(['queued', 'processing', 'completed', 'failed']).toContain(job?.status);
@@ -331,7 +331,7 @@ describe('[C6] Caos: Race Conditions — jobs simultâneos', () => {
 
   it('atualizações paralelas de progresso não devem travar', async () => {
     const jobs = generateJobIds(10, 'race-progress');
-    jobs.forEach((id) => createJob(id));
+    await Promise.all(jobs.map((id) => createJob(id)));
 
     const updates = jobs.flatMap((id) =>
       [25, 50, 75, 100].map((progress) =>
@@ -344,14 +344,14 @@ describe('[C6] Caos: Race Conditions — jobs simultâneos', () => {
 
   it('completar e falhar o mesmo job simultaneamente deve resultar em estado consistente', async () => {
     const jobId = 'race-complete-fail';
-    createJob(jobId);
+    await createJob(jobId);
 
     await Promise.allSettled([
       completeJob(jobId, { url: '/dxf/x.dxf', filename: 'x.dxf' }),
       failJob(jobId, 'Falha simultânea ao complete'),
     ]);
 
-    const job = getJob(jobId);
+    const job = await getJob(jobId);
     expect(job).not.toBeNull();
     // Estado deve ser 'completed' ou 'failed' — nunca indefinido
     expect(['completed', 'failed']).toContain(job?.status);
@@ -504,9 +504,9 @@ describe('[C7] Caos: Pontos Aleatórios — coordenadas geradas pelo usuário', 
 
   // ── Cache com Coordenadas Aleatórias ──────────────────────────────────────
 
-  it('cache não deve colidir para 100 coordenadas aleatórias diferentes', () => {
+  it('cache não deve colidir para 100 coordenadas aleatórias diferentes', async () => {
     resetSeed(8675309);
-    clearCache();
+    await clearCache();
 
     const scenarios = generateRandomScenarios(100);
     const keys = new Set<string>();
@@ -609,23 +609,23 @@ describe('[C8] Relatório: propertyTest em massa (50 cenários)', () => {
     expect(failures).toHaveLength(0);
   });
 
-  it('cache não deve vazar entre execuções isoladas', () => {
-    clearCache();
+  it('cache não deve vazar entre execuções isoladas', async () => {
+    await clearCache();
     resetSeed(11111);
     const scenarios = generateRandomScenarios(30);
 
-    scenarios.forEach(({ lat, lng, radius }) => {
+    await Promise.all(scenarios.map(async ({ lat, lng, radius }) => {
       const key = createCacheKey({ lat, lon: lng, radius, mode: 'chaos', polygon: null, layers: [], btContext: undefined, contourRenderMode: undefined });
-      setCachedFilename(key, 'chaos_file.dxf');
-    });
+      await setCachedFilename(key, 'chaos_file.dxf');
+    }));
 
-    clearCache();
+    await clearCache();
 
     // Após clearCache, nada deve ser recuperável
-    scenarios.forEach(({ lat, lng, radius }) => {
+    for (const { lat, lng, radius } of scenarios) {
       const key = createCacheKey({ lat, lon: lng, radius, mode: 'chaos', polygon: null, layers: [], btContext: undefined, contourRenderMode: undefined });
-      expect(getCachedFilename(key)).toBeNull();
-    });
+      expect(await getCachedFilename(key)).toBeNull();
+    }
   });
 });
 
@@ -644,7 +644,7 @@ describe('[C9] Caos: Teste de Estresse Progressivo (Capacity Limit)', () => {
       // Loop infinito com safe break, até o limite cap de MAX_SYSTEM_CAPACITY ser engatilhado
       for (let i = 0; i < MAX_SYSTEM_CAPACITY + 100; i++) {
         // Criar iterativamente para simular progressão
-        createJob(`stress-job-${i}`);
+        await createJob(`stress-job-${i}`);
         numberOfJobsCreated++;
         
         // Simular que uma porcentagem desses jobs está processando e completando
@@ -673,4 +673,3 @@ describe('[C9] Caos: Teste de Estresse Progressivo (Capacity Limit)', () => {
     expect(numberOfJobsCreated).toBeGreaterThan(MAX_SYSTEM_CAPACITY - 500); // Garante que a maioria foi processada antes do block
   });
 });
-

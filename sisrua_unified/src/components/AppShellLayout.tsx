@@ -1,18 +1,35 @@
 import React from "react";
 import { AppHeader } from "./AppHeader";
-import { AppSettingsOverlay } from "./AppSettingsOverlay";
 import { AppStatusStack } from "./AppStatusStack";
 import { MainMapWorkspace } from "./MainMapWorkspace";
 import { SidebarWorkspace } from "./SidebarWorkspace";
-import { BimInspectorDrawer } from "./BimInspectorDrawer";
 import { useBackendHealth } from "../hooks/useBackendHealth";
 import {
   loadSidebarUiState,
   persistSidebarUiState,
 } from "../utils/preferencesPersistence";
+import { lazyWithRetry } from "../utils/lazyWithRetry";
+import { Drawer } from "./ui/Drawer";
 
 import type { AppLocale } from "../types";
 import type { HistoryEntry } from "../hooks/useUndoRedo";
+import type { AppSettingsOverlayProps } from "./AppSettingsOverlay";
+import type { BimInspectorDrawerProps } from "./BimInspectorDrawer";
+
+const AppSettingsOverlay = React.lazy(() =>
+  lazyWithRetry(() =>
+    import("./AppSettingsOverlay").then((module) => ({
+      default: module.AppSettingsOverlay,
+    })),
+  ),
+);
+const BimInspectorDrawer = React.lazy(() =>
+  lazyWithRetry(() =>
+    import("./BimInspectorDrawer").then((module) => ({
+      default: module.BimInspectorDrawer,
+    })),
+  ),
+);
 
 type Props = {
   locale: AppLocale;
@@ -28,13 +45,13 @@ type Props = {
   onOpenSettings: () => void;
   onOpenHelp: () => void;
   appStatusStackProps: React.ComponentProps<typeof AppStatusStack>;
-  appSettingsOverlayProps: React.ComponentProps<typeof AppSettingsOverlay>;
+  appSettingsOverlayProps: AppSettingsOverlayProps;
   sidebarWorkspaceProps: Omit<
     React.ComponentProps<typeof SidebarWorkspace>,
     "isCollapsed" | "onToggleCollapse"
   >;
   mainMapWorkspaceProps: React.ComponentProps<typeof MainMapWorkspace>;
-  bimInspectorProps?: React.ComponentProps<typeof BimInspectorDrawer>;
+  bimInspectorProps?: BimInspectorDrawerProps;
   hasAreaSelection: boolean;
   onStartSearch: () => void;
   onMapClickAction: () => void;
@@ -74,6 +91,7 @@ export function AppShellLayout({
   const [isSidebarCollapsedManual, setIsSidebarCollapsed] = React.useState(
     () => loadSidebarUiState().isCollapsed,
   );
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const isSidebarCollapsed = isFocusMode || isSidebarCollapsedManual;
 
@@ -89,6 +107,14 @@ export function AppShellLayout({
         isDark ? "text-slate-200" : "text-slate-900"
       }`}
     >
+      {/* Skip Link (Quick Win) */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-brand-600 focus:text-white focus:rounded-lg focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+      >
+        Pular para o conteúdo principal
+      </a>
+
       <div className="app-shell-atmosphere" aria-hidden="true">
         <span className="app-shell-orb app-shell-orb-1 blur-[80px] opacity-40" />
         <span className="app-shell-orb app-shell-orb-2 blur-[100px] opacity-30" />
@@ -96,10 +122,34 @@ export function AppShellLayout({
         <span className="absolute top-1/4 left-1/3 h-96 w-96 rounded-full bg-cyan-500/10 blur-[120px] animate-pulse" />
       </div>
       <AppStatusStack {...appStatusStackProps} />
-      <AppSettingsOverlay {...appSettingsOverlayProps} />
+      {appSettingsOverlayProps.showSettings && (
+        <React.Suspense fallback={null}>
+          <AppSettingsOverlay {...appSettingsOverlayProps} />
+        </React.Suspense>
+      )}
       
       {/* BIM Deep Inspector Drawer */}
-      {bimInspectorProps && <BimInspectorDrawer {...bimInspectorProps} />}
+      {bimInspectorProps?.isOpen && (
+        <React.Suspense fallback={null}>
+          <BimInspectorDrawer {...bimInspectorProps} />
+        </React.Suspense>
+      )}
+
+      {/* Mobile Navigation Drawer (Design System Implementation) */}
+      <Drawer
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        title="Menu"
+        position="left"
+      >
+        <div className="p-4 flex flex-col h-full bg-slate-950/20 backdrop-blur-sm">
+          <SidebarWorkspace
+            {...sidebarWorkspaceProps}
+            isCollapsed={false}
+            onToggleCollapse={() => {}}
+          />
+        </div>
+      </Drawer>
 
       <AppHeader
         locale={locale}
@@ -113,6 +163,7 @@ export function AppShellLayout({
         onOpenProject={onOpenProject}
         onOpenSettings={onOpenSettings}
         onOpenHelp={onOpenHelp}
+        onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
         isSidebarCollapsed={isSidebarCollapsed}
         onToggleSidebarCollapsed={() =>
           setIsSidebarCollapsed((current) => !current)
@@ -123,7 +174,10 @@ export function AppShellLayout({
         autoSaveStatus={autoSaveStatus}
         lastAutoSaved={lastAutoSaved}
       />
-      <main className="relative z-10 flex flex-1 flex-col overflow-hidden border-t border-white/10 dark:border-white/5 xl:flex-row">
+      <main 
+        id="main-content"
+        className="relative z-10 flex flex-1 flex-col overflow-hidden border-t border-white/10 dark:border-white/5 xl:flex-row"
+      >
         <SidebarWorkspace
           {...sidebarWorkspaceProps}
           isCollapsed={isSidebarCollapsed}

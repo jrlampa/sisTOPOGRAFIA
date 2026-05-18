@@ -8,6 +8,7 @@
  */
 
 import { useState, useCallback } from "react";
+import { useFeatureFlags } from "../contexts/FeatureFlagContext";
 import type { BtTopology, BtEdge } from "../types";
 import type { DgWizardParams } from "../components/DgWizardModal";
 import { getSemanticErrorForException } from "../utils/dgSemanticFeedback";
@@ -134,6 +135,7 @@ function dgEdgesToBtEdges(
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useDgOptimization() {
+  const { flags } = useFeatureFlags();
   const [state, setState] = useState<DgRunState>({
     isOptimizing: false,
     result: null,
@@ -157,6 +159,7 @@ export function useDgOptimization() {
    */
   const runDgOptimization = useCallback(
     async (btTopology: BtTopology, wizardParams?: DgWizardParams) => {
+      if (!flags.enableDgWizard) return;
       if (btTopology.poles.length === 0) return;
 
       const transformer = btTopology.transformers[0];

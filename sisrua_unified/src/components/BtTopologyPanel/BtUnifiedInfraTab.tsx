@@ -1,9 +1,11 @@
 import React from "react";
 import { FileText, Zap } from "lucide-react";
+import { motion } from "framer-motion";
 import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
 import type { BtPoleConditionStatus } from "../../types";
 import PoleCockpitCard from "./Cockpit/PoleCockpitCard";
 import { useBtTopologyContext } from "./BtTopologyContext";
+import { fadeSlideUp, scaleIn } from "../../theme/motion";
 
 const BtUnifiedInfraTab: React.FC = () => {
   const {
@@ -48,22 +50,31 @@ const BtUnifiedInfraTab: React.FC = () => {
     : [];
 
   return (
-    <div className="space-y-4 pb-6">
-      <PoleCockpitCard
-        key={pole.id}
-        pole={pole}
-        mtStructures={mtStructures}
-        locale={locale}
-        onRename={(id, title) => onBtRenamePole?.(id, title)}
-        onSetFlag={(id, flag) => onBtSetPoleChangeFlag?.(id, flag)}
-        onUpdateSpec={(id, spec) => updatePoleSpec(id, spec)}
-        onUpdateAcessibilidade={() => {}}
-        mechanicalResult={mechanicalResult}
-        accessibilityCost={accessibilityCost}
-      />
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={{
+        visible: { transition: { staggerChildren: 0.05 } }
+      }}
+      className="space-y-4 pb-6"
+    >
+      <motion.div variants={scaleIn}>
+        <PoleCockpitCard
+          key={pole.id}
+          pole={pole}
+          mtStructures={mtStructures}
+          locale={locale}
+          onRename={(id, title) => onBtRenamePole?.(id, title)}
+          onSetFlag={(id, flag) => onBtSetPoleChangeFlag?.(id, flag)}
+          onUpdateSpec={(id, spec) => updatePoleSpec(id, spec)}
+          onUpdateAcessibilidade={() => {}}
+          mechanicalResult={mechanicalResult}
+          accessibilityCost={accessibilityCost}
+        />
+      </motion.div>
 
       {/* Physical State & Structures */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm space-y-4 dark:bg-zinc-900/40 dark:border-white/5">
+      <motion.div variants={fadeSlideUp} className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm space-y-4 dark:bg-zinc-900/40 dark:border-white/5">
         <div>
           <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2 dark:text-slate-500">
             {pt.poleStateTitle}
@@ -111,10 +122,10 @@ const BtUnifiedInfraTab: React.FC = () => {
             ))}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Notes */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm dark:bg-zinc-900/40 dark:border-white/5">
+      <motion.div variants={fadeSlideUp} className="bg-white/70 backdrop-blur-sm rounded-3xl p-4 border border-slate-200 shadow-sm dark:bg-zinc-900/40 dark:border-white/5">
         <label className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-slate-400 mb-2 dark:text-slate-500">
           <FileText size={12} /> {pt.generalNotesTitle}
         </label>
@@ -127,11 +138,11 @@ const BtUnifiedInfraTab: React.FC = () => {
           className="w-full bg-slate-50 border-none rounded-xl p-3 text-sm text-slate-800 focus:ring-2 focus:ring-blue-100 resize-none dark:bg-zinc-950 dark:text-slate-200 dark:focus:ring-blue-900/20"
           placeholder={pt.generalNotesPlaceholder}
         />
-      </div>
+      </motion.div>
 
       {/* MT Context (Unified Vision) */}
       {mtTopology.poles.some((p) => p.id === pole.id) && (
-        <div className="bg-gradient-to-br from-amber-50 to-orange-100/50 border border-orange-200 rounded-3xl p-4 shadow-sm dark:from-amber-950/20 dark:to-orange-950/20 dark:border-orange-900/30">
+        <motion.div variants={fadeSlideUp} className="bg-gradient-to-br from-amber-50 to-orange-100/50 border border-orange-200 rounded-3xl p-4 shadow-sm dark:from-amber-950/20 dark:to-orange-950/20 dark:border-orange-900/30">
           <label className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-orange-700/60 mb-3 dark:text-orange-400/60">
             <Zap size={12} /> {dashboardText.mediumVoltageContext}
           </label>
@@ -163,9 +174,9 @@ const BtUnifiedInfraTab: React.FC = () => {
               </span>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

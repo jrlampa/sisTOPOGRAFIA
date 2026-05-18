@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import postgres from "postgres";
 import { config } from "../config.js";
 import { jobRepository } from "../repositories/jobRepository.js";
+import { redisService } from "./redisService.js";
 
 export type JobStatus = "queued" | "processing" | "completed" | "failed";
 
@@ -25,9 +26,6 @@ export interface JobInfo {
   idempotencyKey?: string;
 }
 
-let jobs = new Map<string, JobInfo>();
-let jobsByIdempotencyKey = new Map<string, string>();
-
 export const MAX_SYSTEM_CAPACITY = 2000;
 
 const USE_SUPABASE_JOBS = config.useSupabaseJobs;
@@ -39,23 +37,15 @@ type SqlClient = ReturnType<typeof postgres>;
 let postgresAvailable = false;
 let sqlClient: SqlClient | null = null;
 
-const CLEANUP_INTERVAL = config.JOB_CLEANUP_INTERVAL_MS;
 const MAX_JOB_AGE = config.JOB_MAX_AGE_MS;
 
-let cleanupIntervalId: NodeJS.Timeout | null = null;
 let initializationStarted = false;
 let initializationPromise: Promise<void> | null = null;
 
 export function resetServiceState(): void {
-  jobs = new Map();
-  jobsByIdempotencyKey = new Map();
   initializationStarted = false;
   initializationPromise = null;
   postgresAvailable = false;
-  if (cleanupIntervalId) {
-    clearInterval(cleanupIntervalId);
-    cleanupIntervalId = null;
-  }
   if (sqlClient) {
     sqlClient.end({ timeout: 1 }).catch(() => undefined);
     sqlClient = null;
@@ -83,8 +73,6 @@ export async function initializePersistence(): Promise<void> {
       await sqlClient`SELECT 1`;
       postgresAvailable = true;
       logger.info("JobStatusService: Postgres persistence enabled");
-      await loadJobsFromPostgres();
-      startCleanupInterval();
     } catch (error) {
       logger.warn("JobStatusService: Postgres unavailable", { error });
       postgresAvailable = false;
@@ -92,56 +80,12 @@ export async function initializePersistence(): Promise<void> {
         await sqlClient.end({ timeout: 1 }).catch(() => undefined);
         sqlClient = null;
       }
-      startCleanupInterval();
     } finally {
       initializationPromise = null;
     }
   })();
 
   return initializationPromise;
-}
-
-async function loadJobsFromPostgres(): Promise<void> {
-  if (!postgresAvailable || !sqlClient) return;
-
-  try {
-    const rows = await sqlClient.unsafe(
-      `SELECT id, tenant_id, status, progress, result, error, created_at, updated_at, attempts, idempotency_key
-       FROM ${JOBS_TABLE}
-       WHERE updated_at > (now() - ($1::bigint * interval '1 millisecond'))`,
-      [MAX_JOB_AGE],
-    );
-
-    rows.forEach((row: any) => {
-      const job = mapRowToJobInfo(row);
-      if (job.id && job.id !== "unknown") {
-        jobs.set(job.id, job);
-        if (job.idempotencyKey) {
-          jobsByIdempotencyKey.set(job.idempotencyKey, job.id);
-        }
-      }
-    });
-  } catch (error) {
-    logger.error("Failed to load jobs from Postgres", { error });
-  }
-}
-
-function mapRowToJobInfo(row: any): JobInfo {
-  const id = row.id || row.id_job || "unknown";
-  const tenantId = row.tenant_id || row.tenantId || "unknown";
-
-  return {
-    id: String(id),
-    tenantId: String(tenantId),
-    status: (row.status as JobStatus) || "queued",
-    progress: Number(row.progress || 0),
-    result: row.result ?? undefined,
-    error: row.error ?? undefined,
-    createdAt: row.created_at ? new Date(row.created_at) : new Date(),
-    updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(),
-    attempts: Number(row.attempts || 0),
-    idempotencyKey: row.idempotency_key || row.idempotencyKey || undefined,
-  };
 }
 
 async function fetchJobFromPostgres(
@@ -167,10 +111,7 @@ async function fetchJobFromPostgres(
 
     const job = mapRowToJobInfo(rows[0]);
     if (job.id && job.id !== "unknown") {
-      jobs.set(job.id, job);
-      if (job.idempotencyKey) {
-        jobsByIdempotencyKey.set(job.idempotencyKey, job.id);
-      }
+      await saveJobToRedis(job);
       return job;
     }
     return null;
@@ -180,28 +121,41 @@ async function fetchJobFromPostgres(
   }
 }
 
-function startCleanupInterval() {
-  if (cleanupIntervalId) return;
-  cleanupIntervalId = setInterval(() => {
-    const now = Date.now();
-    for (const [id, job] of jobs.entries()) {
-      if (now - job.createdAt.getTime() > MAX_JOB_AGE) {
-        if (job.idempotencyKey) jobsByIdempotencyKey.delete(job.idempotencyKey);
-        jobs.delete(id);
-      }
-    }
-  }, CLEANUP_INTERVAL);
+function mapRowToJobInfo(row: any): JobInfo {
+  const id = row.id || row.id_job || "unknown";
+  const tenantId = row.tenant_id || row.tenantId || "unknown";
+
+  return {
+    id: String(id),
+    tenantId: String(tenantId),
+    status: (row.status as JobStatus) || "queued",
+    progress: Number(row.progress || 0),
+    result: row.result ?? undefined,
+    error: row.error ?? undefined,
+    createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+    updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(),
+    attempts: Number(row.attempts || 0),
+    idempotencyKey: row.idempotency_key || row.idempotencyKey || undefined,
+  };
 }
 
-export function stopCleanupInterval() {
-  if (cleanupIntervalId) {
-    clearInterval(cleanupIntervalId);
-    cleanupIntervalId = null;
+async function getJobFromRedis(id: string): Promise<JobInfo | null> {
+  const data = await redisService.get(`job:${id}`);
+  if (!data) return null;
+  try {
+    const job = JSON.parse(data);
+    job.createdAt = new Date(job.createdAt);
+    job.updatedAt = new Date(job.updatedAt);
+    return job;
+  } catch (err) {
+    return null;
   }
-  if (sqlClient) {
-    sqlClient.end({ timeout: 1 }).catch(() => undefined);
-    sqlClient = null;
-    postgresAvailable = false;
+}
+
+async function saveJobToRedis(job: JobInfo): Promise<void> {
+  await redisService.set(`job:${job.id}`, JSON.stringify(job), Math.ceil(MAX_JOB_AGE / 1000));
+  if (job.idempotencyKey) {
+    await redisService.set(`job_idemp:${job.idempotencyKey}`, job.id, Math.ceil(MAX_JOB_AGE / 1000));
   }
 }
 
@@ -214,22 +168,25 @@ async function ensureInitialized(): Promise<void> {
   await initializePersistence();
 }
 
-export function createJob(
+export async function createJob(
   id: string,
   tenantId: string,
   idempotencyKey?: string,
-): JobInfo {
-  if (!initializationStarted) {
-    initializationStarted = true;
-    initializePersistence().catch(() => undefined);
-  }
+): Promise<JobInfo> {
+  await ensureInitialized();
 
-  if (jobs.size >= MAX_SYSTEM_CAPACITY) {
-    const err = new Error(
-      "CapacityError: O sistema atingiu a capacidade máxima.",
-    );
-    (err as any).code = "ERR_CAPACITY";
-    throw err;
+  // Capacity check: prevent system overload (Chaos Audit Item C9)
+  try {
+    const keys = await redisService.getJobKeys();
+    if (keys.length >= MAX_SYSTEM_CAPACITY) {
+      const error = new Error(`System capacity reached: ${MAX_SYSTEM_CAPACITY} active jobs limit.`);
+      (error as any).code = "ERR_CAPACITY";
+      throw error;
+    }
+  } catch (err: any) {
+    if (err.code === "ERR_CAPACITY") throw err;
+    // Log other redis errors but continue (best effort)
+    logger.warn("JobStatusService: Capacity check failed", { error: err.message });
   }
 
   const job: JobInfo = {
@@ -242,15 +199,14 @@ export function createJob(
     attempts: 0,
     idempotencyKey,
   };
-  jobs.set(id, job);
-  if (idempotencyKey) jobsByIdempotencyKey.set(idempotencyKey, id);
-
+  
+  await saveJobToRedis(job);
   jobRepository.upsert(id, tenantId, "queued", 0).catch(() => undefined);
   return job;
 }
 
-export function getJob(id: string): JobInfo | null {
-  return jobs.get(id) || null;
+export async function getJob(id: string): Promise<JobInfo | null> {
+  return getJobFromRedis(id);
 }
 
 export async function getJobWithPersistence(
@@ -258,9 +214,9 @@ export async function getJobWithPersistence(
   tenantId?: string,
 ): Promise<JobInfo | null> {
   await ensureInitialized();
-  const inMemory = jobs.get(id);
-  if (inMemory && (!tenantId || inMemory.tenantId === tenantId))
-    return inMemory;
+  const inRedis = await getJobFromRedis(id);
+  if (inRedis && (!tenantId || inRedis.tenantId === tenantId))
+    return inRedis;
   return fetchJobFromPostgres(id, tenantId);
 }
 
@@ -269,42 +225,42 @@ export async function updateJobStatus(
   status: JobStatus,
   progress?: number,
 ): Promise<void> {
-  const job = jobs.get(id);
+  const job = await getJobFromRedis(id);
   if (job) {
     job.status = status;
     if (progress !== undefined) job.progress = progress;
     job.updatedAt = new Date();
-    jobs.set(id, job);
+    await saveJobToRedis(job);
     await jobRepository.upsert(id, job.tenantId, status, job.progress);
   }
 }
 
 export async function completeJob(id: string, result: any): Promise<void> {
-  const job = jobs.get(id);
+  const job = await getJobFromRedis(id);
   if (job) {
     job.status = "completed";
     job.progress = 100;
     job.result = result;
     job.updatedAt = new Date();
-    jobs.set(id, job);
+    await saveJobToRedis(job);
     await jobRepository.complete(id, job.tenantId, result);
   }
 }
 
 export async function failJob(id: string, error: string): Promise<void> {
-  const job = jobs.get(id);
+  const job = await getJobFromRedis(id);
   if (job) {
     job.status = "failed";
     job.error = error;
     job.updatedAt = new Date();
     job.attempts = (job.attempts || 0) + 1;
-    jobs.set(id, job);
+    await saveJobToRedis(job);
     await jobRepository.fail(id, job.tenantId, error);
   }
 }
 
-export function shouldProcessJob(id: string): boolean {
-  const job = jobs.get(id);
+export async function shouldProcessJob(id: string): Promise<boolean> {
+  const job = await getJobFromRedis(id);
   if (!job) return true;
   if (job.status === "completed" || job.status === "processing") return false;
   if (job.status === "failed" && (job.attempts || 0) >= 3) return false;
@@ -316,21 +272,26 @@ export function computeIdempotencyKey(params: Record<string, unknown>): string {
   return createHash("sha256").update(canonical).digest("hex");
 }
 
-export function findOrCreateJob(
+export function stopCleanupInterval(): void {
+  // No-op for current architecture, maintained for test compatibility
+  logger.info("JobStatusService: stopCleanupInterval called (no-op)");
+}
+
+export async function findOrCreateJob(
   id: string,
   tenantId: string,
   idempotencyKey: string,
-): JobInfo {
-  const existingId = jobsByIdempotencyKey.get(idempotencyKey);
+): Promise<JobInfo> {
+  const existingId = await redisService.get(`job_idemp:${idempotencyKey}`);
   if (existingId) {
-    const existing = jobs.get(existingId);
+    const existing = await getJobFromRedis(existingId);
     if (
       existing &&
       existing.status !== "completed" &&
       existing.status !== "failed"
     )
       return existing;
-    jobsByIdempotencyKey.delete(idempotencyKey);
+    await redisService.del(`job_idemp:${idempotencyKey}`);
   }
   return createJob(id, tenantId, idempotencyKey);
 }

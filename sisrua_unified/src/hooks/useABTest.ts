@@ -20,7 +20,7 @@ export function useABTest(flagKey: string, defaultValue: boolean = false): boole
       const val = posthog.getFeatureFlag(flagKey);
       setIsEnabled(val === true || val === "test");
     });
-  }, [flagKey]);
+  }, [flagKey, posthog.__loaded]);
 
   return isEnabled;
 }

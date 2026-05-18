@@ -65,9 +65,9 @@ const newVersionSchema = z.object({
 
 // ─── GET / ────────────────────────────────────────────────────────────────────
 
-router.get("/", (_req: Request, res: Response) => {
+router.get("/", async (_req: Request, res: Response) => {
   try {
-    const formulas = listFormulas();
+    const formulas = await listFormulas();
     return res.json({ count: formulas.length, formulas });
   } catch (err) {
     logger.error("formulaVersioning.list", { err });
@@ -77,9 +77,9 @@ router.get("/", (_req: Request, res: Response) => {
 
 // ─── GET /deprecation-report ──────────────────────────────────────────────────
 
-router.get("/deprecation-report", (_req: Request, res: Response) => {
+router.get("/deprecation-report", async (_req: Request, res: Response) => {
   try {
-    const report = getDeprecationReport();
+    const report = await getDeprecationReport();
     return res.json({ count: report.length, deprecations: report });
   } catch (err) {
     logger.error("formulaVersioning.deprecationReport", { err });
@@ -89,12 +89,12 @@ router.get("/deprecation-report", (_req: Request, res: Response) => {
 
 // ─── GET /:id ─────────────────────────────────────────────────────────────────
 
-router.get("/:id", (req: Request, res: Response) => {
+router.get("/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
-    const def = getFormulaById(id);
+    const def = await getFormulaById(id);
     if (!def) return res.status(404).json({ error: `Fórmula '${id}' não encontrada.` });
-    const history = getVersionHistory(id);
+    const history = await getVersionHistory(id);
     return res.json({ ...def, versions: history });
   } catch (err) {
     logger.error("formulaVersioning.getById", { id, err });
@@ -104,10 +104,10 @@ router.get("/:id", (req: Request, res: Response) => {
 
 // ─── GET /:id/active ──────────────────────────────────────────────────────────
 
-router.get("/:id/active", (req: Request, res: Response) => {
+router.get("/:id/active", async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
-    const active = getActiveVersion(id);
+    const active = await getActiveVersion(id);
     if (!active)
       return res.status(404).json({ error: `Fórmula '${id}' não encontrada ou sem versão ativa.` });
     return res.json(active);
@@ -119,7 +119,7 @@ router.get("/:id/active", (req: Request, res: Response) => {
 
 // ─── GET /:id/diff ────────────────────────────────────────────────────────────
 
-router.get("/:id/diff", (req: Request, res: Response) => {
+router.get("/:id/diff", async (req: Request, res: Response) => {
   const { id } = req.params;
   const v1 = req.query.v1 as string | undefined;
   const v2 = req.query.v2 as string | undefined;
@@ -131,7 +131,7 @@ router.get("/:id/diff", (req: Request, res: Response) => {
   }
 
   try {
-    const diff = diffVersions(id, v1, v2);
+    const diff = await diffVersions(id, v1, v2);
     if (!diff)
       return res
         .status(404)
@@ -145,7 +145,7 @@ router.get("/:id/diff", (req: Request, res: Response) => {
 
 // ─── POST /:id ────────────────────────────────────────────────────────────────
 
-router.post("/:id", requireAdminToken, (req: Request, res: Response) => {
+router.post("/:id", requireAdminToken, async (req: Request, res: Response) => {
   const { id } = req.params;
   const parse = newVersionSchema.safeParse(req.body);
   if (!parse.success) {
@@ -155,7 +155,7 @@ router.post("/:id", requireAdminToken, (req: Request, res: Response) => {
   const { category, ...versionData } = parse.data;
 
   try {
-    const registered = registerFormulaVersion(
+    const registered = await registerFormulaVersion(
       id,
       category as FormulaCategory,
       {

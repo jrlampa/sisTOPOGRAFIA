@@ -203,7 +203,7 @@ describe('validateAndParseJson', () => {
   });
 
   it('throws on invalid JSON', () => {
-    expect(() => validateAndParseJson('not-json')).toThrow('Invalid JSON provided');
+    expect(() => validateAndParseJson('not-json')).toThrow('JSON fornecido é inválido');
   });
 
   it('parses JSON array', () => {
@@ -222,7 +222,7 @@ describe('escapeSqlString', () => {
   });
 
   it('throws when input is not a string', () => {
-    expect(() => escapeSqlString(42 as any)).toThrow('Input must be a string');
+    expect(() => escapeSqlString(42 as any)).toThrow('A entrada deve ser uma string');
   });
 });
 
@@ -248,12 +248,12 @@ describe('escapeCsvCell – plain string (no special chars)', () => {
 
 describe('sanitizeString – throws on non-string', () => {
   it('throws when input is not a string', () => {
-    expect(() => sanitizeString(42 as any)).toThrow('Input must be a string');
+    expect(() => sanitizeString(42 as any)).toThrow('A entrada deve ser uma string');
   });
 });
 
 describe('sanitizeFileName – throws on non-string', () => {
   it('throws when filename is not a string', () => {
-    expect(() => sanitizeFileName(null as any)).toThrow('Filename must be a string');
+    expect(() => sanitizeFileName(null as any)).toThrow('A entrada deve ser uma string');
   });
 });

@@ -5,6 +5,8 @@
  */
 
 import { createHash } from "crypto";
+import { BtTopology } from "./bt/btDerivedTypes.js";
+import { getEngineeringStandard } from "../standards/index.js";
 
 export type CriterioNbr9050 =
   | "largura_calcada_minima"
@@ -48,6 +50,14 @@ export interface AnaliseNbr9050 {
   criadoEm: string;
 }
 
+export interface ResultadoAcessibilidadeAutomatica {
+  poleId: string;
+  larguraCalcadaEstimadaM: number;
+  larguraLivreRestanteM: number;
+  conforme: boolean;
+  detalhe: string;
+}
+
 const CRITERIOS_META: Record<CriterioNbr9050, { descricao: string; limiteNorma: string }> = {
   largura_calcada_minima: { descricao: "Largura mínima da faixa livre", limiteNorma: "≥ 1,20 m (mínimo absoluto NBR 9050 §6.12.1)" },
   rampa_acesso_deficiente: { descricao: "Rampa de acesso para PCD no cruzamento", limiteNorma: "Inclinação ≤ 8,33% — largura ≥ 1,20 m" },
@@ -70,6 +80,35 @@ export class Nbr9050Service {
     _analiseCounter = 0;
     _itemCounter = 0;
     _analises.clear();
+  }
+
+  /**
+   * Executa análise automática de acessibilidade (T2-60).
+   * Estima se a posição dos postes respeita a faixa livre de 1,20m.
+   */
+  static analisarAcessibilidadeAutomatica(topology: BtTopology): ResultadoAcessibilidadeAutomatica[] {
+    const standard = getEngineeringStandard();
+    const minLivre = standard.constants.NBR9050_MIN_SIDEWALK_FREE_WIDTH_M;
+    const minCalcada = standard.constants.NBR9050_MIN_CALCADA_WIDTH_M;
+    const poleDiam = standard.constants.POLE_STANDARD_DIAMETER_M;
+
+    return topology.poles.map((pole) => {
+      // Heurística: largura calcada padrão para o logradouro
+      // Futuramente: extrair de buffers do motor Python
+      const larguraCalcadaEstimada = minCalcada; 
+      const larguraLivre = larguraCalcadaEstimada - poleDiam;
+      const conforme = larguraLivre >= minLivre;
+
+      return {
+        poleId: pole.id,
+        larguraCalcadaEstimadaM: larguraCalcadaEstimada,
+        larguraLivreRestanteM: larguraLivre,
+        conforme,
+        detalhe: conforme
+          ? `Faixa livre de ${larguraLivre.toFixed(2)}m atende ao mínimo de ${minLivre}m.`
+          : `Violação NBR 9050: Faixa livre de ${larguraLivre.toFixed(2)}m é inferior ao mínimo de ${minLivre}m.`,
+      };
+    });
   }
 
   static criarAnalise(data: {
@@ -138,7 +177,7 @@ export class Nbr9050Service {
   static processarAnalise(analiseId: string, parecerTecnico?: string): AnaliseNbr9050 {
     const analise = _analises.get(analiseId);
     if (!analise) throw new Error("Análise NBR 9050 não encontrada");
-    if (analise.itens.length === 0) throw new Error("Análise deve ter ao menos 1 item registrado");
+    if (analise.itens.length === 0) throw new Error("Análise deve tel ao menos 1 item registrado");
     const aplicaveis = analise.itens.filter((i) => i.resultado !== "nao_aplicavel");
     const conformes = aplicaveis.filter((i) => i.resultado === "conforme").length;
     analise.scoreConformidade =

@@ -12,6 +12,7 @@ import { fetchBtDerivedState } from "../services/btDerivedService";
 import { calculateAccumulatedDemandByPole } from "../utils/btCalculations";
 import { toUtm } from "../utils/geo";
 import { downloadCsv } from "../utils/downloads";
+import { SpatialJurisdictionService } from "../services/spatialJurisdictionService";
 
 type Params = {
   center: GeoLocation;
@@ -108,8 +109,15 @@ export function useBtDxfWorkflow({
       clandestinoAreaM2: settings.clandestinoAreaM2 ?? 0,
     }).catch(() => null);
 
+    // Filtrar Topologia por Jurisdição (Item C)
+    const filteredTopology = SpatialJurisdictionService.filterTopology(btTopology, {
+      polygon: polygon.map(p => [p.lat, p.lng]),
+      radius,
+      center: [center.lat, center.lng]
+    });
+
     const btContext = buildBtDxfContext({
-      btTopology,
+      btTopology: filteredTopology,
       settings,
       btNetworkScenario,
       includeTopology: settings.layers.btNetwork,

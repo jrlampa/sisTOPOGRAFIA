@@ -57,9 +57,9 @@ type Params = {
     actionLabel?: string,
   ) => void;
   showToast: (
-    message: string, 
-    type: ToastType, 
-    action?: { label: string; onClick: () => void }
+    message: string,
+    type: ToastType,
+    action?: { label: string; onClick: () => void },
   ) => void;
   onSelectedPoleChange?: (poleId: string) => void;
   undo: () => void;
@@ -78,9 +78,9 @@ export function useBtCrudHandlers({
   const btExportHistory = appState.btExportHistory ?? [];
 
   // ── Compose 3 specialized hooks ────────────────────────────────────────────
-  const poles = useBtPoleOperations({ 
-    appState, 
-    setAppState, 
+  const poles = useBtPoleOperations({
+    appState,
+    setAppState,
     showToast,
     onSelectedPoleChange,
     undo,
@@ -104,7 +104,10 @@ export function useBtCrudHandlers({
 
   // ─── Central Orchestration ─────────────────────────────────────────────────
 
-  const updateBtTopology = (nextTopology: BtTopology, actionLabel = "Topologia Atualizada") => {
+  const updateBtTopology = (
+    nextTopology: BtTopology,
+    actionLabel = "Topologia Atualizada",
+  ) => {
     setAppState(
       {
         ...appState,
@@ -116,7 +119,7 @@ export function useBtCrudHandlers({
         },
       },
       true,
-      actionLabel
+      actionLabel,
     );
   };
 
@@ -182,6 +185,7 @@ export function useBtCrudHandlers({
     downloadJson(
       payload,
       `${settings.projectMetadata.projectName}_bt_history.json`,
+      settings.locale,
       true,
     );
     showToast("Histórico BT exportado em JSON.", "success");

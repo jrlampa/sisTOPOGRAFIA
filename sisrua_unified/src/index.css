@@ -1,8 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
 
 /* ============================================
   Theme Tokens (light defaults)
@@ -94,21 +93,21 @@
 
 @layer base {
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 5px;
+    height: 5px;
   }
 
   ::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.3);
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #06b6d4;
-    border-radius: 4px;
+    background: rgba(6, 182, 212, 0.35);
+    border-radius: 999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #0891b2;
+    background: rgba(6, 182, 212, 0.65);
   }
 
   body {
@@ -261,7 +260,7 @@
   .glass-premium {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
-    box-shadow: 
+    box-shadow:
       inset 0 1px 1px var(--glass-shine),
       var(--glass-shadow);
     position: relative;
@@ -419,12 +418,20 @@
   }
 
   .critical-neon-glow {
-    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)) drop-shadow(0 0 12px rgba(239, 68, 68, 0.4));
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8))
+      drop-shadow(0 0 12px rgba(239, 68, 68, 0.4));
     animation: neon-pulse 1.5s infinite ease-in-out;
   }
 
   @keyframes neon-pulse {
-    0%, 100% { filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)) drop-shadow(0 0 12px rgba(239, 68, 68, 0.4)); }
-    50% { filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.9)) drop-shadow(0 0 25px rgba(239, 68, 68, 0.6)); }
+    0%,
+    100% {
+      filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8))
+        drop-shadow(0 0 12px rgba(239, 68, 68, 0.4));
+    }
+    50% {
+      filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.9))
+        drop-shadow(0 0 25px rgba(239, 68, 68, 0.6));
+    }
   }
 }

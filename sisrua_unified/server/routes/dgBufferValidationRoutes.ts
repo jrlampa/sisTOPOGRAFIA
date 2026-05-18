@@ -185,14 +185,45 @@ router.get(
 router.post(
   "/validate-with-constraints",
   permissionHandler(["READ_DESIGN_GENERATIVO"]),
+  schemaValidator(validateMultiplePointsRequestSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      res.status(501).json({
-        success: false,
-        error: "Not Implemented",
-        message:
-          "Multi-constraint validation coming in Phase 2 of DG implementation",
-        roadmapReference: "DG_IMPLEMENTATION_ADDENDUM_2026.md - Frente 3",
+      const request = req.body;
+      const bufferValidation = await validateMultiplePoints(request);
+
+      const constraints = {
+        bufferZone: {
+          status: "applied",
+          acceptedPoints: bufferValidation.pointsAccepted,
+          rejectedPoints: bufferValidation.pointsRejected,
+          acceptanceRate: bufferValidation.acceptanceRate,
+        },
+        cqtVoltageDrop: {
+          status: "pending_integration",
+          reason: "Awaiting btTelescopicAnalysis coupling in DG phase 2",
+        },
+        transformerCapacity: {
+          status: "pending_integration",
+          reason: "Awaiting transformer sizing constraints integration",
+        },
+        radialTopology: {
+          status: "pending_integration",
+          reason: "Awaiting radial topology validator integration",
+        },
+      };
+
+      res.status(200).json({
+        success: true,
+        data: {
+          ...bufferValidation,
+          constraints,
+        },
+        metadata: {
+          processedAt: new Date().toISOString(),
+          userId: res.locals.userId,
+          tenantId: res.locals.tenantId,
+          implementationStage: "buffer_enforced_constraints_stubbed",
+        },
       });
     } catch (error) {
       logger.error("Error in multi-constraint validation endpoint", { error });

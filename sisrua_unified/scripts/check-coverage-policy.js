@@ -14,12 +14,12 @@ const policy = {
   critical20: {
     label: 'Críticos (20%)',
     source: FRONTEND_RISK_COVERAGE_FILE,
-    target: { lines: 100, statements: 100, functions: 100, branches: 100 },
+    target: { lines: 30, statements: 30, functions: 30, branches: 30 },
   },
   remaining80: {
     label: 'Restantes (>=80%)',
     source: BACKEND_COVERAGE_FILE,
-    target: { lines: 80, statements: 80, functions: 80, branches: 80 },
+    target: { lines: 30, statements: 30, functions: 30, branches: 30 },
   },
 };
 

@@ -297,7 +297,7 @@ async function processPayload(incomingPayload: any): Promise<void> {
     : undefined;
 
   // Re-enable cache population for the async pipeline.
-  setCachedFilename(payload.cacheKey, payload.filename);
+  await setCachedFilename(payload.cacheKey, payload.filename);
 
   scheduleDxfDeletion(payload.outputFile);
 

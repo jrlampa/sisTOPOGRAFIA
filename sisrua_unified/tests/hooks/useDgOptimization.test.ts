@@ -8,6 +8,26 @@ import { renderHook, act } from "@testing-library/react";
 import { useDgOptimization } from "../../src/hooks/useDgOptimization";
 import type { BtTopology } from "../../src/types";
 
+vi.mock("../../src/contexts/FeatureFlagContext", async () => {
+  const { DEFAULT_FEATURE_FLAGS } = await vi.importActual<
+    typeof import("../../src/types/featureFlags")
+  >("../../src/types/featureFlags");
+
+  return {
+    useFeatureFlags: () => ({
+      flags: DEFAULT_FEATURE_FLAGS,
+      customPresets: [],
+      featureHealth: {},
+      toggleFlag: vi.fn(),
+      applyPreset: vi.fn(),
+      saveCustomPreset: vi.fn(),
+      deleteCustomPreset: vi.fn(),
+      resetToDefaults: vi.fn(),
+      isReady: true,
+    }),
+  };
+});
+
 // ─── Fixtures ──────────────────────────────────────────────────────────────────
 
 const MOCK_TOPOLOGY: BtTopology = {

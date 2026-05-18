@@ -1,4 +1,6 @@
 import JSZip from 'jszip';
+import { AppLocale } from '../types';
+import { getUtilsText } from '../i18n/utilsText';
 
 export interface KmlMarker {
     point: [number, number]; // [lat, lon]
@@ -9,19 +11,21 @@ export type KmlParseResult =
     | { type: 'polygon'; points: [number, number][] }
     | { type: 'markers'; markers: KmlMarker[] };
 
-const readFileAsText = async (file: File): Promise<string> =>
+const readFileAsText = async (file: File, locale: AppLocale): Promise<string> =>
     new Promise((resolve, reject) => {
+        const t = getUtilsText(locale).kml;
         const reader = new FileReader();
         reader.onload = (e) => resolve((e.target?.result as string) ?? '');
-        reader.onerror = () => reject(new Error('Failed to read file as text.'));
+        reader.onerror = () => reject(new Error(t.readTextError));
         reader.readAsText(file);
     });
 
-const readFileAsArrayBuffer = async (file: File): Promise<ArrayBuffer> =>
+const readFileAsArrayBuffer = async (file: File, locale: AppLocale): Promise<ArrayBuffer> =>
     new Promise((resolve, reject) => {
+        const t = getUtilsText(locale).kml;
         const reader = new FileReader();
         reader.onload = (e) => resolve((e.target?.result as ArrayBuffer) ?? new ArrayBuffer(0));
-        reader.onerror = () => reject(new Error('Failed to read file as binary.'));
+        reader.onerror = () => reject(new Error(t.readBinaryError));
         reader.readAsArrayBuffer(file);
     });
 
@@ -42,18 +46,19 @@ const parseCoordText = (rawCoords: string): [number, number][] => {
     return points;
 };
 
-const parseKmlText = (text: string): KmlParseResult => {
+const parseKmlText = (text: string, locale: AppLocale): KmlParseResult => {
+    const t = getUtilsText(locale).kml;
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(text, 'text/xml');
     const parserError = xmlDoc.getElementsByTagName('parsererror');
 
     if (parserError.length > 0) {
-        throw new Error('Invalid KML content.');
+        throw new Error(t.invalidContent);
     }
 
     const coordinateTags = xmlDoc.getElementsByTagName('coordinates');
     if (coordinateTags.length === 0) {
-        throw new Error('No coordinates found in KML/KMZ.');
+        throw new Error(t.noCoords);
     }
 
     // Determine geometry type: if any Polygon or LinearRing exists → area boundary.
@@ -68,7 +73,7 @@ const parseKmlText = (text: string): KmlParseResult => {
             const pts = parseCoordText(coordinateTags[i].textContent ?? '');
             allPoints.push(...pts);
         }
-        if (allPoints.length === 0) throw new Error('No valid coordinates found in KML/KMZ.');
+        if (allPoints.length === 0) throw new Error(t.noValidCoords);
         return { type: 'polygon', points: allPoints };
     }
 
@@ -85,7 +90,7 @@ const parseKmlText = (text: string): KmlParseResult => {
             const nameEl = pm.getElementsByTagName('name')[0];
             markers.push({ point: pts[0], name: nameEl?.textContent?.trim() ?? undefined });
         }
-        if (markers.length === 0) throw new Error('No valid placemark coordinates found in KML/KMZ.');
+        if (markers.length === 0) throw new Error(t.noValidMarkers);
         return { type: 'markers', markers };
     }
 
@@ -95,13 +100,14 @@ const parseKmlText = (text: string): KmlParseResult => {
         const pts = parseCoordText(coordinateTags[i].textContent ?? '');
         allPoints.push(...pts);
     }
-    if (allPoints.length === 0) throw new Error('No valid coordinates found in KML/KMZ.');
+    if (allPoints.length === 0) throw new Error(t.noValidCoords);
     if (allPoints.length >= 3) return { type: 'polygon', points: allPoints };
     return { type: 'markers', markers: allPoints.map(p => ({ point: p })) };
 };
 
-const extractKmlFromKmz = async (file: File): Promise<string> => {
-    const binary = await readFileAsArrayBuffer(file);
+const extractKmlFromKmz = async (file: File, locale: AppLocale): Promise<string> => {
+    const t = getUtilsText(locale).kml;
+    const binary = await readFileAsArrayBuffer(file, locale);
     const zip = await JSZip.loadAsync(binary);
 
     // Prefer standard doc.kml, fallback to first .kml found.
@@ -110,17 +116,17 @@ const extractKmlFromKmz = async (file: File): Promise<string> => {
     const kmlEntry = preferredEntry ?? firstKmlEntry;
 
     if (!kmlEntry) {
-        throw new Error('KMZ without .kml file inside.');
+        throw new Error(t.noInternalKml);
     }
 
     return kmlEntry.async('text');
 };
 
-export const parseKml = async (file: File): Promise<KmlParseResult> => {
+export const parseKml = async (file: File, locale: AppLocale = 'pt-BR'): Promise<KmlParseResult> => {
     const fileName = file.name.toLowerCase();
     const kmlText = fileName.endsWith('.kmz')
-        ? await extractKmlFromKmz(file)
-        : await readFileAsText(file);
+        ? await extractKmlFromKmz(file, locale)
+        : await readFileAsText(file, locale);
 
-    return parseKmlText(kmlText);
+    return parseKmlText(kmlText, locale);
 };

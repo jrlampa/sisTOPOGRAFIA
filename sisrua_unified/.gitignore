@@ -84,6 +84,14 @@ coverage-final.json
 tmp/
 chaos_output.txt
 .lighthouseci/
+*.geojson
+*.kml
+test_*.csv
+.act-quality.log
+
+# Security scan outputs
+pip-audit-report*.json
+bandit-report*.json
 
 # Artifacts (brain cache, RAG outputs gerados)
 artifacts/
@@ -92,8 +100,11 @@ cache/
 .cache/
 .agents/
 .gemini/
+.copilot/
 secrets/
 _quarantine/
+.ruff_cache/
+.mypy_cache/
 
 # Editor directories and files
 .vscode/*

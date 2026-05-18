@@ -42,6 +42,9 @@ jspm_packages/
 .env
 .env.local
 .env.*.local
+.venv/
+venv/
+ENV/
 
 # IDE and editor files
 .vscode/
@@ -67,3 +70,30 @@ yarn-error.log*
 
 # Temporary geodata extraction artifacts
 _tmp_kmz/
+
+# Audit and Reports (May 2026)
+ACTION_PLAN_IMPLEMENTATION.md
+AUDITORIA_LEIA_ME.md
+AUDIT_REPORT_MAY_2026.md
+EXECUTIVE_SUMMARY.md
+README_AUDITORIA.md
+
+# Geodata and Test Artifacts
+*.kmz
+*.kml
+*.geojson
+*.dxf
+test_*.csv
+.act-quality.log
+
+.gemini/
+gha-creds-*.json
+
+# Local dependency audit sandbox files (root)
+/package.json
+/package-lock.json
+
+# Local AI/QA tooling metadata (workstation-only)
+.copilot/
+.clinerules/
+.husky/

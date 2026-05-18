@@ -1,0 +1,185 @@
+C:\Users\jonat\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\openpyxl\worksheet\_reader.py:329: UserWarning: Data Validation extension is not supported and will be removed
+  warn(msg)
+CONDUTORES - Plan1:
+================================================================================
+     0   1                          2                     3            4            5   6   7
+0  NaN NaN                   CONDUTOR  DI┬METRO EXTERNO (m)  PESO (Kg/m)  CABOS (QTD) NaN NaN
+1  NaN NaN                        NaN                   NaN          NaN          NaN NaN NaN
+2  NaN NaN              556MCM-CA, Nu                 0.022        0.779            3 NaN NaN
+3  NaN NaN              397MCM-CA, Nu                0.0184        0.558            3 NaN NaN
+4  NaN NaN             1/0AWG-CAA, Nu                0.0102        0.217            3 NaN NaN
+5  NaN NaN              4 AWG-CAA, Nu                0.0064        0.085            3 NaN NaN
+6  NaN NaN   397MCM-CA, XLPE, 34,5 kV                 0.034        1.195          NaN NaN NaN
+7  NaN NaN   397MCM-CA, XLPE, 13,8 kV                 0.026        0.749          NaN NaN NaN
+8  NaN NaN  1/0AWG-CAA, XLPE, 13,8 kV                 0.017         0.37          NaN NaN NaN
+9  NaN NaN   4 AWG-CAA, XLPE, 13,8 kV                0.0132        0.193          NaN NaN NaN
+10 NaN NaN   185mm▓, MTX-MT, 20/35 kV                   0.1         5.37          NaN NaN NaN
+11 NaN NaN   185mm▓, MTX-MT, 12/20 kV                 0.088         4.43          NaN NaN NaN
+12 NaN NaN    50mm▓, MTX-MT, 12/20 kV                 0.067         2.48          NaN NaN NaN
+13 NaN NaN                        NaN                   NaN          NaN          NaN NaN NaN
+14 NaN NaN             397MCM-CA, PVC                 0.024         0.66          NaN NaN NaN
+15 NaN NaN           1/0AWG-CAA, PVC                 0.0132        0.192          NaN NaN NaN
+16 NaN NaN            240mm▓, MTX-BT                  0.061        2.745          NaN NaN NaN
+17 NaN NaN            185mm▓, MTX-BT                  0.058        2.334          NaN NaN NaN
+18 NaN NaN             70mm▓, MTX-BT                   0.03        1.008          NaN NaN NaN
+19 NaN NaN        Cabo armado 240mm▓                  0.065         5.25          NaN NaN NaN
+20 NaN NaN         Cabo armado 95mm▓                  0.043          2.3          NaN NaN NaN
+21 NaN NaN     Cordoalha de aþo 3/8ö                 0.0095        0.407          NaN NaN NaN
+22 NaN NaN                        NaN                   NaN          NaN          NaN NaN NaN
+23 NaN NaN                        NaN                   NaN          NaN          NaN NaN NaN
+24 NaN NaN                        NaN                   NaN          NaN          NaN NaN NaN
+25 NaN NaN                        NaN                   NaN          NaN          NaN NaN NaN
+26 NaN NaN                        NaN                   NaN          NaN          NaN NaN NaN
+27 NaN NaN                        NaN                   NaN          NaN          NaN NaN NaN
+28 NaN NaN                        NaN                   NaN          NaN          NaN NaN NaN
+29 NaN NaN           10 mm▓ - Bipolar                0.0097        0.097          NaN NaN NaN
+
+
+OPÃıES DE REDE - Plan4:
+================================================================================
+                            0                          1                         2         3   4   5     6             7
+0                    Compacta               Convencional              Multiplexado       NaN NaN NaN   NaN           NaN
+1    397MCM-CA, XLPE, 34,5 kV              556MCM-CA, Nu  185mm▓, MTX-MT, 20/35 kV       NaN NaN NaN  Rede  Multiplexado
+2    397MCM-CA, XLPE, 13,8 kV              397MCM-CA, Nu  185mm▓, MTX-MT, 12/20 kV       NaN NaN NaN  Cabo           NaN
+3   1/0AWG-CAA, XLPE, 13,8 kV             1/0AWG-CAA, Nu   50mm▓, MTX-MT, 12/20 kV       NaN NaN NaN   NaN           NaN
+4                         NaN              4 AWG-CAA, Nu                       NaN       NaN NaN NaN   NaN           NaN
+5                         NaN   397MCM-CA, XLPE, 34,5 kV                       NaN       NaN NaN NaN   NaN           NaN
+6                         NaN   397MCM-CA, XLPE, 13,8 kV                       NaN       NaN NaN NaN   NaN           NaN
+7                         NaN  1/0AWG-CAA, XLPE, 13,8 kV                       NaN       NaN NaN NaN   NaN           NaN
+8                         NaN   4 AWG-CAA, XLPE, 13,8 kV                       NaN       NaN NaN NaN   NaN           NaN
+9                         NaN                        NaN                       NaN       NaN NaN NaN   NaN           NaN
+10                        NaN                        NaN                       NaN       NaN NaN NaN   NaN           NaN
+11                        NaN                        NaN                       NaN       NaN NaN NaN   NaN           NaN
+12               Multiplexada                    Aberta                     Armado       NaN NaN NaN   NaN           NaN
+13            240mm▓, MTX-BT              397MCM-CA, PVC       Cabo armado 240mm▓        NaN NaN NaN  Rede  Multiplexado
+14            185mm▓, MTX-BT            1/0AWG-CAA, PVC         Cabo armado 95mm▓        NaN NaN NaN  Cabo           NaN
+15             70mm▓, MTX-BT                         NaN                       NaN       NaN NaN NaN   NaN           NaN
+16                        NaN                        NaN                       NaN       NaN NaN NaN   NaN           NaN
+17                        NaN                        NaN                       NaN       NaN NaN NaN   NaN           NaN
+18                        NaN                        NaN                       NaN       NaN NaN NaN   NaN           NaN
+19          Concreto circular    Fibra de vidro circular          Concreto duplo T  Metßlico NaN NaN   NaN           NaN
+
+
+DADOS DE PROJETO - Ponto (1) - Primeiras 40 linhas:
+================================================================================
+     0                                     1                                         2       3   4                         5           6   7       8       9
+0  NaN                                ËrgÒo:                                       NaN   N.S.: NaN                       NaN    Projeto: NaN     NaN  Ponto:
+1  NaN                             Endereþo:                                       NaN     NaN NaN                       NaN         NaN NaN     NaN     NaN
+2  NaN                         Estudado por:                                       NaN     NaN NaN                       NaN  Matricula: NaN     NaN   Data:
+3  NaN                                   NaN                                       NaN     NaN NaN                       NaN         NaN NaN     NaN     NaN
+4  NaN                                   NaN                                       NaN     NaN NaN                       NaN         NaN NaN     NaN     NaN
+5  NaN                                   NaN                                       NaN     NaN NaN                       NaN         NaN NaN     NaN     NaN
+6  NaN                         Tipo do Poste                         Concreto circular     NaN NaN                       NaN         NaN NaN     NaN     NaN
+7  NaN                       Modelo do Poste                            12 m / 300 daN     NaN NaN                       NaN         NaN NaN     NaN     NaN
+8  NaN                                   NaN                                       NaN     NaN NaN                       NaN         NaN NaN     NaN     NaN
+9  NaN                         MT - 1║ NÝvel                                       NaN     NaN NaN                       NaN         NaN NaN     NaN     NaN
+10 NaN                                   NaN                                        T1     NaN NaN                        T2         NaN NaN      T3     NaN
+11 NaN                          Tipo de rede                                  Compacta     NaN NaN                  Compacta         NaN NaN     NaN     NaN
+12 NaN                          Tipo de cabo                  397MCM-CA, XLPE, 34,5 kV     NaN NaN  397MCM-CA, XLPE, 34,5 kV         NaN NaN     NaN     NaN
+13 NaN                                   VÒo                                        21       m NaN                        38           m NaN     NaN       m
+14 NaN                                Flecha                                       0.5       m NaN                       0.8           m NaN     NaN       m
+15 NaN                                ┬ngulo                                         0       ░ NaN                       119           ░ NaN     NaN       ░
+16 NaN                          Altura poste                                        12       m NaN                       NaN         NaN NaN     NaN     NaN
+17 NaN                      Altura ancoragem                                      10.0       m NaN                       NaN         NaN NaN     NaN     NaN
+18 NaN                          Peso do cabo                                     1.195    kg/m NaN                     1.195        kg/m NaN            kg/m
+19 NaN                      DiÔmetro do cabo                                     0.034       m NaN                     0.034           m NaN               m
+20 NaN                   Quantidade de cabos                                         3     NaN NaN                         3         NaN NaN             NaN
+21 NaN                    Peso do mensageiro                                     0.407     NaN NaN                     0.407         NaN NaN       0     NaN
+22 NaN                DiÔmetro do mensageiro                                    0.0095     NaN NaN                    0.0095         NaN NaN       0     NaN
+23 NaN                        DiÔmetro Total                                    0.1115       m NaN                    0.1115           m NaN               m
+24 NaN                            Peso Total                                     3.992    kg/m NaN                     3.992        kg/m NaN            kg/m
+25 NaN  PressÒo do vento por unidade de ßrea                                    16.956  daN/m2 NaN                    16.956      daN/m2 NaN  16.956  daN/m2
+26 NaN     Forþa do vento nos condutores - X                                     19.85     NaN NaN                    -17.41         NaN NaN             NaN
+27 NaN     Forþa do vento nos condutores - Y                                         0     NaN NaN                     31.42         NaN NaN             NaN
+28 NaN                 TraþÒo dos condutores                                   440.118     daN NaN                   900.695         daN NaN             daN
+29 NaN                                 Compx                                    440.12     NaN NaN                   -436.67         NaN NaN     NaN     NaN
+30 NaN                                 Compy                                         0     NaN NaN                    787.77         NaN NaN     NaN     NaN
+31 NaN                 Resultante - 1║ NÝvel                                819.292154     daN NaN                       NaN         NaN NaN     NaN     NaN
+32 NaN                                   NaN  TraþÒo\nMT - 1║ NÝvel \n(100 mm do topo)     NaN NaN                811.180351         daN NaN     NaN     NaN
+33 NaN                                   NaN                                       NaN     NaN NaN                 89.749078           ░ NaN     NaN     NaN
+34 NaN                                   NaN                                       NaN     NaN NaN                       NaN         NaN NaN     NaN     NaN
+35 NaN                         MT - 2║ NÝvel                                       NaN     NaN NaN                       NaN         NaN NaN     NaN     NaN
+36 NaN                                   NaN                                        T1     NaN NaN                        T2         NaN NaN      T3     NaN
+37 NaN                          Tipo de rede                                       NaN     NaN NaN                       NaN         NaN NaN     NaN     NaN
+38 NaN                          Tipo de cabo                                       NaN     NaN NaN                       NaN         NaN NaN     NaN     NaN
+39 NaN                                   VÒo                                        21       m NaN                        38           m NaN       0       m
+Traceback (most recent call last):
+
+
+DADOS NUM╔RICOS EM Ponto (1):
+================================================================================
+L  1:C11 =            21.0 | Label: Ponto:
+L 14:C 3 =              21 | Label: VÒo
+L 14:C 6 =              38 | Label: 
+L 15:C 3 =             0.5 | Label: Flecha
+L 15:C 6 =             0.8 | Label: 
+L 16:C 6 =             119 | Label: 
+L 18:C 3 = 10.000000000000002 | Label: Altura ancoragem
+L 19:C 3 =           1.195 | Label: Peso do cabo
+L 19:C 6 =           1.195 | Label: 
+L 20:C 3 =           0.034 | Label: DiÔmetro do cabo
+L 20:C 6 =           0.034 | Label: 
+L 21:C 3 =               3 | Label: Quantidade de cabos
+L 21:C 6 =               3 | Label: 
+L 22:C 3 =           0.407 | Label: Peso do mensageiro
+L 22:C 6 =           0.407 | Label: 
+L 23:C 3 =          0.0095 | Label: DiÔmetro do mensageiro
+L 23:C 6 =          0.0095 | Label: 
+L 24:C 3 =          0.1115 | Label: DiÔmetro Total
+L 24:C 6 =          0.1115 | Label: 
+L 25:C 3 =           3.992 | Label: Peso Total
+  File "C:\Users\jonat\OneDrive - IM3 Brasil\utils\sisTOPOGRAFIA\simple_excel_read.py", line 41, in <module>
+L 25:C 6 =           3.992 | Label: 
+L 26:C 3 =          16.956 | Label: PressÒo do vento por unidade de ßrea
+L 26:C 6 =          16.956 | Label: 
+L 26:C 9 =          16.956 | Label: 
+L 26:C12 =          16.956 | Label: 
+L 27:C 3 =           19.85 | Label: Forþa do vento nos condutores - X
+L 27:C 6 =          -17.41 | Label: 
+L 28:C 6 =           31.42 | Label: 
+L 29:C 3 =         440.118 | Label: TraþÒo dos condutores
+L 29:C 6 =         900.695 | Label: 
+L 30:C 3 =          440.12 | Label: Compx
+L 30:C 6 =         -436.67 | Label: 
+L 31:C 6 =          787.77 | Label: 
+L 32:C 3 = 819.2921543077097 | Label: Resultante - 1║ NÝvel
+L 33:C 6 = 811.1803507997125 | Label: 
+L 34:C 6 = 89.74907755361502 | Label: 
+L 40:C 3 =              21 | Label: VÒo
+L 40:C 6 =              38 | Label: 
+L 41:C 3 =             0.5 | Label: Flecha
+L 41:C 6 =             0.8 | Label: 
+L 42:C 6 =             119 | Label: 
+L 44:C 3 = 9.000000000000002 | Label: Altura ancoragem
+L 52:C 3 =          16.956 | Label: PressÒo do vento por unidade de ßrea
+L 52:C 6 =          16.956 | Label: 
+L 52:C 9 =          16.956 | Label: 
+L 52:C12 =          16.956 | Label: 
+L 66:C 3 =              38 | Label: VÒo
+L 66:C 6 =              38 | Label: 
+L 67:C 3 =             0.5 | Label: Flecha
+L 67:C 6 =             0.8 | Label: 
+L 68:C 6 =             119 | Label: 
+L 70:C 3 =               7 | Label: Altura ancoragem
+L 71:C 3 =           1.008 | Label: Peso do cabo
+L 71:C 6 =           1.008 | Label: 
+L 72:C 3 =            0.03 | Label: DiÔmetro do cabo
+L 72:C 6 =            0.03 | Label: 
+L 73:C 3 =               1 | Label: Quantidade de cabos
+L 73:C 6 =               1 | Label: 
+L 76:C 3 =            0.03 | Label: DiÔmetro Total
+L 76:C 6 =            0.03 | Label: 
+L 77:C 3 =           1.008 | Label: Peso Total
+L 77:C 6 =           1.008 | Label: 
+L 78:C 3 =          16.956 | Label: PressÒo do vento por unidade de ßrea
+L 78:C 6 =          16.956 | Label: 
+L 78:C 9 =          16.956 | Label: 
+L 78:C12 =          16.956 | Label: 
+L 79:C 3 =            9.66 | Label: Forþa do vento nos condutores - X
+L 79:C 6 =           -4.69 | Label: 
+L 80:C 6 =            8.45 | Label: 
+    print("\n\n\u2705 ConcluÝdo")
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.2800.0_x64__qbz5n2kfra8p0\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 4: character maps to <undefined>

@@ -1,11 +1,9 @@
 import { Router, Request, Response } from "express";
 import { logger } from "../utils/logger.js";
-import { config } from "../config.js";
 import { osmRequestSchema } from "../schemas/apiSchemas.js";
 import { fetchWithCircuitBreaker } from "../utils/externalApi.js";
 
 const router = Router();
-const isTestEnvironment = config.NODE_ENV === "test";
 
 // Simple memory-based cache for OSM requests
 // In production, consider Redis or persistent storage
@@ -173,40 +171,6 @@ function findNearestStaleCache(
   return best;
 }
 
-const buildMockOverpassPayload = (lat: number, lng: number, radius: number) => {
-  const d = Math.max(0.0005, Math.min(radius / 111_000, 0.002));
-  return {
-    version: 0.6,
-    generator: "Mock Overpass API",
-    elements: [
-      {
-        type: "node",
-        id: 1001,
-        lat,
-        lon: lng,
-        tags: { power: "pole" },
-      },
-      {
-        type: "node",
-        id: 1002,
-        lat: lat + d,
-        lon: lng + d,
-        tags: { power: "transformer" },
-      },
-      {
-        type: "way",
-        id: 2001,
-        nodes: [1001, 1002],
-        geometry: [
-          { lat, lon: lng },
-          { lat: lat + d, lon: lng + d },
-        ],
-        tags: { power: "line", voltage: "13000" },
-      },
-    ],
-  };
-};
-
 function getOverpassCircuitBreakerName(endpoint: string): string {
   try {
     const host = new URL(endpoint).hostname
@@ -343,35 +307,12 @@ router.post("/", async (req: Request, res: Response) => {
     });
   }
 
-  // Strict behavior: synthetic fallback is allowed only in test environment.
-  if (isTestEnvironment) {
-    const mock = buildMockOverpassPayload(lat, lng, radius);
-    const fallbackStats = computeOsmStats(mock.elements ?? [], radius);
-    const result = { ...mock, _fallback: true, _stats: fallbackStats };
-    return res.status(200).json(result);
-  }
-
   return res.status(503).json({
     error: "OSM provider unavailable",
     message:
       "Nao foi possivel obter dados do Overpass no momento. Tente novamente mais tarde.",
     code: "OVERPASS_UNAVAILABLE",
   });
-});
-
-router.post("/mock", async (req: Request, res: Response) => {
-  if (!isTestEnvironment) {
-    return res.status(404).json({ error: "Route not found" });
-  }
-
-  const validation = osmRequestSchema.safeParse(req.body);
-  if (!validation.success) {
-    return res.status(400).json({ error: "Invalid coordinates or radius" });
-  }
-
-  const { lat, lng, radius } = validation.data;
-
-  return res.json(buildMockOverpassPayload(lat, lng, radius));
 });
 
 export default router;

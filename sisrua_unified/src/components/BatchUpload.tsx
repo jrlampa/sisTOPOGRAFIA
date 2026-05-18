@@ -129,12 +129,16 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
     [items],
   );
 
-  const allCompleted =
-    items.length > 0 &&
-    items.every(
-      (item) =>
-        (item.status === "completed" || item.status === "cached") && !!item.url,
-    );
+  const allCompleted = useMemo(
+    () =>
+      items.length > 0 &&
+      items.every(
+        (item) =>
+          (item.status === "completed" || item.status === "cached") &&
+          !!item.url,
+      ),
+    [items],
+  );
 
   const handleUpload = async (file: File) => {
     const validation = validateBatchUploadFile(file);
@@ -258,9 +262,15 @@ const BatchUpload: React.FC<BatchUploadProps> = ({ onError, onInfo }) => {
         }),
       );
 
+      const updatesByJobId = new Map(
+        updates.map((entry) => [String(entry.jobId), entry] as const),
+      );
+
       setItems((prev) =>
         prev.map((item) => {
-          const update = updates.find((entry) => entry.jobId === item.jobId);
+          const update = item.jobId
+            ? updatesByJobId.get(String(item.jobId))
+            : undefined;
           if (!update) {
             return item;
           }

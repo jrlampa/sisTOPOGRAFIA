@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="480" viewBox="0 0 1200 480" role="img" aria-label="Map placeholder background">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <pattern id="minorGrid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M28 0H0V28" fill="none" stroke="rgba(148,163,184,0.06)" stroke-width="1"/>
+    </pattern>
+    <pattern id="majorGrid" width="112" height="112" patternUnits="userSpaceOnUse">
+      <path d="M112 0H0V112" fill="none" stroke="rgba(148,163,184,0.12)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="480" fill="url(#bg)"/>
+  <rect width="1200" height="480" fill="url(#minorGrid)"/>
+  <rect width="1200" height="480" fill="url(#majorGrid)"/>
+  <path d="M0 320 C150 300, 280 360, 420 338 C560 316, 700 250, 840 278 C980 306, 1080 262, 1200 286" fill="none" stroke="rgba(34,197,94,0.28)" stroke-width="3"/>
+  <path d="M0 204 C180 232, 320 160, 468 190 C616 220, 780 192, 930 168 C1080 144, 1140 182, 1200 170" fill="none" stroke="rgba(56,189,248,0.22)" stroke-width="2"/>
+  <g fill="rgba(148,163,184,0.32)">
+    <circle cx="240" cy="164" r="4"/>
+    <circle cx="420" cy="338" r="4"/>
+    <circle cx="612" cy="206" r="4"/>
+    <circle cx="880" cy="278" r="4"/>
+    <circle cx="1020" cy="168" r="4"/>
+  </g>
+</svg>

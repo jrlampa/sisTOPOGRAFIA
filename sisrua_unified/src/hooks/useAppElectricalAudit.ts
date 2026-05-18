@@ -5,12 +5,12 @@ export function useAppElectricalAudit({ settings, showToast }: any) {
   const [selectedAuditElement, setSelectedAuditElement] = React.useState<any>(null);
 
   React.useEffect(() => {
-    if (settings.layers.electricalAudit && selectedAuditElement) {
+    if (settings?.layers?.electricalAudit && selectedAuditElement) {
       setIsAuditOpen(true);
     } else {
       setIsAuditOpen(false);
     }
-  }, [settings.layers.electricalAudit, selectedAuditElement]);
+  }, [settings?.layers?.electricalAudit, selectedAuditElement]);
 
   const handleAuditAction = React.useCallback(
     (action: "approve" | "reject", notes: string) => {

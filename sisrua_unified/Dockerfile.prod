@@ -1,85 +1,102 @@
-# Production Dockerfile - HARDENED & OPTIMIZED
-# Multi-stage: builder → runtime (ultra-slim)
+# syntax=docker/dockerfile:1.7
+# ─────────────────────────────────────────────────────────────────────────────
+# SIS RUA Unified — Dockerfile de Produção (HARDENED & OPTIMIZED)
+# ─────────────────────────────────────────────────────────────────────────────
 
-# Stage 1: Builder (Node.js + Python build)
-FROM node:20-bookworm-slim AS builder
-WORKDIR /app
+ARG NODE_VERSION=22
+ARG ALPINE_VERSION=3.21
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    python3-dev \
-    python3-pip \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# ── Stage 1: ferramentas de compilação nativa ─────────────────────────────────
+FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION} AS base-build
 
-# Cache npm dependencies
-COPY package*.json ./
-RUN npm ci --prefer-offline --no-audit --legacy-peer-deps
+RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
+    apk add --update-cache \
+        python3 \
+        python3-dev \
+        py3-pip \
+        build-base \
+        gdal-dev \
+        geos-dev \
+        proj-dev
 
-# Build frontend + backend
-COPY . .
-RUN npm run build && npx tsc -p tsconfig.server.json
+# ── Stage 2: dependências Python (invalida só quando requirements.txt muda) ───
+FROM base-build AS py-deps
 
-# Python venv with pre-compiled wheels
+COPY py_engine/requirements.txt /tmp/requirements.txt
 RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r py_engine/requirements.txt
 
-# Stage 2: Runtime (ultra-slim Node.js Alpine)
-FROM node:20-alpine
+RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
+    /opt/venv/bin/pip install --upgrade pip setuptools wheel && \
+    /opt/venv/bin/pip install -r /tmp/requirements.txt
+
+# ── Stage 3: build Node.js + TypeScript ──────────────────────────────────────
+FROM base-build AS node-build
+
+WORKDIR /app
+COPY package*.json ./
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    npm ci --legacy-peer-deps --prefer-offline --no-audit
+
+COPY . .
+RUN npm run build && \
+    npx tsc -p tsconfig.server.json
+
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    npm prune --omit=dev --legacy-peer-deps
+
+# ── Stage 4: runner (imagem final mínima) ─────────────────────────────────────
+FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION} AS runner
+
 WORKDIR /app
 
-# Labels for security scanning
-LABEL security.scan="true"
-LABEL version="prod"
-
-# Non-root user (UID 10001 instead of 1000 for better compatibility)
-RUN addgroup -g 10001 appuser && adduser -D -u 10001 -G appuser appuser
-
-# Runtime dependencies only
-RUN apk add --no-cache \
-    python3 \
-    ca-certificates \
-    curl \
-    tini \
-    gdal-dev \
-    geos-dev \
-    proj-dev \
-    && rm -rf /var/cache/apk/*
-
-# Production environment
 ENV NODE_ENV=production \
     PORT=8080 \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PATH="/opt/venv/bin:$PATH" \
-    NODE_OPTIONS="--max-old-space-size=2048"
+    PYTHON_COMMAND=python3 \
+    DOCKER_ENV=true \
+    PATH="/opt/venv/bin:$PATH"
 
-# Copy only production artifacts
-COPY --from=builder --chown=appuser:appuser /app/package*.json ./
-RUN npm ci --omit=dev --prefer-offline --no-audit --legacy-peer-deps && \
-    npm cache clean --force
+RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
+    apk add --update-cache \
+        python3 \
+        ca-certificates \
+        curl \
+        tini
 
-COPY --from=builder --chown=appuser:appuser /opt/venv /opt/venv
-COPY --from=builder --chown=appuser:appuser /app/dist ./dist
-COPY --from=builder --chown=appuser:appuser /app/py_engine ./py_engine
-COPY --from=builder --chown=appuser:appuser /app/public ./public
+# ── Artefatos do build ───────────────────────────────────────────────────────
+COPY --from=py-deps  /opt/venv                /opt/venv
+COPY --from=node-build /app/dist         ./dist
+COPY --from=node-build /app/node_modules ./node_modules
+COPY --from=node-build /app/py_engine    ./py_engine
+COPY --from=node-build /app/public       ./public
 
-# Create app directories with correct permissions
-RUN mkdir -p /app/logs && chown -R appuser:appuser /app/logs
+COPY package.json          ./package.json
+COPY docker-entrypoint.sh  ./docker-entrypoint.sh
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+RUN mkdir -p /app/public/dxf /app/cache /app/logs && \
+    chmod +x /app/docker-entrypoint.sh
 
-# Use tini as PID 1 (proper signal handling)
-ENTRYPOINT ["/sbin/tini", "--"]
+# Verificação de dependências Python via Heredoc
+RUN <<EOF /opt/venv/bin/python3
+import sys, importlib.util
+required = [
+    'osmnx','geopandas','shapely','pyproj','rasterio','networkx',
+    'ezdxf','numpy','pandas','scipy','matplotlib',
+    'psycopg2','openpyxl','requests','srtm','pydantic','psutil',
+]
+missing = [m for m in required if importlib.util.find_spec(m) is None]
+if missing:
+    print(f'CRITICAL: missing Python deps: {missing}')
+    sys.exit(1)
+print('ALL Python dependencies OK')
+EOF
 
-# Drop to non-root
-USER appuser
+ENTRYPOINT ["/sbin/tini", "--", "/app/docker-entrypoint.sh"]
 
 EXPOSE 8080
 
-CMD ["node", "dist/server/index.js"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD curl -fsS "http://localhost:${PORT}/health" || exit 1
+
+CMD ["node", "dist/server/server/index.js"]

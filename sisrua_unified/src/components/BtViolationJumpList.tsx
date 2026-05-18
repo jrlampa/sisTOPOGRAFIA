@@ -42,14 +42,30 @@ export function BtViolationJumpList({
   violations,
   onJumpToLocation,
 }: BtViolationJumpListProps) {
-  if (violations.length === 0) return null;
+  const { sorted, criticalCount, warnCount } = React.useMemo(() => {
+    const nextSorted = [...violations].sort(
+      (a, b) => (SEVERITY_ORDER[a.type] ?? 3) - (SEVERITY_ORDER[b.type] ?? 3),
+    );
 
-  const sorted = [...violations].sort(
-    (a, b) => (SEVERITY_ORDER[a.type] ?? 3) - (SEVERITY_ORDER[b.type] ?? 3),
-  );
+    let nextCriticalCount = 0;
+    let nextWarnCount = 0;
 
-  const criticalCount = violations.filter((v) => v.type === "critical").length;
-  const warnCount = violations.filter((v) => v.type === "warning").length;
+    for (const violation of violations) {
+      if (violation.type === "critical") {
+        nextCriticalCount += 1;
+      } else if (violation.type === "warning") {
+        nextWarnCount += 1;
+      }
+    }
+
+    return {
+      sorted: nextSorted,
+      criticalCount: nextCriticalCount,
+      warnCount: nextWarnCount,
+    };
+  }, [violations]);
+
+  if (sorted.length === 0) return null;
 
   return (
     <div className="flex flex-col gap-2">

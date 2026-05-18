@@ -1,172 +1,207 @@
 /**
- * complianceRoutes.ts — Rotas eMAG + ANEEL Provenance (97+98 [T1])
+ * complianceRoutes.ts — Items 97+98 [T1] + Items 45+46+60+61+107 [T2]
+ * eMAG 3.1 Certification + ANEEL Provenance Dossier + Auto NBR 9050 + Environmental + Vegetation + Land Management
  */
 
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { EmagCertService, SecaoEmag } from "../services/emagCertService.js";
+import { EmagCertService } from "../services/emagCertService.js";
 import { AneelProvenanceService } from "../services/aneelProvenanceService.js";
+import { Nbr9050Service } from "../services/nbr9050Service.js";
+import { EsgAmbientalService } from "../services/esgAmbientalService.js";
+import { VegetacaoInventarioService } from "../services/vegetacaoInventarioService.js";
+import { LandManagementService } from "../services/landManagementService.js";
+import { logger } from "../utils/logger.js";
 
 const router = Router();
 
-// ─── eMAG 3.1 ────────────────────────────────────────────────────────────────
-
-const InspecaoSchema = z.object({
-  titulo: z.string().min(1),
-  versaoSistema: z.string().min(1),
-  responsavel: z.string().min(1),
-});
-
-const EvidenciaSchema = z.object({
-  requisitoId: z.string().min(1),
-  status: z.enum(["conforme", "parcialmente_conforme", "nao_conforme", "nao_aplicavel"]),
-  descricao: z.string().min(1),
-  responsavel: z.string().min(1),
-  artefato: z.string().optional(),
-});
+// ─── eMAG 3.1 Certification (Item 97) ────────────────────────────────────────
 
 router.get("/emag/requisitos", (req: Request, res: Response) => {
-  const secao = req.query.secao as SecaoEmag | undefined;
-  res.json(EmagCertService.listarRequisitos(secao));
+  const { secao } = req.query;
+  const reqs = secao
+    ? EmagCertService.listarRequisitos().filter((r) => r.secao === secao)
+    : EmagCertService.listarRequisitos();
+  return res.json(reqs);
 });
 
 router.post("/emag/inspecoes", (req: Request, res: Response) => {
-  const parse = InspecaoSchema.safeParse(req.body);
-  if (!parse.success) {
-    res.status(400).json({ erro: "Payload inválido", detalhes: parse.error.flatten() });
-    return;
-  }
-  const i = EmagCertService.criarInspecao(parse.data);
-  res.status(201).json(i);
+  const { titulo, versaoSistema, responsavel } = req.body;
+  if (!titulo || !versaoSistema || !responsavel) return res.status(400).json({ error: "Campos obrigatórios ausentes" });
+  const insp = EmagCertService.criarInspecao({ titulo, versaoSistema, responsavel });
+  return res.status(201).json(insp);
+});
+
+router.get("/emag/inspecoes", (req: Request, res: Response) => {
+  return res.json(EmagCertService.listarInspecoes());
 });
 
 router.post("/emag/inspecoes/:id/evidencias", (req: Request, res: Response) => {
-  const parse = EvidenciaSchema.safeParse(req.body);
-  if (!parse.success) {
-    res.status(400).json({ erro: "Payload inválido", detalhes: parse.error.flatten() });
-    return;
-  }
+  const { id } = req.params;
+  const { requisitoId, status, descricao, responsavel, artefato } = req.body;
   try {
-    const ev = EmagCertService.registrarEvidencia(req.params.id, parse.data as Parameters<typeof EmagCertService.registrarEvidencia>[1]);
-    res.status(201).json(ev);
-  } catch (err: unknown) {
-    res.status(404).json({ erro: (err as Error).message });
+    const ev = EmagCertService.registrarEvidencia(id, { requisitoId, status, descricao, responsavel, artefato });
+    return res.status(201).json(ev);
+  } catch (err: any) {
+    return res.status(404).json({ error: err.message });
   }
 });
 
 router.post("/emag/inspecoes/:id/concluir", (req: Request, res: Response) => {
+  const { id } = req.params;
   try {
-    const i = EmagCertService.concluirInspecao(req.params.id);
-    res.json(i);
-  } catch (err: unknown) {
-    res.status(404).json({ erro: (err as Error).message });
+    const insp = EmagCertService.concluirInspecao(id);
+    return res.json(insp);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
   }
 });
 
-router.get("/emag/inspecoes", (_req: Request, res: Response) => {
-  res.json(EmagCertService.listarInspecoes());
-});
-
-router.get("/emag/inspecoes/:id", (req: Request, res: Response) => {
-  try {
-    res.json(EmagCertService.getInspecao(req.params.id));
-  } catch (err: unknown) {
-    res.status(404).json({ erro: (err as Error).message });
-  }
-});
-
-// ─── ANEEL Provenance ─────────────────────────────────────────────────────────
-
-const TIPOS_ARTEFATO = ["dxf_projeto", "relatorio_cqt", "snapshot_topologia", "validacao_bdgd", "memorial_descritivo", "art"] as const;
-
-const DossieSchema = z.object({
-  titulo: z.string().min(1),
-  projetoId: z.string().min(1),
-  tenantId: z.string().min(1),
-  responsavelTecnico: z.string().min(1),
-  creaResponsavel: z.string().optional(),
-  observacoes: z.string().optional(),
-});
-
-const ArtefatoSchema = z.object({
-  tipo: z.enum(TIPOS_ARTEFATO),
-  nomeArquivo: z.string().min(1),
-  conteudo: z.string().min(1),
-  responsavelTecnico: z.string().min(1),
-  versaoSistema: z.string().min(1),
-  descricao: z.string().optional(),
-});
-
-const AprovarSchema = z.object({
-  conformidadeBdgd: z.boolean(),
-  conformidadeProdist: z.boolean(),
-});
+// ─── ANEEL Provenance Dossier (Item 98) ──────────────────────────────────────
 
 router.post("/aneel/dossies", (req: Request, res: Response) => {
-  const parse = DossieSchema.safeParse(req.body);
-  if (!parse.success) {
-    res.status(400).json({ erro: "Payload inválido", detalhes: parse.error.flatten() });
-    return;
-  }
-  const d = AneelProvenanceService.criarDossie(parse.data);
-  res.status(201).json(d);
-});
-
-router.post("/aneel/dossies/:id/artefatos", (req: Request, res: Response) => {
-  const parse = ArtefatoSchema.safeParse(req.body);
-  if (!parse.success) {
-    res.status(400).json({ erro: "Payload inválido", detalhes: parse.error.flatten() });
-    return;
-  }
-  try {
-    const a = AneelProvenanceService.adicionarArtefato(req.params.id, parse.data as Parameters<typeof AneelProvenanceService.adicionarArtefato>[1]);
-    res.status(201).json(a);
-  } catch (err: unknown) {
-    res.status(400).json({ erro: (err as Error).message });
-  }
-});
-
-router.post("/aneel/dossies/:id/aprovar", (req: Request, res: Response) => {
-  const parse = AprovarSchema.safeParse(req.body);
-  if (!parse.success) {
-    res.status(400).json({ erro: "Payload inválido", detalhes: parse.error.flatten() });
-    return;
-  }
-  try {
-    const d = AneelProvenanceService.aprovarDossie(req.params.id, parse.data);
-    res.json(d);
-  } catch (err: unknown) {
-    res.status(400).json({ erro: (err as Error).message });
-  }
-});
-
-router.post("/aneel/dossies/:id/submeter", (req: Request, res: Response) => {
-  try {
-    const d = AneelProvenanceService.submeterAneel(req.params.id);
-    res.json(d);
-  } catch (err: unknown) {
-    res.status(400).json({ erro: (err as Error).message });
-  }
-});
-
-router.get("/aneel/dossies/:id/integridade", (req: Request, res: Response) => {
-  try {
-    res.json(AneelProvenanceService.verificarIntegridade(req.params.id));
-  } catch (err: unknown) {
-    res.status(404).json({ erro: (err as Error).message });
-  }
+  const { titulo, projetoId, tenantId, responsavelTecnico, creaResponsavel } = req.body;
+  if (!titulo || !projetoId || !tenantId || !responsavelTecnico) return res.status(400).json({ error: "Campos obrigatórios" });
+  const d = AneelProvenanceService.criarDossie({ titulo, projetoId, tenantId, responsavelTecnico, creaResponsavel });
+  return res.status(201).json(d);
 });
 
 router.get("/aneel/dossies", (req: Request, res: Response) => {
   const { tenantId } = req.query;
-  res.json(AneelProvenanceService.listarDossies(tenantId as string | undefined));
+  return res.json(AneelProvenanceService.listarDossies(tenantId as string));
 });
 
-router.get("/aneel/dossies/:id", (req: Request, res: Response) => {
+router.post("/aneel/dossies/:id/artefatos", (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { tipo, nomeArquivo, conteudo, responsavelTecnico, versaoSistema, descricao } = req.body;
   try {
-    res.json(AneelProvenanceService.getDossie(req.params.id));
-  } catch (err: unknown) {
-    res.status(404).json({ erro: (err as Error).message });
+    const art = AneelProvenanceService.adicionarArtefato(id, { tipo, nomeArquivo, conteudo, responsavelTecnico, versaoSistema, descricao });
+    return res.status(201).json(art);
+  } catch (err: any) {
+    return res.status(404).json({ error: err.message });
+  }
+});
+
+router.post("/aneel/dossies/:id/aprovar", (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { conformidadeBdgd, conformidadeProdist } = req.body;
+  try {
+    const d = AneelProvenanceService.aprovarDossie(id, { conformidadeBdgd, conformidadeProdist });
+    return res.json(d);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+router.post("/aneel/dossies/:id/submeter", (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const d = AneelProvenanceService.submeterAneel(id);
+    return res.json(d);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+router.get("/aneel/dossies/:id/integridade", (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const result = AneelProvenanceService.verificarIntegridade(id);
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(404).json({ error: err.message });
+  }
+});
+
+// ─── Automatic Compliance (T2-45/46/60/61/107) ──────────────────────────────
+
+const TopologySchema = z.object({
+  poles: z.array(z.object({
+    id: z.string(),
+    lat: z.number(),
+    lng: z.number()
+  })),
+  transformers: z.array(z.any()),
+  edges: z.array(z.any())
+});
+
+/**
+ * POST /api/compliance/nbr9050/auto
+ */
+router.post("/nbr9050/auto", async (req: Request, res: Response) => {
+  try {
+    const parsed = TopologySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Topologia inválida.", details: parsed.error.format() });
+    const results = Nbr9050Service.analisarAcessibilidadeAutomatica(parsed.data as any);
+    const score = results.length > 0 ? Math.round((results.filter(r => r.conforme).length / results.length) * 100) : 100;
+    res.json({ timestamp: new Date().toISOString(), score, results });
+  } catch (err: any) {
+    logger.error("Erro na análise automática NBR 9050", { error: err.message });
+    res.status(500).json({ error: "Falha ao processar análise de acessibilidade." });
+  }
+});
+
+/**
+ * POST /api/compliance/environmental/auto
+ */
+router.post("/environmental/auto", async (req: Request, res: Response) => {
+  try {
+    const parsed = TopologySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Topologia inválida.", details: parsed.error.format() });
+    const interferencias = EsgAmbientalService.detectarInterferencias(parsed.data as any);
+    res.json({ timestamp: new Date().toISOString(), riskLevel: interferencias.length > 0 ? "ALTO" : "BAIXO", totalInterferencias: interferencias.length, interferencias });
+  } catch (err: any) {
+    logger.error("Erro na detecção de interferências ambientais", { error: err.message });
+    res.status(500).json({ error: "Falha ao processar análise ambiental." });
+  }
+});
+
+/**
+ * POST /api/compliance/vegetation/auto
+ */
+router.post("/vegetation/auto", async (req: Request, res: Response) => {
+  try {
+    const topology = req.body.topology;
+    const osmData = req.body.osmData || [];
+    const parsed = TopologySchema.safeParse(topology);
+    if (!parsed.success) return res.status(400).json({ error: "Topologia inválida.", details: parsed.error.format() });
+    const result = VegetacaoInventarioService.estimarInventarioSimulado(parsed.data as any, osmData);
+    res.json({ timestamp: new Date().toISOString(), ...result });
+  } catch (err: any) {
+    logger.error("Erro no inventário simulado de vegetação", { error: err.message });
+    res.status(500).json({ error: "Falha ao processar inventário de vegetação." });
+  }
+});
+
+/**
+ * POST /api/compliance/land/auto-detect
+ * Escaneia a topologia em busca de conflitos fundiários (T2-107).
+ */
+router.post("/land/auto-detect", async (req: Request, res: Response) => {
+  try {
+    const parsed = TopologySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Topologia inválida.", details: parsed.error.format() });
+    const conflicts = LandManagementService.detectEasementConflicts(parsed.data as any);
+    res.json({ timestamp: new Date().toISOString(), totalConflitos: conflicts.length, conflicts });
+  } catch (err: any) {
+    logger.error("Erro na detecção de conflitos fundiários", { error: err.message });
+    res.status(500).json({ error: "Falha ao processar análise fundiária." });
+  }
+});
+
+/**
+ * POST /api/compliance/land/processos/auto
+ * Cria processo de servidão automático para os conflitos detectados.
+ */
+router.post("/land/processos/auto", async (req: Request, res: Response) => {
+  try {
+    const { tenantId, projetoId, topology } = req.body;
+    if (!tenantId || !projetoId || !topology) return res.status(400).json({ error: "Campos obrigatórios ausentes." });
+    const result = LandManagementService.createProcessFromConflicts(tenantId, projetoId, topology);
+    res.status(201).json(result);
+  } catch (err: any) {
+    logger.error("Erro na criação de processo fundiário", { error: err.message });
+    res.status(500).json({ error: "Falha ao criar processo de servidão." });
   }
 });
 

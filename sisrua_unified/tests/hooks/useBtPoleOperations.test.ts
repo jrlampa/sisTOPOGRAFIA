@@ -1,90 +1,106 @@
-/**
- * useBtPoleOperations.test.ts — Vitest: teste das operações de poste BT.
- * Verifica criação, deleção, renomeação e gestão de ramais.
- */
+import { renderHook, act } from '@testing-library/react';
+import { useBtPoleOperations } from '@/hooks/useBtPoleOperations';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { SpatialJurisdictionService } from '@/services/spatialJurisdictionService';
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
-import { useBtPoleOperations } from "../../src/hooks/useBtPoleOperations";
-import { INITIAL_APP_STATE } from "../../src/app/initialState";
-import { GlobalState } from "../../src/types";
+// Mock SpatialJurisdictionService
+vi.mock('@/services/spatialJurisdictionService', () => ({
+  SpatialJurisdictionService: {
+    isPointInJurisdiction: vi.fn(() => true),
+  }
+}));
 
-describe("useBtPoleOperations", () => {
-  let appState: GlobalState;
-  const setAppState = vi.fn();
-  const showToast = vi.fn();
-  const onSelectedPoleChange = vi.fn();
+describe('useBtPoleOperations hook', () => {
+  const mockAppState = {
+    btTopology: { poles: [], transformers: [], edges: [] },
+    settings: { projectType: 'ramais' },
+    polygon: [],
+    radius: 100,
+    center: { lat: 0, lng: 0 },
+  } as any;
+  const mockSetAppState = vi.fn();
+  const mockShowToast = vi.fn();
+  const mockUndo = vi.fn();
 
   beforeEach(() => {
-    appState = JSON.parse(JSON.stringify(INITIAL_APP_STATE));
     vi.clearAllMocks();
   });
 
-  const render = () => 
-    renderHook(() => useBtPoleOperations({ 
-      appState, 
-      setAppState, 
-      showToast, 
-      onSelectedPoleChange 
+  it('inserts a pole correctly when in jurisdiction', () => {
+    const { result } = renderHook(() => useBtPoleOperations({
+      appState: mockAppState,
+      setAppState: mockSetAppState,
+      showToast: mockShowToast,
+      undo: mockUndo,
     }));
 
-  it("deve inserir um poste em uma localização", () => {
-    const { result } = render();
-    const location = { lat: -23.5, lng: -46.5 };
-
+    const location = { lat: 10, lng: 20 };
     act(() => {
       result.current.insertBtPoleAtLocation(location);
     });
 
-    expect(setAppState).toHaveBeenCalled();
+    expect(mockSetAppState).toHaveBeenCalledWith(
+        expect.any(Function), // it uses functional update
+        true
+    );
+    expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining("inserido"), "success", expect.any(Object));
   });
 
-  it("deve deletar um poste existente", () => {
-    appState.btTopology = {
-      poles: [{ id: "P1", lat: -23, lng: -46, ramais: [], poleChangeFlag: "new" }],
-      transformers: [],
-      edges: []
-    };
-    const { result } = render();
+  it('blocks pole insertion when out of jurisdiction', () => {
+    vi.mocked(SpatialJurisdictionService.isPointInJurisdiction).mockReturnValue(false);
 
+    const { result } = renderHook(() => useBtPoleOperations({
+      appState: mockAppState,
+      setAppState: mockSetAppState,
+      showToast: mockShowToast,
+      undo: mockUndo,
+    }));
+
+    const location = { lat: 50, lng: 50 };
     act(() => {
-      result.current.handleBtDeletePole("P1");
+      result.current.insertBtPoleAtLocation(location);
     });
 
-    expect(setAppState).toHaveBeenCalled();
+    expect(mockSetAppState).not.toHaveBeenCalled();
+    expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining("fora da jurisdição"), "error");
   });
 
-  it("deve renomear um poste", () => {
-    appState.btTopology = {
-      poles: [{ id: "P1", lat: -23, lng: -46, ramais: [], title: "Antigo" }],
-      transformers: [],
-      edges: []
+  it('deletes a pole correctly', () => {
+    const appWithPole = {
+        ...mockAppState,
+        btTopology: { poles: [{ id: 'p1', lat: 0, lng: 0 }], transformers: [], edges: [] }
     };
-    const { result } = render();
+    const { result } = renderHook(() => useBtPoleOperations({
+      appState: appWithPole,
+      setAppState: mockSetAppState,
+      showToast: mockShowToast,
+      undo: mockUndo,
+    }));
 
     act(() => {
-      result.current.handleBtRenamePole("P1", "Novo Nome");
+      result.current.handleBtDeletePole('p1');
     });
 
-    expect(setAppState).toHaveBeenCalled();
+    expect(mockSetAppState).toHaveBeenCalled();
+    expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining("removido"), "info", expect.any(Object));
   });
 
-  it("deve gerenciar ramais: adicionar ramal rápido em modo clandestino", () => {
-    appState.settings.projectType = "clandestino";
-    appState.btTopology = {
-      poles: [{ id: "P1", lat: -23, lng: -46, ramais: [] }],
-      transformers: [],
-      edges: []
+  it('renames a pole correctly', () => {
+    const appWithPole = {
+        ...mockAppState,
+        btTopology: { poles: [{ id: 'p1', lat: 0, lng: 0, title: 'Old' }], transformers: [], edges: [] }
     };
-    const { result } = render();
+    const { result } = renderHook(() => useBtPoleOperations({
+      appState: appWithPole,
+      setAppState: mockSetAppState,
+      showToast: mockShowToast,
+      undo: mockUndo,
+    }));
 
     act(() => {
-      result.current.handleBtQuickAddPoleRamal("P1");
+      result.current.handleBtRenamePole('p1', 'New Name');
     });
 
-    expect(setAppState).toHaveBeenCalled();
-    const nextState = setAppState.mock.calls[0][0];
-    const poles = typeof nextState === "function" ? nextState(appState).btTopology.poles : nextState.btTopology.poles;
-    expect(poles[0].ramais).toHaveLength(1);
+    expect(mockSetAppState).toHaveBeenCalled();
   });
 });

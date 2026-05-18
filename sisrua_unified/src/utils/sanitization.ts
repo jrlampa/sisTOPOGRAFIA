@@ -4,16 +4,20 @@
  *
  * Regra não negociável: Todos os inputs de usuário devem ser sanitizados
  */
+import { AppLocale } from "../types";
+import { getUtilsText } from "../i18n/utilsText";
 
 /**
  * Sanitize string input - remove potentially dangerous characters
  * @param input User input string
  * @param maxLength Maximum allowed length (default: 255)
+ * @param locale Current app locale
  * @returns Sanitized string
  */
-export function sanitizeString(input: string, maxLength = 255): string {
+export function sanitizeString(input: string, maxLength = 255, locale: AppLocale = "pt-BR"): string {
+  const t = getUtilsText(locale).sanitization;
   if (typeof input !== "string") {
-    throw new Error("Input must be a string");
+    throw new Error(t.stringExpected);
   }
 
   const sanitized = input
@@ -61,11 +65,13 @@ export function validateCoordinates(lat: number, lng: number): boolean {
 /**
  * Sanitize file name - prevent path traversal and XSS
  * @param filename Original filename
+ * @param locale Current app locale
  * @returns Safe filename
  */
-export function sanitizeFileName(filename: string): string {
+export function sanitizeFileName(filename: string, locale: AppLocale = "pt-BR"): string {
+  const t = getUtilsText(locale).sanitization;
   if (typeof filename !== "string") {
-    throw new Error("Filename must be a string");
+    throw new Error(t.stringExpected);
   }
 
   return filename
@@ -80,21 +86,26 @@ export function sanitizeFileName(filename: string): string {
  * @param input User input
  * @param min Minimum allowed value
  * @param max Maximum allowed value
+ * @param locale Current app locale
  * @returns Validated number or throws
  */
 export function sanitizeNumber(
   input: any,
   min = -Infinity,
   max = Infinity,
+  locale: AppLocale = "pt-BR",
 ): number {
+  const t = getUtilsText(locale).sanitization;
   const num = Number(input);
 
   if (Number.isNaN(num)) {
-    throw new Error("Input is not a valid number");
+    throw new Error(t.invalidNumber);
   }
 
   if (num < min || num > max) {
-    throw new Error(`Number must be between ${min} and ${max}`);
+    // Replace placeholders manually for util functions (no i18next instance here)
+    const msg = t.numberRange.replace("{{min}}", String(min)).replace("{{max}}", String(max));
+    throw new Error(msg);
   }
 
   return num;
@@ -104,11 +115,13 @@ export function sanitizeNumber(
  * Escape SQL string literal
  * NOTE: This is for reference only. Use parameterized queries instead!
  * @param input User input
+ * @param locale Current app locale
  * @returns Escaped string
  */
-export function escapeSqlString(input: string): string {
+export function escapeSqlString(input: string, locale: AppLocale = "pt-BR"): string {
+  const t = getUtilsText(locale).sanitization;
   if (typeof input !== "string") {
-    throw new Error("Input must be a string");
+    throw new Error(t.stringExpected);
   }
 
   return input.replace(/'/g, "''").replace(/\\/g, "\\\\");
@@ -153,38 +166,42 @@ export function escapeCsvCell(cell: any): string {
 /**
  * Validate JSON is safe
  * @param jsonString JSON string to validate
+ * @param locale Current app locale
  * @returns Parsed object or throws
  */
-export function validateAndParseJson<T>(jsonString: string): T {
+export function validateAndParseJson<T>(jsonString: string, locale: AppLocale = "pt-BR"): T {
+  const t = getUtilsText(locale).sanitization;
   try {
     const parsed = JSON.parse(jsonString);
     return parsed as T;
   } catch {
-    throw new Error("Invalid JSON provided");
+    throw new Error(t.invalidJson);
   }
 }
 
 /**
  * Sanitize object recursively
  * @param obj Object to sanitize
+ * @param locale Current app locale
  * @returns Sanitized object
  */
 export function sanitizeObject<T extends Record<string, any>>(
   obj: T,
+  locale: AppLocale = "pt-BR",
 ): Partial<T> {
   const sanitized: Partial<T> = {};
 
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === "string") {
-      (sanitized as any)[key] = sanitizeString(value);
+      (sanitized as any)[key] = sanitizeString(value, 255, locale);
     } else if (typeof value === "number") {
-      (sanitized as any)[key] = sanitizeNumber(value);
+      (sanitized as any)[key] = sanitizeNumber(value, -Infinity, Infinity, locale);
     } else if (Array.isArray(value)) {
       (sanitized as any)[key] = value.map((v) =>
-        typeof v === "string" ? sanitizeString(v) : v,
+        typeof v === "string" ? sanitizeString(v, 255, locale) : v,
       );
     } else if (value && typeof value === "object" && !Array.isArray(value)) {
-      (sanitized as any)[key] = sanitizeObject(value);
+      (sanitized as any)[key] = sanitizeObject(value, locale);
     } else {
       (sanitized as any)[key] = value;
     }

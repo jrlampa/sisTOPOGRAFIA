@@ -16,10 +16,10 @@
  * POST /api/supply-chain/policy-gates/evaluate       — Avalia gates para uma versão
  */
 
-import { Router, Request, Response } from "express";
-import { z } from "zod";
-import { SupplyChainService, SastSeverity, SastCategory } from "../services/supplyChainService.js";
-import * as path from "path";
+import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import { SupplyChainService, SastSeverity, SastCategory } from '../services/supplyChainService.js';
+import * as path from 'path';
 
 const router = Router();
 
@@ -39,7 +39,7 @@ const GenerateSbomSchema = z.object({
 });
 
 const ScanSecretsSchema = z.object({
-  content: z.string().min(1),
+  content: z.string().min(1).max(200_000),
   fileHint: z.string().min(1),
   startLine: z.number().int().min(1).optional(),
 });
@@ -65,17 +65,20 @@ const EvaluateGatesSchema = z.object({
 
 // ─── SBOM ─────────────────────────────────────────────────────────────────────
 
-router.get("/sbom", (_req: Request, res: Response) => {
+router.get('/sbom', (_req: Request, res: Response) => {
   const sbom = SupplyChainService.getLastSbom();
-  if (!sbom) return res.status(404).json({ error: "Nenhum SBOM gerado. Execute POST /sbom/generate primeiro." });
+  if (!sbom)
+    return res
+      .status(404)
+      .json({ error: 'Nenhum SBOM gerado. Execute POST /sbom/generate primeiro.' });
   return res.json(sbom);
 });
 
-router.post("/sbom/generate", (req: Request, res: Response) => {
+router.post('/sbom/generate', (req: Request, res: Response) => {
   const parsed = GenerateSbomSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.issues });
 
-  const pythonComponents = (parsed.data.pythonComponents ?? []).map((p) => ({
+  const pythonComponents = (parsed.data.pythonComponents ?? []).map(p => ({
     name: p.name,
     version: p.version,
     license: p.license ?? null,
@@ -87,13 +90,16 @@ router.post("/sbom/generate", (req: Request, res: Response) => {
 
 // ─── npm audit ────────────────────────────────────────────────────────────────
 
-router.get("/npm-audit", (_req: Request, res: Response) => {
+router.get('/npm-audit', (_req: Request, res: Response) => {
   const audit = SupplyChainService.getLastNpmAudit();
-  if (!audit) return res.status(404).json({ error: "Nenhum audit executado. Execute POST /npm-audit/run primeiro." });
+  if (!audit)
+    return res
+      .status(404)
+      .json({ error: 'Nenhum audit executado. Execute POST /npm-audit/run primeiro.' });
   return res.json(audit);
 });
 
-router.post("/npm-audit/run", (_req: Request, res: Response) => {
+router.post('/npm-audit/run', (_req: Request, res: Response) => {
   const result = SupplyChainService.runNpmAudit(PROJECT_ROOT);
   const status = result.passed ? 200 : 207;
   return res.status(status).json(result);
@@ -101,12 +107,12 @@ router.post("/npm-audit/run", (_req: Request, res: Response) => {
 
 // ─── Secret Scanning ──────────────────────────────────────────────────────────
 
-router.get("/secrets", (req: Request, res: Response) => {
-  const onlyUnresolved = req.query["onlyUnresolved"] === "true";
+router.get('/secrets', (req: Request, res: Response) => {
+  const onlyUnresolved = req.query['onlyUnresolved'] === 'true';
   return res.json(SupplyChainService.getSecretMatches(onlyUnresolved));
 });
 
-router.post("/secrets/scan", (req: Request, res: Response) => {
+router.post('/secrets/scan', (req: Request, res: Response) => {
   const parsed = ScanSecretsSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.issues });
 
@@ -115,28 +121,26 @@ router.post("/secrets/scan", (req: Request, res: Response) => {
   return res.status(201).json(result);
 });
 
-router.patch("/secrets/:id/resolve", (req: Request, res: Response) => {
+router.patch('/secrets/:id/resolve', (req: Request, res: Response) => {
   const parsed = ResolveSecretSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.issues });
 
-  const updated = SupplyChainService.resolveSecretMatch(req.params["id"]!, parsed.data.resolvedBy);
-  if (!updated) return res.status(422).json({ error: "Match de segredo não encontrado." });
+  const updated = SupplyChainService.resolveSecretMatch(req.params['id']!, parsed.data.resolvedBy);
+  if (!updated) return res.status(422).json({ error: 'Match de segredo não encontrado.' });
   return res.json(updated);
 });
 
 // ─── SAST ─────────────────────────────────────────────────────────────────────
 
-router.get("/sast/findings", (req: Request, res: Response) => {
-  const severity = req.query["severity"] as SastSeverity | undefined;
-  const fixed = req.query["fixed"] !== undefined
-    ? req.query["fixed"] === "true"
-    : undefined;
-  const category = req.query["category"] as SastCategory | undefined;
+router.get('/sast/findings', (req: Request, res: Response) => {
+  const severity = req.query['severity'] as SastSeverity | undefined;
+  const fixed = req.query['fixed'] !== undefined ? req.query['fixed'] === 'true' : undefined;
+  const category = req.query['category'] as SastCategory | undefined;
 
   return res.json(SupplyChainService.getSastFindings({ severity, fixed, category }));
 });
 
-router.post("/sast/findings", (req: Request, res: Response) => {
+router.post('/sast/findings', (req: Request, res: Response) => {
   const parsed = AddSastFindingSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.issues });
 
@@ -153,25 +157,28 @@ router.post("/sast/findings", (req: Request, res: Response) => {
   return res.status(201).json(finding);
 });
 
-router.get("/sast/report", (_req: Request, res: Response) => {
+router.get('/sast/report', (_req: Request, res: Response) => {
   return res.json(SupplyChainService.getSastReport());
 });
 
-router.patch("/sast/findings/:id/fix", (req: Request, res: Response) => {
-  const updated = SupplyChainService.markSastFixed(req.params["id"]!);
-  if (!updated) return res.status(422).json({ error: "Finding SAST não encontrado." });
+router.patch('/sast/findings/:id/fix', (req: Request, res: Response) => {
+  const updated = SupplyChainService.markSastFixed(req.params['id']!);
+  if (!updated) return res.status(422).json({ error: 'Finding SAST não encontrado.' });
   return res.json(updated);
 });
 
 // ─── Policy Gates ─────────────────────────────────────────────────────────────
 
-router.get("/policy-gates", (_req: Request, res: Response) => {
+router.get('/policy-gates', (_req: Request, res: Response) => {
   const eval_ = SupplyChainService.getLastPolicyEvaluation();
-  if (!eval_) return res.status(404).json({ error: "Nenhuma avaliação executada. Execute POST /policy-gates/evaluate." });
+  if (!eval_)
+    return res
+      .status(404)
+      .json({ error: 'Nenhuma avaliação executada. Execute POST /policy-gates/evaluate.' });
   return res.json(eval_);
 });
 
-router.post("/policy-gates/evaluate", (req: Request, res: Response) => {
+router.post('/policy-gates/evaluate', (req: Request, res: Response) => {
   const parsed = EvaluateGatesSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: parsed.error.issues });
 

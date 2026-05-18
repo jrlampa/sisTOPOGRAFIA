@@ -47,6 +47,7 @@ jobs:
           echo "Enabling required Google Cloud APIs..."
           gcloud services enable \
             cloudresourcemanager.googleapis.com \
+            cloudtasks.googleapis.com \
             run.googleapis.com \
             --project=${{ secrets.GCP_PROJECT_ID }}
           echo "Required APIs enabled successfully."
@@ -55,6 +56,8 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+          CLOUD_TASKS_LOCATION: southamerica-east1
+          CLOUD_TASKS_QUEUE: sisrua-queue
         run: |
           cd sisrua_unified
           gcloud run deploy sisrua-app \
@@ -67,7 +70,7 @@ jobs:
             --timeout=300 \
             --min-instances=0 \
             --max-instances=10 \
-            --update-env-vars="GROQ_API_KEY=${GROQ_API_KEY},GCP_PROJECT=${GCP_PROJECT},USE_SUPABASE_JOBS=true,USE_CLOUD_TASKS=false,NODE_ENV=production"
+            --update-env-vars="GROQ_API_KEY=${GROQ_API_KEY},GCP_PROJECT=${GCP_PROJECT},CLOUD_TASKS_LOCATION=${CLOUD_TASKS_LOCATION},CLOUD_TASKS_QUEUE=${CLOUD_TASKS_QUEUE},USE_SUPABASE_JOBS=true,USE_CLOUD_TASKS=true,NODE_ENV=production"
 
       - name: Capture Cloud Run Service URL
         run: |

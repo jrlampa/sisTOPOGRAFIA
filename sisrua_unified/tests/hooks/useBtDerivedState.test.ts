@@ -1,62 +1,106 @@
-/**
- * useBtDerivedState.test.ts — Vitest: teste do hook de estados derivados BT.
- * Verifica cálculo de demanda, resumos e integração com serviço de backend.
- */
+import { renderHook, act } from '@testing-library/react';
+import { useBtDerivedState } from '@/hooks/useBtDerivedState';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as btDerivedService from '@/services/btDerivedService';
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
-import { useBtDerivedState } from "../../src/hooks/useBtDerivedState";
-import { fetchBtDerivedState } from "../../src/services/btDerivedService";
-import { INITIAL_APP_STATE } from "../../src/app/initialState";
+vi.mock('@/services/btDerivedService');
 
-// Mock do serviço de backend
-vi.mock("../../src/services/btDerivedService", () => ({
-  fetchBtDerivedState: vi.fn(),
-}));
-
-describe("useBtDerivedState", () => {
-  const setAppState = vi.fn();
+describe('useBtDerivedState hook', () => {
+  const mockAppState = {
+    btTopology: { poles: [], transformers: [], edges: [] },
+    settings: { projectType: 'ramais', clandestinoAreaM2: 0 },
+  } as any;
+  const mockSetAppState = vi.fn();
 
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
   });
 
-  it("deve buscar e carregar estados derivados ao montar", async () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('calculates derived state after debounce', async () => {
     const mockPayload = {
-      accumulatedByPole: [{ poleId: "P1", accumulatedDemandKva: 10 }],
-      estimatedByTransformer: [],
-      summary: { poles: 1, transformers: 0, edges: 0, totalLengthMeters: 0, transformerDemandKva: 0, transformerDemandKw: 0 },
-      pointDemandKva: 5,
+      accumulatedByPole: [{ poleId: 'p1', dvAccumPercent: 8 }],
+      estimatedByTransformer: [{ transformerId: 't1', assignedClients: 10, estimatedDemandKva: 15 }],
+      summary: { poles: 1, transformers: 1, edges: 0, totalLengthMeters: 0, transformerDemandKva: 15 },
+      pointDemandKva: 1.5,
       sectioningImpact: null,
       clandestinoDisplay: null,
-      transformersDerived: []
+      transformersDerived: [],
     };
 
-    (fetchBtDerivedState as any).mockResolvedValue(mockPayload);
+    vi.mocked(btDerivedService.fetchBtDerivedState).mockResolvedValue(mockPayload as any);
 
     const { result } = renderHook(() => useBtDerivedState({ 
-      appState: INITIAL_APP_STATE, 
-      setAppState 
+      appState: mockAppState, 
+      setAppState: mockSetAppState 
     }));
 
-    await waitFor(() => {
-      expect(result.current.btAccumulatedByPole).toHaveLength(1);
-      expect(result.current.btAccumulatedByPole[0].poleId).toBe("P1");
-      expect(result.current.btSummary.poles).toBe(1);
+    expect(result.current.isCalculating).toBe(true);
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(btDerivedService.fetchBtDerivedState).toHaveBeenCalled();
+    expect(result.current.isCalculating).toBe(false);
+    expect(result.current.btAccumulatedByPole).toEqual(mockPayload.accumulatedByPole);
+    expect(result.current.btCriticalPoleId).toBe('p1');
+    expect(result.current.btTransformerDebugById['t1']).toEqual({
+      assignedClients: 10,
+      estimatedDemandKva: 15,
     });
   });
 
-  it("deve retornar valores vazios em caso de erro na API", async () => {
-    (fetchBtDerivedState as any).mockRejectedValue(new Error("API Error"));
+  it('identifies critical pole correctly based on dvAccumPercent', async () => {
+    const mockPayload = {
+      accumulatedByPole: [
+        { poleId: 'p1', dvAccumPercent: 5 },
+        { poleId: 'p2', dvAccumPercent: 9 },
+      ],
+      estimatedByTransformer: [],
+      summary: {},
+      pointDemandKva: 0,
+    };
+
+    vi.mocked(btDerivedService.fetchBtDerivedState).mockResolvedValue(mockPayload as any);
 
     const { result } = renderHook(() => useBtDerivedState({ 
-      appState: INITIAL_APP_STATE, 
-      setAppState 
+      appState: mockAppState, 
+      setAppState: mockSetAppState 
     }));
 
-    await waitFor(() => {
-      expect(result.current.btAccumulatedByPole).toHaveLength(0);
-      expect(result.current.btSummary.poles).toBe(0);
+    await act(async () => {
+      vi.advanceTimersByTime(300);
     });
+
+    expect(result.current.btCriticalPoleId).toBe('p2');
+  });
+
+  it('returns null for critical pole if dvAccumPercent is below threshold', async () => {
+    const mockPayload = {
+      accumulatedByPole: [
+        { poleId: 'p1', dvAccumPercent: 5 },
+      ],
+      estimatedByTransformer: [],
+      summary: {},
+      pointDemandKva: 0,
+    };
+
+    vi.mocked(btDerivedService.fetchBtDerivedState).mockResolvedValue(mockPayload as any);
+
+    const { result } = renderHook(() => useBtDerivedState({ 
+      appState: mockAppState, 
+      setAppState: mockSetAppState 
+    }));
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(result.current.btCriticalPoleId).toBeNull();
   });
 });

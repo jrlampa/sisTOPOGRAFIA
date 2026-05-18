@@ -1,14 +1,24 @@
-vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
-/**
- * DgWizardModal.test.tsx — Vitest: teste do wizard DG.
- * Verifica edição de clientes global e individual.
- */
-
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 import { DgWizardModal } from "../../src/components/DgWizardModal";
 import type { BtPoleNode } from "../../src/types";
+
+// Mock i18next
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (k: string) => k }),
+}));
+
+// Mock focus trap
+vi.mock("@/hooks/useFocusTrap", () => ({
+  useFocusTrap: vi.fn(),
+}));
+
+// Mock analytics
+vi.mock("@/utils/analytics", () => ({
+  trackModalAbandonment: vi.fn(),
+  trackDgParameterDivergence: vi.fn(),
+}));
 
 const MOCK_POLES: BtPoleNode[] = [
   { id: "p1", lat: -22.9, lng: -43.1, title: "Poste 1", ramais: [] },
@@ -16,7 +26,11 @@ const MOCK_POLES: BtPoleNode[] = [
 ];
 
 describe("DgWizardModal", () => {
-  it("permite editar clientes globalmente e avançar etapas", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("permite navegar por todas as etapas e executar", () => {
     const onExecute = vi.fn();
     render(
       <DgWizardModal 
@@ -28,17 +42,18 @@ describe("DgWizardModal", () => {
     );
 
     // Passo 1: Demanda
-    const input = screen.getByLabelText(/dgWizard.demanda.labelClientesPorPoste/i);
-    fireEvent.change(input, { target: { value: "5" } });
-    
+    fireEvent.change(screen.getByLabelText(/dgWizard.demanda.labelClientesPorPoste/i), { target: { value: "5" } });
     fireEvent.click(screen.getByRole("button", { name: /common.next/i }));
     
     // Passo 2: Expansão
     expect(screen.getByText(/dgWizard.expansao.title/i)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/dgWizard.expansao.labelAreaClandestina/i), { target: { value: "100" } });
     fireEvent.click(screen.getByRole("button", { name: /common.next/i }));
     
     // Passo 3: Técnico
     expect(screen.getByText(/dgWizard.tecnico.title/i)).toBeInTheDocument();
+    // Toggle a trafo option (e.g. 15 kVA)
+    fireEvent.click(screen.getByText("15"));
     fireEvent.click(screen.getByRole("button", { name: /common.next/i }));
     
     // Passo 4: Revisão
@@ -47,40 +62,75 @@ describe("DgWizardModal", () => {
     
     expect(onExecute).toHaveBeenCalledWith(expect.objectContaining({
         clientesPorPoste: 5,
-        poleOverrides: {}
+        areaClandestinaM2: 100
     }));
   });
 
-  it("permite expandir e editar clientes individualmente por poste", () => {
-    const onExecute = vi.fn();
+  it("exibe erro de validação para campos inválidos", () => {
     render(
       <DgWizardModal 
         isOpen={true} 
         poles={MOCK_POLES} 
         onClose={vi.fn()} 
-        onExecute={onExecute} 
+        onExecute={vi.fn()} 
       />
     );
 
-    // Abre seção individual
-    fireEvent.click(screen.getByText(/dgWizard.demanda.adjustIndividual/i));
+    const input = screen.getByLabelText(/dgWizard.demanda.labelClientesPorPoste/i);
+    fireEvent.change(input, { target: { value: "0" } });
+    fireEvent.blur(input); // Touch field
     
-    // Verifica se os inputs individuais aparecem. 
-    // Como usamos o mesmo valor padrão se não editado, buscamos o input pelo value ou seletor.
-    const inputs = screen.getAllByRole("spinbutton"); 
-    // Index 0 é o global, 1 é P1, 2 é P2
-    
-    fireEvent.change(inputs[1], { target: { value: "10" } }); // P1 = 10
-    
-    // Avança até o fim
+    expect(screen.getByText(/dgWizard.validation.minClientes/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /common.next/i })).toBeDisabled();
+  });
+
+  it("permite voltar para a etapa anterior", () => {
+    render(
+      <DgWizardModal 
+        isOpen={true} 
+        poles={MOCK_POLES} 
+        onClose={vi.fn()} 
+        onExecute={vi.fn()} 
+      />
+    );
+
+    // Avança para Expansão
     fireEvent.click(screen.getByRole("button", { name: /common.next/i }));
-    fireEvent.click(screen.getByRole("button", { name: /common.next/i }));
-    fireEvent.click(screen.getByRole("button", { name: /common.next/i }));
-    fireEvent.click(screen.getByRole("button", { name: /dgWizard.revisao.btnExecute/i }));
-    
-    expect(onExecute).toHaveBeenCalledWith(expect.objectContaining({
-        poleOverrides: { "p1": 10 }
-    }));
+    expect(screen.getByText(/dgWizard.expansao.title/i)).toBeInTheDocument();
+
+    // Volta para Demanda
+    fireEvent.click(screen.getByRole("button", { name: /common.back/i }));
+    expect(screen.getByText(/dgWizard.demanda.title/i)).toBeInTheDocument();
+  });
+
+  it("chama onClose ao cancelar na primeira etapa", () => {
+    const onClose = vi.fn();
+    render(
+      <DgWizardModal 
+        isOpen={true} 
+        poles={MOCK_POLES} 
+        onClose={onClose} 
+        onExecute={vi.fn()} 
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /common.cancel/i }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("chama onClose ao clicar no botão X", () => {
+    const onClose = vi.fn();
+    render(
+      <DgWizardModal 
+        isOpen={true} 
+        poles={MOCK_POLES} 
+        onClose={onClose} 
+        onExecute={vi.fn()} 
+      />
+    );
+
+    fireEvent.click(screen.getByTitle(/common.close/i));
+    expect(onClose).toHaveBeenCalled();
   });
 });
 

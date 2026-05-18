@@ -30,6 +30,9 @@ secrets/
 # ─── Ferramentas de desenvolvimento ──────────────────────────────────────────
 .vscode
 .idea
+.copilot
+.clinerules
+.husky
 *.swp
 *.swo
 .DS_Store
@@ -61,6 +64,12 @@ download
 npm-debug.log
 DB_LOG.log
 metadata.json
+*.kmz
+*.kml
+*.geojson
+*.dxf
+test_*.csv
+.act-quality.log
 
 # ─── Arquivos Docker (não copiar para dentro da imagem) ───────────────────────
 docker-compose.yml

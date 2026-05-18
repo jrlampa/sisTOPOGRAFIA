@@ -1,74 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Logger, { _testUtils } from '../../src/utils/logger';
 
-const { sanitizeDataForProduction } = _testUtils;
-
-describe('sanitizeDataForProduction', () => {
-    it('returns falsy data unchanged', () => {
-        expect(sanitizeDataForProduction(null)).toBeNull();
-        expect(sanitizeDataForProduction(undefined)).toBeUndefined();
-        expect(sanitizeDataForProduction('')).toBe('');
-    });
-
-    it('removes system paths from strings', () => {
-        const result = sanitizeDataForProduction('/usr/local/bin/script.js');
-        expect(result).toContain('[PATH]');
-    });
-
-    it('removes internal IPs from strings', () => {
-        const result = sanitizeDataForProduction('Server at 10.0.0.1 responded');
-        expect(result).toContain('[IP]');
-    });
-
-    it('removes 172.x IPs from strings', () => {
-        const result = sanitizeDataForProduction('Address 172.16.0.1 blocked');
-        expect(result).toContain('[IP]');
-    });
-
-    it('redacts token=... patterns from strings', () => {
-        const result = sanitizeDataForProduction('token=abc123def');
-        expect(result).toContain('[REDACTED]');
-    });
-
-    it('returns Error objects with name and message (no stack in prod)', () => {
-        const err = new Error('Something went wrong');
-        const result = sanitizeDataForProduction(err) as any;
-        expect(result.name).toBe('Error');
-        expect(result.message).toBe('Something went wrong');
-    });
-
-    it('redacts sensitive keys in objects', () => {
-        const obj = { password: 'secret', name: 'Alice' };
-        const result = sanitizeDataForProduction(obj) as any;
-        expect(result.password).toBe('[REDACTED]');
-        expect(result.name).toBe('Alice');
-    });
-
-    it('redacts api_key in objects', () => {
-        const obj = { api_key: 'my-api-key', normalField: 'data' };
-        const result = sanitizeDataForProduction(obj) as any;
-        expect(result.api_key).toBe('[REDACTED]');
-    });
-
-    it('recursively sanitizes nested objects', () => {
-        const obj = { user: { token: 'xyz', name: 'Bob' } };
-        const result = sanitizeDataForProduction(obj) as any;
-        expect(result.user.token).toBe('[REDACTED]');
-        expect(result.user.name).toBe('Bob');
-    });
-
-    it('returns numbers and booleans as-is', () => {
-        expect(sanitizeDataForProduction(42)).toBe(42);
-        expect(sanitizeDataForProduction(true)).toBe(true);
-    });
-
-    it('returns plain string without sensitive patterns unchanged', () => {
-        const result = sanitizeDataForProduction('Hello World');
-        expect(result).toBe('Hello World');
-    });
-});
-
-describe('Logger', () => {
+describe('Logger – sanitization (via public interface)', () => {
     beforeEach(() => {
         Logger.clearLogs();
         vi.clearAllMocks();

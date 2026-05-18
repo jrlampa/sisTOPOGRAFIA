@@ -11,6 +11,7 @@ from dxf_generator import DXFGenerator
 from spatial_audit import run_spatial_audit
 from elevation_client import fetch_elevation_grid, is_within_brazil
 from contour_generator import generate_contours
+from conductor_catalog_client import ConductorCatalogClient
 from utils.logger import Logger
 from utils.geo import sirgas2000_utm_epsg
 
@@ -388,6 +389,7 @@ class OSMController:
                 "verified": bool(raw_pole.get("verified", False)),
                 "x": x,
                 "y": y,
+                "elevation": _to_float(raw_pole.get("elevation")),
                 "ramais": (
                     raw_pole.get("ramais", [])
                     if isinstance(raw_pole.get("ramais"), list)

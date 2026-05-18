@@ -9,10 +9,59 @@ import { Request, Response, NextFunction } from "express";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
 import {
+  extractSupabaseRoleClaim,
+  extractSupabaseTenantId,
   isLikelyJwt,
   isSupabaseAuthConfigured,
+  type SupabaseJwtPayload,
   verifySupabaseAccessToken,
 } from "../services/supabaseJwtService.js";
+
+function hasSupabaseAdminAccess(res: Response): boolean {
+  const locals = (res.locals ?? {}) as {
+    authenticatedUser?: { email?: string | null; payload?: SupabaseJwtPayload };
+  };
+
+  const authenticatedUser = locals.authenticatedUser as
+    | { email?: string | null; payload?: SupabaseJwtPayload }
+    | undefined;
+
+  if (!authenticatedUser?.payload) {
+    return false;
+  }
+
+  const email = authenticatedUser.email?.toLowerCase() ?? "";
+  const superadminEmail = config.SUPABASE_SUPERADMIN_EMAIL?.toLowerCase();
+  if (superadminEmail && email === superadminEmail) {
+    return true;
+  }
+
+  const payloadRole =
+    typeof authenticatedUser.payload.role === "string"
+      ? authenticatedUser.payload.role.toLowerCase()
+      : "";
+  const appMetadataRole =
+    typeof authenticatedUser.payload.app_metadata?.role === "string"
+      ? String(authenticatedUser.payload.app_metadata.role).toLowerCase()
+      : "";
+  const userMetadataRole =
+    typeof authenticatedUser.payload.user_metadata?.role === "string"
+      ? String(authenticatedUser.payload.user_metadata.role).toLowerCase()
+      : "";
+
+  const allowedRoles = new Set([
+    "admin",
+    "superadmin",
+    "service_role",
+    "supabase_admin",
+  ]);
+
+  return (
+    allowedRoles.has(payloadRole) ||
+    allowedRoles.has(appMetadataRole) ||
+    allowedRoles.has(userMetadataRole)
+  );
+}
 
 /**
  * Middleware que protege rotas críticas com Bearer token (ADMIN_TOKEN)
@@ -26,6 +75,15 @@ export const requireAdminToken = (
   res: Response,
   next: NextFunction,
 ) => {
+  if (hasSupabaseAdminAccess(res)) {
+    logger.debug("[AuthGuard] Supabase admin access granted", {
+      path: req.path,
+      userId: res.locals.userId,
+      userEmail: res.locals.userEmail,
+    });
+    return next();
+  }
+
   const token = req.headers.authorization?.replace(/^Bearer\s+/i, "");
 
   if (!config.ADMIN_TOKEN) {
@@ -53,6 +111,7 @@ export const requireAdminToken = (
       path: req.path,
       ip: req.ip,
       hasToken: !!token,
+      isSecurity: true, // Roadmap Item 114
     });
     return res.status(403).json({
       error: "Forbidden",
@@ -136,8 +195,6 @@ export const extractUserFromToken = (
   const token = req.headers.authorization?.replace(/^Bearer\s+/i, "");
 
   if (token) {
-    // TODO: Implementar JWT verification aqui se usar JWT
-    // Por enquanto, apenas marca como autenticado
     res.locals.authenticated = true;
     res.locals.token = token;
   }
@@ -171,6 +228,13 @@ export const attachSupabaseUserIfPresent = async (
     res.locals.userId = verifiedUser.userId;
     res.locals.userEmail = verifiedUser.email;
     res.locals.authenticatedUser = verifiedUser;
+    res.locals.supabaseRoleClaim = extractSupabaseRoleClaim(
+      verifiedUser.payload,
+    );
+    const supabaseTenantId = extractSupabaseTenantId(verifiedUser.payload);
+    if (supabaseTenantId) {
+      res.locals.tenantId = supabaseTenantId;
+    }
     return next();
   } catch (error) {
     logger.warn("[AuthGuard] Invalid Supabase bearer token", {

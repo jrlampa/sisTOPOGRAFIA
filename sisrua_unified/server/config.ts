@@ -37,7 +37,10 @@ const EnvSchema = z.object({
   APP_VERSION: z.string().default("1.2.0"),
 
   // ── AI & Engineering ──────────────────────────────────────────────────────
+  REDIS_HOST: z.string().default("localhost"),
+  REDIS_PORT: z.coerce.number().default(6379),
   REDIS_PASSWORD: z.string().optional(),
+  REDIS_TLS: z.string().default("false"),
 
   // ── Ollama ────────────────────────────────────────────────────────────────
   OLLAMA_MODEL: z.string().default("llama3.2"),
@@ -157,6 +160,8 @@ const EnvSchema = z.object({
    * NÃO use '*' — bloqueado por política de segurança (OWASP A05).
    */
   CORS_ORIGIN: z.string().optional(),
+  /** Public frontend URL used for checkout/portal redirects (e.g. https://app.example.com). */
+  FRONTEND_URL: z.string().url().optional(),
   /** Public backend URL used to build download links (e.g. https://api.example.com). */
   APP_PUBLIC_URL: z.string().url().optional(),
   /** Express trust proxy setting. Accepts boolean, number (hop count), or CSV/IP/netmask string. */
@@ -181,6 +186,14 @@ const EnvSchema = z.object({
    * Se ausente, o acesso fica permissivo (sem variação por ambiente).
    */
   ADMIN_TOKEN: z.string().optional(),
+
+  // ── Stripe ───────────────────────────────────────────────────────────────
+  /** Chave secreta da Stripe (sk_...) */
+  STRIPE_SECRET_KEY: z.string().optional(),
+  /** Chave pública da Stripe (pk_...) */
+  STRIPE_PUBLIC_KEY: z.string().optional(),
+  /** Webhook secret para validar eventos da Stripe */
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
 });
 
 type RawConfig = z.infer<typeof EnvSchema>;

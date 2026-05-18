@@ -14,6 +14,7 @@
 #   • su-exec no lugar do gosu (binário 10× menor)
 #   • COPY --chown elimina layer de chown separado
 #   • Estágio py-deps independente: Python só reconstruído se requirements mudar
+#   • Tini como init (PID 1) para graceful shutdown
 # ─────────────────────────────────────────────────────────────────────────────
 
 ARG NODE_VERSION=22
@@ -79,13 +80,14 @@ ENV NODE_ENV=production \
     PATH="/opt/venv/bin:$PATH"
 
 # Runtime: Python3 (interpetador), su-exec (drop-privilege), curl (healthcheck)
-# su-exec é ~10× menor que gosu e cumpre o mesmo papel
+# tini é essencial para colher processos zumbi e repassar sinais (SIGTERM)
 RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
     apk add --update-cache \
         python3 \
         su-exec \
         ca-certificates \
-        curl
+        curl \
+        tini
 
 # Usuário não-root com UID fixo (paridade dev ↔ prod)
 RUN addgroup -g 10000 appuser && \
@@ -110,7 +112,7 @@ RUN mkdir -p /app/public/dxf /app/cache /app/logs && \
     chmod +x /app/docker-entrypoint.sh
 
 # Verificação de dependências Python (falha o build se pacote estiver faltando)
-RUN /opt/venv/bin/python3 -c "
+RUN <<EOF /opt/venv/bin/python3
 import sys, importlib.util
 required = [
     'osmnx','geopandas','shapely','pyproj','rasterio','networkx',
@@ -119,16 +121,17 @@ required = [
 ]
 missing = [m for m in required if importlib.util.find_spec(m) is None]
 if missing:
-    print('CRITICAL: missing Python deps:', missing); sys.exit(1)
+    print(f'CRITICAL: missing Python deps: {missing}')
+    sys.exit(1)
 print('ALL Python dependencies OK')
-"
+EOF
 
 # ENTRYPOINT: ajusta ownership de volumes em runtime e faz exec para appuser
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+ENTRYPOINT ["/sbin/tini", "--", "/app/docker-entrypoint.sh"]
 
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
     CMD curl -fsS "http://localhost:${PORT}/health" || exit 1
 
-CMD ["node", "dist/server/index.js"]
+CMD ["node", "dist/server/server/index.js"]

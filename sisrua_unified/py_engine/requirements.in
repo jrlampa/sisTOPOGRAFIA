@@ -1,0 +1,48 @@
+# Top-level dependencies for sisTOPOGRAFIA Python Engine
+# Compiled via pip-compile to requirements.txt
+
+# Geoespacial
+osmnx
+geopandas
+shapely
+pyproj
+rasterio
+networkx
+
+# DXF / CAD
+ezdxf
+
+# Dados e Computação Numérica
+numpy
+pandas
+scipy
+matplotlib
+
+# Banco de Dados
+psycopg2-binary
+
+# Planilhas
+openpyxl
+
+# HTTP / APIs
+requests
+
+# Elevação
+srtm.py
+
+# Testes
+pytest
+pytest-cov
+pytest-mock
+pytest-xdist
+
+# Validação
+pydantic
+
+# Monitoramento
+psutil
+
+# Segurança
+bandit
+pip-audit
+pip-tools

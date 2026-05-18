@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import { config } from '../config.js';
 import { metricsService } from './metricsService.js';
+import { redisService, getRedisClient } from './redisService.js';
+import { logger } from '../utils/logger.js';
 
 type CacheEntry = {
     filename: string;
@@ -21,47 +23,6 @@ type DxfCachePayload = {
 
 // Re-exported for backward-compat with tests that import DEFAULT_TTL_MS directly.
 export const DEFAULT_TTL_MS = config.CACHE_TTL_MS;
-const cacheStore = new Map<string, CacheEntry>();
-let cacheCleanupIntervalId: NodeJS.Timeout | null = null;
-
-const CACHE_CLEANUP_INTERVAL_MS = 60_000;
-
-const reportCacheSize = (): void => {
-    metricsService.recordCacheSize(cacheStore.size);
-};
-
-const purgeExpiredEntries = (): number => {
-    const now = Date.now();
-    let removed = 0;
-
-    for (const [key, entry] of cacheStore.entries()) {
-        if (entry.expiresAt <= now) {
-            cacheStore.delete(key);
-            removed += 1;
-            metricsService.recordCacheOperation('delete');
-        }
-    }
-
-    if (removed > 0) {
-        reportCacheSize();
-    }
-
-    return removed;
-};
-
-const ensureCacheCleanupInterval = (): void => {
-    if (cacheCleanupIntervalId || process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
-        return;
-    }
-
-    cacheCleanupIntervalId = setInterval(() => {
-        purgeExpiredEntries();
-    }, CACHE_CLEANUP_INTERVAL_MS);
-
-    if (typeof cacheCleanupIntervalId.unref === 'function') {
-        cacheCleanupIntervalId.unref();
-    }
-};
 
 const stableSerialize = (value: unknown): string => {
     if (value === null || value === undefined) {
@@ -99,59 +60,157 @@ const createCacheKey = (payload: DxfCachePayload): string => {
     };
 
     const serializedPayload = stableSerialize(normalizedPayload);
-    return crypto.createHash('sha256').update(serializedPayload).digest('hex');
+    const hash = crypto.createHash('sha256').update(serializedPayload).digest('hex');
+    return `dxf_cache:${hash}`;
 };
 
-const getCachedFilename = (key: string): string | null => {
-    ensureCacheCleanupInterval();
+const getCachedFilename = async (key: string): Promise<string | null> => {
+    try {
+        const rawEntry = await redisService.get(key);
+        if (!rawEntry) {
+            metricsService.recordCacheOperation('miss');
+            return null;
+        }
 
-    const entry = cacheStore.get(key);
-    if (!entry) {
-        metricsService.recordCacheOperation('miss');
+        const entry: CacheEntry = JSON.parse(rawEntry);
+        
+        if (entry.expiresAt <= Date.now()) {
+            await redisService.del(key);
+            metricsService.recordCacheOperation('miss');
+            metricsService.recordCacheOperation('delete');
+            return null;
+        }
+
+        metricsService.recordCacheOperation('hit');
+        return entry.filename;
+    } catch (err) {
+        logger.warn('Failed to get from cache', { key, err });
         return null;
     }
+};
 
-    if (entry.expiresAt <= Date.now()) {
-        cacheStore.delete(key);
-        metricsService.recordCacheOperation('miss');
+const setCachedFilename = async (key: string, filename: string, ttlMs: number = DEFAULT_TTL_MS): Promise<void> => {
+    try {
+        const entry: CacheEntry = {
+            filename,
+            expiresAt: Date.now() + ttlMs
+        };
+        
+        await redisService.set(key, JSON.stringify(entry), Math.ceil(ttlMs / 1000));
+        metricsService.recordCacheOperation('set');
+        
+        // Roadmap #112: Local metric update (best effort for current instance context)
+        const currentKeys = await redisService.getKeys('dxf_cache:*');
+        metricsService.recordCacheSize(currentKeys.length);
+    } catch (err) {
+        logger.warn('Failed to set cache', { key, err });
+    }
+};
+
+const deleteCachedFilename = async (key: string): Promise<void> => {
+    try {
+        await redisService.del(key);
         metricsService.recordCacheOperation('delete');
-        reportCacheSize();
-        return null;
+    } catch (err) {
+        logger.warn('Failed to delete from cache', { key, err });
     }
-
-    metricsService.recordCacheOperation('hit');
-    return entry.filename;
-};
-
-const setCachedFilename = (key: string, filename: string, ttlMs: number = DEFAULT_TTL_MS): void => {
-    ensureCacheCleanupInterval();
-
-    cacheStore.set(key, {
-        filename,
-        expiresAt: Date.now() + ttlMs
-    });
-    metricsService.recordCacheOperation('set');
-    reportCacheSize();
-};
-
-const deleteCachedFilename = (key: string): void => {
-    ensureCacheCleanupInterval();
-
-    cacheStore.delete(key);
-    metricsService.recordCacheOperation('delete');
-    reportCacheSize();
 };
 
 const stopCacheCleanup = (): void => {
-    if (cacheCleanupIntervalId) {
-        clearInterval(cacheCleanupIntervalId);
-        cacheCleanupIntervalId = null;
+    // No-op for Redis, as it handles its own expiration
+};
+
+const clearCache = async (): Promise<void> => {
+    try {
+        await redisService.clear();
+    } catch (err) {
+        logger.warn('Failed to clear cache', { err });
     }
 };
 
-const clearCache = (): void => {
-    cacheStore.clear();
-    reportCacheSize();
+const invalidateCacheByPattern = async (pattern: string | RegExp): Promise<number> => {
+    const client = getRedisClient();
+    if (!client) return 0;
+
+    let cursor = '0';
+    let totalRemoved = 0;
+    const regex = typeof pattern === 'string' 
+        ? new RegExp(pattern.replace(/\*/g, '.*')) 
+        : pattern;
+
+    try {
+        do {
+            const [nextCursor, keys] = await client.scan(cursor, 'MATCH', 'dxf_cache:*', 'COUNT', 100);
+            cursor = nextCursor;
+
+            const toDelete = keys.filter((key: string) => regex.test(key));
+            if (toDelete.length > 0) {
+                await client.del(...toDelete);
+                totalRemoved += toDelete.length;
+            }
+        } while (cursor !== '0');
+
+        if (totalRemoved > 0) {
+            metricsService.recordCacheOperation('delete');
+            logger.info('Cache invalidado por padrão', { pattern: String(pattern), removed: totalRemoved });
+        }
+        return totalRemoved;
+    } catch (err) {
+        logger.error('Falha ao invalidar cache por padrão', { pattern: String(pattern), err });
+        return 0;
+    }
+};
+
+const invalidateCacheByTag = async (tag: string): Promise<number> => {
+    const client = getRedisClient();
+    if (!client) return 0;
+
+    const tagKey = `cache_tag:${tag}`;
+    try {
+        const keys = await client.smembers(tagKey);
+        if (keys.length === 0) return 0;
+
+        await client.del(...keys);
+        await client.del(tagKey);
+        
+        metricsService.recordCacheOperation('delete');
+        logger.info('Cache invalidado por tag', { tag, removed: keys.length });
+        return keys.length;
+    } catch (err) {
+        logger.error('Falha ao invalidar cache por tag', { tag, err });
+        return 0;
+    }
+};
+
+const tagCacheEntry = async (key: string, tags: string[]): Promise<void> => {
+    const client = getRedisClient();
+    if (!client) return;
+
+    try {
+        const rawEntry = await redisService.get(key);
+        if (!rawEntry) return;
+        
+        const entry: CacheEntry = JSON.parse(rawEntry);
+        const existing = entry.tags ?? [];
+        entry.tags = Array.from(new Set([...existing, ...tags]));
+        
+        const remainingTtl = Math.ceil((entry.expiresAt - Date.now()) / 1000);
+        if (remainingTtl > 0) {
+            await redisService.set(key, JSON.stringify(entry), remainingTtl);
+            
+            // Registrar chaves em sets de tags para invalidação rápida
+            for (const tag of tags) {
+                await client.sadd(`cache_tag:${tag}`, key);
+                await client.expire(`cache_tag:${tag}`, remainingTtl);
+            }
+        }
+    } catch (err) {
+        logger.warn('Failed to tag cache entry', { key, err });
+    }
+};
+
+const onRoleChange = async (userId: string): Promise<void> => {
+    await invalidateCacheByTag(`user:${userId}`);
 };
 
 export {
@@ -165,44 +224,4 @@ export {
     invalidateCacheByTag,
     tagCacheEntry,
     onRoleChange
-};
-
-const invalidateCacheByPattern = (pattern: string | RegExp): number => {
-    const regex = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-    let count = 0;
-    for (const key of cacheStore.keys()) {
-        if (regex.test(key)) {
-            cacheStore.delete(key);
-            metricsService.recordCacheOperation('delete');
-            count++;
-        }
-    }
-    if (count > 0) reportCacheSize();
-    return count;
-};
-
-const invalidateCacheByTag = (tag: string): number => {
-    let count = 0;
-    for (const [key, entry] of cacheStore.entries()) {
-        if (entry.tags?.includes(tag)) {
-            cacheStore.delete(key);
-            metricsService.recordCacheOperation('delete');
-            count++;
-        }
-    }
-    if (count > 0) reportCacheSize();
-    return count;
-};
-
-const tagCacheEntry = (key: string, tags: string[]): void => {
-    const entry = cacheStore.get(key);
-    if (!entry) return;
-    const existing = entry.tags ?? [];
-    entry.tags = Array.from(new Set([...existing, ...tags]));
-    cacheStore.set(key, entry);
-};
-
-const onRoleChange = (userId: string): void => {
-    invalidateCacheByTag(`user:${userId}`);
-    invalidateCacheByPattern(`user_${userId}`);
 };

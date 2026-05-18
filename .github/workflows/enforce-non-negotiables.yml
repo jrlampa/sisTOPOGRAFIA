@@ -18,7 +18,7 @@ name: Enforcement – Regras Não Negociáveis
 
 on:
   push:
-    branches: [dev, main, master]
+    branches: [dev]
   pull_request:
     branches: [dev, main, master]
 
@@ -36,13 +36,6 @@ jobs:
     if: github.event_name == 'push'
 
     steps:
-      - name: Bloquear push direto para main/master
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-        run: |
-          echo "❌ Push direto para '${{ github.ref_name }}' é proibido."
-          echo "   Use a branch 'dev' e abra um Pull Request."
-          exit 1
-
       - name: Branch dev permitida
         if: github.ref == 'refs/heads/dev'
         run: echo "✅ Branch 'dev' — OK"

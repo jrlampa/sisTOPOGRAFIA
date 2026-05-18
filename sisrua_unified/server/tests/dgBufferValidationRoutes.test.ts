@@ -114,10 +114,41 @@ describe('dgBufferValidationRoutes', () => {
   });
 
   describe('POST /api/dg/validate-with-constraints', () => {
-    it('deve retornar 501 Not Implemented (placeholder atual)', async () => {
-      const res = await request(app).post('/api/dg/validate-with-constraints');
-      expect(res.status).toBe(501);
-      expect(res.body.error).toBe('Not Implemented');
+    it('deve validar buffer e retornar constraints com status de integração', async () => {
+      const mockResult = {
+        batchId: '8c9e1432-2f9b-4d2d-a728-5e9ed1f2ef8a',
+        processedAt: new Date().toISOString(),
+        pointsValidated: 1,
+        pointsAccepted: 1,
+        pointsRejected: 0,
+        acceptanceRate: 1,
+        results: [],
+        rejectionSummary: {
+          outside_buffer: 0,
+          inside_building: 0,
+          no_nearby_streets: 0,
+          other_errors: 0,
+        },
+        recommendationForDg: 'proceed_full_dg',
+      };
+      (bufferService.validateMultiplePoints as vi.Mock).mockResolvedValue(mockResult);
+
+      const payload = {
+        candidatePoints: [{ latitude: -22.9, longitude: -43.2 }],
+        streetPolylines: [
+          {
+            type: 'LineString',
+            coordinates: [[-43.2, -22.9], [-43.21, -22.91]],
+            highwayClass: 'residential'
+          }
+        ],
+      };
+
+      const res = await request(app).post('/api/dg/validate-with-constraints').send(payload);
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.constraints.bufferZone.status).toBe('applied');
+      expect(res.body.data.constraints.cqtVoltageDrop.status).toBe('pending_integration');
     });
   });
 });

@@ -1,0 +1,62 @@
+/**
+ * budgetText.ts — Textos para orçamentação e FinOps (T2-42/43/44).
+ */
+
+export const budgetText = {
+  "pt-BR": {
+    title: "Orçamentação e FinOps",
+    directCost: "Custo Direto (SINAPI)",
+    globalCost: "Custo Global (com BDI)",
+    bdiTitle: "Benefícios e Despesas Indiretas",
+    roiTitle: "Análise de Retorno (ROI)",
+    vpl: "VPL (Valor Presente Líquido)",
+    tir: "TIR (Taxa Interna de Retorno)",
+    payback: "Payback Estimado",
+    years: "anos",
+    calculateBtn: "Gerar Orçamento Automático",
+    calculating: "Calculando...",
+    viewDetails: "Ver Detalhamento SINAPI",
+    viability: "Viabilidade",
+    viable: "VIÁVEL",
+    notViable: "NÃO VIÁVEL",
+    maintenanceOpex: "Opex Manutenção (anual)",
+  },
+  "en-US": {
+    title: "Budgeting & FinOps",
+    directCost: "Direct Cost (SINAPI)",
+    globalCost: "Global Cost (w/ BDI)",
+    bdiTitle: "Indirect Benefits & Expenses",
+    roiTitle: "Return Analysis (ROI)",
+    vpl: "NPV (Net Present Value)",
+    tir: "IRR (Internal Rate of Return)",
+    payback: "Estimated Payback",
+    years: "years",
+    calculateBtn: "Generate Automatic Budget",
+    calculating: "Calculating...",
+    viewDetails: "View SINAPI Details",
+    viability: "Viability",
+    viable: "VIABLE",
+    notViable: "NOT VIABLE",
+    maintenanceOpex: "Opex Maintenance (annual)",
+  },
+  "es-ES": {
+    title: "Presupuesto y FinOps",
+    directCost: "Costo Directo (SINAPI)",
+    globalCost: "Costo Global (con BDI)",
+    bdiTitle: "Beneficios y Gastos Indirectos",
+    roiTitle: "Análisis de Retorno (ROI)",
+    vpl: "VPN (Valor Presente Neto)",
+    tir: "TIR (Tasa Interna de Retorno)",
+    payback: "Payback Estimado",
+    years: "años",
+    calculateBtn: "Generar Presupuesto Automático",
+    calculating: "Calculando...",
+    viewDetails: "Ver Detalles SINAPI",
+    viability: "Viabilidad",
+    viable: "VIABLE",
+    notViable: "NO VIABLE",
+    maintenanceOpex: "Opex Mantenimiento (anual)",
+  },
+};
+
+export type BudgetLocale = keyof typeof budgetText;

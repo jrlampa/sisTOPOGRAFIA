@@ -40,6 +40,17 @@ function buildProductionCsp(env: Record<string, string>) {
     "https://server.arcgisonline.com",
     ...parseSpaceSeparatedSources(env.VITE_CSP_IMG_SRC),
   ];
+  const styleSrc = [
+    "'self'",
+    "https://fonts.googleapis.com",
+    ...parseSpaceSeparatedSources(env.VITE_CSP_STYLE_SRC),
+  ];
+  const fontSrc = [
+    "'self'",
+    "data:",
+    "https://fonts.gstatic.com",
+    ...parseSpaceSeparatedSources(env.VITE_CSP_FONT_SRC),
+  ];
 
   const dedupe = (values: string[]) => Array.from(new Set(values));
 
@@ -50,8 +61,8 @@ function buildProductionCsp(env: Record<string, string>) {
     "frame-ancestors 'none'",
     "form-action 'self'",
     "script-src 'self'",
-    "style-src 'self'",
-    "font-src 'self' data:",
+    `style-src ${dedupe(styleSrc).join(" ")}`,
+    `font-src ${dedupe(fontSrc).join(" ")}`,
     `img-src ${dedupe(imgSrc).join(" ")}`,
     `connect-src ${dedupe(connectSrc).join(" ")}`,
     "worker-src 'self' blob:",
@@ -86,7 +97,6 @@ export default defineConfig(({ mode }) => {
       hmr: {
         protocol: "ws",
         host: "localhost",
-        port: 3000,
       },
       watch: {
         usePolling: true,
@@ -205,10 +215,12 @@ export default defineConfig(({ mode }) => {
               return "feature-bt-tabs";
             }
             if (
-              isSrcPath("components/BtTopologyPanel") ||
-              id.includes("SidebarBtEditorSection")
+              isSrcPath("components/BtTopologyPanel")
             ) {
-              return "feature-bt-core";
+              return "feature-bt-panel";
+            }
+            if (id.includes("SidebarBtEditorSection")) {
+              return "feature-bt-editor";
             }
             if (
               isSrcPath("components/MapLayers") ||
@@ -231,6 +243,12 @@ export default defineConfig(({ mode }) => {
             if (id.includes("AdminPage") || isSrcPath("components/admin")) {
               return "feature-admin";
             }
+            if (id.includes("node_modules/exceljs/")) {
+              return "exceljs";
+            }
+            if (id.includes("node_modules/lodash/")) {
+              return "lodash";
+            }
           },
         },
       },
@@ -242,7 +260,7 @@ export default defineConfig(({ mode }) => {
       include: ["tests/**/*.test.{ts,tsx}"],
       coverage: {
         provider: "v8",
-        reporter: ["text", "json", "html"],
+        reporter: ["text", "json", "html", "json-summary"],
         exclude: [
           "node_modules/",
           "tests/",

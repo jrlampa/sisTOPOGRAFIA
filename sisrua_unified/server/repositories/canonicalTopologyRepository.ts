@@ -70,10 +70,30 @@ export interface ICanonicalTopologyRepository {
 // ─── Mapeadores de linha DB → tipo canônico ───────────────────────────────────
 
 function rowToPoleNode(r: Record<string, unknown>): CanonicalPoleNode {
+  let lat = 0;
+  let lng = 0;
+
+  if (r["geom_json"]) {
+    try {
+      const geo = JSON.parse(r["geom_json"] as string);
+      if (geo && geo.coordinates) {
+        lng = geo.coordinates[0];
+        lat = geo.coordinates[1];
+      }
+    } catch (_e) {
+      // fallback para lat/lng diretos se o JSON falhar
+      lat = (r["lat"] as number) ?? 0;
+      lng = (r["lng"] as number) ?? 0;
+    }
+  } else {
+    lat = (r["lat"] as number) ?? 0;
+    lng = (r["lng"] as number) ?? 0;
+  }
+
   return {
     id: r["id"] as string,
-    lat: r["lat"] as number,
-    lng: r["lng"] as number,
+    lat,
+    lng,
     title: (r["title"] as string) ?? "",
     hasBt: (r["has_bt"] as boolean) ?? false,
     hasMt: (r["has_mt"] as boolean) ?? false,
@@ -336,7 +356,7 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
     try {
       const rows = source
         ? await sql.unsafe(
-            `SELECT id, lat, lng, title, has_bt, has_mt,
+            `SELECT id, ST_AsGeoJSON(geom) AS geom_json, lat, lng, title, has_bt, has_mt,
                     bt_structures, mt_structures, ramais, pole_spec,
                     condition_status, equipment_notes, general_notes,
                     circuit_break_point, verified, node_change_flag
@@ -346,7 +366,7 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
             [tenantId, source],
           )
         : await sql.unsafe(
-            `SELECT id, lat, lng, title, has_bt, has_mt,
+            `SELECT id, ST_AsGeoJSON(geom) AS geom_json, lat, lng, title, has_bt, has_mt,
                     bt_structures, mt_structures, ramais, pole_spec,
                     condition_status, equipment_notes, general_notes,
                     circuit_break_point, verified, node_change_flag

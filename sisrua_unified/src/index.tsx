@@ -4,6 +4,7 @@ import "./index.css";
 import "./i18n"; // Import i18n configuration
 import AppRouter from "./router";
 import { AuthProvider } from "./auth/AuthProvider";
+import { FeatureFlagProvider } from "./contexts/FeatureFlagContext";
 import { initAnalytics } from "./utils/analytics";
 import { resetChunkReloadFlag } from "./utils/lazyWithRetry";
 
@@ -37,7 +38,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <AuthProvider>
-      <AppRouter />
+      <FeatureFlagProvider>
+        <AppRouter />
+      </FeatureFlagProvider>
     </AuthProvider>
   </React.StrictMode>,
 );

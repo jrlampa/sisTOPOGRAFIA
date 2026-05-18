@@ -261,6 +261,7 @@ describe("PermissionHandler Middleware", () => {
   describe("guest role", () => {
     beforeEach(() => {
       mockGetUserRole.mockResolvedValue({ role: "guest", tenantId: null });
+      mockReq.headers!["x-user-id"] = "guest-user"; // Provide userId to bypass authentication check
     });
 
     it("should deny guest from read", async () => {
@@ -343,7 +344,6 @@ describe("PermissionHandler Middleware", () => {
 
     it("should ignore x-user-id fallback in production when no trusted identity exists", async () => {
       mockConfig.NODE_ENV = "production";
-      mockGetUserRole.mockResolvedValue({ role: "guest", tenantId: null });
       mockReq.headers!["x-user-id"] = "spoofed-user";
 
       await requirePermission("read")(
@@ -352,12 +352,48 @@ describe("PermissionHandler Middleware", () => {
         nextFunction,
       );
 
-      expect(mockGetUserRole).toHaveBeenCalledWith(undefined);
+      expect(mockGetUserRole).not.toHaveBeenCalled();
       expect(nextFunction).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: expect.stringContaining("Missing required permission: read"),
+          message: expect.stringContaining("Authentication required"),
+          statusCode: 401,
         }),
       );
+    });
+
+    it("should deny access when trusted tenant and requested tenant mismatch", async () => {
+      mockGetUserRole.mockResolvedValue({ role: "admin", tenantId: "tenant-a" });
+      mockRes.locals!.userId = "trusted-user";
+      mockRes.locals!.tenantId = "tenant-a";
+      mockReq.headers!["x-tenant-id"] = "tenant-b";
+
+      await requirePermission("read")(
+        mockReq as Request,
+        mockRes as Response,
+        nextFunction,
+      );
+
+      expect(nextFunction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining("Tenant mismatch"),
+        }),
+      );
+    });
+
+    it("should allow supabase role claim fallback when DB role is viewer", async () => {
+      mockGetUserRole.mockResolvedValue({ role: "viewer", tenantId: "tenant-a" });
+      mockRes.locals!.userId = "trusted-user";
+      mockRes.locals!.tenantId = "tenant-a";
+      mockRes.locals!.supabaseRoleClaim = "technician";
+
+      await requirePermission("write")(
+        mockReq as Request,
+        mockRes as Response,
+        nextFunction,
+      );
+
+      expect(nextFunction).toHaveBeenCalledWith();
+      expect(mockRes.locals!.userRole).toBe("technician");
     });
   });
 });

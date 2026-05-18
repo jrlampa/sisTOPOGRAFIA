@@ -2,6 +2,7 @@ import { OverpassResponse, OsmElement } from "../types";
 import Logger from "../utils/logger";
 import { API_BASE_URL } from "../config/api";
 import { buildApiHeaders } from "./apiClient";
+import { trackPerformance } from "../utils/analytics";
 
 type OverpassResponseWithStats = OverpassResponse & {
   _stats?: OsmStats;
@@ -28,6 +29,7 @@ export const fetchOsmData = async (
   lng: number,
   radius: number,
 ): Promise<OsmFetchResult> => {
+  const traceId = Logger.startTrace("fetchOsmData");
   try {
     Logger.debug(
       `Fetching OSM data for lat: ${lat}, lng: ${lng}, radius: ${radius}m`,
@@ -37,6 +39,9 @@ export const fetchOsmData = async (
       headers: buildApiHeaders(),
       body: JSON.stringify({ lat, lng, radius }),
     });
+
+    const durationMs = Logger.endTrace(traceId);
+    trackPerformance("fetch_osm_data", durationMs, { radius });
 
     if (!response.ok) {
       let errorMessage = `OSM proxy error: HTTP ${response.status}`;
@@ -69,6 +74,7 @@ export const fetchOsmData = async (
     Logger.info(`Fetched ${data.elements.length} OSM elements`);
     return { elements: data.elements, stats: data._stats ?? null };
   } catch (error) {
+    Logger.endTrace(traceId);
     Logger.error("Failed to fetch OSM data", error);
 
     if (error instanceof Error && error.message) {

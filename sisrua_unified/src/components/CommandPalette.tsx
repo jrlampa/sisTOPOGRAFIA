@@ -35,7 +35,11 @@ export function CommandPalette({
   const [query, setSearchQuery] = React.useState("");
   const [activeIndex, setActiveIndex] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const t = getAppHeaderText(locale || "pt-BR");
+  const t = React.useMemo(
+    () => getAppHeaderText(locale || "pt-BR"),
+    [locale],
+  );
+  const normalizedQuery = query.trim().toLowerCase();
 
   // i18n strings for the palette UI
   const i18n = React.useMemo(() => {
@@ -66,12 +70,14 @@ export function CommandPalette({
 
   // Dynamic pole navigation actions — only materialise when the query targets poles
   const poleActions: CommandPaletteAction[] = React.useMemo(() => {
-    if (!poles?.length || !onGoToPole || !query.trim()) return [];
-    const q = query.toLowerCase();
+    if (!poles?.length || !onGoToPole || !normalizedQuery) return [];
     return poles
       .filter((p) => {
         const label = (p.label ?? p.id).toLowerCase();
-        return label.includes(q) || p.id.toLowerCase().includes(q);
+        return (
+          label.includes(normalizedQuery) ||
+          p.id.toLowerCase().includes(normalizedQuery)
+        );
       })
       .slice(0, 8) // cap to avoid overwhelming results
       .map((p) => ({
@@ -83,17 +89,36 @@ export function CommandPalette({
           onGoToPole(p.id);
         },
       }));
-  }, [poles, onGoToPole, query, i18n]);
+  }, [poles, onGoToPole, normalizedQuery, i18n]);
 
   const filteredActions = React.useMemo(() => {
     const all = [...actions, ...poleActions];
-    if (!query.trim()) return actions; // pole actions only when searching
+    if (!normalizedQuery) return actions; // pole actions only when searching
     return all.filter(
       (action) =>
-        action.label.toLowerCase().includes(query.toLowerCase()) ||
-        action.section.toLowerCase().includes(query.toLowerCase()),
+        action.label.toLowerCase().includes(normalizedQuery) ||
+        action.section.toLowerCase().includes(normalizedQuery),
     );
-  }, [actions, poleActions, query]);
+  }, [actions, poleActions, normalizedQuery]);
+
+  const groupedActions = React.useMemo(() => {
+    const sections = new Map<
+      string,
+      Array<{ action: CommandPaletteAction; index: number }>
+    >();
+
+    filteredActions.forEach((action, index) => {
+      const current = sections.get(action.section);
+      if (current) {
+        current.push({ action, index });
+        return;
+      }
+
+      sections.set(action.section, [{ action, index }]);
+    });
+
+    return Array.from(sections.entries());
+  }, [filteredActions]);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -176,19 +201,14 @@ export function CommandPalette({
               {filteredActions.length > 0 ? (
                 <div className="space-y-4">
                   {/* Grouped by section */}
-                  {Array.from(
-                    new Set(filteredActions.map((a) => a.section)),
-                  ).map((section) => (
+                  {groupedActions.map(([section, sectionActions]) => (
                     <div key={section}>
                       <div className="px-3 py-1 text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                         {section}
                       </div>
                       <div className="mt-1 space-y-1">
-                        {filteredActions
-                          .filter((a) => a.section === section)
-                          .map((action) => {
-                            const isSelected =
-                              filteredActions.indexOf(action) === activeIndex;
+                        {sectionActions.map(({ action, index }) => {
+                            const isSelected = index === activeIndex;
                             return (
                               <button
                                 key={action.id}
@@ -197,11 +217,7 @@ export function CommandPalette({
                                   action.onSelect();
                                   onClose();
                                 }}
-                                onMouseEnter={() =>
-                                  setActiveIndex(
-                                    filteredActions.indexOf(action),
-                                  )
-                                }
+                                onMouseEnter={() => setActiveIndex(index)}
                                 className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition-all ${
                                   isSelected
                                     ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"

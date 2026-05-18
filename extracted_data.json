@@ -1,0 +1,214 @@
+{
+  "conductors": [
+    {
+      "name": "556MCM-CA, Nu",
+      "diameter_m": 0.022,
+      "weight_kg_per_m": 0.779,
+      "quantity": 3
+    },
+    {
+      "name": "397MCM-CA, Nu",
+      "diameter_m": 0.0184,
+      "weight_kg_per_m": 0.558,
+      "quantity": 3
+    },
+    {
+      "name": "1/0AWG-CAA, Nu",
+      "diameter_m": 0.010199999999999999,
+      "weight_kg_per_m": 0.217,
+      "quantity": 3
+    },
+    {
+      "name": "4 AWG-CAA, Nu",
+      "diameter_m": 0.0064,
+      "weight_kg_per_m": 0.085,
+      "quantity": 3
+    },
+    {
+      "name": "397MCM-CA, XLPE, 34,5 kV",
+      "diameter_m": 0.034,
+      "weight_kg_per_m": 1.195,
+      "quantity": NaN
+    },
+    {
+      "name": "397MCM-CA, XLPE, 13,8 kV",
+      "diameter_m": 0.026,
+      "weight_kg_per_m": 0.749,
+      "quantity": NaN
+    },
+    {
+      "name": "1/0AWG-CAA, XLPE, 13,8 kV",
+      "diameter_m": 0.017,
+      "weight_kg_per_m": 0.37,
+      "quantity": NaN
+    },
+    {
+      "name": "4 AWG-CAA, XLPE, 13,8 kV",
+      "diameter_m": 0.0132,
+      "weight_kg_per_m": 0.193,
+      "quantity": NaN
+    },
+    {
+      "name": "185mm², MTX-MT, 20/35 kV",
+      "diameter_m": 0.1,
+      "weight_kg_per_m": 5.37,
+      "quantity": NaN
+    },
+    {
+      "name": "185mm², MTX-MT, 12/20 kV",
+      "diameter_m": 0.088,
+      "weight_kg_per_m": 4.43,
+      "quantity": NaN
+    },
+    {
+      "name": "50mm², MTX-MT, 12/20 kV",
+      "diameter_m": 0.067,
+      "weight_kg_per_m": 2.48,
+      "quantity": NaN
+    },
+    {
+      "name": "397MCM-CA, PVC",
+      "diameter_m": 0.024,
+      "weight_kg_per_m": 0.66,
+      "quantity": NaN
+    },
+    {
+      "name": "1/0AWG-CAA, PVC",
+      "diameter_m": 0.0132,
+      "weight_kg_per_m": 0.192,
+      "quantity": NaN
+    },
+    {
+      "name": "240mm², MTX-BT",
+      "diameter_m": 0.061,
+      "weight_kg_per_m": 2.745,
+      "quantity": NaN
+    },
+    {
+      "name": "185mm², MTX-BT",
+      "diameter_m": 0.058,
+      "weight_kg_per_m": 2.334,
+      "quantity": NaN
+    },
+    {
+      "name": "70mm², MTX-BT",
+      "diameter_m": 0.03,
+      "weight_kg_per_m": 1.008,
+      "quantity": NaN
+    },
+    {
+      "name": "Cabo armado 240mm²",
+      "diameter_m": 0.065,
+      "weight_kg_per_m": 5.25,
+      "quantity": NaN
+    },
+    {
+      "name": "Cabo armado 95mm²",
+      "diameter_m": 0.043,
+      "weight_kg_per_m": 2.3,
+      "quantity": NaN
+    },
+    {
+      "name": "6-AWG, MTX-BT  - Duplex",
+      "diameter_m": 0.01209,
+      "weight_kg_per_m": 0.113,
+      "quantity": NaN
+    },
+    {
+      "name": "6-AWG, MTX-BT  - Triplex",
+      "diameter_m": 0.0141,
+      "weight_kg_per_m": 0.173,
+      "quantity": NaN
+    },
+    {
+      "name": "6-AWG, MTX-BT  - Quadriplex",
+      "diameter_m": 0.017484000000000003,
+      "weight_kg_per_m": 0.232,
+      "quantity": NaN
+    },
+    {
+      "name": "4-AWG, MTX-BT",
+      "diameter_m": 0.020936,
+      "weight_kg_per_m": 0.349,
+      "quantity": NaN
+    },
+    {
+      "name": "1/0-AWG, MTX-BT",
+      "diameter_m": 0.0255,
+      "weight_kg_per_m": 0.834,
+      "quantity": NaN
+    },
+    {
+      "name": "70mm², MTX-BT",
+      "diameter_m": 0.03,
+      "weight_kg_per_m": 1.008,
+      "quantity": NaN
+    },
+    {
+      "name": "185mm², MTX-BT",
+      "diameter_m": 0.058,
+      "weight_kg_per_m": 2.334,
+      "quantity": NaN
+    },
+    {
+      "name": "240mm², MTX-BT",
+      "diameter_m": 0.061,
+      "weight_kg_per_m": 2.745,
+      "quantity": NaN
+    },
+    {
+      "name": "Cabo armado 25mm²",
+      "diameter_m": 0.0285,
+      "weight_kg_per_m": 1.08,
+      "quantity": NaN
+    },
+    {
+      "name": "Cabo armado 50mm²",
+      "diameter_m": 0.0345,
+      "weight_kg_per_m": 1.45,
+      "quantity": NaN
+    },
+    {
+      "name": "Cabo armado 95mm²",
+      "diameter_m": 0.043,
+      "weight_kg_per_m": 2.3,
+      "quantity": NaN
+    },
+    {
+      "name": "Cabo armado 240mm²",
+      "diameter_m": 0.065,
+      "weight_kg_per_m": 5.25,
+      "quantity": NaN
+    },
+    {
+      "name": "4/0-AWG, MTX-BT",
+      "diameter_m": 0.0347,
+      "weight_kg_per_m": 1.56,
+      "quantity": NaN
+    },
+    {
+      "name": "3/0-AWG, MTX-BT",
+      "diameter_m": 0.0313,
+      "weight_kg_per_m": 1.27,
+      "quantity": NaN
+    },
+    {
+      "name": "1/0-AWG, MTX-BT",
+      "diameter_m": 0.0255,
+      "weight_kg_per_m": 0.834,
+      "quantity": NaN
+    },
+    {
+      "name": "4-AWG, MTX-BT",
+      "diameter_m": 0.016300000000000002,
+      "weight_kg_per_m": 0.349,
+      "quantity": NaN
+    }
+  ],
+  "source_file": "C:\\Users\\jonat\\Downloads\\CALC TRAÇÃO\\GD - IMPACT CONSULTORIA LTDA - UFV ESTIMA__PARTE_3_POSTE_22.xlsm",
+  "sheets": [
+    "Plan1",
+    "Plan4",
+    "Ponto (1)"
+  ]
+}

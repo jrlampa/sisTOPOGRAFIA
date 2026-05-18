@@ -101,4 +101,16 @@ const MapSelectorDgOverlay: React.FC<MapSelectorDgOverlayProps> = ({
   );
 };
 
-export default MapSelectorDgOverlay;
+/**
+ * Memoização customizada:
+ * Evita re-render se o cenário for o mesmo e o paneName não mudou.
+ * polesById é ignorado se assumirmos que a topologia base é estável
+ * durante a visualização do cenário.
+ */
+export default React.memo(MapSelectorDgOverlay, (prev, next) => {
+  return (
+    prev.paneName === next.paneName &&
+    prev.scenario.scenarioId === next.scenario.scenarioId &&
+    prev.polesById === next.polesById
+  );
+});

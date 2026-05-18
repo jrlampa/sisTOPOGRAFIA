@@ -164,51 +164,7 @@ let _lastPolicyEval: PolicyEvaluation | null = null;
 // ─── Seed de SAST findings pré-existentes (corrigidos) ───────────────────────
 
 function _seedSastFindings(): SastFinding[] {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: "sast-001",
-      ruleId: "SEC-LOG-001",
-      category: "log_sensivel",
-      severity: "alta",
-      file: "server/routes/authRoutes.ts",
-      line: 42,
-      message: "Possível log de credencial — verificar se campo contém PII",
-      cweId: "CWE-532",
-      owaspTop10: "A09:2021",
-      fixed: true,
-      detectedAt: "2026-03-10T08:00:00.000Z",
-      fixedAt: now,
-    },
-    {
-      id: "sast-002",
-      ruleId: "SEC-DEP-001",
-      category: "dependencia_vulneravel",
-      severity: "media",
-      file: "package.json",
-      line: 1,
-      message: "Dependência com versão desatualizada — revisar após npm audit",
-      cweId: "CWE-1104",
-      owaspTop10: "A06:2021",
-      fixed: false,
-      detectedAt: "2026-04-01T10:00:00.000Z",
-      fixedAt: null,
-    },
-    {
-      id: "sast-003",
-      ruleId: "SEC-AUTH-001",
-      category: "autenticacao_fragil",
-      severity: "baixa",
-      file: "server/middleware/authMiddleware.ts",
-      line: 18,
-      message: "Token sem validação de audience — intencionalmente omitido para dev",
-      cweId: "CWE-287",
-      owaspTop10: "A07:2021",
-      fixed: true,
-      detectedAt: "2026-03-15T12:00:00.000Z",
-      fixedAt: "2026-03-16T09:00:00.000Z",
-    },
-  ];
+  return [];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

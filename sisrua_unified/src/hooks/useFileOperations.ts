@@ -53,17 +53,18 @@ export function useFileOperations({
   const locale = normalizeAppLocale(appState.settings.locale);
   const text = FILE_OPERATION_TEXT[locale];
 
-  const saveProject = () => {
+  const saveProject = (overrideState?: GlobalState) => {
     try {
       setIsLoading(true);
+      const stateToSave = overrideState || appState;
       const rawProjectName = (
-        appState.settings.projectMetadata.projectName || ""
+        stateToSave.settings.projectMetadata.projectName || ""
       ).trim();
       const normalizedProjectName =
         rawProjectName.replace(/\.(srua|osmpro|json)$/i, "") || "projeto";
 
       const projectData = {
-        state: appState,
+        state: stateToSave,
         timestamp: new Date().toISOString(),
         version: PROJECT_VERSION,
       };

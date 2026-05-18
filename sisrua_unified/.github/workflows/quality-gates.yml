@@ -20,10 +20,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
       - run: npm ci --prefer-offline --no-audit
       - name: Install Python dependency for DB gate
         run: pip install psycopg2-binary
@@ -49,7 +49,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Enforcement Rule Check
         run: npm run ci:non-negotiables
@@ -63,7 +63,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Lint Frontend
         run: npm run lint:frontend
@@ -83,7 +83,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Run Backend Tests
         run: npm run test:backend
@@ -94,6 +94,20 @@ jobs:
           path: coverage/backend/
           retention-days: 1
 
+  # 3.1 API Contract Tests
+  test-contract:
+    name: API Contract Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci --prefer-offline --no-audit
+      - name: Run Contract Tests
+        run: npm run test:contract
+
   # 4. Frontend Tests
   test-frontend:
     name: Frontend Unit Tests
@@ -103,7 +117,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Run Frontend Tests
         run: npm run test:frontend
@@ -125,7 +139,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Run Integration Tests
         run: npm run test:integration
@@ -139,7 +153,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Security Audit (NPM)
         run: npm run security:policy-gate
@@ -155,7 +169,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Full Build
         run: npm run build
@@ -169,10 +183,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: '3.10'
       - run: pip install pandas openpyxl
       - run: npm ci --prefer-offline --no-audit
       - name: CQT Parity Strict Check
@@ -187,7 +201,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Install Playwright
         run: npx playwright install --with-deps chromium
@@ -203,7 +217,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Install Playwright
         run: npx playwright install --with-deps chromium
@@ -219,18 +233,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Enforce D7 Evidence
         run: npm run ci:d7-go-parcial-gate
 
   # 10. Checkpoints Validation
-  checkpoints:
+  # 10. Checkpoints Validation
     name: Checkpoints Integrity
     runs-on: ubuntu-latest
     needs:
       [
         test-backend,
+        test-contract,
         test-frontend,
         test-integration,
         lint,
@@ -241,11 +256,12 @@ jobs:
         qa-regression,
       ]
     steps:
+
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Validate Timeline & Quality Gates
         run: node scripts/ci/enforce-checkpoints-timeline.mjs
@@ -260,7 +276,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+          cache: 'npm'
       - run: npm ci --prefer-offline --no-audit
       - name: Download Backend Coverage
         uses: actions/download-artifact@v4
@@ -285,6 +301,7 @@ jobs:
       - audit
       - lint
       - test-backend
+      - test-contract
       - test-frontend
       - test-integration
       - security
@@ -302,6 +319,7 @@ jobs:
           echo "Audit: ${{ needs.audit.result }}"
           echo "Lint: ${{ needs.lint.result }}"
           echo "Test Backend: ${{ needs.test-backend.result }}"
+          echo "Test Contract: ${{ needs.test-contract.result }}"
           echo "Test Frontend: ${{ needs.test-frontend.result }}"
           echo "Test Integration: ${{ needs.test-integration.result }}"
           echo "Security: ${{ needs.security.result }}"
@@ -314,13 +332,14 @@ jobs:
           echo "Coverage Gate: ${{ needs.coverage-gate.result }}"
 
           FAILED=""
-          for JOB in db-predeploy audit lint test-backend test-frontend test-integration security build parity-p0 e2e-smoke qa-regression d7-go-parcial checkpoints coverage-gate; do
+          for JOB in db-predeploy audit lint test-backend test-contract test-frontend test-integration security build parity-p0 e2e-smoke qa-regression d7-go-parcial checkpoints coverage-gate; do
             RESULT=$(
               case $JOB in
                 db-predeploy) echo "${{ needs.db-predeploy.result }}" ;;
                 audit) echo "${{ needs.audit.result }}" ;;
                 lint) echo "${{ needs.lint.result }}" ;;
                 test-backend) echo "${{ needs.test-backend.result }}" ;;
+                test-contract) echo "${{ needs.test-contract.result }}" ;;
                 test-frontend) echo "${{ needs.test-frontend.result }}" ;;
                 test-integration) echo "${{ needs.test-integration.result }}" ;;
                 security) echo "${{ needs.security.result }}" ;;

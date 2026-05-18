@@ -1,163 +1,177 @@
-/**
- * Logger com sanitização de dados sensíveis e stack traces (Item 22).
- * Em produção: stack traces são suprimidos, dados sensíveis removidos.
- * Em desenvolvimento: logs completos com stack traces.
- */
-
-type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogEntry {
+  timestamp: string;
   level: LogLevel;
+  category: string;
   message: string;
-  timestamp: Date;
   data?: unknown;
-  stackTrace?: string; // Só em desenvolvimento
-}
-
-// Check if we're in development mode
-const isDevelopment = () => {
-  try {
-    const env = (import.meta as { env?: Record<string, string | boolean | undefined> }).env ?? {};
-    return env.DEV === true || !env.MODE || env.MODE === 'development';
-  } catch {
-    return true; // Default to development if we can't determine
-  }
-};
-
-/**
- * Sanitizar dados para produção.
- * Remove: stack traces, paths do sistema, tokens, IPs internos.
- * Item 22: Nunca expor stack traces em produção.
- */
-function sanitizeDataForProduction(data: unknown): unknown {
-  if (!data) return data;
-  
-  if (typeof data === 'string') {
-    // Remover paths do sistema
-    let sanitized = data.replace(/\/([a-z_-]+)+\/[a-z0-9_.-]+\.[a-z]+/gi, '[PATH]');
-    // Remover IPs internos
-    sanitized = sanitized.replace(/\b(?:10|172|192\.168)\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP]');
-    // Remover tokens comuns
-    sanitized = sanitized.replace(/(?:token|api[_-]?key|secret|password)[=:]\S+/gi, '[REDACTED]');
-    return sanitized;
-  }
-  
-  if (data instanceof Error) {
-    const errorObj: { [key: string]: unknown } = {
-      name: data.name,
-      message: data.message,
-    };
-    
-    // Em desenvolvimento: incluir stack trace
-    if (isDevelopment()) {
-      errorObj.stack = data.stack;
-    }
-    // Em produção: apenas a mensagem de erro
-    
-    return errorObj;
-  }
-  
-  if (typeof data === 'object') {
-    const obj = data as Record<string, unknown>;
-    const sanitized: Record<string, unknown> = {};
-    
-    for (const [key, val] of Object.entries(obj)) {
-      // Pular campos sensíveis
-      if (/password|token|secret|api[_-]?key|credential/i.test(key)) {
-        sanitized[key] = '[REDACTED]';
-      } else {
-        sanitized[key] = sanitizeDataForProduction(val);
-      }
-    }
-    
-    return sanitized;
-  }
-  
-  return data;
 }
 
 export const _testUtils = {
-  isDevelopment,
-  sanitizeDataForProduction,
+  isDevelopment: () => import.meta.env.DEV === true,
 };
 
 class Logger {
-  private static logs: LogEntry[] = [];
-  private static maxLogs = 100;
+  private isDevelopment = import.meta.env.DEV;
+  private logHistory: LogEntry[] = [];
+  private maxHistorySize = 100;
+  private activeTraces: Record<string, number> = {};
 
-  private static log(level: LogLevel, message: string, data?: unknown) {
-    const dataToLog = isDevelopment() ? data : sanitizeDataForProduction(data);
-    const stackTrace = isDevelopment() ? new Error().stack : undefined;
-    
-    const entry: LogEntry = {
+  private createEntry(
+    level: LogLevel,
+    category: string,
+    message: string,
+    data?: unknown
+  ): LogEntry {
+    return {
+      timestamp: new Date().toISOString(),
       level,
+      category,
       message,
-      timestamp: new Date(),
-      data: dataToLog,
-      stackTrace,
+      data: this.sanitizeData(data),
+    };
+  }
+
+  private sanitizeData(data: unknown): unknown {
+    if (!data) return data;
+    
+    // Handle Error objects
+    if (data instanceof Error) {
+        return {
+            name: data.name,
+            message: data.message,
+            stack: data.stack
+        };
+    }
+
+    if (typeof data !== 'object') return data;
+
+    // Deep clone and sanitize sensitive keys
+    const sensitiveKeys = ['password', 'token', 'api_key', 'secret', 'credentials'];
+    const sanitized = JSON.parse(JSON.stringify(data));
+
+    const walk = (obj: any) => {
+      for (const key in obj) {
+        if (sensitiveKeys.includes(key.toLowerCase())) {
+          obj[key] = '[REDACTED]';
+        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+          walk(obj[key]);
+        }
+      }
     };
 
-    this.logs.push(entry);
-    
-    // Keep only the last maxLogs entries
-    if (this.logs.length > this.maxLogs) {
-      this.logs.shift();
-    }
+    walk(sanitized);
+    return sanitized;
+  }
 
-    // Console output in development only
-    if (isDevelopment()) {
-      const prefix = `[${entry.timestamp.toISOString()}] [${level.toUpperCase()}]`;
-      const logFn = level === 'error' ? console.error : 
-                    level === 'warn' ? console.warn : 
-                    console.log;
-      
-      if (data !== undefined) {
-        logFn(prefix, message, data);
-      } else {
-        logFn(prefix, message);
-      }
+  private addToHistory(entry: LogEntry) {
+    this.logHistory.push(entry);
+    if (this.logHistory.length > this.maxHistorySize) {
+      this.logHistory.shift();
+    }
+  }
+
+  private log(level: LogLevel, categoryOrMessage: string, messageOrData?: any, data?: any) {
+    let category: string;
+    let message: string;
+    let finalData: any;
+
+    if (data !== undefined) {
+      category = categoryOrMessage;
+      message = messageOrData;
+      finalData = data;
+    } else if (typeof messageOrData === 'string') {
+      category = categoryOrMessage;
+      message = messageOrData;
+      finalData = undefined;
     } else {
-      // Em produção: log mínimo com dados sanitizados
-      if (level === 'error' || level === 'warn') {
-        const logFn = level === 'error' ? console.error : console.warn;
-        logFn(`[${level.toUpperCase()}] ${message}`, dataToLog);
-      }
+      category = 'General';
+      message = categoryOrMessage;
+      finalData = messageOrData;
+    }
+
+    const entry = this.createEntry(level, category, message, finalData);
+    this.addToHistory(entry);
+
+    if (this.isDevelopment) {
+      const style = this.getConsoleStyle(level);
+      console.log(`%c[${entry.timestamp}] [${category}] ${message}`, style, entry.data ?? '');
+    }
+
+    if (!this.isDevelopment && (level === 'error' || level === 'warn')) {
+      this.sendToBackend(entry);
     }
   }
 
-  static info(message: string, data?: unknown) {
-    this.log('info', message, data);
+  private getConsoleStyle(level: LogLevel): string {
+    const styles = {
+      debug: 'color: #888; font-size: 0.9em;',
+      info: 'color: #2563eb; font-weight: bold;',
+      warn: 'color: #ea580c; font-weight: bold;',
+      error: 'color: #dc2626; font-weight: bold;',
+    };
+    return styles[level];
   }
 
-  static warn(message: string, data?: unknown) {
-    this.log('warn', message, data);
-  }
-
-  static error(message: string, data?: unknown) {
-    this.log('error', message, data);
-  }
-
-  static debug(message: string, data?: unknown) {
-    if (isDevelopment()) {
-      this.log('debug', message, data);
+  private async sendToBackend(entry: LogEntry) {
+    try {
+      // Mocked
+    } catch {
+      // Silent fail
     }
   }
 
-  static getLogs(): readonly LogEntry[] {
-    return [...this.logs];
+  debug(categoryOrMessage: string, messageOrData?: any, data?: any) {
+    this.log('debug', categoryOrMessage, messageOrData, data);
   }
 
-  static clearLogs() {
-    this.logs = [];
+  info(categoryOrMessage: string, messageOrData?: any, data?: any) {
+    this.log('info', categoryOrMessage, messageOrData, data);
   }
 
-  static getLogsByLevel(level: LogLevel): readonly LogEntry[] {
-    return this.logs.filter(log => log.level === level);
+  warn(categoryOrMessage: string, messageOrData?: any, data?: any) {
+    this.log('warn', categoryOrMessage, messageOrData, data);
   }
 
-  static exportLogs(): string {
-    return JSON.stringify(this.logs, null, 2);
+  error(categoryOrMessage: string, messageOrData?: any, data?: any) {
+    this.log('error', categoryOrMessage, messageOrData, data);
+  }
+
+  startTrace(name: string): string {
+    const id = `${name}_${Date.now()}`;
+    this.activeTraces[id] = Date.now();
+    this.debug('Trace', `Started trace: ${name}`, { id });
+    return id;
+  }
+
+  endTrace(id: string): number {
+    const start = this.activeTraces[id];
+    if (!start) return 0;
+    const duration = Date.now() - start;
+    delete this.activeTraces[id];
+    this.debug('Trace', `Ended trace: ${id.split('_')[0]}`, { durationMs: duration });
+    return duration;
+  }
+
+  getLogs() {
+    return [...this.logHistory];
+  }
+
+  getLogsByLevel(level: LogLevel) {
+    return this.logHistory.filter(l => l.level === level);
+  }
+
+  clearLogs() {
+    this.logHistory = [];
+  }
+
+  exportLogs(): string {
+    return JSON.stringify(this.logHistory, null, 2);
   }
 }
 
-export default Logger;
+const loggerInstance = new Logger();
+export { loggerInstance as logger };
+export default loggerInstance;
+export type { LogEntry, LogLevel };

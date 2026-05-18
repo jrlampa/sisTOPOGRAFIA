@@ -2,6 +2,7 @@ import { useFileOperations } from './useFileOperations';
 import { useKmlImport } from './useKmlImport';
 import { nextSequentialId } from '../utils/btNormalization';
 import type { BtPoleNode, GlobalState } from '../types';
+import { SpatialJurisdictionService } from '../services/spatialJurisdictionService';
 
 type Params = {
   appState: GlobalState;
@@ -78,7 +79,15 @@ export function useProjectDataWorkflow({
   };
 
   const handleSaveProject = () => {
-    saveProject();
+    // Filtrar Topologia por Jurisdição antes de salvar arquivo (Item C)
+    const filteredTopology = SpatialJurisdictionService.filterTopology(appState.btTopology, {
+      polygon: appState.polygon,
+      radius: appState.radius,
+      center: appState.center ? [appState.center.lat, appState.center.lng] : undefined
+    });
+
+    const stateToSave = { ...appState, btTopology: filteredTopology };
+    saveProject(stateToSave as GlobalState);
   };
 
   const handleLoadProject = (file: File) => {

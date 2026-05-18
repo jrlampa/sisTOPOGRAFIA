@@ -92,7 +92,7 @@ describe("downloadBlob", () => {
   });
 
   it("throws for empty content", () => {
-    expect(() => downloadBlob("", "text/plain", "file.txt")).toThrow(/empty/i);
+    expect(() => downloadBlob("", "text/plain", "file.txt")).toThrow(/vazio|empty/i);
   });
 
   it("throws for invalid MIME type", () => {

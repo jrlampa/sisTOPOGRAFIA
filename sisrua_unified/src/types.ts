@@ -1,10 +1,28 @@
 import type { CanonicalNetworkTopology } from "./types.canonical.js";
+import type { 
+  BtNetworkScenarioPayload, 
+  BtEditorModePayload, 
+  MtNetworkState,
+  AdminSettings,
+  ServiceTierForm
+} from "./types/index.js";
+
+export type { 
+  BtNetworkScenarioPayload, 
+  BtEditorModePayload, 
+  MtNetworkState,
+  AdminSettings,
+  ServiceTierForm,
+  CanonicalNetworkTopology
+};
 
 export interface GeoLocation {
   lat: number;
   lng: number;
   label?: string;
 }
+
+// ... rest of file (I'll use a more targeted replace next)
 
 export interface OsmNode {
   type: "node";
@@ -349,6 +367,7 @@ export interface AppSettings {
   mtEditorMode?: MtEditorMode;
   uiDensity?: "compact" | "comfortable";
   enableFocusMode?: boolean;
+  sidebarCollapsed?: boolean;
 }
 
 export type SelectionMode = "circle" | "polygon" | "measure";
@@ -403,6 +422,9 @@ export interface GlobalState {
   polygon: GeoLocation[];
   measurePath: GeoLocation[];
   settings: AppSettings;
+  btNetworkScenario: BtNetworkScenarioPayload | null;
+  btEditorMode: BtEditorModePayload;
+  mtNetworkState: MtNetworkState | null;
   btTopology: BtTopology;
   btExportSummary?: BtExportSummary | null;
   btExportHistory: BtExportHistoryEntry[];
