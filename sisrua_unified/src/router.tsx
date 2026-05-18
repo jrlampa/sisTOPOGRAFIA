@@ -1,11 +1,11 @@
 /**
  * router.tsx — Roteamento SPA enterprise do sisTOPOGRAFIA.
  */
-import React, { Suspense, lazy } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import ErrorBoundary from "./components/ErrorBoundary";
-import { lazyWithRetry } from "./utils/lazyWithRetry";
-import { useAuth } from "./auth/AuthProvider";
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary';
+import { lazyWithRetry } from './utils/lazyWithRetry';
+import { useAuth } from './auth/AuthProvider';
 
 // ─── Fallback de carregamento ─────────────────────────────────────────────
 
@@ -14,7 +14,9 @@ function PageLoader() {
     <div className="flex min-h-screen items-center justify-center bg-slate-950">
       <div className="flex flex-col items-center gap-4">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">Iniciando sistema…</p>
+        <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">
+          Iniciando sistema…
+        </p>
       </div>
     </div>
   );
@@ -32,34 +34,20 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
 // ─── Lazy imports ─────────────────────────────────────────────────────────
 
-const LandingPage = lazy(() =>
-  lazyWithRetry(() => import("./pages/LandingPage")),
-);
-const DashboardPage = lazy(() =>
-  lazyWithRetry(() => import("./pages/DashboardPage")),
-);
-const SaaSAdminPage = lazy(() =>
-  lazyWithRetry(() => import("./pages/SaaSAdminPage")),
-);
-const SuperAdminDashboard = lazy(() =>
-  lazyWithRetry(() => import("./pages/SuperAdminDashboard")),
-);
-const AjudaPage = lazy(() => lazyWithRetry(() => import("./pages/AjudaPage")));
-const StatusPage = lazy(() =>
-  lazyWithRetry(() => import("./pages/StatusPage")),
-);
-const NotFoundPage = lazy(() =>
-  lazyWithRetry(() => import("./pages/NotFoundPage")),
-);
-const AdminPage = lazy(() =>
-  lazyWithRetry(() => import("./components/AdminPage/AdminPage")),
-);
-const ProjetoPage = lazy(() => lazyWithRetry(() => import("./App")));
+const LandingPage = lazy(() => lazyWithRetry(() => import('./pages/LandingPage')));
+const DashboardPage = lazy(() => lazyWithRetry(() => import('./pages/DashboardPage')));
+const SaaSAdminPage = lazy(() => lazyWithRetry(() => import('./pages/SaaSAdminPage')));
+const SuperAdminDashboard = lazy(() => lazyWithRetry(() => import('./pages/SuperAdminDashboard')));
+const AjudaPage = lazy(() => lazyWithRetry(() => import('./pages/AjudaPage')));
+const StatusPage = lazy(() => lazyWithRetry(() => import('./pages/StatusPage')));
+const NotFoundPage = lazy(() => lazyWithRetry(() => import('./pages/NotFoundPage')));
+const AdminPage = lazy(() => lazyWithRetry(() => import('./components/AdminPage/AdminPage')));
+const ProjetoPage = lazy(() => lazyWithRetry(() => import('./App')) as any);
 
 // ─── Componentes de Layout ───────────────────────────────────────────────
-import { PortalLayout } from "./components/PortalLayout";
-import { ProjectPage } from "./pages/ProjectPage";
-import { TeamPage } from "./pages/TeamPage";
+import { PortalLayout } from './components/PortalLayout';
+import { ProjectPage } from './pages/ProjectPage';
+import { TeamPage } from './pages/TeamPage';
 
 export default function AppRouter() {
   return (
@@ -72,8 +60,8 @@ export default function AppRouter() {
             <Route path="/landing" element={<LandingPage />} />
 
             {/* Nova Arquitetura de Portal (Item B) — PROTEGIDA */}
-            <Route 
-              path="/portal" 
+            <Route
+              path="/portal"
               element={
                 <PrivateRoute>
                   <PortalLayout />
@@ -91,14 +79,42 @@ export default function AppRouter() {
             </Route>
 
             {/* O Editor imersivo (Fullscreen) — PROTEGIDO */}
-            <Route path="/editor/:projeto_id" element={<PrivateRoute><ProjetoPage /></PrivateRoute>} />
-            <Route path="/app" element={<PrivateRoute><ProjetoPage /></PrivateRoute>} />
+            <Route
+              path="/editor/:projeto_id"
+              element={
+                <PrivateRoute>
+                  <ProjetoPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/app"
+              element={
+                <PrivateRoute>
+                  <ProjetoPage />
+                </PrivateRoute>
+              }
+            />
 
             {/* Administração Global */}
-            <Route path="/saas-admin" element={<PrivateRoute><SuperAdminDashboard /></PrivateRoute>} />
+            <Route
+              path="/saas-admin"
+              element={
+                <PrivateRoute>
+                  <SuperAdminDashboard />
+                </PrivateRoute>
+              }
+            />
 
             {/* Páginas Legadas / Auxiliares */}
-            <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
+            <Route
+              path="/admin"
+              element={
+                <PrivateRoute>
+                  <AdminPage />
+                </PrivateRoute>
+              }
+            />
             <Route path="/ajuda" element={<AjudaPage />} />
             <Route path="/status" element={<StatusPage />} />
             <Route path="*" element={<NotFoundPage />} />

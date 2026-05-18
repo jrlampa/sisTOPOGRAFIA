@@ -1,12 +1,20 @@
-import { useMemo } from "react";
-import { AppSettings, GeoLocation, BtTopology, MtTopology, SelectionMode, BtNetworkScenarioPayload, BtEditorModePayload } from "../types";
-import type { ToastType } from "../components/Toast";
+import { useMemo } from 'react';
+import {
+  AppSettings,
+  GeoLocation,
+  BtTopology,
+  MtTopology,
+  SelectionMode,
+  BtNetworkScenarioPayload,
+  BtEditorModePayload,
+} from '../types';
+import type { ToastType } from '../components/Toast';
 import {
   BtPoleAccumulatedDemand,
   BtDerivedSummary,
   BtClandestinoDisplay,
   BtTransformerDerived,
-} from "../services/btDerivedService";
+} from '../services/btDerivedService';
 
 interface SidebarPropsParams {
   settings: AppSettings;
@@ -36,6 +44,7 @@ interface SidebarPropsParams {
   btPoleCoordinateInput: string;
   setBtPoleCoordinateInput: (i: string) => void;
   handleBtInsertPoleByCoordinates: () => void;
+  clearPendingBtEdge: () => void;
   pendingNormalClassificationPoles: any[];
   handleResetBtTopology: () => void;
   updateBtTopology: (t: BtTopology) => void;
@@ -114,6 +123,7 @@ export function useAppSidebarProps({
   btPoleCoordinateInput,
   setBtPoleCoordinateInput,
   handleBtInsertPoleByCoordinates,
+  clearPendingBtEdge,
   pendingNormalClassificationPoles,
   handleResetBtTopology,
   updateBtTopology,
@@ -195,7 +205,7 @@ export function useAppSidebarProps({
       handleFetchAndAnalyze,
       isProcessing,
       isPolygonValid,
-    ],
+    ]
   );
 
   const sidebarBtEditorSectionProps = useMemo(
@@ -215,7 +225,7 @@ export function useAppSidebarProps({
       btPoleCoordinateInput,
       setBtPoleCoordinateInput,
       handleBtInsertPoleByCoordinates,
-      clearPendingBtEdge: () => {},
+      clearPendingBtEdge,
       pendingNormalClassificationPoles,
       handleResetBtTopology,
       updateBtTopology,
@@ -268,6 +278,7 @@ export function useAppSidebarProps({
       btPoleCoordinateInput,
       setBtPoleCoordinateInput,
       handleBtInsertPoleByCoordinates,
+      clearPendingBtEdge,
       pendingNormalClassificationPoles,
       handleResetBtTopology,
       updateBtTopology,
@@ -308,7 +319,7 @@ export function useAppSidebarProps({
       setSelectedEdgeId,
       setSelectedTransformerId,
       mtTopology,
-    ],
+    ]
   );
 
   const sidebarAnalysisResultsProps = useMemo(
@@ -335,7 +346,7 @@ export function useAppSidebarProps({
       handleDownloadCoordinatesCsv,
       isDownloading,
       showToast,
-    ],
+    ]
   );
 
   return {

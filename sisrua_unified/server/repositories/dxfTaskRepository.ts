@@ -73,7 +73,7 @@ export class PostgresDxfTaskRepository implements IDxfTaskRepository {
          RETURNING task_id`,
         [taskId, JSON.stringify(payload), idempotencyKey ?? null],
       );
-      return (result as any[]).length > 0;
+      return (result as unknown[]).length > 0;
     } catch (err) {
       logger.warn("[DxfTaskRepository] enqueue failed", { taskId, err });
       return false;
@@ -98,7 +98,7 @@ export class PostgresDxfTaskRepository implements IDxfTaskRepository {
        WHERE t.task_id = claimed.task_id
        RETURNING t.*`,
     );
-    const r = (rows as any[])[0];
+    const r = (rows as unknown as RawDxfTaskRow[])[0];
     return r ? _mapRow(r as RawDxfTaskRow) : null;
   }
 
@@ -141,7 +141,7 @@ export class PostgresDxfTaskRepository implements IDxfTaskRepository {
       `SELECT * FROM dxf_tasks WHERE idempotency_key = $1 LIMIT 1`,
       [key],
     );
-    const r = (rows as any[])[0];
+    const r = (rows as unknown as RawDxfTaskRow[])[0];
     return r ? _mapRow(r as RawDxfTaskRow) : null;
   }
 
@@ -152,7 +152,7 @@ export class PostgresDxfTaskRepository implements IDxfTaskRepository {
       `SELECT * FROM dxf_tasks WHERE task_id = $1 LIMIT 1`,
       [taskId],
     );
-    const r = (rows as any[])[0];
+    const r = (rows as unknown as RawDxfTaskRow[])[0];
     return r ? _mapRow(r as RawDxfTaskRow) : null;
   }
 }

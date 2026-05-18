@@ -36,15 +36,15 @@
 # → Redirect URIs (Web)
 ```
 
-**Copie e cole estas URLs:**
+**Copie e cole esta URL (obrigatória para Supabase OAuth):**
 
-```
+```text
 https://zqtewkmqweicgacycnap.supabase.co/auth/v1/callback
-http://localhost:3002
-http://localhost:5173
 ```
 
-**Clique: Save**
+As URLs `http://localhost:3002` e `http://localhost:5173` nao sao necessarias para o fluxo Supabase OAuth.
+
+Clique em Save.
 
 ### 1.2 Gerar Client Secret
 
@@ -57,11 +57,11 @@ http://localhost:5173
 # → Add
 ```
 
-**⚠️ COPIE o valor do secret (não será mostrado novamente)**
+Copie o valor do secret (nao sera mostrado novamente).
 
 Exemplo:
 
-```
+```text
 8X.8Q~.kRxAbcDefGhIjKlmnOpQrStUvWxYz
 ```
 
@@ -89,7 +89,7 @@ Exemplo:
 | **Tenant ID**     | `c580bd4a-fb89-4bde-b6ae-715befa1ab31` |
 | **Client Secret** | Cole o valor do passo 1.2              |
 
-**Clique: Save**
+Clique em Save.
 
 ---
 
@@ -159,10 +159,13 @@ cd sisrua_unified
 npm install -D @playwright/test
 
 # Rodar testes de auth
-npm run test:e2e -- auth
+npm run test:e2e -- auth-oauth
 
 # Ou teste específico de OAuth
 npx playwright test e2e/auth-oauth.spec.ts --headed
+
+# Se estiver na raiz do monorepo, use:
+npm run test:e2e:auth-oauth
 ```
 
 ---
@@ -244,13 +247,17 @@ app.use(attachSupabaseUserIfPresent); // Deve estar ANTES das rotas
 
 ## 📞 Referências
 
-| Documento                  | Link                                                                           |
-| -------------------------- | ------------------------------------------------------------------------------ |
-| **Full Integration Guide** | [MICROSOFT_AZURE_OAUTH_INTEGRATION.md](./MICROSOFT_AZURE_OAUTH_INTEGRATION.md) |
-| **Supabase OAuth Docs**    | https://supabase.com/docs/guides/auth/social-login/auth-azure                  |
-| **Microsoft Entra Docs**   | https://learn.microsoft.com/en-us/entra/identity-platform/                     |
-| **Código: AuthProvider**   | `src/auth/AuthProvider.tsx`                                                    |
-| **Código: Backend JWT**    | `server/services/supabaseJwtService.ts`                                        |
+<!-- markdownlint-disable MD060 -->
+
+| Documento                  | Link                                                                                            |
+| -------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Full Integration Guide** | [MICROSOFT_AZURE_OAUTH_INTEGRATION.md](./MICROSOFT_AZURE_OAUTH_INTEGRATION.md)                  |
+| **Supabase OAuth Docs**    | [Supabase OAuth Azure](https://supabase.com/docs/guides/auth/social-login/auth-azure)           |
+| **Microsoft Entra Docs**   | [Microsoft Entra Identity Platform](https://learn.microsoft.com/en-us/entra/identity-platform/) |
+| **Código: AuthProvider**   | `src/auth/AuthProvider.tsx`                                                                     |
+| **Código: Backend JWT**    | `server/services/supabaseJwtService.ts`                                                         |
+
+<!-- markdownlint-enable MD060 -->
 
 ---
 

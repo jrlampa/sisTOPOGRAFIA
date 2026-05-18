@@ -23,12 +23,15 @@ describe('useAppMainHandlers hook', () => {
   it('updates editor mode correctly', () => {
     const { result } = renderHook(() => useAppMainHandlers(mockParams));
 
-    // handleBoxSelect is the primary action exposed by this hook
     act(() => {
-      result.current.handleBoxSelect({ contains: vi.fn(() => false) } as any);
+      result.current.setBtEditorMode('add-pole');
     });
 
-    expect(mockSetSelectedPoleIds).toHaveBeenCalledWith([]);
+    expect(mockSetAppState).toHaveBeenCalledWith(
+      expect.any(Function),
+      true,
+      expect.stringContaining('add-pole')
+    );
   });
 
   it('handles box selection correctly', () => {

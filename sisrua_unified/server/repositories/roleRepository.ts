@@ -32,6 +32,21 @@ export interface IRoleRepository {
   ): Promise<void>;
 }
 
+type RawUserRoleRow = {
+  user_id: string;
+  role: string;
+  tenant_id?: string | null;
+  assigned_by?: string | null;
+  reason?: string | null;
+  assigned_at: string | Date;
+  last_updated: string | Date;
+};
+
+type RoleCountRow = {
+  role?: string;
+  cnt?: unknown;
+};
+
 // ── Implementation ─────────────────────────────────────────────────────────────
 
 export class PostgresRoleRepository implements IRoleRepository {
@@ -44,7 +59,7 @@ export class PostgresRoleRepository implements IRoleRepository {
          FROM user_roles WHERE user_id = $1 LIMIT 1`,
         [userId],
       );
-      const r = (rows as any[])[0];
+      const r = (rows as unknown as RawUserRoleRow[])[0];
       return r ? _mapRow(r) : null;
     } catch (err) {
       logger.warn("[RoleRepository] findByUserId failed", { userId, err });
@@ -61,7 +76,7 @@ export class PostgresRoleRepository implements IRoleRepository {
          FROM user_roles WHERE role = $1 ORDER BY assigned_at DESC`,
         [role],
       );
-      return (rows as any[]).map(_mapRow);
+      return (rows as unknown as RawUserRoleRow[]).map(_mapRow);
     } catch (err) {
       logger.warn("[RoleRepository] findByRole failed", { role, err });
       return [];
@@ -82,8 +97,9 @@ export class PostgresRoleRepository implements IRoleRepository {
         `SELECT role, COUNT(*) AS cnt FROM user_roles GROUP BY role`,
       );
       const result = { ...defaults };
-      for (const r of rows as any[]) {
-        result[r.role as UserRole] = Number(r.cnt);
+      for (const r of rows as unknown as RoleCountRow[]) {
+        if (!r.role) continue;
+        result[r.role as UserRole] = Number(r.cnt ?? 0);
       }
       return result;
     } catch (err) {
@@ -117,7 +133,7 @@ export class PostgresRoleRepository implements IRoleRepository {
   }
 }
 
-function _mapRow(r: any): UserRoleRow {
+function _mapRow(r: RawUserRoleRow): UserRoleRow {
   return {
     userId: r.user_id,
     role: r.role as UserRole,

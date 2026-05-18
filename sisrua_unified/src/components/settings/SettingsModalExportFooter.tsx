@@ -1,7 +1,7 @@
-import React from "react";
-import { Download, FileJson, Loader2 } from "lucide-react";
-import { getSettingsModalText } from "../../i18n/settingsModalText";
-import type { AppLocale } from "../../types";
+import React from 'react';
+import { Download, FileJson, Loader2 } from 'lucide-react';
+import { getSettingsModalText } from '../../i18n/settingsModalText';
+import type { AppLocale } from '../../types';
 
 type SettingsModalExportFooterProps = {
   locale: AppLocale;
@@ -42,20 +42,17 @@ export function SettingsModalExportFooter({
           </div>
           <button
             type="button"
-            onClick={() =>
-              onToggleExportMemorialPdfWithDxf(!exportMemorialPdfWithDxf)
-            }
+            onClick={() => onToggleExportMemorialPdfWithDxf(!exportMemorialPdfWithDxf)}
             disabled={isDownloading}
             title={text.exportMemorialPdfLabel}
             aria-label={text.exportMemorialPdfLabel}
-            aria-pressed={exportMemorialPdfWithDxf}
             className={`w-12 h-6 rounded-full relative transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 ${
-              exportMemorialPdfWithDxf ? "bg-emerald-500" : "bg-slate-400"
+              exportMemorialPdfWithDxf ? 'bg-emerald-500' : 'bg-slate-400'
             } disabled:opacity-70 disabled:cursor-not-allowed`}
           >
             <span
               className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${
-                exportMemorialPdfWithDxf ? "translate-x-6" : ""
+                exportMemorialPdfWithDxf ? 'translate-x-6' : ''
               }`}
             />
           </button>

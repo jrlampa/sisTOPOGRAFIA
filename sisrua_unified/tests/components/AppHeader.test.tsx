@@ -93,7 +93,8 @@ describe('AppHeader component', () => {
 
   it('handles file upload trigger', () => {
     renderWithRouter(<AppHeader {...defaultProps} />);
-    const openBtn = screen.getByTitle(/Abrir Projeto/i);
+    const openBtns = screen.getAllByTitle(/Abrir projeto/i);
+    expect(openBtns.length).toBeGreaterThan(0);
     
     // We can't easily test the file dialog itself, but we can verify the ref click
     // or just mock the change event on the hidden input

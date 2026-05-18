@@ -51,7 +51,7 @@ const TrafoDonut: React.FC<{ pct: number }> = ({ pct }) => {
         strokeDasharray={`${dash} ${circ}`}
         strokeLinecap="round"
         transform="rotate(-90 30 30)"
-        style={{ transition: "stroke-dasharray 0.6s ease" }}
+        className="transition-[stroke-dasharray] duration-700 ease-in-out"
       />
       <text
         x={30}
@@ -129,7 +129,7 @@ const SpanHistogram: React.FC<{ spans: number[] }> = ({ spans }) => {
       </svg>
       <div className="flex gap-[2px] text-[7px] font-bold text-slate-400 dark:text-zinc-600">
         {labels.map((l, i) => (
-          <span key={i} style={{ width: barW, textAlign: "center" }}>
+          <span key={i} className="w-[14px] text-center">
             {l}
           </span>
         ))}

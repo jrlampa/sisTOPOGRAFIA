@@ -1,5 +1,5 @@
-import React from "react";
-import { BtTopology, BtPoleNode } from "../types";
+import React from 'react';
+import { BtTopology, BtPoleNode } from '../types';
 
 interface Params {
   setAppState: any;
@@ -16,6 +16,21 @@ export function useAppMainHandlers({
   setSelectedPoleId,
   setIsCommandPaletteOpen,
 }: Params) {
+  const setBtEditorMode = React.useCallback(
+    (mode: string | { mode: string }) => {
+      const nextMode = typeof mode === 'string' ? mode : mode.mode;
+      setAppState(
+        (prev: any) => ({
+          ...prev,
+          btEditorMode: { mode: nextMode },
+        }),
+        true,
+        `Editor mode: ${nextMode}`
+      );
+    },
+    [setAppState]
+  );
+
   const handleBoxSelect = React.useCallback(
     (bounds: L.LatLngBounds) => {
       const selectedIds = btTopology.poles
@@ -25,25 +40,26 @@ export function useAppMainHandlers({
       if (selectedIds.length === 1) {
         setSelectedPoleId(selectedIds[0]);
       } else {
-        setSelectedPoleId("");
+        setSelectedPoleId('');
       }
     },
-    [btTopology.poles, setSelectedPoleIds, setSelectedPoleId],
+    [btTopology.poles, setSelectedPoleIds, setSelectedPoleId]
   );
 
   // Ctrl+K for Command Palette
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         setIsCommandPaletteOpen((prev: boolean) => !prev);
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setIsCommandPaletteOpen]);
 
   return {
+    setBtEditorMode,
     handleBoxSelect,
   };
 }

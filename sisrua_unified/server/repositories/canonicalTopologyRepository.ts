@@ -67,6 +67,8 @@ export interface ICanonicalTopologyRepository {
   countCanonical(tenantId: string): Promise<{ poles: number; edges: number }>;
 }
 
+type CountRow = { cnt?: unknown };
+
 // ─── Mapeadores de linha DB → tipo canônico ───────────────────────────────────
 
 function rowToPoleNode(r: Record<string, unknown>): CanonicalPoleNode {
@@ -297,7 +299,13 @@ async function readTopologyFromLegacyTask(
       }
     }
 
-    const transformers = (btTopo?.transformers as any[]) ?? [];
+    const btTransformers =
+      btTopo && typeof btTopo === "object"
+        ? (btTopo as Record<string, unknown>)["transformers"]
+        : undefined;
+    const transformers = Array.isArray(btTransformers)
+      ? (btTransformers as CanonicalNetworkTopology["transformers"])
+      : [];
 
     return { poles, edges, transformers };
   } catch (err) {
@@ -427,9 +435,13 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
         sql.unsafe(`SELECT COUNT(*) AS cnt FROM public.canonical_poles WHERE tenant_id = $1`, [tenantId]),
         sql.unsafe(`SELECT COUNT(*) AS cnt FROM public.canonical_edges WHERE tenant_id = $1`, [tenantId]),
       ]);
+
+      const poleCountRows = pRow as CountRow[];
+      const edgeCountRows = eRow as CountRow[];
+
       return {
-        poles: Number((pRow as any[])[0]?.cnt ?? 0),
-        edges: Number((eRow as any[])[0]?.cnt ?? 0),
+        poles: Number(poleCountRows[0]?.cnt ?? 0),
+        edges: Number(edgeCountRows[0]?.cnt ?? 0),
       };
     } catch (err) {
       logger.warn("[CanonicalTopologyRepository] countCanonical falhou", {
@@ -456,7 +468,7 @@ export class PostgresCanonicalTopologyRepository implements ICanonicalTopologyRe
         this.readEdges(tenantId),
       ]);
 
-      let transformers: any[] = [];
+      let transformers: CanonicalNetworkTopology["transformers"] = [];
       if (taskId) {
         const legacyTopo = await readTopologyFromLegacyTask(taskId, tenantId);
         if (legacyTopo) {

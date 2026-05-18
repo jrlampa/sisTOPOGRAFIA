@@ -1,20 +1,15 @@
-import React, { useState, useMemo, useId, useEffect } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  Polyline,
-} from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-import { GeoJsonObject } from "geojson";
-import SelectionManager from "./MapSelectorSelectionManager";
-import MapSelectorEdgesLayer from "./MapSelectorEdgesLayer";
-import MapSelectorPolesLayer from "./MapLayers/MapSelectorPolesLayer";
-import MapSelectorTransformersLayer from "./MapLayers/MapSelectorTransformersLayer";
-import MapSelectorMtEdgesLayer from "./MapLayers/MapSelectorMtEdgesLayer";
-import MapSelectorMtPolesLayer from "./MapLayers/MapSelectorMtPolesLayer";
-import MapSelectorDgOverlay from "./MapLayers/MapSelectorDgOverlay";
-import MapMtRouterOverlay from "./MapLayers/MapMtRouterOverlay";
+import React, { useState, useMemo, useId, useEffect } from 'react';
+import { MapContainer, TileLayer, Polyline } from 'react-leaflet';
+import L from 'leaflet';
+import { GeoJsonObject } from 'geojson';
+import SelectionManager from './MapSelectorSelectionManager';
+import MapSelectorEdgesLayer from './MapSelectorEdgesLayer';
+import MapSelectorPolesLayer from './MapLayers/MapSelectorPolesLayer';
+import MapSelectorTransformersLayer from './MapLayers/MapSelectorTransformersLayer';
+import MapSelectorMtEdgesLayer from './MapLayers/MapSelectorMtEdgesLayer';
+import MapSelectorMtPolesLayer from './MapLayers/MapSelectorMtPolesLayer';
+import MapSelectorDgOverlay from './MapLayers/MapSelectorDgOverlay';
+import MapMtRouterOverlay from './MapLayers/MapMtRouterOverlay';
 import {
   BtEditorMode,
   BtRamalEntry,
@@ -25,28 +20,18 @@ import {
   LayerConfig,
   OsmElement,
   AppTheme,
-} from "../types";
-import {
-  MapBtTopology,
-  MapMtTopology,
-} from "../types.map";
-import { FeatureFlags } from "../types/featureFlags";
-import { BtPoleAccumulatedDemand } from "../utils/btTopologyFlow";
-import { DgScenario } from "../hooks/useDgOptimization";
-import type { MtRouterState, MtLatLon } from "../hooks/useMtRouter";
-import { MapJurisdictionLayer } from "./MapLayers/MapJurisdictionLayer";
+} from '../types';
+import { MapBtTopology, MapMtTopology } from '../types.map';
+import { FeatureFlags } from '../types/featureFlags';
+import { BtPoleAccumulatedDemand } from '../utils/btTopologyFlow';
+import { DgScenario } from '../hooks/useDgOptimization';
+import type { MtRouterState, MtLatLon } from '../hooks/useMtRouter';
+import { MapJurisdictionLayer } from './MapLayers/MapJurisdictionLayer';
 
-import { MapInteractionLayer } from "./MapLayers/MapInteractionLayer";
-import { applyRoadSnap, applyOrthoSnap } from "../utils/geometriaUtils";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Navigation, 
-  Move, 
-  MapPin, 
-  GitCommit, 
-  Zap,
-  MousePointer2
-} from "lucide-react";
+import { MapInteractionLayer } from './MapLayers/MapInteractionLayer';
+import { applyRoadSnap, applyOrthoSnap } from '../utils/geometriaUtils';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Navigation, Move, MapPin, GitCommit, Zap, MousePointer2 } from 'lucide-react';
 
 interface MapSelectorProps {
   center: { lat: number; lng: number; label?: string };
@@ -56,11 +41,7 @@ interface MapSelectorProps {
   radius: number;
   selectionMode: SelectionMode;
   polygonPoints: [number, number][];
-  onLocationChange: (newCenter: {
-    lat: number;
-    lng: number;
-    label?: string;
-  }) => void;
+  onLocationChange: (newCenter: { lat: number; lng: number; label?: string }) => void;
   onPolygonChange: (points: [number, number][]) => void;
   measurePath?: [number, number][];
   onMeasurePathChange?: (path: [number, number][]) => void;
@@ -68,56 +49,39 @@ interface MapSelectorProps {
   btPopupTopology?: MapBtTopology;
   btEditorMode?: BtEditorMode;
   pendingBtEdgeStartPoleId?: string | null;
-  onBtMapClick?: (location: {
-    lat: number;
-    lng: number;
-    label?: string;
-  }) => void;
+  onBtMapClick?: (location: { lat: number; lng: number; label?: string }) => void;
   onBtContextAction?: (
-    action: "add-edge" | "add-transformer" | "add-pole",
-    location: GeoLocation,
+    action: 'add-edge' | 'add-transformer' | 'add-pole',
+    location: GeoLocation
   ) => void;
   onBtDeletePole?: (id: string) => void;
   onBtDeleteEdge?: (id: string) => void;
   onBtSetEdgeChangeFlag?: (
     edgeId: string,
-    edgeChangeFlag: "existing" | "new" | "remove" | "replace",
+    edgeChangeFlag: 'existing' | 'new' | 'remove' | 'replace'
   ) => void;
   onBtDeleteTransformer?: (id: string) => void;
   onBtToggleTransformerOnPole?: (poleId: string) => void;
   onBtQuickAddPoleRamal?: (poleId: string) => void;
   onBtQuickRemovePoleRamal?: (poleId: string) => void;
   onBtQuickAddEdgeConductor?: (edgeId: string, conductorName: string) => void;
-  onBtQuickRemoveEdgeConductor?: (
-    edgeId: string,
-    conductorName: string,
-  ) => void;
+  onBtQuickRemoveEdgeConductor?: (edgeId: string, conductorName: string) => void;
   onBtSetEdgeLengthMeters?: (edgeId: string, lengthMeters: number) => void;
-  onBtSetEdgeReplacementFromConductors?: (
-    edgeId: string,
-    conductors: BtRamalEntry[],
-  ) => void;
+  onBtSetEdgeReplacementFromConductors?: (edgeId: string, conductors: BtRamalEntry[]) => void;
   onBtRenamePole?: (poleId: string, title: string) => void;
   onBtRenameTransformer?: (transformerId: string, title: string) => void;
   onBtSetPoleVerified?: (poleId: string, verified: boolean) => void;
   onBtSetPoleChangeFlag?: (
     poleId: string,
-    nodeChangeFlag: "existing" | "new" | "remove" | "replace",
+    nodeChangeFlag: 'existing' | 'new' | 'remove' | 'replace'
   ) => void;
-  onBtTogglePoleCircuitBreak?: (
-    poleId: string,
-    circuitBreakPoint: boolean,
-  ) => void;
+  onBtTogglePoleCircuitBreak?: (poleId: string, circuitBreakPoint: boolean) => void;
   onBtSetTransformerChangeFlag?: (
     transformerId: string,
-    transformerChangeFlag: "existing" | "new" | "remove" | "replace",
+    transformerChangeFlag: 'existing' | 'new' | 'remove' | 'replace'
   ) => void;
   onBtDragPole?: (poleId: string, lat: number, lng: number) => void;
-  onBtDragTransformer?: (
-    transformerId: string,
-    lat: number,
-    lng: number,
-  ) => void;
+  onBtDragTransformer?: (transformerId: string, lat: number, lng: number) => void;
   onBtSelectPole?: (poleId: string, isShiftSelect?: boolean) => void;
   criticalPoleId?: string | null;
   accumulatedByPole?: BtPoleAccumulatedDemand[];
@@ -132,23 +96,14 @@ interface MapSelectorProps {
   mtPopupTopology?: MapMtTopology;
   mtEditorMode?: MtEditorMode;
   onMtMapClick?: (location: GeoLocation) => void;
-  onMtContextAction?: (
-    action: "add-pole" | "add-edge",
-    location: GeoLocation,
-  ) => void;
+  onMtContextAction?: (action: 'add-pole' | 'add-edge', location: GeoLocation) => void;
   onMtDeletePole?: (id: string) => void;
   onMtDeleteEdge?: (id: string) => void;
   onMtRenamePole?: (poleId: string, title: string) => void;
   onMtSetPoleVerified?: (poleId: string, verified: boolean) => void;
   onMtDragPole?: (poleId: string, lat: number, lng: number) => void;
-  onMtSetPoleChangeFlag?: (
-    poleId: string,
-    flag: "existing" | "new" | "remove" | "replace",
-  ) => void;
-  onMtSetEdgeChangeFlag?: (
-    edgeId: string,
-    flag: "existing" | "new" | "remove" | "replace",
-  ) => void;
+  onMtSetPoleChangeFlag?: (poleId: string, flag: 'existing' | 'new' | 'remove' | 'replace') => void;
+  onMtSetEdgeChangeFlag?: (edgeId: string, flag: 'existing' | 'new' | 'remove' | 'replace') => void;
   /** Cenário DG ativo para sobreposição visual no mapa. */
   dgScenario?: DgScenario | null;
   /** Ativa o Ghost Mode (esmaece a rede original) para contraste visual do cenário DG. */
@@ -185,7 +140,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   onMeasurePathChange,
   btMarkerTopology,
   btPopupTopology,
-  btEditorMode = "none",
+  btEditorMode = 'none',
   pendingBtEdgeStartPoleId,
   onBtMapClick,
   onBtContextAction,
@@ -213,13 +168,13 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   accumulatedByPole = [],
   loadCenterPoleId,
   onKmlDrop,
-  mapStyle = "dark",
+  mapStyle = 'dark',
   onMapStyleChange: _onMapStyleChange,
   showAnalysis: _showAnalysis = false,
   keyboardPanEnabled = false,
   mtMarkerTopology,
   mtPopupTopology,
-  mtEditorMode = "none",
+  mtEditorMode = 'none',
   onMtMapClick,
   onMtContextAction,
   onMtDeletePole,
@@ -255,17 +210,17 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
-      if (k === "shift" || k === "x") setIsXRayMode(true);
+      if (k === 'shift' || k === 'x') setIsXRayMode(true);
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
-      if (k === "shift" || k === "x") setIsXRayMode(false);
+      if (k === 'shift' || k === 'x') setIsXRayMode(false);
     };
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
 
@@ -275,7 +230,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     edges: [],
   };
   const popupTopology = btPopupTopology ?? topology;
-  const paneIdSuffix = useId().replace(/:/g, "-");
+  const paneIdSuffix = useId().replace(/:/g, '-');
   const btEdgesPaneName = `bt-edges-pane-${paneIdSuffix}`;
   const btPolesPaneName = `bt-poles-pane-${paneIdSuffix}`;
   const btTransformersPaneName = `bt-transformers-pane-${paneIdSuffix}`;
@@ -284,23 +239,21 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   const dgOverlayPaneName = `dg-overlay-pane-${paneIdSuffix}`;
 
   const polesById = useMemo(() => {
-    return new Map(topology.poles.map((pole) => [pole.id, pole]));
+    return new Map(topology.poles.map(pole => [pole.id, pole]));
   }, [topology.poles]);
 
   const accumulatedByPoleMap = useMemo(() => {
-    return new Map(accumulatedByPole.map((entry) => [entry.poleId, entry]));
+    return new Map(accumulatedByPole.map(entry => [entry.poleId, entry]));
   }, [accumulatedByPole]);
 
   const leafPoleIds = useMemo(() => {
     const parentPoleIds = new Set<string>();
-    topology.edges.forEach((edge) => {
-      const edgeFlag =
-        edge.edgeChangeFlag ??
-        (edge.removeOnExecution ? "remove" : "existing");
-      if (edgeFlag !== "remove") parentPoleIds.add(edge.fromPoleId);
+    topology.edges.forEach(edge => {
+      const edgeFlag = edge.edgeChangeFlag ?? (edge.removeOnExecution ? 'remove' : 'existing');
+      if (edgeFlag !== 'remove') parentPoleIds.add(edge.fromPoleId);
     });
     const leaves = new Set<string>();
-    topology.poles.forEach((p) => {
+    topology.poles.forEach(p => {
       if (!parentPoleIds.has(p.id)) leaves.add(p.id);
     });
     return leaves;
@@ -311,18 +264,14 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     const distanceThresholdMeters = 6;
 
     for (const pole of topology.poles || []) {
-      const hasTransformer = (topology.transformers || []).some(
-        (transformer) => {
-          if (transformer.poleId) {
-            return transformer.poleId === pole.id;
-          }
-          const polePoint = L.latLng(pole.lat, pole.lng);
-          const transformerPoint = L.latLng(transformer.lat, transformer.lng);
-          return (
-            polePoint.distanceTo(transformerPoint) <= distanceThresholdMeters
-          );
-        },
-      );
+      const hasTransformer = (topology.transformers || []).some(transformer => {
+        if (transformer.poleId) {
+          return transformer.poleId === pole.id;
+        }
+        const polePoint = L.latLng(pole.lat, pole.lng);
+        const transformerPoint = L.latLng(transformer.lat, transformer.lng);
+        return polePoint.distanceTo(transformerPoint) <= distanceThresholdMeters;
+      });
       byPole.set(pole.id, hasTransformer);
     }
 
@@ -341,32 +290,32 @@ const MapSelector: React.FC<MapSelectorProps> = ({
   };
 
   const tileConfig = useMemo(() => {
-    if (mapStyle === "satellite") {
+    if (mapStyle === 'satellite') {
       return {
-        key: "satellite",
+        key: 'satellite',
         attribution:
-          "&copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
-        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+          '&copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         maxNativeZoom: 19,
       };
     }
 
     return {
-      key: "vector",
+      key: 'vector',
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       maxNativeZoom: 19,
     };
   }, [mapStyle]);
 
-  const isEditing = btEditorMode !== "none" || mtEditorMode !== "none";
-  const isBtEditing = btEditorMode !== "none";
-  const cursorClass = isEditing ? "map-cursor-active" : "";
-  const dimClass = isBtEditing ? "map-bt-editing" : "";
-  const ghostClass = dgGhostMode ? "map-dg-ghost-mode" : "";
-  const xrayClass = isXRayMode ? "map-xray-mode" : "";
-  const themeClass = `map-theme-${theme || "dark"}`;
+  const isEditing = btEditorMode !== 'none' || mtEditorMode !== 'none';
+  const isBtEditing = btEditorMode !== 'none';
+  const cursorClass = isEditing ? 'map-cursor-active' : '';
+  const dimClass = isBtEditing ? 'map-bt-editing' : '';
+  const ghostClass = dgGhostMode ? 'map-dg-ghost-mode' : '';
+  const xrayClass = isXRayMode ? 'map-xray-mode' : '';
+  const themeClass = `map-theme-${theme || 'dark'}`;
 
   const handleBtDragRealtime = (id: string, lat: number, lng: number) => {
     if (lat === 0) {
@@ -380,8 +329,8 @@ const MapSelector: React.FC<MapSelectorProps> = ({
       const pole = polesById.get(id);
       if (pole) {
         const neighbors_ortho = topology.edges
-          .filter((e) => e.fromPoleId === id || e.toPoleId === id)
-          .map((e) => {
+          .filter(e => e.fromPoleId === id || e.toPoleId === id)
+          .map(e => {
             const neighborId = e.fromPoleId === id ? e.toPoleId : e.fromPoleId;
             const p = polesById.get(neighborId);
             return p ? { id: p.id, lat: p.lat, lng: p.lng } : null;
@@ -408,31 +357,36 @@ const MapSelector: React.FC<MapSelectorProps> = ({
     >
       <AnimatePresence>
         {isEditing && (
-          <motion.div 
+          <motion.div
             initial={{ y: -50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -50, opacity: 0 }}
             className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none"
           >
-             <div className="flex items-center gap-3 px-6 py-2.5 rounded-full bg-slate-900/80 border border-blue-500/30 backdrop-blur-xl shadow-2xl shadow-blue-500/20">
-                <div className="p-1.5 bg-blue-500/20 rounded-lg text-blue-400">
-                   {btEditorMode === "add-pole" && <MapPin size={14} strokeWidth={3} />}
-                   {btEditorMode === "move-pole" && <Move size={14} strokeWidth={3} />}
-                   {btEditorMode === "add-edge" && <GitCommit size={14} strokeWidth={3} />}
-                   {btEditorMode === "add-transformer" && <Zap size={14} strokeWidth={3} />}
-                   {btEditorMode === "none" && mtEditorMode !== "none" && <MousePointer2 size={14} strokeWidth={3} />}
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white">
-                   Modo Edição: {
-                     btEditorMode === "add-pole" ? "Adicionar Poste" :
-                     btEditorMode === "move-pole" ? "Mover Ativo" :
-                     btEditorMode === "add-edge" ? "Conectar Rede" :
-                     btEditorMode === "add-transformer" ? "Instalar Trafo" :
-                     "Seleção MT"
-                   }
-                </span>
-                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse ml-2" />
-             </div>
+            <div className="flex items-center gap-3 px-6 py-2.5 rounded-full bg-slate-900/80 border border-blue-500/30 backdrop-blur-xl shadow-2xl shadow-blue-500/20">
+              <div className="p-1.5 bg-blue-500/20 rounded-lg text-blue-400">
+                {btEditorMode === 'add-pole' && <MapPin size={14} strokeWidth={3} />}
+                {btEditorMode === 'move-pole' && <Move size={14} strokeWidth={3} />}
+                {btEditorMode === 'add-edge' && <GitCommit size={14} strokeWidth={3} />}
+                {btEditorMode === 'add-transformer' && <Zap size={14} strokeWidth={3} />}
+                {btEditorMode === 'none' && mtEditorMode !== 'none' && (
+                  <MousePointer2 size={14} strokeWidth={3} />
+                )}
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white">
+                Modo Edição:{' '}
+                {btEditorMode === 'add-pole'
+                  ? 'Adicionar Poste'
+                  : btEditorMode === 'move-pole'
+                    ? 'Mover Ativo'
+                    : btEditorMode === 'add-edge'
+                      ? 'Conectar Rede'
+                      : btEditorMode === 'add-transformer'
+                        ? 'Instalar Trafo'
+                        : 'Seleção MT'}
+              </span>
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse ml-2" />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -502,7 +456,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
         className="h-full min-h-[400px] w-full"
         preferCanvas={true}
       >
-        <MapInteractionLayer 
+        <MapInteractionLayer
           pendingBtEdgeStartPoleId={pendingBtEdgeStartPoleId}
           polesById={polesById}
         />
@@ -511,15 +465,12 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           <Polyline
             positions={[
               [draggedPole.lat, draggedPole.lng],
-              [
-                polesById.get(draggedPole.snapId)!.lat,
-                polesById.get(draggedPole.snapId)!.lng,
-              ],
+              [polesById.get(draggedPole.snapId)!.lat, polesById.get(draggedPole.snapId)!.lng],
             ]}
             pathOptions={{
-              color: "#22d3ee",
+              color: '#22d3ee',
               weight: 2,
-              className: "snapping-guide-line",
+              className: 'snapping-guide-line',
             }}
           />
         )}
@@ -533,7 +484,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           maxNativeZoom={tileConfig.maxNativeZoom}
         />
 
-        <MapJurisdictionLayer 
+        <MapJurisdictionLayer
           selectionMode={selectionMode}
           polygonPoints={polygonPoints}
           center={center}
@@ -574,9 +525,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
           onBtQuickAddEdgeConductor={onBtQuickAddEdgeConductor}
           onBtQuickRemoveEdgeConductor={onBtQuickRemoveEdgeConductor}
           onBtSetEdgeLengthMeters={onBtSetEdgeLengthMeters}
-          onBtSetEdgeReplacementFromConductors={
-            onBtSetEdgeReplacementFromConductors
-          }
+          onBtSetEdgeReplacementFromConductors={onBtSetEdgeReplacementFromConductors}
           accumulatedByPoleMap={accumulatedByPoleMap}
           locale={locale}
           layerConfig={layerConfig}
@@ -638,7 +587,7 @@ const MapSelector: React.FC<MapSelectorProps> = ({
               paneName={mtEdgesPaneName}
               topology={mtMarkerTopology}
               popupTopology={mtPopupTopology ?? mtMarkerTopology}
-              polesById={new Map(mtMarkerTopology.poles.map((p) => [p.id, p]))}
+              polesById={new Map(mtMarkerTopology.poles.map(p => [p.id, p]))}
               onMtDeleteEdge={onMtDeleteEdge}
               onMtSetEdgeChangeFlag={onMtSetEdgeChangeFlag}
               locale={locale}

@@ -5,9 +5,9 @@
  * Retorna 400 com lista de erros em caso de falha de validação.
  */
 
-import { Request, Response, NextFunction } from "express";
-import { ZodTypeAny } from "zod";
-import { logger } from "../utils/logger.js";
+import { Request, Response, NextFunction } from 'express';
+import { ZodTypeAny } from 'zod';
+import { logger } from '../utils/logger.js';
 
 /**
  * Cria middleware Express que valida req.body contra o schema fornecido.
@@ -20,12 +20,12 @@ export function schemaValidator(schema: ZodTypeAny) {
     const result = schema.safeParse(req.body);
 
     if (!result.success) {
-      const errors = (result.error as any).errors.map((e: any) => ({
-        path: e.path.join("."),
+      const errors = result.error.issues.map(e => ({
+        path: e.path.join('.'),
         message: e.message,
       }));
 
-      logger.warn("Validação de schema falhou", {
+      logger.warn('Validação de schema falhou', {
         url: req.url,
         method: req.method,
         errors,
@@ -33,7 +33,7 @@ export function schemaValidator(schema: ZodTypeAny) {
 
       res.status(400).json({
         success: false,
-        error: "Dados de entrada inválidos",
+        error: 'Dados de entrada inválidos',
         details: errors,
       });
       return;

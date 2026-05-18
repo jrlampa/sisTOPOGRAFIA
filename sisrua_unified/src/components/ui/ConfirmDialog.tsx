@@ -71,6 +71,8 @@ export function ConfirmDialog({
             </div>
             <button 
               onClick={onClose}
+              title="Fechar diálogo"
+              aria-label="Fechar diálogo"
               className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors"
             >
               <X size={20} />

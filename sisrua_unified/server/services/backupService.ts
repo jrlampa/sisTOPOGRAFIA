@@ -73,7 +73,7 @@ export class BackupService {
       );
 
       const [drillId] = await db.unsafe(`SELECT private.run_backup_restore_drill($1) as id`, [
-        tableName,
+        tableName ?? null,
       ]);
 
       const [drillResult] = await db.unsafe(`SELECT * FROM backup.drill_history WHERE id = $1`, [

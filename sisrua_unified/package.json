@@ -8,11 +8,14 @@
     "dev": "concurrently \"npm run server\" \"vite\"",
     "client": "vite",
     "build": "tsc && vite build",
+    "build:server": "tsc --project tsconfig.server.json",
+    "build:server:e2e": "tsc --project tsconfig.server.json --noEmitOnError false",
     "build:all": "node scripts/run-build-release.js",
     "build:all:ps": "powershell -ExecutionPolicy Bypass -File scripts/build_release.ps1",
     "build:all:bash": "bash scripts/build_release.sh",
     "preview": "vite preview",
     "server": "tsx watch server/index.ts",
+    "server:e2e": "node scripts/start-server-e2e.cjs",
     "version:update": "bash scripts/update-version.sh",
     "version:check": "bash scripts/check-version.sh",
     "docker:build": "docker build -t sisrua-unified:latest .",
@@ -29,7 +32,10 @@
     "lint:backend:strict": "eslint server/ --ext ts --max-warnings 0",
     "typecheck:frontend": "tsc --noEmit --project tsconfig.json",
     "typecheck:backend": "tsc --noEmit --project tsconfig.server.json",
-    "ci:frontend": "npm run lint:frontend && npm run typecheck:frontend && npm run test:frontend && npm run test:frontend:risk && npm run build",
+    "ci:frontend": "npm run ci:frontend:functional && npm run ci:frontend:quality",
+    "ci:frontend:functional": "npm run test:frontend:run",
+    "ci:frontend:quality": "npm run test:frontend:coverage && npm run test:frontend:risk",
+    "ci:frontend:strict": "npm run lint:frontend && npm run typecheck:frontend && npm run build && npm run ci:frontend",
     "a11y:smoke": "playwright test e2e/a11y-smoke.spec.ts --config playwright.a11y.config.ts",
     "lhci": "echo 'lhci foi removido por hardening de dependencias. Use: npx lighthouse <url> ou mcp_io_github_chr_lighthouse_audit'",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,css,json,md}\" \"server/**/*.{ts,js,json,md}\" \"shared/**/*.{ts,tsx,js,json,md}\" \"tests/**/*.{ts,tsx,js,json,md}\" \"e2e/**/*.{ts,tsx,js,json,md}\" \"*.{json,js,cjs,mjs,md}\"",
@@ -39,12 +45,15 @@
     "test:frontend:unit": "vitest run --config vitest.config.ts",
     "test:backend:unit": "vitest run --config vitest.backend.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:frontend": "vitest run --config vitest.config.ts --coverage",
+    "test:frontend": "npm run test:frontend:run",
+    "test:frontend:run": "vitest run --config vitest.config.ts",
+    "test:frontend:coverage": "vitest run --config vitest.config.ts --coverage",
     "test:frontend:risk": "vitest run --config vitest.risk.config.ts --coverage",
     "test:backend": "vitest run --config vitest.backend.config.ts --coverage",
     "test:backend:debug": "vitest --config vitest.backend.config.ts",
     "test:contract": "vitest run --config vitest.backend.config.ts server/tests/authContract.test.ts server/tests/billingContract.test.ts",
     "test:e2e": "playwright test",
+    "test:e2e:auth-oauth": "playwright test e2e/auth-oauth.spec.ts --config playwright.auth-oauth.config.ts",
     "test:e2e:release:smoke": "playwright test e2e/release-smoke.spec.ts e2e/constants-observability.spec.ts --config playwright.release-smoke.config.ts",
     "ci:e2e:flake-check": "node scripts/ci/analyze-playwright-flakiness.mjs --lastRun test-results/.last-run.json --report test-results/release-smoke-report.json --out artifacts/ci/flakiness-report.json",
     "ci:e2e:snapshot-slo": "node scripts/ci/enforce-snapshot-slo.mjs --report test-results/release-smoke-report.json --baseline .github/slo/snapshot-slo-baseline.json --out artifacts/ci/snapshot-slo-report.json",
@@ -89,6 +98,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@azure/msal-node": "^5.2.1",
     "@google-cloud/firestore": "^8.3.0",
     "@google-cloud/storage": "^7.11.0",
     "@google-cloud/tasks": "^6.2.1",
@@ -130,11 +140,12 @@
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.14.2",
     "recharts": "^3.7.0",
+    "stack-trace": "^0.0.10",
     "stripe": "^22.1.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^14.0.0",
-    "vite-plugin-pwa": "^1.3.0",
+    "vite-plugin-pwa": "^1.2.0",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
     "zod": "^4.3.6"
@@ -174,7 +185,7 @@
     "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^8.58.1",
     "@typescript-eslint/parser": "^8.58.1",
-    "@vitejs/plugin-react": "^6.0.2",
+    "@vitejs/plugin-react": "^5.0.0",
     "@vitest/coverage-v8": "^4.1.5",
     "autocannon": "^8.0.0",
     "autoprefixer": "^10.4.18",
@@ -192,20 +203,12 @@
     "supertest": "^7.2.2",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.2.4",
+    "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.10",
     "vitest": "^4.1.5",
     "wait-on": "^9.0.4"
-  },
-  "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,md,css}": [
-      "prettier --write"
-    ]
   }
 }

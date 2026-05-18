@@ -15,6 +15,15 @@ const sourceParamSchema = z.object({
   source: z.enum(VALID_SOURCES),
 });
 
+type IndeSource = z.infer<typeof sourceParamSchema>["source"];
+type FeatureWithId = { id?: string | number };
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "Unknown error";
+}
+
 const bboxQueryObjectSchema = z.object({
   layer: z.string().trim().min(1),
   west: z.coerce.number().min(-180).max(180),
@@ -62,11 +71,11 @@ router.get("/capabilities/:source", async (req: Request, res: Response) => {
 
     const { source } = validation.data;
 
-    const capabilities = await IndeService.getWfsCapabilities(source as any);
+    const capabilities = await IndeService.getWfsCapabilities(source as IndeSource);
     return res.json({ source, layers: capabilities });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error("INDE capabilities endpoint error", {
-      error,
+      error: getErrorMessage(error),
       source: req.params.source,
     });
     return res.status(500).json(INDE_INTERNAL_ERROR_RESPONSE);
@@ -103,13 +112,13 @@ router.get("/features/:source", async (req: Request, res: Response) => {
       south,
       east,
       north,
-      source as any,
+      source as IndeSource,
       limit,
     );
 
     if (features) {
-      const originalFeatures = Array.isArray(features.features)
-        ? [...features.features]
+      const originalFeatures: FeatureWithId[] = Array.isArray(features.features)
+        ? ([...features.features] as FeatureWithId[])
         : [];
       const sortedFeatures =
         sortBy === "id"
@@ -141,8 +150,8 @@ router.get("/features/:source", async (req: Request, res: Response) => {
     } else {
       return res.status(404).json({ error: "No features found" });
     }
-  } catch (error: any) {
-    logger.error("INDE features endpoint error", { error });
+  } catch (error: unknown) {
+    logger.error("INDE features endpoint error", { error: getErrorMessage(error) });
     return res.status(500).json(INDE_INTERNAL_ERROR_RESPONSE);
   }
 });
@@ -179,12 +188,12 @@ router.get("/wms/:source", async (req: Request, res: Response) => {
       north,
       width,
       height,
-      source as any,
+      source as IndeSource,
     );
 
     return res.json({ url: mapUrl });
-  } catch (error: any) {
-    logger.error("INDE WMS endpoint error", { error });
+  } catch (error: unknown) {
+    logger.error("INDE WMS endpoint error", { error: getErrorMessage(error) });
     return res.status(500).json(INDE_INTERNAL_ERROR_RESPONSE);
   }
 });

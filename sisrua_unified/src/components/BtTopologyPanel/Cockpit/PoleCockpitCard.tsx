@@ -10,7 +10,6 @@ import {
   Users,
 } from "lucide-react";
 import type { BtPoleNode, AppLocale } from "../../../types";
-import { getFlagColor } from "../../MapSelectorStyles";
 import { getBtTopologyPanelText } from "../../../i18n/btTopologyPanelText";
 
 interface PoleCockpitCardProps {
@@ -48,6 +47,20 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
   const t = getBtTopologyPanelText(locale).poleVerification;
   const currentFlag = pole.nodeChangeFlag ?? "existing";
 
+  const getFlagBadgeClass = (flag: string) => {
+    switch (flag) {
+      case "new":
+        return "bg-emerald-500";
+      case "replace":
+        return "bg-amber-500";
+      case "remove":
+        return "bg-rose-500";
+      case "existing":
+      default:
+        return "bg-blue-500";
+    }
+  };
+
   const btStructures = Object.values(pole.btStructures || {}).filter(Boolean);
   const ramais = pole.ramais || [];
 
@@ -59,8 +72,7 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
       {/* ── Header ── */}
       <div className="px-4 py-3 flex items-center gap-3 border-b border-slate-100 dark:border-white/5 sunlight:border-b-4 sunlight:border-black">
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow shrink-0 sunlight:rounded-none sunlight:border-2 sunlight:border-black"
-          style={{ backgroundColor: getFlagColor(currentFlag, "#3b82f6") }}
+          className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow shrink-0 sunlight:rounded-none sunlight:border-2 sunlight:border-black ${getFlagBadgeClass(currentFlag)}`}
         >
           <MapPin size={18} />
         </div>
@@ -70,6 +82,8 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
             type="text"
             value={pole.title}
             onChange={(e) => onRename(pole.id, e.target.value)}
+            title="Nome do poste"
+            aria-label="Nome do poste"
             className="bg-transparent border-none p-0 text-sm font-bold text-slate-900 focus:ring-0 w-full leading-tight dark:text-white sunlight:text-black sunlight:font-black"
           />
           <div className="flex items-center gap-2 mt-0.5">
@@ -167,6 +181,8 @@ const PoleCockpitCard: React.FC<PoleCockpitCardProps> = ({
                           material: e.target.value,
                         })
                       }
+                      title="Material do poste"
+                      aria-label="Material do poste"
                       className="bg-transparent border-none p-0 text-xs font-black text-slate-800 focus:ring-0 appearance-none cursor-pointer dark:text-slate-100 sunlight:text-black"
                     >
                       <option value="CC">CC</option>

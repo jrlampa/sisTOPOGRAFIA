@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   FolderOpen,
   HelpCircle,
@@ -11,18 +11,18 @@ import {
   Box,
   ChevronLeft,
   Camera,
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import HistoryControls from "./HistoryControls";
-import { AutoSaveIndicator } from "./AutoSaveIndicator";
-import type { HealthStatus } from "../hooks/useBackendHealth";
-import type { AppLocale } from "../types";
-import { getAppHeaderText } from "../i18n/appHeaderText";
-import type { HistoryEntry } from "../hooks/useUndoRedo";
-import { useReducedMotion } from "../theme/motion";
-import { trackHeaderAction, trackAutoSaveStatus } from "../utils/analytics";
-import { useABTest } from "../hooks/useABTest";
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import HistoryControls from './HistoryControls';
+import { AutoSaveIndicator } from './AutoSaveIndicator';
+import type { HealthStatus } from '../hooks/useBackendHealth';
+import type { AppLocale } from '../types';
+import { getAppHeaderText } from '../i18n/appHeaderText';
+import type { HistoryEntry } from '../hooks/useUndoRedo';
+import { useReducedMotion } from '../theme/motion';
+import { trackHeaderAction, trackAutoSaveStatus } from '../utils/analytics';
+import { useABTest } from '../hooks/useABTest';
 
 interface AppHeaderProps {
   locale: AppLocale;
@@ -44,7 +44,7 @@ interface AppHeaderProps {
   isDark: boolean;
   backendStatus: HealthStatus;
   backendResponseTimeMs: number | null;
-  autoSaveStatus?: "idle" | "saving" | "error";
+  autoSaveStatus?: 'idle' | 'saving' | 'error';
   lastAutoSaved?: string;
   projectName?: string;
 }
@@ -74,7 +74,7 @@ export function AppHeader({
   backendResponseTimeMs,
   isSidebarCollapsed,
   onToggleSidebarCollapsed,
-  autoSaveStatus = "idle",
+  autoSaveStatus = 'idle',
   lastAutoSaved,
   projectName,
 }: AppHeaderProps) {
@@ -82,20 +82,20 @@ export function AppHeader({
   const prefersReducedMotion = useReducedMotion();
 
   const actionButtonClass =
-    "flex items-center justify-center rounded-xl border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900";
+    'flex items-center justify-center rounded-xl border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-900';
 
   const t = getAppHeaderText(locale);
-  const isMobileMenuEnabled = useABTest("ux20-mobile-menu-redesign", true);
+  const isMobileMenuEnabled = useABTest('ux20-mobile-menu-redesign', true);
 
   React.useEffect(() => {
-    if (autoSaveStatus === "error") trackAutoSaveStatus("error");
-    else if (autoSaveStatus === "saving") trackAutoSaveStatus("saving");
+    if (autoSaveStatus === 'error') trackAutoSaveStatus('error');
+    else if (autoSaveStatus === 'saving') trackAutoSaveStatus('saving');
   }, [autoSaveStatus]);
 
   const backendStatusLabel =
-    backendStatus === "online"
+    backendStatus === 'online'
       ? t.backendStatusOnline
-      : backendStatus === "degraded"
+      : backendStatus === 'degraded'
         ? t.backendStatusDegraded
         : t.backendStatusOffline;
 
@@ -103,20 +103,18 @@ export function AppHeader({
     fileInputRef.current?.click();
   };
 
-  const handleProjectFileChange: React.ChangeEventHandler<HTMLInputElement> = (
-    event,
-  ) => {
+  const handleProjectFileChange: React.ChangeEventHandler<HTMLInputElement> = event => {
     const file = event.target.files?.[0];
     if (file) onOpenProject(file);
-    event.currentTarget.value = "";
+    event.currentTarget.value = '';
   };
 
   return (
     <header
       className={`app-header relative sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b px-4 backdrop-blur-2xl md:px-6 transition-all duration-500 ${
         isDark
-          ? "border-white/5 bg-slate-950/50 shadow-2xl shadow-black/50"
-          : "border-sky-200/40 bg-white/60 shadow-[0_10px_40px_rgba(148,163,184,0.12)]"
+          ? 'border-white/5 bg-slate-950/50 shadow-2xl shadow-black/50'
+          : 'border-sky-200/40 bg-white/60 shadow-[0_10px_40px_rgba(148,163,184,0.12)]'
       }`}
     >
       {/* ─── Esquerda: Logo + Branding ───────────────────────── */}
@@ -126,10 +124,7 @@ export function AppHeader({
           className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-white/10 hover:border-white/10 transition-all group shadow-inner"
           title="Voltar ao Portal"
         >
-          <ChevronLeft
-            size={20}
-            className="group-hover:-translate-x-0.5 transition-transform"
-          />
+          <ChevronLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
         </Link>
         <motion.div
           whileHover={{ scale: 1.05, rotate: -2 }}
@@ -147,7 +142,7 @@ export function AppHeader({
         <div className="flex items-center gap-3">
           <h1
             className={`font-display flex items-center gap-2 text-base font-black tracking-tighter md:text-lg ${
-              isDark ? "text-white" : "text-slate-950"
+              isDark ? 'text-white' : 'text-slate-950'
             }`}
           >
             <span className="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent dark:from-white dark:to-slate-300">
@@ -156,8 +151,8 @@ export function AppHeader({
             <span
               className={`flex items-center justify-center rounded-lg border px-2.5 py-0.5 text-[10px] font-black tracking-[0.2em] shadow-inner ${
                 isDark
-                  ? "border-cyan-400/20 bg-cyan-500/10 text-cyan-300"
-                  : "border-cyan-500/20 bg-cyan-500/5 text-cyan-600"
+                  ? 'border-cyan-400/20 bg-cyan-500/10 text-cyan-300'
+                  : 'border-cyan-500/20 bg-cyan-500/5 text-cyan-600'
               }`}
             >
               UNIFIED
@@ -168,10 +163,10 @@ export function AppHeader({
 
           {projectName && (
             <div className="hidden items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 md:flex shadow-inner">
-               <Camera size={14} className="text-indigo-400" />
-               <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 truncate max-w-[140px]">
-                  {projectName}
-               </span>
+              <Camera size={14} className="text-indigo-400" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 truncate max-w-[140px]">
+                {projectName}
+              </span>
             </div>
           )}
 
@@ -184,49 +179,46 @@ export function AppHeader({
                 prefersReducedMotion
                   ? false
                   : {
-                      scale: backendStatus === "offline" ? [1, 1.02, 1] : 1,
+                      scale: backendStatus === 'offline' ? [1, 1.02, 1] : 1,
                     }
               }
               transition={{ repeat: Infinity, duration: 2 }}
               className={`group relative flex items-center gap-2 overflow-hidden rounded-xl border px-3 py-1 text-[10px] font-black tracking-widest transition-all duration-500 shadow-inner ${
-                backendStatus === "online"
-                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  : backendStatus === "degraded"
-                    ? "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                    : "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                backendStatus === 'online'
+                  ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : backendStatus === 'degraded'
+                    ? 'border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    : 'border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400'
               }`}
             >
               <span className="sr-only">
                 {backendStatusLabel}
-                {backendResponseTimeMs != null &&
-                  ` (${backendResponseTimeMs} ms)`}
+                {backendResponseTimeMs != null && ` (${backendResponseTimeMs} ms)`}
               </span>
               <span className="relative flex h-2 w-2" aria-hidden="true">
-                {backendStatus !== "online" && (
+                {backendStatus !== 'online' && (
                   <span
                     className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${
-                      backendStatus === "degraded"
-                        ? "bg-amber-500"
-                        : "bg-rose-500"
+                      backendStatus === 'degraded' ? 'bg-amber-500' : 'bg-rose-500'
                     }`}
                   />
                 )}
                 <span
                   className={`relative inline-flex h-2 w-2 rounded-full ${
-                    backendStatus === "online"
-                      ? "bg-emerald-500"
-                      : backendStatus === "degraded"
-                        ? "bg-amber-500"
-                        : "bg-rose-500"
+                    backendStatus === 'online'
+                      ? 'bg-emerald-500'
+                      : backendStatus === 'degraded'
+                        ? 'bg-amber-500'
+                        : 'bg-rose-500'
                   }`}
                 />
               </span>
               <span className="relative z-10 uppercase font-black">
-                {backendStatus === "online"
-                  ? "API Online"
-                  : backendStatus === "degraded"
-                    ? "Degradada"
-                    : "Offline"}
+                {backendStatus === 'online'
+                  ? 'API Online'
+                  : backendStatus === 'degraded'
+                    ? 'Degradada'
+                    : 'Offline'}
               </span>
             </motion.div>
           </div>
@@ -239,12 +231,12 @@ export function AppHeader({
         <button
           className={`group relative flex h-10 w-10 items-center justify-center rounded-xl border transition-colors md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 focus-visible:ring-offset-1 shadow-sm ${
             isDark
-              ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
-              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              ? 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
           }`}
           aria-label={t.openMenu}
           onClick={() => {
-            trackHeaderAction("mobile_menu_open");
+            trackHeaderAction('mobile_menu_open');
             onToggleMobileMenu();
           }}
         >
@@ -256,13 +248,13 @@ export function AppHeader({
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => {
-              trackHeaderAction("toggle_sidebar");
+              trackHeaderAction('toggle_sidebar');
               onToggleSidebarCollapsed();
             }}
             className={`group relative ${actionButtonClass} h-10 w-10 shadow-sm ${
               isDark
-                ? "border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
-                : "border-sky-100 bg-sky-50 text-sky-700 hover:bg-sky-100"
+                ? 'border-white/10 bg-white/5 text-slate-100 hover:bg-white/10'
+                : 'border-sky-100 bg-sky-50 text-sky-700 hover:bg-sky-100'
             }`}
             aria-expanded={!isSidebarCollapsed}
           >
@@ -340,6 +332,8 @@ export function AppHeader({
         type="file"
         accept=".srua,.json"
         onChange={handleProjectFileChange}
+        title={t.openProject}
+        aria-label={t.openProject}
         className="hidden"
       />
     </header>

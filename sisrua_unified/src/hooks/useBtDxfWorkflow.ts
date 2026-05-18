@@ -49,6 +49,15 @@ export function useBtDxfWorkflow({
   ingestBtContextHistory,
   dgResults,
 }: Params) {
+  const projectMetadata = settings.projectMetadata ?? {
+    projectName: "sisRUA",
+    companyName: "",
+    engineerName: "",
+    date: new Date().toISOString().slice(0, 10),
+    scale: "",
+    revision: "",
+  };
+
   const handleDxfSuccess = useCallback(
     (message: string) => showToast(message, "success"),
     [showToast],
@@ -137,11 +146,11 @@ export function useBtDxfWorkflow({
       settings.exportMemorialPdfWithDxf,
       btContext,
       {
-        projectName: settings.projectMetadata.projectName,
-        companyName: settings.projectMetadata.companyName,
-        engineerName: settings.projectMetadata.engineerName,
-        revision: settings.projectMetadata.revision,
-        date: settings.projectMetadata.date,
+        projectName: projectMetadata.projectName,
+        companyName: projectMetadata.companyName,
+        engineerName: projectMetadata.engineerName,
+        revision: projectMetadata.revision,
+        date: projectMetadata.date,
       },
     );
   };
@@ -213,7 +222,7 @@ export function useBtDxfWorkflow({
       ...rows.map((row) => row.join(",")),
     ].join("\n");
 
-    const projectName = settings.projectMetadata.projectName || "sisRUA";
+    const projectName = projectMetadata.projectName || "sisRUA";
     const firstReference =
       allPoles[0] ?? btTopology.transformers[0] ?? { lat: center.lat, lng: center.lng };
     const firstUtm = toUtm(firstReference.lat, firstReference.lng);
@@ -222,7 +231,7 @@ export function useBtDxfWorkflow({
 
     downloadCsv(csvContent, filename);
     showToast(`Coordenadas exportadas: ${filename}`, "success");
-  }, [btTopology, center.lat, center.lng, settings.projectMetadata.projectName, showToast]);
+  }, [btTopology, center.lat, center.lng, projectMetadata.projectName, showToast]);
 
   return {
     handleDownloadDxf,

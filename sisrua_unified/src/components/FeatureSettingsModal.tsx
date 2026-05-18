@@ -122,6 +122,8 @@ export const FeatureSettingsModal: React.FC<FeatureSettingsModalProps> = ({ isOp
           </div>
           <button
             onClick={onClose}
+            title="Fechar painel"
+            aria-label="Fechar painel"
             className="p-2 hover:bg-white/10 rounded-full transition-all hover:rotate-90 duration-300"
           >
             <X className="w-6 h-6 text-slate-500" />
@@ -138,10 +140,17 @@ export const FeatureSettingsModal: React.FC<FeatureSettingsModalProps> = ({ isOp
               </div>
               <div className="text-2xl font-black text-white">{getRobustnessScore()}%</div>
               <div className="w-full h-1 bg-slate-800 rounded-full mt-2 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-fuchsia-500 to-indigo-500 transition-all duration-1000"
-                  style={{ width: `${getRobustnessScore()}%` }}
-                />
+                <svg className="w-full h-full" viewBox="0 0 100 2" preserveAspectRatio="none" aria-hidden="true">
+                  <rect x="0" y="0" width="100" height="2" rx="1" className="fill-slate-800" />
+                  <rect
+                    x="0"
+                    y="0"
+                    width={Math.max(0, Math.min(100, getRobustnessScore()))}
+                    height="2"
+                    rx="1"
+                    className="fill-fuchsia-500 transition-all duration-1000"
+                  />
+                </svg>
               </div>
             </div>
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center shadow-lg">
@@ -186,6 +195,8 @@ export const FeatureSettingsModal: React.FC<FeatureSettingsModalProps> = ({ isOp
                 <button
                   key={key}
                   onClick={() => applyPreset(key)}
+                  title={`Aplicar preset ${preset.label}`}
+                  aria-label={`Aplicar preset ${preset.label}`}
                   className="flex flex-col items-start p-4 rounded-2xl border border-white/5 bg-white/5 hover:bg-fuchsia-500/10 hover:border-fuchsia-500/30 transition-all text-left group"
                 >
                   <span className="text-xs font-black text-slate-100 group-hover:text-fuchsia-400 transition-colors">
@@ -201,6 +212,8 @@ export const FeatureSettingsModal: React.FC<FeatureSettingsModalProps> = ({ isOp
                 <div key={preset.id} className="relative group">
                   <button
                     onClick={() => applyPreset(preset.id)}
+                    title={`Aplicar preset ${preset.label}`}
+                    aria-label={`Aplicar preset ${preset.label}`}
                     className="w-full flex flex-col items-start p-4 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500/10 hover:border-indigo-500/40 transition-all text-left"
                   >
                     <span className="text-xs font-black text-indigo-100">{preset.label}</span>
@@ -210,6 +223,8 @@ export const FeatureSettingsModal: React.FC<FeatureSettingsModalProps> = ({ isOp
                   </button>
                   <button
                     onClick={() => deleteCustomPreset(preset.id)}
+                    title={`Excluir preset ${preset.label}`}
+                    aria-label={`Excluir preset ${preset.label}`}
                     className="absolute top-2 right-2 p-1.5 opacity-0 group-hover:opacity-100 hover:bg-rose-500/20 rounded-lg text-rose-400 transition-all"
                   >
                     <Trash2 size={12} />
@@ -224,11 +239,15 @@ export const FeatureSettingsModal: React.FC<FeatureSettingsModalProps> = ({ isOp
                   value={newPresetLabel}
                   onChange={e => setNewPresetLabel(e.target.value)}
                   placeholder="Nome do Preset..."
+                  title="Nome do preset"
+                  aria-label="Nome do preset"
                   className="flex-1 bg-transparent text-[10px] font-bold text-white outline-none placeholder:text-slate-700"
                 />
                 <button
                   onClick={handleSavePreset}
                   disabled={!newPresetLabel.trim()}
+                  title="Salvar preset"
+                  aria-label="Salvar preset"
                   className="p-1.5 bg-fuchsia-600 rounded-lg text-white disabled:opacity-30 transition-all"
                 >
                   <Plus size={14} />
@@ -315,6 +334,10 @@ export const FeatureSettingsModal: React.FC<FeatureSettingsModalProps> = ({ isOp
                         <button
                           onClick={() => !restricted && toggleFlag(key as keyof FeatureFlags)}
                           disabled={restricted}
+                          title={isEnabled ? `Desativar ${info.label}` : `Ativar ${info.label}`}
+                          aria-label={
+                            isEnabled ? `Desativar ${info.label}` : `Ativar ${info.label}`
+                          }
                           className={`relative z-10 inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-300 ease-in-out focus:outline-none ${isEnabled ? 'bg-fuchsia-600 shadow-[0_0_15px_rgba(217,70,239,0.4)]' : 'bg-slate-800'} ${restricted ? 'cursor-not-allowed opacity-20' : ''}`}
                         >
                           <span

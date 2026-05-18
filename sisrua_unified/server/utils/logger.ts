@@ -1,5 +1,6 @@
 import winston from "winston";
 import "winston-daily-rotate-file";
+import type { TransformableInfo } from "logform";
 import { config } from "../config.js";
 import path from "path";
 import fs from "fs";
@@ -42,7 +43,8 @@ const logger = winston.createLogger({
       }
 
       // Sanitização de dados sensíveis em logs (P0 - Auditoria 2024)
-      return sanitizeForLogging(info, "strict");
+      const sanitized = sanitizeForLogging(info, "strict");
+      return (sanitized && typeof sanitized === "object" ? sanitized : info) as TransformableInfo;
     })(),
     winston.format.json(),
   ),

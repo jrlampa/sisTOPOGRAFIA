@@ -1,9 +1,9 @@
-import React, { useEffect } from "react";
-import { Copy, FileSpreadsheet, Play, SkipForward, X } from "lucide-react";
-import { BulkImportReviewState } from "./useBtTopologyPanelBulkImport";
-import type { AppLocale } from "../../types";
-import { getBtTopologyPanelText } from "../../i18n/btTopologyPanelText";
-import { useFocusTrap } from "../../hooks/useFocusTrap";
+import React, { useEffect } from 'react';
+import { Copy, FileSpreadsheet, Play, SkipForward, X } from 'lucide-react';
+import { BulkImportReviewState } from './useBtTopologyPanelBulkImport';
+import type { AppLocale } from '../../types';
+import { getBtTopologyPanelText } from '../../i18n/btTopologyPanelText';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 interface BtTopologyPanelBulkImportModalProps {
   locale: AppLocale;
@@ -19,9 +19,7 @@ interface BtTopologyPanelBulkImportModalProps {
   onReviewNext: () => void;
 }
 
-const BtTopologyPanelBulkImportModal: React.FC<
-  BtTopologyPanelBulkImportModalProps
-> = ({
+const BtTopologyPanelBulkImportModal: React.FC<BtTopologyPanelBulkImportModalProps> = ({
   locale,
   isOpen,
   onClose,
@@ -39,10 +37,10 @@ const BtTopologyPanelBulkImportModal: React.FC<
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === 'Escape') onClose();
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -51,16 +49,14 @@ const BtTopologyPanelBulkImportModal: React.FC<
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-      <div 
+      <div
         ref={containerRef}
         className="relative flex h-[600px] w-full max-w-2xl flex-col rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden"
       >
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 px-4 py-3 bg-slate-50 dark:bg-slate-800/60">
           <div className="flex items-center gap-2">
             <Copy className="text-blue-600 dark:text-blue-400" size={18} />
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-              {t.title}
-            </h3>
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">{t.title}</h3>
           </div>
           <button
             onClick={onClose}
@@ -83,10 +79,7 @@ const BtTopologyPanelBulkImportModal: React.FC<
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors"
             >
-              <FileSpreadsheet
-                size={14}
-                className="text-emerald-600 dark:text-emerald-400"
-              />
+              <FileSpreadsheet size={14} className="text-emerald-600 dark:text-emerald-400" />
               {t.loadExcel}
             </button>
             <input
@@ -94,15 +87,15 @@ const BtTopologyPanelBulkImportModal: React.FC<
               className="hidden"
               ref={fileInputRef}
               accept=".xlsx,.xlsm,.xlsb"
-              onChange={(e) =>
-                e.target.files?.[0] && onFileSelect(e.target.files[0])
-              }
+              title={t.loadExcel}
+              aria-label={t.loadExcel}
+              onChange={e => e.target.files?.[0] && onFileSelect(e.target.files[0])}
             />
           </div>
 
           <textarea
             value={bulkRamalText}
-            onChange={(e) => setBulkRamalText(e.target.value)}
+            onChange={e => setBulkRamalText(e.target.value)}
             spellCheck={false}
             placeholder={t.placeholder}
             className="h-48 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 p-3 text-sm font-mono text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-700/40 outline-none transition-all resize-none shadow-inner"
@@ -121,7 +114,8 @@ const BtTopologyPanelBulkImportModal: React.FC<
                   {t.reviewTitle}
                 </span>
                 <span className="text-xs font-bold text-amber-800 dark:text-amber-200">
-                  {bulkImportReview.currentPoleIndex + 1} / {bulkImportReview.orderedPoleIds.length} {t.reviewSummary}
+                  {bulkImportReview.currentPoleIndex + 1} / {bulkImportReview.orderedPoleIds.length}{' '}
+                  {t.reviewSummary}
                 </span>
               </div>
               <div className="flex gap-2">

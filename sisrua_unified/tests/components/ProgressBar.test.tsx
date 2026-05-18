@@ -36,17 +36,17 @@ describe('ProgressBar component', () => {
     expect(container.querySelector('.h-4')).toBeDefined();
   });
 
-  it('applies correct gradient classes based on variant', () => {
+  it('applies correct color class based on variant', () => {
     const { container, rerender } = render(<ProgressBar value={50} variant="emerald" />);
-    expect(container.querySelector('.from-emerald-500')).toBeDefined();
+    expect(container.querySelector('.fill-emerald-500')).toBeDefined();
 
     rerender(<ProgressBar value={50} variant="rose" />);
-    expect(container.querySelector('.from-rose-500')).toBeDefined();
+    expect(container.querySelector('.fill-rose-500')).toBeDefined();
   });
 
-  it('sets width style correctly', () => {
+  it('sets SVG rect width correctly', () => {
     const { container } = render(<ProgressBar value={75} />);
-    const bar = container.querySelector('.h-full');
-    expect(bar?.getAttribute('style')).toContain('width: 75%');
+    const rect = container.querySelector('rect');
+    expect(rect?.getAttribute('width')).toBe('75');
   });
 });

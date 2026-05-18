@@ -1,9 +1,29 @@
 /**
  * Centralized error handling utilities
  */
+import { NextFunction, Request, Response } from "express";
 import { config } from "./config.js";
 import { logger } from "./utils/logger.js";
 import { z } from "zod";
+
+type ErrorDetails = Record<string, unknown>;
+
+type HttpLikeError = {
+  status?: number;
+  statusCode?: number;
+  message?: string;
+  stack?: string;
+};
+
+function toHttpLikeError(error: unknown): HttpLikeError {
+  if (typeof error === "object" && error !== null) {
+    return error as HttpLikeError;
+  }
+  if (typeof error === "string") {
+    return { message: error };
+  }
+  return { message: "Unknown error" };
+}
 
 export enum ErrorCategory {
   VALIDATION = "ValidationError",
@@ -34,7 +54,7 @@ export interface ApiErrorResponse {
   erro?: string; // Compatibilidade pt-BR
   code: ErrorCode;
   category: ErrorCategory;
-  details?: Record<string, any>;
+  details?: ErrorDetails;
   requestId?: string;
   timestamp?: string;
 }
@@ -45,7 +65,7 @@ export class ApiError extends Error {
     public readonly statusCode: number,
     public readonly category: ErrorCategory,
     public readonly code: ErrorCode = ErrorCode.INTERNAL_SERVER_ERROR,
-    public readonly details?: Record<string, any>,
+    public readonly details?: ErrorDetails,
   ) {
     super(message);
     this.name = "ApiError";
@@ -65,17 +85,17 @@ export class ApiError extends Error {
 }
 
 export const createError = {
-  validation: (message: string, details?: Record<string, any>) =>
+  validation: (message: string, details?: ErrorDetails) =>
     new ApiError(message, 400, ErrorCategory.VALIDATION, ErrorCode.INPUT_INVALID, details),
-  authentication: (message: string, details?: Record<string, any>) =>
+  authentication: (message: string, details?: ErrorDetails) =>
     new ApiError(message, 401, ErrorCategory.AUTHENTICATION, ErrorCode.UNAUTHORIZED, details),
-  authorization: (message: string, details?: Record<string, any>) =>
+  authorization: (message: string, details?: ErrorDetails) =>
     new ApiError(message, 403, ErrorCategory.AUTHORIZATION, ErrorCode.FORBIDDEN, details),
-  notFound: (resource: string, details?: Record<string, any>) =>
+  notFound: (resource: string, details?: ErrorDetails) =>
     new ApiError(`${resource} not found`, 404, ErrorCategory.NOT_FOUND, ErrorCode.RESOURCE_NOT_FOUND, details),
-  conflict: (message: string, details?: Record<string, any>) =>
+  conflict: (message: string, details?: ErrorDetails) =>
     new ApiError(message, 409, ErrorCategory.CONFLICT, ErrorCode.DATABASE_ERROR, details),
-  rateLimit: (message = "Too many requests", details?: Record<string, any>) =>
+  rateLimit: (message = "Too many requests", details?: ErrorDetails) =>
     new ApiError(message, 429, ErrorCategory.RATE_LIMIT, ErrorCode.CAPACITY_EXCEEDED, details),
   externalService: (service: string, originalError?: Error, code: ErrorCode = ErrorCode.EXTERNAL_TIMEOUT) =>
     new ApiError(`Failed to reach external service: ${service}`, 502, ErrorCategory.EXTERNAL_SERVICE, code, { originalMessage: originalError?.message }),
@@ -83,8 +103,9 @@ export const createError = {
     new ApiError(message || "Internal server error", 500, ErrorCategory.INTERNAL, code, { originalMessage: originalError?.message }),
 };
 
-export function errorHandler(err: any, req: any, res: any, _next: any) {
+export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
   try {
+    const normalizedError = toHttpLikeError(err);
     const requestId = res.locals?.requestId || `req-${Date.now()}`;
     const tenant_id = res.locals?.tenantId || res.locals?.tenant_id;
 
@@ -121,24 +142,24 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
     }
 
     // 3. Status-based errors (middleware like body-parser)
-    if (err.status || err.statusCode) {
-      const statusCode = err.status || err.statusCode;
+    if (normalizedError.status || normalizedError.statusCode) {
+      const statusCode = normalizedError.status || normalizedError.statusCode || 400;
       const response: ApiErrorResponse = {
-        error: err.message || "Request Error",
+        error: normalizedError.message || "Request Error",
         code: statusCode === 413 ? ErrorCode.FILE_TOO_LARGE : ErrorCode.INPUT_INVALID,
         category: ErrorCategory.VALIDATION,
         requestId,
         timestamp: new Date().toISOString(),
       };
       const metadata = { requestId, tenant_id, statusCode };
-      if (statusCode >= 500) logger.error(`[INTERNAL_ERROR] ${err.message}`, metadata);
-      else logger.warn(`[VALIDATION_ERROR] ${err.message}`, metadata);
+      if (statusCode >= 500) logger.error(`[INTERNAL_ERROR] ${normalizedError.message}`, metadata);
+      else logger.warn(`[VALIDATION_ERROR] ${normalizedError.message}`, metadata);
       return res.status(statusCode).json(response);
     }
 
     // 4. Fallback unknown error
     const response: ApiErrorResponse = {
-      error: config.NODE_ENV === "development" ? (err.message || "Internal Error") : "Internal server error",
+      error: config.NODE_ENV === "development" ? (normalizedError.message || "Internal Error") : "Internal server error",
       code: ErrorCode.INTERNAL_SERVER_ERROR,
       category: ErrorCategory.INTERNAL,
       requestId,
@@ -146,8 +167,8 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
     };
     
     // Safely extract message and stack
-    const msg = typeof err === 'string' ? err : (err?.message || "Unknown error");
-    const stack = err?.stack;
+    const msg = normalizedError.message || "Unknown error";
+    const stack = normalizedError.stack;
 
     logger.error(`[INTERNAL_ERROR] ${msg}`, { requestId, tenant_id, statusCode: 500, stack });
     return res.status(500).json(response);
@@ -159,6 +180,9 @@ export function errorHandler(err: any, req: any, res: any, _next: any) {
   }
 }
 
-export function asyncHandler(fn: (req: any, res: any, next: any) => Promise<any>) {
-  return (req: any, res: any, next: any) => Promise.resolve(fn(req, res, next)).catch(next);
+export function asyncHandler(
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>,
+) {
+  return (req: Request, res: Response, next: NextFunction) =>
+    Promise.resolve(fn(req, res, next)).catch(next);
 }

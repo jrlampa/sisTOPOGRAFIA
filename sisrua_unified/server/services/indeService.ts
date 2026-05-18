@@ -1,5 +1,5 @@
-import { logger } from "../utils/logger.js";
-import { fetchWithCircuitBreaker } from "../utils/externalApi.js";
+import { logger } from '../utils/logger.js';
+import { fetchWithCircuitBreaker } from '../utils/externalApi.js';
 
 /**
  * INDE - Infraestrutura Nacional de Dados Espaciais Service
@@ -20,10 +20,10 @@ import { fetchWithCircuitBreaker } from "../utils/externalApi.js";
 
 // INDE Geoserver endpoints
 const INDE_ENDPOINTS = {
-  ibge: "https://geoservicos.ibge.gov.br/geoserver",
-  icmbio: "https://geoservicos.icmbio.gov.br/geoserver",
-  ana: "https://geoservicos.ana.gov.br/geoserver",
-  dnit: "https://geoservicos.dnit.gov.br/geoserver",
+  ibge: 'https://geoservicos.ibge.gov.br/geoserver',
+  icmbio: 'https://geoservicos.icmbio.gov.br/geoserver',
+  ana: 'https://geoservicos.ana.gov.br/geoserver',
+  dnit: 'https://geoservicos.dnit.gov.br/geoserver',
 };
 
 interface WfsFeatureType {
@@ -33,15 +33,13 @@ interface WfsFeatureType {
 }
 
 interface GeoJsonFeatureCollection {
-  type: "FeatureCollection";
-  features: any[];
+  type: 'FeatureCollection';
+  features: unknown[];
   totalFeatures?: number;
 }
 
 export class IndeService {
-  private static getSourceBreakerName(
-    source: keyof typeof INDE_ENDPOINTS,
-  ): string {
+  private static getSourceBreakerName(source: keyof typeof INDE_ENDPOINTS): string {
     return `INDE_${source.toUpperCase()}`;
   }
 
@@ -49,18 +47,18 @@ export class IndeService {
    * Get WFS capabilities (available feature types)
    */
   static async getWfsCapabilities(
-    source: keyof typeof INDE_ENDPOINTS = "ibge",
+    source: keyof typeof INDE_ENDPOINTS = 'ibge'
   ): Promise<WfsFeatureType[]> {
     const baseUrl = INDE_ENDPOINTS[source];
     const url = `${baseUrl}/wfs?service=WFS&version=2.0.0&request=GetCapabilities`;
 
     try {
-      logger.info("Fetching INDE WFS capabilities", { source });
+      logger.info('Fetching INDE WFS capabilities', { source });
       const response = await fetchWithCircuitBreaker(
         this.getSourceBreakerName(source),
         url,
         { signal: AbortSignal.timeout(10000) },
-        { maxRetries: 2, initialDelay: 500, maxDelay: 2000 },
+        { maxRetries: 2, initialDelay: 500, maxDelay: 2000 }
       );
 
       const xml = await response.text();
@@ -85,14 +83,14 @@ export class IndeService {
         }
       }
 
-      logger.info("INDE WFS capabilities fetched", {
+      logger.info('INDE WFS capabilities fetched', {
         source,
         featureTypesCount: featureTypes.length,
       });
 
       return featureTypes;
     } catch (error) {
-      logger.error("INDE WFS capabilities failed", { error, source });
+      logger.error('INDE WFS capabilities failed', { error, source });
       return [];
     }
   }
@@ -106,23 +104,23 @@ export class IndeService {
     south: number,
     east: number,
     north: number,
-    source: keyof typeof INDE_ENDPOINTS = "ibge",
-    maxFeatures: number = 1000,
+    source: keyof typeof INDE_ENDPOINTS = 'ibge',
+    maxFeatures: number = 1000
   ): Promise<GeoJsonFeatureCollection | null> {
     const baseUrl = INDE_ENDPOINTS[source];
 
     // WFS 2.0.0 GetFeature with bbox and GeoJSON output
     const url = new URL(`${baseUrl}/wfs`);
-    url.searchParams.set("service", "WFS");
-    url.searchParams.set("version", "2.0.0");
-    url.searchParams.set("request", "GetFeature");
-    url.searchParams.set("typeNames", layerName);
-    url.searchParams.set("bbox", `${west},${south},${east},${north}`);
-    url.searchParams.set("outputFormat", "application/json");
-    url.searchParams.set("count", maxFeatures.toString());
+    url.searchParams.set('service', 'WFS');
+    url.searchParams.set('version', '2.0.0');
+    url.searchParams.set('request', 'GetFeature');
+    url.searchParams.set('typeNames', layerName);
+    url.searchParams.set('bbox', `${west},${south},${east},${north}`);
+    url.searchParams.set('outputFormat', 'application/json');
+    url.searchParams.set('count', maxFeatures.toString());
 
     try {
-      logger.info("Fetching INDE WFS features", {
+      logger.info('Fetching INDE WFS features', {
         layer: layerName,
         source,
         bbox: `${west},${south},${east},${north}`,
@@ -132,19 +130,19 @@ export class IndeService {
         this.getSourceBreakerName(source),
         url.toString(),
         { signal: AbortSignal.timeout(30000) },
-        { maxRetries: 2, initialDelay: 500, maxDelay: 3000 },
+        { maxRetries: 2, initialDelay: 500, maxDelay: 3000 }
       );
 
       const data = (await response.json()) as GeoJsonFeatureCollection;
 
-      logger.info("INDE WFS features fetched", {
+      logger.info('INDE WFS features fetched', {
         layer: layerName,
         count: data.features?.length || 0,
       });
 
       return data;
     } catch (error) {
-      logger.error("INDE WFS features fetch failed", {
+      logger.error('INDE WFS features fetch failed', {
         error,
         layer: layerName,
       });
@@ -157,22 +155,22 @@ export class IndeService {
    */
   static async getFeatures(
     layerName: string,
-    source: keyof typeof INDE_ENDPOINTS = "ibge",
+    source: keyof typeof INDE_ENDPOINTS = 'ibge',
     filter?: string,
-    maxFeatures: number = 1000,
+    maxFeatures: number = 1000
   ): Promise<GeoJsonFeatureCollection | null> {
     const baseUrl = INDE_ENDPOINTS[source];
 
     const url = new URL(`${baseUrl}/wfs`);
-    url.searchParams.set("service", "WFS");
-    url.searchParams.set("version", "2.0.0");
-    url.searchParams.set("request", "GetFeature");
-    url.searchParams.set("typeNames", layerName);
-    url.searchParams.set("outputFormat", "application/json");
-    url.searchParams.set("count", maxFeatures.toString());
+    url.searchParams.set('service', 'WFS');
+    url.searchParams.set('version', '2.0.0');
+    url.searchParams.set('request', 'GetFeature');
+    url.searchParams.set('typeNames', layerName);
+    url.searchParams.set('outputFormat', 'application/json');
+    url.searchParams.set('count', maxFeatures.toString());
 
     if (filter) {
-      url.searchParams.set("filter", filter);
+      url.searchParams.set('filter', filter);
     }
 
     try {
@@ -180,12 +178,12 @@ export class IndeService {
         this.getSourceBreakerName(source),
         url.toString(),
         { signal: AbortSignal.timeout(30000) },
-        { maxRetries: 2, initialDelay: 500, maxDelay: 3000 },
+        { maxRetries: 2, initialDelay: 500, maxDelay: 3000 }
       );
 
       return (await response.json()) as GeoJsonFeatureCollection;
     } catch (error) {
-      logger.error("INDE WFS getFeatures failed", { error, layer: layerName });
+      logger.error('INDE WFS getFeatures failed', { error, layer: layerName });
       return null;
     }
   }
@@ -201,21 +199,21 @@ export class IndeService {
     north: number,
     width: number = 1024,
     height: number = 768,
-    source: keyof typeof INDE_ENDPOINTS = "ibge",
+    source: keyof typeof INDE_ENDPOINTS = 'ibge'
   ): string {
     const baseUrl = INDE_ENDPOINTS[source];
 
     const url = new URL(`${baseUrl}/wms`);
-    url.searchParams.set("service", "WMS");
-    url.searchParams.set("version", "1.1.0");
-    url.searchParams.set("request", "GetMap");
-    url.searchParams.set("layers", layerName);
-    url.searchParams.set("styles", "");
-    url.searchParams.set("bbox", `${west},${south},${east},${north}`);
-    url.searchParams.set("width", width.toString());
-    url.searchParams.set("height", height.toString());
-    url.searchParams.set("srs", "EPSG:4326");
-    url.searchParams.set("format", "image/png");
+    url.searchParams.set('service', 'WMS');
+    url.searchParams.set('version', '1.1.0');
+    url.searchParams.set('request', 'GetMap');
+    url.searchParams.set('layers', layerName);
+    url.searchParams.set('styles', '');
+    url.searchParams.set('bbox', `${west},${south},${east},${north}`);
+    url.searchParams.set('width', width.toString());
+    url.searchParams.set('height', height.toString());
+    url.searchParams.set('srs', 'EPSG:4326');
+    url.searchParams.set('format', 'image/png');
 
     return url.toString();
   }
@@ -224,31 +222,30 @@ export class IndeService {
    * Get available layers for a source (commonly used)
    */
   static async getCommonLayers(
-    source: keyof typeof INDE_ENDPOINTS = "ibge",
+    source: keyof typeof INDE_ENDPOINTS = 'ibge'
   ): Promise<WfsFeatureType[]> {
     const allCapabilities = await this.getWfsCapabilities(source);
 
     // Filter for commonly useful layers
     const keywords = [
-      "municipio",
-      "municipal",
-      "limite",
-      "rodovia",
-      "rodovias",
-      "estrada",
-      "hidrografia",
-      "rio",
-      "curso",
-      "vegetacao",
-      "floresta",
-      "assentamento",
-      "rural",
+      'municipio',
+      'municipal',
+      'limite',
+      'rodovia',
+      'rodovias',
+      'estrada',
+      'hidrografia',
+      'rio',
+      'curso',
+      'vegetacao',
+      'floresta',
+      'assentamento',
+      'rural',
     ];
 
-    return allCapabilities.filter((layer) => {
-      const searchText =
-        `${layer.name} ${layer.title} ${layer.abstract || ""}`.toLowerCase();
-      return keywords.some((kw) => searchText.includes(kw));
+    return allCapabilities.filter(layer => {
+      const searchText = `${layer.name} ${layer.title} ${layer.abstract || ''}`.toLowerCase();
+      return keywords.some(kw => searchText.includes(kw));
     });
   }
 
@@ -257,19 +254,19 @@ export class IndeService {
    */
   static async getMunicipalityBoundary(
     municipioName: string,
-    _uf: string,
+    _uf: string
   ): Promise<GeoJsonFeatureCollection | null> {
     // Common layer names for municipalities in INDE
     const possibleLayers = [
-      "CCAR:BC250_Municipio_A",
-      "CCAR:BC250_Localidade_A",
-      "IBGE: municipios",
+      'CCAR:BC250_Municipio_A',
+      'CCAR:BC250_Localidade_A',
+      'IBGE: municipios',
     ];
 
     for (const layer of possibleLayers) {
       const filter = `<Filter><PropertyIsEqualTo><PropertyName>nome</PropertyName><Literal>${municipioName}</Literal></PropertyIsEqualTo></Filter>`;
 
-      const result = await this.getFeatures(layer, "ibge", filter, 1);
+      const result = await this.getFeatures(layer, 'ibge', filter, 1);
       if (result && result.features && result.features.length > 0) {
         return result;
       }

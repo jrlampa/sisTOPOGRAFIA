@@ -62,12 +62,16 @@ export default function SuperAdminDashboard() {
               <input 
                 type="text" 
                 placeholder="Buscar tenant ou log..." 
+                        title="Buscar tenant ou log"
+                        aria-label="Buscar tenant ou log"
                 className="h-11 bg-slate-900/60 border border-white/5 rounded-xl pl-10 pr-4 text-xs font-bold text-white focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all w-64"
               />
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
            </div>
            <button 
              onClick={() => { setLoading(true); setTimeout(() => setLoading(false), 1000); }}
+                   title="Atualizar dashboard"
+                   aria-label="Atualizar dashboard"
              className="h-11 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all flex items-center justify-center gap-2"
            >
               <RefreshCw className={`w-4 h-4 text-slate-400 ${loading ? "animate-spin text-indigo-400" : ""}`} />
@@ -143,7 +147,7 @@ export default function SuperAdminDashboard() {
         <div className="lg:col-span-2 space-y-6">
            <div className="flex items-center justify-between px-2">
               <h3 className="text-xs font-black text-white/40 uppercase tracking-[0.4em]">Audit Trail & Security</h3>
-              <button className="text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition-colors">Export Logs</button>
+              <button title="Exportar logs" aria-label="Exportar logs" className="text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition-colors">Export Logs</button>
            </div>
            
            <div className="space-y-3">
@@ -163,7 +167,7 @@ export default function SuperAdminDashboard() {
                       </div>
                    </div>
                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-2 hover:bg-white/5 rounded-lg text-slate-400">
+                      <button title="Inspecionar evento" aria-label="Inspecionar evento" className="p-2 hover:bg-white/5 rounded-lg text-slate-400">
                          <Search size={14} />
                       </button>
                    </div>

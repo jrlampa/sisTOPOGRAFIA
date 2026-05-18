@@ -68,6 +68,16 @@ function isLocalOllamaHost(host: string): boolean {
   }
 }
 
+function isLocalMachineOllamaHost(host: string): boolean {
+  try {
+    const parsed = new URL(host);
+    const hostname = parsed.hostname.toLowerCase();
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  } catch {
+    return false;
+  }
+}
+
 function parseWindowMinutes(value: string): {
   start: number;
   end: number;
@@ -450,7 +460,7 @@ export class OllamaService {
    */
   static async startProcess(): Promise<void> {
     // Only try to start local process if host is local
-    if (!isLocalOllamaHost(OLLAMA_BASE_URL)) {
+    if (!isLocalMachineOllamaHost(OLLAMA_BASE_URL)) {
       logger.info("[Ollama] Remote host configured, skipping local process management", { host: OLLAMA_BASE_URL });
       // Ensure the model is available on the remote host
       await this.verifyAndPullModel();
@@ -534,7 +544,7 @@ export class OllamaService {
       if (!models.some(m => normalizeModelName(m) === target)) {
         logger.info(`[Ollama] Model '${OLLAMA_MODEL}' missing. Pulling...`);
         
-        if (!isLocalOllamaHost(OLLAMA_BASE_URL)) {
+        if (!isLocalMachineOllamaHost(OLLAMA_BASE_URL)) {
           // Remote Pull via API
           try {
             const response = await fetch(`${OLLAMA_BASE_URL}/api/pull`, {

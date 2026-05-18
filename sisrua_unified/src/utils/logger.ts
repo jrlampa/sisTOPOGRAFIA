@@ -8,10 +8,6 @@ interface LogEntry {
   data?: unknown;
 }
 
-export const _testUtils = {
-  isDevelopment: () => import.meta.env.DEV === true,
-};
-
 class Logger {
   private isDevelopment = import.meta.env.DEV;
   private logHistory: LogEntry[] = [];
@@ -175,3 +171,6 @@ const loggerInstance = new Logger();
 export { loggerInstance as logger };
 export default loggerInstance;
 export type { LogEntry, LogLevel };
+export const _testUtils = {
+  isDevelopment: () => import.meta.env.DEV === true,
+};

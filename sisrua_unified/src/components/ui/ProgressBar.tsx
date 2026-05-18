@@ -25,10 +25,10 @@ export function ProgressBar({
   };
 
   const colorMap = {
-    blue: 'from-blue-500 to-blue-600',
-    emerald: 'from-emerald-500 to-emerald-600',
-    amber: 'from-amber-500 to-amber-600',
-    rose: 'from-rose-500 to-rose-600',
+    blue: 'fill-blue-500',
+    emerald: 'fill-emerald-500',
+    amber: 'fill-amber-500',
+    rose: 'fill-rose-500',
   };
 
   const clampedValue = Math.min(100, Math.max(0, value));
@@ -42,17 +42,27 @@ export function ProgressBar({
           heightMap[size]
         )}
       >
-        <div
-          className={cn(
-            'h-full bg-gradient-to-r transition-all duration-500 ease-out rounded-full',
-            colorMap[variant]
-          )}
-          style={{ width: `${clampedValue}%` }}
-        />
+        <svg
+          className="w-full h-full"
+          viewBox="0 0 100 4"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <rect
+            x="0"
+            y="0"
+            width={clampedValue}
+            height="4"
+            rx="2"
+            className={cn('transition-all duration-500 ease-out', colorMap[variant])}
+          />
+        </svg>
       </div>
       {showLabel && (
         <div className="flex justify-between items-center px-0.5">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            Status
+          </span>
           <span className="text-xs font-black text-slate-700 dark:text-slate-300 tabular-nums">
             {displayLabel}
           </span>

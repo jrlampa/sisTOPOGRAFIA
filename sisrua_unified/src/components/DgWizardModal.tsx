@@ -248,13 +248,22 @@ export function DgWizardModal({
                   </div>
                 ))}
                 {/* Connector lines */}
-                <div className="absolute top-[14px] left-[12.5%] right-[12.5%] h-[2px] bg-zinc-100 dark:bg-zinc-800 -z-0" />
-                <div
-                  className="absolute top-[14px] left-[12.5%] h-[2px] bg-violet-600 transition-all duration-500 -z-0"
-                  style={{
-                    width: `${(currentStepIndex / (STEP_ORDER.length - 1)) * 75}%`,
-                  }}
-                />
+                <svg
+                  className="absolute top-[14px] left-[12.5%] right-[12.5%] h-[2px] -z-0"
+                  viewBox="0 0 100 2"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <line x1="0" y1="1" x2="100" y2="1" className="stroke-zinc-200 dark:stroke-zinc-800" strokeWidth="2" />
+                  <line
+                    x1="0"
+                    y1="1"
+                    x2={(currentStepIndex / (STEP_ORDER.length - 1)) * 100}
+                    y2="1"
+                    className="stroke-violet-600 transition-all duration-500"
+                    strokeWidth="2"
+                  />
+                </svg>
               </div>
             </div>
 

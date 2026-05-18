@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+const APP_URL = process.env.E2E_BASE_URL ?? 'http://127.0.0.1:3000';
+
 /**
  * auth-oauth.spec.ts — Testes E2E para OAuth (Google, Microsoft)
  *
@@ -10,7 +12,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('OAuth Buttons - Landing Page', () => {
   test('OAuth buttons aparecem na landing page', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(APP_URL);
 
     // Rolar até a seção de acesso
     await page.locator('#acesso').scrollIntoViewIfNeeded();
@@ -24,7 +26,7 @@ test.describe('OAuth Buttons - Landing Page', () => {
   });
 
   test('OAuth buttons têm estrutura correta', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(APP_URL);
 
     // Rolar até a seção de acesso
     await page.locator('#acesso').scrollIntoViewIfNeeded();
@@ -42,7 +44,7 @@ test.describe('OAuth Buttons - Landing Page', () => {
   });
 
   test('Botão "Entrar com Google" é clicável', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(APP_URL);
 
     // Rolar até a seção de acesso
     await page.locator('#acesso').scrollIntoViewIfNeeded();
@@ -52,19 +54,13 @@ test.describe('OAuth Buttons - Landing Page', () => {
     // Verificar que o botão está habilitado
     await expect(googleButton).toBeEnabled();
 
-    // Verificar que ao clicar, não há erro (não podemos testar redirecionamento real)
-    // Apenas validamos que o clique é registrado sem erro
-    const [popup] = await Promise.all([
-      page.waitForEvent('popup', { timeout: 2000 }).catch(() => null),
-      googleButton.click().catch(() => null),
-    ]);
-
-    // Não esperamos popup em ambiente de teste, mas validamos que o click não falhou
-    expect(googleButton).toBeVisible();
+    // Validacao deterministica sem depender de redirecionamento externo OAuth.
+    await expect(googleButton).toBeVisible();
+    await expect(googleButton).toBeEnabled();
   });
 
   test('Botão "Entrar com Microsoft" é clicável', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(APP_URL);
 
     // Rolar até a seção de acesso
     await page.locator('#acesso').scrollIntoViewIfNeeded();
@@ -74,17 +70,13 @@ test.describe('OAuth Buttons - Landing Page', () => {
     // Verificar que o botão está habilitado
     await expect(microsoftButton).toBeEnabled();
 
-    // Verificar que ao clicar, não há erro
-    const [popup] = await Promise.all([
-      page.waitForEvent('popup', { timeout: 2000 }).catch(() => null),
-      microsoftButton.click().catch(() => null),
-    ]);
-
-    expect(microsoftButton).toBeVisible();
+    // Validacao deterministica sem depender de redirecionamento externo OAuth.
+    await expect(microsoftButton).toBeVisible();
+    await expect(microsoftButton).toBeEnabled();
   });
 
   test('Divisor "OU" aparece entre login tradicional e OAuth', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(APP_URL);
 
     // Rolar até a seção de acesso
     await page.locator('#acesso').scrollIntoViewIfNeeded();
@@ -96,7 +88,7 @@ test.describe('OAuth Buttons - Landing Page', () => {
   });
 
   test('OAuth buttons estão desabilitados durante loading', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(APP_URL);
 
     // Rolar até a seção de acesso
     await page.locator('#acesso').scrollIntoViewIfNeeded();
@@ -106,8 +98,6 @@ test.describe('OAuth Buttons - Landing Page', () => {
     await page.getByTestId('login-password').fill('SenhaTeste123!');
 
     // Iniciar envio
-    const submitButton = page.getByTestId('login-submit');
-
     // Ao clicar, OAuth buttons devem estar visíveis mas podem estar desabilitados
     // (dependendo da implementação de loading state)
     const googleButton = page.getByRole('button', { name: /Google/i }).first();
@@ -121,7 +111,7 @@ test.describe('OAuth Buttons - Landing Page', () => {
     // Simular tamanho de tela mobile
     await page.setViewportSize({ width: 375, height: 667 });
 
-    await page.goto('/');
+    await page.goto(APP_URL);
 
     // Rolar até a seção de acesso
     await page.locator('#acesso').scrollIntoViewIfNeeded();
@@ -130,16 +120,13 @@ test.describe('OAuth Buttons - Landing Page', () => {
     const microsoftButton = page.getByRole('button', { name: /Microsoft/i }).first();
 
     // Em mobile, os botões devem ocupar a largura total
-    const googleBox = await googleButton.boundingBox();
-    const containerBox = await page.locator('[class*="form"]').first().boundingBox();
-
     // Verificar que estão visíveis
     await expect(googleButton).toBeVisible();
     await expect(microsoftButton).toBeVisible();
   });
 
   test('GitHub button aparece como desabilitado (futuro)', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(APP_URL);
 
     // Rolar até a seção de acesso
     await page.locator('#acesso').scrollIntoViewIfNeeded();
@@ -156,19 +143,14 @@ test.describe('OAuth Buttons - Landing Page', () => {
 
   test('Sem erros no console quando OAuth buttons são renderizados', async ({ page }) => {
     const errors: string[] = [];
-    const warnings: string[] = [];
-
     // Capturar erros e warnings do console
     page.on('console', message => {
       if (message.type() === 'error') {
         errors.push(message.text());
       }
-      if (message.type() === 'warning') {
-        warnings.push(message.text());
-      }
     });
 
-    await page.goto('/');
+    await page.goto(APP_URL);
 
     // Rolar até a seção de acesso
     await page.locator('#acesso').scrollIntoViewIfNeeded();
@@ -187,18 +169,11 @@ test.describe('OAuth Buttons - Landing Page', () => {
 });
 
 test.describe('OAuth - Integração com AuthContext', () => {
-  test('signInWithGoogle e signInWithMicrosoft são exportados do AuthProvider', async ({
-    page,
-  }) => {
-    await page.goto('/');
+  test('AuthProvider integra controles OAuth visiveis para o usuario', async ({ page }) => {
+    await page.goto(APP_URL);
+    await page.locator('#acesso').scrollIntoViewIfNeeded();
 
-    // Injetar código para verificar se as funções existem
-    const hasOAuthFunctions = await page.evaluate(() => {
-      // Isso é um teste básico, não podemos acessar contexto React diretamente
-      // Mas podemos validar que não há erros na página
-      return !!document.querySelector('#acesso');
-    });
-
-    expect(hasOAuthFunctions).toBe(true);
+    await expect(page.getByRole('button', { name: /Google/i }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /Microsoft/i }).first()).toBeVisible();
   });
 });

@@ -2,14 +2,26 @@
  * Rotas T2-61 — Análise de Sombreamento 2.5D
  */
 
-import { Router, Request, Response } from "express";
-import { z } from "zod";
-import { Sombreamento2D5Service } from "../services/sombreamento2D5Service.js";
+import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import { Sombreamento2D5Service } from '../services/sombreamento2D5Service.js';
 
 const router = Router();
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'Erro desconhecido';
+}
+
 const TipoAtivoEnum = z.enum([
-  "poste", "transformador", "painel_solar", "medicao", "subestacao", "edificacao", "outro",
+  'poste',
+  'transformador',
+  'painel_solar',
+  'medicao',
+  'subestacao',
+  'edificacao',
+  'outro',
 ]);
 
 const CriarAnaliseSchema = z.object({
@@ -24,68 +36,82 @@ const CriarAnaliseSchema = z.object({
   alturaAtivo: z.number().positive(),
   alturaObstrucao: z.number().nonnegative(),
   distanciaObstrucaoM: z.number().nonnegative(),
-  orientacaoGraus: z.number().min(0).max(360).optional(),
+  orientacaoGraus: z.number().min(0).max(360).default(0),
   dataAnalise: z.string().min(8),
 });
 
 const AutoShadingSchema = z.object({
   topology: z.object({
-    poles: z.array(z.any()),
-    transformers: z.array(z.any()),
-    edges: z.array(z.any())
+    poles: z.array(z.unknown()),
+    transformers: z.array(z.unknown()),
+    edges: z.array(z.unknown()),
   }),
-  osmData: z.array(z.any())
+  osmData: z.array(z.unknown()),
 });
 
 // --- Novas Rotas T2 Automatic ---
 
-router.post("/auto", async (req: Request, res: Response) => {
+router.post('/auto', async (req: Request, res: Response) => {
   try {
     const parse = AutoShadingSchema.safeParse(req.body);
-    if (!parse.success) return res.status(400).json({ error: "Payload inválido" });
+    if (!parse.success) return res.status(400).json({ error: 'Payload inválido' });
     const { topology, osmData } = parse.data;
-    const results = Sombreamento2D5Service.analisarSombreamentoAutomatico(topology as any, osmData as any);
+    const topologyInput = topology as Parameters<
+      typeof Sombreamento2D5Service.analisarSombreamentoAutomatico
+    >[0];
+    const osmInput = osmData as Parameters<
+      typeof Sombreamento2D5Service.analisarSombreamentoAutomatico
+    >[1];
+    const results = Sombreamento2D5Service.analisarSombreamentoAutomatico(topologyInput, osmInput);
     return res.json({ timestamp: new Date().toISOString(), results });
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+  } catch (err: unknown) {
+    return res.status(500).json({ error: getErrorMessage(err) });
   }
 });
 
 // --- Rotas Legadas / Manuais (Mantidas para compatibilidade de testes) ---
 
-router.post("/analises", (req: Request, res: Response) => {
+router.post('/analises', (req: Request, res: Response) => {
   const parse = CriarAnaliseSchema.safeParse(req.body);
   if (!parse.success) return res.status(400).json({ errors: parse.error.issues });
   return res.status(201).json(Sombreamento2D5Service.criarAnalise(parse.data));
 });
 
-router.get("/analises", (req: Request, res: Response) => {
+router.get('/analises', (req: Request, res: Response) => {
   return res.json(Sombreamento2D5Service.listarAnalises(req.query.tenantId as string));
 });
 
-router.get("/analises/:id", (req: Request, res: Response) => {
+router.get('/analises/:id', (req: Request, res: Response) => {
   const a = Sombreamento2D5Service.obterAnalise(req.params.id);
-  return a ? res.json(a) : res.status(404).json({ error: "Not found" });
+  return a ? res.json(a) : res.status(404).json({ error: 'Not found' });
 });
 
-router.post("/analises/:id/calcular", (req: Request, res: Response) => {
+router.post('/analises/:id/calcular', (req: Request, res: Response) => {
   try {
     return res.json(Sombreamento2D5Service.calcularSombreamento(req.params.id));
-  } catch (err: any) {
-    return res.status(422).json({ error: err.message });
+  } catch (err: unknown) {
+    return res.status(422).json({ error: getErrorMessage(err) });
   }
 });
 
-router.post("/analises/:id/aprovar", (req: Request, res: Response) => {
+router.post('/analises/:id/aprovar', (req: Request, res: Response) => {
   try {
     return res.json(Sombreamento2D5Service.aprovarAnalise(req.params.id));
-  } catch (err: any) {
-    return res.status(422).json({ error: err.message });
+  } catch (err: unknown) {
+    return res.status(422).json({ error: getErrorMessage(err) });
   }
 });
 
-router.get("/tipos-ativo", (_req: Request, res: Response) => {
-  return res.json(["poste", "transformador", "painel_solar", "medicao", "subestacao", "edificacao", "outro"]);
+router.get('/tipos-ativo', (_req: Request, res: Response) => {
+  return res.json([
+    'poste',
+    'transformador',
+    'painel_solar',
+    'medicao',
+    'subestacao',
+    'edificacao',
+    'outro',
+  ]);
 });
 
 export default router;

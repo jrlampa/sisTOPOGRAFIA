@@ -4,7 +4,7 @@ import express from 'express';
 import { billingRoutes } from '../routes/billingRoutes.js';
 
 // Mock do middleware e serviços
-vi.mock('../middleware/permissionHandler.js', () => ({
+vi.mock('../../middleware/permissionHandler.js', () => ({
   requirePermission: () => (req: any, res: any, next: any) => {
     // Simula usuário autenticado se houver header x-user-id
     if (req.headers['x-user-id']) {
@@ -79,7 +79,7 @@ describe('Billing API Contract Tests', () => {
     it('deve retornar 401 se o usuário não estiver autenticado', async () => {
       const res = await request(app).post('/api/billing/checkout').send({ tier: 'professional' });
       expect(res.status).toBe(401);
-      expect(res.body.erro).toBe('Não autenticado');
+      expect(res.body.erro).toBe('Authentication required');
     });
   });
 });

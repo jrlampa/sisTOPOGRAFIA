@@ -187,6 +187,8 @@ export function SettingsModalGeneralTab({
                   enableFocusMode: !settings.enableFocusMode,
                 })
               }
+              title={text.focusModeLabel}
+              aria-label={text.focusModeLabel}
               className={`w-12 h-6 rounded-full relative transition-colors ${settings.enableFocusMode ? "bg-violet-600" : "bg-slate-300 dark:bg-slate-700"}`}
             >
               <span
