@@ -76,13 +76,11 @@ describe("loadClandestinoWorkbookRules – error branches", () => {
       .mockResolvedValueOnce({ ok: false, status: 500, json: vi.fn() });
     vi.stubGlobal("fetch", fetchMock);
 
-    const freshModule = await vi.importActual<
-      typeof import("../../src/utils/btClandestinoCalculations")
-    >("../../src/utils/btClandestinoCalculations");
-
-    await expect(freshModule.loadClandestinoWorkbookRules()).resolves.toBe(
-      false,
+    const { loadClandestinoWorkbookRules } = await import(
+      "../../src/utils/btClandestinoCalculations"
     );
+
+    await expect(loadClandestinoWorkbookRules()).resolves.toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -90,13 +88,11 @@ describe("loadClandestinoWorkbookRules – error branches", () => {
     const fetchMock = vi.fn().mockRejectedValueOnce(new Error("Network error"));
     vi.stubGlobal("fetch", fetchMock);
 
-    const freshModule = await vi.importActual<
-      typeof import("../../src/utils/btClandestinoCalculations")
-    >("../../src/utils/btClandestinoCalculations");
-
-    await expect(freshModule.loadClandestinoWorkbookRules()).resolves.toBe(
-      false,
+    const { loadClandestinoWorkbookRules } = await import(
+      "../../src/utils/btClandestinoCalculations"
     );
+
+    await expect(loadClandestinoWorkbookRules()).resolves.toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
@@ -124,9 +120,9 @@ describe("loadClandestinoWorkbookRules – success branch (via dynamic import)",
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const freshModule = await vi.importActual<
-      typeof import("../../src/utils/btClandestinoCalculations")
-    >("../../src/utils/btClandestinoCalculations");
+    const freshModule = await import(
+      "../../src/utils/btClandestinoCalculations"
+    );
 
     await expect(freshModule.loadClandestinoWorkbookRules()).resolves.toBe(
       true,
