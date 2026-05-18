@@ -1,13 +1,3 @@
-# SIS RUA Unified - Docker Compose for Development (SECURITY HARDENED)
-# Optimizado para HMR e Segurança Máxima em ambiente local.
-#
-# SECURITY MEASURES:
-# 1. Network: All host ports bound to 127.0.0.1 (Localhost only)
-# 2. Secrets: Using Docker Secrets pattern (_FILE) for REDIS_PASSWORD
-# 3. Resources: CPU and Memory limits enforced for all services
-# 4. Healthchecks: Automatic failure detection for app, redis, and ollama
-# 5. Versions: Pinned image tags (no :latest)
-
 services:
   app:
     image: sisrua-unified:dev
@@ -16,45 +6,37 @@ services:
       dockerfile: Dockerfile.dev
     container_name: sisrua-app
     ports:
-      - "127.0.0.1:8080:3000" # Frontend (Vite) - LOCALHOST ONLY
-      - "127.0.0.1:3002:3001" # Backend API - LOCALHOST ONLY
+      - '127.0.0.1:8080:3000'
+      - '127.0.0.1:3002:3001'
     environment:
       - NODE_ENV=development
       - PORT=3001
       - PYTHON_COMMAND=python3
       - DOCKER_ENV=true
+      - OLLAMA_HOST=http://ollama:11434
       - APP_PUBLIC_URL=http://localhost:3002
       - CORS_ORIGIN=http://localhost:8080,http://localhost:3000,http://127.0.0.1:8080,http://127.0.0.1:3000
       - USE_FIRESTORE=false
       - USE_CLOUD_TASKS=false
       - REDIS_PASSWORD_FILE=/run/secrets/redis_password
-      - OLLAMA_HOST=http://ollama:11434
-      - LLM_ENDPOINT=http://ollama:11434
-      # ── On-Premise / Hybrid deployment (Item 123) ──────────────────
-      - DEPLOYMENT_MODE=cloud # cloud | hybrid | on-premise
-      # TILE_SERVER_URL=  # Set for local tile server in on-premise mode
-      # ── Corporate Hardening (Item 121) ─────────────────────────────
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DEPLOYMENT_MODE=cloud
       - HELMET_ENABLED=true
       - CSRF_PROTECTION=true
       - HTTP_TIMEOUT_MS=10000
-      # HTTP_PROXY=       # Set in corporate proxy environments
-      # HTTPS_PROXY=      # Set in corporate proxy environments
-      # NO_PROXY=localhost,127.0.0.1,ollama,redis
-      # NODE_TLS_MIN_VERSION=TLSv1.2
-      # NODE_EXTRA_CA_CERTS=/run/secrets/corporate_ca.pem
-      - CHOKIDAR_USEPOLLING=false
-      - WATCHPACK_POLLING=false
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
     secrets:
       - redis_password
     volumes:
-      # Monta o código fonte para HMR (RW necessário em dev)
       - .:/app
       - /app/node_modules
       - dxf-output:/app/public/dxf
       - cache-data:/app/cache
       - logs-data:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:3001/health']
       interval: 30s
       timeout: 10s
       start_period: 20s
@@ -67,98 +49,56 @@ services:
         condition: service_healthy
       ollama:
         condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "2.0"
-          memory: 4G
-        reservations:
-          cpus: "1.0"
-          memory: 2G
-redis:
-  image: redis:8.6-alpine
-  container_name: sisrua-redis
-  command: >
-    sh -c "redis-server 
-    --requirepass $$(cat /run/secrets/redis_password) 
-    --bind 0.0.0.0 
-    --tls-port 6380 
-    --tls-cert-file /run/secrets/redis_tls_cert 
-    --tls-key-file /run/secrets/redis_tls_key 
-    --tls-ca-cert-file /run/secrets/redis_tls_ca
-    --port 0"
-  secrets:
-    - redis_password
-    - redis_tls_cert
-    - redis_tls_key
-    - redis_tls_ca
-  ports:
-    - "127.0.0.1:6380:6380" # TLS Port - LOCALHOST ONLY
-  volumes:
-    - redis-data:/data
-  restart: unless-stopped
-  networks:
-    - sisrua-network
-  healthcheck:
-    test:
-      [
-        "CMD-SHELL",
-        'redis-cli --tls --cert /run/secrets/redis_tls_cert --key /run/secrets/redis_tls_key --cacert /run/secrets/redis_tls_ca --no-auth-warning -a "$$(cat /run/secrets/redis_password)" ping',
-      ]
-    interval: 10s
-    timeout: 3s
-    start_period: 5s
-    retries: 5
-  deploy:
-    resources:
-      limits:
-        cpus: "0.5"
-        memory: 512M
-      reservations:
-        cpus: "0.1"
-        memory: 128M
 
-ollama:
-    image: ollama/ollama:0.22.0
-    container_name: sisrua-ollama
+  redis:
+    image: redis:7.4-alpine
+    container_name: sisrua-redis
+    command:
+      [
+        'sh',
+        '-c',
+        'redis-server --requirepass $$(cat /run/secrets/redis_password) --bind 0.0.0.0 --port 6379',
+      ]
+    secrets:
+      - redis_password
     ports:
-      - "127.0.0.1:11435:11434" # Debug only - LOCALHOST ONLY
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
+      - '127.0.0.1:6379:6379'
     volumes:
-      - ollama-data:/root/.ollama
+      - redis-data:/data
+    restart: unless-stopped
     networks:
       - sisrua-network
-    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "ollama", "list"]
+      test:
+        ['CMD-SHELL', 'redis-cli --no-auth-warning -a "$$(cat /run/secrets/redis_password)" ping']
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:0.22.0
+    container_name: sisrua-ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      - OLLAMA_KEEP_ALIVE=5m
+    ports:
+      - '127.0.0.1:11435:11434'
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    networks:
+      - sisrua-network
+    healthcheck:
+      test: ['CMD', 'ollama', 'list']
       interval: 30s
       timeout: 10s
+      start_period: 30s
       retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: "4.0"
-          memory: 8G
-        reservations:
-          cpus: "1.0"
-          memory: 2G
-      # Descomente abaixo se tiver GPU NVIDIA disponível no host
-      # reservations:
-      #   devices:
-      #     - driver: nvidia
-      #       count: 1
-      #       capabilities: [gpu]
 
 secrets:
   redis_password:
     file: ./secrets/redis_password.txt
-  redis_tls_cert:
-    file: ./secrets/redis_cert.pem
-  redis_tls_key:
-    file: ./secrets/redis_key.pem
-  redis_tls_ca:
-    file: ./secrets/redis_ca.pem
 
 volumes:
   dxf-output:
