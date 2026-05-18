@@ -76,6 +76,11 @@ function sanitizeDataForProduction(data: unknown): unknown {
   return data;
 }
 
+export const _testUtils = {
+  isDevelopment,
+  sanitizeDataForProduction,
+};
+
 class Logger {
   private static logs: LogEntry[] = [];
   private static maxLogs = 100;

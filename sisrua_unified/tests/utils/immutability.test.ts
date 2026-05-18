@@ -97,5 +97,101 @@ describe("immutability utilities", () => {
       }
       consoleSpy.mockRestore();
     });
+
+    it("should not warn when object is already frozen", () => {
+      const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const obj = Object.freeze({ a: 1 });
+
+      assertImmutable(obj, "Frozen object");
+
+      expect(consoleSpy).not.toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it("should not warn for null", () => {
+      const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      assertImmutable(null as any, "null check");
+      expect(consoleSpy).not.toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it("should not warn for primitives", () => {
+      const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      assertImmutable(42 as any, "primitive");
+      assertImmutable("string" as any, "string");
+      expect(consoleSpy).not.toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it("uses default description when none is provided", () => {
+      const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      assertImmutable({ x: 1 });
+      // Either warned or not depending on IS_DEVELOPMENT; just ensure no throw
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe("createImmutableNext – additional", () => {
+    it("original is not modified by updates", () => {
+      const original = Object.freeze({ a: 1, b: 2 });
+      const next = createImmutableNext(original, { b: 99 });
+      expect((original as any).b).toBe(2);
+      expect(next.b).toBe(99);
+    });
+
+    it("merges multiple update keys", () => {
+      const original = { x: 1, y: 2, z: 3 };
+      const next = createImmutableNext(original, { x: 10, z: 30 });
+      expect(next.x).toBe(10);
+      expect(next.y).toBe(2);
+      expect(next.z).toBe(30);
+    });
+  });
+
+  describe("findMutablePaths – additional edge cases", () => {
+    it("returns empty array for primitive input", () => {
+      expect(findMutablePaths("string")).toHaveLength(0);
+      expect(findMutablePaths(42)).toHaveLength(0);
+      expect(findMutablePaths(null)).toHaveLength(0);
+    });
+
+    it("respects maxDepth of 0", () => {
+      const obj = { a: { b: 1 } };
+      const result = findMutablePaths(obj, 0);
+      expect(result).toHaveLength(0);
+    });
+
+    it("includes nested mutable paths with custom depth", () => {
+      const inner = { z: 3 };
+      const obj = { a: inner };
+      // obj is mutable, inner is mutable; primitives (z:3) are not objects so not listed
+      const paths = findMutablePaths(obj, 3);
+      expect(paths).toContain("[root]");
+      expect(paths).toContain("a");
+      // z=3 is a primitive, so 'a.z' is NOT a mutable path
+      expect(paths).not.toContain("a.z");
+    });
+
+    it("reports [root] when the object itself is not frozen", () => {
+      const obj = { x: 1 };
+      const paths = findMutablePaths(obj);
+      expect(paths).toContain("[root]");
+    });
+  });
+
+  describe("deepFreeze – additional edge cases", () => {
+    it("handles objects with function properties", () => {
+      const obj = { fn: () => 42 };
+      const frozen = deepFreeze(obj);
+      expect(Object.isFrozen(frozen)).toBe(true);
+    });
+
+    it("handles circular-like patterns via isFrozen check on property", () => {
+      // Nested already-frozen object should not cause infinite loop
+      const inner = Object.freeze({ a: 1 });
+      const outer = { inner };
+      deepFreeze(outer);
+      expect(Object.isFrozen(outer)).toBe(true);
+    });
   });
 });

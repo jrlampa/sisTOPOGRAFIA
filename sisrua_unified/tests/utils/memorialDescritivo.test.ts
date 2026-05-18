@@ -148,3 +148,56 @@ describe("downloadMemorialDescritivo", () => {
     expect(result).toMatch(/\.txt$/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// buildMemorialDescritivo – formatDateTime coverage
+// ---------------------------------------------------------------------------
+
+describe("buildMemorialDescritivo – formatDateTime paths", () => {
+  it("falls back to current date when generatedAt is null/undefined in cqtSnapshot", () => {
+    // When cqtSnapshot.generatedAt is missing, formatDateTime(null) returns current date
+    const content = buildMemorialDescritivo(
+      { cqtSnapshot: { generatedAt: null } },
+      { projectName: "FallbackDate" },
+    );
+    expect(content).toBeTruthy();
+    // The CQT timestamp section shows the formatted date (current date is used)
+    expect(content).toContain("Carimbo de geracao do snapshot CQT");
+  });
+
+  it("falls back to current date when generatedAt is an invalid ISO string", () => {
+    const content = buildMemorialDescritivo(
+      { cqtSnapshot: { generatedAt: "not-a-date" } },
+      { projectName: "InvalidDate" },
+    );
+    expect(content).toBeTruthy();
+    expect(content).toContain("Carimbo de geracao do snapshot CQT");
+  });
+
+  it("uses the parsed date when generatedAt is a valid ISO string", () => {
+    const content = buildMemorialDescritivo(
+      { cqtSnapshot: { generatedAt: "2024-01-15T10:00:00.000Z" } },
+      { projectName: "ValidDate" },
+    );
+    expect(content).toBeTruthy();
+    // The date "2024-01-15T10:00:00.000Z" should be rendered somewhere in the memorial
+    expect(content).toContain("Carimbo de geracao do snapshot CQT");
+    // The rendered date should contain "2024" or "01" in Portuguese locale
+    expect(content).toMatch(/2024|15\/01/);
+  });
+
+  it("uses power_factor qtMethod description when qtMethod is power_factor", () => {
+    const content = buildMemorialDescritivo(
+      {
+        cqtSnapshot: {
+          qtPontoConfig: {
+            calculationMethod: "power_factor",
+            powerFactor: 0.92,
+          },
+        },
+      },
+      { projectName: "PowerFactor" },
+    );
+    expect(content).toContain("fator de potencia");
+  });
+});

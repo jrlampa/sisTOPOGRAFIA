@@ -26,10 +26,6 @@ permissions:
   contents: read
   pull-requests: write
 
-defaults:
-  run:
-    working-directory: sisrua_unified
-
 jobs:
   # ====================================================================
   # R1 – Push direto para main/master é proibido (deve ser via PR)
@@ -58,6 +54,9 @@ jobs:
     name: Regras Não Negociáveis (R2-R9)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: sisrua_unified
 
     steps:
       - name: Checkout do código

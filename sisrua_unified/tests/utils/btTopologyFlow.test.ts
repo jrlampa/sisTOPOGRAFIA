@@ -1,10 +1,11 @@
-/**
- * btTopologyFlow.test.ts — Vitest: teste da lógica de fluxo de rede BT.
- * Verifica cálculo de demanda acumulada e análise de seccionamento.
- */
-
 import { describe, it, expect } from "vitest";
-import { calculateAccumulatedDemandByPole, calculateSectioningImpact } from "../../src/utils/btTopologyFlow";
+import {
+  calculateAccumulatedDemandByPole,
+  calculateSectioningImpact,
+  calculateEstimatedDemandByTransformer,
+  calculateBtSummary,
+  calculateAccumulatedDemandKva,
+} from "../../src/utils/btTopologyFlow";
 import { BtTopology } from "../../src/types";
 
 const MOCK_TOPOLOGY: BtTopology = {
@@ -45,5 +46,371 @@ describe("btTopologyFlow", () => {
     );
     expect(impact.unservedPoleIds).toHaveLength(2);
     expect(impact.unservedClients).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// calculateSectioningImpact – additional paths
+// ---------------------------------------------------------------------------
+
+describe("calculateSectioningImpact – additional paths", () => {
+  it("returns empty impact for topology with no poles", () => {
+    const topology: BtTopology = { poles: [], transformers: [], edges: [] };
+    const impact = calculateSectioningImpact(topology, "ramais", 0);
+    expect(impact.unservedPoleIds).toHaveLength(0);
+    expect(impact.unservedClients).toBe(0);
+    expect(impact.loadCenter).toBeNull();
+    expect(impact.suggestedPoleId).toBeNull();
+  });
+
+  it("returns null loadCenter / suggestedPoleId when all poles are served", () => {
+    const topology: BtTopology = {
+      poles: [{ id: "P1", lat: -22, lng: -43, title: "P1" }],
+      transformers: [{ id: "T1", poleId: "P1", lat: -22, lng: -43, title: "T1" } as any],
+      edges: [],
+    };
+    const impact = calculateSectioningImpact(topology, "ramais", 0);
+    expect(impact.loadCenter).toBeNull();
+    expect(impact.suggestedPoleId).toBeNull();
+  });
+
+  it("computes loadCenter and suggestedPoleId when unserved poles exist", () => {
+    // Topology with no transformer → all poles unserved
+    const topology: BtTopology = {
+      poles: [
+        { id: "P1", lat: -22.0, lng: -43.0, title: "P1" },
+        { id: "P2", lat: -22.1, lng: -43.1, title: "P2" },
+      ],
+      transformers: [],
+      edges: [],
+    };
+    const impact = calculateSectioningImpact(topology, "ramais", 0);
+    expect(impact.unservedPoleIds).toHaveLength(2);
+    expect(impact.loadCenter).not.toBeNull();
+    expect(impact.suggestedPoleId).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// calculateEstimatedDemandByTransformer – additional paths
+// ---------------------------------------------------------------------------
+
+describe("calculateEstimatedDemandByTransformer – additional paths", () => {
+  it("returns [] when topology has no transformers", () => {
+    const topology: BtTopology = {
+      poles: [{ id: "P1", lat: 0, lng: 0, title: "P1" }],
+      transformers: [],
+      edges: [],
+    };
+    expect(calculateEstimatedDemandByTransformer(topology, "ramais", 0)).toEqual([]);
+  });
+
+  it("returns [] when topology has no poles", () => {
+    const topology: BtTopology = {
+      poles: [],
+      transformers: [{ id: "T1", lat: 0, lng: 0, title: "T1" } as any],
+      edges: [],
+    };
+    expect(calculateEstimatedDemandByTransformer(topology, "ramais", 0)).toEqual([]);
+  });
+
+  it("assigns 0 clients to a transformer with no poles in its service area", () => {
+    const topology: BtTopology = {
+      poles: [{ id: "P1", lat: 0, lng: 0, title: "P1" }],
+      transformers: [{ id: "T1", poleId: "P1", lat: 0, lng: 0, title: "T1" } as any],
+      edges: [],
+    };
+    const result = calculateEstimatedDemandByTransformer(topology, "ramais", 0);
+    expect(result).toHaveLength(1);
+    expect(result[0].assignedClients).toBe(0);
+    expect(result[0].estimatedDemandKva).toBe(0);
+    expect(result[0].estimatedDemandKw).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// calculateAccumulatedDemandKva
+// ---------------------------------------------------------------------------
+
+describe("calculateAccumulatedDemandKva", () => {
+  it("uses clandestino lookup when projectType is clandestino", () => {
+    const result = calculateAccumulatedDemandKva({
+      projectType: "clandestino",
+      clandestinoAreaM2: 50,
+      accumulatedClients: 10,
+      downstreamAccumulatedKva: 999,
+      totalTrechoKva: 999,
+    });
+    expect(result).toBe(18.12);
+  });
+
+  it("sums downstream + trecho for ramais", () => {
+    const result = calculateAccumulatedDemandKva({
+      projectType: "ramais",
+      clandestinoAreaM2: 0,
+      accumulatedClients: 3,
+      downstreamAccumulatedKva: 5,
+      totalTrechoKva: 2,
+    });
+    expect(result).toBe(7);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// calculateBtSummary
+// ---------------------------------------------------------------------------
+
+describe("calculateAccumulatedDemandByPole – additional weighted-ramal branches", () => {
+  it("ignores clandestino ramais in weighted demand calc when projectType is 'ramais'", () => {
+    // In ramais mode, isClandestino=true → skip the ramal in weighted calculation
+    // BUT localClients still counts the quantity (getPoleClientsByProjectType sums all)
+    const topology: BtTopology = {
+      poles: [
+        {
+          id: "P1",
+          lat: 0,
+          lng: 0,
+          title: "P1",
+          // ramalType undefined → defaults to CLANDESTINO_RAMAL_TYPE in weighted calc
+          ramais: [{ id: "r1", quantity: 5 }],
+        },
+      ],
+      transformers: [
+        {
+          id: "T1",
+          poleId: "P1",
+          lat: 0,
+          lng: 0,
+          title: "T1",
+          demandKw: 10,
+          readings: [],
+        } as any,
+      ],
+      edges: [],
+    };
+    const results = calculateAccumulatedDemandByPole(topology, "ramais", 0);
+    const p1 = results.find((r) => r.poleId === "P1");
+    expect(p1).toBeDefined();
+    // localClients counts all ramal quantities (client count doesn't filter by type)
+    expect(p1?.localClients).toBe(5);
+  });
+
+  it("ignores non-clandestino ramals in clandestino mode", () => {
+    const topology: BtTopology = {
+      poles: [
+        {
+          id: "P1",
+          lat: 0,
+          lng: 0,
+          title: "P1",
+          ramais: [
+            { id: "r1", quantity: 3, ramalType: "5 CC" }, // non-clandestino
+          ],
+        },
+      ],
+      transformers: [
+        {
+          id: "T1",
+          poleId: "P1",
+          lat: 0,
+          lng: 0,
+          title: "T1",
+          demandKw: 10,
+          readings: [],
+        } as any,
+      ],
+      edges: [],
+    };
+    // In clandestino mode: "5 CC" ramais are skipped
+    const results = calculateAccumulatedDemandByPole(topology, "clandestino", 50);
+    const p1 = results.find((r) => r.poleId === "P1");
+    expect(p1?.localClients).toBe(0); // "5 CC" ramal skipped in clandestino mode
+  });
+
+  it("ignores ramals with quantity <= 0 in weighted demand calculation", () => {
+    const topology: BtTopology = {
+      poles: [
+        {
+          id: "P1",
+          lat: 0,
+          lng: 0,
+          title: "P1",
+          ramais: [
+            { id: "r1", quantity: 0, ramalType: "5 CC" },   // zero → skipped in weighted calc
+            { id: "r2", quantity: -1, ramalType: "5 CC" },  // negative → skipped in weighted calc
+            { id: "r3", quantity: 3, ramalType: "5 CC" },   // valid
+          ],
+        },
+      ],
+      transformers: [
+        {
+          id: "T1",
+          poleId: "P1",
+          lat: 0,
+          lng: 0,
+          title: "T1",
+          demandKw: 10,
+          readings: [],
+        } as any,
+      ],
+      edges: [],
+    };
+    const results = calculateAccumulatedDemandByPole(topology, "ramais", 0);
+    const p1 = results.find((r) => r.poleId === "P1");
+    // localClients = sum of ALL ramal quantities (0 + -1 + 3 = 2)
+    // The weighted demand calculation skips qty<=0, but localClients uses sum
+    expect(p1?.localClients).toBe(2);
+    // Function should not throw
+    expect(p1).toBeDefined();
+  });
+
+  it("falls back to client-average demand when ramalType is unrecognised", () => {
+    const topologyWithUnknownType: BtTopology = {
+      poles: [
+        {
+          id: "P1",
+          lat: 0,
+          lng: 0,
+          title: "P1",
+          ramais: [{ id: "r1", quantity: 5, ramalType: "UNKNOWN_TYPE" }],
+        },
+        {
+          id: "P2",
+          lat: 0,
+          lng: 0.001,
+          title: "P2",
+          // P1 has 5 clients and P2 has 1 client, so totalClients = 6 for fallback average.
+          ramais: [{ id: "r2", quantity: 1, ramalType: "185 MMX" }],
+        },
+      ],
+      transformers: [
+        {
+          id: "T1",
+          poleId: "P1",
+          lat: 0,
+          lng: 0,
+          title: "T1",
+          demandKw: 12,
+          readings: [],
+        } as any,
+      ],
+      edges: [{ id: "E1", fromPoleId: "P1", toPoleId: "P2", conductors: [], lengthMeters: 10 }],
+    };
+    const topologyWithRecognizedType: BtTopology = {
+      ...topologyWithUnknownType,
+      poles: [
+        {
+          ...topologyWithUnknownType.poles[0],
+          ramais: [{ id: "r1", quantity: 5, ramalType: "13 DX 6 AWG" }],
+        },
+        topologyWithUnknownType.poles[1],
+      ],
+    };
+
+    const fallbackResults = calculateAccumulatedDemandByPole(
+      topologyWithUnknownType,
+      "ramais",
+      0,
+    );
+    const weightedResults = calculateAccumulatedDemandByPole(
+      topologyWithRecognizedType,
+      "ramais",
+      0,
+    );
+
+    const fallbackP1 = fallbackResults.find((r) => r.poleId === "P1");
+    const weightedP1 = weightedResults.find((r) => r.poleId === "P1");
+    const RAMAL_WEIGHT_13_DX_6_AWG = 78; // Weight mapped for ramalType "13 DX 6 AWG"
+    const RAMAL_WEIGHT_185_MMX = 423; // Weight mapped for ramalType "185 MMX"
+    const expectedFallbackDemand = Number(((12 / 6) * 5).toFixed(2)); // demand / totalClients * p1Clients
+    const expectedWeightedDemand = Number(
+      (
+        (12 * (5 * RAMAL_WEIGHT_13_DX_6_AWG)) /
+        (5 * RAMAL_WEIGHT_13_DX_6_AWG + 1 * RAMAL_WEIGHT_185_MMX)
+      ).toFixed(2),
+    );
+
+    expect(fallbackP1?.localClients).toBe(5);
+    expect(fallbackP1?.localTrechoDemandKva).toBe(expectedFallbackDemand);
+    expect(weightedP1?.localTrechoDemandKva).toBeDefined();
+    expect(fallbackP1?.localTrechoDemandKva).toBeDefined();
+    if (!weightedP1 || !fallbackP1) {
+      throw new Error("Expected P1 results for both fallback and weighted scenarios");
+    }
+    expect(weightedP1.localTrechoDemandKva).toBe(expectedWeightedDemand);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// calculateBtSummary – via btTopologyFlow imports
+// ---------------------------------------------------------------------------
+
+describe("calculateBtSummary – additional paths", () => {
+  it("includes counts and totalLengthMeters correctly", () => {
+    const topology: BtTopology = {
+      poles: [
+        { id: "P1", lat: 0, lng: 0, title: "P1" },
+        { id: "P2", lat: 0, lng: 0, title: "P2" },
+      ],
+      transformers: [
+        {
+          id: "T1",
+          poleId: "P1",
+          lat: 0,
+          lng: 0,
+          title: "T1",
+          monthlyBillBrl: 0,
+          demandKw: 10,
+          readings: [],
+        },
+      ],
+      edges: [
+        {
+          id: "E1",
+          fromPoleId: "P1",
+          toPoleId: "P2",
+          conductors: [],
+          lengthMeters: 100,
+        },
+      ],
+    };
+
+    const summary = calculateBtSummary(topology);
+    expect(summary.poles).toBe(2);
+    expect(summary.transformers).toBe(1);
+    expect(summary.edges).toBe(1);
+    expect(summary.totalLengthMeters).toBe(100);
+    expect(summary.transformerDemandKva).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// BFS circuit-break path
+// ---------------------------------------------------------------------------
+
+describe("calculateAccumulatedDemandByPole – circuit break stops BFS propagation", () => {
+  it("circuit break pole stops BFS propagation", () => {
+    // P1 (transformer) → P2 (circuit break) → P3
+    // BFS from P1 hits P2 (circuit break), so P3 is not reachable via BFS from T1
+    const topology: BtTopology = {
+      poles: [
+        { id: "P1", lat: 0, lng: 0, title: "P1", ramais: [{ id: "r1", quantity: 2, ramalType: "5 CC" }] },
+        { id: "P2", lat: 0, lng: 0.001, title: "P2", circuitBreakPoint: true, ramais: [{ id: "r2", quantity: 1, ramalType: "5 CC" }] },
+        { id: "P3", lat: 0, lng: 0.002, title: "P3", ramais: [{ id: "r3", quantity: 3, ramalType: "5 CC" }] },
+      ],
+      transformers: [
+        { id: "T1", poleId: "P1", lat: 0, lng: 0, title: "T1", demandKw: 10, readings: [] } as any,
+      ],
+      edges: [
+        { id: "E1", fromPoleId: "P1", toPoleId: "P2", conductors: [], lengthMeters: 10 },
+        { id: "E2", fromPoleId: "P2", toPoleId: "P3", conductors: [], lengthMeters: 10 },
+      ],
+    };
+    const results = calculateAccumulatedDemandByPole(topology, "ramais", 0);
+    // P2 is a circuit break, so no downstream from P2
+    const p2 = results.find((r) => r.poleId === "P2");
+    expect(p2).toBeDefined();
+    expect(p2?.localClients).toBe(1);
+    expect(p2?.accumulatedClients).toBe(1); // no children downstream
   });
 });

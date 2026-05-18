@@ -1000,3 +1000,77 @@ describe("calculateAccumulatedDemandByPole — removeOnExecution exclusion", () 
     expect(byId["P2"].accumulatedClients).toBe(3);
   });
 });
+
+// ---------------------------------------------------------------------------
+// calculateRamalDmdiKva – edge cases not in other tests
+// ---------------------------------------------------------------------------
+
+import {
+  calculateRamalDmdiKva,
+  distanceMetersBetween,
+} from "../../src/utils/btCalculations";
+
+describe("calculateRamalDmdiKva", () => {
+  it("returns 0 when aa24DemandBase is non-finite", () => {
+    expect(
+      calculateRamalDmdiKva({
+        projectType: "ramais",
+        aa24DemandBase: Infinity,
+        sumClientsX: 5,
+        ab35LookupDmdi: 0,
+      }),
+    ).toBe(0);
+  });
+
+  it("returns 0 when sumClientsX is 0", () => {
+    expect(
+      calculateRamalDmdiKva({
+        projectType: "ramais",
+        aa24DemandBase: 10,
+        sumClientsX: 0,
+        ab35LookupDmdi: 0,
+      }),
+    ).toBe(0);
+  });
+
+  it("returns 0 when sumClientsX is negative", () => {
+    expect(
+      calculateRamalDmdiKva({
+        projectType: "ramais",
+        aa24DemandBase: 10,
+        sumClientsX: -1,
+        ab35LookupDmdi: 0,
+      }),
+    ).toBe(0);
+  });
+
+  it("returns 0 when sumClientsX is NaN", () => {
+    expect(
+      calculateRamalDmdiKva({
+        projectType: "ramais",
+        aa24DemandBase: 10,
+        sumClientsX: NaN,
+        ab35LookupDmdi: 0,
+      }),
+    ).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// distanceMetersBetween – deprecated wrapper
+// ---------------------------------------------------------------------------
+
+describe("distanceMetersBetween (deprecated alias)", () => {
+  it("returns same result as haversineDistanceMeters for two points", () => {
+    const a = { lat: -22.9, lng: -43.2 };
+    const b = { lat: -22.91, lng: -43.21 };
+    const dist = distanceMetersBetween(a, b);
+    expect(dist).toBeGreaterThan(0);
+    expect(Number.isFinite(dist)).toBe(true);
+  });
+
+  it("returns 0 when both points are the same", () => {
+    const p = { lat: 0, lng: 0 };
+    expect(distanceMetersBetween(p, p)).toBe(0);
+  });
+});

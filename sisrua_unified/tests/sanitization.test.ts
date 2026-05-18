@@ -166,5 +166,94 @@ describe('Sanitization Utilities', () => {
       const result = sanitizeObject(obj);
       expect(result.tags?.[0]).not.toContain('<b>');
     });
+
+    it('should sanitize number values using sanitizeNumber', () => {
+      const obj = { count: 42, ratio: 0.5 };
+      const result = sanitizeObject(obj);
+      expect(result.count).toBe(42);
+      expect(result.ratio).toBe(0.5);
+    });
+
+    it('should pass through boolean and null values via else branch', () => {
+      const obj = { active: true, data: null as any, value: false };
+      const result = sanitizeObject(obj as any);
+      expect(result.active).toBe(true);
+      expect(result.data).toBeNull();
+      expect(result.value).toBe(false);
+    });
+
+    it('should handle arrays with non-string items (passes through as-is)', () => {
+      const obj = { ids: [1, 2, 3] };
+      const result = sanitizeObject(obj as any);
+      expect(result.ids).toEqual([1, 2, 3]);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Additional tests for full coverage
+// ---------------------------------------------------------------------------
+
+import { validateAndParseJson, escapeSqlString } from '../src/utils/sanitization';
+
+describe('validateAndParseJson', () => {
+  it('parses valid JSON', () => {
+    const result = validateAndParseJson<{ key: string }>('{"key":"value"}');
+    expect(result.key).toBe('value');
+  });
+
+  it('throws on invalid JSON', () => {
+    expect(() => validateAndParseJson('not-json')).toThrow('Invalid JSON provided');
+  });
+
+  it('parses JSON array', () => {
+    const result = validateAndParseJson<number[]>('[1, 2, 3]');
+    expect(result).toEqual([1, 2, 3]);
+  });
+});
+
+describe('escapeSqlString', () => {
+  it('escapes single quotes', () => {
+    expect(escapeSqlString("O'Brien")).toBe("O''Brien");
+  });
+
+  it('escapes backslashes', () => {
+    expect(escapeSqlString('path\\to\\file')).toBe('path\\\\to\\\\file');
+  });
+
+  it('throws when input is not a string', () => {
+    expect(() => escapeSqlString(42 as any)).toThrow('Input must be a string');
+  });
+});
+
+describe('escapeCsvCell – plain string (no special chars)', () => {
+  it('returns the string unchanged when it has no special characters', () => {
+    const result = escapeCsvCell('plain text');
+    expect(result).toBe('plain text');
+  });
+
+  it('handles formula injection starting with @', () => {
+    expect(escapeCsvCell('@SUM(A1:A10)')).toMatch(/^'/);
+  });
+
+  it('handles formula injection starting with +', () => {
+    expect(escapeCsvCell('+1')).toMatch(/^'/);
+  });
+
+  it('handles newline in string', () => {
+    const result = escapeCsvCell('line1\nline2');
+    expect(result).toMatch(/^".*"$/s);
+  });
+});
+
+describe('sanitizeString – throws on non-string', () => {
+  it('throws when input is not a string', () => {
+    expect(() => sanitizeString(42 as any)).toThrow('Input must be a string');
+  });
+});
+
+describe('sanitizeFileName – throws on non-string', () => {
+  it('throws when filename is not a string', () => {
+    expect(() => sanitizeFileName(null as any)).toThrow('Filename must be a string');
   });
 });

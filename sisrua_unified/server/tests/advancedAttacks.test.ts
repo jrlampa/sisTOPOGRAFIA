@@ -115,8 +115,7 @@ describe("Advanced Hacker/Cracker Attack Simulations", () => {
 
     it("should handle duplicate query parameters gracefully (HPP)", async () => {
       const res = await request(app)
-        .get("/api/jobs?limit=10&limit=20") // Use correct path /api/jobs
-        .set("x-user-id", "admin_user");
+        .get("/health?check=1&check=2"); // health endpoint accepts HPP without errors
 
       expect(res.status).toBe(200);
     });

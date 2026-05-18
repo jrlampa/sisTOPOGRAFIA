@@ -11,6 +11,7 @@ import {
   normalizeBtTransformers,
   distanceMeters,
   nextSequentialId,
+  isPointInPolygon,
   DEFAULT_EDGE_CONDUCTOR,
 } from "../../src/utils/btNormalization";
 import type { BtEdge, BtPoleNode, BtTransformer } from "../../src/types";
@@ -331,5 +332,40 @@ describe("nextSequentialId", () => {
 
   it("handles large suffix numbers", () => {
     expect(nextSequentialId(["P100", "P999"], "P")).toBe("P1000");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isPointInPolygon
+// ---------------------------------------------------------------------------
+
+describe("isPointInPolygon", () => {
+  const square = [
+    { lat: 0, lng: 0 },
+    { lat: 1, lng: 0 },
+    { lat: 1, lng: 1 },
+    { lat: 0, lng: 1 },
+  ];
+
+  it("returns true for a point clearly inside a square polygon", () => {
+    expect(isPointInPolygon({ lat: 0.5, lng: 0.5 }, square)).toBe(true);
+  });
+
+  it("returns false for a point clearly outside a square polygon", () => {
+    expect(isPointInPolygon({ lat: 2, lng: 2 }, square)).toBe(false);
+  });
+
+  it("returns false for an empty polygon", () => {
+    expect(isPointInPolygon({ lat: 0, lng: 0 }, [])).toBe(false);
+  });
+
+  it("handles a triangle polygon correctly", () => {
+    const triangle = [
+      { lat: 0, lng: 0 },
+      { lat: 2, lng: 0 },
+      { lat: 1, lng: 2 },
+    ];
+    expect(isPointInPolygon({ lat: 1, lng: 0.5 }, triangle)).toBe(true);
+    expect(isPointInPolygon({ lat: 0, lng: 3 }, triangle)).toBe(false);
   });
 });
